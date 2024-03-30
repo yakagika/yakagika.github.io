@@ -305,24 +305,8 @@ feedCtx = mconcat
 --------------------------------------------------------------------------------
 config :: Configuration
 config = defaultConfiguration
-    { deploySite = deploy
-    }
-  where
-    deploy :: Configuration -> IO ExitCode
-    deploy _c = do
-        branch <- Process.readProcess
-            "git" ["rev-parse", "--abbrev-ref", "HEAD"] ""
-        case words branch of
-            ["master"] -> Process.rawSystem "rsync"
-                [ "--checksum", "-ave", "ssh -p 2222"
-                , "_site/", ""
-                ]
-            ["drafts"] -> Process.rawSystem "rsync"
-                [ "--checksum", "-ave", "ssh -p 2222"
-                , "_site/", ""
-                ]
-            _ -> fail $
-                "I don't know how to deploy the branch " ++ show branch
+  { destinationDirectory = "docs"
+  }
 
 --------------------------------------------------------------------------------
 feedConfiguration :: String -> FeedConfiguration
