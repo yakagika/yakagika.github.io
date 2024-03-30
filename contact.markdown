@@ -3,4 +3,6 @@ title: Contact
 ---
 
 # Contact
-準備中
+
+yakagika@icloud.com
+
