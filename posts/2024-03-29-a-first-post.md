@@ -23,8 +23,10 @@ tableOfContents: true
 - Hakyll+KaTeXで数式を書けるようにした
 - シンタックスハイライトの追加
 - 目次の追加
+- safari対応
+- 細かなデザインの変更
 
-など.
+など. ソースコードは[こちら](https://github.com/yakagika/yakagika.github.io).
 今後なにか変更を加えたら書いていく.
 
 # stack
