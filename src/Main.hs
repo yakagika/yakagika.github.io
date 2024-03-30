@@ -1,0 +1,384 @@
+--------------------------------------------------------------------------------
+{-# LANGUAGE Arrows             #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE OverloadedStrings  #-}
+module Main (main) where
+
+
+--------------------------------------------------------------------------------
+import           Control.Monad   ((>=>))
+import           Prelude
+import           Data.Functor.Identity (runIdentity)
+import           System.Exit     (ExitCode)
+import           System.FilePath (replaceExtension, takeDirectory)
+import qualified Data.Text as T
+import qualified System.Process  as Process
+import qualified Text.Pandoc     as Pandoc
+
+
+--------------------------------------------------------------------------------
+import           Hakyll
+
+import qualified Data.Map as M
+import Text.Pandoc.Highlighting
+mathCtx :: Context a
+mathCtx = field "katex" $ \item -> do
+    katex <- getMetadataField (itemIdentifier item) "katex"
+    return $ case katex of
+                    Just "false" -> ""
+                    Just "off" -> ""
+                    _ -> "<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css\" integrity=\"sha384-wcIxkf4k558AjM3Yz3BBFQUbk/zgIYC2R0QpeeYb+TwlBVMrlgLqwRjRtGZiK7ww\" crossorigin=\"anonymous\">\n\
+                             \<script defer src=\"https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js\" integrity=\"sha384-hIoBPJpTUs74ddyc4bFZSM1TVlQDA60VBbJS0oA934VSz82sBx1X7kSx2ATBDIyd\" crossorigin=\"anonymous\"></script>\n\
+                             \<script defer src=\"https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js\" integrity=\"sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk\" crossorigin=\"anonymous\" onload=\"renderMathInElement(document.body);\"></script>"
+
+
+pandocCodeStyle :: Style
+pandocCodeStyle = breezeDark
+
+tocTemplate = either error Prelude.id . runIdentity . Pandoc.compileTemplate "" $ T.unlines
+  [ "<div class=\"toc\"><div class=\"header\">Table of Contents</div>"
+  , "$toc$"
+  , "</div>"
+  , "$body$"
+  ]
+
+customWriterOptions:: Pandoc.WriterOptions
+customWriterOptions = defaultHakyllWriterOptions
+                        { Pandoc.writerHTMLMathMethod   = Pandoc.MathJax ""       -- LaTeX
+                        , Pandoc.writerNumberSections   = True
+                        , Pandoc.writerHighlightStyle   = Just pandocCodeStyle    -- Syntax
+                        , Pandoc.writerTableOfContents  = True                    -- toc
+                        , Pandoc.writerTOCDepth         = 3
+                        , Pandoc.writerTemplate          = Just tocTemplate
+                        }
+
+
+myPandocCompiler :: Compiler (Item String)
+myPandocCompiler =
+    pandocCompilerWith defaultHakyllReaderOptions customWriterOptions
+--------------------------------------------------------------------------------
+-- | Entry point
+main :: IO ()
+main = hakyllWith config $ do
+    create ["css/syntax.css"] $ do
+      route idRoute
+      compile $ do
+        makeItem $ styleToCss pandocCodeStyle
+
+    -- Static files
+    match ("images/*.jpg" .||. "images/*.png" .||. "images/*.gif" .||.
+            "images/*.mp4" .||.
+            "favicon.ico" .||. "files/**") $ do
+        route   idRoute
+        compile copyFileCompiler
+
+    -- Formula images
+    match "images/*.tex" $ do
+        route   $ setExtension "png"
+        compile $ getResourceBody
+            >>= loadAndApplyTemplate "templates/formula.tex" defaultContext
+            >>= xelatex >>= pdfToPng
+
+    -- Dot images
+    match "images/*.dot" $ do
+        route   $ setExtension "png"
+        compile $ getResourceLBS >>= traverse (unixFilterLBS "dot" ["-Tpng"])
+
+    -- Compress CSS into one file.
+    match "css/*" $ compile compressCssCompiler
+    create ["style.css"] $ do
+        route idRoute
+        compile $ do
+            csses <- loadAll "css/*.css"
+            makeItem $ unlines $ map itemBody csses
+
+    -- Render the /tmp index page
+    match "tmp/index.html" $ do
+        route idRoute
+        compile $ getResourceBody >>= relativizeUrls
+
+    -- Build tags
+    tags <- buildTags "posts/*" (fromCapture "tags/*.html")
+
+    -- Render each and every post
+    ------------------------------------------------------------------
+    match ("posts/*.md" .||. "posts/*.html" .||. "posts/*.lhs") $ do
+        route   $ setExtension ".html"
+        compile $ do
+                underlying <- getUnderlying
+                toc        <- getMetadataField underlying "tableOfContents"
+                let writerOptions' = maybe defaultHakyllWriterOptions (const customWriterOptions) toc
+
+                pandocCompilerWith defaultHakyllReaderOptions writerOptions'
+                >>= saveSnapshot "content"
+                >>= return . fmap demoteHeaders
+                >>= loadAndApplyTemplate "templates/post.html" (postCtx tags)
+                >>= loadAndApplyTemplate "templates/content.html" (mathCtx <> defaultContext)
+                >>= loadAndApplyTemplate "templates/default.html" (mathCtx <> defaultContext)
+                >>= relativizeUrls
+
+    -- Post list
+    create ["posts.html"] $ do
+        route idRoute
+        compile $ do
+            posts <- recentFirst =<< loadAll "posts/*"
+            let ctx = constField "title" "Posts" <>
+                        listField "posts" (postCtx tags) (return posts) <>
+                        defaultContext
+            makeItem ""
+                >>= loadAndApplyTemplate "templates/posts.html" ctx
+                >>= loadAndApplyTemplate "templates/content.html" ctx
+                >>= loadAndApplyTemplate "templates/default.html" ctx
+                >>= relativizeUrls
+
+    -- Post tags
+    tagsRules tags $ \tag pattern -> do
+        let title = "Posts tagged " ++ tag
+
+        -- Copied from posts, need to refactor
+        route idRoute
+        compile $ do
+            posts <- recentFirst =<< loadAll pattern
+            let ctx = constField "title" title <>
+                        listField "posts" (postCtx tags) (return posts) <>
+                        defaultContext
+            makeItem ""
+                >>= loadAndApplyTemplate "templates/posts.html" ctx
+                >>= loadAndApplyTemplate "templates/content.html" ctx
+                >>= loadAndApplyTemplate "templates/default.html" ctx
+                >>= relativizeUrls
+
+        -- Create RSS feed as well
+        version "rss" $ do
+            route   $ setExtension "xml"
+            compile $ loadAllSnapshots pattern "content"
+                >>= fmap (take 10) . recentFirst
+                >>= renderRss (feedConfiguration title) feedCtx
+
+
+    -- Render each and every lecture
+    ------------------------------------------------------------------
+    match ("lectures/*.md" .||. "lectures/*.html" .||. "lectures/*.lhs") $ do
+        route   $ setExtension ".html"
+        compile $ do
+                underlying <- getUnderlying
+                toc        <- getMetadataField underlying "tableOfContents"
+                let writerOptions' = maybe defaultHakyllWriterOptions (const customWriterOptions) toc
+
+                pandocCompilerWith defaultHakyllReaderOptions writerOptions'
+                >>= saveSnapshot "content"
+                >>= return . fmap demoteHeaders
+                >>= loadAndApplyTemplate "templates/lecture.html" (postCtx tags)
+                >>= loadAndApplyTemplate "templates/content.html" (mathCtx <> defaultContext )
+                >>= loadAndApplyTemplate "templates/default.html" (mathCtx <> defaultContext)
+                >>= relativizeUrls
+
+    -- Lecture list
+    create ["lectures.html"] $ do
+        route idRoute
+        compile $ do
+            lectures <- recentFirst =<< loadAll "lectures/*"
+            let ctx = constField "title" "Lecture" <>
+                        listField "lectures" (postCtx tags) (return lectures) <>
+                        defaultContext
+            makeItem ""
+                >>= loadAndApplyTemplate "templates/lectures.html" ctx
+                >>= loadAndApplyTemplate "templates/content.html" ctx
+                >>= loadAndApplyTemplate "templates/default.html" ctx
+                >>= relativizeUrls
+    -- Post tags
+    tagsRules tags $ \tag pattern -> do
+        let title = "Lectures tagged " ++ tag
+
+        -- Copied from posts, need to refactor
+        route idRoute
+        compile $ do
+            lectures <- recentFirst =<< loadAll pattern
+            let ctx = constField "title" title <>
+                        listField "lectures" (postCtx tags) (return lectures) <>
+                        defaultContext
+            makeItem ""
+                >>= loadAndApplyTemplate "templates/lectures.html" ctx
+                >>= loadAndApplyTemplate "templates/content.html" ctx
+                >>= loadAndApplyTemplate "templates/default.html" ctx
+                >>= relativizeUrls
+
+        -- Create RSS feed as well
+        version "rss" $ do
+            route   $ setExtension "xml"
+            compile $ loadAllSnapshots pattern "content"
+                >>= fmap (take 10) . recentFirst
+                >>= renderRss (feedConfiguration title) feedCtx
+
+
+    -- Index
+    match "index.html" $ do
+        route idRoute
+        compile $ do
+            posts <- recentFirst =<< featured =<< loadAll "posts/*"
+            lectures <- recentFirst =<< featured =<< loadAll "lectures/*"
+            let indexContext =
+                    listField "posts" (postCtx tags) (return (posts)) <>
+                    listField "lectures" (postCtx tags) (return lectures) <>
+                    field "tags" (\_ -> renderTagList tags) <>
+                    defaultContext
+
+
+
+            getResourceBody
+                >>= applyAsTemplate indexContext
+                >>= loadAndApplyTemplate "templates/content.html" indexContext
+                >>= loadAndApplyTemplate "templates/default.html" indexContext
+                >>= relativizeUrls
+
+    -- Read templates
+    match "templates/*" $ compile $ templateCompiler
+
+    -- Render some static pages
+    match (fromList pages) $ do
+        route   $ setExtension ".html"
+        compile $ pandocCompiler
+            >>= loadAndApplyTemplate "templates/content.html" defaultContext
+            >>= loadAndApplyTemplate "templates/default.html" defaultContext
+            >>= relativizeUrls
+
+    -- Render the 404 page, we don't relativize URL's here.
+    match "404.html" $ do
+        route idRoute
+        compile $ pandocCompiler
+            >>= loadAndApplyTemplate "templates/content.html" defaultContext
+            >>= loadAndApplyTemplate "templates/default.html" defaultContext
+
+    -- Render RSS feed
+    create ["rss.xml"] $ do
+        route idRoute
+        compile $ do
+            loadAllSnapshots "posts/*" "content"
+                >>= fmap (take 10) . recentFirst
+                >>= renderRss (feedConfiguration "All posts") feedCtx
+
+    -- Showcases
+    match "photos/*/index.html" $ do
+        route idRoute
+        compile $ getResourceBody
+            >>= relativizeUrls
+    match "photos/*/*.jpg" $ do
+        route idRoute
+        compile copyFileCompiler
+  where
+    pages =
+        [ "contact.markdown"
+        , "research.markdown"
+        , "links.markdown"
+        ]
+
+    writeXeTex :: Item Pandoc.Pandoc -> Compiler (Item String)
+    writeXeTex = traverse $ \pandoc ->
+        case Pandoc.runPure (Pandoc.writeLaTeX Pandoc.def pandoc) of
+            Left err -> fail $ show err
+            Right x  -> return (T.unpack x)
+
+--------------------------------------------------------------------------------
+postCtx :: Tags -> Context String
+postCtx tags = mconcat
+    [ modificationTimeField "mtime" "%U"
+    , dateField "date" "%B %e, %Y"
+    , tagsField "tags" tags
+    , Context $ \key -> case key of
+        "title" -> unContext (mapContext escapeHtml defaultContext) key
+        _       -> unContext mempty key
+    , defaultContext
+    ]
+
+
+--------------------------------------------------------------------------------
+feedCtx :: Context String
+feedCtx = mconcat
+    [ bodyField "description"
+    , Context $ \key -> case key of
+        "title" -> unContext (mapContext escapeHtml defaultContext) key
+        _       -> unContext mempty key
+    , defaultContext
+    ]
+
+
+--------------------------------------------------------------------------------
+config :: Configuration
+config = defaultConfiguration
+    { deploySite = deploy
+    }
+  where
+    deploy :: Configuration -> IO ExitCode
+    deploy _c = do
+        branch <- Process.readProcess
+            "git" ["rev-parse", "--abbrev-ref", "HEAD"] ""
+        case words branch of
+            ["master"] -> Process.rawSystem "rsync"
+                [ "--checksum", "-ave", "ssh -p 2222"
+                , "_site/", ""
+                ]
+            ["drafts"] -> Process.rawSystem "rsync"
+                [ "--checksum", "-ave", "ssh -p 2222"
+                , "_site/", ""
+                ]
+            _ -> fail $
+                "I don't know how to deploy the branch " ++ show branch
+
+--------------------------------------------------------------------------------
+feedConfiguration :: String -> FeedConfiguration
+feedConfiguration title = FeedConfiguration
+    { feedTitle       = "yakagika - " ++ title
+    , feedDescription = "Personal blog of yakagika"
+    , feedAuthorName  = "yakagika"
+    , feedAuthorEmail = "kaya3728@gmail.com"
+    , feedRoot        = ""
+    }
+
+
+--------------------------------------------------------------------------------
+-- | Hacky.
+xelatex :: Item String -> Compiler (Item TmpFile)
+xelatex item = do
+    TmpFile texPath <- newTmpFile "xelatex.tex"
+    let tmpDir  = takeDirectory texPath
+        pdfPath = replaceExtension texPath "pdf"
+
+    unsafeCompiler $ do
+        writeFile texPath $ itemBody item
+        _ <- Process.system $ unwords ["xelatex", "-halt-on-error",
+            "-output-directory", tmpDir, texPath, ">/dev/null", "2>&1"]
+        return ()
+
+    makeItem $ TmpFile pdfPath
+
+
+--------------------------------------------------------------------------------
+pdfToPng :: Item TmpFile -> Compiler (Item TmpFile)
+pdfToPng item = do
+    let TmpFile pdfPath = itemBody item
+        pngPath         = replaceExtension pdfPath "png"
+    unsafeCompiler $ do
+        _ <- Process.system $ unwords
+            ["convert", "-density", "150", "-quality", "90", pdfPath, pngPath]
+        return ()
+    makeItem $ TmpFile pngPath
+
+
+--------------------------------------------------------------------------------
+photographCtx :: Context String
+photographCtx = mconcat
+    [ dateField "date" "%B %e, %Y"
+    , metadataField
+    ]
+
+
+--------------------------------------------------------------------------------
+featured :: MonadMetadata m => [Item a] -> m [Item a]
+featured = filterM $ \item -> do
+    val <- getMetadataField (itemIdentifier item) "featured"
+    pure $ val == Just "true"
+
+
+--------------------------------------------------------------------------------
+filterM :: Monad m => (a -> m Bool) -> [a] -> m [a]
+filterM p = mapM (\x -> (,) x <$> p x) >=> pure . map fst . filter snd
