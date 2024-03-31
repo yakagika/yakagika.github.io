@@ -1,5 +1,5 @@
 ---
-title: このブログについて(Hakyllカスタマイズ)
+title: Hakyllでブログ作成
 description: 最初の投稿. Hakyllでブログを作成するあれこれ.
 tags: haskell
 featured: true
