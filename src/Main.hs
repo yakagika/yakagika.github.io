@@ -49,7 +49,8 @@ customWriterOptions = defaultHakyllWriterOptions
                         , Pandoc.writerHighlightStyle   = Just pandocCodeStyle    -- Syntax
                         , Pandoc.writerTableOfContents  = True                    -- toc
                         , Pandoc.writerTOCDepth         = 3
-                        , Pandoc.writerTemplate          = Just tocTemplate
+                        , Pandoc.writerTemplate         = Just tocTemplate
+                        , Pandoc.writerExtensions       = Pandoc.enableExtension Pandoc.Ext_fenced_divs Pandoc.pandocExtensions
                         }
 
 
