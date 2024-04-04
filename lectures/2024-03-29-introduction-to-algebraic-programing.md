@@ -276,7 +276,7 @@ hello-world
 
 作成されたディレクトリの構成は以下のようになっています.
 
-::: note
+~~~
 .
 ├── app
 │    └── Main.hs
@@ -288,7 +288,7 @@ hello-world
 ├── package.yaml
 └── stack.yaml
 
-:::
+~~~
 
 それぞれの用途と意味は以下のとおりです.
 
