@@ -29,20 +29,14 @@ tableOfContents: true
 
 ## Haskellとは
 
-例のレポートのまとめ
+[`Haskell`](https://www.haskell.org)は,1987年に生まれた**静的型付けの純粋関数型言語**です. Haskellには,様々な特徴がありますが,本講義では,特に代数的データ型による,代数的なプログラミングに焦点をあてて,代数的な仕様記述とHaskellの関連を中心に議論します.
+
+Haskellがどんな言語で,どのようなメリットがあるのか,という話は今後本講義でも扱いますが,ここでは深入りしません. 取り敢えず,どのような言語かを細かく説明する前に,関数型言語の雰囲気を掴んでもらおうと思います.
 
 
-## 関数型言語とは
+## 関数型言語の雰囲気
 
-
-## 設計も関数型で
-
-
-
-関数型言語の設計仕様は,関数型です. 手続き型言語の仕様定義にもいろいろな種類があります.
-
-例の論文のまとめ
-
+HaskellはLispやOCamlなどと同じ関数型言語です.関数型言語は関数によってプログラムを構築していく点にありますが,近年ではこのスタイルは関数型言語の専売特許というわけではなくなりつつあり,関数で書くことの特別さは,薄れつつあります. なので,ここでは,関数型言語の細かい機能について見る前に,関数型言語の考え方について,手続き型言語との違いという観点で見ていきましょう.
 
 関数型言語でプログラミングををするとは,**｢それが何か｣**を分解して書いていくことです.
 関数型プログラミングが宣言的であると言われる所以はそこにあります.手続き型言語が,｢何をどうするのか｣という手続きを書くのにたいして,｢欲しいものはなにか｣を宣言します.
@@ -61,7 +55,7 @@ tableOfContents: true
 
 という観点に注目します. 以下,例としてフィボナッチ数について考えてみましょう.
 
-フィボナッチ数とは,レオナルド・フィボナッチが,以下の｢ウサギの問題｣問題におけるウサギの増え方として考案しました.
+フィボナッチ数は,レオナルド・フィボナッチが,以下の｢ウサギの問題｣におけるウサギの増え方として考案しました.
 
 ::: note
 - 1つがいのウサギは,生まれてから2ヶ月後から毎月1つがいずつのウサギを産む
@@ -70,12 +64,13 @@ tableOfContents: true
 
 - この条件の下で,生まれたばかりの1つがいのウサギは1年の間に何つがいのウサギになるか
 :::
-これについて,取り敢えず12ヶ月までのフィボナッチ数をプログラムを用いて計算してみましょう.
 
 ::: warn
 ※
 普通フィボナッチ数というと,0から始まりますが,ここではウサギの例で考えたいので1から始まることにします.
 :::
+
+これについて,取り敢えず12ヶ月までのフィボナッチ数をプログラムを用いて計算してみましょう.
 
 まずは手続き型の考え方で数を数えてみます. 手続き型言語的には,｢ウサギのつがいの数｣を｢どのように求めるのかという手続き｣をプログラムに記述します.
 
@@ -143,10 +138,11 @@ print(total_pairs)
 
 こういった考え方が,いわゆる手続き型的な考え方とプログラミングの方法になります.
 
-では,関数型の考え方とはどのようなものでしょうか. 先ほど引用したように,関数型では,それが何かを考えます.つまり,フィボナッチ数とはなにかということを考えるわけですね.
+では,関数型の考え方とはどのようなものでしょうか. 先ほど引用したように,関数型では,それが何かを考えます.つまり,ここで問われている｢つがいの数｣を抽象化して,その特徴を記述するわけですね.
 
-実はこのウサギのつがいの合計どの月でもは,1,1,2,3,5,8という風に前々月と前月のつがいの合計になることが知られています.
+特定の数がなにかのルールに基づいて段々と増えていくというときに,それを並べてみて,法則性を探るということが一般的に行われます.これは,高校数学で扱う漸化式の考え方ですね.
 
+月ごとのつがいの数を,並べてみると以下のようになります. そして,その増え方を計算してみると一定のルールに基づいていることが分かります.
 
 | 月    | つがいの数 | 計算     |
 | :---: | :---:      | :------: |
@@ -164,7 +160,8 @@ print(total_pairs)
 |11     | 144        | 55 + 89  |
 |12     | 233        | 89 + 144 |
 
-このように月をnとするとフィボナッチ数の正体は以下の漸化式であることがわかります.
+
+実はこのウサギのつがいの合計どの月でもは,1,1,2,3,5,8という風に前々月と前月のつがいの合計になることが知られています. フィボナッチ数を漸化式として捉えると,第n月のフィボナッチ数の正体は以下のように得られます.
 
 $$ F_0 = 1 $$
 $$ F_1 = 1 $$
@@ -200,7 +197,7 @@ ghci> f 12
 233
 ~~~
 
-当然フィボナッチ数とはなにかということは,一般に広く知られていますし,Pythonでの実装もフィボナッチ数が漸化式であるという前提で,以下のように書くこともできます.
+当然フィボナッチ数の漸化式は一般に広く知られていますし, むしろ最初から漸化式として学習することが多いでしょう. したがって, Pythonでの実装もフィボナッチ数が漸化式であるという前提で,以下のように書くほうが一般的です.
 
 ~~~ python
 def Fib(n):
@@ -212,20 +209,23 @@ def Fib(n):
         return Fib(n-1) + Fib(n-2)
 ~~~
 
-最近では,PythonやJavaScriptなどの手続き型の言語にも,関数型の考え方が導入され,内包表記,再帰,ラムダ式などの関数型のシンタックスも一般的に使われるようになっています. 逆にHaskell等の関数型言語においても,手続き型のほうが便利な場合には手続き型の記法を利用します.
+また,最近では,PythonやJavaScriptなどの手続き型の言語にも,関数型の考え方が導入され,内包表記,再帰,ラムダ式などの関数型のシンタックスも一般的に使われるようになっています. 逆にHaskell等の関数型言語においても,手続き型のほうが便利な場合には手続き型の記法を利用します.
 
 ::: note
 これらの詳細についてはこのあとやっていきます.
 :::
 
-したがって,関数型的な考え方と,手続き型の考え方というのは現在では,それほど明確に分かれるものではありません.
+したがって,現在では関数型的な考え方と,手続き型の考え方というのは,それほど明確に分かれるものではありません.
 
-ここでは,あえて手続き型の考え方と関数型の考え方の違いを説明するためにあまり用いられない方法でPythonの事例を書きましたが,なんとなく手続き型と関数型の考え方の違いがわかってもらえたのではないかと思います.
+ここでは,あえて手続き型の考え方と関数型の考え方の違いを説明するためにあまり用いられない方法でPythonの事例を書きましたが,大げさに書けば手続き型と関数型の考え方の違いとはこのような考え方,問題へのアプローチの仕方にあります.
 
 ## 関数型だと何が嬉しいのか
 
 前節では,関数型の考え方に関して簡単な事例をしましました. 関数型の考え方がしっくり来る人は,それが関数型を使う理由になるでしょうが,しっくり来るという抽象的な話ではなく,具体的な関数型言語のメリット/デメリットをこの節では紹介します. なお,関数型言語と一言でいっても,様々な言語がありますし,前述のように手続き型と関数型が明確に分かれる時代でもありません.
 
+関数型言語の設計仕様は,関数型です. 手続き型言語の仕様定義にもいろいろな種類があります.
+
+例の論文のまとめ
 
 
 
@@ -234,6 +234,8 @@ def Fib(n):
 厳密な仕様記述を書くとプログラムと1体1対応になる.そもそもHaskellで書けばプログラムと仕様が対応関係を持つようになりますし,数式への変換も容易です.
 
 そういった意図もあり,私が内閣府で統計作成を市ていた時代には, 数式による定義,とプログラムのペアを対応付けたOSSとして基幹統計を開発することを提唱していましたが,それは色々な制約でまだ実現していません.
+
+## 設計も関数型で
 
 
 ### 雑談:なんでHaskell?
@@ -244,11 +246,230 @@ def Fib(n):
 <details>
     <summary> 開く </summary>
 
-Stack, Cabal, GHCUPについて
+言語の特徴や意味を色々と説明してきましたが,習うより慣れろということで,そろそろHaskellを利用してみましょう.Haskell Haskellの開発環境には様々なものがありますが,現在良く使われているものとして[Cabal](https://www.haskell.org/cabal/) + [GHCup](https://www.haskell.org/ghcup/)あるいは[Stack](https://docs.haskellstack.org/en/stable/)の2つがあります. CabalとStackはプロジェクトのビルドを行うためのアーキテクチャであり,GHCupは周辺環境のインストーラーです. どちらで開発を行ってもいいのですが,本稿ではStackを用います.
 
+他の言語と同様にHaskellでも様々なpackage(ライブラリ)を利用するのですが,package毎に他のpackageや,GHC(Haskellのコンパイラ)との依存関係があります.それらを使用するpackage事に調整することが人間には至難の業であり, 特定のpackageの依存関係を満たせば他のpackageの依存関係が満たされなくなるという試行錯誤を永遠と繰り返すことを`cabal hell`などと呼びます.
 
+Stackにはそのようなpackage間の依存関係を満たすバージョンの組み合わせ(resolver)を利用して,自動で解決してくれる機能があり,Haskellでのブロジェクトの開発を容易にしてくれます. resolverの集まりを[Stackage]((https://www.stackage.org))といい, resolverで扱われるpackageをまとめて管理するレポジトリのことを[Hackage](https://hackage.haskell.org)といいます.
 
 ## 環境構築
+
+Stackの環境構築の方法は基本的には,[公式サイト](https://docs.haskellstack.org/en/stable/)に従ってください. 使用しているOS毎にインストール方法が異なるので注意しましょう特にMacユーザーはIntel Mac と Apple silliconでインストール方法が異なるので正しい方を選択するようにしてください.
+
+インストールが終わったら,以下のコマンドでstackを最新版にupgradeします.
+
+~~~ sh
+stack upgrade
+~~~
+
+次に,開発用のディレクトリに移動して,開発用のプロジェクトを作成していきます. Stackでは,新しいプロジェクトの作成は`stack new [project-name]` コマンドで行われます. `stack new [project-name]`コマンドで新しいプロジェクトを作成すると,必要なファイルが含まれた`[project-name]`という名前のディレクトリが作成されます. 作成されたディレクトリに移動しましょう.
+
+~~~ sh
+> ls
+
+> stack new hello-world
+> ls
+hello-world
+
+> cd hello-world
+~~~
+
+作成されたディレクトリの構成は以下のようになっています.
+
+::: note
+.
+├── app
+│    └── Main.hs
+├── src
+│    └── Lib.hs
+├── test
+│   └── Spec.hs
+├── hello-world.cabal
+├── package.yaml
+└── stack.yaml
+
+:::
+
+それぞれの用途と意味は以下のとおりです.
+
+- `app`フォルダの中には,実行可能ファイル用のプログラム
+
+    - プロジェクトをbuildすると,`Main.hs`から実行可能ファイル(executable)が生成されます
+
+    - この後,`Main.hs`の中身を編集して`Hello World`用のプログラムを作成します.
+
+- `src`フォルダ内には,実行可能ファイルで利用するライブラリが格納されます.
+
+    - ここに自分で開発したライブラリを含めることも可能です.
+
+- `package.yaml`ファイルはプロジェクトの設定を記入するファイルです.
+
+    - Hackageなどの外部のライブラリを利用する場合には,`package.yaml`内の`dependencies:`部分に,使用したいライブラリを記述します.
+
+    - Stackは`stack setup`コマンドによって,package.yaml内に記述されたライブラリの依存関係を解決するresolverを自動で選択しますが,
+    自分で使いたいresolverを`package.yaml`内の`resolver:`に続けて書くことで,指定することも可能です.
+
+    - その他実行可能ファイルの設定や,コンパイルオプションなどを指定することができます.
+
+    - `package.yaml` の設定に従って,プロジェクトの設定ファイル `test.cabal`が自動で作成されます.
+    基本的にstackを使っている範囲では`.cabal`ファイルを自分で編集することはありません.
+
+
+- `stack.yaml`ファイルは,stackの設定を記入します
+
+    - resolverに含まれないライブラリ(自分のGitHub上にあるライブラリなど)を指定する,あるいはあえてresolverとは異なるバージョンを利用するときなどには
+    `extra-deps:`に続けて,使用したいライブラリのレポジトリやバージョンを明示します.
+
+これらの利用法は,今後ライブラリを使用し始めたときに改めて学習すれば大丈夫ですが,取り敢えずプログラムを作成してきましょう.
+
+`app/Main.hs`をテキストエディタで開いて編集していきましょう.
+
+`app/Main.hs`を開くと,以下のようなファイル担っているかと思います. Haskellのプログラムをコンパイルした実行可能ファイルでは,`main =` 内の記述が実行されます.
+
+~~~ haskell
+module Main (main) where
+
+import Lib
+
+main :: IO ()
+main = someFunc
+
+~~~
+現在は`sumFunc`という関数が実行されます. `sumFunc`は `import Lib` の記述によって, `src/Lib.hs`からimportされています. `src/Lib.hs`を開くと,
+
+~~~ haskell
+module Lib
+    ( someFunc
+    ) where
+
+someFunc :: IO ()
+someFunc = putStrLn "someFunc"
+~~~
+
+という風に`someFunc`が定義されています. プログラム内の `someFunc :: IO ()` は`someFunc`関数の型注釈です. `IO ()` というのは,標準入出力 `IO` において, アクション `()` を実行するという意味ですが,ここではそれぞれの詳細は省きます. `putStrLn` は文字列を引数にとり,標準入出力`IO`に受け取った文字列を出力するというアクション` ()`を返す関数であり,ここでは,`"someFunc"`という文字列が出力されます. この`"someFunc"` 部分を `"Hello World"`に書き換えれば,Hello Worldは実行できます.
+
+`Lib.hs` に`helloWorld`と出力する関数`helloWorld`を追加し,全体を以下のように書き換えましょう.
+
+~~~ haskell
+module Lib
+    ( someFunc
+    , helloWorld
+    ) where
+
+someFunc :: IO ()
+someFunc = putStrLn "someFunc"
+
+helloWorld :: IO ()
+helloWorld = putStrLn "Hello World"
+~~~
+
+`module Lib () where` はモジュール宣言で,他のプログラムから`import Lib`で,`src/Lib.hs`内に定義された関数などの内 `()`内に記述されたものを読み込むことができるようにします.
+作成した`helloWorld`関数を`()`内に`helloWorld`を追加することを忘れないようにしましょう.
+
+併せて `app/Main.hs` を書き換えて,作成した`helloWorld`を実行しましょう.
+
+~~~ haskell
+module Main (main) where
+
+import Lib
+
+main :: IO ()
+main = helloWorld
+~~~
+
+このプログラムをコンパイルして得られる実行可能ファイルの名前などは,`package.yaml`内で定義されています.
+
+~~~ yaml
+library:
+  source-dirs: src
+
+executables:
+  hello-world-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - hello-world
+~~~
+
+`library:`以下の記述で,利用するライブラリのPATH,`executables:`以下の記述で実行可能ファイルについて記述されています. ここでは, executableとして'app'フォルダ内にある'Main.hs'が'hello-world-exe'という名称でコンパイルされることが書かれています.`ghc-options:`以下は,コンパイル時のオプションを設定していますが,ここでは詳細は省略します.
+
+`Main.hs`以外のファイルをここに追加すれば,いくらでも実行可能ファイルは増やすことができます.
+
+`hello-world-exe`部分をもっと短い名前に変更することも可能です.なお生成される実行可能ファイルはMacでは`hello-world-exe`,Windowsでは`hello-world-exe.exe`になるので注意してください.
+
+それでは,以下のコマンドでこのプロジェクトをbuildして,実行してみましょう.
+
+~~~ sh
+stack build
+stack exec hello-world-exe
+~~~
+
+`stack build`のあと,プログラムにミスがなければ以下のように出力されるはずです(一部省略しています).
+
+~~~ sh
+❯ stack build
+hello-world> build (lib + exe) with ghc-9.6.4
+Preprocessing library for hello-world-0.1.0.0..
+Building library for hello-world-0.1.0.0..
+[1 of 2] Compiling Lib [Source file changed]
+Preprocessing executable 'hello-world-exe' for hello-world-0.1.0.0..
+Building executable 'hello-world-exe' for hello-world-0.1.0.0..
+[1 of 2] Compiling Main [Source file changed]
+[3 of 3] Linking .stack-work/dist/x86_64-osx/ghc-9.6.4/build/hello-world-exe/hello-world-exe [Objects changed]
+hello-world> copy/register
+Registering library for hello-world-0.1.0.0..
+~~~
+
+
+どこかで,タイプミスなどがあると例えば以下のようなエラーが表示される可能性もあります(一部省略しています).
+
+~~~ sh
+hello-world> build (lib + exe) with ghc-9.6.4
+Preprocessing library for hello-world-0.1.0.0..
+Building library for hello-world-0.1.0.0..
+Preprocessing executable 'hello-world-exe' for hello-world-0.1.0.0..
+Building executable 'hello-world-exe' for hello-world-0.1.0.0..
+[1 of 2] Compiling Main [Source file changed]
+
+/Users/akagi/Documents/Programs/Haskell/blog/hello-world/app/Main.hs:6:8: error: [GHC-88464]
+    Variable not in scope: hellWorld :: IO ()
+    Suggested fix: Perhaps use ‘helloWorld’ (imported from Lib)
+  |
+6 | main = hellWorld
+  |        ^^^^^^^^^
+
+Error: [S-7282]
+       Stack failed to execute the build plan.
+
+       While executing the build plan, Stack encountered the error:
+
+       [S-7011]
+       While building package hello-world-0.1.0.0
+       Process exited with code: ExitFailure 1
+~~~
+
+上のエラーでは, `Main.hs`の6行目で使用されている,`hellWorld`が定義されていないという意味になります.
+`helloWorld`と`o`を追加して正しい名称にしたあともう一度 `stack build`をしてみましょう.
+
+`stack exec hello-world-exe`の後,`Hello World`と出力されていれば成功です.
+
+なお,build と 実行を併せて一つのコマンド`stack run` で代替することも可能です.
+
+~~~ sh
+❯ stack run hello-world-exe
+hello-world> build (lib + exe) with ghc-9.6.4
+Preprocessing library for hello-world-0.1.0.0..
+Building library for hello-world-0.1.0.0..
+Preprocessing executable 'hello-world-exe' for hello-world-0.1.0.0..
+Building executable 'hello-world-exe' for hello-world-0.1.0.0..
+hello-world> copy/register
+Registering library for hello-world-0.1.0.0..
+Hello World
+~~~
 
 </details>
 
@@ -258,10 +479,16 @@ Stack, Cabal, GHCUPについて
     <summary> 開く </summary>
 同名のQuitaの紹介
 
+取り敢えず,ghciの上で簡単な操作を体験してみましょう.
+
+## 終了
+
+## コメントアウト
+
+## 複数行モード
 
 ## 四則演算
 
-取り敢えず,ghciの上で簡単な操作を体験してみましょう.
 
 
 ## 型
