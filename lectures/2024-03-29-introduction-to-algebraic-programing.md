@@ -524,7 +524,7 @@ Hello World
 
 </details>
 
-# Haskellの基礎
+# Haskellを使ってみよう
 
 <details>
     <summary> 開く </summary>
@@ -674,7 +674,43 @@ ghci> 5 `mod` 2
 
 ### 数値型
 
+Haskellの基本的な数値型には以下の4つがあります(これ以外にも色々ありますが.)
+
+|  型      | 意味             |
+| ------   | ---------------- |
+| Int      | 固定長整数型     |
+| Integer  | 多倍長整数型     |
+| Float    | 単精度浮動小数型 |
+| Double   | 倍精度浮動小数型 |
+
+
+
+`Int`と`Integer`は`整数`, `Float`と`Double`は`小数`を表しています.
+
+`固定長/多倍長`, `単精度/倍精度` というのはどういう意味でしょうか?
+
+コンピューターでは,データはすべて`0`と`1`のいずれかを表す`bit`の集まりによって表現されます. ちなみに`8bit`で`1byte`, `1024byte`で`1Kbyte`です.したがって,プログラミングで扱うデータに使用できるデータ量には制限があり,無限の長さの整数や少数を利用することはできません.
+
+コンピューターの計算は主に中央演算処理装置(CPU)で行われますが,その計算過程でデータを一時的に記録するCPU内部の装置のことを汎用レジスタといい,現在では`64bit`以下の汎用レジスタを持った`64bit CPU`が良く利用されています.
+
+現在一般的な`64bit CPU`においてHaskellは整数と小数を表すのに一般的に最大`64bit`の領域を確保します. したがって,整数では64bitで表せるデータ量(`-9223372036854775808 ~ 9223372036854775807`)を超えた整数を扱うことはできません.
+
+ちなみにIntの最大値,最小値はghciで以下のように確認できます(
+使用しているコンピューターによっては結果が変わる可能性があります).
+
+~~~ sh
+ghci> minBound :: Int
+-9223372036854775808
+ghci> maxBound :: Int
+9223372036854775807
+~~~
+
+
+
 ### 文字列型
+
+{-# LANGUAGE OverloadedStrings #-}
+import Data.Text
 
 ### タプル
 
@@ -682,6 +718,84 @@ ghci> 5 `mod` 2
 
 ### ツリー
 
+
+## スクリプトファイルの実行
+
+::: warn
+ここから先は,コードが複数行に渡ることが多くなるので,ghciの利用をやめてスクリプトを書きます.
+
+`app` フォルダ内に `practice.hs`を作成しそこで事例の勉強をしましょう.
+:::
+
+`practice.hs` ファイルを作成したら,ファイルを以下のように記述しましょう.
+
+~~~ haskell
+{-# LANGUAGE OverloadedStrings #-}
+import Data.Text
+
+main :: IO ()
+main = putStrLn "practice"
+~~~
+
+::: warn
+`module XXX () where`
+
+という記述は,他のファイルからインポート可能なmodule化を行うための宣言です.
+また,Stackでは,**大文字で始まる`*.hs`ファイルは,moduleとして認識されます.**
+
+したがって,一つのプロジェクトに複数の実行可能ファイルを生成する場合には,
+
+`module XXX () where`
+
+の記述をなくし, ファイル名を小文字ではじめる必要があります.
+
+これは,`Hello World`のために編集した`Main.hs`も同様であるため,`Main.hs`を`hello.hs`に名前を変更し,ファイル内の `module Main (main) where`の記述も削除し,以下のように変更しましょう.
+
+cf. [他にもいくつかの方法があるようです](https://www.reddit.com/r/haskell/comments/capuz7/multiple_executable_in_project/)
+:::
+
+~~~ haskell
+import Lib
+
+main :: IO ()
+main = helloWorld
+~~~
+
+`package.yaml`の`executables:`を以下のように編集して`hello.hs`と`practice.hs`を実行可能ファイルとして登録します. `Data.Text`を利用するために,`dependencies:`以下に`- text`を追加しておきましょう.
+
+~~~ yaml
+dependencies:
+- base >= 4.7 && < 5
+- text
+
+#ghc-options:
+
+library:
+  source-dirs: src
+
+executables:
+  hello:
+    main:                main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - hello-world
+
+  practice:
+    main:                practice.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - hello-world
+~~~
+
+`stack run practice` で`practice!`と表示されれば成功です.
 
 
 ## 関数と演算子
@@ -691,9 +805,12 @@ ghci> 5 `mod` 2
 Haskellでは,数学の記法と非常に近い方法で関数を定義します.
 例えば,
 
-$$ f(x) = x + 1 $$
+$$
+f : \mathbb{Z} \rightarrow \mathbb{Z} \\
+f(x) = x + 1
+$$
 
-という,`x`を受け取って`x + 1`を返すだけの関数について考えましょう.
+という,整数`x`を受け取って整数`x + 1`を返すだけの関数について考えましょう.
 
 Haskellでは上の関数は以下のように定義されます.
 
@@ -799,77 +916,13 @@ ghci| infixr 7 .*
 ghci| :}
 ~~~
 
-## スクリプトファイルの実行
-
-::: warn
-ここから先は,コードが複数行に渡ることが多くなるので,ghciの利用をやめてスクリプトを書きます.
-(infix の時点で複数行になっていて少し面倒でしたね.)
-
-`app` フォルダ内に `practice.hs`を作成しそこで事例の勉強をしましょう.
-:::
-
-`practice.hs` ファイルを作成したら,ファイルを以下のように記述しましょう.
-
-~~~ haskell
-main :: IO ()
-main = putStrLn "practice"
-~~~
-
-::: warn
-`module XXX () where`
-
-という記述は,他のファイルからインポート可能なmodule化を行うための宣言です.
-また,Stackでは,**大文字で始まる`*.hs`ファイルは,moduleとして認識されます.**
-
-したがって,一つのプロジェクトに複数の実行可能ファイルを生成する場合には,
-
-`module XXX () where`
-
-の記述をなくし, ファイル名を小文字ではじめる必要があります.
-
-これは,`Hello World`のために編集した`Main.hs`も同様であるため,`Main.hs`を`hello.hs`に名前を変更し,ファイル内の `module Main (main) where`の記述も削除し,以下のように変更しましょう.
-
-cf. [他にもいくつかの方法があるようです](https://www.reddit.com/r/haskell/comments/capuz7/multiple_executable_in_project/)
-:::
-
-~~~ haskell
-import Lib
-
-main :: IO ()
-main = helloWorld
-~~~
-
-`package.yaml`の`executables:`を以下のように編集して`hello.hs`と`practice.hs`を実行可能ファイルとして登録します.
-
-~~~ yaml
-executables:
-  hello:
-    main:                main.hs
-    source-dirs:         app
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - hello-world
-
-  practice:
-    main:                practice.hs
-    source-dirs:         app
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - hello-world
-~~~
-
-`stack run practice` で`practice!`と表示されれば成功です.
 
 
 ## パターンマッチと指示関数
 
 関数型言語において,手続き型言語におけるIF文に相当するのが**パターンマッチ**と**指示関数(特性関数)**です.
+
+- **パターンマッチ**
 
 パターンマッチに近い概念は既にフィボナッチ数の漸化式として出てきています.フィボナッチ数の漸化式は,以下のように表されます.
 
@@ -904,19 +957,30 @@ fib n = fib (n - 1) + fib (n - 2)
 `show`の詳細は後ほど扱いますが,どの様に標準出力に表示するかを定めてあるデータ型を文字列に変換する関数です.
 
 ~~~ haskell
-strHead []     = "Empty"
-strHead [x]    = show x
-strHead (x:xs) = show x
-
+-- | strHead
 -- >>> strHead []
 -- "Empty"
 -- >>> strHead [1]
 -- "1"
 -- >>> strHead [3,4,5]
 -- "3"
+strHead []     = "Empty"
+strHead [x]    = show x
+strHead (x:xs) = show x
 ~~~
 
-タプルのパターンマッチ
+パターンマッチはこのようにリスト`x:xs`の先頭部分`x`を指定するなどの利用法が可能です. 値の特定の部分を取得する用法として頻出なのがタプルを引数に取るパターンマッチです.
+
+以下のコードは,3つ組のタプル`(x,y,z)`から指定した位置の値を取り出す関数`getFromTuple`です.
+
+~~~ haskell
+getFromTuple (x,y,z) 0 = x
+getFromTuple (x,y,z) 1 = y
+getFromTuple (x,y,z) 2 = z
+~~~
+
+このような用法は後に紹介する代数的データ型を扱う際にも頻出します.
+
 
 ガード
 case文
@@ -1006,9 +1070,11 @@ let
 
 </details>
 
-# 代数的データ型
+## 代数的データ型
 <details>
     <summary> 開く </summary>
+
+Haskellのデータ型はすべて代数的データ型です. 代数的データ型には, **列挙型**,**直積型**,**直和型**があり,構文として**レコード構文**などが存在します.
 
 集合論の説明と対応したコードの書き方.
 (圏論で書けというのはそのうちやりたい.)
@@ -1099,6 +1165,7 @@ S={x,y,z}のとき，Sの部分集合は
 また，集合Sの部分集合全体の集合を冪集合といい，pow[S]または2^S と書く．
 pow[{x,y,z}]={{x},{x,y},{x,z},{z,y},{x,y,z},ϕ}
 
+## 型注釈と関数
 
 ## 命題と条件式
 集合を定義するにあたって,数理的な定義の記法に用いる演算子を導入する. 数理的な定義の内,そこで述べられた言説が,「真か偽のいずれかに分類可能とされるもの」を命題といい,条件が与えられた命題を条件式という.
@@ -1140,7 +1207,7 @@ Boolについて
 
 ## 積と和
 
-## 代数とクラス
+# 代数とクラス
 
 ## マグマ
 
