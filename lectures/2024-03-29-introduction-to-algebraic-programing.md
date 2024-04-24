@@ -1177,6 +1177,46 @@ executables:
 
 `stack run practice` で`practice!`と表示されれば成功です.
 
+これからスクリプトで実行していくにあたって,`practice.hs`の中身をもう少し詳しく見てみましょう.
+
+~~~ haskell
+import Lib
+
+main :: IO ()
+main = putStrLn "practice!!"
+~~~
+
+haskellのプログラムを実行すると, `main関数`のみが実行されます.
+
+Haskellは関数型言語なので,これから`import Lib`と`main`の間に関数を定義していき,`main`の中で実行していくことになります.
+
+main 関数で行うことは関数として実行することになりますが,これから学習する通常の関数の定義で記述するのは今は難しいので,`do`記法を紹介します. main 関数の=以下に`do`と書くことで,do以下のインデントブロックに記述された内容が手続き型的に1行ずつ実行されます.
+
+以下のプログラムでは, `"practice1"`,`"practice2"`,`"practice3"`の順に標準出力されます.
+
+~~~ haskell
+import Lib
+
+main :: IO ()
+main = do
+    putStrLn "practice1" -- >>> "practice1"
+    putStrLn "practice2" -- >>> "practice2"
+    putStrLn "practice3" -- >>> "practice3"
+~~~
+
+`stack run practice`の結果を確認すると以下のようになります.
+
+~~~ sh
+> stack run practice
+"practice1"
+"practice2"
+"practice3"
+~~~
+
+また,ghciと異なって,出力結果が同じ画面に現れないので,
+以降のコード例では, その行の結果をコメント内で`>>>`に続けて書くこととします. コメント部分は,記述しなくても結果は変わらないので,省略しても構いません.
+
+
 
 ## 関数と演算子
 
@@ -1194,13 +1234,20 @@ $$
 
 Haskellでは上の関数は以下のように定義されます.
 
-~~~ ghci
-ghci> f x = x + 1
-ghci> f 4
-5
+~~~ haskell
+f :: Int -> Int
+f x = x + 1
+
+main = do
+    print $ f 4 -- >>> 5
 ~~~
 
-`()`の代わりにスペースを使う点以外は全く同じ書き方で, `=`の左側に関数名と引数,右側に返り値を書きます. 関数名は小文字の英字で始めれるというルールがあります.
+`()`の代わりにスペースを使う点以外は全く同じ書き方で, `=`の左側に関数名と引数,右側に返り値を書きます.
+関数名は小文字の英字で始めれるというルールがあります.
+
+`f :: Int -> Int`は型注釈であり,この`f`という関数が,引数に`Int`を取り,返り値として`Int`を返すということを指定しています.
+
+`do`以下の記述で, `f 4`の結果を確認しています. `print`は,文字列に変換可能な値を受取,標準出力する関数です. また `(f 4)`を省略して`$ f 4` としています.
 
 引数は何個でも利用できます. 例えば2引数関数
 
@@ -1208,10 +1255,13 @@ $$ multiple(x,y) = x * y $$
 
 は以下のように定義できます.
 
-~~~ sh
-ghci> multiple x y = x * y
-ghci> multiple 3 4
-12
+~~~ haskell
+multiple :: Double -> Double -> Double
+multiple x y = x * y
+multiple 3 4
+
+main = do
+    print $ multiple 3 4 -- >>> 12.0
 ~~~
 
 また,以下の記号を組み合わせて中置演算子名として利用することも可能です.
@@ -1221,35 +1271,42 @@ ghci> multiple 3 4
 :::
 
 
-~~~ sh
-ghci> x .* y = x * y
-ghci> 3 .* 4
-12
+~~~ haskell
+(.*) :: Double -> Double -> Double
+x .* y = x * y
+
+main = do
+    print $ 3 .* 4 -- >>> 12.0
 ~~~
 
 絵文字などのUnicode記号も利用することができます.
 
-~~~ sh
-ghci> x ✖ y = x * y
-ghci> 3 ✖ 4
-12
+~~~ haskell
+
+(✖) :: Double -> Double -> Double
+x ✖ y = x * y
+
+main = do
+    print $ 3 ✖ 4 -- >>> 12.0
 ~~~
 
 記号を利用して関数を定義する場合には,定義時に`()` で囲うことで一般の関数のように定義することができます.
 例えば, 乗算を新たに定義するとして,以下のように書くことができます.
 
-~~~sh
-ghci> (.*) x y = x * y
-ghci> 3 .* 4
-12
+~~~ haskell
+(.*) :: Int -> Int -> Int
+(.*) x y = x * y
+main = do
+    print $ 3 .* 4 -- >>> 12
 ~~~
 
 前置の2引数関数も` `` ` (バッククオート)で囲むことで中置演算子として定義することができます.
 
-~~~ sh
-ghci> x `multiple` y = x * y
-ghci> 3 `multiple ` 4
-12
+~~~ haskell
+x `multiple` y = x * y
+
+main = do
+    print $ 3 `multiple ` 4 -- >>> 12
 ~~~
 
 ### 結合性
@@ -1289,14 +1346,10 @@ ghci> 3 `multiple ` 4
 
 例えば先程作成した,`.*` を右結合の優先順位7で指定するには,以下のように書きます.
 
-~~~ sh
-ghci> :{
-ghci| x .* y = x * y
-ghci| infixr 7 .*
-ghci| :}
+~~~ haskell
+x .* y = x * y
+infixr 7 .*
 ~~~
-
-
 
 ## パターンマッチと指示関数
 
@@ -1312,9 +1365,22 @@ $$ F_1 = 1 $$
 $$ F_n = F_{n-1} + F_{n-2} (n >= 2)  $$
 :::
 
-これをHaskellで定義すると,以下のようになります.
+この関数はPythonでは,以下のようにif文による分岐で記述されるのが一般的です.
+
+~~~ python
+def fib(x):
+    if x == 0:
+        return 1
+    elif x == 1:
+        return 1
+    else:
+        return fib(x-1) + f(x-2)
+
+~~~
+これをHaskellでパターンマッチを利用して以下のように定義することができます.
 
 ~~~ haskell
+fib :: Int -> Int -> Int
 fib 0 = 1
 fib 1 = 1
 fib n = fib (n - 1) + fib (n - 2)
@@ -1337,16 +1403,14 @@ fib n = fib (n - 1) + fib (n - 2)
 `show`の詳細は後ほど扱いますが,どの様に標準出力に表示するかを定めてあるデータ型を文字列に変換する関数です.
 
 ~~~ haskell
--- | strHead
--- >>> strHead []
--- "Empty"
--- >>> strHead [1]
--- "1"
--- >>> strHead [3,4,5]
--- "3"
+strHead :: Show a => [a] -> String
 strHead []     = "Empty"
 strHead [x]    = show x
 strHead (x:xs) = show x
+
+main = do
+    print $ strHead [] -- >>> "Empty"
+    print $ strHead [3,4] -- >>> "3"
 ~~~
 
 パターンマッチはこのようにリスト`x:xs`の先頭部分`x`を指定するなどの利用法が可能です. 値の特定の部分を取得する用法として頻出なのがタプルを引数に取るパターンマッチです.
