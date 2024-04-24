@@ -1502,7 +1502,7 @@ Haskellにおいてもfor文に相当する記法は存在しますが,基本的
 
 以下のPythonにおけるfor文を事例に考えてみましょう.
 
-~~~ ptyhon
+~~~ python
 def total(xs):
     result = 0
     for x in xs:
