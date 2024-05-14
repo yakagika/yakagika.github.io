@@ -1533,10 +1533,10 @@ A,Bが命題だとして,`A & B`は両方`True`のときに,`True`となりま�
 
 | 命題Aの値 | Bの値 | `A & B` | `A | B`|
 | :---:     | :---: | :---:   | :---:  |
-| True      | False | True    | True   |
+| True      | True  | True    | True   |
 | False     | True  | False   | True   |
 | True      | False | False   | True   |
-| False     | False | False   | True   |
+| False     | False | False   | False  |
 
 Pythonではそれぞれの命題を丸括弧で囲んで,`&`,`|`演算子で論理演算を行うことができます.
 
