@@ -7,6 +7,9 @@ tableOfContents: true
 ---
 
 
+# 注意,記法などについて
+<details>
+    <summary> 開く </summary>
 特別講義(データサイエンス)の授業資料などを書いてく予定です.
 (執筆準備中)
 
@@ -17,6 +20,78 @@ tableOfContents: true
 こちらの資料では,授業に必要な技術的な内容に限定して掲載します.
 授業概要,授業の注意点,成績等については講義中に別資料で説明します.
 
+
+## デザインについて
+
+文章中で色の変わっているブロックはオレンジ色が注意(warn),青色が演習や強調(note)など独立した部分を表しています.
+講義ではwarnに関しては,飛ばす場合があるので,興味のある人は自分で読み進めてください.
+
+::: warn
+
+これは注意や発展的内容を示しています.
+
+
+:::
+
+::: note
+
+これは演習や強調したい箇所に利用されています.
+
+:::
+
+リンクは[Google](https://www.google.co.jp)のように下線で表示されます.クリックすることでリンクに飛ぶことが可能です. 右クリックして,新しいタブで開くことを推奨しています.
+
+
+## シンタックスとコーディングスタイル
+
+本講義ではプログラムブロックは以下のように黒い背景でシンタックスハイライトが適用されています.
+
+~~~ py
+import pandas as pd
+
+print('Sample')
+
+~~~
+
+コピー&ペーストが可能なので, 自分のプログラムに利用してください.
+
+::: warn
+
+- Pythonのコーディングスタイルについて
+
+Pythonの書き方は,基本的に可読性を高めるために,決まったルールで記載されます.
+このルールを**コーディングスタイル**といいます.
+Pythonにおける標準的なコーディングスタイルには[PEP8(Python Enhancement Proposal)](https://peps.python.org/pep-0008/)などがありますが,本講義では一部従っていません.
+
+特に,リストや辞書型などの改行において
+
+- コンマを改行後の先頭に記述する
+
+- ブランケットの終わりを改行した最後に記述する
+
+といった記法を採用しています.これは,関数型言語(特にHaskell)の講義との対応関係を持たせるために筆者が好んでいるものですが,
+一般的な手続き型言語のコーディングスタイルではありませんので注意してください.
+
+また, リストなどを`xs`などの`s`をつけた複数形で表現する命名規則も多用していますが,
+こちらも一般的なコーディングスタイルではありません.
+
+~~~ py
+
+#通常の記法
+animals = ['cat',
+           'dog',
+           'bird']
+
+#本資料における記法
+animals = ['cat'
+          ,'dog'
+          ,'bird'
+          ]
+~~~
+
+:::
+
+</details>
 
 # イントロダクション
 <details>
@@ -2121,7 +2196,7 @@ print(df)
 
 確かに,これまでに皆さんが講義で習ってきたような内容であれば,Excelのほうが学習コストが低く手軽に行えます. しかし,今後行うような統計処理やデータサイエンスなど,処理が複雑になればなるほど,プログラムで処理するメリットが大きくなります.
 
-</details>
+</details open>
 
 # データの取得と編集 (執筆中)
 
@@ -2447,7 +2522,7 @@ CSVでデータを詠み込む場合, 空白,コンマ,Tabなどはエラーに�
 
 再度に作成されたデータをCSVとして保存して終了です.保存する際のデータ型式にCSV  UTF-8があるのでそれを選択し, ｢`salary.csv`｣という名前で作業ディレクトリのDataフォルダに保存します.
 
-![データの保存](/images/e-stat-salary8.png)
+![データの保存](/images/e-stat-salary9.png)
 
 
 ## pandasによるデータ処理
@@ -2751,8 +2826,278 @@ print(df.iat[3,1])
 ## 条件による抽出
 
 Excelにおけるフィルター機能のように,pandasでも条件による値の抽出が可能です.
+pandsでは,DataFrameオブジェクトに,真偽値のリストを渡すと,`True`の行のみを抜き出すことができます.
+
+以下のコードでは,`False`と`True`を交互に繰り返し,奇数行のみを抜き出しています.
+
+~~~ py
+#真偽値のリストによる抜き出し
+bools = [False,True] * 7
+print(bools)
+print(df[bools])
+~~~
+
+実行結果
+
+~~~ sh
+[False, True, False, True, False, True, False, True, False, True, False, True, False, True]
+              Ind   Sal
+1   Manufacturing  4756
+3    Accomodation  1949
+5     Real Estate  3786
+7          Energy  8199
+9             Edu  3913
+11          Other  4239
+13           AFFC  2190
+~~~
+
+DataFrameオブジェクトに対して,真偽値計算をすると,各行に対する真偽値計算の結果が帰ってきます.
+以下のコードでは,Salaryが3000以上の行のみ`True`の値が帰ってきているのが確認できます.
+
+~~~ py
+#DataFrameオブジェクトに対する論理演算
+print(df['Sal'])
+print(df['Sal'] >= 3000)
+~~~
+
+実行結果
+
+~~~ sh
+0     4503
+1     4756
+2     3186
+3     1949
+4     5711
+5     3786
+6     3909
+7     8199
+8     5337
+9     3913
+10    4144
+11    4239
+12    3086
+13    2190
+Name: Sal, dtype: int64
+0      True
+1      True
+2      True
+3     False
+4      True
+5      True
+6      True
+7      True
+8      True
+9      True
+10     True
+11     True
+12     True
+13    False
+Name: Sal, dtype: bool
+~~~
+
+この**①BoolのリストをDataFrameに渡すとTrueの行が返ってくる**,**②DataFrameに論理演算を行うとBoolのリストが返ってくる**という機能の2つを組み合わせて,条件抽出を行うことができます.
+例えば,`Sal列`から3000以上の行のみを抜き出すには以下のように書きます.
+
+1行のプログラムですが,いくつかの機能を組み合わせているので,どの部分で何が起きているのかを分解して理解するようにしましょう.
+
+~~~ py
+#DataFrameオブジェクトに対する条件抽出
+print(df[df['Sal'] >= 3000]['Sal'])
+~~~
+
+実行結果
+
+~~~ sh
+Name: Sal, dtype: bool
+0     4503
+1     4756
+2     3186
+4     5711
+5     3786
+6     3909
+7     8199
+8     5337
+9     3913
+10    4144
+11    4239
+12    3086
+Name: Sal, dtype: int64
+~~~
+
+::: note
+
+- 演習
+
+Salary.csvから以下の条件に従った抽出を行ってください.
+
+1. `Ind列`の文字数が5文字以上の`Ind列`の行
+
+2. `Sal列`が偶数の`Sal列`の行
+
+3. `Sal列`が奇数の`Ind列`の行
+
+4. `Ind列`が`Info`,`Edu`,`Med`のいずれかで,`Sal列`が`4000以上5000未満`の`Sal列`
+
+:::
 
 ## 値の変更
+
+DataFrameでは選択したセルなどに`=`を利用して代入することで,値の更新が可能です.
+以下のコードで,どの部分が変更されているか,コードと結果の対応関係を見てみましょう.
+
+~~~ py
+print(df)
+df.at[1,'Sal'] = 0
+print(df)
+~~~
+
+実行結果
+
+~~~ sh
+              Ind   Sal
+0    Construction  4503
+1   Manufacturing  4756
+2       Wholesale  3186
+3    Accomodation  1949
+4         Finance  5711
+5     Real Estate  3786
+6       Transport  3909
+7          Energy  8199
+8            Info  5337
+9             Edu  3913
+10            Med  4144
+11          Other  4239
+12       Suervice  3086
+13           AFFC  2190
+              Ind   Sal
+0    Construction  4503
+1   Manufacturing     0
+2       Wholesale  3186
+3    Accomodation  1949
+4         Finance  5711
+5     Real Estate  3786
+6       Transport  3909
+7          Energy  8199
+8            Info  5337
+9             Edu  3913
+10            Med  4144
+11          Other  4239
+12       Suervice  3086
+13           AFFC  2190
+~~~
+
+範囲の変更は,同じ形のリストを渡すことで可能です.
+
+~~~ py
+#範囲の変更
+df.loc[3:5,'Sal'] = [1,2,3]
+print(df)
+~~~
+
+~~~ sh
+              Ind   Sal
+0    Construction  4503
+1   Manufacturing     0
+2       Wholesale  3186
+3    Accomodation     1
+4         Finance     2
+5     Real Estate     3
+6       Transport  3909
+7          Energy  8199
+8            Info  5337
+9             Edu  3913
+10            Med  4144
+11          Other  4239
+12       Suervice  3086
+13           AFFC  2190
+~~~
+
+リストではなく,単一の値を渡すと一括で変更されます.
+
+~~~ py
+#一括変更
+df.loc[3:5,'Sal'] = 4
+print(df)
+~~~
+
+~~~ sh
+              Ind   Sal
+0    Construction  4503
+1   Manufacturing     0
+2       Wholesale  3186
+3    Accomodation     4
+4         Finance     4
+5     Real Estate     4
+6       Transport  3909
+7          Energy  8199
+8            Info  5337
+9             Edu  3913
+10            Med  4144
+11          Other  4239
+12       Suervice  3086
+13           AFFC  2190
+~~~
+
+::: warn
+
+- 配列のコピーと変更
+
+リストの節でも説明しましたが,pandasのDataFrameは,別の変数に代入して,そのDataFrameの値を変更すると**元のDataFrameの値も変更されます.**
+
+~~~ py
+df2 = df
+df2['Sal'] = 0
+print(df)
+print(df2)
+~~~
+
+`df`を`df2`に代入して,`df2`の値を変更すると,元の`df`の値も変更されていることが確認できます.
+これは割り当てられるメモリの大きなDataFrameを効率的に利用するための仕様ですが,仕様を理解していないと思わぬ結果となるので注意してください.
+
+~~~ sh
+              Ind  Sal
+0    Construction    0
+1   Manufacturing    0
+2       Wholesale    0
+3    Accomodation    0
+4         Finance    0
+5     Real Estate    0
+6       Transport    0
+7          Energy    0
+8            Info    0
+9             Edu    0
+10            Med    0
+11          Other    0
+12       Suervice    0
+13           AFFC    0
+              Ind  Sal
+0    Construction    0
+1   Manufacturing    0
+2       Wholesale    0
+3    Accomodation    0
+4         Finance    0
+5     Real Estate    0
+6       Transport    0
+7          Energy    0
+8            Info    0
+9             Edu    0
+10            Med    0
+11          Other    0
+12       Suervice    0
+13           AFFC    0
+~~~
+
+大きなデータを扱う際に,部分的に抜き出したデータに編集を加えて,元のデータを変更したくない場合があります.そのような場合には,`.copy()`メソッドを利用します.`.copy()`メソッドを利用することで,元のデータとは異なるメモリが割り当てられます.
+
+~~~ py
+~~~
+
+実行結果
+
+~~~ sh
+~~~
+
+:::
 
 ## DataFrameの作成
 
