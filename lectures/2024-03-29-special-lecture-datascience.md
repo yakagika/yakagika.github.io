@@ -2528,7 +2528,8 @@ CSVでデータを詠み込む場合, 空白,コンマ,Tabなどはエラーに�
 ## pandasによるデータ処理
 
 ここから,先ほど作成したデータを利用してpandasの基本的な機能について確認していきます.
-
+**いくつもの処理を一気に扱いますが,すべて暗記する必要はありません. ただし,それぞれの処理の存在を覚えるようにしましょう. 可能な処理やその名前を覚えておけば,この資料に戻る,あるいは検索して調べることで自分で利用できます.**
+取り敢えず,講義内ではそれぞれの処理が何をやっているのかの概要を掴み,体験してみましょう.
 
 ### ファイルの読み込み
 
@@ -2621,7 +2622,96 @@ Index(['Industry', 'Salary'], dtype='object')
 RangeIndex(start=0, stop=14, step=1)
 ~~~
 
-# 行名,列名の変更
+## データの確認
+
+DataFrameを読み込んだらまずは,その全体像と特徴を確認しましょう.
+確認すべき項目として,columnsやindexの他に以下のようなものがあります.
+
+::: note
+
+- データの中身
+
+データが長い場合は標準出力には省略して表示されます.
+意図的に,先頭n行を取得したい場合には`df.head(n)`を利用します.
+後ろからn行を取得したい場合には`df.tail(n)`を利用します.
+
+~~~ py
+print('head --- \n',df.head(5))
+print('tail --- \n',df.tail(5))
+~~~
+
+~~~ sh
+head ---
+         Industry  Salary
+0   Construction    4503
+1  Manufacturing    4756
+2      Wholesale    3186
+3   Accomodation    1949
+4        Finance    5711
+tail ---
+     Industry  Salary
+9        Edu    3913
+10       Med    4144
+11     Other    4239
+12  Suervice    3086
+13      AFFC    2190
+~~~
+:::
+
+::: note
+
+- データの形
+
+    - `df.shape` でデータの行数,列数を取得できます.
+
+    - `len(df)` でデータの長さ(行数)を確認できます.
+
+~~~ py
+#形の確認
+print(df.shape)
+print(len(df))
+~~~
+
+~~~ sh
+(14, 2)
+14
+~~~
+:::
+
+::: note
+
+- 記述統計量
+
+`df.describe()`を利用することで `データ数(count)`,`平均(mean)`, `母標準偏差(std)`,`最大値(max)`,`最小値(min)`, `四分位数(25%,50%,75%)`などの特徴量が把握できます.
+`df[列名].max()`で最大値,`df[列名].mean()`で列の平均,`df[列名].median()`で中央値など個別に把握することも可能です.
+
+~~~ py
+#特徴量の把握
+print(df.describe())
+print('最大値:',df['Salaray'].max())
+print('平均値:',df['Salaray'].mean())
+print('中央値:',df['Salary'].median())
+~~~
+
+~~~ sh
+            Salary
+count    14.000000
+mean   4207.714286
+std    1561.247008
+min    1949.000000
+25%    3336.000000
+50%    4028.500000
+75%    4692.750000
+max    8199.000000
+最大値:8199.000000
+平均値:4207.714286
+中央値:4028.500000
+~~~
+
+
+:::
+
+## 行名,列名の変更
 
 columnsとindexは任意の値を設定できます(ただし重複はなし).
 リストでそれぞれの属性を更新することで新しい列名,行名を指定できます.
@@ -3038,6 +3128,10 @@ print(df)
 13           AFFC  2190
 ~~~
 
+
+~~~ py
+~~~
+
 ::: warn
 
 - 配列のコピーと変更
@@ -3047,15 +3141,15 @@ print(df)
 ~~~ py
 df2 = df
 df2['Sal'] = 0
-print(df)
-print(df2)
+print('df --- \n',df)
+print('df2 --- \n', df2)
 ~~~
 
 `df`を`df2`に代入して,`df2`の値を変更すると,元の`df`の値も変更されていることが確認できます.
-これは割り当てられるメモリの大きなDataFrameを効率的に利用するための仕様ですが,仕様を理解していないと思わぬ結果となるので注意してください.
 
 ~~~ sh
-              Ind  Sal
+df ---
+               Ind  Sal
 0    Construction    0
 1   Manufacturing    0
 2       Wholesale    0
@@ -3070,7 +3164,8 @@ print(df2)
 11          Other    0
 12       Suervice    0
 13           AFFC    0
-              Ind  Sal
+df2 ---
+               Ind  Sal
 0    Construction    0
 1   Manufacturing    0
 2       Wholesale    0
@@ -3087,35 +3182,551 @@ print(df2)
 13           AFFC    0
 ~~~
 
-大きなデータを扱う際に,部分的に抜き出したデータに編集を加えて,元のデータを変更したくない場合があります.そのような場合には,`.copy()`メソッドを利用します.`.copy()`メソッドを利用することで,元のデータとは異なるメモリが割り当てられます.
+これは割り当てられるメモリの大きなDataFrameを効率的に利用するための仕様ですが,仕様を理解していないと思わぬ結果となるので注意してください.
 
 ~~~ py
+print('id df:',id(df))
+print('id df2:',id(df2))
 ~~~
 
 実行結果
 
 ~~~ sh
+id df: 5013939024
+id df2: 5013939024
+~~~
+
+大きなデータを扱う際に,部分的に抜き出したデータに編集を加えて,元のデータを変更したくない場合があります.そのような場合には,`.copy()`メソッドを利用します.`.copy()`メソッドを利用することで,元のデータとは異なるメモリが割り当てられます.
+
+~~~ py
+#元のDataFrameを保つコピー
+## 一度変更を元に戻す
+df = pd.read_csv('data/salary.csv')
+df.columns = ['Ind','Sal']
+
+df2 = df.copy()
+df2['Sal'] = 0
+print('df --- \n',df)
+print('df2 --- \n', df2)
+print('id df:',id(df))
+print('id df2:',id(df2))
+~~~
+
+実行結果
+
+~~~ sh
+df ---
+               Ind   Sal
+0    Construction  4503
+1   Manufacturing  4756
+2       Wholesale  3186
+3    Accomodation  1949
+4         Finance  5711
+5     Real Estate  3786
+6       Transport  3909
+7          Energy  8199
+8            Info  5337
+9             Edu  3913
+10            Med  4144
+11          Other  4239
+12       Suervice  3086
+13           AFFC  2190
+df2 ---
+               Ind  Sal
+0    Construction    0
+1   Manufacturing    0
+2       Wholesale    0
+3    Accomodation    0
+4         Finance    0
+5     Real Estate    0
+6       Transport    0
+7          Energy    0
+8            Info    0
+9             Edu    0
+10            Med    0
+11          Other    0
+12       Suervice    0
+13           AFFC    0
+id df: 5013945696
+id df2: 4559223920
 ~~~
 
 :::
 
+::: note
+
+- 演習
+
+作成したsaraly.csvを読み込み,以下の処理を順に行ってください.
+
+1. columnsを日本語(産業,給与)に変更してください.
+
+2. サービス業だと思われる行のみを抽出して,`.copy()`してください.
+
+3. コピーされたDataFrameに0から始まるインデックスを振り直してください.
+
+4. 元のDataFrameとコピーされたデータフレームの中身とidを確認してください.
+
+:::
+
+## データ型の確認と変更
+
+pandasでデータを読み込むと列ごとに自動でデータ型が推論,設定されます. pandasのDataFrameにおけるデータ型(`dtype`)はこれまでに見てきたpythonの標準的なデータ型(`type`)とは異なるものですが,同じ名前でも変更が可能です. ただし,`str`型だけ扱いが特殊なので注意が必要です.
+
+
+pandasの列ごとのデータ型を確認するには,`.dtypes`を利用します.
+`type`の`int`に対応する`dtype`は`int64`,`float`は`float64`と表示されます. `str`型は,`object`型になりますがそれぞれの要素は`str`型です.
+
+
+~~~ py
+print('DataFrameのデータ型:\n',df.dtypes)
+print('Sal列のデータ型:',df['Sal'].dtypes)
+print('Ind列のデータ型:',df['Ind'].dtypes)
+print('Ind列の要素のデータ型:',type(df.at[0,'Ind']))
+~~~
+
+~~~ sh
+DataFrameのデータ型:
+ Ind    object
+Sal     int64
+dtype: object
+Sal列のデータ型: int64
+Ind列のデータ型: object
+Ind列の要素のデータ型: <class 'str'>
+~~~
+
+`.astype()`メソッドでデータ型を変更することができます. 元の列に代入する形で変更しましょう.
+今回は,`Sal`列を`int型`から`floatg型`に変更します.
+
+~~~ py
+#データ型の変更
+df['Sal'] = df['Sal'].astype(float)
+print('Sal列のデータ型:',df['Sal'].dtypes)
+~~~
+
+~~~ sh
+Sal列のデータ型:float64
+~~~
+
+データを読み込む際に,`dtyp=列名とデータ型の辞書`を記述することで,データ型を指定することも可能です.
+
+~~~ py
+#読み込み時のデータ型の指定
+df = pd.read_csv('data/salary.csv'
+                ,dtype = {'Industry':str
+                         ,'Salary':float})
+df.columns = ['Ind','Sal']
+print(df.dtypes)
+~~~
+
+~~~ sh
+Ind     object
+Sal    float64
+dtype: object
+~~~
+
+
 ## DataFrameの作成
 
-## データ型の変更
+これまでは,`salary.csv`を読み込んでDataFrameとして編集してきましたが,プログラム内で新たなDataFrameを作成することも可能です.
 
-## データの削除
+新たなDataFrameを作成するためには,`pd.DataFrame()メソッド`を利用します.丸括弧内には, `data`, `index`, `columns`を設定する必要があります. ただし, `index`と`columns`は省略可能です.
+`data`には,必要な`行×列の多次元リスト`, `index`と`columns`には1次元のリストを渡します.
 
-## データの追加
+以下の表のようなDataFrameを作成するコードは次のようになります.
 
-## データの確認
+~~~ py
+#DataFrameのvalues部分をリストで作成する
+## 行のリストになっていることに注意
+
+#DataFrameのvalues部分をリストで作成する
+## 行のリストになっていることに注意
+values = [['dog',5.0,60.0]
+         ,['cat',3.0,30.0]
+         ,['fish',0.15,0.5]]
+
+#DataFrameの作成
+df = pd.DataFrame(data=values
+                 ,columns=['animal_kind'
+                          ,'weight'
+                          ,'size'])
+print(df)
+~~~
+
+~~~ sh
+  animal_kind  weight  size
+0         dog    5.00  60.0
+1         cat    3.00  30.0
+2        fish    0.15   0.5
+~~~
+
+::: warn
+
+行のリストよりも列のリストを渡すほうがデータ型が統一されており簡単です.
+そのような場合には,数値計算用ライブラリ`numpy`の`.T`を利用して,転置行列を渡します.
+Shell上で`pip install numpy`を実行して, `numpy`をinstallしたのち,`import numpy as np`と記述して
+`numpy`をプログラムで利用しましょう.
+
+`numpy`では,ndarray配列というデータ型を利用します.そのため,`np.array()`メソッドで一度`ndarray`に変換し,
+`.T`によって転置した配列を`.tolist()`メソッドでリストに戻しています.
+
+~~~ py
+#転置行列によるデータの作成
+import numpy as np
+animal_kinds = ['dog','cat','fish']
+weights  = [5.0,6.0,0.15]
+sizes    = [60.0,30.0,0.5]
+
+values = np.array([animal_kinds
+                 ,weights
+                 ,sizes]).T.tolist()
+
+df = pd.DataFrame(data=values
+                 ,columns=['animal_kind'
+                          ,'weight'
+                          ,'size'])
+df['weight'] = df['weight'].astype(float)
+df['size']   = df['size'].astype(float)
+print(df)
+~~~
+
+実行結果
+
+~~~ sh
+  animal_kind weight  size
+0         dog    5.0  60.0
+1         cat    6.0  30.0
+2        fish   0.15   0.5
+~~~
+
+:::
+
+## データの追加と削除
+
+列や行の追加には`.assine()`や`.insert()`,`.append()`などが利用可能ですがここでは分かりやすく代入を利用する方法を紹介します.
+
+`df[新規列名]=新しい列`,のようにDataFrameに新しい列を代入することで列の追加が可能です.行の追加は`df.loc[追加したいindex] = 新しい行`で行えます.
+
+~~~ py
+#データの追加
+#列の追加
+print('追加前:\n',df)
+df['name'] = ['pochi','tama','kintaro']
+print('列の追加:\n',df)
+df.loc[4] = ['bird',1.0,3,'piyo']
+print('行の追加:\n',df)
+~~~
+
+~~~ sh
+追加前:
+   animal_kind weight  size
+0         dog    5.0  60.0
+1         cat    6.0  30.0
+2        fish   0.15   0.5
+列の追加:
+   animal_kind weight  size     name
+0         dog    5.0  60.0    pochi
+1         cat    6.0  30.0     tama
+2        fish   0.15   0.5  kintaro
+行の追加:
+   animal_kind weight  size     name
+0         dog    5.0  60.0    pochi
+1         cat    6.0  30.0     tama
+2        fish   0.15   0.5  kintaro
+4        bird    1.0     3     piyo
+~~~
+
+特定の列の値を利用して計算された新たな列を作成することも可能です.ここでは,`size`あたりの`weight`を計算してみます. 列を用いた計算では各行の値が計算されます.
+
+~~~ py
+#列を利用した計算
+df['density'] = df['weight'] / df['size']
+print(df)
+~~~
+
+~~~ sh
+  animal_kind  weight  size     name   density
+0         dog    5.00  60.0    pochi  0.083333
+1         cat    6.00  30.0     tama  0.200000
+2        fish    0.15   0.5  kintaro  0.300000
+4        bird    1.00   3.0     piyo  0.333333
+~~~
+
+
+列や行を削除するには`.drop(行名 or 列名, axis= 0/1 )`を利用します.行を削除する場合は`axis=0`,列を削除する場合には`axis=1`と書きます. `axis='column'`,`axis='index'`でも行と列を選択することができます.
+`inplace = True` を設定すると元のDataFrameが変更されますが,設定しないと新しいDataFrameが返され,元のDataFrameは変更されません.
+
+~~~ py
+#列の削除
+df.drop('name'
+       ,axis='columns' # or axis = 1
+       ,inplace=True)
+print(df)
+
+#行の削除
+df.drop(4
+       ,axis='index' # or axis = 0
+       ,inplace=True)
+print(df)
+~~~
+
+~~~ sh
+ animal_kind  weight  size   density
+0         dog    5.00  60.0  0.083333
+1         cat    6.00  30.0  0.200000
+2        fish    0.15   0.5  0.300000
+4        bird    1.00   3.0  0.333333
+  animal_kind  weight  size   density
+0         dog    5.00  60.0  0.083333
+1         cat    6.00  30.0  0.200000
+2        fish    0.15   0.5  0.300000
+~~~
+
+行名や列名にリストを指定すると,複数行/列が削除されます.
+
+~~~ py
+#複数行の削除
+print(df.drop(['weight','size','density'],axis=1))
+~~~
+
+~~~ sh
+  animal_kind
+0         dog
+1         cat
+2        fish
+~~~
 
 ## 欠損値の処理
 
+例えば特定の日だけ値を入力し忘れている出勤簿や授業をサボった学生の成績など,現実のデータには抜けや欠損が付き物です. 抜けや欠損の無いデータを**完備データ**といい,欠損している部分を**欠損値**といいます.
+
+pandasでは,csvの空白, 作成時の未定義部分 などが欠損値`NaN`(Not a Number) として表現されます.
+
+例えば,DataFrame作成時にvaluesのサイズが合わない場合にはデータのない部分が`NaN`となります.
+また,以下のように空白のあるCSVを読み込んだ場合には空白のセルが`NaN`となります.
+
+![salary_nan.cav](/images/salary_nan.png)
+
+~~~ py
+#DataFrameの作成
+df = pd.DataFrame(data = [['dog',5,60]
+                         ,['cat',30]
+                         ,['fish',0.15]]
+                  ,columns=['animal_kind'
+                          ,'weight'
+                          ,'size'])
+print(df)
+
+
+#かけたデータの読み込み
+df = pd.read_csv('data/salary_nan.csv')
+print('-----\n',df)
+~~~
+
+~~~ sh
+  animal_kind  weight  size
+0         dog    5.00  60.0
+1         cat   30.00   NaN
+2        fish    0.15   NaN
+-----
+          Industry  Salary
+0    Construction  4503.0
+1   Manufacturing  4756.0
+2       Wholesale  3186.0
+3   Accommodation     NaN
+4         Finance  5711.0
+5     Real Estate  3786.0
+6       Transport  3909.0
+7          Energy  8199.0
+8            Info     NaN
+9             Edu  3913.0
+10            Med  4144.0
+11          Other     NaN
+12       Suervice  3086.0
+13           AFFC  2190.0
+~~~
+
+`NaN`はすべての値に対して,`==`で`True`,`!=`で`False`を返すため,欠損値か否かの判定には,`==`や`!=`を使うことはできません. なお,`float('NaN')`で`float`型の`NaN`を生成できます.
+
+~~~ py
+df = pd.read_csv('data/salary_nan.csv')
+print(df.at[8,'Salary'])
+print('NaN == 1:',df.at[8,'Salary'] == 1)
+print('NaN == NaN:',df.at[8,'Salary'] == float('NaN'))
+print('NaN != 1:',df.at[8,'Salary'] != 1)
+print('NaN != NaN:',df.at[8,'Salary'] == float('NaN'))
+~~~
+
+~~~ sh
+nan
+NaN == 1: False
+NaN == NaN: False
+NaN != 1: True
+NaN != NaN: False
+~~~
+
+欠損値の判定には`isna()`メソッドを利用します.DataFrameに利用することで`NaN`のあるセルにはTrue,`NaN`以外のセルに`False`を返します.また,`pd.isna(値)`の形で,値の判定も可能です.
+
+~~~ py
+df = pd.read_csv('data/salary_nan.csv')
+print(df.isna())
+print(pd.isna(df.at[8,'Salary']))
+~~~
+
+~~~ sh
+    Industry  Salary
+0      False   False
+1      False   False
+2      False   False
+3      False    True
+4      False   False
+5      False   False
+6      False   False
+7      False   False
+8      False    True
+9      False   False
+10     False   False
+11     False    True
+12     False   False
+13     False   False
+True
+~~~
+
+
+欠損のあるデータを分析する際には,欠損値をどのように処理するかを決める必要があります.
+欠損値の処理の方法には**除外**, **置換**, **補定(ほてい)**,**補完**などいくつかの方法があり,pandasにおいても
+`dropna()`,`fillna()`などのメソッドが提供されています.
+
+元も単純な欠損値の処理方法は,欠損値のある行や列を除外してしまうことです. pandasにおいて欠損値の除外行うメソッドは`dropna()`です.
+
+`df.dropna(subset=除外したい列名のリスト,how=‘any’,inplace=True)`と記述することで
+指定された列においてNaNの含まれる行の削除ができます.
+`subset`を指定しないと,すべての列が対象となります.
+`how ='any'`と指定すると, subsetに含まれる列のどれか, `how='all'`にすると, subsetに含まれる列の全てがNaNの場合にその行が削除されます.
+
+~~~ py
+#欠損値の削除
+print(df.dropna(subset=['Salary'],how='any'))
+print('---\n',df)
+~~~
+
+~~~ sh
+         Industry  Salary
+0    Construction  4503.0
+1   Manufacturing  4756.0
+2       Wholesale  3186.0
+4         Finance  5711.0
+5     Real Estate  3786.0
+6       Transport  3909.0
+7          Energy  8199.0
+9             Edu  3913.0
+10            Med  4144.0
+12       Suervice  3086.0
+13           AFFC  2190.0
+---
+         Industry  Salary
+0    Construction  4503.0
+1   Manufacturing  4756.0
+2       Wholesale  3186.0
+3   Accommodation     NaN
+4         Finance  5711.0
+5     Real Estate  3786.0
+6       Transport  3909.0
+7          Energy  8199.0
+8            Info     NaN
+9             Edu  3913.0
+10            Med  4144.0
+11          Other     NaN
+12       Suervice  3086.0
+13           AFFC  2190.0
+~~~
+
+inplace = True と設定するともとのDataFrameが変更されますが Falseに設定すると, もとのDataFrameには反映されません.
+
+~~~ py
+df.dropna(subset=['Salary']
+         ,how='any'
+         ,inplace=True)
+print(df)
+~~~
+
+~~~ sh
+         Industry  Salary
+0    Construction  4503.0
+1   Manufacturing  4756.0
+2       Wholesale  3186.0
+4         Finance  5711.0
+5     Real Estate  3786.0
+6       Transport  3909.0
+7          Energy  8199.0
+9             Edu  3913.0
+10            Med  4144.0
+12       Suervice  3086.0
+13           AFFC  2190.0
+~~~
+
 ## データの保存
+pandasで作成, 加工したDataFrameオブジェクトは, csv等の形式でファイルに書き出すことができます.
+DataFrameオブジェクト`df`をcsvファイルとして書き出すには`df.to_csv('ファイルパス')` と記述します. `encoding=`を追加して記述することでエンコードを指定することも可能です.
+BOM付きのUTF-8の場合は`encoding='utf-8-sig'`と記述します.
 
-BOM付きでの保存 `utf-8-sig`
+~~~ py
+values = [['dog',5.0,60.0]
+         ,['cat',3.0,30.0]
+         ,['fish',0.15,0.5]]
+
+#DataFrameの作成
+df = pd.DataFrame(data=values
+                 ,columns=['animal_kind'
+                          ,'weight'
+                          ,'size'])
+#csvとして保存
+df.to_csv('data/animal.csv'
+         ,encoding='utf-8-sig')
+~~~
+
+::: warn
+
+pandasで可能なデータの処理のうち,今回紹介したのは基本となるほんの一部です.ライブラリの活用方法や機能は日々増えており, 全部を扱うことはできません.必要に応じて自分で利用方法を調べて学習しましょう.
+
+:::
+
+## データの取得と編集全体の演習
+::: note
+
+演習問題
+
+---
+
+1. データの作成と編集
+
+以下の条件に従うDataFrameを作成してください.
+
+- columnsが'`1`',`'2'`,`'3'`,`'4'`,'`5`'
+
+- indexが`0~19`
+
+- '`1`'列の値はindexの1倍,`'2'`列の値はindexの2倍,`'3'`列の値はindexの3倍,`'4'`列の値はindexの4倍,'`5`'列の値はindexの5倍の値が入る.
+
+作成したDataFrameに以下の操作を加えてください.
+
+- `'3'`列を2倍した`'6'`という列を追加してください.
+
+- `index`が`20`となる行を追加してください
+
+- `'mean'`という各行の平均値からなる列を追加してください
+
+- `index`が偶数の列のみを残して,すべての列を`int`型に変更した後`BOM付きのUTF-8`の`csv`で保存してください.
 
 
+2. 外部データの読み込みと編集
+
+以下のURLから近世経済データのEXCELファイルをダウンロードし, 米相場の列に欠損値がないように変更し,データの基本的な構造を確認したのち米相場の平均値を求めてください.
+
+[https://www.rieb.kobe-u.ac.jp/project/kinsei-db/database_excel.html](https://www.rieb.kobe-u.ac.jp/project/kinsei-db/database_excel.html)
+
+
+:::
 
 
 
@@ -3184,6 +3795,9 @@ Sublime Textでは, `View > Indentation > Indent Using Spaces` をクリック�
 ## 繰り返し
 
 ### for文
+
+汚いデータのデータ型の変換を演習にする.
+
 ### While文
 リストの判定について
 
