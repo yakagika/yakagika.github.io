@@ -3,4 +3,6 @@ title: Research
 ---
 
 # Research
-準備中
+
+ <a href="https://researchmap.jp/k-akagi"> researchmap </a>
+ <p> コンテンツ準備中 </p>

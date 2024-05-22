@@ -2533,7 +2533,16 @@ CSVでデータを詠み込む場合, 空白,コンマ,Tabなどはエラーに�
 
 ### ファイルの読み込み
 
+
 先程作成したデータを作業ディレクトリのdataフォルダに保存して,Pythonで読み込んでみます.
+以下,`salary.py`というファイルを作成してプログラムを追記していきます.
+
+::: warn
+スクリプトのファイル名は,中身がなにか後で見ても分かるような英数字であれば何でも構いません.
+ただし, `pandas`,`numpy`,`matplotlib`などの今後利用するライブラリと同名のスクリプトを作成すると,
+正常にライブラリを利用できなくなるので注意しましょう.
+:::
+
 以下の用に `import pandas as pd` でpandasをimportしたあとに, `pd.read_csv('ファイルパス')`でファイルが読み込めます. また,同じ行で読み込んだファイルを`df`という変数に代入しています.
 最後の行で読み込んだファイルを表示しています.
 
@@ -2559,7 +2568,7 @@ print(df)
 
 ~~~ sh
 ❯ python3 salary.py
-         Industry  Salary
+         industry  salary
 0    Construction    4503
 1   Manufacturing    4756
 2       Wholesale    3186
@@ -2618,7 +2627,7 @@ print(df.index)
  ['Other' 4239]
  ['Suervice' 3086]
  ['AFFC' 2190]]
-Index(['Industry', 'Salary'], dtype='object')
+Index(['industry', 'salary'], dtype='object')
 RangeIndex(start=0, stop=14, step=1)
 ~~~
 
@@ -2642,14 +2651,14 @@ print('tail --- \n',df.tail(5))
 
 ~~~ sh
 head ---
-         Industry  Salary
+         industry  salary
 0   Construction    4503
 1  Manufacturing    4756
 2      Wholesale    3186
 3   Accomodation    1949
 4        Finance    5711
 tail ---
-     Industry  Salary
+     industry  salary
 9        Edu    3913
 10       Med    4144
 11     Other    4239
@@ -2694,7 +2703,7 @@ print('中央値:',df['Salary'].median())
 ~~~
 
 ~~~ sh
-            Salary
+            salary
 count    14.000000
 mean   4207.714286
 std    1561.247008
