@@ -5270,7 +5270,7 @@ plt.show()
 
 ### 棒グラフの作成
 
-[こちら]()からデータをダウンロードし,グラフを作成してみましょう.
+[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/bar_pie.csv)からデータをダウンロードし,グラフを作成してみましょう.
 
 
 
