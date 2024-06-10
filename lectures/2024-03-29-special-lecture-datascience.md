@@ -20,7 +20,7 @@ tableOfContents: true
 こちらの資料では,授業に必要な技術的な内容に限定して掲載します.
 授業概要,授業の注意点,成績等については講義中に別資料で説明します.
 
-演習回答は[こちら](http://localhost:8000/lectures/2024-03-29-special-lecture-datascience-answer.html)
+演習回答は[こちら](https://yakagika.github.io/lectures/2024-03-29-special-lecture-datascience-answer.html)
 
 ## デザインについて
 
