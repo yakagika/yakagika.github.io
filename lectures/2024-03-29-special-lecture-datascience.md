@@ -2210,7 +2210,7 @@ print(df)
 
 確かに,これまでに皆さんが講義で習ってきたような内容であれば,Excelのほうが学習コストが低く手軽に行えます. しかし,今後行うような統計処理やデータサイエンスなど,処理が複雑になればなるほど,プログラムで処理するメリットが大きくなります.
 
-</details open>
+</details>
 
 # データの取得と編集
 
@@ -3787,7 +3787,7 @@ pandasで可能なデータの処理のうち,今回紹介したのは基本と�
 
 # アルゴリズムとPythonの基本構文(執筆中)
 
-<details open>
+<details>
     <summary> 開く/閉じる </summary>
 
 データを適切に処理するためには,これまで扱ったpandasの技法だけでは足りません.ライブラリに含まれていない処理をPythonで自分で記述する必要があります.
@@ -4897,7 +4897,414 @@ f['value'] = df['value'].map(lambda x: '150' if str.isdecimal(str(x)) else x)
 :::
 
 
-# 関数とクラス (執筆中)
+# 関数とクラス
+
+これまでは,基本的に記述したコードは,コード内で一度しか利用せず,上から順番に一つずつ行いたい処理を記述してきました. しかし,プログラミングを続けていると,同じ処理を何度も適用する場合が出てきます.その場合に,毎回処理を記述するのは労力がかかります.
+
+ここでは, 同じ処理を再利用可能な形でまとめ,様々な場所で利用する方法を学びます.
+
+Pythonでは,基本的に小さな一つの処理は**関数**にまとめて利用します.また,複数の関数やデータ型などを**クラス**という単位にまとめることも可能です.そのようなまとめた塊を組み合わせてプログラムを構築する手法を**オブジェクト指向プログラミング**といいます. 更に,いくつかの関数やクラスをまとめたものを再利用形なファイルにまとめることで**モジュール**が作られ,モジュールに階層構造を設定したものを**ライブラリ**といいます.
+
+この講義では関数の利用法を学びますがクラスやオブジェクト指向プログラミング,モジュールの作成に関しては少し触れるだけにします. 興味がある方は, より専門的なプログラミングの講義などで学習してください.
+
+
+## 関数
+
+皆さんはこれまでにもいくつかの関数を利用してきました. 例えば,リストの要素数を求めるための`len()`や,標準出力するための`print()`などは関数です.
+
+関数は基本的に`()`の中に**引数**を与えられて,**返り値**を返します.
+
+~~~ py
+print(len([1,2,3])) #>>> 3
+~~~
+
+上の`len()`では,`()`の中に引数としてリスト`[1,2,3]`が与えられ,返り値として`3`を返しています.
+
+::: warn
+
+一方で,関数と似ているが異なる概念として,`.mean()`のようにオブジェクトの後ろに`.`を利用してつなげる**メソッド**もあります.
+メソッドに関しては, クラスの部分で説明します.
+
+~~~ py
+df = pd.DataFrame({'x':[1,2,3]})
+print(df.mean()) #>>> 2.0
+~~~
+:::
+
+このように,最初からPythonに実装されている関数を**組み込み関数**といいます.また,特定のライブラリで定義された関数もあります.
+
+組み込み関数としては,`len()`以外にも,合計値を返す`sum()`や,文字列に変更する`str()`などを利用してきました. Pythonの組み込み関数は[こちら](https://docs.python.org/ja/3/library/functions.html)で確認できます. 利用法のわからないものに関しては調べてみましょう.
+
+これまでは,無名関数を除いて基本的にすでに作成された関数を利用してきましたが,関数は自分で作成することも可能です.
+
+関数は, `def 関数名(引数を表す変数):`という構文で定義することができます. インデントブロックの中で,引数に加えた処理を記述し, `return 返り値`の形で,関数の返り値を定義します.
+
+例えば,要素数を数える`length()`という関数を実装してみましょう.
+まずは,関数にする前に今まで通りにリストの要素数を数えるプログラムを書いてみましょう.
+
+~~~ py
+xs = [1,2,3]
+count = 0
+for x in xs:
+    count += 1
+print(count) >>> 3
+~~~
+
+これを関数にしてみます. `def length(xs):`のインデントブロックに,行いたい処理を記述し,`return count`で`count`を返します.
+
+~~~ py
+def length(xs):
+    count = 0
+    for x in xs:
+        count += 1
+    return count
+
+print(length([1,2,3])) #>>> 3
+print(length(['a','b'])) #>>> 2
+~~~
+
+関数として定義することで,毎回数を数える処理を記述しなくても,様々なリストの要素数を数えることが可能になりました.
+
+引数には複数の値を指定することも出来ます. 例えば以下の関数`get_larger_than(xs,y)`は`xs`の中から`y`より大きな値のみを返します.
+
+~~~ py
+def get_larger_than(xs,y):
+    result = []
+    for x in xs:
+        if x > y:
+            result.append(x)
+    return result
+
+get_larger_than([2,3,4,5,6],3) #>>>[4, 5, 6]
+~~~
+
+
+`引数名=デフォルト引数` と書くことで,引数にあらかじめ値を指定することも可能です. 関数を実行する際に,何も指定しなければ,デフォルト引数が利用されます.
+
+~~~ py
+def greet(name='guest', greeting="Hello"):
+    return f'{greeting}, {name}!'
+
+# デフォルト引数を利用する場合
+print(greet())  # Hello, guest!
+
+# デフォルトの引数の一部を上書きする場合
+print(greet(name='Taro'))  # Hello, Taro!
+print(greet(greeting='Good Morning'))  # Good Morning, guest!
+
+# 全ての引数を指定する場合
+print(greet(name='Taro', greeting='Good Morning'))  # Good Morning, Taro!
+~~~
+
+
+::: note
+
+- 演習問題
+
+1. 与えられた数値のリストの合計値を返す関数
+
+2. 与えられた数値のリストの最大値を返す関数
+
+3. 与えられた数値にFizzBuzzの結果を,文字列で返す関数
+
+4. 組み込み関数の`filter()`の仕様を調べて自分で実装してください.
+
+:::
+
+## 発展:クラスとインスタンス
+
+先ほど関数を自分で定義して使う方法を学習しましたが,Pythonではデータ型も自分で定義することができます.
+
+::: note
+
+**クラス(Class)** とは, データ型,データ型の保有するデータ(**属性**)とデータ型に付随する機能(**メソッド**)を定義する機能です.
+クラスを具体化したものを**インスタンス**と呼びます.
+また,インスタンスが生成される際に実行されるメソッドを**コンストラクタ**といいます.
+
+:::
+
+これまでに見た例では,pandasの`DataFrame`などはライブラリによって新たに定義されたデータ型です. `.DataFrame()`という**コンストラクタ**によって具体的な`DataFrame`**インスタンス**が生成されます.
+
+`DataFrame`オブジェクトの属性として,`shape`などを取得することができ,`.to_csv()`などの`DataFrame`に特有の機能(**メソッド**)を利用することができました.
+
+それでは,具体的にクラスを作成してみましょう.
+ここでは,これまでに何度か出てきた,`FizzBuzz`専用のクラスを作成してみましょう.
+
+::: note
+
+新しいクラスを宣言するには `class クラス名:` と記述します. インデントブロック内に,コンストラクタと,メソッドを記述します. クラス名は大文字で始めます.
+
+コンストラクタは, `def __init__(self,必要な情報):`の形で宣言します. `__init__(self,`の部分は基本的にすべてのクラスで共通です.
+`FizzBuzz`クラスでは, 数値を引数に取ります. `self`は,属性やメソッドが属するインスタンスを表す変数でコンストラクタやメソッドの第1引数は常に`self`となります. `self.属性`,`self.メソッド()`などの形で,そのインスタンスの属性やメソッドを定義します.
+
+各インスタンスに固有の属性をインスタンス属性といい,ここでは生成された`FizzBuzz`インスタンスは`.number`という属性を持ちます. `self.number = number`と買うことで生成時に引数として与えられた数値`number`をインスタンス属性として保存します.
+
+最後に,`FizzBuzz`ゲームを実行するための機能,`.evaluate()`を実行します.
+
+:::
+
+~~~ py
+# FizzBuzzというクラスを宣言します.
+class FizzBuzz:
+    #コンストラクタの定義
+    #FizzBazzインスタンスを生成する際に必要となるデータを定義する
+    def __init__(self, number):
+        #インスタンス属性
+        self.number = number
+
+    #メソッド eveluateの定義
+    #FizzBuzzインスタンスは,evaluateすることで,`FizzBuzz`の
+    #ゲームが実行されます
+    def evaluate(self):
+        if self.number % 3 == 0 and self.number % 5 == 0:
+            return "FizzBuzz"
+        elif self.number % 3 == 0:
+            return "Fizz"
+        elif self.number % 5 == 0:
+            return "Buzz"
+        else:
+            return str(self.number)
+
+# 使用例
+# 単一の数値を評価
+fb = FizzBuzz(15)
+print(fb.evaluate())  # FizzBuzz
+
+fb = FizzBuzz(9)
+print(fb.evaluate())  # Fizz
+
+fb = FizzBuzz(10)
+print(fb.evaluate())  # Buzz
+
+fb = FizzBuzz(7)
+print(fb.evaluate())  # 7
+
+~~~
+
+クラスの重要な機能に**継承**があります. 継承は新しいクラス(**サブクラス**)を作成する際に,すでにあるクラス(**スーパークラス**)の属性やメソッドを引き継ぐことを意味します. これによって,コードの再利用や,拡張が用意になります.
+
+以下では,先程定義した `FizzBuzz`クラスを継承して,`3`と`5`以外の場合にも特別な挙動をする`AdvancedFizzBuzz`クラスを定義してみましょう.
+
+サブクラスを定義するには, `class サブクラス名(スーパークラス名)`と記述します.
+インデントブロック内では, `super().属性`や`super().メソッド`と書くことで,スーパークラスの属性やメソッドを利用することができます.
+
+~~~ py
+# 派生クラス AdvancedFizzBuzz
+# ()内にスーパークラスを書きます
+class AdvancedFizzBuzz(FizzBuzz):
+    def __init__(self, number, custom_message=None):
+        # スーパークラスの__init__を呼び出す
+        super().__init__(number)
+        self.custom_message = custom_message
+
+    def evaluate(self):
+        # スーパークラスのevaluateメソッドを拡張
+        # self.custom_message が定義されている場合のみ実行されます
+        if self.custom_message and self.number % 7 == 0:
+            return self.custom_message
+        else:
+            # スーパークラスのevaluateメソッドを呼び出す
+            return super().evaluate()
+
+
+# サブクラスの使用例
+afb = AdvancedFizzBuzz(21, custom_message="Hozz")
+print(afb.evaluate())  # Hozz (7で割り切れるためカスタムメッセージ)
+
+afb = AdvancedFizzBuzz(10)
+print(afb.evaluate())  # Buzz (スーパークラスのメソッドが呼ばれる)
+~~~
+
+::: note
+
+- 演習
+
+1. FizzBuzzクラスを拡張して, `3`かつ`5`かつ`7`の倍数のときに`Hozz`と表示されるようにしてください.
+
+2. ジャンケンを行うためのクラスを定義してください.
+
+:::
+
+
+</details>
+
+
+#
+
+
+# データの可視化 (執筆中)
+
+<details open>
+    <summary> 開く/閉じる </summary>
+
+ここまでで,プログラミングを利用してデータを読み込み,編集ができるようになりました. これから,データを分析する手法を学習しましょう. データ分析の第一歩は,データの**可視化**です.
+
+統計データはテーブル形式のまま,眺めても理解できません. データを可視化することで,データの特徴や意味を理解する助けになります. ここでは,データを可視化するいくつかの方法を学びましょう.
+
+::: note
+
+- ライブラリのインストール
+
+Pythonにおけるグラフ作成の,代表的なライブラリには,[`matplotlib`](https://matplotlib.org)や[`seaborn`](https://seaborn.pydata.org)があります.
+それぞれ, `pip install`しておきましょう.
+
+`matplotlib`,`seaborn`はそれぞれ以下のようにインポートするのが一般的です.
+
+- `import matplotlib.pyplot as plt`
+
+- `import searborn as sns`
+
+:::
+
+::: warn
+
+- `matplotlib`における日本語表示
+
+`matplotlib`は日本語などのマルチバイト文字に対応しておらず,日本語を使用すると日本語部分が日本語部分が, □(通称豆腐)に変わります.
+
+ 例: ｢Hello こんにちは｣ → ｢Hello □ □ □ □ □ ｣
+
+`matplotlib`で日本語を利用する方法として一番簡単なものに, `japanize-matplotlib`の利用があります.
+`pip install` したあとに, `import japanize_matplotlib` をしましょう(`pip` では `'-'`(ハイフン)ですが,`import`文では,`'_'`(アンダーバー)なので注意してください.)
+
+:::
+
+::: warn
+
+- Python 3.12 における`japanize_matplotlib`
+
+Python3.12では,`japanize_matplotlib`を読み込もうとすると,`ModuleNotFoundError: No module named 'distutils'` と表示されます.
+
+これは,`japanize_matplotlib`内で利用されている`distutils`というモジュールが廃止されたことによります. こちらのエラーは, `distutils`の代替である`setuptools`を `pip install`することで消えます.
+
+参考: [【inshellisense】ModuleNotFoundError: No module named 'distutils'の対処法](
+https://qiita.com/pitao/items/1740a62ddee797aed807)
+
+:::
+
+本章におけるコードは以下, 先頭に以下のような記述があることが前提となります.
+
+~~~ py
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import japanize_matplotlib
+import searborn as sns
+~~~
+
+
+## 基礎的なグラフ(棒グラフ,円グラフ,折れ線グラフ)
+
+`matplotlib`を利用して,グラフを作成する大まかな手順は以下のようになります.
+
+::: note
+1. データを準備する.
+    BOMなしのCSVを作りましょう
+
+2. `pandas`でプログラムでCSVを読み込みましょう
+
+3. グラフにしたい部分を抽出します.
+
+    グラフを作るために何が必要かはグラフの種類によります.
+
+5. `matplotlib`のメソッドを利用してグラフを生成します.
+
+    基本的なメソッドは以下のとおりです.
+
+    | グラフの種類 | メソッド |
+    | :---:        | :---:    |
+    |              |          |
+    | 棒グラフ     | `plt.bar(x軸のリスト,y軸のリスト)`                      |
+    | 円グラフ     | `plt.pie(カテゴリー別のデータのリスト,label=ラベル)`    |
+    | 折れ線グラフ | `plt.plot(x軸のリスト,y軸のリスト)`                     |
+    | 散布図       | `plt.scatter(x軸のリスト,y軸のリスト)`                  |
+
+    これら以外の,グラフに関しては個別に扱います.
+
+6. グラフの見た目を整えます.
+
+   ある程度自動で設定されますが,色,メモリ,形,軸などを個別に設定できます.
+
+   | グラフの要素 | メソッド |
+   | :---:        | :---:    |
+   |              |          |
+   | タイトル     | `plt.title('タイトル')`         |
+   | 判例         | `plt.legend()`                  |
+   | y軸          | `plt.yticks(軸の目盛のリスト)`  |
+   | x軸          | `plt.xticks(軸の目盛のリスト)`  |
+   | y軸ラベル    | `plt.ylabel('ラベル')`          |
+   | x軸ラベル    | `plt.xlabel('ラベル')`          |
+   | 補助線の追加 | `plt.minorticks_on()`           |
+   |              | `plt.grid(which='both')`        |
+   | 表示領域     | `plt.ylim(min,max)`             |
+   |              | `plt.xlim(min,max)`             |
+
+
+7. `plt.show()`でグラフを出力.
+
+8. グラフの保存
+
+例えば,以下のコードで次のグラフが表示されます.
+`np.arange(0,100,1)`は,`0`から`100`までの数値を`1`ずつ増える`numpy`の配列を生成しています.
+`[x for x in range(0,101,1)]` でも同様の結果となります.
+
+~~~ py
+plt.plot(np.arange(0,100,1)
+        ,np.arange(0,100,1)
+        ,color='red'
+        ,label='sample')
+plt.title('title')
+plt.ylim(0,100)
+plt.xlim(0,100)
+plt.xticks(np.arange(0,100,10))
+plt.yticks(np.arange(0,100,10))
+plt.minorticks_on()
+plt.grid(which='both')
+plt.xlabel('x_label')
+plt.ylabel('y_label')
+plt.legend()
+plt.show()
+~~~
+
+![グラフの要素](/images/python_graph_elem.png)
+
+### 棒グラフの作成
+
+[こちら]()からデータをダウンロードし,グラフを作成してみましょう.
+
+
+
+
+:::
+
+## 度数分布表とヒストグラム
+
+## 密度プロット
+
+## sinaplot
+
+## バイオリンプロット
+
+## ヒートマップ
+
+## for文を利用したグラフ
+
+## グラフの分割
+
+
+</details>
+
+# データの数値化 (執筆中)
+
+<details>
+    <summary> 開く/閉じる </summary>
+
+中央値,平均値,分散などをメソッドで求める.
+定義を理解するために関数で定義する.
+ユークリッド距離,コサイン距離.
+相関係数
+
+
 平均値には,用途に応じて,算術平均,幾何平均,調和平均などがあります.
 𝑛個の観測値 𝑥_1, 𝑥_2, …, 𝑥_𝑛があるとき
 算術平均: 𝑥 ̅  =1/𝑛 (𝑥_1+ …+𝑥_𝑛 )
@@ -4909,24 +5316,14 @@ f['value'] = df['value'].map(lambda x: '150' if str.isdecimal(str(x)) else x)
 それぞれの平均値の用途を調べてください.
 3個程度の変数を作成し,それぞれの算術平均,幾何平均,調和平均を計算してください,
 
-
-For文のところでリスト内包表記
-
-
-
 </details>
 
-# データの可視化 (執筆中)
+# 検定
 
-<details>
-    <summary> 開く/閉じる </summary>
+# 回帰分析
 
-【inshellisense】ModuleNotFoundError: No module named 'distutils'の対処法
-https://qiita.com/pitao/items/1740a62ddee797aed807
 
-</details>
-
-## 教師あり/なし学習 (執筆中)
+# 教師あり/なし学習 (執筆中)
 
 <details>
     <summary> 開く/閉じる </summary>

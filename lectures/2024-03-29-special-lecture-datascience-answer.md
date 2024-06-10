@@ -339,3 +339,43 @@ print("#平均値の計算〇----------------------------------")
 df.loc["average","米相場"] =df.loc[0:,"米相場"].mean()
 print(df) 
 ```
+
+
+# 7.1
+~~~ py
+
+# 1 与えられた数値のリストの合計値を返す関数
+def get_sum(xs):
+    total = 0
+    for x in xs:
+        total += x
+    return total
+
+# 2 与えられた数値のルストの最大値を返す関数
+def get_max(xs):
+    max_value = xs[0]
+    for x in xs[1:]:
+        if x > max_value:
+            max_value = x
+    return max_value
+
+# 3 与えられた数値にFizzBuzzの結果を文字列で返す関数
+def fizzBuzz(x):
+    if x % 3 == 0 and x % 5 == 0:
+        return 'FizzBuzz'
+    elif x % 3 == 0:
+        return 'Fizz'
+    elif x % 5 == 0:
+        return 'Buzz'
+    else:
+        return str(x)
+
+def filter_list(f,xs):
+    result = []
+    for x in xs:
+        if f(x):
+            result.append(x)
+    return result
+
+filter_list((lambda x: True if x > 3 else False ), [2,3,4,5]) # >>>[4, 5]
+~~~
