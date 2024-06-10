@@ -20,6 +20,7 @@ tableOfContents: true
 こちらの資料では,授業に必要な技術的な内容に限定して掲載します.
 授業概要,授業の注意点,成績等については講義中に別資料で説明します.
 
+演習回答は[こちら](http://localhost:8000/lectures/2024-03-29-special-lecture-datascience-answer.html)
 
 ## デザインについて
 
@@ -542,7 +543,7 @@ Pythonの環境構築に関して説明します.Pythonを動かす方法は沢�
 
 - pythonの環境
 
-現代のPythonの開発環境は, [`pyenv`](https://github.com/pyenv/pyenv)や[`Docker`](https://www.docker.com)を利用した仮想環境でpythonのversionやライブラリをアプリケーションごとに分ける方法が主流です.
+現在のPythonの開発環境は, [`pyenv`](https://github.com/pyenv/pyenv)や[`Docker`](https://www.docker.com)を利用した仮想環境でpythonのversionやライブラリをアプリケーションごとに分ける方法が主流です.
 
 ただし,本資料では複数のアプリケーションを設定すると手順が煩雑になり,環境変数の設定など作業量が多くなるため扱いません.興味がある方は,調べて自分で導入してみましょう.
 
@@ -931,7 +932,7 @@ Pythonでは複数の数値型が混ざった計算に対応しています. 基
 
 
 
-:::
+::: note
 
 **演習**
 
@@ -4387,7 +4388,7 @@ print(total)
 
 :::
 
-### 発展: リスト内包表記
+#### 発展: リスト内包表記
 
 Pythonには`for文`と`while文`以外にも,反復を実現するための手法がいくつか存在します.
 そのうち良く使われるものに**リスト内包表記**があります.
@@ -4459,7 +4460,7 @@ print(sum([x for x in range(100,150) if x % 10 == 0]))
 ~~~
 
 
-### 発展: breakとcontinue
+#### 発展: breakとcontinue
 
 `for文`や`while文`の処理を途中で分岐させたい場合には `break`, `continue`, `else` が利用できます.
 
@@ -4476,6 +4477,8 @@ print(sum([x for x in range(100,150) if x % 10 == 0]))
 
 ![whileのイメージ](/images/while6.png)
 
+::: note
+
 この処理はユーザーに「あなたはなんの動物ですか?(カタカナで回答)」と質問し,正しい答え「ニンゲン」を得るまで質問を繰り返します.
 
 まず,answer変数にユーザーの入力を格納します.whileループを使って,answerが「ニンゲン」でない限りループを続けます.
@@ -4490,6 +4493,8 @@ print(sum([x for x in range(100,150) if x % 10 == 0]))
 
 プログラムに直すと以下のようになります.
 それぞれの行がどのような条件で実行されるのか, 確認してみましょう.
+
+:::
 
 ~~~ py
 # 先に変数を用意します
