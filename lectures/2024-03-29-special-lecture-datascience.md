@@ -4896,8 +4896,6 @@ f['value'] = df['value'].map(lambda x: '150' if str.isdecimal(str(x)) else x)
 [https://www.rieb.kobe-u.ac.jp/project/kinsei-db/database_excel.html](https://www.rieb.kobe-u.ac.jp/project/kinsei-db/database_excel.html)
 :::
 
-</details>
-
 ## 関数とクラス
 
 これまでは,基本的に記述したコードは,コード内で一度しか利用せず,上から順番に一つずつ行いたい処理を記述してきました. しかし,プログラミングを続けていると,同じ処理を何度も適用する場合が出てきます.その場合に,毎回処理を記述するのは労力がかかります.
@@ -5131,7 +5129,7 @@ print(afb.evaluate())  # Buzz (スーパークラスのメソッドが呼ばれ�
 
 # データサイエンスを始めよう 研究計画の建て方
 
-<details open>
+<details >
     <summary> 開く/閉じる </summary>
 
 ライブラリの章で説明したように,データサイエンスの作業は基本的に以下の順序で進みます.
@@ -5417,7 +5415,7 @@ print(afb.evaluate())  # Buzz (スーパークラスのメソッドが呼ばれ�
 
 # データの可視化 (執筆中)
 
-<details open>
+<details >
     <summary> 開く/閉じる </summary>
 
 ここまでで,プログラミングを利用してデータを読み込み,編集ができるようになりました. これから,データを分析する手法を学習しましょう. データ分析の第一歩は,データの**可視化**です.
