@@ -14,7 +14,8 @@ import           System.FilePath (replaceExtension, takeDirectory)
 import qualified Data.Text as T
 import qualified System.Process  as Process
 import qualified Text.Pandoc     as Pandoc
-
+import qualified Data.Set as S
+import Control.Monad (foldM, mplus)
 
 --------------------------------------------------------------------------------
 import           Hakyll
@@ -99,7 +100,8 @@ main = hakyllWith config $ do
         compile $ getResourceBody >>= relativizeUrls
 
     -- Build tags
-    tags <- buildTags "posts/*" (fromCapture "tags/*.html")
+    tags <- buildTagsWithList ["posts/*","lectures/*"] (fromCapture "tags/*.html")
+
 
     -- Render each and every post
     ------------------------------------------------------------------
@@ -297,6 +299,20 @@ main = hakyllWith config $ do
         case Pandoc.runPure (Pandoc.writeLaTeX Pandoc.def pandoc) of
             Left err -> fail $ show err
             Right x  -> return (T.unpack x)
+
+------------------------------------------------------------------
+buildTagsWithList :: MonadMetadata m => [Pattern] -> (String -> Identifier) -> m Tags
+buildTagsWithList patterns makeId = do
+    ids <- concat <$> mapM getMatches patterns
+    tagMap <- foldM addTags M.empty ids
+    let set' = S.fromList ids
+    return $ Tags (M.toList tagMap) makeId (PatternDependency (mconcat patterns) set')
+  where
+    -- Create a tag map for one page
+    addTags tagMap id' = do
+        tags <- getTags id'
+        let tagMap' = M.fromList $ zip tags $ repeat [id']
+        return $ M.unionWith (++) tagMap tagMap'
 
 --------------------------------------------------------------------------------
 postCtx :: Tags -> Context String

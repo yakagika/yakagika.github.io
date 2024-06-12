@@ -1,7 +1,10 @@
 ---
 title: 特別講義(データサイエンス)
 description: 資料
-tags: datascience, lecture, statistics, python
+tags:
+    - datascience
+    - statistics
+    - python
 featured: true
 tableOfContents: true
 ---

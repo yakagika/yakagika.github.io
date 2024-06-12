@@ -53,6 +53,7 @@
 <li><a href="#シンタクスハイライトの変更" id="toc-シンタクスハイライトの変更"><span class="toc-section-number">4</span> シンタクスハイライトの変更</a></li>
 <li><a href="#目次の生成" id="toc-目次の生成"><span class="toc-section-number">5</span> 目次の生成</a></li>
 <li><a href="#sitemapの生成" id="toc-sitemapの生成"><span class="toc-section-number">6</span> sitemapの生成</a></li>
+<li><a href="#複数のタグを付ける" id="toc-複数のタグを付ける"><span class="toc-section-number">7</span> 複数のタグを付ける</a></li>
 </ul>
 </div>
 <h2 data-number="1" id="はじめに"><span class="header-section-number">1</span> はじめに</h2>
@@ -321,6 +322,35 @@ katex : trueとなっているものだけにKaTeXを適用するのが方針で
 <span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a>    &lt;/<span class="kw">url</span>&gt;</span>
 <span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a>&lt;/<span class="kw">urlset</span>&gt;</span></code></pre></div>
+<h2 data-number="7" id="複数のタグを付ける"><span class="header-section-number">7</span> 複数のタグを付ける</h2>
+<p>lectures と post の2つからタグを生成する.</p>
+<p>複数の<code>Pattern</code>から<code>Tags</code>を生成するための<code>buildTagsWithList</code>を定義して.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>buildTagsWithList :: MonadMetadata m <span class="op">=&gt;</span> [Pattern] <span class="op">-&gt;</span> (String <span class="op">-&gt;</span> Identifier) <span class="op">-&gt;</span> m Tags</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>buildTagsWithList patterns makeId <span class="op">=</span> do</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    ids <span class="op">&lt;-</span> concat <span class="op">&lt;</span>$<span class="op">&gt;</span> mapM getMatches patterns</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    tagMap <span class="op">&lt;-</span> foldM addTags M.empty ids</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    let <span class="bu">set</span><span class="st">' = S.fromList ids</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="er">    return $ Tags </span>(M.toList tagMap) makeId (PatternDependency (mconcat patterns) <span class="bu">set</span><span class="st">')</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="er">  where</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    <span class="op">--</span> Create a tag <span class="bu">map</span> <span class="cf">for</span> one page</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    addTags tagMap <span class="bu">id</span><span class="st">' = do</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a><span class="er">        tags &lt;- getTags id'</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>        let tagMap<span class="st">' = M.fromList $ zip tags $ repeat [id'</span>]</span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> $ M.unionWith (<span class="op">++</span>) tagMap tagMap<span class="st">'</span></span></code></pre></div>
+<p>以下のように使う.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="op">--</span> Build tags</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>tags <span class="op">&lt;-</span> buildTagsWithList [<span class="st">&quot;posts/*&quot;</span>,<span class="st">&quot;lectures/*&quot;</span>] (fromCapture <span class="st">&quot;tags/*.html&quot;</span>)</span></code></pre></div>
+<p><code>markdown</code>のメタデータに以下のように設定すると,ちゃんと動く.</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode md"><code class="sourceCode markdown"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> 特別講義(データサイエンス)</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="an">description:</span><span class="co"> 資料</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="an">tags:</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="co">    - datascience</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="co">    - statistics</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="co">    - python</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="an">featured:</span><span class="co"> true</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a><span class="an">tableOfContents:</span><span class="co"> true</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span></code></pre></div>
 <p>yakagika</p>
 
 

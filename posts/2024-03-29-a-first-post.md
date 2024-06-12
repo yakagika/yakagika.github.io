@@ -346,4 +346,48 @@ postCtx tags = mconcat
 
 </urlset>
 ~~~
+
+# 複数のタグを付ける
+
+lectures と post の2つからタグを生成する.
+
+複数の`Pattern`から`Tags`を生成するための`buildTagsWithList`を定義して.
+
+~~~ py
+buildTagsWithList :: MonadMetadata m => [Pattern] -> (String -> Identifier) -> m Tags
+buildTagsWithList patterns makeId = do
+    ids <- concat <$> mapM getMatches patterns
+    tagMap <- foldM addTags M.empty ids
+    let set' = S.fromList ids
+    return $ Tags (M.toList tagMap) makeId (PatternDependency (mconcat patterns) set')
+  where
+    -- Create a tag map for one page
+    addTags tagMap id' = do
+        tags <- getTags id'
+        let tagMap' = M.fromList $ zip tags $ repeat [id']
+        return $ M.unionWith (++) tagMap tagMap'
+~~~
+
+以下のように使う.
+
+~~~ py
+-- Build tags
+tags <- buildTagsWithList ["posts/*","lectures/*"] (fromCapture "tags/*.html")
+~~~
+
+`markdown`のメタデータに以下のように設定すると,ちゃんと動く.
+
+~~~ md
+---
+title: 特別講義(データサイエンス)
+description: 資料
+tags:
+    - datascience
+    - statistics
+    - python
+featured: true
+tableOfContents: true
+---
+~~~
+
 yakagika

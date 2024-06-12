@@ -1,7 +1,11 @@
 ---
 title: 代数プログラミング入門
 description: 資料
-tags: [algebra, lecture, statistics, haskell]
+tags:
+    - algebra
+    - lecture
+    - statistics
+    - haskell
 featured: true
 katex: true
 tableOfContents: true
