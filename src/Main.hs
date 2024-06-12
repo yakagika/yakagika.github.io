@@ -280,6 +280,11 @@ main = hakyllWith config $ do
     match "photos/*/*.jpg" $ do
         route idRoute
         compile copyFileCompiler
+    -- google
+    match "google444b04943c3fafb4.html" $ do
+        route idRoute
+        compile copyFileCompiler
+
   where
     pages =
         [ "contact.markdown"
