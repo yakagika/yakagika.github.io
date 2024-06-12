@@ -42,7 +42,7 @@
     <h1>Hakyllでブログ作成</h1>
 <div class="soft">
     最初の投稿. Hakyllでブログを作成するあれこれ.<br />
-    Published on March 29, 2024 under the tag <a title="All pages tagged 'haskell'." href="../tags/haskell.html">haskell</a>
+    Published on 2024-03-29 under the tag <a title="All pages tagged 'haskell'." href="../tags/haskell.html">haskell</a>
 </div>
 
 <div class="toc"><div class="header">Table of Contents</div>
@@ -52,6 +52,7 @@
 <li><a href="#katex" id="toc-katex"><span class="toc-section-number">3</span> KaTeX</a></li>
 <li><a href="#シンタクスハイライトの変更" id="toc-シンタクスハイライトの変更"><span class="toc-section-number">4</span> シンタクスハイライトの変更</a></li>
 <li><a href="#目次の生成" id="toc-目次の生成"><span class="toc-section-number">5</span> 目次の生成</a></li>
+<li><a href="#sitemapの生成" id="toc-sitemapの生成"><span class="toc-section-number">6</span> sitemapの生成</a></li>
 </ul>
 </div>
 <h2 data-number="1" id="はじめに"><span class="header-section-number">1</span> はじめに</h2>
@@ -254,6 +255,72 @@ katex : trueとなっているものだけにKaTeXを適用するのが方針で
 <span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>                <span class="op">&gt;&gt;=</span> loadAndApplyTemplate <span class="st">&quot;templates/content.html&quot;</span> (mathCtx <span class="op">&lt;&gt;</span> defaultContext)</span>
 <span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>                <span class="op">&gt;&gt;=</span> loadAndApplyTemplate <span class="st">&quot;templates/default.html&quot;</span> (mathCtx <span class="op">&lt;&gt;</span> defaultContext)</span>
 <span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>                <span class="op">&gt;&gt;=</span> relativizeUrls</span></code></pre></div>
+<h2 data-number="6" id="sitemapの生成"><span class="header-section-number">6</span> sitemapの生成</h2>
+<p>postCtxを修正して, 修正時間(<code>mtime</code>),url(<code>url</code>)を追加.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ot">postCtx ::</span> <span class="dt">Tags</span> <span class="ot">-&gt;</span> <span class="dt">Context</span> <span class="dt">String</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>postCtx tags <span class="ot">=</span> <span class="fu">mconcat</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    [ modificationTimeField <span class="st">&quot;mtime&quot;</span> <span class="st">&quot;%Y-%m-%d&quot;</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    , dateField <span class="st">&quot;date&quot;</span> <span class="st">&quot;%Y-%m-%d&quot;</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    , tagsField <span class="st">&quot;tags&quot;</span> tags</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    , urlField <span class="st">&quot;url&quot;</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    , <span class="dt">Context</span> <span class="op">$</span> \key <span class="ot">-&gt;</span> <span class="kw">case</span> key <span class="kw">of</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;title&quot;</span> <span class="ot">-&gt;</span> unContext (mapContext escapeHtml defaultContext) key</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>        _       <span class="ot">-&gt;</span> unContext <span class="fu">mempty</span> key</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>    , defaultContext</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>    ]</span></code></pre></div>
+<p><code>templates</code>に<code>sitemap.xml</code>を追加.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode xml"><code class="sourceCode xml"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">&lt;?xml</span><span class="ot"> version=</span><span class="st">&quot;1.0&quot;</span><span class="ot"> encoding=</span><span class="st">&quot;UTF-8&quot;</span><span class="fu">?&gt;</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>&lt;<span class="kw">urlset</span><span class="ot"> xmlns=</span><span class="st">&quot;http://www.sitemaps.org/schemas/sitemap/0.9&quot;</span>&gt;</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    $for(entries)$</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    &lt;<span class="kw">url</span>&gt;</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>        &lt;<span class="kw">loc</span>&gt;$url$&lt;/<span class="kw">loc</span>&gt;</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>        &lt;<span class="kw">lastmod</span>&gt;$mtime$&lt;/<span class="kw">lastmod</span>&gt;</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    &lt;/<span class="kw">url</span>&gt;</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    $endfor$</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>&lt;/<span class="kw">urlset</span>&gt;</span></code></pre></div>
+<p><code>create</code>で<code>sitemap</code>を生成.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>    create [<span class="st">&quot;sitemap.xml&quot;</span>] <span class="op">$</span> <span class="kw">do</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>        route idRoute</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>        compile <span class="op">$</span> <span class="kw">do</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>            posts <span class="ot">&lt;-</span> loadAllSnapshots <span class="st">&quot;posts/*&quot;</span> <span class="st">&quot;content&quot;</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>            lectures <span class="ot">&lt;-</span> loadAllSnapshots <span class="st">&quot;lectures/*&quot;</span> <span class="st">&quot;content&quot;</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>            <span class="kw">let</span> allPosts <span class="ot">=</span> posts <span class="op">++</span> lectures</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>            <span class="kw">let</span> sitemapCtx <span class="ot">=</span> constField <span class="st">&quot;root&quot;</span> <span class="st">&quot;https://yakagika.github.io&quot;</span> <span class="op">&lt;&gt;</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>                             listField <span class="st">&quot;entries&quot;</span> (postCtx tags) (<span class="fu">return</span> allPosts)</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>            makeItem <span class="st">&quot;&quot;</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>                <span class="op">&gt;&gt;=</span> loadAndApplyTemplate <span class="st">&quot;templates/sitemap.xml&quot;</span> sitemapCtx</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>                <span class="op">&gt;&gt;=</span> relativizeUrls</span></code></pre></div>
+<p>以下のようなサイトマップが生成される.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode xml"><code class="sourceCode xml"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">&lt;?xml</span><span class="ot"> version=</span><span class="st">&quot;1.0&quot;</span><span class="ot"> encoding=</span><span class="st">&quot;UTF-8&quot;</span> <span class="fu">?&gt;</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>&lt;<span class="kw">urlset</span><span class="ot"> xmlns=</span><span class="st">&quot;http://www.sitemaps.org/schemas/sitemap/0.9&quot;</span>&gt;</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    &lt;<span class="kw">url</span>&gt;</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>        &lt;<span class="kw">loc</span>&gt;/posts/2024-03-29-a-first-post.html&lt;/<span class="kw">loc</span>&gt;</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>        &lt;<span class="kw">lastmod</span>&gt;2024-06-12&lt;/<span class="kw">lastmod</span>&gt;</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>    &lt;/<span class="kw">url</span>&gt;</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    &lt;<span class="kw">url</span>&gt;</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>        &lt;<span class="kw">loc</span>&gt;/lectures/2024-03-29-introduction-to-algebraic-programing.html&lt;/<span class="kw">loc</span>&gt;</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>        &lt;<span class="kw">lastmod</span>&gt;2024-06-12&lt;/<span class="kw">lastmod</span>&gt;</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>    &lt;/<span class="kw">url</span>&gt;</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>    &lt;<span class="kw">url</span>&gt;</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>        &lt;<span class="kw">loc</span>&gt;/lectures/2024-03-29-introduction-to-statistics.html&lt;/<span class="kw">loc</span>&gt;</span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>        &lt;<span class="kw">lastmod</span>&gt;2024-06-12&lt;/<span class="kw">lastmod</span>&gt;</span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>    &lt;/<span class="kw">url</span>&gt;</span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>    &lt;<span class="kw">url</span>&gt;</span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>        &lt;<span class="kw">loc</span>&gt;/lectures/2024-03-29-special-lecture-datascience-answer.html&lt;/<span class="kw">loc</span>&gt;</span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a>        &lt;<span class="kw">lastmod</span>&gt;2024-06-12&lt;/<span class="kw">lastmod</span>&gt;</span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>    &lt;/<span class="kw">url</span>&gt;</span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a>    &lt;<span class="kw">url</span>&gt;</span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a>        &lt;<span class="kw">loc</span>&gt;/lectures/2024-03-29-special-lecture-datascience.html&lt;/<span class="kw">loc</span>&gt;</span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a>        &lt;<span class="kw">lastmod</span>&gt;2024-06-12&lt;/<span class="kw">lastmod</span>&gt;</span>
+<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a>    &lt;/<span class="kw">url</span>&gt;</span>
+<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a>&lt;/<span class="kw">urlset</span>&gt;</span></code></pre></div>
 <p>yakagika</p>
 
 

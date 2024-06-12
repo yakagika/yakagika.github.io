@@ -258,6 +258,20 @@ main = hakyllWith config $ do
                 >>= fmap (take 10) . recentFirst
                 >>= renderRss (feedConfiguration "All posts") feedCtx
 
+    create ["sitemap.xml"] $ do
+        route idRoute
+        compile $ do
+            posts <- loadAllSnapshots "posts/*" "content"
+            lectures <- loadAllSnapshots "lectures/*" "content"
+            let allPosts = posts ++ lectures
+            let sitemapCtx = constField "root" "https://yakagika.github.io" <>
+                             listField "entries" (postCtx tags) (return allPosts)
+
+            makeItem ""
+                >>= loadAndApplyTemplate "templates/sitemap.xml" sitemapCtx
+                >>= relativizeUrls
+
+
     -- Showcases
     match "photos/*/index.html" $ do
         route idRoute
@@ -282,9 +296,10 @@ main = hakyllWith config $ do
 --------------------------------------------------------------------------------
 postCtx :: Tags -> Context String
 postCtx tags = mconcat
-    [ modificationTimeField "mtime" "%U"
-    , dateField "date" "%B %e, %Y"
+    [ modificationTimeField "mtime" "%Y-%m-%d"
+    , dateField "date" "%Y-%m-%d"
     , tagsField "tags" tags
+    , urlField "url"
     , Context $ \key -> case key of
         "title" -> unContext (mapContext escapeHtml defaultContext) key
         _       -> unContext mempty key
@@ -352,7 +367,7 @@ pdfToPng item = do
 --------------------------------------------------------------------------------
 photographCtx :: Context String
 photographCtx = mconcat
-    [ dateField "date" "%B %e, %Y"
+    [ dateField "date" "%Y-%m-%d"
     , metadataField
     ]
 

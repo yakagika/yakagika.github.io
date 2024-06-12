@@ -263,5 +263,87 @@ customWriterOptions = defaultHakyllWriterOptions
                 >>= relativizeUrls
 ~~~
 
+# sitemapの生成
 
+postCtxを修正して, 修正時間(`mtime`),url(`url`)を追加.
+
+~~~ haskell
+postCtx :: Tags -> Context String
+postCtx tags = mconcat
+    [ modificationTimeField "mtime" "%Y-%m-%d"
+    , dateField "date" "%Y-%m-%d"
+    , tagsField "tags" tags
+    , urlField "url"
+    , Context $ \key -> case key of
+        "title" -> unContext (mapContext escapeHtml defaultContext) key
+        _       -> unContext mempty key
+    , defaultContext
+    ]
+~~~
+
+`templates`に`sitemap.xml`を追加.
+
+~~~ xml
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    $for(entries)$
+    <url>
+        <loc>$url$</loc>
+        <lastmod>$mtime$</lastmod>
+    </url>
+    $endfor$
+</urlset>
+~~~
+
+`create`で`sitemap`を生成.
+
+~~~ haskell
+    create ["sitemap.xml"] $ do
+        route idRoute
+        compile $ do
+            posts <- loadAllSnapshots "posts/*" "content"
+            lectures <- loadAllSnapshots "lectures/*" "content"
+            let allPosts = posts ++ lectures
+            let sitemapCtx = constField "root" "https://yakagika.github.io" <>
+                             listField "entries" (postCtx tags) (return allPosts)
+
+            makeItem ""
+                >>= loadAndApplyTemplate "templates/sitemap.xml" sitemapCtx
+                >>= relativizeUrls
+
+~~~
+
+以下のようなサイトマップが生成される.
+
+~~~ xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+    <url>
+        <loc>/posts/2024-03-29-a-first-post.html</loc>
+        <lastmod>2024-06-12</lastmod>
+    </url>
+
+    <url>
+        <loc>/lectures/2024-03-29-introduction-to-algebraic-programing.html</loc>
+        <lastmod>2024-06-12</lastmod>
+    </url>
+
+    <url>
+        <loc>/lectures/2024-03-29-introduction-to-statistics.html</loc>
+        <lastmod>2024-06-12</lastmod>
+    </url>
+
+    <url>
+        <loc>/lectures/2024-03-29-special-lecture-datascience-answer.html</loc>
+        <lastmod>2024-06-12</lastmod>
+    </url>
+
+    <url>
+        <loc>/lectures/2024-03-29-special-lecture-datascience.html</loc>
+        <lastmod>2024-06-12</lastmod>
+    </url>
+
+</urlset>
+~~~
 yakagika
