@@ -3654,6 +3654,8 @@ BOM付きのUTF-8の場合は<code>encoding='utf-8-sig'</code>と記述します
 <span id="cb222-20"><a href="#cb222-20" aria-hidden="true" tabindex="-1"></a><span class="ex">19</span>    122</span>
 <span id="cb222-21"><a href="#cb222-21" aria-hidden="true" tabindex="-1"></a><span class="ex">Name:</span> value, dtype: object</span></code></pre></div>
 <p>無事に数値に変換できました.</p>
+<p>このように, <code>pandas</code>ではイテラブルオブジェクトとして<code>index</code>や<code>columns</code>を利用し,<code>.at[]</code>などを利用してデータを編集する必要がある場合が多いです.
+<code>pandas</code>で<code>for文</code>,<code>if文</code>などの組み合わせた処理に慣れておきましょう.</p>
 <p>もう少し複雑な例についても見てみましょう. 以下のDataFrameにおいて,グループ別の平均点を求めてみましょう.</p>
 <div class="sourceCode" id="cb223"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb223-1"><a href="#cb223-1" aria-hidden="true" tabindex="-1"></a>data <span class="op">=</span>  {<span class="st">'group'</span>: [<span class="dv">5</span>, <span class="dv">5</span>, <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">1</span>, <span class="dv">5</span>, <span class="dv">4</span>, <span class="dv">3</span>, <span class="dv">2</span>, <span class="dv">1</span></span>
 <span id="cb223-2"><a href="#cb223-2" aria-hidden="true" tabindex="-1"></a>                  , <span class="dv">5</span>, <span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">4</span>, <span class="dv">5</span>, <span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">1</span></span>
@@ -3693,105 +3695,164 @@ BOM付きのUTF-8の場合は<code>encoding='utf-8-sig'</code>と記述します
 <span id="cb224-28"><a href="#cb224-28" aria-hidden="true" tabindex="-1"></a><span class="ex">26</span>      3     100</span>
 <span id="cb224-29"><a href="#cb224-29" aria-hidden="true" tabindex="-1"></a><span class="ex">27</span>      4      62</span>
 <span id="cb224-30"><a href="#cb224-30" aria-hidden="true" tabindex="-1"></a><span class="ex">28</span>      4      54</span></code></pre></div>
-<p>一度, 以下の解答例を見ずに,自分でフローチャートとプログラムを考えてみましょう.
-(ヒント:条件抽出を使ってみましょう.)</p>
-<details>
-<summary>
-回答例 開く/閉じる
-</summary>
+<p>一度, 以下の解答例を見ずに,自分でフローチャートとプログラムを考えてみましょう.</p>
+<ul>
+<li><h3 id="回答例">回答例</h3></li>
+</ul>
+<div class="note">
+<p>このような処理のプログラムが書けるかどうかは,どのような手順でデータを操作するかをイメージできるかで決まります. これは,プログラミングの文法知識などの問題ではなく,パズルを解くようないわゆる論理的思考や,プログラミング的思考と呼ばれる能力です.</p>
+<p>こういった処理を｢どのようにしたら思いつくことができるのか｣はなかなか教えるのが難しいのですが,一つの手順として,<strong>一旦プログラムのことは忘れて,紙と鉛筆でどのように同じ問題を解くかを考えてみる</strong>というのが有効な場合があります.プログラムになれると,直接プログラムで記述することが出来るようになります. しかし,プログラム的思考に慣れていない人はそもそも何をすればいいのかわからないのでプログラムが書けません.</p>
+<p>何をすればいいのか皆目検討がつかないという人は, 自分が,紙と鉛筆でどのように解くのかを考えて,それをアルゴリズムに変更し,プログラムに直すという手順を踏んでみましょう.</p>
+</div>
+<p>求めなければならないものをまずはイメージしてみましょう.求めるものは,以下のように,グループごとの値の合計値をグループの数で割ったものです.</p>
 <figure>
-<img src="../images/for3.png" alt="forのイメージ" />
-<figcaption aria-hidden="true">forのイメージ</figcaption>
+<img src="../images/average_by_group.png" alt="問題のイメージ" />
+<figcaption aria-hidden="true">問題のイメージ</figcaption>
 </figure>
-<div class="sourceCode" id="cb225"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb225-1"><a href="#cb225-1" aria-hidden="true" tabindex="-1"></a><span class="co"># groupのリストを作る</span></span>
-<span id="cb225-2"><a href="#cb225-2" aria-hidden="true" tabindex="-1"></a>group <span class="op">=</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">5</span>]</span>
-<span id="cb225-3"><a href="#cb225-3" aria-hidden="true" tabindex="-1"></a><span class="co"># 別解 (グループ数がめちゃくちゃ多いときなど)</span></span>
-<span id="cb225-4"><a href="#cb225-4" aria-hidden="true" tabindex="-1"></a><span class="co"># group = df['group'].unique()</span></span>
-<span id="cb225-5"><a href="#cb225-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb225-6"><a href="#cb225-6" aria-hidden="true" tabindex="-1"></a><span class="co"># 格納するための辞書型を作る</span></span>
-<span id="cb225-7"><a href="#cb225-7" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> {}</span>
-<span id="cb225-8"><a href="#cb225-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb225-9"><a href="#cb225-9" aria-hidden="true" tabindex="-1"></a><span class="co"># groupのリストから一つ抜き出す</span></span>
-<span id="cb225-10"><a href="#cb225-10" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> g <span class="kw">in</span> group:</span>
-<span id="cb225-11"><a href="#cb225-11" aria-hidden="true" tabindex="-1"></a>    <span class="co"># groupが等しいデータを抽出する</span></span>
-<span id="cb225-12"><a href="#cb225-12" aria-hidden="true" tabindex="-1"></a>    xs <span class="op">=</span> df[df[<span class="st">'group'</span>] <span class="op">==</span> g][<span class="st">'points'</span>]</span>
-<span id="cb225-13"><a href="#cb225-13" aria-hidden="true" tabindex="-1"></a>    <span class="co"># groupの生徒の数が1以上</span></span>
-<span id="cb225-14"><a href="#cb225-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">len</span>(xs) <span class="op">&gt;=</span> <span class="dv">1</span>:</span>
-<span id="cb225-15"><a href="#cb225-15" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 平均を求める</span></span>
-<span id="cb225-16"><a href="#cb225-16" aria-hidden="true" tabindex="-1"></a>        mean <span class="op">=</span> xs.mean()</span>
-<span id="cb225-17"><a href="#cb225-17" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 辞書型に格納する</span></span>
-<span id="cb225-18"><a href="#cb225-18" aria-hidden="true" tabindex="-1"></a>        result[g] <span class="op">=</span> mean</span>
-<span id="cb225-19"><a href="#cb225-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb225-20"><a href="#cb225-20" aria-hidden="true" tabindex="-1"></a><span class="co"># 結果の確認</span></span>
-<span id="cb225-21"><a href="#cb225-21" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(result)</span></code></pre></div>
-<div class="sourceCode" id="cb226"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb226-1"><a href="#cb226-1" aria-hidden="true" tabindex="-1"></a><span class="ex">{1:</span> 65.5, 2: 62.8, 3: 64.5, 4: 47.42857142857143, 5: 40.6}</span></code></pre></div>
-</details>
-<p>このように, <code>pandas</code>ではイテラブルオブジェクトとして<code>index</code>や<code>columns</code>を利用し,<code>.at[]</code>などを利用してデータを編集する必要がある場合が多いです.
-<code>pandas</code>で<code>for文</code>,<code>if文</code>などの組み合わせた処理に慣れておきましょう.</p>
+<p>この問題を紙と鉛筆で求める場合,どのような方法があるでしょうか.</p>
+<p>一例として,上から1行ずつデータを確認し,グループ別に<code>points</code>の値をメモする. すべての行を記録し終えたら,グループ別のメモの値を合計値とデータの数を求めて,平均値を計算するという方法でやってみましょう.
+小学生でも順番を守れば可能な方法ですね.</p>
+<figure>
+<img src="../images/average_by_group2.png" alt="解き方のイメージ" />
+<figcaption aria-hidden="true">解き方のイメージ</figcaption>
+</figure>
+<p>まず,グループ別のメモをする場所を作成します.どのようなデータ型でも構いませんが,ここでは辞書型で作成してみます.</p>
+<div class="sourceCode" id="cb225"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb225-1"><a href="#cb225-1" aria-hidden="true" tabindex="-1"></a>memo <span class="op">=</span> {<span class="dv">1</span>:[]</span>
+<span id="cb225-2"><a href="#cb225-2" aria-hidden="true" tabindex="-1"></a>       ,<span class="dv">2</span>:[]</span>
+<span id="cb225-3"><a href="#cb225-3" aria-hidden="true" tabindex="-1"></a>       ,<span class="dv">3</span>:[]</span>
+<span id="cb225-4"><a href="#cb225-4" aria-hidden="true" tabindex="-1"></a>       ,<span class="dv">4</span>:[]</span>
+<span id="cb225-5"><a href="#cb225-5" aria-hidden="true" tabindex="-1"></a>       ,<span class="dv">5</span>:[]}</span></code></pre></div>
+<p>データを1行ずつ確認し,メモ帳に記録していきます.</p>
+<div class="sourceCode" id="cb226"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb226-1"><a href="#cb226-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> df.index:</span>
+<span id="cb226-2"><a href="#cb226-2" aria-hidden="true" tabindex="-1"></a>    memo[df.at[i,<span class="st">'group'</span>]] <span class="op">+=</span> [df.at[i,<span class="st">'points'</span>]]</span>
+<span id="cb226-3"><a href="#cb226-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb226-4"><a href="#cb226-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(memo)</span>
+<span id="cb226-5"><a href="#cb226-5" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb226-6"><a href="#cb226-6" aria-hidden="true" tabindex="-1"></a><span class="co">{ 1: [58, 38, 42, 94, 40, 93, 80, 79]</span></span>
+<span id="cb226-7"><a href="#cb226-7" aria-hidden="true" tabindex="-1"></a><span class="co">, 2: [96, 82, 25, 44, 67]</span></span>
+<span id="cb226-8"><a href="#cb226-8" aria-hidden="true" tabindex="-1"></a><span class="co">, 3: [30, 89, 39, 100]</span></span>
+<span id="cb226-9"><a href="#cb226-9" aria-hidden="true" tabindex="-1"></a><span class="co">, 4: [33, 66, 36, 38, 43, 62, 54]</span></span>
+<span id="cb226-10"><a href="#cb226-10" aria-hidden="true" tabindex="-1"></a><span class="co">, 5: [45, 23, 41, 42, 52]}</span></span>
+<span id="cb226-11"><a href="#cb226-11" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>記録したメモを元に,一つひとつ合計値とデータ数を求め,平均値を計算してみます.</p>
+<div class="sourceCode" id="cb227"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb227-1"><a href="#cb227-1" aria-hidden="true" tabindex="-1"></a><span class="co">#グループ1からグループ5まで順番に作業する</span></span>
+<span id="cb227-2"><a href="#cb227-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>,<span class="dv">6</span>):</span>
+<span id="cb227-3"><a href="#cb227-3" aria-hidden="true" tabindex="-1"></a>    total <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb227-4"><a href="#cb227-4" aria-hidden="true" tabindex="-1"></a>    length <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb227-5"><a href="#cb227-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">#グループ別のリストを足していく</span></span>
+<span id="cb227-6"><a href="#cb227-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> x <span class="kw">in</span> memo[i]:</span>
+<span id="cb227-7"><a href="#cb227-7" aria-hidden="true" tabindex="-1"></a>        total <span class="op">+=</span> x</span>
+<span id="cb227-8"><a href="#cb227-8" aria-hidden="true" tabindex="-1"></a>        length <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb227-9"><a href="#cb227-9" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'group:</span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">, mean:</span><span class="sc">{</span>total<span class="op">/</span>length<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb227-10"><a href="#cb227-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb227-11"><a href="#cb227-11" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb227-12"><a href="#cb227-12" aria-hidden="true" tabindex="-1"></a><span class="co">group:1, mean:65.5</span></span>
+<span id="cb227-13"><a href="#cb227-13" aria-hidden="true" tabindex="-1"></a><span class="co">group:2, mean:62.8</span></span>
+<span id="cb227-14"><a href="#cb227-14" aria-hidden="true" tabindex="-1"></a><span class="co">group:3, mean:64.5</span></span>
+<span id="cb227-15"><a href="#cb227-15" aria-hidden="true" tabindex="-1"></a><span class="co">group:4, mean:47.42857142857143</span></span>
+<span id="cb227-16"><a href="#cb227-16" aria-hidden="true" tabindex="-1"></a><span class="co">group:5, mean:40.6</span></span>
+<span id="cb227-17"><a href="#cb227-17" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>これで無事に,グループ別のデータが求められました.
+当然,もっと効率的で,簡単に計算する方法は沢山あります. 似た問題を検索し特定のメソッドを利用したり,AIに聞くことで,何も考えずに計算することも可能です.</p>
+<p>例えば, 先程の平均値の計算部分に関しては,組み込み関数の<code>sum()</code>や<code>len()</code>を利用することで,自分で書かなくても計算が可能です.</p>
+<div class="sourceCode" id="cb228"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb228-1"><a href="#cb228-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>,<span class="dv">6</span>):</span>
+<span id="cb228-2"><a href="#cb228-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'group:</span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">,mean:</span><span class="sc">{</span><span class="bu">sum</span>(memo[i])<span class="op">/</span><span class="bu">len</span>(memo[i])<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb228-3"><a href="#cb228-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb228-4"><a href="#cb228-4" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb228-5"><a href="#cb228-5" aria-hidden="true" tabindex="-1"></a><span class="co">group:1,mean:65.5</span></span>
+<span id="cb228-6"><a href="#cb228-6" aria-hidden="true" tabindex="-1"></a><span class="co">group:2,mean:62.8</span></span>
+<span id="cb228-7"><a href="#cb228-7" aria-hidden="true" tabindex="-1"></a><span class="co">group:3,mean:64.5</span></span>
+<span id="cb228-8"><a href="#cb228-8" aria-hidden="true" tabindex="-1"></a><span class="co">group:4,mean:47.42857142857143</span></span>
+<span id="cb228-9"><a href="#cb228-9" aria-hidden="true" tabindex="-1"></a><span class="co">group:5,mean:40.6</span></span>
+<span id="cb228-10"><a href="#cb228-10" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>また,以前扱った条件抽出を使えば,一つ一つデータを集める必要もありません. 以下の3行で同じことが可能です.</p>
+<div class="sourceCode" id="cb229"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb229-1"><a href="#cb229-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>,<span class="dv">6</span>):</span>
+<span id="cb229-2"><a href="#cb229-2" aria-hidden="true" tabindex="-1"></a>    group_mean <span class="op">=</span> df[df[<span class="st">'group'</span>] <span class="op">==</span> i][<span class="st">'points'</span>].mean()</span>
+<span id="cb229-3"><a href="#cb229-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'group:</span><span class="sc">{</span>i<span class="sc">}</span><span class="ss">,mean:</span><span class="sc">{</span>group_mean<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb229-4"><a href="#cb229-4" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb229-5"><a href="#cb229-5" aria-hidden="true" tabindex="-1"></a><span class="co">group:1,mean:65.5</span></span>
+<span id="cb229-6"><a href="#cb229-6" aria-hidden="true" tabindex="-1"></a><span class="co">group:2,mean:62.8</span></span>
+<span id="cb229-7"><a href="#cb229-7" aria-hidden="true" tabindex="-1"></a><span class="co">group:3,mean:64.5</span></span>
+<span id="cb229-8"><a href="#cb229-8" aria-hidden="true" tabindex="-1"></a><span class="co">group:4,mean:47.42857142857143</span></span>
+<span id="cb229-9"><a href="#cb229-9" aria-hidden="true" tabindex="-1"></a><span class="co">group:5,mean:40.6</span></span>
+<span id="cb229-10"><a href="#cb229-10" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>更に,<code>pandas</code>の<code>.groupby()</code>メソッドを使えば,1行で同じような処理が可能です.</p>
+<div class="sourceCode" id="cb230"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb230-1"><a href="#cb230-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df.groupby(<span class="st">'group'</span>).mean())</span>
+<span id="cb230-2"><a href="#cb230-2" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb230-3"><a href="#cb230-3" aria-hidden="true" tabindex="-1"></a><span class="co">         points</span></span>
+<span id="cb230-4"><a href="#cb230-4" aria-hidden="true" tabindex="-1"></a><span class="co">group</span></span>
+<span id="cb230-5"><a href="#cb230-5" aria-hidden="true" tabindex="-1"></a><span class="co">1      65.500000</span></span>
+<span id="cb230-6"><a href="#cb230-6" aria-hidden="true" tabindex="-1"></a><span class="co">2      62.800000</span></span>
+<span id="cb230-7"><a href="#cb230-7" aria-hidden="true" tabindex="-1"></a><span class="co">3      64.500000</span></span>
+<span id="cb230-8"><a href="#cb230-8" aria-hidden="true" tabindex="-1"></a><span class="co">4      47.428571</span></span>
+<span id="cb230-9"><a href="#cb230-9" aria-hidden="true" tabindex="-1"></a><span class="co">5      40.600000</span></span>
+<span id="cb230-10"><a href="#cb230-10" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>しかし,そのような方法ではいつまでたっても自分でプログラムが書けるようにはなりません.また,便利なメソッドが使えても,その背後で何をしているのかを理解していないと,計算した値の意味を理解したり,正しく利用することができません.</p>
+<p>まずは自分の頭でどのように処理することで,求めたい値が計算できるのかの手順を考えて,プログラムが書けるようになったあとで,便利なメソッドなどの利用法を覚えることをおすすめします.</p>
 <h5 data-number="6.4.2.6" id="発展-高階関数"><span class="header-section-number">6.4.2.6</span> 発展: 高階関数</h5>
 <p>Pythonで反復を実現するもう一つの方法として<strong>高階関数</strong>があります.高階関数とは,関数を引数にとる関数であり,こちらも関数型言語から取り入れられ,<code>pandas</code>において<strong>各行に同じ処理を適用したい場合</strong>に良く用いられます.</p>
 <p>本資料ではまだ,関数に関して扱っていませんが,発展的内容としてここだけで完結する範囲で簡単に説明します.
 興味がある方は, 関数を学んだあとにもう一度こちらを見てみると理解が深まるかもしれません.</p>
 <p>以下の<code>DataFrame</code>を事例に考えてみましょう.</p>
-<div class="sourceCode" id="cb227"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb227-1"><a href="#cb227-1" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.DataFrame({<span class="st">'kind'</span>:[<span class="st">'cat'</span>,<span class="st">'dog'</span>,<span class="st">'fish'</span>]</span>
-<span id="cb227-2"><a href="#cb227-2" aria-hidden="true" tabindex="-1"></a>                  ,<span class="st">'weight'</span>:[<span class="dv">30</span>,<span class="dv">20</span>,<span class="dv">10</span>]})</span>
-<span id="cb227-3"><a href="#cb227-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
-<span id="cb227-4"><a href="#cb227-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb227-5"><a href="#cb227-5" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
-<span id="cb227-6"><a href="#cb227-6" aria-hidden="true" tabindex="-1"></a><span class="co">   kind  weight</span></span>
-<span id="cb227-7"><a href="#cb227-7" aria-hidden="true" tabindex="-1"></a><span class="co">0   cat      30</span></span>
-<span id="cb227-8"><a href="#cb227-8" aria-hidden="true" tabindex="-1"></a><span class="co">1   dog      20</span></span>
-<span id="cb227-9"><a href="#cb227-9" aria-hidden="true" tabindex="-1"></a><span class="co">2  fish      10</span></span>
-<span id="cb227-10"><a href="#cb227-10" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<div class="sourceCode" id="cb231"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb231-1"><a href="#cb231-1" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.DataFrame({<span class="st">'kind'</span>:[<span class="st">'cat'</span>,<span class="st">'dog'</span>,<span class="st">'fish'</span>]</span>
+<span id="cb231-2"><a href="#cb231-2" aria-hidden="true" tabindex="-1"></a>                  ,<span class="st">'weight'</span>:[<span class="dv">30</span>,<span class="dv">20</span>,<span class="dv">10</span>]})</span>
+<span id="cb231-3"><a href="#cb231-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb231-4"><a href="#cb231-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb231-5"><a href="#cb231-5" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb231-6"><a href="#cb231-6" aria-hidden="true" tabindex="-1"></a><span class="co">   kind  weight</span></span>
+<span id="cb231-7"><a href="#cb231-7" aria-hidden="true" tabindex="-1"></a><span class="co">0   cat      30</span></span>
+<span id="cb231-8"><a href="#cb231-8" aria-hidden="true" tabindex="-1"></a><span class="co">1   dog      20</span></span>
+<span id="cb231-9"><a href="#cb231-9" aria-hidden="true" tabindex="-1"></a><span class="co">2  fish      10</span></span>
+<span id="cb231-10"><a href="#cb231-10" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
 <p>このデータの<code>kind列</code>を大文字にすることを考えてみましょう.
 <code>for文</code>を利用すると以下のようになりますね.</p>
-<div class="sourceCode" id="cb228"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb228-1"><a href="#cb228-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> df.index:</span>
-<span id="cb228-2"><a href="#cb228-2" aria-hidden="true" tabindex="-1"></a>    df.at[i,<span class="st">'kind'</span>] <span class="op">=</span> df.at[i,<span class="st">'kind'</span>].upper()</span>
-<span id="cb228-3"><a href="#cb228-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb228-4"><a href="#cb228-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
-<span id="cb228-5"><a href="#cb228-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb228-6"><a href="#cb228-6" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
-<span id="cb228-7"><a href="#cb228-7" aria-hidden="true" tabindex="-1"></a><span class="co">   kind  weight</span></span>
-<span id="cb228-8"><a href="#cb228-8" aria-hidden="true" tabindex="-1"></a><span class="co">0   CAT      30</span></span>
-<span id="cb228-9"><a href="#cb228-9" aria-hidden="true" tabindex="-1"></a><span class="co">1   DOG      20</span></span>
-<span id="cb228-10"><a href="#cb228-10" aria-hidden="true" tabindex="-1"></a><span class="co">2  FISH      10</span></span>
-<span id="cb228-11"><a href="#cb228-11" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<div class="sourceCode" id="cb232"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb232-1"><a href="#cb232-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> df.index:</span>
+<span id="cb232-2"><a href="#cb232-2" aria-hidden="true" tabindex="-1"></a>    df.at[i,<span class="st">'kind'</span>] <span class="op">=</span> df.at[i,<span class="st">'kind'</span>].upper()</span>
+<span id="cb232-3"><a href="#cb232-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb232-4"><a href="#cb232-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb232-5"><a href="#cb232-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb232-6"><a href="#cb232-6" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb232-7"><a href="#cb232-7" aria-hidden="true" tabindex="-1"></a><span class="co">   kind  weight</span></span>
+<span id="cb232-8"><a href="#cb232-8" aria-hidden="true" tabindex="-1"></a><span class="co">0   CAT      30</span></span>
+<span id="cb232-9"><a href="#cb232-9" aria-hidden="true" tabindex="-1"></a><span class="co">1   DOG      20</span></span>
+<span id="cb232-10"><a href="#cb232-10" aria-hidden="true" tabindex="-1"></a><span class="co">2  FISH      10</span></span>
+<span id="cb232-11"><a href="#cb232-11" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
 <p>この処理を,高階関数<code>map()</code>を利用すると,以下のようになります.</p>
-<div class="sourceCode" id="cb229"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb229-1"><a href="#cb229-1" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'kind'</span>] <span class="op">=</span> df[<span class="st">'kind'</span>].<span class="bu">map</span>(<span class="kw">lambda</span> x : x.upper())</span>
-<span id="cb229-2"><a href="#cb229-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
-<span id="cb229-3"><a href="#cb229-3" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
-<span id="cb229-4"><a href="#cb229-4" aria-hidden="true" tabindex="-1"></a><span class="co">   kind  weight</span></span>
-<span id="cb229-5"><a href="#cb229-5" aria-hidden="true" tabindex="-1"></a><span class="co">0   CAT      30</span></span>
-<span id="cb229-6"><a href="#cb229-6" aria-hidden="true" tabindex="-1"></a><span class="co">1   DOG      20</span></span>
-<span id="cb229-7"><a href="#cb229-7" aria-hidden="true" tabindex="-1"></a><span class="co">2  FISH      10</span></span>
-<span id="cb229-8"><a href="#cb229-8" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<div class="sourceCode" id="cb233"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb233-1"><a href="#cb233-1" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'kind'</span>] <span class="op">=</span> df[<span class="st">'kind'</span>].<span class="bu">map</span>(<span class="kw">lambda</span> x : x.upper())</span>
+<span id="cb233-2"><a href="#cb233-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb233-3"><a href="#cb233-3" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb233-4"><a href="#cb233-4" aria-hidden="true" tabindex="-1"></a><span class="co">   kind  weight</span></span>
+<span id="cb233-5"><a href="#cb233-5" aria-hidden="true" tabindex="-1"></a><span class="co">0   CAT      30</span></span>
+<span id="cb233-6"><a href="#cb233-6" aria-hidden="true" tabindex="-1"></a><span class="co">1   DOG      20</span></span>
+<span id="cb233-7"><a href="#cb233-7" aria-hidden="true" tabindex="-1"></a><span class="co">2  FISH      10</span></span>
+<span id="cb233-8"><a href="#cb233-8" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
 <p><code>map()</code>は,与えられた<code>DataFrame</code>の列(<code>DataSeries</code>)の各行に対して,<code>()</code>内の処理を適用した結果を返す高階関数です.</p>
 <p><code>lambda x: x.upper()</code>を<code>無名関数</code>や<code>ラムダ式</code>といい, <code>lambda 変数: 変数に適用したい処理</code>の形で書きます. 今は,<code>DataSeries</code>の各行を<code>x</code>として,その<code>x</code>に<code>.upper()</code>を適用しています.</p>
 <p><code>条件に合致する場合の処理 if 条件 else 合致しない場合の処理</code> と書くことで条件を加えることも可能です.</p>
 <p>以下の例では, <code>weight</code>列の値が<code>15</code>より大きければ2倍するという処理を行っています.</p>
-<div class="sourceCode" id="cb230"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb230-1"><a href="#cb230-1" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'weight'</span>] <span class="op">=</span> df[<span class="st">'weight'</span>].<span class="bu">map</span>(<span class="kw">lambda</span> x: x<span class="op">*</span><span class="dv">2</span> <span class="cf">if</span> x <span class="op">&gt;</span> <span class="dv">15</span> <span class="cf">else</span> x)</span>
-<span id="cb230-2"><a href="#cb230-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
-<span id="cb230-3"><a href="#cb230-3" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
-<span id="cb230-4"><a href="#cb230-4" aria-hidden="true" tabindex="-1"></a><span class="co">   kind  weight</span></span>
-<span id="cb230-5"><a href="#cb230-5" aria-hidden="true" tabindex="-1"></a><span class="co">0   CAT      60</span></span>
-<span id="cb230-6"><a href="#cb230-6" aria-hidden="true" tabindex="-1"></a><span class="co">1   DOG      40</span></span>
-<span id="cb230-7"><a href="#cb230-7" aria-hidden="true" tabindex="-1"></a><span class="co">2  FISH      10</span></span>
-<span id="cb230-8"><a href="#cb230-8" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<div class="sourceCode" id="cb234"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb234-1"><a href="#cb234-1" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'weight'</span>] <span class="op">=</span> df[<span class="st">'weight'</span>].<span class="bu">map</span>(<span class="kw">lambda</span> x: x<span class="op">*</span><span class="dv">2</span> <span class="cf">if</span> x <span class="op">&gt;</span> <span class="dv">15</span> <span class="cf">else</span> x)</span>
+<span id="cb234-2"><a href="#cb234-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb234-3"><a href="#cb234-3" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb234-4"><a href="#cb234-4" aria-hidden="true" tabindex="-1"></a><span class="co">   kind  weight</span></span>
+<span id="cb234-5"><a href="#cb234-5" aria-hidden="true" tabindex="-1"></a><span class="co">0   CAT      60</span></span>
+<span id="cb234-6"><a href="#cb234-6" aria-hidden="true" tabindex="-1"></a><span class="co">1   DOG      40</span></span>
+<span id="cb234-7"><a href="#cb234-7" aria-hidden="true" tabindex="-1"></a><span class="co">2  FISH      10</span></span>
+<span id="cb234-8"><a href="#cb234-8" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
 <p>高階関数を使った処理は,<code>for文</code>より簡潔に書けて,かつ処理速度も高速です. 機会があれば積極的に使ってみましょう.</p>
 <p>例えば,先程の以下のDataFrameで,<code>year列</code>から年を削除し,<code>value列</code>の空白を<code>150</code>に置き換える処理は高階関数を利用すると以下のように書けます.</p>
-<div class="sourceCode" id="cb231"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb231-1"><a href="#cb231-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb231-2"><a href="#cb231-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb231-3"><a href="#cb231-3" aria-hidden="true" tabindex="-1"></a>years <span class="op">=</span> [<span class="bu">str</span>(x) <span class="op">+</span> <span class="st">'年'</span> <span class="cf">for</span> x <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1800</span>,<span class="dv">1820</span>)]</span>
-<span id="cb231-4"><a href="#cb231-4" aria-hidden="true" tabindex="-1"></a>values <span class="op">=</span> [<span class="st">'101'</span>,<span class="st">'187'</span>,<span class="st">'150'</span>,<span class="st">'117'</span>,<span class="st">''</span>,<span class="st">'168'</span></span>
-<span id="cb231-5"><a href="#cb231-5" aria-hidden="true" tabindex="-1"></a>         ,<span class="st">'195'</span>,<span class="st">'140'</span>,<span class="st">'151'</span>,<span class="st">'123'</span>,<span class="st">'192'</span>,<span class="st">'137'</span></span>
-<span id="cb231-6"><a href="#cb231-6" aria-hidden="true" tabindex="-1"></a>         ,<span class="st">'なし'</span>,<span class="st">'184'</span>,<span class="st">'136'</span>,<span class="st">'192'</span>,<span class="st">'150'</span>,<span class="st">'163'</span>,<span class="st">'141'</span>,<span class="st">'122'</span>]</span>
-<span id="cb231-7"><a href="#cb231-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb231-8"><a href="#cb231-8" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.DataFrame({<span class="st">'year'</span>:years</span>
-<span id="cb231-9"><a href="#cb231-9" aria-hidden="true" tabindex="-1"></a>                  ,<span class="st">'value'</span>:values})</span>
-<span id="cb231-10"><a href="#cb231-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
-<span id="cb231-11"><a href="#cb231-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb231-12"><a href="#cb231-12" aria-hidden="true" tabindex="-1"></a>f[<span class="st">'year'</span>] <span class="op">=</span> df[<span class="st">'year'</span>].<span class="bu">map</span>(<span class="kw">lambda</span> x : x[<span class="op">-</span><span class="dv">1</span>])</span>
-<span id="cb231-13"><a href="#cb231-13" aria-hidden="true" tabindex="-1"></a>f[<span class="st">'value'</span>] <span class="op">=</span> df[<span class="st">'value'</span>].<span class="bu">map</span>(<span class="kw">lambda</span> x: <span class="st">'150'</span> <span class="cf">if</span> <span class="bu">str</span>.isdecimal(<span class="bu">str</span>(x)) <span class="cf">else</span> x)</span></code></pre></div>
+<div class="sourceCode" id="cb235"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb235-1"><a href="#cb235-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb235-2"><a href="#cb235-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb235-3"><a href="#cb235-3" aria-hidden="true" tabindex="-1"></a>years <span class="op">=</span> [<span class="bu">str</span>(x) <span class="op">+</span> <span class="st">'年'</span> <span class="cf">for</span> x <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1800</span>,<span class="dv">1820</span>)]</span>
+<span id="cb235-4"><a href="#cb235-4" aria-hidden="true" tabindex="-1"></a>values <span class="op">=</span> [<span class="st">'101'</span>,<span class="st">'187'</span>,<span class="st">'150'</span>,<span class="st">'117'</span>,<span class="st">''</span>,<span class="st">'168'</span></span>
+<span id="cb235-5"><a href="#cb235-5" aria-hidden="true" tabindex="-1"></a>         ,<span class="st">'195'</span>,<span class="st">'140'</span>,<span class="st">'151'</span>,<span class="st">'123'</span>,<span class="st">'192'</span>,<span class="st">'137'</span></span>
+<span id="cb235-6"><a href="#cb235-6" aria-hidden="true" tabindex="-1"></a>         ,<span class="st">'なし'</span>,<span class="st">'184'</span>,<span class="st">'136'</span>,<span class="st">'192'</span>,<span class="st">'150'</span>,<span class="st">'163'</span>,<span class="st">'141'</span>,<span class="st">'122'</span>]</span>
+<span id="cb235-7"><a href="#cb235-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb235-8"><a href="#cb235-8" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.DataFrame({<span class="st">'year'</span>:years</span>
+<span id="cb235-9"><a href="#cb235-9" aria-hidden="true" tabindex="-1"></a>                  ,<span class="st">'value'</span>:values})</span>
+<span id="cb235-10"><a href="#cb235-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb235-11"><a href="#cb235-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb235-12"><a href="#cb235-12" aria-hidden="true" tabindex="-1"></a>f[<span class="st">'year'</span>] <span class="op">=</span> df[<span class="st">'year'</span>].<span class="bu">map</span>(<span class="kw">lambda</span> x : x[<span class="op">-</span><span class="dv">1</span>])</span>
+<span id="cb235-13"><a href="#cb235-13" aria-hidden="true" tabindex="-1"></a>f[<span class="st">'value'</span>] <span class="op">=</span> df[<span class="st">'value'</span>].<span class="bu">map</span>(<span class="kw">lambda</span> x: <span class="st">'150'</span> <span class="cf">if</span> <span class="bu">str</span>.isdecimal(<span class="bu">str</span>(x)) <span class="cf">else</span> x)</span></code></pre></div>
 <div class="note">
 <ul>
 <li>演習問題</li>
@@ -3807,13 +3868,13 @@ BOM付きのUTF-8の場合は<code>encoding='utf-8-sig'</code>と記述します
 <h4 data-number="6.5.1" id="関数"><span class="header-section-number">6.5.1</span> 関数</h4>
 <p>皆さんはこれまでにもいくつかの関数を利用してきました. 例えば,リストの要素数を求めるための<code>len()</code>や,標準出力するための<code>print()</code>などは関数です.</p>
 <p>関数は基本的に<code>()</code>の中に<strong>引数</strong>を与えられて,<strong>返り値</strong>を返します.</p>
-<div class="sourceCode" id="cb232"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb232-1"><a href="#cb232-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="bu">len</span>([<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>])) <span class="co">#&gt;&gt;&gt; 3</span></span></code></pre></div>
+<div class="sourceCode" id="cb236"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb236-1"><a href="#cb236-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="bu">len</span>([<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>])) <span class="co">#&gt;&gt;&gt; 3</span></span></code></pre></div>
 <p>上の<code>len()</code>では,<code>()</code>の中に引数としてリスト<code>[1,2,3]</code>が与えられ,返り値として<code>3</code>を返しています.</p>
 <div class="warn">
 <p>一方で,関数と似ているが異なる概念として,<code>.mean()</code>のようにオブジェクトの後ろに<code>.</code>を利用してつなげる<strong>メソッド</strong>もあります.
 メソッドに関しては, クラスの部分で説明します.</p>
-<div class="sourceCode" id="cb233"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb233-1"><a href="#cb233-1" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.DataFrame({<span class="st">'x'</span>:[<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>]})</span>
-<span id="cb233-2"><a href="#cb233-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df.mean()) <span class="co">#&gt;&gt;&gt; 2.0</span></span></code></pre></div>
+<div class="sourceCode" id="cb237"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb237-1"><a href="#cb237-1" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.DataFrame({<span class="st">'x'</span>:[<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>]})</span>
+<span id="cb237-2"><a href="#cb237-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df.mean()) <span class="co">#&gt;&gt;&gt; 2.0</span></span></code></pre></div>
 </div>
 <p>このように,最初からPythonに実装されている関数を<strong>組み込み関数</strong>といいます.また,特定のライブラリで定義された関数もあります.</p>
 <p>組み込み関数としては,<code>len()</code>以外にも,合計値を返す<code>sum()</code>や,文字列に変更する<code>str()</code>などを利用してきました. Pythonの組み込み関数は<a href="https://docs.python.org/ja/3/library/functions.html">こちら</a>で確認できます. 利用法のわからないものに関しては調べてみましょう.</p>
@@ -3821,43 +3882,43 @@ BOM付きのUTF-8の場合は<code>encoding='utf-8-sig'</code>と記述します
 <p>関数は, <code>def 関数名(引数を表す変数):</code>という構文で定義することができます. インデントブロックの中で,引数に加えた処理を記述し, <code>return 返り値</code>の形で,関数の返り値を定義します.</p>
 <p>例えば,要素数を数える<code>length()</code>という関数を実装してみましょう.
 まずは,関数にする前に今まで通りにリストの要素数を数えるプログラムを書いてみましょう.</p>
-<div class="sourceCode" id="cb234"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb234-1"><a href="#cb234-1" aria-hidden="true" tabindex="-1"></a>xs <span class="op">=</span> [<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>]</span>
-<span id="cb234-2"><a href="#cb234-2" aria-hidden="true" tabindex="-1"></a>count <span class="op">=</span> <span class="dv">0</span></span>
-<span id="cb234-3"><a href="#cb234-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> x <span class="kw">in</span> xs:</span>
-<span id="cb234-4"><a href="#cb234-4" aria-hidden="true" tabindex="-1"></a>    count <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb234-5"><a href="#cb234-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(count) <span class="op">&gt;&gt;&gt;</span> <span class="dv">3</span></span></code></pre></div>
+<div class="sourceCode" id="cb238"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb238-1"><a href="#cb238-1" aria-hidden="true" tabindex="-1"></a>xs <span class="op">=</span> [<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>]</span>
+<span id="cb238-2"><a href="#cb238-2" aria-hidden="true" tabindex="-1"></a>count <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb238-3"><a href="#cb238-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> x <span class="kw">in</span> xs:</span>
+<span id="cb238-4"><a href="#cb238-4" aria-hidden="true" tabindex="-1"></a>    count <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb238-5"><a href="#cb238-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(count) <span class="op">&gt;&gt;&gt;</span> <span class="dv">3</span></span></code></pre></div>
 <p>これを関数にしてみます. <code>def length(xs):</code>のインデントブロックに,行いたい処理を記述し,<code>return count</code>で<code>count</code>を返します.</p>
-<div class="sourceCode" id="cb235"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb235-1"><a href="#cb235-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> length(xs):</span>
-<span id="cb235-2"><a href="#cb235-2" aria-hidden="true" tabindex="-1"></a>    count <span class="op">=</span> <span class="dv">0</span></span>
-<span id="cb235-3"><a href="#cb235-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> x <span class="kw">in</span> xs:</span>
-<span id="cb235-4"><a href="#cb235-4" aria-hidden="true" tabindex="-1"></a>        count <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb235-5"><a href="#cb235-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> count</span>
-<span id="cb235-6"><a href="#cb235-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb235-7"><a href="#cb235-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(length([<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>])) <span class="co">#&gt;&gt;&gt; 3</span></span>
-<span id="cb235-8"><a href="#cb235-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(length([<span class="st">'a'</span>,<span class="st">'b'</span>])) <span class="co">#&gt;&gt;&gt; 2</span></span></code></pre></div>
+<div class="sourceCode" id="cb239"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb239-1"><a href="#cb239-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> length(xs):</span>
+<span id="cb239-2"><a href="#cb239-2" aria-hidden="true" tabindex="-1"></a>    count <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb239-3"><a href="#cb239-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> x <span class="kw">in</span> xs:</span>
+<span id="cb239-4"><a href="#cb239-4" aria-hidden="true" tabindex="-1"></a>        count <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb239-5"><a href="#cb239-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> count</span>
+<span id="cb239-6"><a href="#cb239-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb239-7"><a href="#cb239-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(length([<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>])) <span class="co">#&gt;&gt;&gt; 3</span></span>
+<span id="cb239-8"><a href="#cb239-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(length([<span class="st">'a'</span>,<span class="st">'b'</span>])) <span class="co">#&gt;&gt;&gt; 2</span></span></code></pre></div>
 <p>関数として定義することで,毎回数を数える処理を記述しなくても,様々なリストの要素数を数えることが可能になりました.</p>
 <p>引数には複数の値を指定することも出来ます. 例えば以下の関数<code>get_larger_than(xs,y)</code>は<code>xs</code>の中から<code>y</code>より大きな値のみを返します.</p>
-<div class="sourceCode" id="cb236"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb236-1"><a href="#cb236-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> get_larger_than(xs,y):</span>
-<span id="cb236-2"><a href="#cb236-2" aria-hidden="true" tabindex="-1"></a>    result <span class="op">=</span> []</span>
-<span id="cb236-3"><a href="#cb236-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> x <span class="kw">in</span> xs:</span>
-<span id="cb236-4"><a href="#cb236-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> x <span class="op">&gt;</span> y:</span>
-<span id="cb236-5"><a href="#cb236-5" aria-hidden="true" tabindex="-1"></a>            result.append(x)</span>
-<span id="cb236-6"><a href="#cb236-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> result</span>
-<span id="cb236-7"><a href="#cb236-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb236-8"><a href="#cb236-8" aria-hidden="true" tabindex="-1"></a>get_larger_than([<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">5</span>,<span class="dv">6</span>],<span class="dv">3</span>) <span class="co">#&gt;&gt;&gt;[4, 5, 6]</span></span></code></pre></div>
+<div class="sourceCode" id="cb240"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb240-1"><a href="#cb240-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> get_larger_than(xs,y):</span>
+<span id="cb240-2"><a href="#cb240-2" aria-hidden="true" tabindex="-1"></a>    result <span class="op">=</span> []</span>
+<span id="cb240-3"><a href="#cb240-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> x <span class="kw">in</span> xs:</span>
+<span id="cb240-4"><a href="#cb240-4" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> x <span class="op">&gt;</span> y:</span>
+<span id="cb240-5"><a href="#cb240-5" aria-hidden="true" tabindex="-1"></a>            result.append(x)</span>
+<span id="cb240-6"><a href="#cb240-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> result</span>
+<span id="cb240-7"><a href="#cb240-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb240-8"><a href="#cb240-8" aria-hidden="true" tabindex="-1"></a>get_larger_than([<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">5</span>,<span class="dv">6</span>],<span class="dv">3</span>) <span class="co">#&gt;&gt;&gt;[4, 5, 6]</span></span></code></pre></div>
 <p><code>引数名=デフォルト引数</code> と書くことで,引数にあらかじめ値を指定することも可能です. 関数を実行する際に,何も指定しなければ,デフォルト引数が利用されます.</p>
-<div class="sourceCode" id="cb237"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb237-1"><a href="#cb237-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> greet(name<span class="op">=</span><span class="st">'guest'</span>, greeting<span class="op">=</span><span class="st">&quot;Hello&quot;</span>):</span>
-<span id="cb237-2"><a href="#cb237-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="ss">f'</span><span class="sc">{</span>greeting<span class="sc">}</span><span class="ss">, </span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">!'</span></span>
-<span id="cb237-3"><a href="#cb237-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb237-4"><a href="#cb237-4" aria-hidden="true" tabindex="-1"></a><span class="co"># デフォルト引数を利用する場合</span></span>
-<span id="cb237-5"><a href="#cb237-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(greet())  <span class="co"># Hello, guest!</span></span>
-<span id="cb237-6"><a href="#cb237-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb237-7"><a href="#cb237-7" aria-hidden="true" tabindex="-1"></a><span class="co"># デフォルトの引数の一部を上書きする場合</span></span>
-<span id="cb237-8"><a href="#cb237-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(greet(name<span class="op">=</span><span class="st">'Taro'</span>))  <span class="co"># Hello, Taro!</span></span>
-<span id="cb237-9"><a href="#cb237-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(greet(greeting<span class="op">=</span><span class="st">'Good Morning'</span>))  <span class="co"># Good Morning, guest!</span></span>
-<span id="cb237-10"><a href="#cb237-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb237-11"><a href="#cb237-11" aria-hidden="true" tabindex="-1"></a><span class="co"># 全ての引数を指定する場合</span></span>
-<span id="cb237-12"><a href="#cb237-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(greet(name<span class="op">=</span><span class="st">'Taro'</span>, greeting<span class="op">=</span><span class="st">'Good Morning'</span>))  <span class="co"># Good Morning, Taro!</span></span></code></pre></div>
+<div class="sourceCode" id="cb241"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb241-1"><a href="#cb241-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> greet(name<span class="op">=</span><span class="st">'guest'</span>, greeting<span class="op">=</span><span class="st">&quot;Hello&quot;</span>):</span>
+<span id="cb241-2"><a href="#cb241-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="ss">f'</span><span class="sc">{</span>greeting<span class="sc">}</span><span class="ss">, </span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">!'</span></span>
+<span id="cb241-3"><a href="#cb241-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb241-4"><a href="#cb241-4" aria-hidden="true" tabindex="-1"></a><span class="co"># デフォルト引数を利用する場合</span></span>
+<span id="cb241-5"><a href="#cb241-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(greet())  <span class="co"># Hello, guest!</span></span>
+<span id="cb241-6"><a href="#cb241-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb241-7"><a href="#cb241-7" aria-hidden="true" tabindex="-1"></a><span class="co"># デフォルトの引数の一部を上書きする場合</span></span>
+<span id="cb241-8"><a href="#cb241-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(greet(name<span class="op">=</span><span class="st">'Taro'</span>))  <span class="co"># Hello, Taro!</span></span>
+<span id="cb241-9"><a href="#cb241-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(greet(greeting<span class="op">=</span><span class="st">'Good Morning'</span>))  <span class="co"># Good Morning, guest!</span></span>
+<span id="cb241-10"><a href="#cb241-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb241-11"><a href="#cb241-11" aria-hidden="true" tabindex="-1"></a><span class="co"># 全ての引数を指定する場合</span></span>
+<span id="cb241-12"><a href="#cb241-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(greet(name<span class="op">=</span><span class="st">'Taro'</span>, greeting<span class="op">=</span><span class="st">'Good Morning'</span>))  <span class="co"># Good Morning, Taro!</span></span></code></pre></div>
 <div class="note">
 <ul>
 <li>演習問題</li>
@@ -3887,68 +3948,68 @@ BOM付きのUTF-8の場合は<code>encoding='utf-8-sig'</code>と記述します
 <p>各インスタンスに固有の属性をインスタンス属性といい,ここでは生成された<code>FizzBuzz</code>インスタンスは<code>.number</code>という属性を持ちます. <code>self.number = number</code>と買うことで生成時に引数として与えられた数値<code>number</code>をインスタンス属性として保存します.</p>
 <p>最後に,<code>FizzBuzz</code>ゲームを実行するための機能,<code>.evaluate()</code>を実行します.</p>
 </div>
-<div class="sourceCode" id="cb238"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb238-1"><a href="#cb238-1" aria-hidden="true" tabindex="-1"></a><span class="co"># FizzBuzzというクラスを宣言します.</span></span>
-<span id="cb238-2"><a href="#cb238-2" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> FizzBuzz:</span>
-<span id="cb238-3"><a href="#cb238-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">#コンストラクタの定義</span></span>
-<span id="cb238-4"><a href="#cb238-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">#FizzBazzインスタンスを生成する際に必要となるデータを定義する</span></span>
-<span id="cb238-5"><a href="#cb238-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, number):</span>
-<span id="cb238-6"><a href="#cb238-6" aria-hidden="true" tabindex="-1"></a>        <span class="co">#インスタンス属性</span></span>
-<span id="cb238-7"><a href="#cb238-7" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.number <span class="op">=</span> number</span>
-<span id="cb238-8"><a href="#cb238-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb238-9"><a href="#cb238-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">#メソッド eveluateの定義</span></span>
-<span id="cb238-10"><a href="#cb238-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">#FizzBuzzインスタンスは,evaluateすることで,`FizzBuzz`の</span></span>
-<span id="cb238-11"><a href="#cb238-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">#ゲームが実行されます</span></span>
-<span id="cb238-12"><a href="#cb238-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> evaluate(<span class="va">self</span>):</span>
-<span id="cb238-13"><a href="#cb238-13" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="va">self</span>.number <span class="op">%</span> <span class="dv">3</span> <span class="op">==</span> <span class="dv">0</span> <span class="kw">and</span> <span class="va">self</span>.number <span class="op">%</span> <span class="dv">5</span> <span class="op">==</span> <span class="dv">0</span>:</span>
-<span id="cb238-14"><a href="#cb238-14" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="st">&quot;FizzBuzz&quot;</span></span>
-<span id="cb238-15"><a href="#cb238-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">elif</span> <span class="va">self</span>.number <span class="op">%</span> <span class="dv">3</span> <span class="op">==</span> <span class="dv">0</span>:</span>
-<span id="cb238-16"><a href="#cb238-16" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="st">&quot;Fizz&quot;</span></span>
-<span id="cb238-17"><a href="#cb238-17" aria-hidden="true" tabindex="-1"></a>        <span class="cf">elif</span> <span class="va">self</span>.number <span class="op">%</span> <span class="dv">5</span> <span class="op">==</span> <span class="dv">0</span>:</span>
-<span id="cb238-18"><a href="#cb238-18" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="st">&quot;Buzz&quot;</span></span>
-<span id="cb238-19"><a href="#cb238-19" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
-<span id="cb238-20"><a href="#cb238-20" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="bu">str</span>(<span class="va">self</span>.number)</span>
-<span id="cb238-21"><a href="#cb238-21" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb238-22"><a href="#cb238-22" aria-hidden="true" tabindex="-1"></a><span class="co"># 使用例</span></span>
-<span id="cb238-23"><a href="#cb238-23" aria-hidden="true" tabindex="-1"></a><span class="co"># 単一の数値を評価</span></span>
-<span id="cb238-24"><a href="#cb238-24" aria-hidden="true" tabindex="-1"></a>fb <span class="op">=</span> FizzBuzz(<span class="dv">15</span>)</span>
-<span id="cb238-25"><a href="#cb238-25" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(fb.evaluate())  <span class="co"># FizzBuzz</span></span>
-<span id="cb238-26"><a href="#cb238-26" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb238-27"><a href="#cb238-27" aria-hidden="true" tabindex="-1"></a>fb <span class="op">=</span> FizzBuzz(<span class="dv">9</span>)</span>
-<span id="cb238-28"><a href="#cb238-28" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(fb.evaluate())  <span class="co"># Fizz</span></span>
-<span id="cb238-29"><a href="#cb238-29" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb238-30"><a href="#cb238-30" aria-hidden="true" tabindex="-1"></a>fb <span class="op">=</span> FizzBuzz(<span class="dv">10</span>)</span>
-<span id="cb238-31"><a href="#cb238-31" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(fb.evaluate())  <span class="co"># Buzz</span></span>
-<span id="cb238-32"><a href="#cb238-32" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb238-33"><a href="#cb238-33" aria-hidden="true" tabindex="-1"></a>fb <span class="op">=</span> FizzBuzz(<span class="dv">7</span>)</span>
-<span id="cb238-34"><a href="#cb238-34" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(fb.evaluate())  <span class="co"># 7</span></span></code></pre></div>
+<div class="sourceCode" id="cb242"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb242-1"><a href="#cb242-1" aria-hidden="true" tabindex="-1"></a><span class="co"># FizzBuzzというクラスを宣言します.</span></span>
+<span id="cb242-2"><a href="#cb242-2" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> FizzBuzz:</span>
+<span id="cb242-3"><a href="#cb242-3" aria-hidden="true" tabindex="-1"></a>    <span class="co">#コンストラクタの定義</span></span>
+<span id="cb242-4"><a href="#cb242-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">#FizzBazzインスタンスを生成する際に必要となるデータを定義する</span></span>
+<span id="cb242-5"><a href="#cb242-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, number):</span>
+<span id="cb242-6"><a href="#cb242-6" aria-hidden="true" tabindex="-1"></a>        <span class="co">#インスタンス属性</span></span>
+<span id="cb242-7"><a href="#cb242-7" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.number <span class="op">=</span> number</span>
+<span id="cb242-8"><a href="#cb242-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb242-9"><a href="#cb242-9" aria-hidden="true" tabindex="-1"></a>    <span class="co">#メソッド eveluateの定義</span></span>
+<span id="cb242-10"><a href="#cb242-10" aria-hidden="true" tabindex="-1"></a>    <span class="co">#FizzBuzzインスタンスは,evaluateすることで,`FizzBuzz`の</span></span>
+<span id="cb242-11"><a href="#cb242-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">#ゲームが実行されます</span></span>
+<span id="cb242-12"><a href="#cb242-12" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> evaluate(<span class="va">self</span>):</span>
+<span id="cb242-13"><a href="#cb242-13" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="va">self</span>.number <span class="op">%</span> <span class="dv">3</span> <span class="op">==</span> <span class="dv">0</span> <span class="kw">and</span> <span class="va">self</span>.number <span class="op">%</span> <span class="dv">5</span> <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb242-14"><a href="#cb242-14" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="st">&quot;FizzBuzz&quot;</span></span>
+<span id="cb242-15"><a href="#cb242-15" aria-hidden="true" tabindex="-1"></a>        <span class="cf">elif</span> <span class="va">self</span>.number <span class="op">%</span> <span class="dv">3</span> <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb242-16"><a href="#cb242-16" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="st">&quot;Fizz&quot;</span></span>
+<span id="cb242-17"><a href="#cb242-17" aria-hidden="true" tabindex="-1"></a>        <span class="cf">elif</span> <span class="va">self</span>.number <span class="op">%</span> <span class="dv">5</span> <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb242-18"><a href="#cb242-18" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="st">&quot;Buzz&quot;</span></span>
+<span id="cb242-19"><a href="#cb242-19" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
+<span id="cb242-20"><a href="#cb242-20" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="bu">str</span>(<span class="va">self</span>.number)</span>
+<span id="cb242-21"><a href="#cb242-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb242-22"><a href="#cb242-22" aria-hidden="true" tabindex="-1"></a><span class="co"># 使用例</span></span>
+<span id="cb242-23"><a href="#cb242-23" aria-hidden="true" tabindex="-1"></a><span class="co"># 単一の数値を評価</span></span>
+<span id="cb242-24"><a href="#cb242-24" aria-hidden="true" tabindex="-1"></a>fb <span class="op">=</span> FizzBuzz(<span class="dv">15</span>)</span>
+<span id="cb242-25"><a href="#cb242-25" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(fb.evaluate())  <span class="co"># FizzBuzz</span></span>
+<span id="cb242-26"><a href="#cb242-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb242-27"><a href="#cb242-27" aria-hidden="true" tabindex="-1"></a>fb <span class="op">=</span> FizzBuzz(<span class="dv">9</span>)</span>
+<span id="cb242-28"><a href="#cb242-28" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(fb.evaluate())  <span class="co"># Fizz</span></span>
+<span id="cb242-29"><a href="#cb242-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb242-30"><a href="#cb242-30" aria-hidden="true" tabindex="-1"></a>fb <span class="op">=</span> FizzBuzz(<span class="dv">10</span>)</span>
+<span id="cb242-31"><a href="#cb242-31" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(fb.evaluate())  <span class="co"># Buzz</span></span>
+<span id="cb242-32"><a href="#cb242-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb242-33"><a href="#cb242-33" aria-hidden="true" tabindex="-1"></a>fb <span class="op">=</span> FizzBuzz(<span class="dv">7</span>)</span>
+<span id="cb242-34"><a href="#cb242-34" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(fb.evaluate())  <span class="co"># 7</span></span></code></pre></div>
 <p>クラスの重要な機能に<strong>継承</strong>があります. 継承は新しいクラス(<strong>サブクラス</strong>)を作成する際に,すでにあるクラス(<strong>スーパークラス</strong>)の属性やメソッドを引き継ぐことを意味します. これによって,コードの再利用や,拡張が用意になります.</p>
 <p>以下では,先程定義した <code>FizzBuzz</code>クラスを継承して,<code>3</code>と<code>5</code>以外の場合にも特別な挙動をする<code>AdvancedFizzBuzz</code>クラスを定義してみましょう.</p>
 <p>サブクラスを定義するには, <code>class サブクラス名(スーパークラス名)</code>と記述します.
 インデントブロック内では, <code>super().属性</code>や<code>super().メソッド</code>と書くことで,スーパークラスの属性やメソッドを利用することができます.</p>
-<div class="sourceCode" id="cb239"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb239-1"><a href="#cb239-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 派生クラス AdvancedFizzBuzz</span></span>
-<span id="cb239-2"><a href="#cb239-2" aria-hidden="true" tabindex="-1"></a><span class="co"># ()内にスーパークラスを書きます</span></span>
-<span id="cb239-3"><a href="#cb239-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> AdvancedFizzBuzz(FizzBuzz):</span>
-<span id="cb239-4"><a href="#cb239-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, number, custom_message<span class="op">=</span><span class="va">None</span>):</span>
-<span id="cb239-5"><a href="#cb239-5" aria-hidden="true" tabindex="-1"></a>        <span class="co"># スーパークラスの__init__を呼び出す</span></span>
-<span id="cb239-6"><a href="#cb239-6" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>().<span class="fu">__init__</span>(number)</span>
-<span id="cb239-7"><a href="#cb239-7" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.custom_message <span class="op">=</span> custom_message</span>
-<span id="cb239-8"><a href="#cb239-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb239-9"><a href="#cb239-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> evaluate(<span class="va">self</span>):</span>
-<span id="cb239-10"><a href="#cb239-10" aria-hidden="true" tabindex="-1"></a>        <span class="co"># スーパークラスのevaluateメソッドを拡張</span></span>
-<span id="cb239-11"><a href="#cb239-11" aria-hidden="true" tabindex="-1"></a>        <span class="co"># self.custom_message が定義されている場合のみ実行されます</span></span>
-<span id="cb239-12"><a href="#cb239-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="va">self</span>.custom_message <span class="kw">and</span> <span class="va">self</span>.number <span class="op">%</span> <span class="dv">7</span> <span class="op">==</span> <span class="dv">0</span>:</span>
-<span id="cb239-13"><a href="#cb239-13" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="va">self</span>.custom_message</span>
-<span id="cb239-14"><a href="#cb239-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
-<span id="cb239-15"><a href="#cb239-15" aria-hidden="true" tabindex="-1"></a>            <span class="co"># スーパークラスのevaluateメソッドを呼び出す</span></span>
-<span id="cb239-16"><a href="#cb239-16" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="bu">super</span>().evaluate()</span>
-<span id="cb239-17"><a href="#cb239-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb239-18"><a href="#cb239-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb239-19"><a href="#cb239-19" aria-hidden="true" tabindex="-1"></a><span class="co"># サブクラスの使用例</span></span>
-<span id="cb239-20"><a href="#cb239-20" aria-hidden="true" tabindex="-1"></a>afb <span class="op">=</span> AdvancedFizzBuzz(<span class="dv">21</span>, custom_message<span class="op">=</span><span class="st">&quot;Hozz&quot;</span>)</span>
-<span id="cb239-21"><a href="#cb239-21" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(afb.evaluate())  <span class="co"># Hozz (7で割り切れるためカスタムメッセージ)</span></span>
-<span id="cb239-22"><a href="#cb239-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb239-23"><a href="#cb239-23" aria-hidden="true" tabindex="-1"></a>afb <span class="op">=</span> AdvancedFizzBuzz(<span class="dv">10</span>)</span>
-<span id="cb239-24"><a href="#cb239-24" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(afb.evaluate())  <span class="co"># Buzz (スーパークラスのメソッドが呼ばれる)</span></span></code></pre></div>
+<div class="sourceCode" id="cb243"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb243-1"><a href="#cb243-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 派生クラス AdvancedFizzBuzz</span></span>
+<span id="cb243-2"><a href="#cb243-2" aria-hidden="true" tabindex="-1"></a><span class="co"># ()内にスーパークラスを書きます</span></span>
+<span id="cb243-3"><a href="#cb243-3" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> AdvancedFizzBuzz(FizzBuzz):</span>
+<span id="cb243-4"><a href="#cb243-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, number, custom_message<span class="op">=</span><span class="va">None</span>):</span>
+<span id="cb243-5"><a href="#cb243-5" aria-hidden="true" tabindex="-1"></a>        <span class="co"># スーパークラスの__init__を呼び出す</span></span>
+<span id="cb243-6"><a href="#cb243-6" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>().<span class="fu">__init__</span>(number)</span>
+<span id="cb243-7"><a href="#cb243-7" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.custom_message <span class="op">=</span> custom_message</span>
+<span id="cb243-8"><a href="#cb243-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb243-9"><a href="#cb243-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> evaluate(<span class="va">self</span>):</span>
+<span id="cb243-10"><a href="#cb243-10" aria-hidden="true" tabindex="-1"></a>        <span class="co"># スーパークラスのevaluateメソッドを拡張</span></span>
+<span id="cb243-11"><a href="#cb243-11" aria-hidden="true" tabindex="-1"></a>        <span class="co"># self.custom_message が定義されている場合のみ実行されます</span></span>
+<span id="cb243-12"><a href="#cb243-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="va">self</span>.custom_message <span class="kw">and</span> <span class="va">self</span>.number <span class="op">%</span> <span class="dv">7</span> <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb243-13"><a href="#cb243-13" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="va">self</span>.custom_message</span>
+<span id="cb243-14"><a href="#cb243-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
+<span id="cb243-15"><a href="#cb243-15" aria-hidden="true" tabindex="-1"></a>            <span class="co"># スーパークラスのevaluateメソッドを呼び出す</span></span>
+<span id="cb243-16"><a href="#cb243-16" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="bu">super</span>().evaluate()</span>
+<span id="cb243-17"><a href="#cb243-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb243-18"><a href="#cb243-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb243-19"><a href="#cb243-19" aria-hidden="true" tabindex="-1"></a><span class="co"># サブクラスの使用例</span></span>
+<span id="cb243-20"><a href="#cb243-20" aria-hidden="true" tabindex="-1"></a>afb <span class="op">=</span> AdvancedFizzBuzz(<span class="dv">21</span>, custom_message<span class="op">=</span><span class="st">&quot;Hozz&quot;</span>)</span>
+<span id="cb243-21"><a href="#cb243-21" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(afb.evaluate())  <span class="co"># Hozz (7で割り切れるためカスタムメッセージ)</span></span>
+<span id="cb243-22"><a href="#cb243-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb243-23"><a href="#cb243-23" aria-hidden="true" tabindex="-1"></a>afb <span class="op">=</span> AdvancedFizzBuzz(<span class="dv">10</span>)</span>
+<span id="cb243-24"><a href="#cb243-24" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(afb.evaluate())  <span class="co"># Buzz (スーパークラスのメソッドが呼ばれる)</span></span></code></pre></div>
 <div class="note">
 <ul>
 <li>演習</li>
@@ -4027,6 +4088,10 @@ BOM付きのUTF-8の場合は<code>encoding='utf-8-sig'</code>と記述します
 <h3 data-number="8.1" id="手法の決め方"><span class="header-section-number">8.1</span> 手法の決め方</h3>
 <p>統計やデータサイエンスは非常に広い学問なので,その学習では様々な手法を断片的に学習し, その後必要となる特定の手法を深く学ぶというのが一般的です. では,必要となる手法はどのように決めるのでしょうか.</p>
 <p>手法は,目的とデータによって決まります. まず,目的(何が知りたいか)が決まり,利用できるデータが決まったあとに,使える手法(何が言えるか)が決まります. これは目的が先にあるパターンですが,データが先,使いたい手法が先などで研究計画が決まる場合もあります.</p>
+<figure>
+<img src="../images/purpose_method_data.png" alt="目的,手法,データ" />
+<figcaption aria-hidden="true">目的,手法,データ</figcaption>
+</figure>
 <div class="warn">
 <ul>
 <li><h3 id="harkingについて"><strong>HARKing</strong>について</h3></li>
@@ -4188,11 +4253,11 @@ BOM付きのUTF-8の場合は<code>encoding='utf-8-sig'</code>と記述します
 <p>参考: <a href="https://qiita.com/pitao/items/1740a62ddee797aed807">【inshellisense】ModuleNotFoundError: No module named ’distutils’の対処法</a></p>
 </div>
 <p>本章におけるコードは以下, 先頭に以下のような記述があることが前提となります.</p>
-<div class="sourceCode" id="cb240"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb240-1"><a href="#cb240-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb240-2"><a href="#cb240-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb240-3"><a href="#cb240-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb240-4"><a href="#cb240-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> japanize_matplotlib</span>
-<span id="cb240-5"><a href="#cb240-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> searborn <span class="im">as</span> sns</span></code></pre></div>
+<div class="sourceCode" id="cb244"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb244-1"><a href="#cb244-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb244-2"><a href="#cb244-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb244-3"><a href="#cb244-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb244-4"><a href="#cb244-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> japanize_matplotlib</span>
+<span id="cb244-5"><a href="#cb244-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> searborn <span class="im">as</span> sns</span></code></pre></div>
 <h3 data-number="9.1" id="基礎的なグラフ棒グラフ円グラフ折れ線グラフ"><span class="header-section-number">9.1</span> 基礎的なグラフ(棒グラフ,円グラフ,折れ線グラフ)</h3>
 <p><code>matplotlib</code>を利用して,グラフを作成する大まかな手順は以下のようになります.</p>
 <div class="note">
@@ -4297,21 +4362,21 @@ BOMなしのCSVを作りましょう</p></li>
 <p>例えば,以下のコードで次のグラフが表示されます.
 <code>np.arange(0,100,1)</code>は,<code>0</code>から<code>100</code>までの数値を<code>1</code>ずつ増える<code>numpy</code>の配列を生成しています.
 <code>[x for x in range(0,101,1)]</code> でも同様の結果となります.</p>
-<div class="sourceCode" id="cb241"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb241-1"><a href="#cb241-1" aria-hidden="true" tabindex="-1"></a>plt.plot(np.arange(<span class="dv">0</span>,<span class="dv">100</span>,<span class="dv">1</span>)</span>
-<span id="cb241-2"><a href="#cb241-2" aria-hidden="true" tabindex="-1"></a>        ,np.arange(<span class="dv">0</span>,<span class="dv">100</span>,<span class="dv">1</span>)</span>
-<span id="cb241-3"><a href="#cb241-3" aria-hidden="true" tabindex="-1"></a>        ,color<span class="op">=</span><span class="st">'red'</span></span>
-<span id="cb241-4"><a href="#cb241-4" aria-hidden="true" tabindex="-1"></a>        ,label<span class="op">=</span><span class="st">'sample'</span>)</span>
-<span id="cb241-5"><a href="#cb241-5" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">'title'</span>)</span>
-<span id="cb241-6"><a href="#cb241-6" aria-hidden="true" tabindex="-1"></a>plt.ylim(<span class="dv">0</span>,<span class="dv">100</span>)</span>
-<span id="cb241-7"><a href="#cb241-7" aria-hidden="true" tabindex="-1"></a>plt.xlim(<span class="dv">0</span>,<span class="dv">100</span>)</span>
-<span id="cb241-8"><a href="#cb241-8" aria-hidden="true" tabindex="-1"></a>plt.xticks(np.arange(<span class="dv">0</span>,<span class="dv">100</span>,<span class="dv">10</span>))</span>
-<span id="cb241-9"><a href="#cb241-9" aria-hidden="true" tabindex="-1"></a>plt.yticks(np.arange(<span class="dv">0</span>,<span class="dv">100</span>,<span class="dv">10</span>))</span>
-<span id="cb241-10"><a href="#cb241-10" aria-hidden="true" tabindex="-1"></a>plt.minorticks_on()</span>
-<span id="cb241-11"><a href="#cb241-11" aria-hidden="true" tabindex="-1"></a>plt.grid(which<span class="op">=</span><span class="st">'both'</span>)</span>
-<span id="cb241-12"><a href="#cb241-12" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'x_label'</span>)</span>
-<span id="cb241-13"><a href="#cb241-13" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'y_label'</span>)</span>
-<span id="cb241-14"><a href="#cb241-14" aria-hidden="true" tabindex="-1"></a>plt.legend()</span>
-<span id="cb241-15"><a href="#cb241-15" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<div class="sourceCode" id="cb245"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb245-1"><a href="#cb245-1" aria-hidden="true" tabindex="-1"></a>plt.plot(np.arange(<span class="dv">0</span>,<span class="dv">100</span>,<span class="dv">1</span>)</span>
+<span id="cb245-2"><a href="#cb245-2" aria-hidden="true" tabindex="-1"></a>        ,np.arange(<span class="dv">0</span>,<span class="dv">100</span>,<span class="dv">1</span>)</span>
+<span id="cb245-3"><a href="#cb245-3" aria-hidden="true" tabindex="-1"></a>        ,color<span class="op">=</span><span class="st">'red'</span></span>
+<span id="cb245-4"><a href="#cb245-4" aria-hidden="true" tabindex="-1"></a>        ,label<span class="op">=</span><span class="st">'sample'</span>)</span>
+<span id="cb245-5"><a href="#cb245-5" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">'title'</span>)</span>
+<span id="cb245-6"><a href="#cb245-6" aria-hidden="true" tabindex="-1"></a>plt.ylim(<span class="dv">0</span>,<span class="dv">100</span>)</span>
+<span id="cb245-7"><a href="#cb245-7" aria-hidden="true" tabindex="-1"></a>plt.xlim(<span class="dv">0</span>,<span class="dv">100</span>)</span>
+<span id="cb245-8"><a href="#cb245-8" aria-hidden="true" tabindex="-1"></a>plt.xticks(np.arange(<span class="dv">0</span>,<span class="dv">100</span>,<span class="dv">10</span>))</span>
+<span id="cb245-9"><a href="#cb245-9" aria-hidden="true" tabindex="-1"></a>plt.yticks(np.arange(<span class="dv">0</span>,<span class="dv">100</span>,<span class="dv">10</span>))</span>
+<span id="cb245-10"><a href="#cb245-10" aria-hidden="true" tabindex="-1"></a>plt.minorticks_on()</span>
+<span id="cb245-11"><a href="#cb245-11" aria-hidden="true" tabindex="-1"></a>plt.grid(which<span class="op">=</span><span class="st">'both'</span>)</span>
+<span id="cb245-12"><a href="#cb245-12" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'x_label'</span>)</span>
+<span id="cb245-13"><a href="#cb245-13" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'y_label'</span>)</span>
+<span id="cb245-14"><a href="#cb245-14" aria-hidden="true" tabindex="-1"></a>plt.legend()</span>
+<span id="cb245-15"><a href="#cb245-15" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
 <figure>
 <img src="../images/python_graph_elem.png" alt="グラフの要素" />
 <figcaption aria-hidden="true">グラフの要素</figcaption>
@@ -4320,16 +4385,16 @@ BOMなしのCSVを作りましょう</p></li>
 <h4 data-number="9.1.1" id="棒グラフの作成"><span class="header-section-number">9.1.1</span> 棒グラフの作成</h4>
 <p><a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/bar_pie.csv">こちら</a>からデータをダウンロードし,棒グラフを作成してみましょう.</p>
 <p>まずはデータを確認します.</p>
-<div class="sourceCode" id="cb242"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb242-1"><a href="#cb242-1" aria-hidden="true" tabindex="-1"></a><span class="co"># import 部分は省略されています</span></span>
-<span id="cb242-2"><a href="#cb242-2" aria-hidden="true" tabindex="-1"></a><span class="co"># dataフォルダにあるbar_pie.csvというファイルを読み込みます.</span></span>
-<span id="cb242-3"><a href="#cb242-3" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">&quot;data/bar_pie.csv&quot;</span>)</span>
-<span id="cb242-4"><a href="#cb242-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb242-5"><a href="#cb242-5" aria-hidden="true" tabindex="-1"></a><span class="co"># 読み込んだファイルの中身を見てみます.</span></span>
-<span id="cb242-6"><a href="#cb242-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
-<span id="cb242-7"><a href="#cb242-7" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
-<span id="cb242-8"><a href="#cb242-8" aria-hidden="true" tabindex="-1"></a><span class="co">    cat dog bird</span></span>
-<span id="cb242-9"><a href="#cb242-9" aria-hidden="true" tabindex="-1"></a><span class="co">0    10  12   20</span></span>
-<span id="cb242-10"><a href="#cb242-10" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<div class="sourceCode" id="cb246"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb246-1"><a href="#cb246-1" aria-hidden="true" tabindex="-1"></a><span class="co"># import 部分は省略されています</span></span>
+<span id="cb246-2"><a href="#cb246-2" aria-hidden="true" tabindex="-1"></a><span class="co"># dataフォルダにあるbar_pie.csvというファイルを読み込みます.</span></span>
+<span id="cb246-3"><a href="#cb246-3" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">&quot;data/bar_pie.csv&quot;</span>)</span>
+<span id="cb246-4"><a href="#cb246-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb246-5"><a href="#cb246-5" aria-hidden="true" tabindex="-1"></a><span class="co"># 読み込んだファイルの中身を見てみます.</span></span>
+<span id="cb246-6"><a href="#cb246-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb246-7"><a href="#cb246-7" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb246-8"><a href="#cb246-8" aria-hidden="true" tabindex="-1"></a><span class="co">    cat dog bird</span></span>
+<span id="cb246-9"><a href="#cb246-9" aria-hidden="true" tabindex="-1"></a><span class="co">0    10  12   20</span></span>
+<span id="cb246-10"><a href="#cb246-10" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
 <p>プログラムは読み込むデータと,作りたいグラフの形によって変化します.
 どのようなデータが必要かを意識して,データを抽出しましょう.</p>
 <div class="note">
@@ -4349,25 +4414,25 @@ BOMなしのCSVを作りましょう</p></li>
 </ul>
 <p>高さに<code>10</code>,<code>12</code>,<code>20</code>を指定します.</p>
 </div>
-<div class="sourceCode" id="cb243"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb243-1"><a href="#cb243-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 棒グラフのラベルを抽出します</span></span>
-<span id="cb243-2"><a href="#cb243-2" aria-hidden="true" tabindex="-1"></a><span class="co"># df.columns でDataFrameからHeaderを抽出し,</span></span>
-<span id="cb243-3"><a href="#cb243-3" aria-hidden="true" tabindex="-1"></a><span class="co"># list()関数でDataFrameからlist型に変換しています</span></span>
-<span id="cb243-4"><a href="#cb243-4" aria-hidden="true" tabindex="-1"></a>labels <span class="op">=</span> <span class="bu">list</span>(df.columns)</span>
-<span id="cb243-5"><a href="#cb243-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb243-6"><a href="#cb243-6" aria-hidden="true" tabindex="-1"></a><span class="co"># 棒グラフのx軸のどこに置くのかを指定しています.</span></span>
-<span id="cb243-7"><a href="#cb243-7" aria-hidden="true" tabindex="-1"></a><span class="co"># np.arange(x) は [0,1,..,x]というarrayを作ります.</span></span>
-<span id="cb243-8"><a href="#cb243-8" aria-hidden="true" tabindex="-1"></a>x_position <span class="op">=</span> np.arange(<span class="bu">len</span>(labels))</span>
-<span id="cb243-9"><a href="#cb243-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb243-10"><a href="#cb243-10" aria-hidden="true" tabindex="-1"></a><span class="co">#棒グラフの高さを抽出します</span></span>
-<span id="cb243-11"><a href="#cb243-11" aria-hidden="true" tabindex="-1"></a><span class="co"># メソッド icloc[x]はDataFrameのx行目を抽出します.</span></span>
-<span id="cb243-12"><a href="#cb243-12" aria-hidden="true" tabindex="-1"></a>values <span class="op">=</span> <span class="bu">list</span>(df.iloc[<span class="dv">0</span>])</span></code></pre></div>
+<div class="sourceCode" id="cb247"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb247-1"><a href="#cb247-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 棒グラフのラベルを抽出します</span></span>
+<span id="cb247-2"><a href="#cb247-2" aria-hidden="true" tabindex="-1"></a><span class="co"># df.columns でDataFrameからHeaderを抽出し,</span></span>
+<span id="cb247-3"><a href="#cb247-3" aria-hidden="true" tabindex="-1"></a><span class="co"># list()関数でDataFrameからlist型に変換しています</span></span>
+<span id="cb247-4"><a href="#cb247-4" aria-hidden="true" tabindex="-1"></a>labels <span class="op">=</span> <span class="bu">list</span>(df.columns)</span>
+<span id="cb247-5"><a href="#cb247-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb247-6"><a href="#cb247-6" aria-hidden="true" tabindex="-1"></a><span class="co"># 棒グラフのx軸のどこに置くのかを指定しています.</span></span>
+<span id="cb247-7"><a href="#cb247-7" aria-hidden="true" tabindex="-1"></a><span class="co"># np.arange(x) は [0,1,..,x]というarrayを作ります.</span></span>
+<span id="cb247-8"><a href="#cb247-8" aria-hidden="true" tabindex="-1"></a>x_position <span class="op">=</span> np.arange(<span class="bu">len</span>(labels))</span>
+<span id="cb247-9"><a href="#cb247-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb247-10"><a href="#cb247-10" aria-hidden="true" tabindex="-1"></a><span class="co">#棒グラフの高さを抽出します</span></span>
+<span id="cb247-11"><a href="#cb247-11" aria-hidden="true" tabindex="-1"></a><span class="co"># メソッド icloc[x]はDataFrameのx行目を抽出します.</span></span>
+<span id="cb247-12"><a href="#cb247-12" aria-hidden="true" tabindex="-1"></a>values <span class="op">=</span> <span class="bu">list</span>(df.iloc[<span class="dv">0</span>])</span></code></pre></div>
 <p>抽出した情報を元に,棒グラフを作成します.
 <code>plt.bar(X軸のリスト,Y軸のリスト)</code>の形で,データを指定します.</p>
-<div class="sourceCode" id="cb244"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb244-1"><a href="#cb244-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 棒グラフを作成します.</span></span>
-<span id="cb244-2"><a href="#cb244-2" aria-hidden="true" tabindex="-1"></a><span class="co"># x 軸 にx_position</span></span>
-<span id="cb244-3"><a href="#cb244-3" aria-hidden="true" tabindex="-1"></a><span class="co"># それぞれの棒グラフの高さにvaluesを与えています.</span></span>
-<span id="cb244-4"><a href="#cb244-4" aria-hidden="true" tabindex="-1"></a><span class="co"># その他にも沢山の引数があります.</span></span>
-<span id="cb244-5"><a href="#cb244-5" aria-hidden="true" tabindex="-1"></a>plt.bar(x<span class="op">=</span>x_position, height<span class="op">=</span>values)</span></code></pre></div>
+<div class="sourceCode" id="cb248"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb248-1"><a href="#cb248-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 棒グラフを作成します.</span></span>
+<span id="cb248-2"><a href="#cb248-2" aria-hidden="true" tabindex="-1"></a><span class="co"># x 軸 にx_position</span></span>
+<span id="cb248-3"><a href="#cb248-3" aria-hidden="true" tabindex="-1"></a><span class="co"># それぞれの棒グラフの高さにvaluesを与えています.</span></span>
+<span id="cb248-4"><a href="#cb248-4" aria-hidden="true" tabindex="-1"></a><span class="co"># その他にも沢山の引数があります.</span></span>
+<span id="cb248-5"><a href="#cb248-5" aria-hidden="true" tabindex="-1"></a>plt.bar(x<span class="op">=</span>x_position, height<span class="op">=</span>values)</span></code></pre></div>
 <p>このままだと,X軸のラベルに何も記述されないので,
 <code>plt.xticks(ラベルの位置のリスト,ラベルのリスト)</code>で,ラベルを指定します.
 ~~~ py
@@ -4395,21 +4460,21 @@ plt.show()
 <figcaption aria-hidden="true">グラフの色</figcaption>
 </figure>
 <p>棒グラフは<code>plt.bar(color=棒毎の色のリスト)</code>の形で棒ごとに色を指定することができます.</p>
-<div class="sourceCode" id="cb245"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb245-1"><a href="#cb245-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 棒グラフの色を指定します.</span></span>
-<span id="cb245-2"><a href="#cb245-2" aria-hidden="true" tabindex="-1"></a><span class="co"># 1つ目 red</span></span>
-<span id="cb245-3"><a href="#cb245-3" aria-hidden="true" tabindex="-1"></a><span class="co"># 2つ目 blue</span></span>
-<span id="cb245-4"><a href="#cb245-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 3つ目 yellow</span></span>
-<span id="cb245-5"><a href="#cb245-5" aria-hidden="true" tabindex="-1"></a>color_list <span class="op">=</span> [<span class="st">&quot;red&quot;</span>, <span class="st">&quot;blue&quot;</span>, <span class="st">&quot;yellow&quot;</span>]</span>
-<span id="cb245-6"><a href="#cb245-6" aria-hidden="true" tabindex="-1"></a><span class="co"># 引数に色の指定をします</span></span>
-<span id="cb245-7"><a href="#cb245-7" aria-hidden="true" tabindex="-1"></a>plt.bar(color<span class="op">=</span>color_list, x<span class="op">=</span>x_position, height<span class="op">=</span>values)</span>
-<span id="cb245-8"><a href="#cb245-8" aria-hidden="true" tabindex="-1"></a><span class="co">#ラベルの位置を指定します.</span></span>
-<span id="cb245-9"><a href="#cb245-9" aria-hidden="true" tabindex="-1"></a>plt.xticks(ticks<span class="op">=</span>x_position,labels<span class="op">=</span>labels)</span>
-<span id="cb245-10"><a href="#cb245-10" aria-hidden="true" tabindex="-1"></a><span class="co"># yラベルを指定します</span></span>
-<span id="cb245-11"><a href="#cb245-11" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">&quot;number&quot;</span>)</span>
-<span id="cb245-12"><a href="#cb245-12" aria-hidden="true" tabindex="-1"></a><span class="co"># タイトルを指名します</span></span>
-<span id="cb245-13"><a href="#cb245-13" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">&quot;kind&quot;</span>)</span>
-<span id="cb245-14"><a href="#cb245-14" aria-hidden="true" tabindex="-1"></a><span class="co"># グラフの表示</span></span>
-<span id="cb245-15"><a href="#cb245-15" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<div class="sourceCode" id="cb249"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb249-1"><a href="#cb249-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 棒グラフの色を指定します.</span></span>
+<span id="cb249-2"><a href="#cb249-2" aria-hidden="true" tabindex="-1"></a><span class="co"># 1つ目 red</span></span>
+<span id="cb249-3"><a href="#cb249-3" aria-hidden="true" tabindex="-1"></a><span class="co"># 2つ目 blue</span></span>
+<span id="cb249-4"><a href="#cb249-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 3つ目 yellow</span></span>
+<span id="cb249-5"><a href="#cb249-5" aria-hidden="true" tabindex="-1"></a>color_list <span class="op">=</span> [<span class="st">&quot;red&quot;</span>, <span class="st">&quot;blue&quot;</span>, <span class="st">&quot;yellow&quot;</span>]</span>
+<span id="cb249-6"><a href="#cb249-6" aria-hidden="true" tabindex="-1"></a><span class="co"># 引数に色の指定をします</span></span>
+<span id="cb249-7"><a href="#cb249-7" aria-hidden="true" tabindex="-1"></a>plt.bar(color<span class="op">=</span>color_list, x<span class="op">=</span>x_position, height<span class="op">=</span>values)</span>
+<span id="cb249-8"><a href="#cb249-8" aria-hidden="true" tabindex="-1"></a><span class="co">#ラベルの位置を指定します.</span></span>
+<span id="cb249-9"><a href="#cb249-9" aria-hidden="true" tabindex="-1"></a>plt.xticks(ticks<span class="op">=</span>x_position,labels<span class="op">=</span>labels)</span>
+<span id="cb249-10"><a href="#cb249-10" aria-hidden="true" tabindex="-1"></a><span class="co"># yラベルを指定します</span></span>
+<span id="cb249-11"><a href="#cb249-11" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">&quot;number&quot;</span>)</span>
+<span id="cb249-12"><a href="#cb249-12" aria-hidden="true" tabindex="-1"></a><span class="co"># タイトルを指名します</span></span>
+<span id="cb249-13"><a href="#cb249-13" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">&quot;kind&quot;</span>)</span>
+<span id="cb249-14"><a href="#cb249-14" aria-hidden="true" tabindex="-1"></a><span class="co"># グラフの表示</span></span>
+<span id="cb249-15"><a href="#cb249-15" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
 <figure>
 <img src="../images/bar_graph_color.png" alt="棒グラフの色の変更" />
 <figcaption aria-hidden="true">棒グラフの色の変更</figcaption>
@@ -4417,26 +4482,26 @@ plt.show()
 <h4 data-number="9.1.3" id="スタイルの変更"><span class="header-section-number">9.1.3</span> スタイルの変更</h4>
 <p>毎回細かなデザインを自分で調整すると手間なので,デフォルトで準備されているスタイルを利用すると楽です.</p>
 <p>matplotlibではいくつかのデフォルトのスタイルが準備されています. 使用可能なスタイルは,plt.style.available で確認できます.</p>
-<div class="sourceCode" id="cb246"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb246-1"><a href="#cb246-1" aria-hidden="true" tabindex="-1"></a><span class="ex">❯</span> python</span>
-<span id="cb246-2"><a href="#cb246-2" aria-hidden="true" tabindex="-1"></a><span class="ex">Python</span> 3.12.3 <span class="er">(</span><span class="ex">main,</span> Jun  3 2024, 08:31:31<span class="kw">)</span> <span class="ex">[Clang</span> 15.0.0 <span class="er">(</span><span class="ex">clang-1500.3.9.4</span><span class="kw">)</span><span class="ex">]</span> on darwin</span>
-<span id="cb246-3"><a href="#cb246-3" aria-hidden="true" tabindex="-1"></a><span class="ex">Type</span> <span class="st">&quot;help&quot;</span>, <span class="st">&quot;copyright&quot;</span>, <span class="st">&quot;credits&quot;</span> or <span class="st">&quot;license&quot;</span> for more information.</span>
-<span id="cb246-4"><a href="#cb246-4" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> import <span class="ex">matplotlib.pyplot</span> as plt</span>
-<span id="cb246-5"><a href="#cb246-5" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> plt.style.available</span>
-<span id="cb246-6"><a href="#cb246-6" aria-hidden="true" tabindex="-1"></a><span class="ex">[</span><span class="st">'Solarize_Light2'</span><span class="ex">,</span> <span class="st">'_classic_test_patch'</span>, <span class="st">'_mpl-gallery'</span>, <span class="st">'_mpl-gallery-nogrid'</span>, <span class="st">'bmh'</span>, <span class="st">'classic'</span>, <span class="st">'dark_background'</span>, <span class="st">'fast'</span>, <span class="st">'fivethirtyeight'</span>, <span class="st">'ggplot'</span>, <span class="st">'grayscale'</span>, <span class="st">'seaborn-v0_8'</span>, <span class="st">'seaborn-v0_8-bright'</span>, <span class="st">'seaborn-v0_8-colorblind'</span>, <span class="st">'seaborn-v0_8-dark'</span>, <span class="st">'seaborn-v0_8-dark-palette'</span>, <span class="st">'seaborn-v0_8-darkgrid'</span>, <span class="st">'seaborn-v0_8-deep'</span>, <span class="st">'seaborn-v0_8-muted'</span>, <span class="st">'seaborn-v0_8-notebook'</span>, <span class="st">'seaborn-v0_8-paper'</span>, <span class="st">'seaborn-v0_8-pastel'</span>, <span class="st">'seaborn-v0_8-poster'</span>, <span class="st">'seaborn-v0_8-talk'</span>, <span class="st">'seaborn-v0_8-ticks'</span>, <span class="st">'seaborn-v0_8-white'</span>, <span class="st">'seaborn-v0_8-whitegrid'</span>, <span class="st">'tableau-colorblind10'</span>]</span></code></pre></div>
+<div class="sourceCode" id="cb250"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb250-1"><a href="#cb250-1" aria-hidden="true" tabindex="-1"></a><span class="ex">❯</span> python</span>
+<span id="cb250-2"><a href="#cb250-2" aria-hidden="true" tabindex="-1"></a><span class="ex">Python</span> 3.12.3 <span class="er">(</span><span class="ex">main,</span> Jun  3 2024, 08:31:31<span class="kw">)</span> <span class="ex">[Clang</span> 15.0.0 <span class="er">(</span><span class="ex">clang-1500.3.9.4</span><span class="kw">)</span><span class="ex">]</span> on darwin</span>
+<span id="cb250-3"><a href="#cb250-3" aria-hidden="true" tabindex="-1"></a><span class="ex">Type</span> <span class="st">&quot;help&quot;</span>, <span class="st">&quot;copyright&quot;</span>, <span class="st">&quot;credits&quot;</span> or <span class="st">&quot;license&quot;</span> for more information.</span>
+<span id="cb250-4"><a href="#cb250-4" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> import <span class="ex">matplotlib.pyplot</span> as plt</span>
+<span id="cb250-5"><a href="#cb250-5" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;&gt;&gt;</span> plt.style.available</span>
+<span id="cb250-6"><a href="#cb250-6" aria-hidden="true" tabindex="-1"></a><span class="ex">[</span><span class="st">'Solarize_Light2'</span><span class="ex">,</span> <span class="st">'_classic_test_patch'</span>, <span class="st">'_mpl-gallery'</span>, <span class="st">'_mpl-gallery-nogrid'</span>, <span class="st">'bmh'</span>, <span class="st">'classic'</span>, <span class="st">'dark_background'</span>, <span class="st">'fast'</span>, <span class="st">'fivethirtyeight'</span>, <span class="st">'ggplot'</span>, <span class="st">'grayscale'</span>, <span class="st">'seaborn-v0_8'</span>, <span class="st">'seaborn-v0_8-bright'</span>, <span class="st">'seaborn-v0_8-colorblind'</span>, <span class="st">'seaborn-v0_8-dark'</span>, <span class="st">'seaborn-v0_8-dark-palette'</span>, <span class="st">'seaborn-v0_8-darkgrid'</span>, <span class="st">'seaborn-v0_8-deep'</span>, <span class="st">'seaborn-v0_8-muted'</span>, <span class="st">'seaborn-v0_8-notebook'</span>, <span class="st">'seaborn-v0_8-paper'</span>, <span class="st">'seaborn-v0_8-pastel'</span>, <span class="st">'seaborn-v0_8-poster'</span>, <span class="st">'seaborn-v0_8-talk'</span>, <span class="st">'seaborn-v0_8-ticks'</span>, <span class="st">'seaborn-v0_8-white'</span>, <span class="st">'seaborn-v0_8-whitegrid'</span>, <span class="st">'tableau-colorblind10'</span>]</span></code></pre></div>
 <p>それぞれのスタイルのイメージは<a href="https://matplotlib.org/stable/gallery/style_sheets/style_sheets_reference.html">こちら</a>で確認できます.</p>
 <p>スタイルは<code>plt.style.use('スタイル名')</code>で指定し,以降のコード全てに適用されます.</p>
-<div class="sourceCode" id="cb247"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb247-1"><a href="#cb247-1" aria-hidden="true" tabindex="-1"></a><span class="co"># スタイル 'ggplot' を使ってみます</span></span>
-<span id="cb247-2"><a href="#cb247-2" aria-hidden="true" tabindex="-1"></a>plt.style.use(<span class="st">'ggplot'</span>)</span>
-<span id="cb247-3"><a href="#cb247-3" aria-hidden="true" tabindex="-1"></a><span class="co"># 引数に色の指定をします</span></span>
-<span id="cb247-4"><a href="#cb247-4" aria-hidden="true" tabindex="-1"></a>plt.bar(x<span class="op">=</span>x_position, height<span class="op">=</span>values)</span>
-<span id="cb247-5"><a href="#cb247-5" aria-hidden="true" tabindex="-1"></a><span class="co">#ラベルの位置を指定します.</span></span>
-<span id="cb247-6"><a href="#cb247-6" aria-hidden="true" tabindex="-1"></a>plt.xticks(ticks<span class="op">=</span>x_position,labels<span class="op">=</span>labels)</span>
-<span id="cb247-7"><a href="#cb247-7" aria-hidden="true" tabindex="-1"></a><span class="co"># yラベルを指定します</span></span>
-<span id="cb247-8"><a href="#cb247-8" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">&quot;number&quot;</span>)</span>
-<span id="cb247-9"><a href="#cb247-9" aria-hidden="true" tabindex="-1"></a><span class="co"># タイトルを指名します</span></span>
-<span id="cb247-10"><a href="#cb247-10" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">&quot;kind&quot;</span>)</span>
-<span id="cb247-11"><a href="#cb247-11" aria-hidden="true" tabindex="-1"></a><span class="co"># グラフの表示</span></span>
-<span id="cb247-12"><a href="#cb247-12" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<div class="sourceCode" id="cb251"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb251-1"><a href="#cb251-1" aria-hidden="true" tabindex="-1"></a><span class="co"># スタイル 'ggplot' を使ってみます</span></span>
+<span id="cb251-2"><a href="#cb251-2" aria-hidden="true" tabindex="-1"></a>plt.style.use(<span class="st">'ggplot'</span>)</span>
+<span id="cb251-3"><a href="#cb251-3" aria-hidden="true" tabindex="-1"></a><span class="co"># 引数に色の指定をします</span></span>
+<span id="cb251-4"><a href="#cb251-4" aria-hidden="true" tabindex="-1"></a>plt.bar(x<span class="op">=</span>x_position, height<span class="op">=</span>values)</span>
+<span id="cb251-5"><a href="#cb251-5" aria-hidden="true" tabindex="-1"></a><span class="co">#ラベルの位置を指定します.</span></span>
+<span id="cb251-6"><a href="#cb251-6" aria-hidden="true" tabindex="-1"></a>plt.xticks(ticks<span class="op">=</span>x_position,labels<span class="op">=</span>labels)</span>
+<span id="cb251-7"><a href="#cb251-7" aria-hidden="true" tabindex="-1"></a><span class="co"># yラベルを指定します</span></span>
+<span id="cb251-8"><a href="#cb251-8" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">&quot;number&quot;</span>)</span>
+<span id="cb251-9"><a href="#cb251-9" aria-hidden="true" tabindex="-1"></a><span class="co"># タイトルを指名します</span></span>
+<span id="cb251-10"><a href="#cb251-10" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">&quot;kind&quot;</span>)</span>
+<span id="cb251-11"><a href="#cb251-11" aria-hidden="true" tabindex="-1"></a><span class="co"># グラフの表示</span></span>
+<span id="cb251-12"><a href="#cb251-12" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
 <figure>
 <img src="../images/bar_graph_style.png" alt="スタイルの適用" />
 <figcaption aria-hidden="true">スタイルの適用</figcaption>
@@ -4444,24 +4509,24 @@ plt.show()
 <h4 data-number="9.1.4" id="要素の追加"><span class="header-section-number">9.1.4</span> 要素の追加</h4>
 <p>グラフに新しい要素を付け加えるのも簡単です.
 ここでは試しに凡例を追加してみます.</p>
-<div class="sourceCode" id="cb248"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb248-1"><a href="#cb248-1" aria-hidden="true" tabindex="-1"></a><span class="co"># スタイル seaborn を使ってみます</span></span>
-<span id="cb248-2"><a href="#cb248-2" aria-hidden="true" tabindex="-1"></a>plt.style.use(<span class="st">'seaborn'</span>)</span>
-<span id="cb248-3"><a href="#cb248-3" aria-hidden="true" tabindex="-1"></a><span class="co"># 棒グラフを2つ並べます</span></span>
-<span id="cb248-4"><a href="#cb248-4" aria-hidden="true" tabindex="-1"></a>plt.bar(color<span class="op">=</span><span class="st">'red'</span>, x<span class="op">=</span>x_position, width<span class="op">=</span><span class="fl">0.3</span>,height<span class="op">=</span>values)</span>
-<span id="cb248-5"><a href="#cb248-5" aria-hidden="true" tabindex="-1"></a>plt.bar(color<span class="op">=</span><span class="st">'blue'</span>,x<span class="op">=</span>x_position<span class="op">+</span><span class="fl">0.3</span>, width<span class="op">=</span><span class="fl">0.3</span>,height<span class="op">=</span>[<span class="dv">11</span>,<span class="dv">15</span>,<span class="dv">14</span>])</span>
-<span id="cb248-6"><a href="#cb248-6" aria-hidden="true" tabindex="-1"></a><span class="co">#凡例を追加します</span></span>
-<span id="cb248-7"><a href="#cb248-7" aria-hidden="true" tabindex="-1"></a><span class="co"># loc で位置を指定します</span></span>
-<span id="cb248-8"><a href="#cb248-8" aria-hidden="true" tabindex="-1"></a><span class="co"># 上下 upper center lower</span></span>
-<span id="cb248-9"><a href="#cb248-9" aria-hidden="true" tabindex="-1"></a><span class="co"># 左右 left center right</span></span>
-<span id="cb248-10"><a href="#cb248-10" aria-hidden="true" tabindex="-1"></a>plt.legend([<span class="st">'2020'</span>,<span class="st">'2000'</span>], loc<span class="op">=</span><span class="st">'upper left'</span>)</span>
-<span id="cb248-11"><a href="#cb248-11" aria-hidden="true" tabindex="-1"></a><span class="co">#ラベルの位置を指定します.</span></span>
-<span id="cb248-12"><a href="#cb248-12" aria-hidden="true" tabindex="-1"></a>plt.xticks(ticks<span class="op">=</span>x_position<span class="op">+</span><span class="fl">0.15</span>,labels<span class="op">=</span>labels)</span>
-<span id="cb248-13"><a href="#cb248-13" aria-hidden="true" tabindex="-1"></a><span class="co"># yラベルを指定します</span></span>
-<span id="cb248-14"><a href="#cb248-14" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">&quot;number&quot;</span>)</span>
-<span id="cb248-15"><a href="#cb248-15" aria-hidden="true" tabindex="-1"></a><span class="co"># タイトルを指名します</span></span>
-<span id="cb248-16"><a href="#cb248-16" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">&quot;kind&quot;</span>)</span>
-<span id="cb248-17"><a href="#cb248-17" aria-hidden="true" tabindex="-1"></a><span class="co"># グラフの表示</span></span>
-<span id="cb248-18"><a href="#cb248-18" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<div class="sourceCode" id="cb252"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb252-1"><a href="#cb252-1" aria-hidden="true" tabindex="-1"></a><span class="co"># スタイル seaborn を使ってみます</span></span>
+<span id="cb252-2"><a href="#cb252-2" aria-hidden="true" tabindex="-1"></a>plt.style.use(<span class="st">'seaborn'</span>)</span>
+<span id="cb252-3"><a href="#cb252-3" aria-hidden="true" tabindex="-1"></a><span class="co"># 棒グラフを2つ並べます</span></span>
+<span id="cb252-4"><a href="#cb252-4" aria-hidden="true" tabindex="-1"></a>plt.bar(color<span class="op">=</span><span class="st">'red'</span>, x<span class="op">=</span>x_position, width<span class="op">=</span><span class="fl">0.3</span>,height<span class="op">=</span>values)</span>
+<span id="cb252-5"><a href="#cb252-5" aria-hidden="true" tabindex="-1"></a>plt.bar(color<span class="op">=</span><span class="st">'blue'</span>,x<span class="op">=</span>x_position<span class="op">+</span><span class="fl">0.3</span>, width<span class="op">=</span><span class="fl">0.3</span>,height<span class="op">=</span>[<span class="dv">11</span>,<span class="dv">15</span>,<span class="dv">14</span>])</span>
+<span id="cb252-6"><a href="#cb252-6" aria-hidden="true" tabindex="-1"></a><span class="co">#凡例を追加します</span></span>
+<span id="cb252-7"><a href="#cb252-7" aria-hidden="true" tabindex="-1"></a><span class="co"># loc で位置を指定します</span></span>
+<span id="cb252-8"><a href="#cb252-8" aria-hidden="true" tabindex="-1"></a><span class="co"># 上下 upper center lower</span></span>
+<span id="cb252-9"><a href="#cb252-9" aria-hidden="true" tabindex="-1"></a><span class="co"># 左右 left center right</span></span>
+<span id="cb252-10"><a href="#cb252-10" aria-hidden="true" tabindex="-1"></a>plt.legend([<span class="st">'2020'</span>,<span class="st">'2000'</span>], loc<span class="op">=</span><span class="st">'upper left'</span>)</span>
+<span id="cb252-11"><a href="#cb252-11" aria-hidden="true" tabindex="-1"></a><span class="co">#ラベルの位置を指定します.</span></span>
+<span id="cb252-12"><a href="#cb252-12" aria-hidden="true" tabindex="-1"></a>plt.xticks(ticks<span class="op">=</span>x_position<span class="op">+</span><span class="fl">0.15</span>,labels<span class="op">=</span>labels)</span>
+<span id="cb252-13"><a href="#cb252-13" aria-hidden="true" tabindex="-1"></a><span class="co"># yラベルを指定します</span></span>
+<span id="cb252-14"><a href="#cb252-14" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">&quot;number&quot;</span>)</span>
+<span id="cb252-15"><a href="#cb252-15" aria-hidden="true" tabindex="-1"></a><span class="co"># タイトルを指名します</span></span>
+<span id="cb252-16"><a href="#cb252-16" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">&quot;kind&quot;</span>)</span>
+<span id="cb252-17"><a href="#cb252-17" aria-hidden="true" tabindex="-1"></a><span class="co"># グラフの表示</span></span>
+<span id="cb252-18"><a href="#cb252-18" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
 <p>デザインのすべてのパターンをここで扱うことは出来ないので,
 やりたいことに応じて,
 <a href="https://matplotlib.org/stable/users/index">matplotlubの公式ドキュメント</a>を確認しましょう.</p>
@@ -4542,48 +4607,48 @@ plt.show()
 <p>主成分を使って天気を当てよう.
 電力データの次元削減をして, その主成分で天気を当てる非線形SVMを実行してみよう.
 第1成分と第2成分で,情報の85%以上を説明できることが分かる.この2成分を利用して,SVMを実行してみる.</p>
-<div class="sourceCode" id="cb249"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb249-1"><a href="#cb249-1" aria-hidden="true" tabindex="-1"></a><span class="co"># -*- coding: utf-8 -*-</span></span>
-<span id="cb249-2"><a href="#cb249-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb249-3"><a href="#cb249-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb249-4"><a href="#cb249-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb249-5"><a href="#cb249-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> train_test_split</span>
-<span id="cb249-6"><a href="#cb249-6" aria-hidden="true" tabindex="-1"></a><span class="co"># svmのパッケージ</span></span>
-<span id="cb249-7"><a href="#cb249-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn <span class="im">import</span> svm</span>
-<span id="cb249-8"><a href="#cb249-8" aria-hidden="true" tabindex="-1"></a><span class="co">#主成分分析</span></span>
-<span id="cb249-9"><a href="#cb249-9" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.decomposition <span class="im">import</span> PCA</span>
-<span id="cb249-10"><a href="#cb249-10" aria-hidden="true" tabindex="-1"></a><span class="co">#4つある電力データを主成分分析で次元削減してみる</span></span>
-<span id="cb249-11"><a href="#cb249-11" aria-hidden="true" tabindex="-1"></a><span class="co"># データを読み込み</span></span>
-<span id="cb249-12"><a href="#cb249-12" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">&quot;./data/energy_data.csv&quot;</span>)</span>
-<span id="cb249-13"><a href="#cb249-13" aria-hidden="true" tabindex="-1"></a><span class="co"># 主成分分析のターゲットとなる電力データを抽出</span></span>
-<span id="cb249-14"><a href="#cb249-14" aria-hidden="true" tabindex="-1"></a>target <span class="op">=</span> df[[<span class="st">'Lighting'</span>, <span class="st">'Lamp'</span>, <span class="st">'Power'</span>, <span class="st">'Air'</span>]]</span>
-<span id="cb249-15"><a href="#cb249-15" aria-hidden="true" tabindex="-1"></a><span class="co">#データを標準化します</span></span>
-<span id="cb249-16"><a href="#cb249-16" aria-hidden="true" tabindex="-1"></a><span class="co"># apply メソッドは,DataFlame全体に与えた関数を適用</span></span>
-<span id="cb249-17"><a href="#cb249-17" aria-hidden="true" tabindex="-1"></a><span class="co"># axis = 1 行に対して</span></span>
-<span id="cb249-18"><a href="#cb249-18" aria-hidden="true" tabindex="-1"></a><span class="co"># axis = 0 列に対して</span></span>
-<span id="cb249-19"><a href="#cb249-19" aria-hidden="true" tabindex="-1"></a>target <span class="op">=</span> target.<span class="bu">apply</span>(<span class="kw">lambda</span> x: (x<span class="op">-</span>x.mean())<span class="op">/</span>x.std(), axis<span class="op">=</span><span class="dv">0</span>)</span>
-<span id="cb249-20"><a href="#cb249-20" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
-<span id="cb249-21"><a href="#cb249-21" aria-hidden="true" tabindex="-1"></a><span class="co">ラムダ式を使わなければ</span></span>
-<span id="cb249-22"><a href="#cb249-22" aria-hidden="true" tabindex="-1"></a><span class="co">def standardization(x):</span></span>
-<span id="cb249-23"><a href="#cb249-23" aria-hidden="true" tabindex="-1"></a><span class="co">return (x-x.mean())/x.std()</span></span>
-<span id="cb249-24"><a href="#cb249-24" aria-hidden="true" tabindex="-1"></a><span class="co">target = target.apply(standardization(), axis=1)</span></span>
-<span id="cb249-25"><a href="#cb249-25" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
-<span id="cb249-26"><a href="#cb249-26" aria-hidden="true" tabindex="-1"></a><span class="co">#主成分分析の実行</span></span>
-<span id="cb249-27"><a href="#cb249-27" aria-hidden="true" tabindex="-1"></a>pca <span class="op">=</span> PCA()</span>
-<span id="cb249-28"><a href="#cb249-28" aria-hidden="true" tabindex="-1"></a>pca.fit(target)</span>
-<span id="cb249-29"><a href="#cb249-29" aria-hidden="true" tabindex="-1"></a><span class="co"># 寄与率</span></span>
-<span id="cb249-30"><a href="#cb249-30" aria-hidden="true" tabindex="-1"></a><span class="co"># その主成分で情報量のどの程度を説明できているか</span></span>
-<span id="cb249-31"><a href="#cb249-31" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'第1主成分の寄与率'</span>, pca.explained_variance_ratio_[<span class="dv">0</span>])</span>
-<span id="cb249-32"><a href="#cb249-32" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'第2主成分の寄与率'</span>, pca.explained_variance_ratio_[<span class="dv">1</span>])</span>
-<span id="cb249-33"><a href="#cb249-33" aria-hidden="true" tabindex="-1"></a><span class="co">#主成分ベクトル</span></span>
-<span id="cb249-34"><a href="#cb249-34" aria-hidden="true" tabindex="-1"></a>feature <span class="op">=</span> pca.transform(target)</span>
-<span id="cb249-35"><a href="#cb249-35" aria-hidden="true" tabindex="-1"></a><span class="co"># データを主成分空間に写像</span></span>
-<span id="cb249-36"><a href="#cb249-36" aria-hidden="true" tabindex="-1"></a><span class="co"># n列目が第n主成分空間への写像</span></span>
-<span id="cb249-37"><a href="#cb249-37" aria-hidden="true" tabindex="-1"></a>feature <span class="op">=</span> pca.transform(target)</span>
-<span id="cb249-38"><a href="#cb249-38" aria-hidden="true" tabindex="-1"></a>plt.scatter(feature[:, <span class="dv">0</span>], feature[:, <span class="dv">1</span>], alpha<span class="op">=</span><span class="fl">0.8</span>, c<span class="op">=</span><span class="bu">list</span>(df[<span class="st">'weather'</span>]))</span>
-<span id="cb249-39"><a href="#cb249-39" aria-hidden="true" tabindex="-1"></a>plt.grid()</span>
-<span id="cb249-40"><a href="#cb249-40" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'PC1'</span>)</span>
-<span id="cb249-41"><a href="#cb249-41" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'PC2'</span>)</span>
-<span id="cb249-42"><a href="#cb249-42" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<div class="sourceCode" id="cb253"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb253-1"><a href="#cb253-1" aria-hidden="true" tabindex="-1"></a><span class="co"># -*- coding: utf-8 -*-</span></span>
+<span id="cb253-2"><a href="#cb253-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb253-3"><a href="#cb253-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb253-4"><a href="#cb253-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb253-5"><a href="#cb253-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> train_test_split</span>
+<span id="cb253-6"><a href="#cb253-6" aria-hidden="true" tabindex="-1"></a><span class="co"># svmのパッケージ</span></span>
+<span id="cb253-7"><a href="#cb253-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn <span class="im">import</span> svm</span>
+<span id="cb253-8"><a href="#cb253-8" aria-hidden="true" tabindex="-1"></a><span class="co">#主成分分析</span></span>
+<span id="cb253-9"><a href="#cb253-9" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.decomposition <span class="im">import</span> PCA</span>
+<span id="cb253-10"><a href="#cb253-10" aria-hidden="true" tabindex="-1"></a><span class="co">#4つある電力データを主成分分析で次元削減してみる</span></span>
+<span id="cb253-11"><a href="#cb253-11" aria-hidden="true" tabindex="-1"></a><span class="co"># データを読み込み</span></span>
+<span id="cb253-12"><a href="#cb253-12" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">&quot;./data/energy_data.csv&quot;</span>)</span>
+<span id="cb253-13"><a href="#cb253-13" aria-hidden="true" tabindex="-1"></a><span class="co"># 主成分分析のターゲットとなる電力データを抽出</span></span>
+<span id="cb253-14"><a href="#cb253-14" aria-hidden="true" tabindex="-1"></a>target <span class="op">=</span> df[[<span class="st">'Lighting'</span>, <span class="st">'Lamp'</span>, <span class="st">'Power'</span>, <span class="st">'Air'</span>]]</span>
+<span id="cb253-15"><a href="#cb253-15" aria-hidden="true" tabindex="-1"></a><span class="co">#データを標準化します</span></span>
+<span id="cb253-16"><a href="#cb253-16" aria-hidden="true" tabindex="-1"></a><span class="co"># apply メソッドは,DataFlame全体に与えた関数を適用</span></span>
+<span id="cb253-17"><a href="#cb253-17" aria-hidden="true" tabindex="-1"></a><span class="co"># axis = 1 行に対して</span></span>
+<span id="cb253-18"><a href="#cb253-18" aria-hidden="true" tabindex="-1"></a><span class="co"># axis = 0 列に対して</span></span>
+<span id="cb253-19"><a href="#cb253-19" aria-hidden="true" tabindex="-1"></a>target <span class="op">=</span> target.<span class="bu">apply</span>(<span class="kw">lambda</span> x: (x<span class="op">-</span>x.mean())<span class="op">/</span>x.std(), axis<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb253-20"><a href="#cb253-20" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb253-21"><a href="#cb253-21" aria-hidden="true" tabindex="-1"></a><span class="co">ラムダ式を使わなければ</span></span>
+<span id="cb253-22"><a href="#cb253-22" aria-hidden="true" tabindex="-1"></a><span class="co">def standardization(x):</span></span>
+<span id="cb253-23"><a href="#cb253-23" aria-hidden="true" tabindex="-1"></a><span class="co">return (x-x.mean())/x.std()</span></span>
+<span id="cb253-24"><a href="#cb253-24" aria-hidden="true" tabindex="-1"></a><span class="co">target = target.apply(standardization(), axis=1)</span></span>
+<span id="cb253-25"><a href="#cb253-25" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb253-26"><a href="#cb253-26" aria-hidden="true" tabindex="-1"></a><span class="co">#主成分分析の実行</span></span>
+<span id="cb253-27"><a href="#cb253-27" aria-hidden="true" tabindex="-1"></a>pca <span class="op">=</span> PCA()</span>
+<span id="cb253-28"><a href="#cb253-28" aria-hidden="true" tabindex="-1"></a>pca.fit(target)</span>
+<span id="cb253-29"><a href="#cb253-29" aria-hidden="true" tabindex="-1"></a><span class="co"># 寄与率</span></span>
+<span id="cb253-30"><a href="#cb253-30" aria-hidden="true" tabindex="-1"></a><span class="co"># その主成分で情報量のどの程度を説明できているか</span></span>
+<span id="cb253-31"><a href="#cb253-31" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'第1主成分の寄与率'</span>, pca.explained_variance_ratio_[<span class="dv">0</span>])</span>
+<span id="cb253-32"><a href="#cb253-32" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'第2主成分の寄与率'</span>, pca.explained_variance_ratio_[<span class="dv">1</span>])</span>
+<span id="cb253-33"><a href="#cb253-33" aria-hidden="true" tabindex="-1"></a><span class="co">#主成分ベクトル</span></span>
+<span id="cb253-34"><a href="#cb253-34" aria-hidden="true" tabindex="-1"></a>feature <span class="op">=</span> pca.transform(target)</span>
+<span id="cb253-35"><a href="#cb253-35" aria-hidden="true" tabindex="-1"></a><span class="co"># データを主成分空間に写像</span></span>
+<span id="cb253-36"><a href="#cb253-36" aria-hidden="true" tabindex="-1"></a><span class="co"># n列目が第n主成分空間への写像</span></span>
+<span id="cb253-37"><a href="#cb253-37" aria-hidden="true" tabindex="-1"></a>feature <span class="op">=</span> pca.transform(target)</span>
+<span id="cb253-38"><a href="#cb253-38" aria-hidden="true" tabindex="-1"></a>plt.scatter(feature[:, <span class="dv">0</span>], feature[:, <span class="dv">1</span>], alpha<span class="op">=</span><span class="fl">0.8</span>, c<span class="op">=</span><span class="bu">list</span>(df[<span class="st">'weather'</span>]))</span>
+<span id="cb253-39"><a href="#cb253-39" aria-hidden="true" tabindex="-1"></a>plt.grid()</span>
+<span id="cb253-40"><a href="#cb253-40" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'PC1'</span>)</span>
+<span id="cb253-41"><a href="#cb253-41" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'PC2'</span>)</span>
+<span id="cb253-42"><a href="#cb253-42" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
 <pre><code>第1主成分の寄与率 0.5903597077929026
 第2主成分の寄与率 0.27288683569579475</code></pre>
 <p><img src="19_weather.png" /></p>
@@ -4591,28 +4656,28 @@ plt.show()
 <p>P6の図</p>
 <p>説明変数に第1主成分と第2主成分を利用して,非線形SVMを実行(図示のプログラムはほぼ同じなので省略) .
 TestDataは,それほど良くないが, TrainDataに関しては,かなり良く予測できている.</p>
-<div class="sourceCode" id="cb251"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb251-1"><a href="#cb251-1" aria-hidden="true" tabindex="-1"></a><span class="co">#------------------------------------------------------------------</span></span>
-<span id="cb251-2"><a href="#cb251-2" aria-hidden="true" tabindex="-1"></a><span class="co"># ここからSVMに適用</span></span>
-<span id="cb251-3"><a href="#cb251-3" aria-hidden="true" tabindex="-1"></a><span class="co">#------------------------------------------------------------------</span></span>
-<span id="cb251-4"><a href="#cb251-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 主成分をDFに追加</span></span>
-<span id="cb251-5"><a href="#cb251-5" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'PC1'</span>] <span class="op">=</span> feature[:,<span class="dv">0</span>]</span>
-<span id="cb251-6"><a href="#cb251-6" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'PC2'</span>] <span class="op">=</span> feature[:,<span class="dv">1</span>]</span>
-<span id="cb251-7"><a href="#cb251-7" aria-hidden="true" tabindex="-1"></a><span class="co">#説明変数を主成分とする</span></span>
-<span id="cb251-8"><a href="#cb251-8" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> df[[<span class="st">'PC1'</span>,<span class="st">'PC2'</span>]]</span>
-<span id="cb251-9"><a href="#cb251-9" aria-hidden="true" tabindex="-1"></a><span class="co">#被説明変数</span></span>
-<span id="cb251-10"><a href="#cb251-10" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> df[<span class="st">'weather'</span>]</span>
-<span id="cb251-11"><a href="#cb251-11" aria-hidden="true" tabindex="-1"></a><span class="co">#トレーニングデータの作成</span></span>
-<span id="cb251-12"><a href="#cb251-12" aria-hidden="true" tabindex="-1"></a>(train_X, test_X ,train_y, test_y) <span class="op">=</span> train_test_split( X</span>
-<span id="cb251-13"><a href="#cb251-13" aria-hidden="true" tabindex="-1"></a>, y</span>
-<span id="cb251-14"><a href="#cb251-14" aria-hidden="true" tabindex="-1"></a>, stratify<span class="op">=</span> y</span>
-<span id="cb251-15"><a href="#cb251-15" aria-hidden="true" tabindex="-1"></a>, random_state <span class="op">=</span> <span class="dv">0</span>)</span>
-<span id="cb251-16"><a href="#cb251-16" aria-hidden="true" tabindex="-1"></a><span class="co"># SVMオブジェクトを定義</span></span>
-<span id="cb251-17"><a href="#cb251-17" aria-hidden="true" tabindex="-1"></a>clf <span class="op">=</span> svm.SVC(kernel<span class="op">=</span><span class="st">'rbf'</span>)</span>
-<span id="cb251-18"><a href="#cb251-18" aria-hidden="true" tabindex="-1"></a><span class="co">#学習</span></span>
-<span id="cb251-19"><a href="#cb251-19" aria-hidden="true" tabindex="-1"></a>clf.fit(train_X, train_y)</span>
-<span id="cb251-20"><a href="#cb251-20" aria-hidden="true" tabindex="-1"></a><span class="co">#結果の表示</span></span>
-<span id="cb251-21"><a href="#cb251-21" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'正解率(train):'</span>, clf.score(train_X,train_y))</span>
-<span id="cb251-22"><a href="#cb251-22" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'正解率(test):'</span>, clf.score(test_X,test_y))</span></code></pre></div>
+<div class="sourceCode" id="cb255"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb255-1"><a href="#cb255-1" aria-hidden="true" tabindex="-1"></a><span class="co">#------------------------------------------------------------------</span></span>
+<span id="cb255-2"><a href="#cb255-2" aria-hidden="true" tabindex="-1"></a><span class="co"># ここからSVMに適用</span></span>
+<span id="cb255-3"><a href="#cb255-3" aria-hidden="true" tabindex="-1"></a><span class="co">#------------------------------------------------------------------</span></span>
+<span id="cb255-4"><a href="#cb255-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 主成分をDFに追加</span></span>
+<span id="cb255-5"><a href="#cb255-5" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'PC1'</span>] <span class="op">=</span> feature[:,<span class="dv">0</span>]</span>
+<span id="cb255-6"><a href="#cb255-6" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'PC2'</span>] <span class="op">=</span> feature[:,<span class="dv">1</span>]</span>
+<span id="cb255-7"><a href="#cb255-7" aria-hidden="true" tabindex="-1"></a><span class="co">#説明変数を主成分とする</span></span>
+<span id="cb255-8"><a href="#cb255-8" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> df[[<span class="st">'PC1'</span>,<span class="st">'PC2'</span>]]</span>
+<span id="cb255-9"><a href="#cb255-9" aria-hidden="true" tabindex="-1"></a><span class="co">#被説明変数</span></span>
+<span id="cb255-10"><a href="#cb255-10" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> df[<span class="st">'weather'</span>]</span>
+<span id="cb255-11"><a href="#cb255-11" aria-hidden="true" tabindex="-1"></a><span class="co">#トレーニングデータの作成</span></span>
+<span id="cb255-12"><a href="#cb255-12" aria-hidden="true" tabindex="-1"></a>(train_X, test_X ,train_y, test_y) <span class="op">=</span> train_test_split( X</span>
+<span id="cb255-13"><a href="#cb255-13" aria-hidden="true" tabindex="-1"></a>, y</span>
+<span id="cb255-14"><a href="#cb255-14" aria-hidden="true" tabindex="-1"></a>, stratify<span class="op">=</span> y</span>
+<span id="cb255-15"><a href="#cb255-15" aria-hidden="true" tabindex="-1"></a>, random_state <span class="op">=</span> <span class="dv">0</span>)</span>
+<span id="cb255-16"><a href="#cb255-16" aria-hidden="true" tabindex="-1"></a><span class="co"># SVMオブジェクトを定義</span></span>
+<span id="cb255-17"><a href="#cb255-17" aria-hidden="true" tabindex="-1"></a>clf <span class="op">=</span> svm.SVC(kernel<span class="op">=</span><span class="st">'rbf'</span>)</span>
+<span id="cb255-18"><a href="#cb255-18" aria-hidden="true" tabindex="-1"></a><span class="co">#学習</span></span>
+<span id="cb255-19"><a href="#cb255-19" aria-hidden="true" tabindex="-1"></a>clf.fit(train_X, train_y)</span>
+<span id="cb255-20"><a href="#cb255-20" aria-hidden="true" tabindex="-1"></a><span class="co">#結果の表示</span></span>
+<span id="cb255-21"><a href="#cb255-21" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'正解率(train):'</span>, clf.score(train_X,train_y))</span>
+<span id="cb255-22"><a href="#cb255-22" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'正解率(test):'</span>, clf.score(test_X,test_y))</span></code></pre></div>
 <pre><code>第1主成分の寄与率 0.5903597077929026
 第2主成分の寄与率 0.27288683569579475
 正解率(train): 0.9130434782608695
@@ -4636,41 +4701,41 @@ TestDataは,それほど良くないが, TrainDataに関しては,かなり良�
 <p><br></p>
 <p>k-means法で電力データの建物をクラスタリング
 本来の教師なし学習では,事前にクラスターが分からないが,ここでは練習用として,実際のクラスタと,k-means法による結果を比較してみる.</p>
-<div class="sourceCode" id="cb253"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb253-1"><a href="#cb253-1" aria-hidden="true" tabindex="-1"></a><span class="co"># -*- coding:utf-8 -*-</span></span>
-<span id="cb253-2"><a href="#cb253-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb253-3"><a href="#cb253-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb253-4"><a href="#cb253-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.cluster <span class="im">import</span> KMeans</span>
-<span id="cb253-5"><a href="#cb253-5" aria-hidden="true" tabindex="-1"></a><span class="co"># 1号館, 研究館, 体育館のデータをk-means法でクラスタリングしてみる</span></span>
-<span id="cb253-6"><a href="#cb253-6" aria-hidden="true" tabindex="-1"></a><span class="co">#データの読み込み</span></span>
-<span id="cb253-7"><a href="#cb253-7" aria-hidden="true" tabindex="-1"></a><span class="co">#単位が同じなので,標準化は必要ない</span></span>
-<span id="cb253-8"><a href="#cb253-8" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'./data/energy.csv'</span>)</span>
-<span id="cb253-9"><a href="#cb253-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
-<span id="cb253-10"><a href="#cb253-10" aria-hidden="true" tabindex="-1"></a><span class="co"># まずは図示してみる</span></span>
-<span id="cb253-11"><a href="#cb253-11" aria-hidden="true" tabindex="-1"></a><span class="co"># 通常は事前にクラスターが分からないことに注意</span></span>
-<span id="cb253-12"><a href="#cb253-12" aria-hidden="true" tabindex="-1"></a>plt.scatter(df[<span class="st">'Lighting'</span>], df[<span class="st">'Lamp'</span>], alpha<span class="op">=</span><span class="fl">0.8</span>, c<span class="op">=</span><span class="bu">list</span>(df[<span class="st">'Building'</span>]))</span>
-<span id="cb253-13"><a href="#cb253-13" aria-hidden="true" tabindex="-1"></a>plt.grid()</span>
-<span id="cb253-14"><a href="#cb253-14" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">'raw data'</span>)</span>
-<span id="cb253-15"><a href="#cb253-15" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'Lighting'</span>)</span>
-<span id="cb253-16"><a href="#cb253-16" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'Lamp'</span>)</span>
-<span id="cb253-17"><a href="#cb253-17" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
-<span id="cb253-18"><a href="#cb253-18" aria-hidden="true" tabindex="-1"></a><span class="co">#k-means法で分類</span></span>
-<span id="cb253-19"><a href="#cb253-19" aria-hidden="true" tabindex="-1"></a><span class="co"># init = 'random' とすると kmeans法になる</span></span>
-<span id="cb253-20"><a href="#cb253-20" aria-hidden="true" tabindex="-1"></a><span class="co"># init を指定しないとk-means++という手法になる</span></span>
-<span id="cb253-21"><a href="#cb253-21" aria-hidden="true" tabindex="-1"></a><span class="co"># k-means++ は 初期の重心を広範に取る手法でk-meansより安定した結果が得られる</span></span>
-<span id="cb253-22"><a href="#cb253-22" aria-hidden="true" tabindex="-1"></a><span class="co"># 分割するクラスタ数は3に設定</span></span>
-<span id="cb253-23"><a href="#cb253-23" aria-hidden="true" tabindex="-1"></a>kmeans <span class="op">=</span> KMeans(init<span class="op">=</span><span class="st">'random'</span>, n_clusters<span class="op">=</span><span class="dv">3</span>)</span>
-<span id="cb253-24"><a href="#cb253-24" aria-hidden="true" tabindex="-1"></a><span class="co">#重心を計算</span></span>
-<span id="cb253-25"><a href="#cb253-25" aria-hidden="true" tabindex="-1"></a>kmeans.fit(df[[<span class="st">'Lighting'</span>,<span class="st">'Lamp'</span>]])</span>
-<span id="cb253-26"><a href="#cb253-26" aria-hidden="true" tabindex="-1"></a>prediction <span class="op">=</span> kmeans.predict(df[[<span class="st">'Lighting'</span>,<span class="st">'Lamp'</span>]])</span>
-<span id="cb253-27"><a href="#cb253-27" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(prediction)</span>
-<span id="cb253-28"><a href="#cb253-28" aria-hidden="true" tabindex="-1"></a><span class="co"># 結果を図示</span></span>
-<span id="cb253-29"><a href="#cb253-29" aria-hidden="true" tabindex="-1"></a><span class="co"># 通常は事前にクラスターが分からないことに注意</span></span>
-<span id="cb253-30"><a href="#cb253-30" aria-hidden="true" tabindex="-1"></a>plt.scatter(df[<span class="st">'Lighting'</span>], df[<span class="st">'Lamp'</span>], alpha<span class="op">=</span><span class="fl">0.8</span>, c<span class="op">=</span>prediction)</span>
-<span id="cb253-31"><a href="#cb253-31" aria-hidden="true" tabindex="-1"></a>plt.grid()</span>
-<span id="cb253-32"><a href="#cb253-32" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">'prediction'</span>)</span>
-<span id="cb253-33"><a href="#cb253-33" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'Lighting'</span>)</span>
-<span id="cb253-34"><a href="#cb253-34" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'Lamp'</span>)</span>
-<span id="cb253-35"><a href="#cb253-35" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<div class="sourceCode" id="cb257"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb257-1"><a href="#cb257-1" aria-hidden="true" tabindex="-1"></a><span class="co"># -*- coding:utf-8 -*-</span></span>
+<span id="cb257-2"><a href="#cb257-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb257-3"><a href="#cb257-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb257-4"><a href="#cb257-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.cluster <span class="im">import</span> KMeans</span>
+<span id="cb257-5"><a href="#cb257-5" aria-hidden="true" tabindex="-1"></a><span class="co"># 1号館, 研究館, 体育館のデータをk-means法でクラスタリングしてみる</span></span>
+<span id="cb257-6"><a href="#cb257-6" aria-hidden="true" tabindex="-1"></a><span class="co">#データの読み込み</span></span>
+<span id="cb257-7"><a href="#cb257-7" aria-hidden="true" tabindex="-1"></a><span class="co">#単位が同じなので,標準化は必要ない</span></span>
+<span id="cb257-8"><a href="#cb257-8" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'./data/energy.csv'</span>)</span>
+<span id="cb257-9"><a href="#cb257-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb257-10"><a href="#cb257-10" aria-hidden="true" tabindex="-1"></a><span class="co"># まずは図示してみる</span></span>
+<span id="cb257-11"><a href="#cb257-11" aria-hidden="true" tabindex="-1"></a><span class="co"># 通常は事前にクラスターが分からないことに注意</span></span>
+<span id="cb257-12"><a href="#cb257-12" aria-hidden="true" tabindex="-1"></a>plt.scatter(df[<span class="st">'Lighting'</span>], df[<span class="st">'Lamp'</span>], alpha<span class="op">=</span><span class="fl">0.8</span>, c<span class="op">=</span><span class="bu">list</span>(df[<span class="st">'Building'</span>]))</span>
+<span id="cb257-13"><a href="#cb257-13" aria-hidden="true" tabindex="-1"></a>plt.grid()</span>
+<span id="cb257-14"><a href="#cb257-14" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">'raw data'</span>)</span>
+<span id="cb257-15"><a href="#cb257-15" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'Lighting'</span>)</span>
+<span id="cb257-16"><a href="#cb257-16" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'Lamp'</span>)</span>
+<span id="cb257-17"><a href="#cb257-17" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb257-18"><a href="#cb257-18" aria-hidden="true" tabindex="-1"></a><span class="co">#k-means法で分類</span></span>
+<span id="cb257-19"><a href="#cb257-19" aria-hidden="true" tabindex="-1"></a><span class="co"># init = 'random' とすると kmeans法になる</span></span>
+<span id="cb257-20"><a href="#cb257-20" aria-hidden="true" tabindex="-1"></a><span class="co"># init を指定しないとk-means++という手法になる</span></span>
+<span id="cb257-21"><a href="#cb257-21" aria-hidden="true" tabindex="-1"></a><span class="co"># k-means++ は 初期の重心を広範に取る手法でk-meansより安定した結果が得られる</span></span>
+<span id="cb257-22"><a href="#cb257-22" aria-hidden="true" tabindex="-1"></a><span class="co"># 分割するクラスタ数は3に設定</span></span>
+<span id="cb257-23"><a href="#cb257-23" aria-hidden="true" tabindex="-1"></a>kmeans <span class="op">=</span> KMeans(init<span class="op">=</span><span class="st">'random'</span>, n_clusters<span class="op">=</span><span class="dv">3</span>)</span>
+<span id="cb257-24"><a href="#cb257-24" aria-hidden="true" tabindex="-1"></a><span class="co">#重心を計算</span></span>
+<span id="cb257-25"><a href="#cb257-25" aria-hidden="true" tabindex="-1"></a>kmeans.fit(df[[<span class="st">'Lighting'</span>,<span class="st">'Lamp'</span>]])</span>
+<span id="cb257-26"><a href="#cb257-26" aria-hidden="true" tabindex="-1"></a>prediction <span class="op">=</span> kmeans.predict(df[[<span class="st">'Lighting'</span>,<span class="st">'Lamp'</span>]])</span>
+<span id="cb257-27"><a href="#cb257-27" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(prediction)</span>
+<span id="cb257-28"><a href="#cb257-28" aria-hidden="true" tabindex="-1"></a><span class="co"># 結果を図示</span></span>
+<span id="cb257-29"><a href="#cb257-29" aria-hidden="true" tabindex="-1"></a><span class="co"># 通常は事前にクラスターが分からないことに注意</span></span>
+<span id="cb257-30"><a href="#cb257-30" aria-hidden="true" tabindex="-1"></a>plt.scatter(df[<span class="st">'Lighting'</span>], df[<span class="st">'Lamp'</span>], alpha<span class="op">=</span><span class="fl">0.8</span>, c<span class="op">=</span>prediction)</span>
+<span id="cb257-31"><a href="#cb257-31" aria-hidden="true" tabindex="-1"></a>plt.grid()</span>
+<span id="cb257-32"><a href="#cb257-32" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">'prediction'</span>)</span>
+<span id="cb257-33"><a href="#cb257-33" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'Lighting'</span>)</span>
+<span id="cb257-34"><a href="#cb257-34" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'Lamp'</span>)</span>
+<span id="cb257-35"><a href="#cb257-35" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
 <p>P9の結果載せる</p>
 <p><br></p>
 <p>P10の図</p>
@@ -4719,65 +4784,65 @@ TestDataは,それほど良くないが, TrainDataに関しては,かなり良�
 <p><br></p>
 <p>階層クラスタリングで電力データの建物をクラスタリング
 k-means法と同じ分類を階層クラスタリングで行ってみる.</p>
-<div class="sourceCode" id="cb254"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb254-1"><a href="#cb254-1" aria-hidden="true" tabindex="-1"></a><span class="co"># -*- coding:utf-8 -*-</span></span>
-<span id="cb254-2"><a href="#cb254-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb254-3"><a href="#cb254-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb254-4"><a href="#cb254-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 階層クラスタリング</span></span>
-<span id="cb254-5"><a href="#cb254-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.cluster.hierarchy <span class="im">import</span> dendrogram, linkage, fcluster</span>
-<span id="cb254-6"><a href="#cb254-6" aria-hidden="true" tabindex="-1"></a><span class="co"># 1号館, 研究館, 体育館のデータを階層的クラスタリングしてみる</span></span>
-<span id="cb254-7"><a href="#cb254-7" aria-hidden="true" tabindex="-1"></a><span class="co">#データの読み込み</span></span>
-<span id="cb254-8"><a href="#cb254-8" aria-hidden="true" tabindex="-1"></a><span class="co">#単位が同じなので,標準化は必要ない</span></span>
-<span id="cb254-9"><a href="#cb254-9" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'./data/energy.csv'</span>)</span>
-<span id="cb254-10"><a href="#cb254-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
-<span id="cb254-11"><a href="#cb254-11" aria-hidden="true" tabindex="-1"></a><span class="co"># データが多すぎるとデンドログラムを見ても良くわからないので,</span></span>
-<span id="cb254-12"><a href="#cb254-12" aria-hidden="true" tabindex="-1"></a><span class="co"># 各建物10個程度に減らす</span></span>
-<span id="cb254-13"><a href="#cb254-13" aria-hidden="true" tabindex="-1"></a>build1 <span class="op">=</span> df[df[<span class="st">'Building'</span>] <span class="op">==</span> <span class="dv">0</span>].head(<span class="dv">10</span>)</span>
-<span id="cb254-14"><a href="#cb254-14" aria-hidden="true" tabindex="-1"></a>research <span class="op">=</span> df[df[<span class="st">'Building'</span>] <span class="op">==</span> <span class="dv">1</span>].head(<span class="dv">10</span>)</span>
-<span id="cb254-15"><a href="#cb254-15" aria-hidden="true" tabindex="-1"></a>gym <span class="op">=</span> df[df[<span class="st">'Building'</span>] <span class="op">==</span> <span class="dv">2</span>].head(<span class="dv">10</span>)</span>
-<span id="cb254-16"><a href="#cb254-16" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.concat([build1,research,gym])</span>
-<span id="cb254-17"><a href="#cb254-17" aria-hidden="true" tabindex="-1"></a>df.index <span class="op">=</span> <span class="bu">range</span>(<span class="dv">0</span>,<span class="dv">30</span>)</span>
-<span id="cb254-18"><a href="#cb254-18" aria-hidden="true" tabindex="-1"></a><span class="co"># まずは図示してみる</span></span>
-<span id="cb254-19"><a href="#cb254-19" aria-hidden="true" tabindex="-1"></a><span class="co"># 通常は事前にクラスターが分からないことに注意</span></span>
-<span id="cb254-20"><a href="#cb254-20" aria-hidden="true" tabindex="-1"></a>plt.scatter(df[<span class="st">'Lighting'</span>], df[<span class="st">'Lamp'</span>], alpha<span class="op">=</span><span class="fl">0.8</span>, c<span class="op">=</span><span class="bu">list</span>(df[<span class="st">'Building'</span>]))</span>
-<span id="cb254-21"><a href="#cb254-21" aria-hidden="true" tabindex="-1"></a>plt.grid()</span>
-<span id="cb254-22"><a href="#cb254-22" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">'raw data'</span>)</span>
-<span id="cb254-23"><a href="#cb254-23" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'Lighting'</span>)</span>
-<span id="cb254-24"><a href="#cb254-24" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'Lamp'</span>)</span>
-<span id="cb254-25"><a href="#cb254-25" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<div class="sourceCode" id="cb258"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb258-1"><a href="#cb258-1" aria-hidden="true" tabindex="-1"></a><span class="co"># -*- coding:utf-8 -*-</span></span>
+<span id="cb258-2"><a href="#cb258-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb258-3"><a href="#cb258-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb258-4"><a href="#cb258-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 階層クラスタリング</span></span>
+<span id="cb258-5"><a href="#cb258-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.cluster.hierarchy <span class="im">import</span> dendrogram, linkage, fcluster</span>
+<span id="cb258-6"><a href="#cb258-6" aria-hidden="true" tabindex="-1"></a><span class="co"># 1号館, 研究館, 体育館のデータを階層的クラスタリングしてみる</span></span>
+<span id="cb258-7"><a href="#cb258-7" aria-hidden="true" tabindex="-1"></a><span class="co">#データの読み込み</span></span>
+<span id="cb258-8"><a href="#cb258-8" aria-hidden="true" tabindex="-1"></a><span class="co">#単位が同じなので,標準化は必要ない</span></span>
+<span id="cb258-9"><a href="#cb258-9" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'./data/energy.csv'</span>)</span>
+<span id="cb258-10"><a href="#cb258-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb258-11"><a href="#cb258-11" aria-hidden="true" tabindex="-1"></a><span class="co"># データが多すぎるとデンドログラムを見ても良くわからないので,</span></span>
+<span id="cb258-12"><a href="#cb258-12" aria-hidden="true" tabindex="-1"></a><span class="co"># 各建物10個程度に減らす</span></span>
+<span id="cb258-13"><a href="#cb258-13" aria-hidden="true" tabindex="-1"></a>build1 <span class="op">=</span> df[df[<span class="st">'Building'</span>] <span class="op">==</span> <span class="dv">0</span>].head(<span class="dv">10</span>)</span>
+<span id="cb258-14"><a href="#cb258-14" aria-hidden="true" tabindex="-1"></a>research <span class="op">=</span> df[df[<span class="st">'Building'</span>] <span class="op">==</span> <span class="dv">1</span>].head(<span class="dv">10</span>)</span>
+<span id="cb258-15"><a href="#cb258-15" aria-hidden="true" tabindex="-1"></a>gym <span class="op">=</span> df[df[<span class="st">'Building'</span>] <span class="op">==</span> <span class="dv">2</span>].head(<span class="dv">10</span>)</span>
+<span id="cb258-16"><a href="#cb258-16" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.concat([build1,research,gym])</span>
+<span id="cb258-17"><a href="#cb258-17" aria-hidden="true" tabindex="-1"></a>df.index <span class="op">=</span> <span class="bu">range</span>(<span class="dv">0</span>,<span class="dv">30</span>)</span>
+<span id="cb258-18"><a href="#cb258-18" aria-hidden="true" tabindex="-1"></a><span class="co"># まずは図示してみる</span></span>
+<span id="cb258-19"><a href="#cb258-19" aria-hidden="true" tabindex="-1"></a><span class="co"># 通常は事前にクラスターが分からないことに注意</span></span>
+<span id="cb258-20"><a href="#cb258-20" aria-hidden="true" tabindex="-1"></a>plt.scatter(df[<span class="st">'Lighting'</span>], df[<span class="st">'Lamp'</span>], alpha<span class="op">=</span><span class="fl">0.8</span>, c<span class="op">=</span><span class="bu">list</span>(df[<span class="st">'Building'</span>]))</span>
+<span id="cb258-21"><a href="#cb258-21" aria-hidden="true" tabindex="-1"></a>plt.grid()</span>
+<span id="cb258-22"><a href="#cb258-22" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">'raw data'</span>)</span>
+<span id="cb258-23"><a href="#cb258-23" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'Lighting'</span>)</span>
+<span id="cb258-24"><a href="#cb258-24" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'Lamp'</span>)</span>
+<span id="cb258-25"><a href="#cb258-25" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
 <p>P14の結果載せる</p>
 <p><br></p>
 <p>階層クラスタリングで電力
 データの建物をクラスタリ
 ング
 デンドログラムで各点がどのように統合されているかを確認</p>
-<div class="sourceCode" id="cb255"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb255-1"><a href="#cb255-1" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
-<span id="cb255-2"><a href="#cb255-2" aria-hidden="true" tabindex="-1"></a><span class="co">クラスタリングの実行</span></span>
-<span id="cb255-3"><a href="#cb255-3" aria-hidden="true" tabindex="-1"></a><span class="co">method で データの結合の方法を指示します</span></span>
-<span id="cb255-4"><a href="#cb255-4" aria-hidden="true" tabindex="-1"></a><span class="co">･ average 重みのない平均距離</span></span>
-<span id="cb255-5"><a href="#cb255-5" aria-hidden="true" tabindex="-1"></a><span class="co">･ centroid 重みのない重心までの距離</span></span>
-<span id="cb255-6"><a href="#cb255-6" aria-hidden="true" tabindex="-1"></a><span class="co">･ complete 最大距離</span></span>
-<span id="cb255-7"><a href="#cb255-7" aria-hidden="true" tabindex="-1"></a><span class="co">･ median 重みのある重心までの距離</span></span>
-<span id="cb255-8"><a href="#cb255-8" aria-hidden="true" tabindex="-1"></a><span class="co">･ single 最小距離</span></span>
-<span id="cb255-9"><a href="#cb255-9" aria-hidden="true" tabindex="-1"></a><span class="co">･ ward 内部平方距離</span></span>
-<span id="cb255-10"><a href="#cb255-10" aria-hidden="true" tabindex="-1"></a><span class="co">･ weighted 重みのある平均距離</span></span>
-<span id="cb255-11"><a href="#cb255-11" aria-hidden="true" tabindex="-1"></a><span class="co">metric で距離の測り方を選択します</span></span>
-<span id="cb255-12"><a href="#cb255-12" aria-hidden="true" tabindex="-1"></a><span class="co">・euclidean ユークリッド距離</span></span>
-<span id="cb255-13"><a href="#cb255-13" aria-hidden="true" tabindex="-1"></a><span class="co">・cosine コサイン類似度</span></span>
-<span id="cb255-14"><a href="#cb255-14" aria-hidden="true" tabindex="-1"></a><span class="co">・correlation 相関係数</span></span>
-<span id="cb255-15"><a href="#cb255-15" aria-hidden="true" tabindex="-1"></a><span class="co">・canberra キャンベラ距離</span></span>
-<span id="cb255-16"><a href="#cb255-16" aria-hidden="true" tabindex="-1"></a><span class="co">・chebyshev チェビシェフ距離</span></span>
-<span id="cb255-17"><a href="#cb255-17" aria-hidden="true" tabindex="-1"></a><span class="co">・cityblock 都市ブロック距離</span></span>
-<span id="cb255-18"><a href="#cb255-18" aria-hidden="true" tabindex="-1"></a><span class="co">・hamming ハミング距離</span></span>
-<span id="cb255-19"><a href="#cb255-19" aria-hidden="true" tabindex="-1"></a><span class="co">・jaccard Jaccard係数</span></span>
-<span id="cb255-20"><a href="#cb255-20" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
-<span id="cb255-21"><a href="#cb255-21" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> linkage(df[[<span class="st">'Lighting'</span>,<span class="st">'Lamp’]]</span></span>
-<span id="cb255-22"><a href="#cb255-22" aria-hidden="true" tabindex="-1"></a><span class="er"> , method = 'average’</span></span>
-<span id="cb255-23"><a href="#cb255-23" aria-hidden="true" tabindex="-1"></a> , metric <span class="op">=</span> <span class="st">'euclidean'</span> )</span>
-<span id="cb255-24"><a href="#cb255-24" aria-hidden="true" tabindex="-1"></a><span class="co"># デンドログラムの図示</span></span>
-<span id="cb255-25"><a href="#cb255-25" aria-hidden="true" tabindex="-1"></a>dendrogram(res)</span>
-<span id="cb255-26"><a href="#cb255-26" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">&quot;Dedrogram&quot;</span>)</span>
-<span id="cb255-27"><a href="#cb255-27" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">&quot;Threshold&quot;</span>)</span>
-<span id="cb255-28"><a href="#cb255-28" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<div class="sourceCode" id="cb259"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb259-1"><a href="#cb259-1" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb259-2"><a href="#cb259-2" aria-hidden="true" tabindex="-1"></a><span class="co">クラスタリングの実行</span></span>
+<span id="cb259-3"><a href="#cb259-3" aria-hidden="true" tabindex="-1"></a><span class="co">method で データの結合の方法を指示します</span></span>
+<span id="cb259-4"><a href="#cb259-4" aria-hidden="true" tabindex="-1"></a><span class="co">･ average 重みのない平均距離</span></span>
+<span id="cb259-5"><a href="#cb259-5" aria-hidden="true" tabindex="-1"></a><span class="co">･ centroid 重みのない重心までの距離</span></span>
+<span id="cb259-6"><a href="#cb259-6" aria-hidden="true" tabindex="-1"></a><span class="co">･ complete 最大距離</span></span>
+<span id="cb259-7"><a href="#cb259-7" aria-hidden="true" tabindex="-1"></a><span class="co">･ median 重みのある重心までの距離</span></span>
+<span id="cb259-8"><a href="#cb259-8" aria-hidden="true" tabindex="-1"></a><span class="co">･ single 最小距離</span></span>
+<span id="cb259-9"><a href="#cb259-9" aria-hidden="true" tabindex="-1"></a><span class="co">･ ward 内部平方距離</span></span>
+<span id="cb259-10"><a href="#cb259-10" aria-hidden="true" tabindex="-1"></a><span class="co">･ weighted 重みのある平均距離</span></span>
+<span id="cb259-11"><a href="#cb259-11" aria-hidden="true" tabindex="-1"></a><span class="co">metric で距離の測り方を選択します</span></span>
+<span id="cb259-12"><a href="#cb259-12" aria-hidden="true" tabindex="-1"></a><span class="co">・euclidean ユークリッド距離</span></span>
+<span id="cb259-13"><a href="#cb259-13" aria-hidden="true" tabindex="-1"></a><span class="co">・cosine コサイン類似度</span></span>
+<span id="cb259-14"><a href="#cb259-14" aria-hidden="true" tabindex="-1"></a><span class="co">・correlation 相関係数</span></span>
+<span id="cb259-15"><a href="#cb259-15" aria-hidden="true" tabindex="-1"></a><span class="co">・canberra キャンベラ距離</span></span>
+<span id="cb259-16"><a href="#cb259-16" aria-hidden="true" tabindex="-1"></a><span class="co">・chebyshev チェビシェフ距離</span></span>
+<span id="cb259-17"><a href="#cb259-17" aria-hidden="true" tabindex="-1"></a><span class="co">・cityblock 都市ブロック距離</span></span>
+<span id="cb259-18"><a href="#cb259-18" aria-hidden="true" tabindex="-1"></a><span class="co">・hamming ハミング距離</span></span>
+<span id="cb259-19"><a href="#cb259-19" aria-hidden="true" tabindex="-1"></a><span class="co">・jaccard Jaccard係数</span></span>
+<span id="cb259-20"><a href="#cb259-20" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb259-21"><a href="#cb259-21" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> linkage(df[[<span class="st">'Lighting'</span>,<span class="st">'Lamp’]]</span></span>
+<span id="cb259-22"><a href="#cb259-22" aria-hidden="true" tabindex="-1"></a><span class="er"> , method = 'average’</span></span>
+<span id="cb259-23"><a href="#cb259-23" aria-hidden="true" tabindex="-1"></a> , metric <span class="op">=</span> <span class="st">'euclidean'</span> )</span>
+<span id="cb259-24"><a href="#cb259-24" aria-hidden="true" tabindex="-1"></a><span class="co"># デンドログラムの図示</span></span>
+<span id="cb259-25"><a href="#cb259-25" aria-hidden="true" tabindex="-1"></a>dendrogram(res)</span>
+<span id="cb259-26"><a href="#cb259-26" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">&quot;Dedrogram&quot;</span>)</span>
+<span id="cb259-27"><a href="#cb259-27" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">&quot;Threshold&quot;</span>)</span>
+<span id="cb259-28"><a href="#cb259-28" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
 <p>P15の結果載せる</p>
 <p><br></p>
 <p>階層クラスタリングで電力
@@ -4785,15 +4850,15 @@ k-means法と同じ分類を階層クラスタリングで行ってみる.</p>
 ング
 最後に結果を確認.データの数が違うので一概には言えないが,
 k-meansでは上手くいっていなかった点も上手く分類できている.</p>
-<div class="sourceCode" id="cb256"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb256-1"><a href="#cb256-1" aria-hidden="true" tabindex="-1"></a><span class="co"># クラスターの数(t)を指定して,どのクラスターにそれぞれが属するかを得る</span></span>
-<span id="cb256-2"><a href="#cb256-2" aria-hidden="true" tabindex="-1"></a>clusters <span class="op">=</span> fcluster(res, t<span class="op">=</span><span class="dv">3</span>, criterion<span class="op">=</span><span class="st">'maxclust'</span>)</span>
-<span id="cb256-3"><a href="#cb256-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(clusters)</span>
-<span id="cb256-4"><a href="#cb256-4" aria-hidden="true" tabindex="-1"></a>plt.scatter(df[<span class="st">'Lighting'</span>], df[<span class="st">'Lamp'</span>], alpha<span class="op">=</span><span class="fl">0.8</span>, c<span class="op">=</span>clusters)</span>
-<span id="cb256-5"><a href="#cb256-5" aria-hidden="true" tabindex="-1"></a>plt.grid()</span>
-<span id="cb256-6"><a href="#cb256-6" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">'prediction'</span>)</span>
-<span id="cb256-7"><a href="#cb256-7" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'Lighting'</span>)</span>
-<span id="cb256-8"><a href="#cb256-8" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'Lamp'</span>)</span>
-<span id="cb256-9"><a href="#cb256-9" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<div class="sourceCode" id="cb260"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb260-1"><a href="#cb260-1" aria-hidden="true" tabindex="-1"></a><span class="co"># クラスターの数(t)を指定して,どのクラスターにそれぞれが属するかを得る</span></span>
+<span id="cb260-2"><a href="#cb260-2" aria-hidden="true" tabindex="-1"></a>clusters <span class="op">=</span> fcluster(res, t<span class="op">=</span><span class="dv">3</span>, criterion<span class="op">=</span><span class="st">'maxclust'</span>)</span>
+<span id="cb260-3"><a href="#cb260-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(clusters)</span>
+<span id="cb260-4"><a href="#cb260-4" aria-hidden="true" tabindex="-1"></a>plt.scatter(df[<span class="st">'Lighting'</span>], df[<span class="st">'Lamp'</span>], alpha<span class="op">=</span><span class="fl">0.8</span>, c<span class="op">=</span>clusters)</span>
+<span id="cb260-5"><a href="#cb260-5" aria-hidden="true" tabindex="-1"></a>plt.grid()</span>
+<span id="cb260-6"><a href="#cb260-6" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">'prediction'</span>)</span>
+<span id="cb260-7"><a href="#cb260-7" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'Lighting'</span>)</span>
+<span id="cb260-8"><a href="#cb260-8" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'Lamp'</span>)</span>
+<span id="cb260-9"><a href="#cb260-9" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
 <p>P16の結果載せる</p>
 <p><br></p>
 <h3 data-number="13.1" id="自然言語処理nplnatural-language-processing"><span class="header-section-number">13.1</span> 自然言語処理(NPL,Natural Language Processing)</h3>
@@ -4873,99 +4938,99 @@ WordCloudを作成する.</li>
 <p>P21の図</p>
 <p><br></p>
 <p>形態素解析 → ワードクラウドを試してみる. (cf. https://rinsaka.com/python/nltk/05-wordcloud.html)</p>
-<div class="sourceCode" id="cb257"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb257-1"><a href="#cb257-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> wordcloud <span class="im">import</span> WordCloud</span>
-<span id="cb257-2"><a href="#cb257-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
-<span id="cb257-3"><a href="#cb257-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> re</span>
-<span id="cb257-4"><a href="#cb257-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> MeCab <span class="im">as</span> mc</span>
-<span id="cb257-5"><a href="#cb257-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> strip_CRLF_from_Text(text):</span>
-<span id="cb257-6"><a href="#cb257-6" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;テキストファイルの改行，タブを削除し，形態素解析を実行する．</span></span>
-<span id="cb257-7"><a href="#cb257-7" aria-hidden="true" tabindex="-1"></a><span class="co">改行前後が日本語文字の場合は改行を削除する．</span></span>
-<span id="cb257-8"><a href="#cb257-8" aria-hidden="true" tabindex="-1"></a><span class="co">それ以外はスペースに置換する．</span></span>
-<span id="cb257-9"><a href="#cb257-9" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
-<span id="cb257-10"><a href="#cb257-10" aria-hidden="true" tabindex="-1"></a><span class="co"># 改行前後の文字が日本語文字の場合は改行を削除する</span></span>
-<span id="cb257-11"><a href="#cb257-11" aria-hidden="true" tabindex="-1"></a>plaintext <span class="op">=</span> re.sub(<span class="st">'([ぁ-んー]+|[ァ-ンー]+|[</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+|[ぁ-んァ-ンー</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+)(</span><span class="ch">\n</span><span class="st">)([ぁ-んー]+|[ァンー]+|[</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+|[ぁ-んァ-ンー</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+)'</span>,</span>
-<span id="cb257-12"><a href="#cb257-12" aria-hidden="true" tabindex="-1"></a><span class="vs">r'\1\3'</span>,</span>
-<span id="cb257-13"><a href="#cb257-13" aria-hidden="true" tabindex="-1"></a>text)</span>
-<span id="cb257-14"><a href="#cb257-14" aria-hidden="true" tabindex="-1"></a><span class="co"># 残った改行とタブ記号はスペースに置換する</span></span>
-<span id="cb257-15"><a href="#cb257-15" aria-hidden="true" tabindex="-1"></a>plaintext <span class="op">=</span> plaintext.replace(<span class="st">'</span><span class="ch">\n</span><span class="st">'</span>, <span class="st">' '</span>).replace(<span class="st">'</span><span class="ch">\t</span><span class="st">'</span>, <span class="st">' '</span>)</span>
-<span id="cb257-16"><a href="#cb257-16" aria-hidden="true" tabindex="-1"></a><span class="cf">return</span> plaintext</span>
-<span id="cb257-17"><a href="#cb257-17" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> mecab_wakati(text):</span>
-<span id="cb257-18"><a href="#cb257-18" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
-<span id="cb257-19"><a href="#cb257-19" aria-hidden="true" tabindex="-1"></a><span class="co">MeCabで分かち書き．</span></span>
-<span id="cb257-20"><a href="#cb257-20" aria-hidden="true" tabindex="-1"></a><span class="co">ただし品詞は名詞だけに限定．</span></span>
-<span id="cb257-21"><a href="#cb257-21" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
-<span id="cb257-22"><a href="#cb257-22" aria-hidden="true" tabindex="-1"></a>t <span class="op">=</span> mc.Tagger()</span>
-<span id="cb257-23"><a href="#cb257-23" aria-hidden="true" tabindex="-1"></a><span class="co"># t = mc.Tagger('-d /usr/local/lib/mecab/dic/mecab-ipadic-neologd/')</span></span>
-<span id="cb257-24"><a href="#cb257-24" aria-hidden="true" tabindex="-1"></a>node <span class="op">=</span> t.parseToNode(text)</span>
-<span id="cb257-25"><a href="#cb257-25" aria-hidden="true" tabindex="-1"></a><span class="co"># print(node)</span></span>
-<span id="cb257-26"><a href="#cb257-26" aria-hidden="true" tabindex="-1"></a>sent <span class="op">=</span> <span class="st">&quot;&quot;</span></span>
-<span id="cb257-27"><a href="#cb257-27" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span>(node):</span>
-<span id="cb257-28"><a href="#cb257-28" aria-hidden="true" tabindex="-1"></a><span class="co"># print(node.surface, node.feature)</span></span>
-<span id="cb257-29"><a href="#cb257-29" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> node.surface <span class="op">!=</span> <span class="st">&quot;&quot;</span>: <span class="co"># ヘッダとフッタを除外</span></span>
-<span id="cb257-30"><a href="#cb257-30" aria-hidden="true" tabindex="-1"></a>word_type <span class="op">=</span> node.feature.split(<span class="st">&quot;,&quot;</span>)[<span class="dv">0</span>]</span>
-<span id="cb257-31"><a href="#cb257-31" aria-hidden="true" tabindex="-1"></a><span class="co"># 名詞だけをリストに追加する</span></span>
-<span id="cb257-32"><a href="#cb257-32" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> word_type <span class="kw">in</span> [<span class="st">&quot;名詞&quot;</span>]:</span>
-<span id="cb257-33"><a href="#cb257-33" aria-hidden="true" tabindex="-1"></a>sent <span class="op">+=</span> node.surface <span class="op">+</span> <span class="st">&quot; &quot;</span> <span class="co"># node.surface は「表層形」</span></span>
-<span id="cb257-34"><a href="#cb257-34" aria-hidden="true" tabindex="-1"></a><span class="co"># 動詞（の原型），形容詞，副詞もリストに加えたい場合は次の２行を有効にする</span></span>
-<span id="cb257-35"><a href="#cb257-35" aria-hidden="true" tabindex="-1"></a><span class="co">#if word_type in [ &quot;動詞&quot;, &quot;形容詞&quot;,&quot;副詞&quot;]:</span></span>
-<span id="cb257-36"><a href="#cb257-36" aria-hidden="true" tabindex="-1"></a><span class="co"># sent += node.feature.split(&quot;,&quot;)[6] + &quot; &quot; # node.feature.split(&quot;,&quot;)[6] は形態素解析結果の</span></span>
-<span id="cb257-37"><a href="#cb257-37" aria-hidden="true" tabindex="-1"></a>「原型」</span>
-<span id="cb257-38"><a href="#cb257-38" aria-hidden="true" tabindex="-1"></a>node <span class="op">=</span> node.<span class="bu">next</span></span>
-<span id="cb257-39"><a href="#cb257-39" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> node <span class="kw">is</span> <span class="va">None</span>:</span>
-<span id="cb257-40"><a href="#cb257-40" aria-hidden="true" tabindex="-1"></a><span class="cf">break</span></span>
-<span id="cb257-41"><a href="#cb257-41" aria-hidden="true" tabindex="-1"></a><span class="cf">return</span> sent</span>
-<span id="cb257-42"><a href="#cb257-42" aria-hidden="true" tabindex="-1"></a><span class="co"># テキストファイル読み込み</span></span>
-<span id="cb257-43"><a href="#cb257-43" aria-hidden="true" tabindex="-1"></a>f <span class="op">=</span> <span class="bu">open</span>(<span class="st">'data/cuc.txt'</span>, encoding<span class="op">=</span><span class="st">'utf-8'</span>)</span>
-<span id="cb257-44"><a href="#cb257-44" aria-hidden="true" tabindex="-1"></a>raw <span class="op">=</span> f.read()</span>
-<span id="cb257-45"><a href="#cb257-45" aria-hidden="true" tabindex="-1"></a>f.close()</span>
-<span id="cb257-46"><a href="#cb257-46" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(raw)</span>
-<span id="cb257-47"><a href="#cb257-47" aria-hidden="true" tabindex="-1"></a>text <span class="op">=</span> strip_CRLF_from_Text(raw)</span>
-<span id="cb257-48"><a href="#cb257-48" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(text)</span>
-<span id="cb257-49"><a href="#cb257-49" aria-hidden="true" tabindex="-1"></a>sent <span class="op">=</span> mecab_wakati(text)</span>
-<span id="cb257-50"><a href="#cb257-50" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(sent)</span>
-<span id="cb257-51"><a href="#cb257-51" aria-hidden="true" tabindex="-1"></a><span class="co"># フォントの保存先を指定する（環境によって書き換えてください）</span></span>
-<span id="cb257-52"><a href="#cb257-52" aria-hidden="true" tabindex="-1"></a><span class="co">#font_path = &quot;C:\\WINDOWS\\FONTS\\MEIRYO.TTC&quot; ## Windows 版はこちら</span></span>
-<span id="cb257-53"><a href="#cb257-53" aria-hidden="true" tabindex="-1"></a>font_path <span class="op">=</span> <span class="st">&quot;/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc&quot;</span> <span class="co">## Mac 版はこちら</span></span>
-<span id="cb257-54"><a href="#cb257-54" aria-hidden="true" tabindex="-1"></a><span class="co"># WordCloud画像を生成する</span></span>
-<span id="cb257-55"><a href="#cb257-55" aria-hidden="true" tabindex="-1"></a>wc <span class="op">=</span> WordCloud(max_font_size<span class="op">=</span><span class="dv">36</span></span>
-<span id="cb257-56"><a href="#cb257-56" aria-hidden="true" tabindex="-1"></a>,font_path<span class="op">=</span>font_path</span>
-<span id="cb257-57"><a href="#cb257-57" aria-hidden="true" tabindex="-1"></a>,background_color<span class="op">=</span><span class="st">'white'</span>).generate(sent)</span>
-<span id="cb257-58"><a href="#cb257-58" aria-hidden="true" tabindex="-1"></a>wc.to_file(<span class="st">&quot;cuc.png&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb261"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb261-1"><a href="#cb261-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> wordcloud <span class="im">import</span> WordCloud</span>
+<span id="cb261-2"><a href="#cb261-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb261-3"><a href="#cb261-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> re</span>
+<span id="cb261-4"><a href="#cb261-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> MeCab <span class="im">as</span> mc</span>
+<span id="cb261-5"><a href="#cb261-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> strip_CRLF_from_Text(text):</span>
+<span id="cb261-6"><a href="#cb261-6" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;テキストファイルの改行，タブを削除し，形態素解析を実行する．</span></span>
+<span id="cb261-7"><a href="#cb261-7" aria-hidden="true" tabindex="-1"></a><span class="co">改行前後が日本語文字の場合は改行を削除する．</span></span>
+<span id="cb261-8"><a href="#cb261-8" aria-hidden="true" tabindex="-1"></a><span class="co">それ以外はスペースに置換する．</span></span>
+<span id="cb261-9"><a href="#cb261-9" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb261-10"><a href="#cb261-10" aria-hidden="true" tabindex="-1"></a><span class="co"># 改行前後の文字が日本語文字の場合は改行を削除する</span></span>
+<span id="cb261-11"><a href="#cb261-11" aria-hidden="true" tabindex="-1"></a>plaintext <span class="op">=</span> re.sub(<span class="st">'([ぁ-んー]+|[ァ-ンー]+|[</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+|[ぁ-んァ-ンー</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+)(</span><span class="ch">\n</span><span class="st">)([ぁ-んー]+|[ァンー]+|[</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+|[ぁ-んァ-ンー</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+)'</span>,</span>
+<span id="cb261-12"><a href="#cb261-12" aria-hidden="true" tabindex="-1"></a><span class="vs">r'\1\3'</span>,</span>
+<span id="cb261-13"><a href="#cb261-13" aria-hidden="true" tabindex="-1"></a>text)</span>
+<span id="cb261-14"><a href="#cb261-14" aria-hidden="true" tabindex="-1"></a><span class="co"># 残った改行とタブ記号はスペースに置換する</span></span>
+<span id="cb261-15"><a href="#cb261-15" aria-hidden="true" tabindex="-1"></a>plaintext <span class="op">=</span> plaintext.replace(<span class="st">'</span><span class="ch">\n</span><span class="st">'</span>, <span class="st">' '</span>).replace(<span class="st">'</span><span class="ch">\t</span><span class="st">'</span>, <span class="st">' '</span>)</span>
+<span id="cb261-16"><a href="#cb261-16" aria-hidden="true" tabindex="-1"></a><span class="cf">return</span> plaintext</span>
+<span id="cb261-17"><a href="#cb261-17" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> mecab_wakati(text):</span>
+<span id="cb261-18"><a href="#cb261-18" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb261-19"><a href="#cb261-19" aria-hidden="true" tabindex="-1"></a><span class="co">MeCabで分かち書き．</span></span>
+<span id="cb261-20"><a href="#cb261-20" aria-hidden="true" tabindex="-1"></a><span class="co">ただし品詞は名詞だけに限定．</span></span>
+<span id="cb261-21"><a href="#cb261-21" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb261-22"><a href="#cb261-22" aria-hidden="true" tabindex="-1"></a>t <span class="op">=</span> mc.Tagger()</span>
+<span id="cb261-23"><a href="#cb261-23" aria-hidden="true" tabindex="-1"></a><span class="co"># t = mc.Tagger('-d /usr/local/lib/mecab/dic/mecab-ipadic-neologd/')</span></span>
+<span id="cb261-24"><a href="#cb261-24" aria-hidden="true" tabindex="-1"></a>node <span class="op">=</span> t.parseToNode(text)</span>
+<span id="cb261-25"><a href="#cb261-25" aria-hidden="true" tabindex="-1"></a><span class="co"># print(node)</span></span>
+<span id="cb261-26"><a href="#cb261-26" aria-hidden="true" tabindex="-1"></a>sent <span class="op">=</span> <span class="st">&quot;&quot;</span></span>
+<span id="cb261-27"><a href="#cb261-27" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span>(node):</span>
+<span id="cb261-28"><a href="#cb261-28" aria-hidden="true" tabindex="-1"></a><span class="co"># print(node.surface, node.feature)</span></span>
+<span id="cb261-29"><a href="#cb261-29" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> node.surface <span class="op">!=</span> <span class="st">&quot;&quot;</span>: <span class="co"># ヘッダとフッタを除外</span></span>
+<span id="cb261-30"><a href="#cb261-30" aria-hidden="true" tabindex="-1"></a>word_type <span class="op">=</span> node.feature.split(<span class="st">&quot;,&quot;</span>)[<span class="dv">0</span>]</span>
+<span id="cb261-31"><a href="#cb261-31" aria-hidden="true" tabindex="-1"></a><span class="co"># 名詞だけをリストに追加する</span></span>
+<span id="cb261-32"><a href="#cb261-32" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> word_type <span class="kw">in</span> [<span class="st">&quot;名詞&quot;</span>]:</span>
+<span id="cb261-33"><a href="#cb261-33" aria-hidden="true" tabindex="-1"></a>sent <span class="op">+=</span> node.surface <span class="op">+</span> <span class="st">&quot; &quot;</span> <span class="co"># node.surface は「表層形」</span></span>
+<span id="cb261-34"><a href="#cb261-34" aria-hidden="true" tabindex="-1"></a><span class="co"># 動詞（の原型），形容詞，副詞もリストに加えたい場合は次の２行を有効にする</span></span>
+<span id="cb261-35"><a href="#cb261-35" aria-hidden="true" tabindex="-1"></a><span class="co">#if word_type in [ &quot;動詞&quot;, &quot;形容詞&quot;,&quot;副詞&quot;]:</span></span>
+<span id="cb261-36"><a href="#cb261-36" aria-hidden="true" tabindex="-1"></a><span class="co"># sent += node.feature.split(&quot;,&quot;)[6] + &quot; &quot; # node.feature.split(&quot;,&quot;)[6] は形態素解析結果の</span></span>
+<span id="cb261-37"><a href="#cb261-37" aria-hidden="true" tabindex="-1"></a>「原型」</span>
+<span id="cb261-38"><a href="#cb261-38" aria-hidden="true" tabindex="-1"></a>node <span class="op">=</span> node.<span class="bu">next</span></span>
+<span id="cb261-39"><a href="#cb261-39" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> node <span class="kw">is</span> <span class="va">None</span>:</span>
+<span id="cb261-40"><a href="#cb261-40" aria-hidden="true" tabindex="-1"></a><span class="cf">break</span></span>
+<span id="cb261-41"><a href="#cb261-41" aria-hidden="true" tabindex="-1"></a><span class="cf">return</span> sent</span>
+<span id="cb261-42"><a href="#cb261-42" aria-hidden="true" tabindex="-1"></a><span class="co"># テキストファイル読み込み</span></span>
+<span id="cb261-43"><a href="#cb261-43" aria-hidden="true" tabindex="-1"></a>f <span class="op">=</span> <span class="bu">open</span>(<span class="st">'data/cuc.txt'</span>, encoding<span class="op">=</span><span class="st">'utf-8'</span>)</span>
+<span id="cb261-44"><a href="#cb261-44" aria-hidden="true" tabindex="-1"></a>raw <span class="op">=</span> f.read()</span>
+<span id="cb261-45"><a href="#cb261-45" aria-hidden="true" tabindex="-1"></a>f.close()</span>
+<span id="cb261-46"><a href="#cb261-46" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(raw)</span>
+<span id="cb261-47"><a href="#cb261-47" aria-hidden="true" tabindex="-1"></a>text <span class="op">=</span> strip_CRLF_from_Text(raw)</span>
+<span id="cb261-48"><a href="#cb261-48" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(text)</span>
+<span id="cb261-49"><a href="#cb261-49" aria-hidden="true" tabindex="-1"></a>sent <span class="op">=</span> mecab_wakati(text)</span>
+<span id="cb261-50"><a href="#cb261-50" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(sent)</span>
+<span id="cb261-51"><a href="#cb261-51" aria-hidden="true" tabindex="-1"></a><span class="co"># フォントの保存先を指定する（環境によって書き換えてください）</span></span>
+<span id="cb261-52"><a href="#cb261-52" aria-hidden="true" tabindex="-1"></a><span class="co">#font_path = &quot;C:\\WINDOWS\\FONTS\\MEIRYO.TTC&quot; ## Windows 版はこちら</span></span>
+<span id="cb261-53"><a href="#cb261-53" aria-hidden="true" tabindex="-1"></a>font_path <span class="op">=</span> <span class="st">&quot;/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc&quot;</span> <span class="co">## Mac 版はこちら</span></span>
+<span id="cb261-54"><a href="#cb261-54" aria-hidden="true" tabindex="-1"></a><span class="co"># WordCloud画像を生成する</span></span>
+<span id="cb261-55"><a href="#cb261-55" aria-hidden="true" tabindex="-1"></a>wc <span class="op">=</span> WordCloud(max_font_size<span class="op">=</span><span class="dv">36</span></span>
+<span id="cb261-56"><a href="#cb261-56" aria-hidden="true" tabindex="-1"></a>,font_path<span class="op">=</span>font_path</span>
+<span id="cb261-57"><a href="#cb261-57" aria-hidden="true" tabindex="-1"></a>,background_color<span class="op">=</span><span class="st">'white'</span>).generate(sent)</span>
+<span id="cb261-58"><a href="#cb261-58" aria-hidden="true" tabindex="-1"></a>wc.to_file(<span class="st">&quot;cuc.png&quot;</span>)</span></code></pre></div>
 <p>P22の結果載せる</p>
 <p><br></p>
 <p>WordCloud
 * 今回は,頻出単語(文章中の出現回数)ほど大きく文字が表示されている.
 * 重要度などの情報を与えることも可能だが,重要度を測るには他の手法が必要.
 * Bertの固有単語抽出など</p>
-<div class="sourceCode" id="cb258"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb258-1"><a href="#cb258-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb258-2"><a href="#cb258-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> japanize_matplotlib</span>
-<span id="cb258-3"><a href="#cb258-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> wordcloud <span class="im">import</span> WordCloud</span>
-<span id="cb258-4"><a href="#cb258-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 日本語のテキストデータ（基本計画の内容を代表するキーワード）</span></span>
-<span id="cb258-5"><a href="#cb258-5" aria-hidden="true" tabindex="-1"></a><span class="co">#最初に出てきたものほど大きく表示される</span></span>
-<span id="cb258-6"><a href="#cb258-6" aria-hidden="true" tabindex="-1"></a><span class="co">#こういったリストを別の手法で作成することが必要</span></span>
-<span id="cb258-7"><a href="#cb258-7" aria-hidden="true" tabindex="-1"></a>japanese_text <span class="op">=</span> <span class="st">&quot;&quot;&quot;</span></span>
-<span id="cb258-8"><a href="#cb258-8" aria-hidden="true" tabindex="-1"></a><span class="st">公的統計, 経済統計, 国民経済計算, データ, 統計改革, 統計ニーズ, 国際比較, 統計データ, PDCA, 統計リソース,</span></span>
-<span id="cb258-9"><a href="#cb258-9" aria-hidden="true" tabindex="-1"></a><span class="st">デジタル化, 情報基盤, 統計調査, データ審査, 品質管理, ユーザー視点, 効率化, 統計作成, 政策立案, 統計行政,</span></span>
-<span id="cb258-10"><a href="#cb258-10" aria-hidden="true" tabindex="-1"></a><span class="st">報告者, 利便性, 統計システム, 可視化, 報告, 支援, モニタリング, 評価, 総合的, 品質表示, 更新, 保存, 管理,</span></span>
-<span id="cb258-11"><a href="#cb258-11" aria-hidden="true" tabindex="-1"></a><span class="st">正確性, 新たな統計, 対応, 負担軽減, 変化, 進展, 進化, 計画期間, 目標, 統計委員会, 建議, 方策, 様々な観点,</span></span>
-<span id="cb258-12"><a href="#cb258-12" aria-hidden="true" tabindex="-1"></a><span class="st">社会経済, 統計作成方法, 仕様, 整備, デジタル経済, 実態把握, 報告者負担, 利用者利便性, 統計ユーザー,</span></span>
-<span id="cb258-13"><a href="#cb258-13" aria-hidden="true" tabindex="-1"></a><span class="st">エラーチェック, 汎用ツール, 改善, 効率的, 統計リソース, 統計改革, 防止, 確保, 第Ⅳ期基本計画, 第Ⅲ期基本計画,</span></span>
-<span id="cb258-14"><a href="#cb258-14" aria-hidden="true" tabindex="-1"></a><span class="st">相互関連, 整合性, 進め方, 効果的, 活用</span></span>
-<span id="cb258-15"><a href="#cb258-15" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;&quot;&quot;</span></span>
-<span id="cb258-16"><a href="#cb258-16" aria-hidden="true" tabindex="-1"></a><span class="co"># 日本語フォントの使用</span></span>
-<span id="cb258-17"><a href="#cb258-17" aria-hidden="true" tabindex="-1"></a>font_path <span class="op">=</span> <span class="st">&quot;/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc&quot;</span> <span class="co">#Mac</span></span>
-<span id="cb258-18"><a href="#cb258-18" aria-hidden="true" tabindex="-1"></a><span class="co">#font_path = &quot;C:\\WINDOWS\\FONTS\\MEIRYO.TTC&quot; #Win</span></span>
-<span id="cb258-19"><a href="#cb258-19" aria-hidden="true" tabindex="-1"></a><span class="co"># 日本語ワードクラウドの生成</span></span>
-<span id="cb258-20"><a href="#cb258-20" aria-hidden="true" tabindex="-1"></a>japanese_wordcloud <span class="op">=</span> WordCloud(width<span class="op">=</span><span class="dv">800</span></span>
-<span id="cb258-21"><a href="#cb258-21" aria-hidden="true" tabindex="-1"></a>, height<span class="op">=</span><span class="dv">400</span></span>
-<span id="cb258-22"><a href="#cb258-22" aria-hidden="true" tabindex="-1"></a>, background_color<span class="op">=</span><span class="st">'white'</span></span>
-<span id="cb258-23"><a href="#cb258-23" aria-hidden="true" tabindex="-1"></a>, font_path<span class="op">=</span>font_path</span>
-<span id="cb258-24"><a href="#cb258-24" aria-hidden="true" tabindex="-1"></a>, colormap<span class="op">=</span><span class="st">'viridis'</span>).generate(japanese_text)</span>
-<span id="cb258-25"><a href="#cb258-25" aria-hidden="true" tabindex="-1"></a><span class="co"># 日本語ワードクラウドの表示</span></span>
-<span id="cb258-26"><a href="#cb258-26" aria-hidden="true" tabindex="-1"></a>plt.figure(figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">5</span>))</span>
-<span id="cb258-27"><a href="#cb258-27" aria-hidden="true" tabindex="-1"></a>plt.imshow(japanese_wordcloud, interpolation<span class="op">=</span><span class="st">'bilinear'</span>)</span>
-<span id="cb258-28"><a href="#cb258-28" aria-hidden="true" tabindex="-1"></a>plt.axis(<span class="st">'off'</span>)</span>
-<span id="cb258-29"><a href="#cb258-29" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<div class="sourceCode" id="cb262"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb262-1"><a href="#cb262-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb262-2"><a href="#cb262-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> japanize_matplotlib</span>
+<span id="cb262-3"><a href="#cb262-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> wordcloud <span class="im">import</span> WordCloud</span>
+<span id="cb262-4"><a href="#cb262-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 日本語のテキストデータ（基本計画の内容を代表するキーワード）</span></span>
+<span id="cb262-5"><a href="#cb262-5" aria-hidden="true" tabindex="-1"></a><span class="co">#最初に出てきたものほど大きく表示される</span></span>
+<span id="cb262-6"><a href="#cb262-6" aria-hidden="true" tabindex="-1"></a><span class="co">#こういったリストを別の手法で作成することが必要</span></span>
+<span id="cb262-7"><a href="#cb262-7" aria-hidden="true" tabindex="-1"></a>japanese_text <span class="op">=</span> <span class="st">&quot;&quot;&quot;</span></span>
+<span id="cb262-8"><a href="#cb262-8" aria-hidden="true" tabindex="-1"></a><span class="st">公的統計, 経済統計, 国民経済計算, データ, 統計改革, 統計ニーズ, 国際比較, 統計データ, PDCA, 統計リソース,</span></span>
+<span id="cb262-9"><a href="#cb262-9" aria-hidden="true" tabindex="-1"></a><span class="st">デジタル化, 情報基盤, 統計調査, データ審査, 品質管理, ユーザー視点, 効率化, 統計作成, 政策立案, 統計行政,</span></span>
+<span id="cb262-10"><a href="#cb262-10" aria-hidden="true" tabindex="-1"></a><span class="st">報告者, 利便性, 統計システム, 可視化, 報告, 支援, モニタリング, 評価, 総合的, 品質表示, 更新, 保存, 管理,</span></span>
+<span id="cb262-11"><a href="#cb262-11" aria-hidden="true" tabindex="-1"></a><span class="st">正確性, 新たな統計, 対応, 負担軽減, 変化, 進展, 進化, 計画期間, 目標, 統計委員会, 建議, 方策, 様々な観点,</span></span>
+<span id="cb262-12"><a href="#cb262-12" aria-hidden="true" tabindex="-1"></a><span class="st">社会経済, 統計作成方法, 仕様, 整備, デジタル経済, 実態把握, 報告者負担, 利用者利便性, 統計ユーザー,</span></span>
+<span id="cb262-13"><a href="#cb262-13" aria-hidden="true" tabindex="-1"></a><span class="st">エラーチェック, 汎用ツール, 改善, 効率的, 統計リソース, 統計改革, 防止, 確保, 第Ⅳ期基本計画, 第Ⅲ期基本計画,</span></span>
+<span id="cb262-14"><a href="#cb262-14" aria-hidden="true" tabindex="-1"></a><span class="st">相互関連, 整合性, 進め方, 効果的, 活用</span></span>
+<span id="cb262-15"><a href="#cb262-15" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;&quot;&quot;</span></span>
+<span id="cb262-16"><a href="#cb262-16" aria-hidden="true" tabindex="-1"></a><span class="co"># 日本語フォントの使用</span></span>
+<span id="cb262-17"><a href="#cb262-17" aria-hidden="true" tabindex="-1"></a>font_path <span class="op">=</span> <span class="st">&quot;/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc&quot;</span> <span class="co">#Mac</span></span>
+<span id="cb262-18"><a href="#cb262-18" aria-hidden="true" tabindex="-1"></a><span class="co">#font_path = &quot;C:\\WINDOWS\\FONTS\\MEIRYO.TTC&quot; #Win</span></span>
+<span id="cb262-19"><a href="#cb262-19" aria-hidden="true" tabindex="-1"></a><span class="co"># 日本語ワードクラウドの生成</span></span>
+<span id="cb262-20"><a href="#cb262-20" aria-hidden="true" tabindex="-1"></a>japanese_wordcloud <span class="op">=</span> WordCloud(width<span class="op">=</span><span class="dv">800</span></span>
+<span id="cb262-21"><a href="#cb262-21" aria-hidden="true" tabindex="-1"></a>, height<span class="op">=</span><span class="dv">400</span></span>
+<span id="cb262-22"><a href="#cb262-22" aria-hidden="true" tabindex="-1"></a>, background_color<span class="op">=</span><span class="st">'white'</span></span>
+<span id="cb262-23"><a href="#cb262-23" aria-hidden="true" tabindex="-1"></a>, font_path<span class="op">=</span>font_path</span>
+<span id="cb262-24"><a href="#cb262-24" aria-hidden="true" tabindex="-1"></a>, colormap<span class="op">=</span><span class="st">'viridis'</span>).generate(japanese_text)</span>
+<span id="cb262-25"><a href="#cb262-25" aria-hidden="true" tabindex="-1"></a><span class="co"># 日本語ワードクラウドの表示</span></span>
+<span id="cb262-26"><a href="#cb262-26" aria-hidden="true" tabindex="-1"></a>plt.figure(figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">5</span>))</span>
+<span id="cb262-27"><a href="#cb262-27" aria-hidden="true" tabindex="-1"></a>plt.imshow(japanese_wordcloud, interpolation<span class="op">=</span><span class="st">'bilinear'</span>)</span>
+<span id="cb262-28"><a href="#cb262-28" aria-hidden="true" tabindex="-1"></a>plt.axis(<span class="st">'off'</span>)</span>
+<span id="cb262-29"><a href="#cb262-29" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
 <p>P23の結果載せる</p>
 <p><br></p>
 <p>BERTについて</p>
@@ -5145,7 +5210,7 @@ ___
 <p>P41の図</p>
 <p><br></p>
 <p>結果の確認</p>
-<div class="sourceCode" id="cb259"><pre class="sourceCode python"><code class="sourceCode python"></code></pre></div>
+<div class="sourceCode" id="cb263"><pre class="sourceCode python"><code class="sourceCode python"></code></pre></div>
 </details>
 <h2 data-number="14" id="一般化線形モデル執筆中"><span class="header-section-number">14</span> 一般化線形モデル(執筆中)</h2>
 <details>
