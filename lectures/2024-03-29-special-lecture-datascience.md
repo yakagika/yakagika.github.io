@@ -5564,7 +5564,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import japanize_matplotlib
-import searborn as sns
+import seaborn as sns
 ~~~
 
 
@@ -5716,6 +5716,7 @@ plt.bar(x=x_position, height=values)
 
 このままだと,X軸のラベルに何も記述されないので,
 `plt.xticks(ラベルの位置のリスト,ラベルのリスト)`で,ラベルを指定します.
+
 ~~~ py
 #ラベルの位置を指定します.
 plt.xticks(ticks=x_position,labels=labels)
@@ -6040,7 +6041,6 @@ $$ k = 1 + log_2 n = \frac{log_{10} n}{log_{10} 2}$$
 ![スタージェス数](/images/sturges_number.png)
 :::
 
-
 Pythonではスタージェス数は対数計算をするためのモジュール`math`を利用して以下のように求めることができます.
 
 ~~~ py
@@ -6055,6 +6055,9 @@ def sturgesNumber(n):
 
 print(sturges(2048)) #>>> 12
 ~~~
+
+こちらのデータを利用して,度数分布表を作成してみます. 量的データの度数分布表を作成するには,`value-counts()`の引数`bins=`に各階級の終点を表すリストを指定します.
+
 
 
 
