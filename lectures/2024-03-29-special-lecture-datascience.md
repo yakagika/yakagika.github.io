@@ -23,7 +23,7 @@ tableOfContents: true
 こちらの資料では,授業に必要な技術的な内容に限定して掲載します.
 授業概要,授業の注意点,成績等については講義中に別資料で説明します.
 
-演習回答は[こちら](https://yakagika.github.io/lectures/2024-03-29-special-lecture-datascience-answer.html)
+
 
 ## デザインについて
 
@@ -44,6 +44,13 @@ tableOfContents: true
 :::
 
 リンクは[Google](https://www.google.co.jp)のように下線で表示されます.クリックすることでリンクに飛ぶことが可能です. 右クリックして,新しいタブで開くことを推奨しています.
+
+## 演習回答及びデータ
+
+演習回答は[こちら](https://yakagika.github.io/lectures/2024-03-29-special-lecture-datascience-answer.html)
+
+利用するデータは[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/)
+
 
 
 ## シンタックスとコーディングスタイル
@@ -5918,12 +5925,24 @@ plt.show()
 ## 度数分布表とヒストグラム
 
 データを手に入れたら最初にデータを可視化してデータの特徴を掴む必要があります. データの特徴として重要なものに,データの**分布**があります.
+
+::: warn
+
+- 分布の意味
+---
+
+**分布**という語の詳細な意味に関しては,後ほど検定や回帰の章でも簡単に扱いますが,統計学入門において数理的に詳しく扱っています.
+
+統計学入門を履修していない人はここでは,単に**データの散らばり具合**という意味として捉えておきましょう.
+
+:::
+
 分布を可視化する手法として代表的なものに,**度数分布表**と,**ヒストグラム**があります. 1次元のデータの可視化において,度数分布表とヒストグラムは,**データ分析のファーストステップ**とも称される,重要な手法です. データを手に入れたらまずは度数分布表と,ヒストグラムを作成してみましょう.
 
-::: note
 
-- **度数分布表**
----
+### 度数分布表
+
+::: note
 
 **度数分布表**とは,データの数を区切られた範囲ごとに数え上げた表のことです. 質的データの場合は,データのカテゴリー毎に,量的データの場合は分析者が定めた区間毎にデータがいくつかるのかを数え上げます.
 
@@ -5965,13 +5984,13 @@ plt.show()
 |計                        |  64   |          | 100%     |             |
 
 度数分布表を作成することで,データがどの分類に偏っているのかなど,データの分布の傾向がつかめます. 度数分布表を見る場合には,相対度数や累積度数から**データが一番多いカテゴリー**,**度数データの過半数が属するカテゴリー**,**データのほとんど(90%程度)が属するカテゴリー**などに注目してみましょう.
-上のデータでは,最も回答が多いのは｢普通｣であること, ｢とても美味しい｣｢どちらかといえば美味しい｣の回答が,31%であるのに対して,｢どちらかといえば不味い｣｢不味い｣の回答が18%であり,全体的にこの商品の味は高評価であることなどがわかります.
+上のデータでは,最も回答が多いのは｢普通｣であること, ｢とても美味しい｣｢どちらかといえば美味しい｣の回答が,31%であるのに対して,｢どちらかといえば不味い｣｢不味い｣の回答が18%であり,全体的にこの商品の味は高評価側に集中していることなどがわかります.
 
 :::
 
 Pythonで度数分布表を作成するにはどのようにしたら良いのでしょうか. 質的データの場合は,ただそれぞれの値を数えればいいので,`for文`などを利用することも可能ですが,`pandas`の`value_counts()`メソッドを利用することで簡単に作成できます.
 
-[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/diff_class.csv)のとある授業の難易度に関するデータをダウンロードして度数分布表を作成してみましょう.
+[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/diff_class.csv)のとある授業の難易度に関する質的データをダウンロードして度数分布表を作成してみましょう.
 
 データは以下のように,｢難しすぎてついていけない｣,｢難しいが許容できる｣,｢ちょうどよい｣,｢簡単だが許容できる｣｢簡単すぎて退屈｣の5段階のカテゴリーが記述されています.
 
@@ -6088,29 +6107,328 @@ def sturgesNumber(n):
 print(sturges(2048)) #>>> 12
 ~~~
 
-こちらのデータを利用して,度数分布表を作成してみます. 量的データの度数分布表を作成するには,`value-counts()`の引数`bins=`に各階級の終点を表すリストを指定します.
+階級数が決まることで階級幅が
+$$\frac{(データの最大値 - データの最小値)}{階級数}$$
+
+として決まります.
+
+それでは,[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/histgram_quantitative.csv)のデータを利用して,度数分布表を作成してみます. 量的データの度数分布表を作成するには,`value-counts()`の引数`bins=`に各階級の終点を表すリストを指定します.
+
+~~~ py
+#ヒストグラムを作りたいデータの列名を指定
+target_column = 'Values'
+
+# 関数名を sturgesNumber として引数をnとします
+def sturgesNumber(n):
+    # 公式の通り k = 1 + log2 n
+    # 階級数は整数が良いので,math.floor()で小数点以下を切り捨てます
+    return (math.floor (1 + math.log2(n)))
+
+# dataフォルダにあるhistgram_quantitative.csvというファイルを読み込みます.
+df = pd.read_csv("data/histgram_quantitative.csv")
+# 読み込んだファイルの中身を見てみます.
+print(df)
+
+#階級数を決定
+stnum = sturgesNumber(len(df[target_column]))
+print('sturges number:',stnum)
+
+#階級幅を決定
+space = int((df[target_column].max() - df[target_column].min()) / stnum)
+print('space:',space)
+
+#階級幅の終端を指定
+bins = np.arange(start = int(df[target_column].min()) - 1 #最小値
+                ,stop  = int(df[target_column].max()) + 1 #最大値
+                ,step  = space #階級幅
+                )
+
+print('bins:',bins)
+
+#度数
+freq = df[target_column].value_counts(bins =bins, sort=False)
+print('度数',freq)
+
+rel_freq = freq / df[target_column].count()  # 相対度数
+cum_freq = freq.cumsum()  # 累積度数
+rel_cum_freq = rel_freq.cumsum()  # 相対累積度数
+
+dist = pd.DataFrame(
+    {   "Value": freq.index,        #階級値
+        "Freq": freq,               #度数
+        "Rel": rel_freq,            #相対度数
+        "Cum": cum_freq,            #累積度数
+        "RelCum": rel_cum_freq,     #相対累積度数
+    },
+    index=freq.index
+)
+
+print(dist)
+
+dist.to_csv('frequency_table_qualitative.csv'
+           ,encoding='utf-8-sig'
+           ,index=False)
+~~~
+
+結果作成された,`frequency_table_qualitative.csv`を開いてみると,以下のような度数分布表が作成されたことが確認できます.
+
+|Value           |Freq    |Rel     |Cum   |RelCum|
+|:---:           |:---:   |:---:   |:---: |:---: |
+|(8.999, 18.0]   |1       |0.01    |1     |0.01  |
+|(18.0, 27.0]    |5       |0.05    |6     |0.06  |
+|(27.0, 36.0]    |11      |0.11    |17    |0.17  |
+|(36.0, 45.0]    |21      |0.21    |38    |0.38  |
+|(45.0, 54.0]    |27      |0.27    |65    |0.65  |
+|(54.0, 63.0]    |20      |0.2     |85    |0.85  |
+|(63.0, 72.0]    |9       |0.09    |94    |0.94  |
+
+### 度数分布表の可視化:**ヒストグラム**
+
+ここまでで,データの分布,偏りを把握する手段としての度数分布表を学びました. 度数分布表を眺めることである程度データの形は分かりますが,よりわかりやすく可視化する方法として**ヒストグラム**があります.
+
+**ヒストグラム(Histgram)/柱状図**とは,量的データの度数分布を棒グラフで表現したものです.ただし,通常の棒グラフと異なり値が連続しているので,棒と棒の間にスペースを置きません. 統計における最も基本的なグラフです.
+
+ヒストグラムはいくつかの代表的なパターンがあり,それぞれ注意するべきポイントがありますので,順に見ていきましょう.
+
+::: note
+
+- 単峰型(unimodal)で左右対称
+---
+
+ヒストグラムの盛り上がっている部分を**峰**といいます. 峰の数が一つのヒストグラムを**単峰(unimodal)**なヒストグラムといいます.
+
+ヒストグラムの基本となる形は,単峰で左右対称な分布です. この分布は,**データが同質な集団から発生していること**を表しています.
+
+    - 例:同じ人種の,同じ年代の,男性の集団の身長
+
+    - 例:同じ種類,同じ時期,同じ地域のうさぎの集団のサイズ
+
+峰からの左右のデータのばらつきは集団の個体差を表しています. 異なる,質を持つ集団が混じっている場合は峰が複数になることが多いです.
+
+![単峰で左右対称なヒストグラム](/images/histgram_unimodal.png)
+
+- 多峰型(bimodal)なヒストグラム
+---
+
+峰が2つ以上あるヒストグラムを**多峰(bimodal)**なヒストグラムといいます.
+異質な集団が混ざっているデータでは,ヒストグラムが多峰になることがあります.
+
+    - 例:男女の混ざった集団の身長や体重
+    男性の峰と女性の峰が現れます.
+
+    - 例:小学生と中学生に同じテストを受けた点数
+    小学生の点数の峰と,中学生の点数の峰が現れます.
+
+ヒストグラムを作成し,多峰性が現れたらデータを集団別・要因別に分割して分析するのが良いとされています.データを特定の属性で分割することを**層別**といいます.
+
+![多峰なヒスグラム](/images/histgram_bimodal.png)
+
+- 左右非対称なヒストグラム
+---
+
+ヒストグラムは峰を中心として左右対称な場合もありますが,どちらかの方向に歪んでいるものも良く見られます.
+
+    - 例:社会人の年収,企業の売上など
+
+ヒストグラムの細くなっている部分をヒストグラムの**尾**といいます.
+
+    - **尾が**左に伸びている場合に **左に歪んだ分布**
+
+    - **尾が**右に伸びている場合に **右に歪んだ分布**
+
+といいます.
+
+![左右に歪んだヒストグラム](/images/histgram_right_left.png)
+
+左右に歪んだ分布では,後に扱う**中心を表す代表値**(平均値や中央値)が適切に集団を代表しない場合があるので,代表値の使い分けが必要になります.
+
+また, 後に扱う**検定**手法のうち,**正規分布**を仮定する検定が利用できないなど,手法の選択において,分布の歪みは重要なポイントです.
+
+- **外れ値(Outlier)**のあるヒストグラム
+---
+
+大多数のデータとは離れた位置にある少数のデータを**外れ値(Outlier)**といいます.
+
+外れ値は,データ分析において非常に重要な意味を持ち,外れ値が現れた場合にはその原因を探ることが必要となります.
+外れ値が発生する原因としては以下のようなものがあり,いずれも注目する必要があります.
+
+    - データの取得におけるミス
+        単純な入力ミスや計算ミスなど
+        発見した場合は修正,除外する必要がある.
+
+    - 異質な存在の発見
+        新種や新しい現象の発見などにつながる可能性があります.
+
+また,代表値の計算においては歪みが生じる可能性があるので,外れ値を除外する必要があります.
+
+![外れ値のあるヒストグラム](/images/histgram_outlier.png)
+
+:::
+
+それでは,Pythonでヒストグラムを作成してみましょう. 度数分布表を作成している場合は,棒グラフを作成し,棒の幅を`0`にすることで,ヒストグラムが作成できます.
+
+`plt.bar()`では,引数`width=1`を与えることで,棒の太さを`1`(棒の間を0)にすることができます.
+
+まずは,以前扱った[質的データ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/diff_class.csv)の例におけるヒストグラムを作成してみましょう.
+
+~~~ py
+#データの読み込み
+df = pd.read_csv('Data/diff_class.csv')
+print(df)
+
+#ヒストグラムを作りたいデータの列名を指定
+target_column = 'Diff'
+
+#度数
+freq = df[target_column].value_counts(sort=False)
+#順番の入れ替え
+freq = freq.reindex(['難しすぎてついていけない'
+                    ,'難しいが許容できる'
+                    ,'ちょうどよい'
+                    ,'簡単だが許容できる'
+                    ,'簡単すぎて退屈'],axis='index')
+print('度数',freq)
+
+rel_freq = freq / df[target_column].count()  # 相対度数
+cum_freq = freq.cumsum()  # 累積度数
+rel_cum_freq = rel_freq.cumsum()  # 相対累積度数
+
+dist = pd.DataFrame(
+    {   "Value": freq.index,        #階級値
+        "Freq": freq,               #度数
+        "Rel": rel_freq,            #相対度数
+        "Cum": cum_freq,            #累積度数
+        "RelCum": rel_cum_freq,     #相対累積度数
+    },
+    index=freq.index
+)
+
+print(dist)
+dist.to_csv('frequency_table.csv',encoding='utf-8-sig',index=False)
+
+# ヒストグラム
+plt.bar(x=dist['Value'], height=dist["Freq"],width=1)
+plt.xticks(np.arange(len(dist)),list(dist.index),rotation=15)
+plt.show()
+~~~
+
+以下のように,単峰で右に歪んだグラフが作成されるはずです.
+
+![質的データのヒストグラム](/images/histgram_qualitative.png)
+
+同様に[量的データ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/histgram_quantitative.csv)についても作成してみます.
+
+~~~py
+#ヒストグラムを作りたいデータの列名を指定
+target_column = 'Values'
+
+# 関数名を sturgesNumber として引数をnとします
+def sturgesNumber(n):
+    # 公式の通り k = 1 + log2 n
+    # 階級数は整数が良いので,math.floor()で小数点以下を切り捨てます
+    return (math.floor (1 + math.log2(n)))
+
+# dataフォルダにあるhistgram_quantitative.csvというファイルを読み込みます.
+df = pd.read_csv("data/histgram_quantitative.csv")
+# 読み込んだファイルの中身を見てみます.
+print(df)
+
+#階級数を決定
+stnum = sturgesNumber(len(df[target_column]))
+print('sturges number:',stnum)
+
+#階級幅を決定
+space = int((df[target_column].max() - df[target_column].min()) / stnum)
+print('space:',space)
+
+#階級幅の終端を指定
+bins = np.arange(start = int(df[target_column].min()) - 1 #最小値
+                ,stop  = int(df[target_column].max()) + 1 #最大値
+                ,step  = space #階級幅
+                )
+
+print('bins:',bins)
+
+#度数
+freq = df[target_column].value_counts(bins =bins, sort=False)
+print('度数',freq)
+
+rel_freq = freq / df[target_column].count()  # 相対度数
+cum_freq = freq.cumsum()  # 累積度数
+rel_cum_freq = rel_freq.cumsum()  # 相対累積度数
+
+dist = pd.DataFrame(
+    {   "Value": freq.index,        #階級値
+        "Freq": freq,               #度数
+        "Rel": rel_freq,            #相対度数
+        "Cum": cum_freq,            #累積度数
+        "RelCum": rel_cum_freq,     #相対累積度数
+    },
+    index=freq.index
+)
+
+print(dist)
+dist.to_csv('frequency_table_qualitative.csv'
+           ,encoding='utf-8-sig',index=False)
+
+# ヒストグラム
+## dist['Value']は文字列でないので,
+## .astype(str) で文字列に変換しています.
+plt.bar(x=dist['Value'].astype(str)
+       ,height=dist["Freq"],width=1)
+plt.xticks(np.arange(len(dist)),list(dist.index),rotation=15)
+plt.show()
+~~~
+
+以下のように単峰で左に歪んだヒストグラムが作成されます.
+
+![量的データのヒストグラム](/images/histgram_quantitative.png)
+
+一方で,量的データに関しては,度数分布表を作成せずとも`matplotlib`の`plt.hist()`を利用して直接作成することも可能です.
+
+`plt.hist()`では`bins=`に階級数を指定することで,その階級数で自然に分割したヒストグラムを作成してくれます.
 
 
+~~~ py
+# ヒストグラムの作成
+label  = df.columns[0]
+values = df[label]
+plt.hist(values, bins=stnum)
+plt.show()
+~~~
 
+![量的データのヒストグラム](/images/histgram_quantitative2.png)
+
+階級幅の設定によって,見た目が変わることが分かります. 作成手法や階級の設定は目的に応じて,使い分けるようにしましょう.
 
 ::: note
 
 - 演習
 
-[データ1](),[データ2]()の度数分布表とヒストグラムを作成し,その解釈を記述してください.
-
-
+[データ1](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/qualitative_histogram_practice.csv),[データ2](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/quantitative_histogram_practice.csv)の度数分布表とヒストグラムを作成し,pptなどでグラフとその解釈をまとめてください.
 
 :::
 
 
-## 密度プロット
+## 発展:密度プロット
 
-## sinaplot
+データの分布を表現する手法としてヒストグラムは非常に便利ですが,階級数や階級幅を自分で定める必要があり,その設定によって見た目が変わってしまいます. また, データ数が少ないときには正確なデータの分布をつかめないという問題点もあります.
 
-## バイオリンプロット
+そこで, データを階級で区分せずに,度数ではなく確率分布を直接推定する手法に**カーネル密度推定(Karnel Density Estimation)**があります.
+
+
+## 箱ひげ図
+
+## 発展:sinaplot
+
+## 発展:バイオリンプロット
+
+## 散布図
 
 ## ヒートマップ
+
+同時度数分布表
+
 
 ## for文を利用したグラフ
 
@@ -6126,9 +6444,6 @@ print(sturges(2048)) #>>> 12
 
 中央値,平均値,分散などをメソッドで求める.
 定義を理解するために関数で定義する.
-ユークリッド距離,コサイン距離.
-相関係数
-
 
 平均値には,用途に応じて,算術平均,幾何平均,調和平均などがあります.
 𝑛個の観測値 𝑥_1, 𝑥_2, …, 𝑥_𝑛があるとき
@@ -6140,6 +6455,20 @@ print(sturges(2048)) #>>> 12
 
 それぞれの平均値の用途を調べてください.
 3個程度の変数を作成し,それぞれの算術平均,幾何平均,調和平均を計算してください,
+
+## 相関係数
+
+相関,順位相関,偏相関
+
+
+相関係数のヒートマップ
+
+## 距離と類似度
+
+ユークリッド距離,コサイン距離
+
+
+
 
 </details>
 
