@@ -5922,6 +5922,206 @@ plt.show()
 :::
 
 
+## for文を利用したグラフ
+
+これまでのように単純な一つのグラフを作成するだけであれば,恐らくExcelなどのほうが手軽ですが,多数のグラフを作成したり, 複数のデータを組み合わせた複雑なグラフを作成する場合にはプログラミングの方が便利になります.
+
+
+例えば[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/temperature_10location.csv)のデータを利用して棒グラフを作成することを考えてみましょう.このデータは10箇所の気温が記録された時系列データです.
+
+~~~ sh
+          Date  Location_1  Location_2  ...  Location_8  Location_9  Location_10
+0   2023-01-01   18.211700   21.553371  ...   18.665620   29.108637    21.634069
+1   2023-01-02   15.108630   16.172744  ...   20.135756    9.212193    24.209877
+2   2023-01-03   14.938279   24.593193  ...   16.778431   22.291269    19.815977
+3   2023-01-04   20.640249   18.862405  ...   13.282269   16.040627    15.993132
+4   2023-01-05   14.218562   16.281882  ...   15.729466   24.951213    18.053277
+..         ...         ...         ...  ...         ...         ...          ...
+95  2023-04-06   21.312739   19.613363  ...   16.497553   20.446656    13.644605
+96  2023-04-07   26.388210   31.533854  ...   18.999736   15.603714    19.215097
+97  2023-04-08   16.914329   20.479892  ...   21.698464   17.705697    16.867517
+98  2023-04-09   14.316258   17.841650  ...   31.885071   20.816917    16.895196
+99  2023-04-10   23.595042   19.896247  ...   17.534881   15.180066    15.104460
+~~~
+
+このデータの`Location_1`から`Location_10`までの折れ線グラフを一つのグラフに表示することを考えてみます.
+
+`matplotlib`では, `plt.show()`までに要素を重ねることで複数のグラフを重ねることができます.
+
+例えば,10本の折れ線グラフを表示する場合,一つ一つ手書きすると以下のようになります.
+
+~~~ py
+df = pd.read_csv('data/temperature_10location.csv')
+print(df)
+
+#'Date'列を日付型に変更しています.
+df['Date'] = pd.to_datetime(df['Date'])
+
+#一つ一つ手書きする方法
+plt.plot(df['Date'],df['Location_1'],label='Location_1')
+plt.plot(df['Date'],df['Location_2'],label='Location_2')
+plt.plot(df['Date'],df['Location_3'],label='Location_3')
+plt.plot(df['Date'],df['Location_4'],label='Location_4')
+plt.plot(df['Date'],df['Location_5'],label='Location_5')
+plt.plot(df['Date'],df['Location_6'],label='Location_6')
+plt.plot(df['Date'],df['Location_7'],label='Location_7')
+plt.plot(df['Date'],df['Location_8'],label='Location_8')
+plt.plot(df['Date'],df['Location_9'],label='Location_9')
+plt.plot(df['Date'],df['Location_10'],label='Location_10')
+
+plt.legend()
+plt.xticks(rotation=15) #x軸を15度傾かせています
+plt.show()
+
+~~~
+
+![10本の折れ線グラフ](/images/temperature_10location.png)
+
+10本程度であれば,まだ書けなくもありませんが,それでも手間がかかります.こういった繰り返しの作業は`for文`を利用しましょう.
+
+`for文`を利用した場合には以下のようになります.
+
+~~~ py
+for x in df.columns[1:]:
+    plt.plot(df['Date'],df[x],label=x)
+plt.legend()
+plt.xticks(rotation=15)
+plt.show()
+~~~
+
+グラフの内容は同じですが,こちらのほうが労力が少なく,コードもスッキリしており,何か修正を加える場合でも修正箇所が少なくて済みます.
+繰り返し作業は積極的に`for文`や`while文`を利用するようにしましょう.
+
+## グラフの分割
+
+先程は一つのグラフ内に複数の折れ線グラフを表示しましたが,個別に表示する場合にはどのようになるでしょうか.
+一つの方法として,以下の用に複数のグラフを個別に作成することも可能です.
+(先に保存先のディレクトリ `result/multi_plot` を作成しておきましょう.)
+
+~~~ py
+for x in df.columns[1:]:
+    plt.plot(df['Date'],df[x])
+    plt.title(x)
+    plt.xticks(rotation=15)
+    plt.savefig('result/multi_plot/' + x + '.png')
+    plt.close()
+~~~
+
+![保存された10個のグラフ](/images/temperature_10location2.png)
+
+しかし,レポートなどに10枚の画像を貼り付けるのは手間がかかりますし,余白など無駄も多いです.
+
+- subplots()
+
+`matplotlib`には1枚の画像を分割して複数のグラフを載せるためのメソッド`.subplots()`があるので,関連するグラフや比較のためのグラフなどはできるだけ1枚の画像に集約しましょう.
+
+`.subplots()`は1枚の画像を`n行`,`n列`に分割し,それぞれの領域にグラフを描画します.
+
+各領域は `axes`などと呼ばれ,画像全体を`figure`などと呼びます.
+利用するためには,まず `fig, axes = plt.subplot()`の形で宣言します. 引数として,行数は`nrows=`,列数は`ncols=`にそれぞれ`int`で指定します.
+
+~~~ py
+
+fig, axes = plt.subplot(nrows= 5 #行数の指定
+                       ,ncols= 2 #列数の指定
+                        )
+~~~
+
+宣言のあと,各領域のグラフを `axes[行,列]`の形で指定していきます.行や列は`0`から始まるので注意してください.
+
+~~~ py
+axes[0,0].plot(df['Date'],df['Location_1'],label='Location_1')
+axes[0,1].plot(df['Date'],df['Location_2'],label='Location_2')
+axes[1,0].plot(df['Date'],df['Location_3'],label='Location_3')
+axes[1,1].plot(df['Date'],df['Location_4'],label='Location_4')
+axes[2,0].plot(df['Date'],df['Location_5'],label='Location_5')
+axes[2,1].plot(df['Date'],df['Location_6'],label='Location_6')
+axes[3,0].plot(df['Date'],df['Location_7'],label='Location_7')
+axes[3,1].plot(df['Date'],df['Location_8'],label='Location_8')
+axes[4,0].plot(df['Date'],df['Location_9'],label='Location_9')
+axes[4,1].plot(df['Date'],df['Location_10'],label='Location_10')
+plt.show()
+~~~
+
+以下のようなグラフが作成されます. しかし, 少し見にくいですね.
+
+![subplots](/images/subplot1.png)
+
+`.subplots(sharex=True)`とすると,x軸を共有することができます.今回のグラフはx軸がすべて同じなので,共有してみましょう.
+また,それぞれのグラフにタイトルを付けてみます.
+更に,一つ一つ手で入力するのは手間なので`for文`を利用してみましょう.
+
+タイトルを付けるには今までの`plt.title()`ではなく`axes[r,c].set_title()`になります. `axes`毎の要素に関しては[公式サイト](https://matplotlib.org/stable/users/explain/axes/axes_intro.html)を参考にしてください.
+
+![axesの要素(https://matplotlib.orgより)](https://matplotlib.org/stable/_images/anatomy.png)
+
+
+~~~ py
+fig, axes = plt.subplots(nrows= 5 #行数の指定
+                        ,ncols= 2 #列数の指定
+                        ,sharex=True)
+
+count = 0
+for i in range(5):
+    for j in range(2):
+        col = df.columns[1:]
+        axes[i,j].plot(df['Date'],df[col[count]])
+        axes[i,j].set_title(col[count])
+        axes[i,j].tick_params(axis='x', rotation=15)
+        count +=1
+plt.show()
+~~~
+
+![subplots](/images/subplot2.png)
+
+グラフ全体の要素は`fig.`の形で指定します.
+タイトルを付ける場合は`fig.suptitle('title')`となります.
+
+~~~ py
+fig, axes = plt.subplots(nrows= 5 #行数の指定
+                        ,ncols= 2 #列数の指定
+                        ,sharex=True)
+
+count = 0
+for i in range(5):
+    for j in range(2):
+        col = df.columns[1:]
+        axes[i,j].plot(df['Date'],df[col[count]])
+        axes[i,j].set_title(col[count])
+        axes[i,j].tick_params(axis='x', rotation=15)
+        count +=1
+fig.suptitle('subplots title')
+plt.show()
+~~~
+
+![subplots](/images/subplot3.png)
+
+::: note
+
+- flatten()
+
+`for文`を二重ループで記述するのは大変なので,しばしば`axes.flatten()`を利用して,連番に変換すると便利です.
+
+
+~~~ py
+fig, axes = plt.subplots(nrows= 5 #行数の指定
+                        ,ncols= 2 #列数の指定
+                        ,sharex=True)
+
+#連番に変換
+axes = axes.flatten()
+for i in range(10):
+    col = df.columns[1:][i] #countをiで共通化
+    axes[i].plot(df['Date'],df[col])
+    axes[i].set_title(col)
+    axes[i].tick_params(axis='x', rotation=15)
+fig.suptitle('subplots title')
+plt.show()
+~~~
+
+:::
+
+
 ## 度数分布表とヒストグラム
 
 データを手に入れたら最初にデータを可視化してデータの特徴を掴む必要があります. データの特徴として重要なものに,データの**分布**があります.
@@ -6410,14 +6610,70 @@ plt.show()
 :::
 
 
+
+
+## 箱ひげ図
+
+データの観測対象が複数のグループに層別可能な場合には, それぞれのヒストグラムを作成して比較することなどが必要です. グループの数が多い場合には, 何個もヒストグラムを作成することになりますし,比較には剥いていない場合があります.
+そのような複数のグループの分布を比較する際に良く用いられるグラフが,箱ひげ図です.
+
+[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/boxplot_data_300.csv)のデータは, 複数の種類の馬鈴薯のサイズがまとまっています.
+
+試しに,ヒストグラム馬鈴薯の種類毎のヒストグラムを作成してみます.
+
+~~~ py
+df = pd.read_csv('data/boxplot_data_300.csv')
+
+#馬鈴薯の種類を抜き出す
+types = list(set(df['Type']))
+print(types)
+
+#馬鈴薯の種類別にヒストグラムを作成してみる
+fig, ax = plt.subplots(ncols=2
+                      ,nrows=int(len(types) / 2) + 1
+                      ,sharex = True)
+axes = ax.flatten()
+fig.suptitle('Potato Weight')
+
+for i in range(len(types)):
+    t = types[i]
+    df_temp = df[df['Type'] == t]
+    axes[i].hist(df_temp['Weight'])
+    axes[i].set_title(t)
+
+plt.show()
+~~~
+
+![馬鈴薯の重さのヒストグラム](/images/box_plot1.png)
+
+これでも比較はできますが1枚の画像にまとめる手段として,箱ひげ図が利用できます.
+箱ひげ図は`plt.boxplot(データのリスト,labels=ラベルのリスト)`で生成できます.
+
+~~~ py
+data = [df[df['Type']==x]['Weight'] for x in types]
+"""
+#内包表記を利用しない場合は
+data = []
+for x in types:
+    data.append(df[df['Type']==x]['Weight'])
+"""
+print(data)
+plt.boxplot(data,labels=types)
+plt.show()
+~~~
+
+![馬鈴薯の重さのヒストグラム](/images/box_plot2.png)
+
+箱ひげ図は,線がそれぞれ四分位数を表しており,それぞれ上から**最大値**,**75%点**,**中央値**,**25%点**,**最小値**となります.また,外れ値は丸で表されます.
+
+ヒストグラムと比較して情報量は減りますが, 一覧性と比較においては優れています.それぞれ一長一短なので,用途に応じて使い分けるようにしましょう.
+
+
 ## 発展:密度プロット
 
 データの分布を表現する手法としてヒストグラムは非常に便利ですが,階級数や階級幅を自分で定める必要があり,その設定によって見た目が変わってしまいます. また, データ数が少ないときには正確なデータの分布をつかめないという問題点もあります.
 
 そこで, データを階級で区分せずに,度数ではなく確率分布を直接推定する手法に**カーネル密度推定(Karnel Density Estimation)**があります.
-
-
-## 箱ひげ図
 
 ## 発展:sinaplot
 
@@ -6425,14 +6681,137 @@ plt.show()
 
 ## 散布図
 
+これまではデータの各観測項目を独立に可視化してきました. 複数の観測項目の関係性を可視化する代表的な手法に散布図があります.
+
+[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/scatter.csv)のデータはGoogle Trendにおける同時期の`AI`というワードのの検索量と,`Python`というワードの検索量を表しています.
+
+~~~ sh
+     AI  Python
+0    34      27
+1    40      26
+2    59      28
+3    46      29
+4    36      29
+..   ..     ...
+255  58      83
+256  69      87
+257  59      82
+258  62      84
+259  59      87
+~~~
+
+この2つの検索量がどのような関係にあるのかを散布図を用いて確認してみましょう.
+散布図は`plt.scatter(x軸の値のリスト,y軸の値のリスト)`の形で作成できます.
+
+~~~ py
+df = pd.read_csv('data/scatter.csv')
+#散布図のx軸を指定
+x_column = 'AI'
+#散布図のy軸を指定
+y_column = 'Python'
+
+x_value = df[x_column]
+y_value = df[y_column]
+plt.scatter(x_value, y_value)
+plt.ylabel(y_column)
+plt.xlabel(x_column)
+plt.show()
+~~~
+
+![散布図](/images/scatter.png)
+
+散布図を見ると,`AI`に関する検索量が増えるにつれて,`Python`の検索量が増えるという関係が見えてきます.
+
+この関係の度合いを数値化する**相関係数**や,関係の仕方を説明する**回帰分析**に関しては後ほど扱います.
+
+### 観測項目が複数ある場合の散布図
+
+データが3つある場合には,以下のように3Dで表現することも可能ですがこの講義では,3次元のグラフに関しては深く扱いません.興味のある方は調べてみましょう.
+
+~~~ py
+x = np.random.rand(100)
+y = np.random.rand(100)
+z = np.random.rand(100)
+
+fig = plt.figure()
+ax = fig.add_subplot(projection='3d')
+ax.scatter(x, y, z, color='blue')
+plt.show()
+plt.close()
+~~~
+
+![3次元の散布図](/images/3dscatter.png)
+
+
+観測項目が4つ以上ある場合に散布図のように関係を表す手法としては,複数の観測項目の値を合成して3次元以下にする**次元削減**が良く利用されます. **次元削減**に関しては後ほど扱うとして,ここではいくつかの観測項目を**色**や**大きさ**などの要素の変換して関係を見る方法を紹介します.
+
+`plt.scatter()`では`s=`に数値を与えることでサイズ,`c=`に数値を与えることで色を指定できます.
+また,色と数値の関係は`plt.colorbar()`で表示可能です.
+
+複数の点が重なると見にくくなるために `alpha=`に`0-1`の間の数値を指定して透明度を指定することができます.
+
+~~~ py
+x = np.random.rand(100)
+y = np.random.rand(100)
+z = np.random.rand(100)
+
+#色とサイズをzで指定する
+#そのままだとサイズが小さすぎるので,100倍している
+plt.scatter(x,y,alpha=0.5,s=z*100,c=z)
+plt.colorbar() #カラーバーの表示
+plt.show()
+~~~
+
+![色とサイズによる表現](/images/scatter_color_size.png)
+
+### クラスタリングにおける散布図
+
+散布図は複数の観測項目間の関係性を可視化するための手法ですが,データから特定の観測対象の集まり(**クラスター**)を発見する**クラスタリング**とも深い関わりがあります.
+クラスタリングの手法は後ほど扱いますが,ここでは可視化手法としての散布図とクラスタ表現の関係に関して確認してみましょう.
+
+[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/scatter_class.csv)のデータはクラスタリングによって得られたクラスタ毎のラベルがなされています.
+
+~~~ sh
+           x          y  Cluster
+0  -8.149818  -9.152380        2
+1   5.860155   0.126873        1
+2  -3.213409   9.828126        0
+3   6.744070  -0.129607        1
+4  -6.342946  -6.038933        2
+..       ...        ...      ...
+95 -3.524581   9.931801        0
+96 -0.962698  10.411206        0
+97  4.397950   2.579246        1
+98 -5.255050  -5.299407        2
+99 -3.768024   8.550468        0
+~~~
+
+クラスタを表現は`.scatter(color=)`で色を指定することが一般的です.
+
+~~~ py
+#散布図をクラスタごとに色を変えて表示
+for i in range(3):
+    df_temp= df[df['Cluster'] == i]
+    plt.scatter(df_temp['x']
+               ,df_temp['y']
+               ,c=color_list[i]
+               ,label='Cluster:' + str(i))
+plt.legend()
+plt.show()
+
+~~~
+
+![クラスタリング](/images/scatter_class.png)
+
+
+## 同時度数分布表
+
+
+
 ## ヒートマップ
 
-同時度数分布表
 
 
-## for文を利用したグラフ
-
-## グラフの分割
 
 
 </details>
