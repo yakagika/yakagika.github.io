@@ -5515,9 +5515,9 @@ print(afb.evaluate())  # Buzz (スーパークラスのメソッドが呼ばれ�
 
 </details>
 
-# データの可視化 (執筆中)
+# データの可視化
 
-<details open>
+<details >
     <summary> 開く/閉じる </summary>
 
 ここまでで,プログラミングを利用してデータを読み込み,編集ができるようになりました. これから,データを分析する手法を学習しましょう. データ分析の第一歩は,データの**可視化**です.
@@ -6613,8 +6613,6 @@ plt.show()
 [データ1](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/qualitative_histogram_practice.csv),[データ2](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/quantitative_histogram_practice.csv)の度数分布表とヒストグラムを作成し,pptなどでグラフとその解釈をまとめてください.
 
 :::
-
-
 
 
 ## 箱ひげ図
