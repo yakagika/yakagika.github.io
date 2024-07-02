@@ -7093,14 +7093,14 @@ print(df['x'].mean()) #>>>175
 
 ::: note
 $n$個の観測値 $x_1, x_2, ..., x_n$ の時,幾何平均 $x_G$ は
-$$ x_G = \sqrt[n]{x_1 \cdot x_2 \cdot ... \cdot x_n} $$
+$$ x_G = \sqrt[n]{x_1 \cdot x_2 \cdot ... \cdot x_n} = (\prod_{i}^{n} x_i)^{\frac{1}{n}} $$
 :::
 
 例：各年の売上と,その増加率が以下のように表されるとき,平均何%売上が伸びているかを考える.
 
 |年度 | 売上  | 増加率 |
 |:---:|:---:  |:---:   |
-|1    | 300   | 117%   |
+|1    | 300   |        |
 |2    | 350   | 117%   |
 |3    | 600   | 171%   |
 |4    | 1000  | 167%   |
@@ -7127,7 +7127,7 @@ $$ 幾何平均 = \sqrt[3]{1.17 \cdot 1.71 \cdot 1.67} \approx 1.49, \\
 ::: note
 
 $n$個の観測値 $x_1, x_2, ..., x_n$ の時,調和平均 $x_H$ は
-$$ \frac{1}{x_H} = \frac{1}{n} \left( \frac{1}{x_1} + ... + \frac{1}{x_n} \right) \iff x_H = \frac{n}{\frac{1}{x_1} + ... + \frac{1}{x_n}} $$
+$$ \frac{1}{x_H} = \frac{1}{n} \left( \frac{1}{x_1} + ... + \frac{1}{x_n} \right) \iff x_H = \frac{n}{\frac{1}{x_1} + ... + \frac{1}{x_n}}  = \frac{n}{\sum_{i=1}^{n} \frac{1}{x_i}}$$
 :::
 
 例：平均速度
@@ -7155,22 +7155,25 @@ $$ \frac{200}{\frac{200}{60} + \frac{200}{30}} = \frac{2}{\frac{1}{30} + \frac{1
 ::: note
 $n$個の観測値を大きさの順に並べ替えて $x_1, x_2, ..., x_n$ とした時,
 中央値 $\tilde{x}$ は
+
 $$ \tilde{x} =
 \begin{cases}
-x_{\left( \frac{n+1}{2} \right)}, & \text{if } n \mod 2 \neq 0 \\
-\frac{x_{\left( \frac{n}{2} \right)} + x_{\left( \frac{n}{2} + 1 \right)}}{2}, & \text{if } n \mod 2 = 0
+x_{\frac{n+1}{2}}, ~~& if ~~ n \mod 2 \neq 0 \\
+\frac{x_{ \frac{n}{2}} + x_{\frac{n}{2} + 1 }}{2}, ~~ & if~~ n \mod 2 = 0
 \end{cases}
 $$
+
+
 :::
 
 
 例：観測値が $3, 4, 7, 9, 11, 12, 15$ の時 中央値は
-$$ \tilde{x} = x_{\left( \frac{n+1}{2} \right)} = x_{\left( \frac{8}{2} \right)} = x_4 = 9 $$
+$$ \tilde{x} = x_{\frac{n+1}{2}} = x_{\frac{8}{2}} = x_4 = 9 $$
 
 となります.
 
 また,観測値が $4, 5, 6, 10, 14, 17$ のように偶数個の場合は
-$$ \tilde{x} = \frac{x_{\left( \frac{n}{2} \right)} + x_{\left( \frac{n}{2} + 1 \right)}}{2} = \frac{6 + 10}{2} = 8 $$
+$$ \tilde{x} = \frac{x_{ \frac{n}{2}} + x_{\frac{n}{2} + 1 }}{2} = \frac{6 + 10}{2} = 8 $$
 
 となります.
 
@@ -7208,7 +7211,7 @@ print(df['x'].median()) #8.0
 
 |引数        |効果       |25%点の場合の計算                      |
 |:---        |:---       | :---                                  |
-|`'liner'`   | 線形補間  | `xs[2] + (xs[2] - xs[3]) * 0.5 = 8.5` |
+|`'linear'`   | 線形補間  | `xs[2] + (xs[2] - xs[3]) * 0.5 = 8.5` |
 |`'lower'`   | 小さい方  | `xs[2] = 8`                           |
 |`'higher'`  | 大きい方  | `xs[3] = 9`                           |
 |`'midpoint'`| 中間      | `(xs[2] + xs[3])/2 = 8.5`             |
@@ -7466,7 +7469,7 @@ print(np.sqrt(df['dev2'].mean())) #4.0
 
 ~~~ py
 print('分散:',df['data'].var(ddof=0)) #16.0
-print('標準偏差:',df['data'].std(ddof=0)) #14.0
+print('標準偏差:',df['data'].std(ddof=0)) #4.0
 ~~~
 
 ::: warn
