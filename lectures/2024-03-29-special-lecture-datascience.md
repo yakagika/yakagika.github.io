@@ -7512,20 +7512,434 @@ Name: data, dtype: float64
 
 - 演習
 
-- 算術平均,幾何平均, 調和平均を計算する関数をそれぞれ作成してください.
+- 算術平均,幾何平均, 調和平均,標本標準偏差を計算する関数をそれぞれ作成してください.
 
 - [こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/histogram_A_B_data.csv)のデータの列ごとの算術平均,中央値,最頻値,標本分散,標本標準偏差を求めよ
 
 :::
 
 
+## 相関
 
-## 相関係数
+基本統計量は,一つの観測項目に対する数値化の手法でしたが,可視化における散布図のように,2つの観測項目間の関係を数値で表すことが可能です.
 
-相関,順位相関,偏相関
+散布図の節で扱った[事例](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/scatter.csv)についてもう一度考えてみましょう.
+
+~~~ sh
+     AI  Python
+0    34      27
+1    40      26
+2    59      28
+3    46      29
+4    36      29
+..   ..     ...
+255  58      83
+256  69      87
+257  59      82
+258  62      84
+259  59      87
+~~~
+
+~~~ py
+df = pd.read_csv('data/scatter.csv')
+#散布図のx軸を指定
+x_column = 'AI'
+#散布図のy軸を指定
+y_column = 'Python'
+
+x_value = df[x_column]
+y_value = df[y_column]
+plt.scatter(x_value, y_value)
+plt.ylabel(y_column)
+plt.xlabel(x_column)
+plt.show()
+~~~
+
+![散布図](/images/scatter.png)
+
+Google Trendの `AI`と`Python`の検索数から散布図を作成すると, AIの検索数が増えるにつれて`Python`の検索数が増えていることが分かります.
+
+::: note
+- 相関関係
+---
+
+このような関係を**相関関係(correlation)**といい,2つの変数の間に直線関係に近い傾向が見られるときに｢**相関関係がある**｣といいます.
+
+直線的であるほど**強い相関**,逆を**弱い相関**といいます.
+
+また,
+
+- 一方が増加したとき,他方が増加する関係を **正の相関関係**
+- 一方が増加したとき,他方が減少する関係を **負の相関関係**
+
+といいます.
+
+このような相関関係があるかないかは,散布図を見ただけである程度判断が可能ですが, 相関が**ある/ない**,**強い/弱い**というのは抽象的な表現なので, 厳密に判断する場合にはそれらを数値として表す必要があります.
+
+![相関関係](/images/corre1.png)
 
 
-相関係数のヒートマップ
+相関関係を数値化したものを**相関係数(correlation coefficient)**といい,データの尺度に応じて,以下のような種類が存在します.
+
+|尺度                       |係数                        |
+|:---:                      |:---:                       |
+|量的変数 $\times$ 量的変数 | ピアソンの積率相関係数     |
+|順位尺度 $\times$ 順位尺度 | スピアマンの順位相関係数   |
+|名義尺度 $\times$ 質的変数 | ピアソンの $\Chi^2$ 統計量 |
+
+:::
+
+### ピアソンの積率相関係数
+
+2つの量的変数に利用される相関係数を**ピアソンの積率相関係数(product moment correlation coefficient)**といいます.
+
+データが $(x_1, y_1), (x_2, y_2), ..., (x_n, y_n)$ の時,
+
+$$
+\begin{align*}
+r_{xy} &= \frac{\sum (x_i - \bar{x})(y_i - \bar{y}) / n}{\sqrt{\sum (x_i - \bar{x})^2 / n} \sqrt{\sum (y_i - \bar{y})^2 / n}} \\
+& = \frac{\sum (x_i - \bar{x})(y_i - \bar{y})}{\sqrt{\sum (x_i - \bar{x})^2} \sqrt{\sum (y_i - \bar{y})^2}} \\
+&= \frac{s_{xy}}{s_x s_y}
+\end{align*}
+$$
+
+なお,
+$$
+\quad s_{xy} = \frac{1}{n} \sum (x_i - \bar{x})(y_i - \bar{y})
+$$
+を $x$ と $y$ の共分散といい,相関係数は $\frac{xとyの共分散}{xの標準偏差 \times yの標準偏差}$の形で表されます.
+
+![ピアソンの積率相関係数のイメージ](/images/corre2.png)
+![ピアソンの積率相関係数のイメージ](/images/corre3.png)
+![ピアソンの積率相関係数のイメージ](/images/corre4.png)
+
+
+$x_i, y_i$ を標準化し $z_i = \frac{x_i - \bar{x}}{s_x}, w_i = \frac{y_i - \bar{y}}{s_y}$ とすると,
+
+$$
+\begin{align*}
+r_{zw} &= \frac{1}{n} \sum z_i w_i \\
+&= \frac{1}{n S_z S_w} \sum (x_i - \bar{x})(y_i - \bar{y}) \\
+&= \frac{1}{n} \sum \left( \frac{x_i - \bar{x}}{S_x} \right) \left( \frac{y_i - \bar{y}}{S_y} \right) \\
+&= \frac{\sum (x_i - \bar{x})(y_i - \bar{y})}{n S_x S_y} \\
+&= r_{xy}
+\end{align*}
+$$
+
+このとき、証明の為に $\frac{1}{n} \sum (z_i \pm w_i)^2$ を考える。
+
+$$
+\begin{align*}
+\frac{1}{n} \sum (z_i \pm w_i)^2 &\geq 0 \\
+\frac{1}{n} \sum (z_i^2 \pm 2z_i w_i + w_i^2) &\geq 0 \\
+\frac{1}{n} \sum z_i^2 \pm \frac{2}{n} \sum z_i w_i + \frac{1}{n} \sum w_i^2 &\geq 0 \\
+\frac{1}{n S_x^2} \sum (x_i - \bar{x})^2 \pm \frac{2}{n} \sum z_i w_i + \frac{1}{n S_y^2} \sum (y_i - \bar{y})^2 &\geq 0  \\
+\frac{S_x^2}{S_x^2} + \frac{2}{n} \sum z_i w_i + \frac{S_y^2}{S_y^2}  &\geq 0 \\
+1 \pm \frac{2}{n} \sum z_i w_i + 1 &\geq 0 \\
+2 (1 \pm r_{xy}) &\geq 0 \\
+-1 \leq r_{xy} \leq 1
+\end{align*}
+$$
+
+このように相関係数は常に $-1 \leq r_{xy} \leq 1$ を取り、
+
+- $r_{xy} = 1$ の時、正の完全相関
+- $r_{xy} = -1$ の時、負の完全相関
+
+といいます.
+
+なお, 相関が「ある/ない」の目安は以下のようになっています.
+
+| 相関係数            | 関連性の程度               |
+|---------------------|----------------------------|
+| 0.0～0.4 、0.0～-0.4  | ほとんど相関がない       |
+| 0.4～0.7 、-0.4～-0.7 | 弱い相関がある           |
+| 0.7～0.9 、-0.7～-0.9 | 強い相関がある           |
+| 0.9～1.0 、-0.9～-1.0 | きわめて強い相関がある   |
+
+
+Pythonで積率相関係数を求めるには `numpy`の`np.corrcoef(xのデータ,yのデータ)`あるいは,`scipy.stats.pearsonr(xのデータ,yのデータ)`を利用します. `scipy`がインストールされていない人は `pip install scipy`をしておきましょう.
+
+~~~ py
+import pandas               as pd
+import matplotlib.pyplot    as plt
+import japanize_matplotlib
+import numpy as np
+import scipy.stats as st
+
+#データの読み込み
+#データの位置を指定しよう
+df = pd.read_csv('Data/scatter.csv')
+print(df)
+
+#散布図のx軸を指定
+x_column = 'AI'
+#散布図のy軸を指定
+y_column = 'Python'
+
+x_value = df[x_column]
+y_value = df[y_column]
+plt.scatter(x_value, y_value)
+plt.ylabel(y_column)
+plt.xlabel(x_column)
+plt.show()
+
+# numpyで相関係数を求める
+# 返り値が [[xとxの相関係数=1, xとyの相関係数]
+# ,[yとxの相関係数, yとyの相関係数=1]]
+# となっている
+print(np.corrcoef(df[x_column],df[y_column]))
+"""
+[[1.         0.83281294]
+ [0.83281294 1.        ]]
+"""
+print(np.corrcoef(df[x_column],df[y_column])[0][1])
+# 0.83281294
+
+#scipy.stats.pearsonr でも計算可能
+# 返り値が (相関係数, p値)の形に成っている
+# p値に関しては, 検定の章で扱います.
+r, p = st.pearsonr(df[x_column],df[y_column])
+print(r) #0.8328129378961621
+~~~
+
+### スピアマンの順位相関係数
+
+積率相関係数は量的変数にしか利用できませんが,質的変数のうち順序尺度データに関しては,**スピアマンの順位相関係数(rank correlation coefficient)**が利用できます.
+
+スピアマンの順位相関係数は, 順序尺度データを順位に変換して,順位の間の相関係数を求めたものになります.
+
+![ピアソンの積率相関係数のイメージ](/images/corre5.png)
+
+データを小さい順に並べ替えた順位 $x_i, ..., x_n$ がある時,
+
+$$
+r_{xy} = \frac{\frac{1}{n} \sum (x_i - \bar{x})(y_i - \bar{y})}{\sqrt{\frac{1}{n} \sum (x_i - \bar{x})^2} \sqrt{\frac{1}{n} \sum (y_i - \bar{y})^2}}
+$$
+がどの様になるかを考える.
+
+順位相関係数は,
+
+$$
+\sum x_i = \sum y_i = \frac{n(n+1)}{2}
+$$
+
+$$
+\sum x_i^2 = \sum y_i^2 = \frac{1}{6} n(n+1)(2n+1)
+$$
+
+$$
+\bar{x} = \bar{y} = \frac{\sum x_i}{n} = \frac{n(n+1)}{2n} = \frac{n+1}{2}
+$$
+
+なので, 分子に関して,
+
+$$
+\begin{align*}
+\frac{1}{n}\sum(x_i - \bar{x})(y_i - \bar{y}) &= \frac{1}{n}\sum \{x_iy_i - x_i \bar{y} - \bar{x}y_i + \bar{x}\bar{y}\} \\
+&= \frac{1}{n}\sum x_i y_i - \frac{1}{n}\sum x_i\bar{y} - \frac{1}{n}\sum \bar{x}y_i + \frac{1}{n}\sum  \bar{x}\bar{y} \\
+&= \frac{1}{n}\sum x_i y_i - \frac{\bar{y}}{n}\sum x_i - \frac{\bar{x}}{n}\sum y_i + \bar{x}\bar{y} \\
+&= \frac{1}{n}\sum x_i y_i - \bar{x}\bar{y} \\
+&= \frac{1}{2n}\sum \{x_i^2 + y_i^2 - (x_i - y_i)^2\} - \bar{x}\bar{y} \\
+\end{align*}
+$$
+
+$$
+\begin{align*}
+\because (x_i - y_i)^2 = x_i^2 -2x_i y_i + y_i^2  \\
+x_i y_i = \frac{1}{2} \{ x_i^2 + y_i^2 - (x_i - y_i)^2 \}
+\end{align*}
+$$
+
+$$
+\begin{align*}
+\frac{1}{2n}\sum \{x_i^2 + y_i^2 - (x_i - y_i)^2\} - \bar{x}\bar{y} &= \frac{1}{2n}\sum x_i^2 + \frac{1}{2n}\sum y_i^2 - \frac{1}{2n}\sum (x_i - y_i)^2 - \bar{x}\bar{y} \\
+& = \frac{1}{6} (n+1)(2n+1) - \frac{(n+1)^2}{4} - \frac{1}{2n}\sum (x_i - y_i)^2 \\
+& = \frac{1}{12}(n+1)(n-1) - \frac{1}{2n}\sum (x_i - y_i)^2
+\end{align*}
+$$
+
+また, 分母に関して,
+$$
+\begin{align*}
+\frac{1}{n}\sum (x_i - \bar{x})^2 &= \frac{1}{n}\sum x_i^2 - n \bar{x}^2 \\
+&= \frac{1}{n} \{ \sum x_i^2 -2n \bar{x}^2 + \bar{x}^2 \} \\
+&= \frac{1}{n} \{\sum x_i^2 - n\bar{x}^2\} \\
+&= \frac{1}{6}(n+1)(2n+1) - \frac{1}{4}(n+1)^2 \\
+&= \frac{1}{12}(n+1)(n-1)
+\end{align*}
+$$
+
+
+なので
+
+$$
+r_{xy} = \frac{\frac{1}{n} \sum (x_i - \bar{x})(y_i - \bar{y})}{\sqrt{\frac{1}{n} \sum (x_i - \bar{x})^2} \sqrt{\frac{1}{n} \sum (y_i - \bar{y})^2}}
+$$
+
+に代入して,
+$$
+\begin{align*}
+r_{xy} = \frac{\frac{1}{n} \sum (x_i - \bar{x})(y_i - \bar{y})}{\sqrt{\frac{1}{n} \sum (x_i - \bar{x})^2} \sqrt{\frac{1}{n} \sum (y_i - \bar{y})^2}} &= \frac{\frac{1}{12}(n+1)(n-1) - \frac{1}{2} \sum (x_i - y_i)^2}{\frac{1}{12}(n+1)(n-1)}\\
+&=  1 - \frac{6}{n^3 - n} \sum (x_i - y_i)^2
+\end{align*}
+$$
+
+となる.
+
+スピアマンの順位相関係数は,Pythonでは, `scipy.stats.spearmanr(xのデータ,yのデータ)`で求めることができます.
+
+[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/spearman.csv)のデータは,国別(A~J)のサッカー(FIFA)と野球(WBSC)のランキングのダミーデータです.
+
+~~~ sh
+    rank FIFA WBSC
+0     1    A    A
+1     2    B    E
+2     3    C    G
+3     4    D    I
+4     5    E    D
+5     6    F    C
+6     7    G    B
+7     8    H    F
+8     9    I    H
+9    10    J    J
+~~~
+
+こちらの順位の相関係数を求めてみましょう.
+
+~~~ py
+df = pd.read_csv('Data/spearman.csv')
+# sciypyで相関係数を求める
+correlation, pvalue = st.spearmanr(df["FIFA"], df["WBSC"])
+print("相関係数:",correlation) #0.4545
+~~~
+
+`0.45`なので弱い正の相関があることが分かります.
+
+### 相関係数のヒートマップ
+
+相関係数はデータの関係を探るために非常に便利な数値であり, 複数の観測項目からなるデータを扱う場合には,最初に相関係数をとってそれぞれにどのような関係があるのかを確認するようにしましょう.
+
+[こちら]()のデータは,e-statから取得した,県別の身長,体重,食費,睡眠の平均時間,スポーツの平均時間に関するデータです.
+
+<details>
+        <summary> データの取得 (開く/閉じる) </summary>
+::: note
+- e-statのデータ表示機能を使ってみよう
+
+:::
+</details>
+
+### $\Chi^2$統計量
+
+量的データには積率相関係数, 順位尺度データに対しては,順位相関係数を求めることで2つのデータの関連性を確かめることができました. では,名義尺度データの場合はどのようにすれば良いのでしょうか.
+
+名義尺度を含めた質的変数の関係性を可視化するには,同時度数分布表が利用できました. 数値化においても,同時度数分布表を用いることができます.
+
+![同時度数分布表](/images/cross_table2.png)
+
+
+質的変数間の関連度合いは,同時度数分布表の数値を利用した **ピアソンの$\Chi^2$統計量(かいじじょうとうけいりょう)**で表すことができます. 可視化の節では, 同時度数分布表から列相対度数を求めましたが,ここでは相対度数ではなく,度数なので注意してください.
+
+$$
+\Chi_o^2 = \sum_{i=0}^{r} \sum_{j=0}^{c} \frac{(n_{ij} - E_ij)^2}{E_{ij}} (r:行数,c:列数)
+$$
+
+このとき,$E_{ij}$を期待度数といい, $\frac{行の合計 \times 列の合計}{総数}$
+
+$$
+E_{ij} = \frac{\sum_{i}^r n_{ij} \times \sum_{j}^c n_{ij}}{\sum_{i}^{r}\sum_{j}^c n_{ij}}
+$$
+
+で求められます.
+
+この$\Chi_o^2$が大きいほど,2つの変数の間の関連が強いと言え,この値を利用して行と列のデータが独立であるかを検定する **$\Chi^2$検定(独立性の検定)** を行うことができます. ** $\Chi^2$ 検定** に関しては後ほど扱うとして,ここではこの値を利用して2つのデータの関連の度合いを判断する方法に関して見ていきましょう.
+
+$\Chi_o^2$の値は, 同時度数分布表の行数や列数に依存して値が変わるため,相関係数のように,｢特定の値から関連があるといえる｣といった利用方には適しません.
+
+そこで, 異なるデータを比較するためには, $0 \leq V \leq 1$の値を取る,**クラメールの連関係数V**に変換します.
+
+$$
+V = \sqrt{\frac{\Chi_o^2}{n \times min(r - 1,c - 1)}}
+$$
+
+クラメールの連関係数は,相関係数よりも高い値が出にくいので,以下のような基準で判断します.
+
+|V          |判断            |
+|:---       |:---            |
+|0 ~ 0.1    | 関連なし       |
+|0.1 ~ 0.25 | 弱い関連がある |
+|0.25 ~ 0.5 | 関連がある     |
+|0.5 ~ 1.0  | 強い関連がある |
+
+$\Chi_o^2$は `scipy.stats`の`chi2_contingency(度数分布表,correction=False)`で求めることが出来ます.
+返り値が, $\Chi_o^2$,p値,自由度,期待度数の4つあるので,注意しましょう.
+
+同時度数分布表の節で扱った時限と成績の関係を記録した[データ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/cross_table_data.csv)を利用して,クラメールの連関係数Vを求めてみましょう.
+
+
+~~~ sh
+     Period Grade
+0         2     B
+1         5     A
+2         4     A
+3         3     C
+4         1     C
+..      ...   ...
+195       2     C
+196       4     C
+197       5     C
+198       5     F
+199       4     C
+~~~
+
+![ヒートマップ](/images/heatmap.png)
+
+
+~~~ py
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import scipy.stats as st
+import numpy as np
+
+df = pd.read_csv('data/cross_table_data.csv')
+
+#クロス表の作成
+cross = pd.crosstab(df['Grade'],df['Period'])
+
+#表示順の設定
+cross = cross.reindex([1,2,3,4,5],axis='columns')
+cross = cross.reindex(['S','A','B','C','F'],axis='index')
+print(cross)
+
+#列相対度数に変更する
+for c in cross.columns:
+    cross[c] = cross[c] / cross[c].sum()
+
+print(cross)
+
+sns.heatmap( cross  #ヒートマップを作成したいテーブル
+           , cmap=plt.get_cmap('Reds') #カラーマップ(省略可)
+           , linewidths=.5 #線の太さを指定することでセルを囲う線を表示
+           , annot=True  #セルに数値を表示
+           )
+plt.show()
+
+#χ二乗統計量を求める
+x2, p, dof, e = st.chi2_contingency(cross,correction=True)
+print(x2) #1.1342960955202308
+
+#クラメールの連関係数Vを求める
+v = np.sqrt(x2/(cross.sum().sum() * min(cross.shape[0]-1,cross.shape[1] -1)))
+print(v) #0.2381487030743849
+~~~
+
+クラメールの連関係数Vの値は,0.28となり,弱い関連があることが分かりました.
+
+
+### 因果関係と偏相関係数
+
 
 ## 距離と類似度
 
