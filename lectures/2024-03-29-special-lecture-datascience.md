@@ -7127,7 +7127,9 @@ $$ 幾何平均 = \sqrt[3]{1.17 \cdot 1.71 \cdot 1.67} \approx 1.49, \\
 ::: note
 
 $n$個の観測値 $x_1, x_2, ..., x_n$ の時,調和平均 $x_H$ は
-$$ \frac{1}{x_H} = \frac{1}{n} \left( \frac{1}{x_1} + ... + \frac{1}{x_n} \right) \iff x_H = \frac{n}{\frac{1}{x_1} + ... + \frac{1}{x_n}}  = \frac{n}{\sum_{i=1}^{n} \frac{1}{x_i}}$$
+$$ \frac{1}{x_H} = \frac{1}{n} \left( \frac{1}{x_1} + ... + \frac{1}{x_n} \right) \\
+ \iff \\
+ x_H = \frac{n}{\frac{1}{x_1} + ... + \frac{1}{x_n}}  = \frac{n}{\sum_{i=1}^{n} \frac{1}{x_i}}$$
 :::
 
 例：平均速度
