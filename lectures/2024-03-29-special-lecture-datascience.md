@@ -7764,7 +7764,8 @@ $$
 
 $$
 \begin{align*}
-\frac{1}{n}\sum(x_i - \bar{x})(y_i - \bar{y}) &= \frac{1}{n}\sum \{x_iy_i - x_i \bar{y} - \bar{x}y_i + \bar{x}\bar{y}\} \\
+& \frac{1}{n}\sum(x_i - \bar{x})(y_i - \bar{y}) \\
+&= \frac{1}{n}\sum \{x_iy_i - x_i \bar{y} - \bar{x}y_i + \bar{x}\bar{y}\} \\
 &= \frac{1}{n}\sum x_i y_i - \frac{1}{n}\sum x_i\bar{y} - \frac{1}{n}\sum \bar{x}y_i + \frac{1}{n}\sum  \bar{x}\bar{y} \\
 &= \frac{1}{n}\sum x_i y_i - \frac{\bar{y}}{n}\sum x_i - \frac{\bar{x}}{n}\sum y_i + \bar{x}\bar{y} \\
 &= \frac{1}{n}\sum x_i y_i - \bar{x}\bar{y} \\
@@ -7781,7 +7782,8 @@ $$
 
 $$
 \begin{align*}
-\frac{1}{2n}\sum \{x_i^2 + y_i^2 - (x_i - y_i)^2\} - \bar{x}\bar{y} &= \frac{1}{2n}\sum x_i^2 + \frac{1}{2n}\sum y_i^2 - \frac{1}{2n}\sum (x_i - y_i)^2 - \bar{x}\bar{y} \\
+& \frac{1}{2n}\sum \{x_i^2 + y_i^2 - (x_i - y_i)^2\} - \bar{x}\bar{y} \\
+&= \frac{1}{2n}\sum x_i^2 + \frac{1}{2n}\sum y_i^2 - \frac{1}{2n}\sum (x_i - y_i)^2 - \bar{x}\bar{y} \\
 & = \frac{1}{6} (n+1)(2n+1) - \frac{(n+1)^2}{4} - \frac{1}{2n}\sum (x_i - y_i)^2 \\
 & = \frac{1}{12}(n+1)(n-1) - \frac{1}{2n}\sum (x_i - y_i)^2
 \end{align*}
@@ -7790,7 +7792,8 @@ $$
 また, 分母に関して,
 $$
 \begin{align*}
-\frac{1}{n}\sum (x_i - \bar{x})^2 &= \frac{1}{n}\sum x_i^2 - n \bar{x}^2 \\
+& \frac{1}{n}\sum (x_i - \bar{x})^2 \\
+&= \frac{1}{n}\sum x_i^2 - n \bar{x}^2 \\
 &= \frac{1}{n} \{ \sum x_i^2 -2n \bar{x}^2 + \bar{x}^2 \} \\
 &= \frac{1}{n} \{\sum x_i^2 - n\bar{x}^2\} \\
 &= \frac{1}{6}(n+1)(2n+1) - \frac{1}{4}(n+1)^2 \\
