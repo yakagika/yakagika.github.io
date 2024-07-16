@@ -8321,7 +8321,7 @@ plt.close()
 
 # (線形)回帰分析
 
-<details >
+<details open>
     <summary> 開く/閉じる </summary>
 
 相関分析では,ある変数間に関係があることを示すことができました. しかし,相関分析で示せるのは,変数Aによって変数Bが増加するか,減少するかということのみです. 具体的に,どの程度変数Aが動くことで,変数Bがどの程度変動するかを式によって**説明する**手法に**回帰分析(Regression Analysis)**があります.
@@ -8355,6 +8355,220 @@ $$
 :::
 
 ## 発展: 回帰分析は何を行っているのか
+
+回帰分析が何を行っているのかについて,単回帰で行っている最小二乗法を事例に確認していきましょう.
+重回帰に関しては, 線形計画問題など異なる学習が必要になるので,今回は扱いません. あくまで,回帰というものがどのような意味であるかに関して簡単に説明します.
+
+こちらの詳細は統計学入門で扱っていますので, この講義ではあまり深く扱いません.興味のある方は読んでみてください.
+
+### 母回帰方程式
+
+体重$y$を慎重$x$によって説明する回帰方程式として, $y = \beta_1 + \beta_2 x $を考えてみます.
+しかし, 実際の体重は身長以外の要素によってばらつきます. そのような**ばらつき**を考慮して,データの$i$人目の体重,身長をそれぞれ,$Y_i,X_i$として,身長以外の要素によるばらつきを$\epsilon_i$とすると,母集団において,以下のような式が立てられます.
+
+$$
+Y_i = \beta_1 + \beta_2 X_i + \epsilon_i ~(i=1,2,...,n)
+$$
+
+これを**母回帰方程式(Population Regression Equation)**と呼びます.
+また, $\beta_1, \beta_2$を**母(偏)回帰係数**といい,これを推定,検定することを回帰分析といいます.
+
+### 誤差項,撹乱項
+
+母回帰方程式
+
+$$
+Y_i = \beta_1 + \beta_2 X_i + \epsilon_i ~(i=1,2,...,n)
+$$
+
+における $\epsilon_i$は$X_i$で説明できない誤差を表す確率変数であり,誤差項,撹乱項といいます.
+
+回帰分析において,誤差項は以下の仮定をおいています.
+
+::: note
+- 期待値0: $E(\epsilon_i) = 0 ~ (i=1,2,...,n)$
+- 分散一定: $V(\epsilon_i) = \sigma^2 ~ (i=1,2,...,n)$
+- 無相関: $i \neq j \Rightarrow Cov(\epsilon_i, \epsilon_j) = 0$
+- 正規分布: $\epsilon_i \sim N(o,\sigma^2)$
+:::
+
+これによって,
+
+$$
+E(Y_i) = \beta_1 + \beta_2 X_i
+$$
+
+が得られます.
+
+### 最小二乗法
+
+母回帰方程式
+
+$$
+Y_i = \beta_1 + \beta_2 X_i + \epsilon_i ~(i=1,2,...,n)
+$$
+における母回帰係数$\beta_1, \beta_2$は観測できないので,**誤差項を最小化する**母回帰係数を統計的推測することで求めます.
+
+誤差項を最小化する母回帰係数の推定方法を**最小二乗法(least squares method)**といいます.
+
+母回帰方程式を変形して,
+
+$$
+\epsilon_i = Y_i - (\beta_1 + \beta_2 X_i)
+$$
+
+が少ないほど, $X_i$による$Y_i$の説明力が上がります(モデルによってよく関係が説明できている.)
+
+なので,モデル全体で,$\epsilon_i$を最小化することを考えてみます.
+
+![least squares method](/images/least-squares-method1.png)
+
+誤差の正負を打ち消すために,モデル全体の誤差項の二乗の和
+
+
+$$
+S = \sum_{i=1} \epsilon_{1}^{2} = \sum \{Y_i - (\beta_1 + \beta_2 X_i)\}^2
+$$
+
+Sを最小化する**(最小二乗)推定量** $\hat{\beta_1},\hat{\beta_2}$を求める問題として整理できます.
+
+$S$の偏微分を0とおいて,
+
+$$
+\frac{\partial S}{ \partial \beta_1} = -2 \sum (Y_i = \beta_1 - \beta_2 X_i) = 0 \\
+\frac{\partial S}{ \partial \beta_2} = -2 \sum (Y_i = \beta_1 - \beta_2 X_i)X_i = 0 \\
+$$
+
+これを解いて,
+
+$$
+\hat{\beta_1} = \bar{Y} - \hat{\beta_2}\bar{X} \\
+\hat{\beta_2} = \frac{\sum(X_i - \bar{X})(Y_i - \bar(Y))}{\sum(X_i - \bar{X})^2}
+$$
+が得られます.
+
+### 回帰係数の検定
+
+最小二乗推定量によって得られた方程式
+
+$$
+Y = \hat{\beta_1} + \hat{\beta_2}X
+$$
+
+を**標本回帰方程式**といいます.
+
+求めた標本回帰方程式が,XとYの関係を説明できているのかを考えます. XがYを全く説明できていない場合, $\epsilon_i$だけで説明ができるため, $\beta_2 \neq 0$と言えれば,統計的にXがYを説明できていると言えます.
+
+そこで, 帰無仮説 $H_0:\beta_2 = 0$として,偏回帰係数に関する統計的仮説検定を実施します.
+
+母数$\beta_2$に関する仮説検定を行うために, $\beta_2$の確率分布を考えます.
+
+誤差項 $\epsilon_i \sim N(o,\sigma^2)$として,
+
+$$
+\hat{\beta_1} = \bar{Y} - \hat{\beta_2}\bar{X} \\
+\hat{\beta_2} = \frac{\sum(X_i - \bar{X})(Y_i - \bar(Y))}{\sum(X_i - \bar{X})^2}
+$$
+であるから,
+
+$$
+V(\hat{\beta_1}) = \frac{\sigma^2 \sum X_i^2}{n\sum(X_i - \bar{X})^2} \\
+E(\hat{\beta_1}) = \beta_1 \\
+V(\hat{\beta_2}) = \frac{\sigma^2 }{\sum(X_i - \bar{X})^2} \\
+E(\hat{\beta_2}) = \beta_2
+$$
+なので,
+
+$$
+\hat{\beta_2} \sim N(\beta_2,\frac{\sigma^2}{\sum(X_i - \bar{X})^2})
+$$
+
+となる.
+
+誤差項の母標準偏差 $\sigma$が含まれるので,推定する.
+
+標本回帰方程式 $Y=\hat{\beta_1}+\hat{\beta_2}X$によって求められる各$i$の値(回帰値)
+
+$$
+\hat{Y_i} = \hat{\beta_1} + \hat{\beta_2}X_i
+$$
+
+と実際に観測された実測値 $Y_i$との差を
+
+$$
+\hat{e_i} = Y_i - \hat{Y_i} = Y_i - \hat{\beta_1} - \hat{\beta_2}X_i
+$$
+
+を**回帰残渣(residual)**といい,Xで説明されなかった残渣を表す.
+
+回帰残渣を母回帰方程式 $Y_i = \beta_1 + \beta_2 X_i + \epsilon_i$における誤差項$\epsilon_i$の推定値として利用する.
+
+求める必要があるのは,誤差項の分散の推定値としての分散
+
+$$
+V(\hat{e_i}) = E(\hat{e_i^2}) - (E(\hat{e_i}))^2
+$$
+
+であるが,
+
+$$
+\frac{\partial S}{\partial \beta_2} = -2 \sum (Y_i - \beta_1 - \beta_2 X_i)X_i = 0
+$$
+なので,
+
+$$
+\sum (Y_i - \beta_1 - \beta_2 X_i) = \sum \hat{e_i} = 0
+$$
+
+となり,
+
+$$
+\bar{e_i} = \frac{1}{n} \sum \hat{e_i} = 0
+$$
+
+なので,
+
+$$
+\begin{align*}
+V(\hat{e_i}) &= E(\hat{eI^2}) \\
+&= \frac{1}{n-2}\sum (\hat{e_i}^2 - \bar{e_i}^2) \\
+&= \frac{\sum \hat{e_i}^2}{n-2}
+\end{align*}
+$$
+
+となります.
+
+これを誤差項の分散$\sigma^2$の推定値
+
+$$
+S^2 = \frac{\sum \hat{e_i}^2}{n-2}
+$$
+として利用します.
+
+なお,この累乗根は回帰式がどの程度実測値に当てはまっているかを表す,**推定値の標準誤差(standard error of estimates)**と呼ばれます.
+
+$$
+s.e. = \sqrt{S^2} = \sqrt{\frac{\sum \hat{e_i}^2}{n-2}}
+$$
+
+これを誤差項の母標準偏差$\sigma$の推定値として利用して,$\hat{\beta_2}$の標準誤差の推定値は,
+
+$$
+V(\hat{\beta_2}) = \frac{\sigma^2 }{\sum(X_i - \bar{X})^2}
+$$
+
+から,
+
+$$
+s.e.(\hat{\beta_2}) = \frac{s.e.}{\sqrt{\sum(X_i - \bar{X})^2}}
+$$
+
+となり,$s.e.(\hat{\beta_2})$を用いて標準化した値は, $t(n-2)$に従うので,
+
+$$
+t_2 = \frac{\hat{\beta_2} - \beta_2}{s.e.(\hat{\beta_2})} \sim t(n-2)
+$$
+
 
 
 ## 重回帰分析
