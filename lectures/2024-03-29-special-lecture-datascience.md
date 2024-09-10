@@ -435,7 +435,7 @@ PS C:/Users/hoge2>
 
 - Macでは,`/`です.
 
-本資料では,`¥`を表示するのが ~~ダルい~~ 技術的に難しいので`/`を利用しています. 自分の環境に併せて適宜読み替えてください.
+本資料では,`/`を利用しています. 自分の環境に併せて適宜読み替えてください.
 :::
 
 CLIの左側に表示されていない場合にも`pwd`コマンド (print working directory)を入力すると,現在のディレクトリが表示されます.
@@ -463,6 +463,84 @@ Documents
 ~~~
 
 ※実際の画面では,もう少しいろいろな情報が書かれているかと思います.
+
+ディレクトリ構造を確認するCommandとして`tree`があります. `tree`と入力してEnterすることで,wd以下のディレクトリ構成が確認できます.
+
+~~~ sh
+> tree
+Folder PATH listing
+Volume serial number is 00000157 B8F4:6480
+C:.
+├───Contacts
+├───Desktop
+├───Documents
+│   ├───hoge
+│   └───slds
+│       └───program
+├───Downloads
+~~~
+
+`tree [PAHT]`と入力すると, wdではなく指定した`[PATH]`以下のディレクトリ構造が表示されます.
+また, `/f` オプションを加えることでファイルも表示されます.
+
+~~~ sh
+> tree .\Documents\ /f
+Folder PATH listing
+Volume serial number is 000001D1 B8F4:6480
+C:\USERS\AKAGI\DOCUMENTS
+├───hoge
+│       hello.py
+│       slds-2-10.py
+│
+└───slds
+    └───program
+            hello.py
+~~~
+
+::: warn
+
+Macの場合は,`tree`コマンドは入っていないので,`brew`などを利用してインストールする必要があります.
+`brew`に関しては自分で調べてみましょう.
+
+また,オプションもWindowsとは異なっています.
+
+|コマンド| 意味  |
+| :---:  | :---: |
+| -d     |  ディレクトリのみ表示  |
+| -L N   | N 階層まで表示 |
+| -P X   | 正規表現Xに従って表示 |
+
+~~~ sh
+> tree
+.
+├── hoge
+│      └── hoge.py
+└── huga
+        └── huga.py
+
+3 directories, 2 files
+> tree -d
+.
+├── hoge
+└── huga
+
+3 directories
+> tree -L 1
+.
+├── hoge
+└── huga
+
+3 directories, 0 files
+> tree -P "hoge*"
+.
+├── hoge
+│     └── hoge.py
+└── huga
+
+~~~
+
+:::
+
 
 wdから別のディレクトリに移動するコマンドとして `cd` コマンド(change directory)があります
 
@@ -8321,7 +8399,7 @@ plt.close()
 
 # (線形)回帰分析
 
-<details open>
+<details>
     <summary> 開く/閉じる </summary>
 
 相関分析では,ある変数間に関係があることを示すことができました. しかし,相関分析で示せるのは,変数Aによって変数Bが増加するか,減少するかということのみです. 具体的に,どの程度変数Aが動くことで,変数Bがどの程度変動するかを式によって**説明する**手法に**回帰分析(Regression Analysis)**があります.
@@ -8363,7 +8441,7 @@ $$
 
 ### 母回帰方程式
 
-体重$y$を慎重$x$によって説明する回帰方程式として, $y = \beta_1 + \beta_2 x $を考えてみます.
+体重$y$を慎重$x$によって説明する回帰方程式として, $y = \beta_1 + \beta_2 x$ を考えてみます.
 しかし, 実際の体重は身長以外の要素によってばらつきます. そのような**ばらつき**を考慮して,データの$i$人目の体重,身長をそれぞれ,$Y_i,X_i$として,身長以外の要素によるばらつきを$\epsilon_i$とすると,母集団において,以下のような式が立てられます.
 
 $$
@@ -9935,10 +10013,398 @@ P41の図
 
 <br>
 
-結果の確認
-```python
-```
 </details>
+
+
+
+# 画像認識
+
+## 顔による年齢識別
+
+事例として顔画像からの年齢識別を行ってみましょう. データとして,16歳から62歳までの2,000人の有名人の160,000以上の画像が含まれるデータセット[Cross-Age Celebrity Dataset (CACD)](http://bcsiriuschen.github.io/CARC/)を用います.
+
+![The dataset metadata](/images/CACD.png)
+
+`The dataset metadata only can be downloaded`をクリックしてメタデータを, `Original face images (detected and croped by openCV face detector) can be downloaded`をクリックして画像データをダウンロードしてください(3Gあるので通信環境に注意).
+
+`CACD2000.tar.gz`は展開して,`celebrity2000_meta.mat`とともにプログラムを配置するディレクトリ内の`data`ディレクトリに保存しておきましょう.
+
+### 画像ファイルの形式
+
+機械学習において利用されるラベル付き画像データの形式はいくつかあるが,CACDのような`.mat`ファイル,画像とCSVなどのラベルの組み合わせ,ラベル名フォルダ別の画像ファイルなどのパターンが存在する. いずれにも対応できるようにしておく必要があるが, この資料では最も単純な最後のラベル別に名前がつけられたフォルダに保存された画像ファイルを扱う.
+
+先ほどダウンロードした`celebrity2000_meta.mat`は,メタデータのみが含まれており,画像は別になっています.メタデータに従って,年齢別に画像をフォルダに保存してみましょう.
+
+~~~ sh
+> ls
+face_image.py
+data
+
+> ls data
+CACD2000
+celebrity2000_meta.mat
+~~~
+
+
+::: note
+- `.mat`ファイル
+---
+    - MATLABのファイル
+    - 基本的には `scipy` を利用して読み込む.
+    - フォーマット形式がMATLAB `v7.3`の場合には,`HDF5`を扱うライブラリ`h5py`を利用する.
+    - `HDF5(Hierarchical Data Froamt version 5)`はディレクトリ構造に似た階層型のデータフォーマット
+:::
+
+
+まずは,`h5py`を利用して`celebrity2000_meta.mat`を読み込み,中身を確認してみましょう.
+
+::: warn
+必要なライブラリとして`scipy`,`h5py`と画像処理用の`pillow`を`pip install`しておいてください.
+:::
+
+~~~ py
+import h5py #HDF5を扱うライブラリ
+from PIL import Image #画像の表示/保存/書き込みなどを扱うライブラリ
+import os
+import numpy as np
+import scipy.io
+
+#画像データの保存先
+image_dir = 'data/CACD2000'
+
+# .matファイルの読み込み（古い形式の場合）
+## 辞書型として読み込まれる
+file = scipy.io.loadmat('data/celebrity2000_meta.mat')
+
+# 辞書のKeyを表示する
+print('keys:',file.keys())
+# >>> dict_keys(['__header__', '__version__', '__globals__', 'celebrityData', 'celebrityImageData'])
+
+#celebrityImageDataの確認
+print(file['celebrityImageData'])
+
+"""
+[[(array([[53],
+         [53],
+         [53],
+         ...,
+         [23],
+         [23],
+         [23]], dtype=uint8), array([[   1],
+         [   1],
+         [   1],
+         ...,
+         [2000],
+         [2000],
+         [2000]], dtype=uint16), array([[2004],
+         [2004],
+         [2004],
+         ...,
+         [2013],
+         [2013],
+         [2013]], dtype=uint16), array([], shape=(0, 0), dtype=uint8), array([[ 1],
+         [ 1],
+         [ 1],
+         ...,
+         [50],
+         [50],
+         [50]], dtype=uint8), array([[1],
+         [1],
+         [1],
+         ...,
+         [0],
+         [0],
+         [0]], dtype=uint8), array([[1951],
+         [1951],
+         [1951],
+         ...,
+         [1990],
+         [1990],
+         [1990]], dtype=uint16), array([[array(['53_Robin_Williams_0001.jpg'], dtype='<U26')],
+         [array(['53_Robin_Williams_0002.jpg'], dtype='<U26')],
+         [array(['53_Robin_Williams_0003.jpg'], dtype='<U26')],
+         ...,
+         [array(['23_Katie_Findlay_0011.jpg'], dtype='<U25')],
+         [array(['23_Katie_Findlay_0012.jpg'], dtype='<U25')],
+         [array(['23_Katie_Findlay_0013.jpg'], dtype='<U25')]], dtype=object))                ]]
+"""
+# 7個目に画像のファイル名が入っているので
+# celebrityImageDataから画像ファイル名を抽出
+image_data = file['celebrityImageData']
+jpg_files = [str(image_name[0][0]) for image_name in image_data[0][0][7]]
+
+# 抽出された.jpgファイル名のリストを上から10個表示
+print(jpg_files[:10])
+
+# 画像データの取得と表示
+## 名前データを利用して画像をいくつか開いてみます.
+for n in jpg_files[:10]:
+    img_path = os.path.join(image_dir, n)  # パスを結合し、ファイル名を取得
+
+    if os.path.exists(img_path):
+        img = Image.open(img_path)  # 画像ファイルを開く
+        img.show()  # 画像を表示
+    else:
+        print(f"Image file not found: {img_path}")
+    #>>> 画像が表示されます
+~~~
+
+
+
+
+::: warn
+- HDF5の利用例
+
+
+
+`CACD`データのうち一番上の`The dataset metadata and features used in this paper`からダウンロードできる`celebrity2000.mat`は,`HDF5`のデータとなっているため,`scipy`で読み込んでみるとエラーが出ます.
+
+~~~ py
+file = scipy.io.loadmat('data/celebrity2000.mat')
+"""
+Traceback (most recent call last):
+  File "/Users/akagi/Desktop/face_image.py", line 86, in <module>
+    file = scipy.io.loadmat('data/celebrity2000.mat')
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/akagi/.pyenv/versions/3.12.3/lib/python3.12/site-packages/scipy/io/matlab/_mio.py", line 226, in loadmat
+    MR, _ = mat_reader_factory(f, **kwargs)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/akagi/.pyenv/versions/3.12.3/lib/python3.12/site-packages/scipy/io/matlab/_mio.py", line 80, in mat_reader_factory
+    raise NotImplementedError('Please use HDF reader for matlab v7.3 '
+NotImplementedError: Please use HDF reader for matlab v7.3 files, e.g. h5py
+
+"""
+~~~
+
+
+今回は`celebrity2000_meta.mat`を利用するので必要ありませんが,試しに同じように画像を表示してみましょう.
+
+<details>
+    <summary> 詳細 開く/閉じる </summary>
+
+
+`HDF5`は多重の辞書型ような構造をしており,`key`によってデータにアクセスできます.
+
+~~~ py
+import h5py #HDF5を扱うライブラリ
+from PIL import Image #画像の表示/保存/書き込みなどを扱うライブラリ
+import os
+import numpy as np
+
+# .matファイル(HDF5)の読み込み
+with h5py.File('data/celebrity2000.mat', 'r') as file:
+    # List all keys in the .mat file
+    print('keys:',list(file.keys()))
+    # >>> keys: ['#refs#', 'celebrityData', 'celebrityImageData']
+
+    ## ラベルの確認
+    print('DataKeys:',file['celebrityImageData'].keys())
+    # >>> DataKeys: <KeysViewHDF5 ['age', 'birth', 'feature', 'identity', 'lfw', 'name', 'rank', 'year']>
+
+    # 年齢データの確認
+    print('age:',file['celebrityImageData']['age'])
+    # >>> age: <HDF5 dataset "age": shape (1, 163446), type "<f8">
+    print('age:',file['celebrityImageData']['age'][0])
+    # >>> age: [53. 53. 53. ... 23. 23. 23.]
+
+    # 名前データの確認
+    print('name:',file['celebrityImageData']['name'])
+    # >>> name: <HDF5 dataset "name": shape (1, 163446), type "|O">
+    print('name:',file['celebrityImageData']['name'][0])
+    # >>> name: [<HDF5 object reference> <HDF5 object reference> <HDF5 object reference>
+    #... <HDF5 object reference> <HDF5 object reference>
+    #<HDF5 object reference>]
+    # ↑ <HDF5 object reference>は他のHDF5オブジェクトへの参照 #refs#に入っている.
+
+    # nameデータを参照して表示
+    name_references = file['celebrityImageData']['name'][0]
+    names = []
+    for ref in name_references:
+        name = file[ref][()].tobytes().decode('utf-16')  # utf-16でデコード
+        names.append(name)
+
+    # 最初の10件の名前を表示
+    print('names:', names[:10])
+    # names: ['53_Robin_Williams_0001.jpg'
+    # , '53_Robin_Williams_0002.jpg'
+    # , '53_Robin_Williams_0003.jpg'
+    # , '53_Robin_Williams_0004.jpg'
+    # , '53_Robin_Williams_0005.jpg'
+    # , '53_Robin_Williams_0006.jpg'
+    # , '53_Robin_Williams_0007.jpg'
+    # , '53_Robin_Williams_0009.jpg'
+    # , '53_Robin_Williams_0010.jpg'
+    # , '53_Robin_Williams_0011.jpg']
+
+    # 画像データの取得と表示
+    ## 名前データを利用して画像をいくつか開いてみます.
+    for n in names[:10]:
+        img_path = os.path.join(image_dir, n)  # パスを結合し、ファイル名を取得
+
+        if os.path.exists(img_path):
+            img = Image.open(img_path)  # 画像ファイルを開く
+            img.show()  # 画像を表示
+        else:
+            print(f"Image file not found: {img_path}")
+    # >>> 画像が表示される
+~~~
+
+同じ用にデータを抽出できることが確認できます.
+
+</details>
+
+:::
+
+
+それでは,`celebrity2000_meta.mat`から年齢別にフォルダを分けて画像を保存してみます.年齢区分は,`10`,`20`,...,`100`としてみましょう. 画像ファイル名の先頭の数字が年齢を表しているので,そちらを利用しても構いませんが,せっかくなのでメタデータを利用してみましょう. 年齢は`image_data[0][0][0]`に入っているようです.
+
+研究であれば画像データの枚数は多いほど良いですが, 今回は一通りの流れを体験してみることが目的なので学生の環境でも利用しやすいように各年代100枚だけコピーします.
+
+~~~ py
+
+import os
+import shutil
+import scipy.io
+from collections import defaultdict
+
+# 画像ディレクトリの設定
+image_dir = 'data/CACD2000'
+output_dir = 'data/sorted_images'
+
+# .matファイルの読み込み
+file = scipy.io.loadmat('data/celebrity2000_meta.mat')
+
+# celebrityImageDataから年齢と画像ファイル名を抽出
+image_data = file['celebrityImageData']
+# 年齢情報
+ages = image_data[0][0][0].flatten()
+# 画像ファイル名
+jpg_files = [str(image_name[0][0]) for image_name in image_data[0][0][7]]
+
+# 年代ごとの画像カウント
+age_group_counts = defaultdict(int)
+
+# 年齢別のフォルダに画像をコピー（各年代最大100枚）
+for age, jpg_file in zip(ages, jpg_files):
+    age_group = (age // 10) * 10
+    if age_group > 100:
+        age_group = 100  # 100代以上は100代フォルダに保存
+
+    # 各年代ごとに100枚までコピー
+    if age_group_counts[age_group] < 100:
+        folder_path = os.path.join(output_dir, f'{age_group}s')
+        os.makedirs(folder_path, exist_ok=True)
+
+        src_path = os.path.join(image_dir, jpg_file)
+        dst_path = os.path.join(folder_path, jpg_file)
+
+        shutil.copy(src_path, dst_path)
+        age_group_counts[age_group] += 1
+~~~
+
+結果を確認してみます.
+
+::: warn
+
+Shell コマンドにおける`|` は`パイプ`といって `head -20`は先頭20個のみ
+`|` の左側のコマンドによる標準出力を右側のコマンドに渡すことができます.
+
+今回は`ls data/sorted_images/10s`で表示される結果の,先頭20個のみを表示しています.
+
+:::
+
+~~~ sh
+> ls data/sorted_images
+10s 20s 30s 40s 50s 60s
+> ls data/sorted_images/10s |head -20
+14_Aaron_Johnson_0001.jpg
+14_Aaron_Johnson_0002.jpg
+14_Adelaide_Kane_0001.jpg
+14_Adelaide_Kane_0002.jpg
+14_Adelaide_Kane_0003.jpg
+14_Adelaide_Kane_0004.jpg
+14_Adelaide_Kane_0005.jpg
+14_Adelaide_Kane_0006.jpg
+14_Adelaide_Kane_0010.jpg
+14_Adelaide_Kane_0011.jpg
+14_Adelaide_Kane_0013.jpg
+14_Adelaide_Kane_0014.jpg
+14_Adelaide_Kane_0015.jpg
+14_Adelaide_Kane_0018.jpg
+14_Adelaide_Kane_0019.jpg
+14_Alex_Pettyfer_0004.jpg
+14_Alex_Pettyfer_0005.jpg
+14_Alex_Pettyfer_0007.jpg
+14_Alex_Pettyfer_0008.jpg
+14_Alex_Pettyfer_0009.jpg
+~~~
+
+データには10代から60代までのみが含まれていたようです. 各フォルダの中身を確認してもちゃんと保存できていることがわかりますね.
+
+
+機械学習モデルの性能を評価するためには,学習に利用する訓練用データと,学習の結果を判定するテスト用データに分ける必要があります. 続いて,学習用とテスト用でフォルダに分割してみましょう.
+
+学習データの分割には, 指定した割合でデータを分割してくれる`sklearn`の`train_test_split`を用います.
+
+~~~ py
+import os
+import shutil
+from sklearn.model_selection import train_test_split
+
+data_dir = 'data/sorted_images'
+output_dir = 'data/sorted_images_split'
+
+# 画像ファイルのパスを収集し、年齢別に分類
+age_groups = ['10s', '20s', '30s', '40s', '50s', '60s']
+for age_group in age_groups:
+    images = os.listdir(os.path.join(data_dir, age_group))
+    train_images, val_images = train_test_split(images
+                                               ,test_size=0.2 #2割をテスト用データにする
+                                               , random_state=42)
+
+    train_dir = os.path.join(output_dir, 'train', age_group)
+    val_dir = os.path.join(output_dir, 'val', age_group)
+    os.makedirs(train_dir, exist_ok=True)
+    os.makedirs(val_dir, exist_ok=True)
+
+    for image in train_images:
+        shutil.copy(os.path.join(data_dir, age_group, image), os.path.join(train_dir, image))
+    for image in val_images:
+        shutil.copy(os.path.join(data_dir, age_group, image), os.path.join(val_dir, image))
+~~~
+
+以下のような形でデータが保存されていることを確認しましょう.
+
+~~~ sh
+data/sorted_images_split
+├── train
+│      ├── 10s
+│      ├── 20s
+│      ├── 30s
+│      ├── 40s
+│      ├── 50s
+│      └── 60s
+└── val
+        ├── 10s
+        ├── 20s
+        ├── 30s
+        ├── 40s
+        ├── 50s
+        └── 60s
+~~~
+
+
+
+### 画像認識の実施
+
+::: note
+- バッチ処理
+:::
+
+::: note
+- エポック数
+:::
+
 
 
 
