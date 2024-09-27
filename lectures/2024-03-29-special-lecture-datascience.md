@@ -7706,7 +7706,7 @@ r_{zw} &= \frac{1}{n} \sum z_i w_i \\
 \end{align*}
 $$
 
-このとき、証明の為に $\frac{1}{n} \sum (z_i \pm w_i)^2$ を考える。
+このとき,証明の為に $\frac{1}{n} \sum (z_i \pm w_i)^2$ を考える.
 
 $$
 \begin{align*}
@@ -7749,8 +7749,8 @@ $$
 
 このように$x_i$と$y_i$が同じ比率で増減するとき,
 
-- $r_{xy} = 1$ となり、正の完全相関
-- $r_{xy} = -1$ となり、負の完全相関
+- $r_{xy} = 1$ となり,正の完全相関
+- $r_{xy} = -1$ となり,負の完全相関
 
 といいます.
 
@@ -7758,10 +7758,10 @@ $$
 
 | 相関係数            | 関連性の程度               |
 |---------------------|----------------------------|
-| 0.0～0.4 、0.0～-0.4  | ほとんど相関がない       |
-| 0.4～0.7 、-0.4～-0.7 | 弱い相関がある           |
-| 0.7～0.9 、-0.7～-0.9 | 強い相関がある           |
-| 0.9～1.0 、-0.9～-1.0 | きわめて強い相関がある   |
+| 0.0～0.4 ,0.0～-0.4  | ほとんど相関がない       |
+| 0.4～0.7 ,-0.4～-0.7 | 弱い相関がある           |
+| 0.7～0.9 ,-0.7～-0.9 | 強い相関がある           |
+| 0.9～1.0 ,-0.9～-1.0 | きわめて強い相関がある   |
 
 
 Pythonで積率相関係数を求めるには `numpy`の`np.corrcoef(xのデータ,yのデータ)`あるいは,`scipy.stats.pearsonr(xのデータ,yのデータ)`を利用します. `scipy`がインストールされていない人は `pip install scipy`をしておきましょう.
@@ -8666,21 +8666,21 @@ $$
 
 ::: note
 
-> **Wi-Fi電磁波で学力低下を懸念、市議ら意見交換会**
+> **Wi-Fi電磁波で学力低下を懸念,市議ら意見交換会**
 >
 > 2020年12月7日
->電磁波が人体に影響を与え、学力の低下を招くことなどを懸念する市議会議員らは11月8日、無線LANにより生じる「電磁波過敏症」への対策などについて、意見交換会をオンラインで開催した。
->　GIGAスクール構想でICT環境を整備するに当たって、電磁波による問題点とそれへの対策を話し合った。
->　東京都新宿区議会のよだかれん議員は、学力と健康の2つの観点から、「大人でもICT機器を使用すると前頭前野の機能が低下するという様々な研究報告がある。小学1年生からの使用で脳の発達への影響は懸念されないのか」と指摘した。
->　よだ議員は、9月議会の質疑の一部で、令和元年の全国学力テストの結果に基づき、電子黒板やプロジェクターなどの大型電子機器の整備率が1位の佐賀県は正答率が全国で43位だった一方、整備率最下位の秋田県は正答率が1位だったことを紹介した。
->　意見交換会を主催した「いのち環境ネットワーク」の加藤やすこ代表によると、電磁波過敏症は短い時間でも発症の可能性があり、一度の発症が長期に及んで続くという。
->　埼玉県日高市議会の松尾まよか議員は、GIGAスクール構想を進める上で、Wi-Fiのアクセスポイントの位置を児童・生徒から遠ざけた場所に設置する、使用していない時は電源を落とすことを重要な点に位置付けた。
->　松尾議員は、「発症者が出てからでは遅い。発症後の対策に予算をかけるよりも、事前に対策しておく方がよい」と強調した。
->　今回の意見交換会に参加した市議らは、9月議会の発言内容なども報告した。
+>電磁波が人体に影響を与え,学力の低下を招くことなどを懸念する市議会議員らは11月8日,無線LANにより生じる「電磁波過敏症」への対策などについて,意見交換会をオンラインで開催した.
+>　GIGAスクール構想でICT環境を整備するに当たって,電磁波による問題点とそれへの対策を話し合った.
+>　東京都新宿区議会のよだかれん議員は,学力と健康の2つの観点から,「大人でもICT機器を使用すると前頭前野の機能が低下するという様々な研究報告がある.小学1年生からの使用で脳の発達への影響は懸念されないのか」と指摘した.
+>　よだ議員は,9月議会の質疑の一部で,令和元年の全国学力テストの結果に基づき,電子黒板やプロジェクターなどの大型電子機器の整備率が1位の佐賀県は正答率が全国で43位だった一方,整備率最下位の秋田県は正答率が1位だったことを紹介した.
+>　意見交換会を主催した「いのち環境ネットワーク」の加藤やすこ代表によると,電磁波過敏症は短い時間でも発症の可能性があり,一度の発症が長期に及んで続くという.
+>　埼玉県日高市議会の松尾まよか議員は,GIGAスクール構想を進める上で,Wi-Fiのアクセスポイントの位置を児童・生徒から遠ざけた場所に設置する,使用していない時は電源を落とすことを重要な点に位置付けた.
+>　松尾議員は,「発症者が出てからでは遅い.発症後の対策に予算をかけるよりも,事前に対策しておく方がよい」と強調した.
+>　今回の意見交換会に参加した市議らは,9月議会の発言内容なども報告した.
 
 こちらの記事では,
 
-> 令和元年の全国学力テストの結果に基づき、電子黒板やプロジェクターなどの大型電子機器の整備率が1位の佐賀県は正答率が全国で43位だった一方、整備率最下位の秋田県は正答率が1位だった
+> 令和元年の全国学力テストの結果に基づき,電子黒板やプロジェクターなどの大型電子機器の整備率が1位の佐賀県は正答率が全国で43位だった一方,整備率最下位の秋田県は正答率が1位だった
 
 ことから,
 
@@ -10019,6 +10019,33 @@ P41の図
 
 # 画像認識
 
+説明
+
+主な画像認識モデルの歴史は以下のようにまとめられます.
+
+| 年代  | モデル名              | 特徴・概要                                                                                       | 主な貢献や革新点                                                |
+|-------|-----------------------|---------------------------------------------------------------------------------------------------|-----------------------------------------------------------------|
+| 1998  | LeNet                  | 手書き数字認識に使われた初期のCNNモデル. 主にMNISTデータセットで使用.                                | 畳み込み層とプーリング層を使用した初期の画像認識モデル.         |
+| 2012  | AlexNet                | ImageNetで初めて畳み込みニューラルネットワークを使用し,トップ5エラー率を大幅に改善.                   | ReLU活性化関数の使用や,GPUによるトレーニングの導入.            |
+| 2014  | VGGNet                 | 小さな3x3のフィルタを多層に積み重ねたアーキテクチャ.VGG16とVGG19が特に有名.                         | モデルの深さが精度に大きく寄与することを示す.                  |
+| 2014  | GoogLeNet (Inception)  | "Inception Module"を採用し,計算効率と精度を両立.                                                 | 異なるサイズの畳み込みフィルタを同時に適用するInceptionモジュール.|
+| 2015  | ResNet                 | 残差ブロックを使用し,非常に深いネットワークのトレーニングを可能に.ImageNetで優勝.                  | 152層の深いネットワークで,勾配消失問題を解決.                |
+| 2016  | DenseNet               | 各層がすべての前層からの入力を受け取る密結合アーキテクチャ.                                       | パラメータ効率が良く,勾配の流れが改善される.                  |
+| 2017  | Xception               | 畳み込みの代わりに「深さ方向の畳み込み（Depthwise Separable Convolutions）」を使用.                | 計算コストの削減と精度の向上.                                  |
+| 2017  | MobileNet              | 軽量かつ効率的なCNNアーキテクチャ.モバイルデバイス向けに最適化.                                  | 計算量を削減し,モバイル環境でのリアルタイム推論を可能に.      |
+| 2020  | Vision Transformer (ViT)| 画像をパッチに分割し,トランスフォーマーアーキテクチャを使用したモデル.                            | トランスフォーマーモデルが画像認識タスクでも有効であることを示す.|
+| 2021  | Swin Transformer       | 階層的なトランスフォーマーアーキテクチャで,局所的な窓（ウィンドウ）を用いた画像認識モデル.           | トランスフォーマーのスケーラビリティを改善し,高い精度を達成.  |
+| 2022  | ConvNeXt               | Vision Transformerのアイデアを取り入れた畳み込みネットワークの進化版.                              | 畳み込みベースのモデルが再び最先端性能を達成できることを示す.   |
+
+今回は,事例としてConvNeXtを利用した画像認識を実行してみます.
+
+[ConvNeXt](https://github.com/facebookresearch/ConvNeXt)は,Meta(旧Facebook)によって発表されたモデルで,Vision Transformer (ViT) を参考にしつつResNet（Residual Network）を基盤として作られたCNNです.
+
+PythonのCNNのライブラリはいくつか存在しますが,ConvNeXtは,Metaによって開発された`PyTorch`上で実装されています.
+
+
+
+
 ## 顔による年齢識別
 
 事例として顔画像からの年齢識別を行ってみましょう. データとして,16歳から62歳までの2,000人の有名人の160,000以上の画像が含まれるデータセット[Cross-Age Celebrity Dataset (CACD)](http://bcsiriuschen.github.io/CARC/)を用います.
@@ -10059,7 +10086,18 @@ celebrity2000_meta.mat
 まずは,`h5py`を利用して`celebrity2000_meta.mat`を読み込み,中身を確認してみましょう.
 
 ::: warn
-必要なライブラリとして`scipy`,`h5py`と画像処理用の`pillow`を`pip install`しておいてください.
+以下のライブラリが必要になるので `pip install`しておいてください.
+
+- `pytorch`
+    - CNN用ライブラリ(PyTorch)
+- `torchvision`
+    - PyTorchの画像,動画処理用ライブラリ
+- `scipy`
+- `h5py`
+- `pillow`
+    - 画像処理用ライブラリ
+- `shutil`
+    - ファイル操作用ライブラリ
 :::
 
 ~~~ py
@@ -10139,7 +10177,7 @@ print(jpg_files[:10])
 # 画像データの取得と表示
 ## 名前データを利用して画像をいくつか開いてみます.
 for n in jpg_files[:10]:
-    img_path = os.path.join(image_dir, n)  # パスを結合し、ファイル名を取得
+    img_path = os.path.join(image_dir, n)  # パスを結合し,ファイル名を取得
 
     if os.path.exists(img_path):
         img = Image.open(img_path)  # 画像ファイルを開く
@@ -10239,7 +10277,7 @@ with h5py.File('data/celebrity2000.mat', 'r') as file:
     # 画像データの取得と表示
     ## 名前データを利用して画像をいくつか開いてみます.
     for n in names[:10]:
-        img_path = os.path.join(image_dir, n)  # パスを結合し、ファイル名を取得
+        img_path = os.path.join(image_dir, n)  # パスを結合し,ファイル名を取得
 
         if os.path.exists(img_path):
             img = Image.open(img_path)  # 画像ファイルを開く
@@ -10258,7 +10296,7 @@ with h5py.File('data/celebrity2000.mat', 'r') as file:
 
 それでは,`celebrity2000_meta.mat`から年齢別にフォルダを分けて画像を保存してみます.年齢区分は,`10`,`20`,...,`100`としてみましょう. 画像ファイル名の先頭の数字が年齢を表しているので,そちらを利用しても構いませんが,せっかくなのでメタデータを利用してみましょう. 年齢は`image_data[0][0][0]`に入っているようです.
 
-研究であれば画像データの枚数は多いほど良いですが, 今回は一通りの流れを体験してみることが目的なので学生の環境でも利用しやすいように各年代100枚だけコピーします.
+研究であれば画像データの枚数は多いほど良いですが, 今回は一通りの流れを体験してみることが目的なので学生の環境でも利用しやすいように各年代200枚だけコピーします.
 
 ~~~ py
 
@@ -10288,7 +10326,7 @@ age_group_counts = defaultdict(int)
 for age, jpg_file in zip(ages, jpg_files):
     age_group = (age // 10) * 10
     if age_group > 100:
-        age_group = 100  # 100代以上は100代フォルダに保存
+        age_group = 200  # 100代以上は100代フォルダに保存
 
     # 各年代ごとに100枚までコピー
     if age_group_counts[age_group] < 100:
@@ -10344,6 +10382,8 @@ Shell コマンドにおける`|` は`パイプ`といって `head -20`は先頭
 
 機械学習モデルの性能を評価するためには,学習に利用する訓練用データと,学習の結果を判定するテスト用データに分ける必要があります. 続いて,学習用とテスト用でフォルダに分割してみましょう.
 
+今回は200枚の画像のうち8割(160枚)を学習用,2割(40枚)をテスト用のデータとして利用します.
+
 学習データの分割には, 指定した割合でデータを分割してくれる`sklearn`の`train_test_split`を用います.
 
 ~~~ py
@@ -10354,7 +10394,7 @@ from sklearn.model_selection import train_test_split
 data_dir = 'data/sorted_images'
 output_dir = 'data/sorted_images_split'
 
-# 画像ファイルのパスを収集し、年齢別に分類
+# 画像ファイルのパスを収集し,年齢別に分類
 age_groups = ['10s', '20s', '30s', '40s', '50s', '60s']
 for age_group in age_groups:
     images = os.listdir(os.path.join(data_dir, age_group))
@@ -10397,14 +10437,323 @@ data/sorted_images_split
 
 ### 画像認識の実施
 
-::: note
-- バッチ処理
-:::
+CNNを利用した学習を行うにあたって,コード内で扱われる基本的な概念を説明します.
 
 ::: note
-- エポック数
+
+
+- **前処理(Data Augmentation)**
+------------------------------------------------------------------
+学習を行うために,画像サイズや色の内容と無関係の情報を減らし,画像を統一のフォーマットに揃えます.
+
+    - **リサイズ (Resize)**
+
+    画像のサイズを揃えます.今回は224 × 224 ピクセルに統一します.
+
+    - **画像反転 (Horizontal Flip)**
+
+    水平方向に画像を反転させることで,データに多様性を加えます.
+
+    - **テンソル(Tensor)変換**
+
+    データの多次元配列を**Tensor**と呼びます. データを,複数の行列によるテンソルに変換することで効率的に学習を行います.
+    例えば,画像の場合は,高さ,幅,チャンネル数(RGBカラー等の色)の3次元テンソルとして表現します.
+
+    - **正規化(Normalize)**
+
+    画像データを特定の範囲や分布に変換してモデルが効率的に学習できるようにする手法を正規化といいます. CNNで学習される画像データは,0~255の範囲のピクセル値(色や濃淡の数値)で表現されますが,ばらつきが大きすぎると学習が不安定になるため,0~1の範囲に変換します.
+
+
+- **バッチ(batch)処理**
+------------------------------------------------------------------
+
+CNNでは学習用のデータ全てを一度に学習するとメモリを大量に消費するため,データを分割して学習を行います. そのような分割処理を**バッチ処理**といいます.
+
+分割された一つあたりのデータの数を**バッチサイズ**といいます. バッチサイズが32個の場合は32個の(今回の場合は画像ファイル)を同時に処理します.
+
+また,バッチ処理ではバッチ毎に並列処理を行うため速度面でも,効率的な学習が行えます.
+
+- **エポック(epoch)数**
+------------------------------------------------------------------
+
+CNNではモデルの性能を高めるために同じデータセットを何度も繰り返して学習することがあります.その際に,データを1巡して学習する回数を,**エポック数**といいます. 例えば, 10エポックの場合は,160枚の画像を10回学習することになります.
+
+エポック数を増やすと一般的に性能が高まりすが,多すぎる場合には**過学習**が起きるので,エポック数を変更して適切な回数を見つけることが重要です.
+
+- **損失関数(Loss Function)**
+------------------------------------------------------------------
+学習したモデルの性能を調べるために, モデルの予測と実際のラベルとの誤差(損失)を計算するための関数を**損失関数**といいます.
+基本的に, 損失関数で求められた誤差が大きいほど,モデルの正確性が劣っていることを示します.
+
+損失関数にはいくつかの種類がありますが,今回は**クロスエントロピー損失(Coross-Entoropy Loss)**を利用します. これは,予測された確率分布と実際のラベルの分布の不一致度を計測しています.
+
+- **オプティマイザ(Optimizer)**
+------------------------------------------------------------------
+損失関数の値を最小化するために,どのようにモデルのパラメータを更新するかを決定するアルゴリズムを**オプティマイザ**といいます.
+
+基本的には,損失関数によって求められた誤差の勾配(パラメータに対する誤差の微分)を計算してエポック毎に誤差が減る方向にパラメータを調整します.
+
+今回利用しているアルゴリズム**Adam(Adaptive Moment Estimation)**は,勾配の平均と分散を利用してパラメータを調整する手法で, 現在最も広く使われているオプティマイザの一つです.
+
 :::
 
+これから,先程分割した画像を利用してConvNeXtによる学習を行い, PCAとt-sneで2次元へ次元削減した後,ラベルごとの特徴を可視化してみます.
+
+
+::: warn
+
+コードを実行して以下のようなWarningが表示される場合,個別の環境によって対処が異なるので教員に
+相談してください.
+
+
+~~~ sh
+Found Intel OpenMP ('libiomp') and LLVM OpenMP ('libomp') loaded at
+the same time. Both libraries are known to be incompatible and this
+can cause random crashes or deadlocks on Linux when loaded in the
+same Python program.
+Using threadpoolctl may cause crashes or deadlocks. For more
+information and possible workarounds, please see
+    https://github.com/joblib/threadpoolctl/blob/master/multiple_openmp.md
+~~~
+:::
+
+
+~~~ py
+import os
+import pandas as pd
+import matplotlib.pyplot as plt
+import numpy as np
+
+# 次元削減用
+from sklearn.manifold import TSNE
+from sklearn.decomposition import PCA
+
+# CNN用
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torchvision import datasets, transforms, models
+from torch.utils.data import DataLoader
+from torchvision.models import ConvNeXt_Tiny_Weights
+
+
+#学習した特徴量を抽出する
+def extract_features(model, dataloader, device):
+    model.eval()
+    features = []
+    labels_list = []
+
+    with torch.no_grad():
+        for inputs, labels in dataloader:
+            inputs = inputs.to(device)
+            labels = labels.to(device)
+            outputs = model(inputs)
+            features.append(outputs.cpu())
+            labels_list.append(labels.cpu())
+
+    features = torch.cat(features, dim=0)
+    labels = torch.cat(labels_list, dim=0)
+
+    return features, labels
+
+# t-SNEによる次元圧縮と散布図の描画
+def plot_tsne(train_features, train_labels, path):
+    # train_featuresとtrain_labelsをnumpyに変換
+    features_np = train_features.numpy()
+    labels_np = train_labels.numpy()
+
+    # t-SNEによる次元圧縮 (2次元)
+    tsne = TSNE(n_components=2, random_state=42)
+    features_2d = tsne.fit_transform(features_np)
+
+    # 散布図の描画
+    plt.figure(figsize=(10, 8))
+
+    # 各ラベルに基づいて色分けしてプロット
+    num_classes = len(np.unique(labels_np))  # クラス数を取得
+    for label in np.unique(labels_np):
+        indices = np.where(labels_np == label)
+        plt.scatter(features_2d[indices, 0], features_2d[indices, 1], label=f'{label * 10}s', alpha=0.6)
+
+    plt.title('t-SNE of Train Features')
+    plt.xlabel('t-SNE Component 1')
+    plt.ylabel('t-SNE Component 2')
+    plt.legend(title="Age Group")
+    plt.grid(True)
+    plt.show()
+    plt.savefig(path)
+    plt.close()
+
+# PCAによる次元圧縮と散布図の描画
+def plot_pca(train_features, train_labels, path):
+    # train_featuresとtrain_labelsをnumpyに変換
+    features_np = train_features.numpy()
+    labels_np = train_labels.numpy()
+
+    # PCAによる次元圧縮 (2次元)
+    pca = PCA(n_components=2)
+    features_2d = pca.fit_transform(features_np)
+
+    # 散布図の描画
+    plt.figure(figsize=(10, 8))
+
+    # 各ラベルに基づいて色分けしてプロット
+    num_classes = len(np.unique(labels_np))  # クラス数を取得
+    for label in np.unique(labels_np):
+        indices = np.where(labels_np == label)
+        plt.scatter(features_2d[indices, 0], features_2d[indices, 1], label=f'{label * 10}s', alpha=0.6)
+
+    plt.title('PCA of Train Features')
+    plt.xlabel('PCA Component 1')
+    plt.ylabel('PCA Component 2')
+    plt.legend(title="Age Group")
+    plt.grid(True)
+    plt.show()
+    plt.savefig(path)
+    plt.close()
+
+def main():
+    # データのディレクトリ設定
+    data_dir = 'data/sorted_images_split'
+    batch_size = 32
+    num_epochs = 10
+    num_classes = 10  # 10代, 20代, ..., 100代
+
+    # データ変換（前処理）
+    data_transforms = {
+        'train': transforms.Compose([
+            transforms.Resize((224, 224)),     #画像のリサイズ
+            transforms.RandomHorizontalFlip(), #画像をランダムに反転
+            transforms.ToTensor(),             #テンソル(多次元配列)に変換
+            transforms.Normalize([0.485, 0.456, 0.406]
+                                ,[0.229, 0.224, 0.225]),#正規化
+        ]),
+        'val': transforms.Compose([
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225]),
+        ]),
+    }
+
+    # データセットの読み込み
+    image_datasets = {x: datasets.ImageFolder(os.path.join(data_dir, x),
+                                              data_transforms[x])
+                      for x in ['train', 'val']}
+    dataloaders = {x: DataLoader(image_datasets[x], batch_size=batch_size,
+                                 shuffle=True, num_workers=4)
+                   for x in ['train', 'val']}
+
+    # デバイス設定
+    #GPUが利用できる場合はGPUを使う,そうでない場合はCPUを計算に利用します.
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+    # ConvNextモデルの読み込みとカスタマイズ
+    weights = ConvNeXt_Tiny_Weights.IMAGENET1K_V1  # 最新の重みを指定
+    model = models.convnext_tiny(weights=weights)  # ConvNextの小さいモデルを使用
+    num_ftrs = model.classifier[2].in_features
+    model.classifier[2] = nn.Linear(num_ftrs, num_classes)  # 出力を10クラスに変更
+
+    model = model.to(device)
+
+    # 損失関数とオプティマイザ
+    criterion = nn.CrossEntropyLoss() #クロスエントロピー損失
+    optimizer = optim.Adam(model.parameters(), lr=0.001) #Adam
+
+    #結果の記録用
+    train_losses = []
+    train_accuracies = []
+    val_losses = []
+    val_accuracies = []
+    results = []
+
+    # 学習ループ
+    for epoch in range(num_epochs):
+        print(f'Epoch {epoch+1}/{num_epochs}')
+        print('-' * 10)
+
+        for phase in ['train', 'val']:
+            if phase == 'train':
+                model.train()
+            else:
+                model.eval()
+
+            running_loss = 0.0
+            running_corrects = 0
+
+            for inputs, labels in dataloaders[phase]:
+                inputs = inputs.to(device)
+                labels = labels.to(device)
+
+                optimizer.zero_grad()
+
+                with torch.set_grad_enabled(phase == 'train'):
+                    outputs = model(inputs)
+                    _, preds = torch.max(outputs, 1)
+                    loss = criterion(outputs, labels)
+
+                    if phase == 'train':
+                        loss.backward()
+                        optimizer.step()
+
+                running_loss += loss.item() * inputs.size(0)
+                running_corrects += torch.sum(preds == labels.data)
+                if phase == 'val':  # バリデーション時に予測と実際のラベルを保存
+                    for i in range(len(labels)):
+                        results.append({
+                            'epoch': epoch + 1,
+                            'pred': preds[i].item(),
+                            'acctual': labels[i].item()
+                        })
+
+            epoch_loss = running_loss / len(image_datasets[phase])
+            epoch_acc = running_corrects.double() / len(image_datasets[phase])
+
+            print(f'{phase} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
+            if phase == 'train':
+                train_losses.append(epoch_loss)
+                train_accuracies.append(epoch_acc)
+            else:
+                val_losses.append(epoch_loss)
+                val_accuracies.append(epoch_acc)
+
+    #結果の表示
+
+    print('Training complete')
+    print("Training Losses: ", train_losses)
+    print("Training Accuracies: ", train_accuracies)
+    print("Validation Losses: ", val_losses)
+    print("Validation Accuracies: ", val_accuracies)
+
+    # 結果をCSVファイルに保存
+    results_df = pd.DataFrame(results)
+    results_df.to_csv('data/result/pred_acctual.csv'
+                     ,encoding='utf_8_sig')
+
+    # 特徴量を取得する
+    train_features, train_labels = extract_features(model, dataloaders['train'], device)
+    val_features, val_labels = extract_features(model, dataloaders['val'], device)
+
+    # (毎回学習するのは大変なので)特徴量を表示または保存しておく
+    # 読み込む場合は
+    # train_features, train_labels = torch.load('train_features.pth')
+    torch.save((train_features, train_labels), 'data/result/convnext_train_features.pth')
+    torch.save((val_features, val_labels), 'data/result/convnext_val_features.pth')
+
+    #PCAの散布図の描画
+
+    #散布図の描画
+    plot_tsne(train_features, train_labels,'data/result/convnext_tsne.png')
+    plot_pca(train_features, train_labels,'data/result/convnext_pca.png')
+
+
+
+#スクリプトとして実行された場合(python convnext.py)で実行された場合に,
+# if __name__ == '__main__': 以下のみが実行される.
+# 並列処理(multiprocessing)を行う場合にこのようにしないと,
+# 各処理ですべて同じコードが実行されるため,無限ループなどが起きる.
+if __name__ == '__main__':
+    main()
+~~~
 
 
 
