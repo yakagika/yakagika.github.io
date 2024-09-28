@@ -8577,11 +8577,11 @@ ___
 </div>
 <p>それでは,<code>celebrity2000_meta.mat</code>から年齢別にフォルダを分けて画像を保存してみます.年齢区分は,<code>10</code>,<code>20</code>,…,<code>100</code>としてみましょう. 画像ファイル名の先頭の数字が年齢を表しているので,そちらを利用しても構いませんが,せっかくなのでメタデータを利用してみましょう. 年齢は<code>image_data[0][0][0]</code>に入っているようです.</p>
 <p>研究であれば画像データの枚数は多いほど良いですが, 今回は一通りの流れを体験してみることが目的なので学生の環境でも利用しやすいように各年代200枚だけコピーします.</p>
-<div class="sourceCode" id="cb350"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb350-1"><a href="#cb350-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb350-2"><a href="#cb350-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
-<span id="cb350-3"><a href="#cb350-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> shutil</span>
-<span id="cb350-4"><a href="#cb350-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> scipy.io</span>
-<span id="cb350-5"><a href="#cb350-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> collections <span class="im">import</span> defaultdict</span>
+<div class="sourceCode" id="cb350"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb350-1"><a href="#cb350-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb350-2"><a href="#cb350-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> shutil</span>
+<span id="cb350-3"><a href="#cb350-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> scipy.io</span>
+<span id="cb350-4"><a href="#cb350-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> collections <span class="im">import</span> defaultdict</span>
+<span id="cb350-5"><a href="#cb350-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> random</span>
 <span id="cb350-6"><a href="#cb350-6" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb350-7"><a href="#cb350-7" aria-hidden="true" tabindex="-1"></a><span class="co"># 画像ディレクトリの設定</span></span>
 <span id="cb350-8"><a href="#cb350-8" aria-hidden="true" tabindex="-1"></a>image_dir <span class="op">=</span> <span class="st">&#39;data/CACD2000&#39;</span></span>
@@ -8597,25 +8597,31 @@ ___
 <span id="cb350-18"><a href="#cb350-18" aria-hidden="true" tabindex="-1"></a><span class="co"># 画像ファイル名</span></span>
 <span id="cb350-19"><a href="#cb350-19" aria-hidden="true" tabindex="-1"></a>jpg_files <span class="op">=</span> [<span class="bu">str</span>(image_name[<span class="dv">0</span>][<span class="dv">0</span>]) <span class="cf">for</span> image_name <span class="kw">in</span> image_data[<span class="dv">0</span>][<span class="dv">0</span>][<span class="dv">7</span>]]</span>
 <span id="cb350-20"><a href="#cb350-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb350-21"><a href="#cb350-21" aria-hidden="true" tabindex="-1"></a><span class="co"># 年代ごとの画像カウント</span></span>
-<span id="cb350-22"><a href="#cb350-22" aria-hidden="true" tabindex="-1"></a>age_group_counts <span class="op">=</span> defaultdict(<span class="bu">int</span>)</span>
+<span id="cb350-21"><a href="#cb350-21" aria-hidden="true" tabindex="-1"></a><span class="co"># 年齢と画像ファイルをペアにする</span></span>
+<span id="cb350-22"><a href="#cb350-22" aria-hidden="true" tabindex="-1"></a>age_image_pairs <span class="op">=</span> <span class="bu">list</span>(<span class="bu">zip</span>(ages, jpg_files))</span>
 <span id="cb350-23"><a href="#cb350-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb350-24"><a href="#cb350-24" aria-hidden="true" tabindex="-1"></a><span class="co"># 年齢別のフォルダに画像をコピー（各年代最大100枚）</span></span>
-<span id="cb350-25"><a href="#cb350-25" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> age, jpg_file <span class="kw">in</span> <span class="bu">zip</span>(ages, jpg_files):</span>
-<span id="cb350-26"><a href="#cb350-26" aria-hidden="true" tabindex="-1"></a>    age_group <span class="op">=</span> (age <span class="op">//</span> <span class="dv">10</span>) <span class="op">*</span> <span class="dv">10</span></span>
-<span id="cb350-27"><a href="#cb350-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> age_group <span class="op">&gt;</span> <span class="dv">100</span>:</span>
-<span id="cb350-28"><a href="#cb350-28" aria-hidden="true" tabindex="-1"></a>        age_group <span class="op">=</span> <span class="dv">200</span>  <span class="co"># 100代以上は100代フォルダに保存</span></span>
+<span id="cb350-24"><a href="#cb350-24" aria-hidden="true" tabindex="-1"></a><span class="co"># 年代ごとの画像カウント</span></span>
+<span id="cb350-25"><a href="#cb350-25" aria-hidden="true" tabindex="-1"></a>age_group_counts <span class="op">=</span> defaultdict(<span class="bu">int</span>)</span>
+<span id="cb350-26"><a href="#cb350-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb350-27"><a href="#cb350-27" aria-hidden="true" tabindex="-1"></a><span class="co"># 年齢別に画像をシャッフル</span></span>
+<span id="cb350-28"><a href="#cb350-28" aria-hidden="true" tabindex="-1"></a>random.shuffle(age_image_pairs)</span>
 <span id="cb350-29"><a href="#cb350-29" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb350-30"><a href="#cb350-30" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 各年代ごとに100枚までコピー</span></span>
-<span id="cb350-31"><a href="#cb350-31" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> age_group_counts[age_group] <span class="op">&lt;</span> <span class="dv">100</span>:</span>
-<span id="cb350-32"><a href="#cb350-32" aria-hidden="true" tabindex="-1"></a>        folder_path <span class="op">=</span> os.path.join(output_dir, <span class="ss">f&#39;</span><span class="sc">{</span>age_group<span class="sc">}</span><span class="ss">s&#39;</span>)</span>
-<span id="cb350-33"><a href="#cb350-33" aria-hidden="true" tabindex="-1"></a>        os.makedirs(folder_path, exist_ok<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb350-34"><a href="#cb350-34" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb350-35"><a href="#cb350-35" aria-hidden="true" tabindex="-1"></a>        src_path <span class="op">=</span> os.path.join(image_dir, jpg_file)</span>
-<span id="cb350-36"><a href="#cb350-36" aria-hidden="true" tabindex="-1"></a>        dst_path <span class="op">=</span> os.path.join(folder_path, jpg_file)</span>
-<span id="cb350-37"><a href="#cb350-37" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb350-38"><a href="#cb350-38" aria-hidden="true" tabindex="-1"></a>        shutil.copy(src_path, dst_path)</span>
-<span id="cb350-39"><a href="#cb350-39" aria-hidden="true" tabindex="-1"></a>        age_group_counts[age_group] <span class="op">+=</span> <span class="dv">1</span></span></code></pre></div>
+<span id="cb350-30"><a href="#cb350-30" aria-hidden="true" tabindex="-1"></a><span class="co"># 年齢別のフォルダに画像をコピー（各年代最大200枚）</span></span>
+<span id="cb350-31"><a href="#cb350-31" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> age, jpg_file <span class="kw">in</span> age_image_pairs:</span>
+<span id="cb350-32"><a href="#cb350-32" aria-hidden="true" tabindex="-1"></a>    age_group <span class="op">=</span> (age <span class="op">//</span> <span class="dv">10</span>) <span class="op">*</span> <span class="dv">10</span></span>
+<span id="cb350-33"><a href="#cb350-33" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> age_group <span class="op">&gt;</span> <span class="dv">100</span>:</span>
+<span id="cb350-34"><a href="#cb350-34" aria-hidden="true" tabindex="-1"></a>        age_group <span class="op">=</span> <span class="dv">100</span>  <span class="co"># 100代以上は100代フォルダに保存</span></span>
+<span id="cb350-35"><a href="#cb350-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb350-36"><a href="#cb350-36" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 各年代ごとに200枚までコピー</span></span>
+<span id="cb350-37"><a href="#cb350-37" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> age_group_counts[age_group] <span class="op">&lt;</span> <span class="dv">200</span>:</span>
+<span id="cb350-38"><a href="#cb350-38" aria-hidden="true" tabindex="-1"></a>        folder_path <span class="op">=</span> os.path.join(output_dir, <span class="ss">f&#39;</span><span class="sc">{</span>age_group<span class="sc">}</span><span class="ss">s&#39;</span>)</span>
+<span id="cb350-39"><a href="#cb350-39" aria-hidden="true" tabindex="-1"></a>        os.makedirs(folder_path, exist_ok<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb350-40"><a href="#cb350-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb350-41"><a href="#cb350-41" aria-hidden="true" tabindex="-1"></a>        src_path <span class="op">=</span> os.path.join(image_dir, jpg_file)</span>
+<span id="cb350-42"><a href="#cb350-42" aria-hidden="true" tabindex="-1"></a>        dst_path <span class="op">=</span> os.path.join(folder_path, jpg_file)</span>
+<span id="cb350-43"><a href="#cb350-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb350-44"><a href="#cb350-44" aria-hidden="true" tabindex="-1"></a>        shutil.copy(src_path, dst_path)</span>
+<span id="cb350-45"><a href="#cb350-45" aria-hidden="true" tabindex="-1"></a>        age_group_counts[age_group] <span class="op">+=</span> <span class="dv">1</span></span></code></pre></div>
 <p>結果を確認してみます.</p>
 <div class="warn">
 <p>Shell コマンドにおける<code>|</code> は<code>パイプ</code>といって <code>head -20</code>は先頭20個のみ
@@ -8625,26 +8631,26 @@ ___
 <div class="sourceCode" id="cb351"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb351-1"><a href="#cb351-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> ls <span class="ex">data/sorted_images</span></span>
 <span id="cb351-2"><a href="#cb351-2" aria-hidden="true" tabindex="-1"></a><span class="ex">10s</span> 20s 30s 40s 50s 60s</span>
 <span id="cb351-3"><a href="#cb351-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> ls <span class="ex">data/sorted_images/10s</span> <span class="kw">|</span><span class="fu">head</span> <span class="at">-20</span></span>
-<span id="cb351-4"><a href="#cb351-4" aria-hidden="true" tabindex="-1"></a><span class="ex">14_Aaron_Johnson_0001.jpg</span></span>
-<span id="cb351-5"><a href="#cb351-5" aria-hidden="true" tabindex="-1"></a><span class="ex">14_Aaron_Johnson_0002.jpg</span></span>
-<span id="cb351-6"><a href="#cb351-6" aria-hidden="true" tabindex="-1"></a><span class="ex">14_Adelaide_Kane_0001.jpg</span></span>
-<span id="cb351-7"><a href="#cb351-7" aria-hidden="true" tabindex="-1"></a><span class="ex">14_Adelaide_Kane_0002.jpg</span></span>
-<span id="cb351-8"><a href="#cb351-8" aria-hidden="true" tabindex="-1"></a><span class="ex">14_Adelaide_Kane_0003.jpg</span></span>
-<span id="cb351-9"><a href="#cb351-9" aria-hidden="true" tabindex="-1"></a><span class="ex">14_Adelaide_Kane_0004.jpg</span></span>
-<span id="cb351-10"><a href="#cb351-10" aria-hidden="true" tabindex="-1"></a><span class="ex">14_Adelaide_Kane_0005.jpg</span></span>
-<span id="cb351-11"><a href="#cb351-11" aria-hidden="true" tabindex="-1"></a><span class="ex">14_Adelaide_Kane_0006.jpg</span></span>
-<span id="cb351-12"><a href="#cb351-12" aria-hidden="true" tabindex="-1"></a><span class="ex">14_Adelaide_Kane_0010.jpg</span></span>
-<span id="cb351-13"><a href="#cb351-13" aria-hidden="true" tabindex="-1"></a><span class="ex">14_Adelaide_Kane_0011.jpg</span></span>
-<span id="cb351-14"><a href="#cb351-14" aria-hidden="true" tabindex="-1"></a><span class="ex">14_Adelaide_Kane_0013.jpg</span></span>
-<span id="cb351-15"><a href="#cb351-15" aria-hidden="true" tabindex="-1"></a><span class="ex">14_Adelaide_Kane_0014.jpg</span></span>
-<span id="cb351-16"><a href="#cb351-16" aria-hidden="true" tabindex="-1"></a><span class="ex">14_Adelaide_Kane_0015.jpg</span></span>
-<span id="cb351-17"><a href="#cb351-17" aria-hidden="true" tabindex="-1"></a><span class="ex">14_Adelaide_Kane_0018.jpg</span></span>
-<span id="cb351-18"><a href="#cb351-18" aria-hidden="true" tabindex="-1"></a><span class="ex">14_Adelaide_Kane_0019.jpg</span></span>
-<span id="cb351-19"><a href="#cb351-19" aria-hidden="true" tabindex="-1"></a><span class="ex">14_Alex_Pettyfer_0004.jpg</span></span>
-<span id="cb351-20"><a href="#cb351-20" aria-hidden="true" tabindex="-1"></a><span class="ex">14_Alex_Pettyfer_0005.jpg</span></span>
-<span id="cb351-21"><a href="#cb351-21" aria-hidden="true" tabindex="-1"></a><span class="ex">14_Alex_Pettyfer_0007.jpg</span></span>
-<span id="cb351-22"><a href="#cb351-22" aria-hidden="true" tabindex="-1"></a><span class="ex">14_Alex_Pettyfer_0008.jpg</span></span>
-<span id="cb351-23"><a href="#cb351-23" aria-hidden="true" tabindex="-1"></a><span class="ex">14_Alex_Pettyfer_0009.jpg</span></span></code></pre></div>
+<span id="cb351-4"><a href="#cb351-4" aria-hidden="true" tabindex="-1"></a><span class="ex">19_Alison_Pill_0001.jpg</span></span>
+<span id="cb351-5"><a href="#cb351-5" aria-hidden="true" tabindex="-1"></a><span class="ex">19_Alison_Pill_0002.jpg</span></span>
+<span id="cb351-6"><a href="#cb351-6" aria-hidden="true" tabindex="-1"></a><span class="ex">19_Alison_Pill_0003.jpg</span></span>
+<span id="cb351-7"><a href="#cb351-7" aria-hidden="true" tabindex="-1"></a><span class="ex">19_Alison_Pill_0005.jpg</span></span>
+<span id="cb351-8"><a href="#cb351-8" aria-hidden="true" tabindex="-1"></a><span class="ex">19_Alison_Pill_0006.jpg</span></span>
+<span id="cb351-9"><a href="#cb351-9" aria-hidden="true" tabindex="-1"></a><span class="ex">19_Alison_Pill_0007.jpg</span></span>
+<span id="cb351-10"><a href="#cb351-10" aria-hidden="true" tabindex="-1"></a><span class="ex">19_Alison_Pill_0009.jpg</span></span>
+<span id="cb351-11"><a href="#cb351-11" aria-hidden="true" tabindex="-1"></a><span class="ex">19_Alison_Pill_0011.jpg</span></span>
+<span id="cb351-12"><a href="#cb351-12" aria-hidden="true" tabindex="-1"></a><span class="ex">19_Amanda_Seyfried_0001.jpg</span></span>
+<span id="cb351-13"><a href="#cb351-13" aria-hidden="true" tabindex="-1"></a><span class="ex">19_Amanda_Seyfried_0002.jpg</span></span>
+<span id="cb351-14"><a href="#cb351-14" aria-hidden="true" tabindex="-1"></a><span class="ex">19_Amanda_Seyfried_0004.jpg</span></span>
+<span id="cb351-15"><a href="#cb351-15" aria-hidden="true" tabindex="-1"></a><span class="ex">19_Amanda_Seyfried_0005.jpg</span></span>
+<span id="cb351-16"><a href="#cb351-16" aria-hidden="true" tabindex="-1"></a><span class="ex">19_Amanda_Seyfried_0007.jpg</span></span>
+<span id="cb351-17"><a href="#cb351-17" aria-hidden="true" tabindex="-1"></a><span class="ex">19_Amanda_Seyfried_0008.jpg</span></span>
+<span id="cb351-18"><a href="#cb351-18" aria-hidden="true" tabindex="-1"></a><span class="ex">19_Amanda_Seyfried_0010.jpg</span></span>
+<span id="cb351-19"><a href="#cb351-19" aria-hidden="true" tabindex="-1"></a><span class="ex">19_Amanda_Seyfried_0011.jpg</span></span>
+<span id="cb351-20"><a href="#cb351-20" aria-hidden="true" tabindex="-1"></a><span class="ex">19_Amanda_Seyfried_0013.jpg</span></span>
+<span id="cb351-21"><a href="#cb351-21" aria-hidden="true" tabindex="-1"></a><span class="ex">19_Amanda_Seyfried_0014.jpg</span></span>
+<span id="cb351-22"><a href="#cb351-22" aria-hidden="true" tabindex="-1"></a><span class="ex">19_Anna_Kendrick_0002.jpg</span></span>
+<span id="cb351-23"><a href="#cb351-23" aria-hidden="true" tabindex="-1"></a><span class="ex">19_Anna_Kendrick_0008.jpg</span></span></code></pre></div>
 <p>データには10代から60代までのみが含まれていたようです. 各フォルダの中身を確認してもちゃんと保存できていることがわかりますね.</p>
 <p>機械学習モデルの性能を評価するためには,学習に利用する訓練用データと,学習の結果を判定するテスト用データに分ける必要があります. 続いて,学習用とテスト用でフォルダに分割してみましょう.</p>
 <p>今回は200枚の画像のうち8割(160枚)を学習用,2割(40枚)をテスト用のデータとして利用します.</p>
@@ -8693,6 +8699,11 @@ ___
 <p>CNNを利用した学習を行うにあたって,コード内で扱われる基本的な概念を説明します.</p>
 <div class="note">
 <ul>
+<li><h2 id="ハイパーパラメータ"><strong>ハイパーパラメータ</strong></h2>
+機械学習では,プログラムが自動で学習を進めてくれますが,良い性能を達成するためには人間がいくつかのパラメータを設定する必要があります. また,様々な改善手法があるため,モデルが上手く学習できない場合には,それらを経験によって調整していく必要があります.</li>
+</ul>
+<p>本資料では,それらの細かな内容にはあまり踏み込みませんが,以下,基本的な処理やパラメータに関して説明します.</p>
+<ul>
 <li><h2 id="前処理data-augmentation"><strong>前処理(Data Augmentation)</strong></h2>
 <p>学習を行うために,画像サイズや色の内容と無関係の情報を減らし,画像を統一のフォーマットに揃えます.</p>
 <ul>
@@ -8711,7 +8722,32 @@ ___
 <ul>
 <li><strong>正規化(Normalize)</strong></li>
 </ul>
-<p>画像データを特定の範囲や分布に変換してモデルが効率的に学習できるようにする手法を正規化といいます. CNNで学習される画像データは,0<sub>255の範囲のピクセル値(色や濃淡の数値)で表現されますが,ばらつきが大きすぎると学習が不安定になるため,0</sub>1の範囲に変換します.</p></li>
+<p>画像データを特定の範囲や分布に変換してモデルが効率的に学習できるようにする手法を正規化といいます. CNNで学習される画像データは,0から255の範囲のピクセル値(色や濃淡の数値)で表現されますが,ばらつきが大きすぎると学習が不安定になるため,0から1の範囲に変換します.</p>
+<p>::: warn
+なお,正規化に利用されてい平均や標準偏差の値(<code>[0.485, 0.456, 0.406]</code>)などは,ConvNeXtの学習に用いられている,大規模画像データベース<a href="https://www.image-net.org">ImageNet</a>の平均及び標準偏差です.</p>
+<p>実際には,<strong>使用するデータの</strong>平均及び標準偏差を用いる必要がありますが今回はあくまで事例の紹介であり利用する画像データ毎に変更する必要があるので,便宜的にこの値を利用しています.</p>
+<p>テスト用の実装などでは,すべて<code>0.5</code>にするなどもよく行われていますが,本来は変更すべき値であることに注意しましょう.
+:::</p></li>
+</ul>
+<p>該当部分(全体のインデントは省略)</p>
+<div class="sourceCode" id="cb354"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb354-1"><a href="#cb354-1" aria-hidden="true" tabindex="-1"></a><span class="co"># データ変換（前処理）</span></span>
+<span id="cb354-2"><a href="#cb354-2" aria-hidden="true" tabindex="-1"></a>data_transforms <span class="op">=</span> {</span>
+<span id="cb354-3"><a href="#cb354-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;train&#39;</span>: transforms.Compose([</span>
+<span id="cb354-4"><a href="#cb354-4" aria-hidden="true" tabindex="-1"></a>        transforms.Resize((<span class="dv">224</span>, <span class="dv">224</span>)),     <span class="co">#画像のリサイズ</span></span>
+<span id="cb354-5"><a href="#cb354-5" aria-hidden="true" tabindex="-1"></a>        transforms.RandomHorizontalFlip(), <span class="co">#画像をランダムに反転</span></span>
+<span id="cb354-6"><a href="#cb354-6" aria-hidden="true" tabindex="-1"></a>        transforms.ToTensor(),             <span class="co">#テンソル(多次元配列)に変換</span></span>
+<span id="cb354-7"><a href="#cb354-7" aria-hidden="true" tabindex="-1"></a>        transforms.Normalize(mean<span class="op">=</span>[<span class="fl">0.485</span>, <span class="fl">0.456</span>, <span class="fl">0.406</span>]</span>
+<span id="cb354-8"><a href="#cb354-8" aria-hidden="true" tabindex="-1"></a>                            ,std<span class="op">=</span>[<span class="fl">0.229</span>, <span class="fl">0.224</span>, <span class="fl">0.225</span>]), <span class="co">#正規化(本来は値を変更する必要あり.</span></span>
+<span id="cb354-9"><a href="#cb354-9" aria-hidden="true" tabindex="-1"></a>    ]),</span>
+<span id="cb354-10"><a href="#cb354-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">&#39;val&#39;</span>: transforms.Compose([</span>
+<span id="cb354-11"><a href="#cb354-11" aria-hidden="true" tabindex="-1"></a>        transforms.Resize((<span class="dv">224</span>, <span class="dv">224</span>)),</span>
+<span id="cb354-12"><a href="#cb354-12" aria-hidden="true" tabindex="-1"></a>        transforms.ToTensor(),</span>
+<span id="cb354-13"><a href="#cb354-13" aria-hidden="true" tabindex="-1"></a>        transforms.Normalize([<span class="fl">0.485</span>, <span class="fl">0.456</span>, <span class="fl">0.406</span>]</span>
+<span id="cb354-14"><a href="#cb354-14" aria-hidden="true" tabindex="-1"></a>                            ,[<span class="fl">0.229</span>, <span class="fl">0.224</span>, <span class="fl">0.225</span>]),</span>
+<span id="cb354-15"><a href="#cb354-15" aria-hidden="true" tabindex="-1"></a>    ]),</span>
+<span id="cb354-16"><a href="#cb354-16" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p>この他にも画像の彩度や光度の調整, ランダム回転,スケーリングなど,様々な前処理手法があり,状況に応じて使い分ける必要があります.</p>
+<ul>
 <li><h2 id="バッチbatch処理"><strong>バッチ(batch)処理</strong></h2></li>
 </ul>
 <p>CNNでは学習用のデータ全てを一度に学習するとメモリを大量に消費するため,データを分割して学習を行います. そのような分割処理を<strong>バッチ処理</strong>といいます.</p>
@@ -8721,7 +8757,9 @@ ___
 <li><h2 id="エポックepoch数"><strong>エポック(epoch)数</strong></h2></li>
 </ul>
 <p>CNNではモデルの性能を高めるために同じデータセットを何度も繰り返して学習することがあります.その際に,データを1巡して学習する回数を,<strong>エポック数</strong>といいます. 例えば, 10エポックの場合は,160枚の画像を10回学習することになります.</p>
-<p>エポック数を増やすと一般的に性能が高まりすが,多すぎる場合には<strong>過学習</strong>が起きるので,エポック数を変更して適切な回数を見つけることが重要です.</p>
+<p>エポック数を増やすと一般的に性能が高まりすが,多すぎる場合には<strong>過学習</strong>が起きるので,エポック数を変更してある程度誤差がが安定する適切なエポック数を見つけることが重要です.</p>
+<p>また,本資料では利用していませんが,PyTorchには自動で過学習を防ぐために途中で学習を打ち切る<code>Early Stopping</code>用の機能などもあります.</p>
+<p>以下のコードでは,エポック数ごとの誤差を記録して,グラフを出力するようになっています.</p>
 <ul>
 <li><h2 id="損失関数loss-function"><strong>損失関数(Loss Function)</strong></h2>
 学習したモデルの性能を調べるために, モデルの予測と実際のラベルとの誤差(損失)を計算するための関数を<strong>損失関数</strong>といいます.
@@ -8733,254 +8771,437 @@ ___
 損失関数の値を最小化するために,どのようにモデルのパラメータを更新するかを決定するアルゴリズムを<strong>オプティマイザ</strong>といいます.</li>
 </ul>
 <p>基本的には,損失関数によって求められた誤差の勾配(パラメータに対する誤差の微分)を計算してエポック毎に誤差が減る方向にパラメータを調整します.</p>
-<p>今回利用しているアルゴリズム<strong>Adam(Adaptive Moment Estimation)</strong>は,勾配の平均と分散を利用してパラメータを調整する手法で, 現在最も広く使われているオプティマイザの一つです.</p>
+<p>よく使われるアルゴリズムには,<strong>SGD(Stochastic Gradient Descent)</strong>や,<strong>Adam(Adaptive Moment Estimation)</strong>などがあります.</p>
+<p>特定のオプティマイザで上手くいかない場合はパラメータや,アルゴリズムを変更します.</p>
+<p>該当部分(全体のインデントは省略)</p>
+<div class="sourceCode" id="cb355"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb355-1"><a href="#cb355-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 損失関数とオプティマイザ</span></span>
+<span id="cb355-2"><a href="#cb355-2" aria-hidden="true" tabindex="-1"></a>    criterion <span class="op">=</span> nn.CrossEntropyLoss() <span class="co">#クロスエントロピー損失</span></span>
+<span id="cb355-3"><a href="#cb355-3" aria-hidden="true" tabindex="-1"></a>    optimizer <span class="op">=</span> optim.Adam(model.parameters() <span class="co">#Adam</span></span>
+<span id="cb355-4"><a href="#cb355-4" aria-hidden="true" tabindex="-1"></a>                          ,lr<span class="op">=</span><span class="fl">0.0001</span>) <span class="co">#Learning rate (学習率)</span></span>
+<span id="cb355-5"><a href="#cb355-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb355-6"><a href="#cb355-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">#SGDを利用する場合</span></span>
+<span id="cb355-7"><a href="#cb355-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">#optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)</span></span></code></pre></div>
+<ul>
+<li><h2 id="学習率learning-rate"><strong>学習率(learning rate)</strong></h2>
+機械学習モデルが重み（パラメータ）を更新する際に,その更新幅を決めるハイパーパラメータを<strong>学習率(learning rate)</strong>といいます. モデルの訓練時に,誤差（損失）を最小化するために重みを調整していきますが,学習率はその調整量を決定します.</li>
+</ul>
+<p>学習率が大きい場合には1回の更新で重みが大きく変わるため,学習が速く進むことがありますが,最適な解にたどり着く前に振動してしまったり,安定せずに解に収束しないことがあります.</p>
+<p>学習率が小さい場合には,更新幅が小さいので,安定して最適解に近づく可能性が高まりますが,学習に時間がかかりすぎてしまい,訓練が遅くなることがあります.</p>
+<p>一般的には<code>0.001</code>程度から初めて変更していくのが良いとされていますが,以下の事例では調整の結果<code>0.0001</code>を採用しています.</p>
+<p>このような特性から<strong>SGD</strong>などのオプティマイザでは学習率の設定が非常に重要であり,オプティマイザとは別に学習率を調整するスケジューリングなどの技法が利用されることがあります. 一方で,<strong>Adam</strong>は,ある程度学習率を自動で調整するため,SGDほど,学習率の初期値が結果に影響しないという特徴があります.</p>
+<ul>
+<li><h2 id="ランダムシードrandom-seed"><strong>ランダムシード(Random Seed)</strong></h2>
+CNNは,初期値(重みの設定),学習データのシャッフル,オプティマイザなどで乱数(ランダムな値)を利用しているので,実行毎に異なる結果が出てくることが一般的です.</li>
+</ul>
+<p>毎回異なる値が生成されるように乱数は,通常CPU時間(プログラムを実行したときのPC内部の時間)などの外部の情報を利用します.</p>
+<p>従って, 通常この資料と同じデータを利用して,同じコードを実行しても結果は異なります.
+ただし,それでは検証などにおいて不便な場合があります.
+また,講義用資料としても不便なので,同じ乱数を利用してできるだけ同じ結果を再現する必要があります.</p>
+<p>そこで,以下のコードでは利用する乱数を固定するために,乱数を生成するための情報<strong>ランダムシード</strong>を固定しています.</p>
+<p>シード値は適当な数値で構いません. 西暦(<code>2024</code>)や,適当な連番(<code>1234</code>など),特定のミームの数字(<code>42</code>など)が用いられます.</p>
+<p>(ただし,実行環境などの違いにより,ランダムシードを固定しても完全に同じ値にはなりません.)</p>
+<p><code>set_seed()</code>行をコメントアウトすることで,通常の乱数が利用できるようになるので,研究に利用する場合などには適宜変更してください.</p>
+<p>該当部分(全体のインデントは省略)</p>
+<div class="sourceCode" id="cb356"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb356-1"><a href="#cb356-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 乱数シードを設定</span></span>
+<span id="cb356-2"><a href="#cb356-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> set_seed(seed):</span>
+<span id="cb356-3"><a href="#cb356-3" aria-hidden="true" tabindex="-1"></a>    torch.manual_seed(seed)</span>
+<span id="cb356-4"><a href="#cb356-4" aria-hidden="true" tabindex="-1"></a>    np.random.seed(seed)              <span class="co"># Numpy用の乱数シードを設定</span></span>
+<span id="cb356-5"><a href="#cb356-5" aria-hidden="true" tabindex="-1"></a>    random.seed(seed)                 <span class="co"># Pythonの標準乱数シードを設定</span></span>
+<span id="cb356-6"><a href="#cb356-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb356-7"><a href="#cb356-7" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 再現性を完全に保証するために以下も設定（ただし、若干のパフォーマンス低下の可能性あり）</span></span>
+<span id="cb356-8"><a href="#cb356-8" aria-hidden="true" tabindex="-1"></a>    torch.backends.cudnn.deterministic <span class="op">=</span> <span class="va">True</span></span>
+<span id="cb356-9"><a href="#cb356-9" aria-hidden="true" tabindex="-1"></a>    torch.backends.cudnn.benchmark <span class="op">=</span> <span class="va">False</span></span>
+<span id="cb356-10"><a href="#cb356-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb356-11"><a href="#cb356-11" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> main():</span>
+<span id="cb356-12"><a href="#cb356-12" aria-hidden="true" tabindex="-1"></a>    <span class="co"># シードを設定する</span></span>
+<span id="cb356-13"><a href="#cb356-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">#(自分の研究でやる場合は以下の行は消しても問題ない.)</span></span>
+<span id="cb356-14"><a href="#cb356-14" aria-hidden="true" tabindex="-1"></a>    set_seed(<span class="dv">42</span>)</span></code></pre></div>
+<ul>
+<li><h2 id="cuda-compute-unified-device-architecture"><strong>CUDA (Compute Unified Device Architecture)</strong></h2>
+機械学習では, GPUを用いた計算を行うことが一般的です. 特にPyTorchなどでは,NVIDIAが開発したGPU向けの並列コンピューティングプラットフォームである<strong>CUDA (Compute Unified Device Architecture)</strong>を前提にライブラリが開発されています.
+従って, <strong>CUDA</strong>が搭載されたPCでは,<strong>CUDA</strong>を利用することが望ましいです.</li>
+</ul>
+<p>しかし,例えば現在のMacOSは<strong>CUDA</strong>に対応しておらず, WindowsPCでもコストなどの観点から異なるGPUが搭載されている場合があります.</p>
+<p>M1〜M3などのApple Siliconを搭載したMacでは,PyTorchの実行にあたり<strong>CUDA</strong>の代わりに<strong>MPS (Metal Performance Shaders)</strong>が利用可能です.</p>
+<p>PyTorchでは<code>torch.device()</code>で利用するデバイスを設定できますが,以下のコードでは, CUDA, MPSが利用できる場合にはそれらを利用し,利用できない場合にはCPUを利用しています.</p>
+<p>該当部分(全体のインデントは省略)</p>
+<div class="sourceCode" id="cb357"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb357-1"><a href="#cb357-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> torch.backends.mps.is_available():</span>
+<span id="cb357-2"><a href="#cb357-2" aria-hidden="true" tabindex="-1"></a>    device <span class="op">=</span> torch.device(<span class="st">&quot;mps&quot;</span>) <span class="co">#Mac GPU</span></span>
+<span id="cb357-3"><a href="#cb357-3" aria-hidden="true" tabindex="-1"></a><span class="cf">elif</span> torch.cuda.is_available():</span>
+<span id="cb357-4"><a href="#cb357-4" aria-hidden="true" tabindex="-1"></a>    device <span class="op">=</span> torch.device(<span class="st">&quot;cuda:0&quot;</span>) <span class="co">#Win GPU</span></span>
+<span id="cb357-5"><a href="#cb357-5" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span>:</span>
+<span id="cb357-6"><a href="#cb357-6" aria-hidden="true" tabindex="-1"></a>    device <span class="op">=</span> torch.device(<span class="st">&quot;cpu&quot;</span>) <span class="co">#CPU</span></span></code></pre></div>
 </div>
 <p>これから,先程分割した画像を利用してConvNeXtによる学習を行い, PCAとt-sneで2次元へ次元削減した後,ラベルごとの特徴を可視化してみます.</p>
 <div class="warn">
+<p>以下のコードを実行すると,PCのスペックによっては10分以上ほぼ全てのCPU/GPUが使用されます.
+他の不必要なアプリを閉じて,時間に余裕があるときに電源に繋いだ状態で実行しましょう.
+このコードは学生のローカル環境でも動くようになっていますが,上手くいかない場合はGoogle Colaboratory上で試してみましょう.</p>
+</div>
+<div class="warn">
 <p>コードを実行して以下のようなWarningが表示される場合,個別の環境によって対処が異なるので教員に
 相談してください.</p>
-<div class="sourceCode" id="cb354"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb354-1"><a href="#cb354-1" aria-hidden="true" tabindex="-1"></a><span class="ex">Found</span> Intel OpenMP <span class="er">(</span><span class="st">&#39;libiomp&#39;</span><span class="kw">)</span> <span class="ex">and</span> LLVM OpenMP <span class="er">(</span><span class="st">&#39;libomp&#39;</span><span class="kw">)</span> <span class="ex">loaded</span> at</span>
-<span id="cb354-2"><a href="#cb354-2" aria-hidden="true" tabindex="-1"></a><span class="ex">the</span> same time. Both libraries are known to be incompatible and this</span>
-<span id="cb354-3"><a href="#cb354-3" aria-hidden="true" tabindex="-1"></a><span class="ex">can</span> cause random crashes or deadlocks on Linux when loaded in the</span>
-<span id="cb354-4"><a href="#cb354-4" aria-hidden="true" tabindex="-1"></a><span class="ex">same</span> Python program.</span>
-<span id="cb354-5"><a href="#cb354-5" aria-hidden="true" tabindex="-1"></a><span class="ex">Using</span> threadpoolctl may cause crashes or deadlocks. For more</span>
-<span id="cb354-6"><a href="#cb354-6" aria-hidden="true" tabindex="-1"></a><span class="ex">information</span> and possible workarounds, please see</span>
-<span id="cb354-7"><a href="#cb354-7" aria-hidden="true" tabindex="-1"></a>    <span class="ex">https://github.com/joblib/threadpoolctl/blob/master/multiple_openmp.md</span></span></code></pre></div>
+<div class="sourceCode" id="cb358"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb358-1"><a href="#cb358-1" aria-hidden="true" tabindex="-1"></a><span class="ex">Found</span> Intel OpenMP <span class="er">(</span><span class="st">&#39;libiomp&#39;</span><span class="kw">)</span> <span class="ex">and</span> LLVM OpenMP <span class="er">(</span><span class="st">&#39;libomp&#39;</span><span class="kw">)</span> <span class="ex">loaded</span> at</span>
+<span id="cb358-2"><a href="#cb358-2" aria-hidden="true" tabindex="-1"></a><span class="ex">the</span> same time. Both libraries are known to be incompatible and this</span>
+<span id="cb358-3"><a href="#cb358-3" aria-hidden="true" tabindex="-1"></a><span class="ex">can</span> cause random crashes or deadlocks on Linux when loaded in the</span>
+<span id="cb358-4"><a href="#cb358-4" aria-hidden="true" tabindex="-1"></a><span class="ex">same</span> Python program.</span>
+<span id="cb358-5"><a href="#cb358-5" aria-hidden="true" tabindex="-1"></a><span class="ex">Using</span> threadpoolctl may cause crashes or deadlocks. For more</span>
+<span id="cb358-6"><a href="#cb358-6" aria-hidden="true" tabindex="-1"></a><span class="ex">information</span> and possible workarounds, please see</span>
+<span id="cb358-7"><a href="#cb358-7" aria-hidden="true" tabindex="-1"></a>    <span class="ex">https://github.com/joblib/threadpoolctl/blob/master/multiple_openmp.md</span></span></code></pre></div>
 </div>
-<div class="sourceCode" id="cb355"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb355-1"><a href="#cb355-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
-<span id="cb355-2"><a href="#cb355-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb355-3"><a href="#cb355-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
-<span id="cb355-4"><a href="#cb355-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
-<span id="cb355-5"><a href="#cb355-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-6"><a href="#cb355-6" aria-hidden="true" tabindex="-1"></a><span class="co"># 次元削減用</span></span>
-<span id="cb355-7"><a href="#cb355-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.manifold <span class="im">import</span> TSNE</span>
-<span id="cb355-8"><a href="#cb355-8" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.decomposition <span class="im">import</span> PCA</span>
-<span id="cb355-9"><a href="#cb355-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-10"><a href="#cb355-10" aria-hidden="true" tabindex="-1"></a><span class="co"># CNN用</span></span>
-<span id="cb355-11"><a href="#cb355-11" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
-<span id="cb355-12"><a href="#cb355-12" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch.nn <span class="im">as</span> nn</span>
-<span id="cb355-13"><a href="#cb355-13" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch.optim <span class="im">as</span> optim</span>
-<span id="cb355-14"><a href="#cb355-14" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torchvision <span class="im">import</span> datasets, transforms, models</span>
-<span id="cb355-15"><a href="#cb355-15" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch.utils.data <span class="im">import</span> DataLoader</span>
-<span id="cb355-16"><a href="#cb355-16" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torchvision.models <span class="im">import</span> ConvNeXt_Tiny_Weights</span>
-<span id="cb355-17"><a href="#cb355-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-18"><a href="#cb355-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-19"><a href="#cb355-19" aria-hidden="true" tabindex="-1"></a><span class="co">#学習した特徴量を抽出する</span></span>
-<span id="cb355-20"><a href="#cb355-20" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> extract_features(model, dataloader, device):</span>
-<span id="cb355-21"><a href="#cb355-21" aria-hidden="true" tabindex="-1"></a>    model.<span class="bu">eval</span>()</span>
-<span id="cb355-22"><a href="#cb355-22" aria-hidden="true" tabindex="-1"></a>    features <span class="op">=</span> []</span>
-<span id="cb355-23"><a href="#cb355-23" aria-hidden="true" tabindex="-1"></a>    labels_list <span class="op">=</span> []</span>
-<span id="cb355-24"><a href="#cb355-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-25"><a href="#cb355-25" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> torch.no_grad():</span>
-<span id="cb355-26"><a href="#cb355-26" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> inputs, labels <span class="kw">in</span> dataloader:</span>
-<span id="cb355-27"><a href="#cb355-27" aria-hidden="true" tabindex="-1"></a>            inputs <span class="op">=</span> inputs.to(device)</span>
-<span id="cb355-28"><a href="#cb355-28" aria-hidden="true" tabindex="-1"></a>            labels <span class="op">=</span> labels.to(device)</span>
-<span id="cb355-29"><a href="#cb355-29" aria-hidden="true" tabindex="-1"></a>            outputs <span class="op">=</span> model(inputs)</span>
-<span id="cb355-30"><a href="#cb355-30" aria-hidden="true" tabindex="-1"></a>            features.append(outputs.cpu())</span>
-<span id="cb355-31"><a href="#cb355-31" aria-hidden="true" tabindex="-1"></a>            labels_list.append(labels.cpu())</span>
-<span id="cb355-32"><a href="#cb355-32" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-33"><a href="#cb355-33" aria-hidden="true" tabindex="-1"></a>    features <span class="op">=</span> torch.cat(features, dim<span class="op">=</span><span class="dv">0</span>)</span>
-<span id="cb355-34"><a href="#cb355-34" aria-hidden="true" tabindex="-1"></a>    labels <span class="op">=</span> torch.cat(labels_list, dim<span class="op">=</span><span class="dv">0</span>)</span>
-<span id="cb355-35"><a href="#cb355-35" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-36"><a href="#cb355-36" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> features, labels</span>
-<span id="cb355-37"><a href="#cb355-37" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-38"><a href="#cb355-38" aria-hidden="true" tabindex="-1"></a><span class="co"># t-SNEによる次元圧縮と散布図の描画</span></span>
-<span id="cb355-39"><a href="#cb355-39" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> plot_tsne(train_features, train_labels, path):</span>
-<span id="cb355-40"><a href="#cb355-40" aria-hidden="true" tabindex="-1"></a>    <span class="co"># train_featuresとtrain_labelsをnumpyに変換</span></span>
-<span id="cb355-41"><a href="#cb355-41" aria-hidden="true" tabindex="-1"></a>    features_np <span class="op">=</span> train_features.numpy()</span>
-<span id="cb355-42"><a href="#cb355-42" aria-hidden="true" tabindex="-1"></a>    labels_np <span class="op">=</span> train_labels.numpy()</span>
-<span id="cb355-43"><a href="#cb355-43" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-44"><a href="#cb355-44" aria-hidden="true" tabindex="-1"></a>    <span class="co"># t-SNEによる次元圧縮 (2次元)</span></span>
-<span id="cb355-45"><a href="#cb355-45" aria-hidden="true" tabindex="-1"></a>    tsne <span class="op">=</span> TSNE(n_components<span class="op">=</span><span class="dv">2</span>, random_state<span class="op">=</span><span class="dv">42</span>)</span>
-<span id="cb355-46"><a href="#cb355-46" aria-hidden="true" tabindex="-1"></a>    features_2d <span class="op">=</span> tsne.fit_transform(features_np)</span>
-<span id="cb355-47"><a href="#cb355-47" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-48"><a href="#cb355-48" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 散布図の描画</span></span>
-<span id="cb355-49"><a href="#cb355-49" aria-hidden="true" tabindex="-1"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">8</span>))</span>
-<span id="cb355-50"><a href="#cb355-50" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-51"><a href="#cb355-51" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 各ラベルに基づいて色分けしてプロット</span></span>
-<span id="cb355-52"><a href="#cb355-52" aria-hidden="true" tabindex="-1"></a>    num_classes <span class="op">=</span> <span class="bu">len</span>(np.unique(labels_np))  <span class="co"># クラス数を取得</span></span>
-<span id="cb355-53"><a href="#cb355-53" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> label <span class="kw">in</span> np.unique(labels_np):</span>
-<span id="cb355-54"><a href="#cb355-54" aria-hidden="true" tabindex="-1"></a>        indices <span class="op">=</span> np.where(labels_np <span class="op">==</span> label)</span>
-<span id="cb355-55"><a href="#cb355-55" aria-hidden="true" tabindex="-1"></a>        plt.scatter(features_2d[indices, <span class="dv">0</span>], features_2d[indices, <span class="dv">1</span>], label<span class="op">=</span><span class="ss">f&#39;</span><span class="sc">{</span>label <span class="op">*</span> <span class="dv">10</span><span class="sc">}</span><span class="ss">s&#39;</span>, alpha<span class="op">=</span><span class="fl">0.6</span>)</span>
-<span id="cb355-56"><a href="#cb355-56" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-57"><a href="#cb355-57" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">&#39;t-SNE of Train Features&#39;</span>)</span>
-<span id="cb355-58"><a href="#cb355-58" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">&#39;t-SNE Component 1&#39;</span>)</span>
-<span id="cb355-59"><a href="#cb355-59" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">&#39;t-SNE Component 2&#39;</span>)</span>
-<span id="cb355-60"><a href="#cb355-60" aria-hidden="true" tabindex="-1"></a>    plt.legend(title<span class="op">=</span><span class="st">&quot;Age Group&quot;</span>)</span>
-<span id="cb355-61"><a href="#cb355-61" aria-hidden="true" tabindex="-1"></a>    plt.grid(<span class="va">True</span>)</span>
-<span id="cb355-62"><a href="#cb355-62" aria-hidden="true" tabindex="-1"></a>    plt.show()</span>
-<span id="cb355-63"><a href="#cb355-63" aria-hidden="true" tabindex="-1"></a>    plt.savefig(path)</span>
-<span id="cb355-64"><a href="#cb355-64" aria-hidden="true" tabindex="-1"></a>    plt.close()</span>
-<span id="cb355-65"><a href="#cb355-65" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-66"><a href="#cb355-66" aria-hidden="true" tabindex="-1"></a><span class="co"># PCAによる次元圧縮と散布図の描画</span></span>
-<span id="cb355-67"><a href="#cb355-67" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> plot_pca(train_features, train_labels, path):</span>
-<span id="cb355-68"><a href="#cb355-68" aria-hidden="true" tabindex="-1"></a>    <span class="co"># train_featuresとtrain_labelsをnumpyに変換</span></span>
-<span id="cb355-69"><a href="#cb355-69" aria-hidden="true" tabindex="-1"></a>    features_np <span class="op">=</span> train_features.numpy()</span>
-<span id="cb355-70"><a href="#cb355-70" aria-hidden="true" tabindex="-1"></a>    labels_np <span class="op">=</span> train_labels.numpy()</span>
-<span id="cb355-71"><a href="#cb355-71" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-72"><a href="#cb355-72" aria-hidden="true" tabindex="-1"></a>    <span class="co"># PCAによる次元圧縮 (2次元)</span></span>
-<span id="cb355-73"><a href="#cb355-73" aria-hidden="true" tabindex="-1"></a>    pca <span class="op">=</span> PCA(n_components<span class="op">=</span><span class="dv">2</span>)</span>
-<span id="cb355-74"><a href="#cb355-74" aria-hidden="true" tabindex="-1"></a>    features_2d <span class="op">=</span> pca.fit_transform(features_np)</span>
-<span id="cb355-75"><a href="#cb355-75" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-76"><a href="#cb355-76" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 散布図の描画</span></span>
-<span id="cb355-77"><a href="#cb355-77" aria-hidden="true" tabindex="-1"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">8</span>))</span>
-<span id="cb355-78"><a href="#cb355-78" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-79"><a href="#cb355-79" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 各ラベルに基づいて色分けしてプロット</span></span>
-<span id="cb355-80"><a href="#cb355-80" aria-hidden="true" tabindex="-1"></a>    num_classes <span class="op">=</span> <span class="bu">len</span>(np.unique(labels_np))  <span class="co"># クラス数を取得</span></span>
-<span id="cb355-81"><a href="#cb355-81" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> label <span class="kw">in</span> np.unique(labels_np):</span>
-<span id="cb355-82"><a href="#cb355-82" aria-hidden="true" tabindex="-1"></a>        indices <span class="op">=</span> np.where(labels_np <span class="op">==</span> label)</span>
-<span id="cb355-83"><a href="#cb355-83" aria-hidden="true" tabindex="-1"></a>        plt.scatter(features_2d[indices, <span class="dv">0</span>], features_2d[indices, <span class="dv">1</span>], label<span class="op">=</span><span class="ss">f&#39;</span><span class="sc">{</span>label <span class="op">*</span> <span class="dv">10</span><span class="sc">}</span><span class="ss">s&#39;</span>, alpha<span class="op">=</span><span class="fl">0.6</span>)</span>
-<span id="cb355-84"><a href="#cb355-84" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-85"><a href="#cb355-85" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">&#39;PCA of Train Features&#39;</span>)</span>
-<span id="cb355-86"><a href="#cb355-86" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">&#39;PCA Component 1&#39;</span>)</span>
-<span id="cb355-87"><a href="#cb355-87" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">&#39;PCA Component 2&#39;</span>)</span>
-<span id="cb355-88"><a href="#cb355-88" aria-hidden="true" tabindex="-1"></a>    plt.legend(title<span class="op">=</span><span class="st">&quot;Age Group&quot;</span>)</span>
-<span id="cb355-89"><a href="#cb355-89" aria-hidden="true" tabindex="-1"></a>    plt.grid(<span class="va">True</span>)</span>
-<span id="cb355-90"><a href="#cb355-90" aria-hidden="true" tabindex="-1"></a>    plt.show()</span>
-<span id="cb355-91"><a href="#cb355-91" aria-hidden="true" tabindex="-1"></a>    plt.savefig(path)</span>
-<span id="cb355-92"><a href="#cb355-92" aria-hidden="true" tabindex="-1"></a>    plt.close()</span>
-<span id="cb355-93"><a href="#cb355-93" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-94"><a href="#cb355-94" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> main():</span>
-<span id="cb355-95"><a href="#cb355-95" aria-hidden="true" tabindex="-1"></a>    <span class="co"># データのディレクトリ設定</span></span>
-<span id="cb355-96"><a href="#cb355-96" aria-hidden="true" tabindex="-1"></a>    data_dir <span class="op">=</span> <span class="st">&#39;data/sorted_images_split&#39;</span></span>
-<span id="cb355-97"><a href="#cb355-97" aria-hidden="true" tabindex="-1"></a>    batch_size <span class="op">=</span> <span class="dv">32</span></span>
-<span id="cb355-98"><a href="#cb355-98" aria-hidden="true" tabindex="-1"></a>    num_epochs <span class="op">=</span> <span class="dv">10</span></span>
-<span id="cb355-99"><a href="#cb355-99" aria-hidden="true" tabindex="-1"></a>    num_classes <span class="op">=</span> <span class="dv">10</span>  <span class="co"># 10代, 20代, ..., 100代</span></span>
-<span id="cb355-100"><a href="#cb355-100" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-101"><a href="#cb355-101" aria-hidden="true" tabindex="-1"></a>    <span class="co"># データ変換（前処理）</span></span>
-<span id="cb355-102"><a href="#cb355-102" aria-hidden="true" tabindex="-1"></a>    data_transforms <span class="op">=</span> {</span>
-<span id="cb355-103"><a href="#cb355-103" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;train&#39;</span>: transforms.Compose([</span>
-<span id="cb355-104"><a href="#cb355-104" aria-hidden="true" tabindex="-1"></a>            transforms.Resize((<span class="dv">224</span>, <span class="dv">224</span>)),     <span class="co">#画像のリサイズ</span></span>
-<span id="cb355-105"><a href="#cb355-105" aria-hidden="true" tabindex="-1"></a>            transforms.RandomHorizontalFlip(), <span class="co">#画像をランダムに反転</span></span>
-<span id="cb355-106"><a href="#cb355-106" aria-hidden="true" tabindex="-1"></a>            transforms.ToTensor(),             <span class="co">#テンソル(多次元配列)に変換</span></span>
-<span id="cb355-107"><a href="#cb355-107" aria-hidden="true" tabindex="-1"></a>            transforms.Normalize([<span class="fl">0.485</span>, <span class="fl">0.456</span>, <span class="fl">0.406</span>]</span>
-<span id="cb355-108"><a href="#cb355-108" aria-hidden="true" tabindex="-1"></a>                                ,[<span class="fl">0.229</span>, <span class="fl">0.224</span>, <span class="fl">0.225</span>]),<span class="co">#正規化</span></span>
-<span id="cb355-109"><a href="#cb355-109" aria-hidden="true" tabindex="-1"></a>        ]),</span>
-<span id="cb355-110"><a href="#cb355-110" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;val&#39;</span>: transforms.Compose([</span>
-<span id="cb355-111"><a href="#cb355-111" aria-hidden="true" tabindex="-1"></a>            transforms.Resize((<span class="dv">224</span>, <span class="dv">224</span>)),</span>
-<span id="cb355-112"><a href="#cb355-112" aria-hidden="true" tabindex="-1"></a>            transforms.ToTensor(),</span>
-<span id="cb355-113"><a href="#cb355-113" aria-hidden="true" tabindex="-1"></a>            transforms.Normalize([<span class="fl">0.485</span>, <span class="fl">0.456</span>, <span class="fl">0.406</span>], [<span class="fl">0.229</span>, <span class="fl">0.224</span>, <span class="fl">0.225</span>]),</span>
-<span id="cb355-114"><a href="#cb355-114" aria-hidden="true" tabindex="-1"></a>        ]),</span>
-<span id="cb355-115"><a href="#cb355-115" aria-hidden="true" tabindex="-1"></a>    }</span>
-<span id="cb355-116"><a href="#cb355-116" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-117"><a href="#cb355-117" aria-hidden="true" tabindex="-1"></a>    <span class="co"># データセットの読み込み</span></span>
-<span id="cb355-118"><a href="#cb355-118" aria-hidden="true" tabindex="-1"></a>    image_datasets <span class="op">=</span> {x: datasets.ImageFolder(os.path.join(data_dir, x),</span>
-<span id="cb355-119"><a href="#cb355-119" aria-hidden="true" tabindex="-1"></a>                                              data_transforms[x])</span>
-<span id="cb355-120"><a href="#cb355-120" aria-hidden="true" tabindex="-1"></a>                      <span class="cf">for</span> x <span class="kw">in</span> [<span class="st">&#39;train&#39;</span>, <span class="st">&#39;val&#39;</span>]}</span>
-<span id="cb355-121"><a href="#cb355-121" aria-hidden="true" tabindex="-1"></a>    dataloaders <span class="op">=</span> {x: DataLoader(image_datasets[x], batch_size<span class="op">=</span>batch_size,</span>
-<span id="cb355-122"><a href="#cb355-122" aria-hidden="true" tabindex="-1"></a>                                 shuffle<span class="op">=</span><span class="va">True</span>, num_workers<span class="op">=</span><span class="dv">4</span>)</span>
-<span id="cb355-123"><a href="#cb355-123" aria-hidden="true" tabindex="-1"></a>                   <span class="cf">for</span> x <span class="kw">in</span> [<span class="st">&#39;train&#39;</span>, <span class="st">&#39;val&#39;</span>]}</span>
-<span id="cb355-124"><a href="#cb355-124" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-125"><a href="#cb355-125" aria-hidden="true" tabindex="-1"></a>    <span class="co"># デバイス設定</span></span>
-<span id="cb355-126"><a href="#cb355-126" aria-hidden="true" tabindex="-1"></a>    <span class="co">#GPUが利用できる場合はGPUを使う,そうでない場合はCPUを計算に利用します.</span></span>
-<span id="cb355-127"><a href="#cb355-127" aria-hidden="true" tabindex="-1"></a>    device <span class="op">=</span> torch.device(<span class="st">&quot;cuda:0&quot;</span> <span class="cf">if</span> torch.cuda.is_available() <span class="cf">else</span> <span class="st">&quot;cpu&quot;</span>)</span>
-<span id="cb355-128"><a href="#cb355-128" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-129"><a href="#cb355-129" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ConvNextモデルの読み込みとカスタマイズ</span></span>
-<span id="cb355-130"><a href="#cb355-130" aria-hidden="true" tabindex="-1"></a>    weights <span class="op">=</span> ConvNeXt_Tiny_Weights.IMAGENET1K_V1  <span class="co"># 最新の重みを指定</span></span>
-<span id="cb355-131"><a href="#cb355-131" aria-hidden="true" tabindex="-1"></a>    model <span class="op">=</span> models.convnext_tiny(weights<span class="op">=</span>weights)  <span class="co"># ConvNextの小さいモデルを使用</span></span>
-<span id="cb355-132"><a href="#cb355-132" aria-hidden="true" tabindex="-1"></a>    num_ftrs <span class="op">=</span> model.classifier[<span class="dv">2</span>].in_features</span>
-<span id="cb355-133"><a href="#cb355-133" aria-hidden="true" tabindex="-1"></a>    model.classifier[<span class="dv">2</span>] <span class="op">=</span> nn.Linear(num_ftrs, num_classes)  <span class="co"># 出力を10クラスに変更</span></span>
-<span id="cb355-134"><a href="#cb355-134" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-135"><a href="#cb355-135" aria-hidden="true" tabindex="-1"></a>    model <span class="op">=</span> model.to(device)</span>
-<span id="cb355-136"><a href="#cb355-136" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-137"><a href="#cb355-137" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 損失関数とオプティマイザ</span></span>
-<span id="cb355-138"><a href="#cb355-138" aria-hidden="true" tabindex="-1"></a>    criterion <span class="op">=</span> nn.CrossEntropyLoss() <span class="co">#クロスエントロピー損失</span></span>
-<span id="cb355-139"><a href="#cb355-139" aria-hidden="true" tabindex="-1"></a>    optimizer <span class="op">=</span> optim.Adam(model.parameters(), lr<span class="op">=</span><span class="fl">0.001</span>) <span class="co">#Adam</span></span>
-<span id="cb355-140"><a href="#cb355-140" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-141"><a href="#cb355-141" aria-hidden="true" tabindex="-1"></a>    <span class="co">#結果の記録用</span></span>
-<span id="cb355-142"><a href="#cb355-142" aria-hidden="true" tabindex="-1"></a>    train_losses <span class="op">=</span> []</span>
-<span id="cb355-143"><a href="#cb355-143" aria-hidden="true" tabindex="-1"></a>    train_accuracies <span class="op">=</span> []</span>
-<span id="cb355-144"><a href="#cb355-144" aria-hidden="true" tabindex="-1"></a>    val_losses <span class="op">=</span> []</span>
-<span id="cb355-145"><a href="#cb355-145" aria-hidden="true" tabindex="-1"></a>    val_accuracies <span class="op">=</span> []</span>
-<span id="cb355-146"><a href="#cb355-146" aria-hidden="true" tabindex="-1"></a>    results <span class="op">=</span> []</span>
-<span id="cb355-147"><a href="#cb355-147" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-148"><a href="#cb355-148" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 学習ループ</span></span>
-<span id="cb355-149"><a href="#cb355-149" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> epoch <span class="kw">in</span> <span class="bu">range</span>(num_epochs):</span>
-<span id="cb355-150"><a href="#cb355-150" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f&#39;Epoch </span><span class="sc">{</span>epoch<span class="op">+</span><span class="dv">1</span><span class="sc">}</span><span class="ss">/</span><span class="sc">{</span>num_epochs<span class="sc">}</span><span class="ss">&#39;</span>)</span>
-<span id="cb355-151"><a href="#cb355-151" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="st">&#39;-&#39;</span> <span class="op">*</span> <span class="dv">10</span>)</span>
-<span id="cb355-152"><a href="#cb355-152" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-153"><a href="#cb355-153" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> phase <span class="kw">in</span> [<span class="st">&#39;train&#39;</span>, <span class="st">&#39;val&#39;</span>]:</span>
-<span id="cb355-154"><a href="#cb355-154" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> phase <span class="op">==</span> <span class="st">&#39;train&#39;</span>:</span>
-<span id="cb355-155"><a href="#cb355-155" aria-hidden="true" tabindex="-1"></a>                model.train()</span>
-<span id="cb355-156"><a href="#cb355-156" aria-hidden="true" tabindex="-1"></a>            <span class="cf">else</span>:</span>
-<span id="cb355-157"><a href="#cb355-157" aria-hidden="true" tabindex="-1"></a>                model.<span class="bu">eval</span>()</span>
-<span id="cb355-158"><a href="#cb355-158" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-159"><a href="#cb355-159" aria-hidden="true" tabindex="-1"></a>            running_loss <span class="op">=</span> <span class="fl">0.0</span></span>
-<span id="cb355-160"><a href="#cb355-160" aria-hidden="true" tabindex="-1"></a>            running_corrects <span class="op">=</span> <span class="dv">0</span></span>
-<span id="cb355-161"><a href="#cb355-161" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-162"><a href="#cb355-162" aria-hidden="true" tabindex="-1"></a>            <span class="cf">for</span> inputs, labels <span class="kw">in</span> dataloaders[phase]:</span>
-<span id="cb355-163"><a href="#cb355-163" aria-hidden="true" tabindex="-1"></a>                inputs <span class="op">=</span> inputs.to(device)</span>
-<span id="cb355-164"><a href="#cb355-164" aria-hidden="true" tabindex="-1"></a>                labels <span class="op">=</span> labels.to(device)</span>
-<span id="cb355-165"><a href="#cb355-165" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-166"><a href="#cb355-166" aria-hidden="true" tabindex="-1"></a>                optimizer.zero_grad()</span>
-<span id="cb355-167"><a href="#cb355-167" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-168"><a href="#cb355-168" aria-hidden="true" tabindex="-1"></a>                <span class="cf">with</span> torch.set_grad_enabled(phase <span class="op">==</span> <span class="st">&#39;train&#39;</span>):</span>
-<span id="cb355-169"><a href="#cb355-169" aria-hidden="true" tabindex="-1"></a>                    outputs <span class="op">=</span> model(inputs)</span>
-<span id="cb355-170"><a href="#cb355-170" aria-hidden="true" tabindex="-1"></a>                    _, preds <span class="op">=</span> torch.<span class="bu">max</span>(outputs, <span class="dv">1</span>)</span>
-<span id="cb355-171"><a href="#cb355-171" aria-hidden="true" tabindex="-1"></a>                    loss <span class="op">=</span> criterion(outputs, labels)</span>
-<span id="cb355-172"><a href="#cb355-172" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-173"><a href="#cb355-173" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">if</span> phase <span class="op">==</span> <span class="st">&#39;train&#39;</span>:</span>
-<span id="cb355-174"><a href="#cb355-174" aria-hidden="true" tabindex="-1"></a>                        loss.backward()</span>
-<span id="cb355-175"><a href="#cb355-175" aria-hidden="true" tabindex="-1"></a>                        optimizer.step()</span>
-<span id="cb355-176"><a href="#cb355-176" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-177"><a href="#cb355-177" aria-hidden="true" tabindex="-1"></a>                running_loss <span class="op">+=</span> loss.item() <span class="op">*</span> inputs.size(<span class="dv">0</span>)</span>
-<span id="cb355-178"><a href="#cb355-178" aria-hidden="true" tabindex="-1"></a>                running_corrects <span class="op">+=</span> torch.<span class="bu">sum</span>(preds <span class="op">==</span> labels.data)</span>
-<span id="cb355-179"><a href="#cb355-179" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> phase <span class="op">==</span> <span class="st">&#39;val&#39;</span>:  <span class="co"># バリデーション時に予測と実際のラベルを保存</span></span>
-<span id="cb355-180"><a href="#cb355-180" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(labels)):</span>
-<span id="cb355-181"><a href="#cb355-181" aria-hidden="true" tabindex="-1"></a>                        results.append({</span>
-<span id="cb355-182"><a href="#cb355-182" aria-hidden="true" tabindex="-1"></a>                            <span class="st">&#39;epoch&#39;</span>: epoch <span class="op">+</span> <span class="dv">1</span>,</span>
-<span id="cb355-183"><a href="#cb355-183" aria-hidden="true" tabindex="-1"></a>                            <span class="st">&#39;pred&#39;</span>: preds[i].item(),</span>
-<span id="cb355-184"><a href="#cb355-184" aria-hidden="true" tabindex="-1"></a>                            <span class="st">&#39;acctual&#39;</span>: labels[i].item()</span>
-<span id="cb355-185"><a href="#cb355-185" aria-hidden="true" tabindex="-1"></a>                        })</span>
-<span id="cb355-186"><a href="#cb355-186" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-187"><a href="#cb355-187" aria-hidden="true" tabindex="-1"></a>            epoch_loss <span class="op">=</span> running_loss <span class="op">/</span> <span class="bu">len</span>(image_datasets[phase])</span>
-<span id="cb355-188"><a href="#cb355-188" aria-hidden="true" tabindex="-1"></a>            epoch_acc <span class="op">=</span> running_corrects.double() <span class="op">/</span> <span class="bu">len</span>(image_datasets[phase])</span>
-<span id="cb355-189"><a href="#cb355-189" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-190"><a href="#cb355-190" aria-hidden="true" tabindex="-1"></a>            <span class="bu">print</span>(<span class="ss">f&#39;</span><span class="sc">{</span>phase<span class="sc">}</span><span class="ss"> Loss: </span><span class="sc">{</span>epoch_loss<span class="sc">:.4f}</span><span class="ss"> Acc: </span><span class="sc">{</span>epoch_acc<span class="sc">:.4f}</span><span class="ss">&#39;</span>)</span>
-<span id="cb355-191"><a href="#cb355-191" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> phase <span class="op">==</span> <span class="st">&#39;train&#39;</span>:</span>
-<span id="cb355-192"><a href="#cb355-192" aria-hidden="true" tabindex="-1"></a>                train_losses.append(epoch_loss)</span>
-<span id="cb355-193"><a href="#cb355-193" aria-hidden="true" tabindex="-1"></a>                train_accuracies.append(epoch_acc)</span>
-<span id="cb355-194"><a href="#cb355-194" aria-hidden="true" tabindex="-1"></a>            <span class="cf">else</span>:</span>
-<span id="cb355-195"><a href="#cb355-195" aria-hidden="true" tabindex="-1"></a>                val_losses.append(epoch_loss)</span>
-<span id="cb355-196"><a href="#cb355-196" aria-hidden="true" tabindex="-1"></a>                val_accuracies.append(epoch_acc)</span>
-<span id="cb355-197"><a href="#cb355-197" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-198"><a href="#cb355-198" aria-hidden="true" tabindex="-1"></a>    <span class="co">#結果の表示</span></span>
-<span id="cb355-199"><a href="#cb355-199" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-200"><a href="#cb355-200" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">&#39;Training complete&#39;</span>)</span>
-<span id="cb355-201"><a href="#cb355-201" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">&quot;Training Losses: &quot;</span>, train_losses)</span>
-<span id="cb355-202"><a href="#cb355-202" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">&quot;Training Accuracies: &quot;</span>, train_accuracies)</span>
-<span id="cb355-203"><a href="#cb355-203" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">&quot;Validation Losses: &quot;</span>, val_losses)</span>
-<span id="cb355-204"><a href="#cb355-204" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">&quot;Validation Accuracies: &quot;</span>, val_accuracies)</span>
-<span id="cb355-205"><a href="#cb355-205" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-206"><a href="#cb355-206" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 結果をCSVファイルに保存</span></span>
-<span id="cb355-207"><a href="#cb355-207" aria-hidden="true" tabindex="-1"></a>    results_df <span class="op">=</span> pd.DataFrame(results)</span>
-<span id="cb355-208"><a href="#cb355-208" aria-hidden="true" tabindex="-1"></a>    results_df.to_csv(<span class="st">&#39;data/result/pred_acctual.csv&#39;</span></span>
-<span id="cb355-209"><a href="#cb355-209" aria-hidden="true" tabindex="-1"></a>                     ,encoding<span class="op">=</span><span class="st">&#39;utf_8_sig&#39;</span>)</span>
-<span id="cb355-210"><a href="#cb355-210" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-211"><a href="#cb355-211" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 特徴量を取得する</span></span>
-<span id="cb355-212"><a href="#cb355-212" aria-hidden="true" tabindex="-1"></a>    train_features, train_labels <span class="op">=</span> extract_features(model, dataloaders[<span class="st">&#39;train&#39;</span>], device)</span>
-<span id="cb355-213"><a href="#cb355-213" aria-hidden="true" tabindex="-1"></a>    val_features, val_labels <span class="op">=</span> extract_features(model, dataloaders[<span class="st">&#39;val&#39;</span>], device)</span>
-<span id="cb355-214"><a href="#cb355-214" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-215"><a href="#cb355-215" aria-hidden="true" tabindex="-1"></a>    <span class="co"># (毎回学習するのは大変なので)特徴量を表示または保存しておく</span></span>
-<span id="cb355-216"><a href="#cb355-216" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 読み込む場合は</span></span>
-<span id="cb355-217"><a href="#cb355-217" aria-hidden="true" tabindex="-1"></a>    <span class="co"># train_features, train_labels = torch.load(&#39;train_features.pth&#39;)</span></span>
-<span id="cb355-218"><a href="#cb355-218" aria-hidden="true" tabindex="-1"></a>    torch.save((train_features, train_labels), <span class="st">&#39;data/result/convnext_train_features.pth&#39;</span>)</span>
-<span id="cb355-219"><a href="#cb355-219" aria-hidden="true" tabindex="-1"></a>    torch.save((val_features, val_labels), <span class="st">&#39;data/result/convnext_val_features.pth&#39;</span>)</span>
-<span id="cb355-220"><a href="#cb355-220" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-221"><a href="#cb355-221" aria-hidden="true" tabindex="-1"></a>    <span class="co">#PCAの散布図の描画</span></span>
-<span id="cb355-222"><a href="#cb355-222" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-223"><a href="#cb355-223" aria-hidden="true" tabindex="-1"></a>    <span class="co">#散布図の描画</span></span>
-<span id="cb355-224"><a href="#cb355-224" aria-hidden="true" tabindex="-1"></a>    plot_tsne(train_features, train_labels,<span class="st">&#39;data/result/convnext_tsne.png&#39;</span>)</span>
-<span id="cb355-225"><a href="#cb355-225" aria-hidden="true" tabindex="-1"></a>    plot_pca(train_features, train_labels,<span class="st">&#39;data/result/convnext_pca.png&#39;</span>)</span>
-<span id="cb355-226"><a href="#cb355-226" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-227"><a href="#cb355-227" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-228"><a href="#cb355-228" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb355-229"><a href="#cb355-229" aria-hidden="true" tabindex="-1"></a><span class="co">#スクリプトとして実行された場合(python convnext.py)で実行された場合に,</span></span>
-<span id="cb355-230"><a href="#cb355-230" aria-hidden="true" tabindex="-1"></a><span class="co"># if __name__ == &#39;__main__&#39;: 以下のみが実行される.</span></span>
-<span id="cb355-231"><a href="#cb355-231" aria-hidden="true" tabindex="-1"></a><span class="co"># 並列処理(multiprocessing)を行う場合にこのようにしないと,</span></span>
-<span id="cb355-232"><a href="#cb355-232" aria-hidden="true" tabindex="-1"></a><span class="co"># 各処理ですべて同じコードが実行されるため,無限ループなどが起きる.</span></span>
-<span id="cb355-233"><a href="#cb355-233" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="va">__name__</span> <span class="op">==</span> <span class="st">&#39;__main__&#39;</span>:</span>
-<span id="cb355-234"><a href="#cb355-234" aria-hidden="true" tabindex="-1"></a>    main()</span></code></pre></div>
+<p>コードの全体像は以下のようになります.</p>
+<div class="sourceCode" id="cb359"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb359-1"><a href="#cb359-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb359-2"><a href="#cb359-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb359-3"><a href="#cb359-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb359-4"><a href="#cb359-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb359-5"><a href="#cb359-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb359-6"><a href="#cb359-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> random</span>
+<span id="cb359-7"><a href="#cb359-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-8"><a href="#cb359-8" aria-hidden="true" tabindex="-1"></a><span class="co"># 次元削減用</span></span>
+<span id="cb359-9"><a href="#cb359-9" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.manifold <span class="im">import</span> TSNE</span>
+<span id="cb359-10"><a href="#cb359-10" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.decomposition <span class="im">import</span> PCA</span>
+<span id="cb359-11"><a href="#cb359-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-12"><a href="#cb359-12" aria-hidden="true" tabindex="-1"></a><span class="co"># CNN用</span></span>
+<span id="cb359-13"><a href="#cb359-13" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
+<span id="cb359-14"><a href="#cb359-14" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch.nn <span class="im">as</span> nn</span>
+<span id="cb359-15"><a href="#cb359-15" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch.optim <span class="im">as</span> optim</span>
+<span id="cb359-16"><a href="#cb359-16" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torchvision <span class="im">import</span> datasets, transforms, models</span>
+<span id="cb359-17"><a href="#cb359-17" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch.utils.data <span class="im">import</span> DataLoader</span>
+<span id="cb359-18"><a href="#cb359-18" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torchvision.models <span class="im">import</span> ConvNeXt_Tiny_Weights</span>
+<span id="cb359-19"><a href="#cb359-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-20"><a href="#cb359-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-21"><a href="#cb359-21" aria-hidden="true" tabindex="-1"></a><span class="co">#学習した特徴量を抽出する</span></span>
+<span id="cb359-22"><a href="#cb359-22" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> extract_features(model, dataloader, device):</span>
+<span id="cb359-23"><a href="#cb359-23" aria-hidden="true" tabindex="-1"></a>    model.<span class="bu">eval</span>()</span>
+<span id="cb359-24"><a href="#cb359-24" aria-hidden="true" tabindex="-1"></a>    features <span class="op">=</span> []</span>
+<span id="cb359-25"><a href="#cb359-25" aria-hidden="true" tabindex="-1"></a>    labels_list <span class="op">=</span> []</span>
+<span id="cb359-26"><a href="#cb359-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-27"><a href="#cb359-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> torch.no_grad():</span>
+<span id="cb359-28"><a href="#cb359-28" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> inputs, labels <span class="kw">in</span> dataloader:</span>
+<span id="cb359-29"><a href="#cb359-29" aria-hidden="true" tabindex="-1"></a>            inputs <span class="op">=</span> inputs.to(device)</span>
+<span id="cb359-30"><a href="#cb359-30" aria-hidden="true" tabindex="-1"></a>            labels <span class="op">=</span> labels.to(device)</span>
+<span id="cb359-31"><a href="#cb359-31" aria-hidden="true" tabindex="-1"></a>            outputs <span class="op">=</span> model(inputs)</span>
+<span id="cb359-32"><a href="#cb359-32" aria-hidden="true" tabindex="-1"></a>            features.append(outputs.cpu())</span>
+<span id="cb359-33"><a href="#cb359-33" aria-hidden="true" tabindex="-1"></a>            labels_list.append(labels.cpu())</span>
+<span id="cb359-34"><a href="#cb359-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-35"><a href="#cb359-35" aria-hidden="true" tabindex="-1"></a>    features <span class="op">=</span> torch.cat(features, dim<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb359-36"><a href="#cb359-36" aria-hidden="true" tabindex="-1"></a>    labels <span class="op">=</span> torch.cat(labels_list, dim<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb359-37"><a href="#cb359-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-38"><a href="#cb359-38" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> features, labels</span>
+<span id="cb359-39"><a href="#cb359-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-40"><a href="#cb359-40" aria-hidden="true" tabindex="-1"></a><span class="co"># t-SNEによる次元圧縮と散布図の描画</span></span>
+<span id="cb359-41"><a href="#cb359-41" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> plot_tsne(train_features, train_labels, path):</span>
+<span id="cb359-42"><a href="#cb359-42" aria-hidden="true" tabindex="-1"></a>    <span class="co"># train_featuresとtrain_labelsをnumpyに変換</span></span>
+<span id="cb359-43"><a href="#cb359-43" aria-hidden="true" tabindex="-1"></a>    features_np <span class="op">=</span> train_features.numpy()</span>
+<span id="cb359-44"><a href="#cb359-44" aria-hidden="true" tabindex="-1"></a>    labels_np <span class="op">=</span> train_labels.numpy()</span>
+<span id="cb359-45"><a href="#cb359-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-46"><a href="#cb359-46" aria-hidden="true" tabindex="-1"></a>    <span class="co"># t-SNEによる次元圧縮 (2次元)</span></span>
+<span id="cb359-47"><a href="#cb359-47" aria-hidden="true" tabindex="-1"></a>    tsne <span class="op">=</span> TSNE(n_components<span class="op">=</span><span class="dv">2</span>, random_state<span class="op">=</span><span class="dv">42</span>)</span>
+<span id="cb359-48"><a href="#cb359-48" aria-hidden="true" tabindex="-1"></a>    features_2d <span class="op">=</span> tsne.fit_transform(features_np)</span>
+<span id="cb359-49"><a href="#cb359-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-50"><a href="#cb359-50" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 散布図の描画</span></span>
+<span id="cb359-51"><a href="#cb359-51" aria-hidden="true" tabindex="-1"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">8</span>))</span>
+<span id="cb359-52"><a href="#cb359-52" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-53"><a href="#cb359-53" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 各ラベルに基づいて色分けしてプロット</span></span>
+<span id="cb359-54"><a href="#cb359-54" aria-hidden="true" tabindex="-1"></a>    num_classes <span class="op">=</span> <span class="bu">len</span>(np.unique(labels_np))  <span class="co"># クラス数を取得</span></span>
+<span id="cb359-55"><a href="#cb359-55" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> label <span class="kw">in</span> np.unique(labels_np):</span>
+<span id="cb359-56"><a href="#cb359-56" aria-hidden="true" tabindex="-1"></a>        indices <span class="op">=</span> np.where(labels_np <span class="op">==</span> label)</span>
+<span id="cb359-57"><a href="#cb359-57" aria-hidden="true" tabindex="-1"></a>        plt.scatter(features_2d[indices, <span class="dv">0</span>]</span>
+<span id="cb359-58"><a href="#cb359-58" aria-hidden="true" tabindex="-1"></a>                   ,features_2d[indices, <span class="dv">1</span>]</span>
+<span id="cb359-59"><a href="#cb359-59" aria-hidden="true" tabindex="-1"></a>                   ,label<span class="op">=</span><span class="ss">f&#39;</span><span class="sc">{</span>(label <span class="op">+</span> <span class="dv">1</span>) <span class="op">*</span> <span class="dv">10</span><span class="sc">}</span><span class="ss">s&#39;</span></span>
+<span id="cb359-60"><a href="#cb359-60" aria-hidden="true" tabindex="-1"></a>                   ,alpha<span class="op">=</span><span class="fl">0.6</span>)</span>
+<span id="cb359-61"><a href="#cb359-61" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-62"><a href="#cb359-62" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">&#39;t-SNE of Train Features&#39;</span>)</span>
+<span id="cb359-63"><a href="#cb359-63" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">&#39;t-SNE Component 1&#39;</span>)</span>
+<span id="cb359-64"><a href="#cb359-64" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">&#39;t-SNE Component 2&#39;</span>)</span>
+<span id="cb359-65"><a href="#cb359-65" aria-hidden="true" tabindex="-1"></a>    plt.legend(title<span class="op">=</span><span class="st">&quot;Age Group&quot;</span>)</span>
+<span id="cb359-66"><a href="#cb359-66" aria-hidden="true" tabindex="-1"></a>    plt.grid(<span class="va">True</span>)</span>
+<span id="cb359-67"><a href="#cb359-67" aria-hidden="true" tabindex="-1"></a>    plt.savefig(path)</span>
+<span id="cb359-68"><a href="#cb359-68" aria-hidden="true" tabindex="-1"></a>    plt.close()</span>
+<span id="cb359-69"><a href="#cb359-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-70"><a href="#cb359-70" aria-hidden="true" tabindex="-1"></a><span class="co"># PCAによる次元圧縮と散布図の描画</span></span>
+<span id="cb359-71"><a href="#cb359-71" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> plot_pca(train_features, train_labels, path):</span>
+<span id="cb359-72"><a href="#cb359-72" aria-hidden="true" tabindex="-1"></a>    <span class="co"># train_featuresとtrain_labelsをnumpyに変換</span></span>
+<span id="cb359-73"><a href="#cb359-73" aria-hidden="true" tabindex="-1"></a>    features_np <span class="op">=</span> train_features.numpy()</span>
+<span id="cb359-74"><a href="#cb359-74" aria-hidden="true" tabindex="-1"></a>    labels_np <span class="op">=</span> train_labels.numpy()</span>
+<span id="cb359-75"><a href="#cb359-75" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-76"><a href="#cb359-76" aria-hidden="true" tabindex="-1"></a>    <span class="co"># PCAによる次元圧縮 (2次元)</span></span>
+<span id="cb359-77"><a href="#cb359-77" aria-hidden="true" tabindex="-1"></a>    pca <span class="op">=</span> PCA(n_components<span class="op">=</span><span class="dv">2</span>)</span>
+<span id="cb359-78"><a href="#cb359-78" aria-hidden="true" tabindex="-1"></a>    features_2d <span class="op">=</span> pca.fit_transform(features_np)</span>
+<span id="cb359-79"><a href="#cb359-79" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-80"><a href="#cb359-80" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 散布図の描画</span></span>
+<span id="cb359-81"><a href="#cb359-81" aria-hidden="true" tabindex="-1"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">8</span>))</span>
+<span id="cb359-82"><a href="#cb359-82" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-83"><a href="#cb359-83" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 各ラベルに基づいて色分けしてプロット</span></span>
+<span id="cb359-84"><a href="#cb359-84" aria-hidden="true" tabindex="-1"></a>    num_classes <span class="op">=</span> <span class="bu">len</span>(np.unique(labels_np))  <span class="co"># クラス数を取得</span></span>
+<span id="cb359-85"><a href="#cb359-85" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> label <span class="kw">in</span> np.unique(labels_np):</span>
+<span id="cb359-86"><a href="#cb359-86" aria-hidden="true" tabindex="-1"></a>        indices <span class="op">=</span> np.where(labels_np <span class="op">==</span> label)</span>
+<span id="cb359-87"><a href="#cb359-87" aria-hidden="true" tabindex="-1"></a>        plt.scatter(features_2d[indices, <span class="dv">0</span>]</span>
+<span id="cb359-88"><a href="#cb359-88" aria-hidden="true" tabindex="-1"></a>                   ,features_2d[indices, <span class="dv">1</span>]</span>
+<span id="cb359-89"><a href="#cb359-89" aria-hidden="true" tabindex="-1"></a>                   ,label<span class="op">=</span><span class="ss">f&#39;</span><span class="sc">{</span>(label <span class="op">+</span> <span class="dv">1</span>) <span class="op">*</span> <span class="dv">10</span><span class="sc">}</span><span class="ss">s&#39;</span></span>
+<span id="cb359-90"><a href="#cb359-90" aria-hidden="true" tabindex="-1"></a>                   ,alpha<span class="op">=</span><span class="fl">0.6</span>)</span>
+<span id="cb359-91"><a href="#cb359-91" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-92"><a href="#cb359-92" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">&#39;PCA of Train Features&#39;</span>)</span>
+<span id="cb359-93"><a href="#cb359-93" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">&#39;PCA Component 1&#39;</span>)</span>
+<span id="cb359-94"><a href="#cb359-94" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">&#39;PCA Component 2&#39;</span>)</span>
+<span id="cb359-95"><a href="#cb359-95" aria-hidden="true" tabindex="-1"></a>    plt.legend(title<span class="op">=</span><span class="st">&quot;Age Group&quot;</span>)</span>
+<span id="cb359-96"><a href="#cb359-96" aria-hidden="true" tabindex="-1"></a>    plt.grid(<span class="va">True</span>)</span>
+<span id="cb359-97"><a href="#cb359-97" aria-hidden="true" tabindex="-1"></a>    plt.savefig(path)</span>
+<span id="cb359-98"><a href="#cb359-98" aria-hidden="true" tabindex="-1"></a>    plt.close()</span>
+<span id="cb359-99"><a href="#cb359-99" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-100"><a href="#cb359-100" aria-hidden="true" tabindex="-1"></a><span class="co"># 乱数シードを設定</span></span>
+<span id="cb359-101"><a href="#cb359-101" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> set_seed(seed):</span>
+<span id="cb359-102"><a href="#cb359-102" aria-hidden="true" tabindex="-1"></a>    torch.manual_seed(seed)</span>
+<span id="cb359-103"><a href="#cb359-103" aria-hidden="true" tabindex="-1"></a>    np.random.seed(seed)              <span class="co"># Numpy用の乱数シードを設定</span></span>
+<span id="cb359-104"><a href="#cb359-104" aria-hidden="true" tabindex="-1"></a>    random.seed(seed)                 <span class="co"># Pythonの標準乱数シードを設定</span></span>
+<span id="cb359-105"><a href="#cb359-105" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-106"><a href="#cb359-106" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 再現性を完全に保証するために以下も設定（ただし、若干のパフォーマンス低下の可能性あり）</span></span>
+<span id="cb359-107"><a href="#cb359-107" aria-hidden="true" tabindex="-1"></a>    torch.backends.cudnn.deterministic <span class="op">=</span> <span class="va">True</span></span>
+<span id="cb359-108"><a href="#cb359-108" aria-hidden="true" tabindex="-1"></a>    torch.backends.cudnn.benchmark <span class="op">=</span> <span class="va">False</span></span>
+<span id="cb359-109"><a href="#cb359-109" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-110"><a href="#cb359-110" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> main():</span>
+<span id="cb359-111"><a href="#cb359-111" aria-hidden="true" tabindex="-1"></a>    <span class="co"># シードを設定する</span></span>
+<span id="cb359-112"><a href="#cb359-112" aria-hidden="true" tabindex="-1"></a>    <span class="co">#(自分の研究でやる場合は以下の行は消しても問題ない.)</span></span>
+<span id="cb359-113"><a href="#cb359-113" aria-hidden="true" tabindex="-1"></a>    set_seed(<span class="dv">2024</span>)</span>
+<span id="cb359-114"><a href="#cb359-114" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-115"><a href="#cb359-115" aria-hidden="true" tabindex="-1"></a>    <span class="co"># データのディレクトリ設定</span></span>
+<span id="cb359-116"><a href="#cb359-116" aria-hidden="true" tabindex="-1"></a>    data_dir <span class="op">=</span> <span class="st">&#39;data/sorted_images_split&#39;</span></span>
+<span id="cb359-117"><a href="#cb359-117" aria-hidden="true" tabindex="-1"></a>    batch_size <span class="op">=</span> <span class="dv">32</span></span>
+<span id="cb359-118"><a href="#cb359-118" aria-hidden="true" tabindex="-1"></a>    num_epochs <span class="op">=</span> <span class="dv">5</span></span>
+<span id="cb359-119"><a href="#cb359-119" aria-hidden="true" tabindex="-1"></a>    num_classes <span class="op">=</span> <span class="dv">6</span>  <span class="co"># 10代, 20代, ..., 60代</span></span>
+<span id="cb359-120"><a href="#cb359-120" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-121"><a href="#cb359-121" aria-hidden="true" tabindex="-1"></a>    <span class="co"># データ変換（前処理）</span></span>
+<span id="cb359-122"><a href="#cb359-122" aria-hidden="true" tabindex="-1"></a>    data_transforms <span class="op">=</span> {</span>
+<span id="cb359-123"><a href="#cb359-123" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;train&#39;</span>: transforms.Compose([</span>
+<span id="cb359-124"><a href="#cb359-124" aria-hidden="true" tabindex="-1"></a>            transforms.Resize((<span class="dv">224</span>, <span class="dv">224</span>)),     <span class="co">#画像のリサイズ</span></span>
+<span id="cb359-125"><a href="#cb359-125" aria-hidden="true" tabindex="-1"></a>            transforms.RandomHorizontalFlip(), <span class="co">#画像をランダムに反転</span></span>
+<span id="cb359-126"><a href="#cb359-126" aria-hidden="true" tabindex="-1"></a>            transforms.ColorJitter(brightness<span class="op">=</span><span class="fl">0.2</span>, contrast<span class="op">=</span><span class="fl">0.2</span>),  <span class="co"># 色調変化</span></span>
+<span id="cb359-127"><a href="#cb359-127" aria-hidden="true" tabindex="-1"></a>            transforms.ToTensor(),             <span class="co">#テンソル(多次元配列)に変換</span></span>
+<span id="cb359-128"><a href="#cb359-128" aria-hidden="true" tabindex="-1"></a>            transforms.Normalize(mean<span class="op">=</span>[<span class="fl">0.485</span>, <span class="fl">0.456</span>, <span class="fl">0.406</span>]</span>
+<span id="cb359-129"><a href="#cb359-129" aria-hidden="true" tabindex="-1"></a>                                ,std<span class="op">=</span>[<span class="fl">0.229</span>, <span class="fl">0.224</span>, <span class="fl">0.225</span>]), <span class="co">#正規化(本来は値を変更する必要あり.</span></span>
+<span id="cb359-130"><a href="#cb359-130" aria-hidden="true" tabindex="-1"></a>        ]),</span>
+<span id="cb359-131"><a href="#cb359-131" aria-hidden="true" tabindex="-1"></a>        <span class="st">&#39;val&#39;</span>: transforms.Compose([</span>
+<span id="cb359-132"><a href="#cb359-132" aria-hidden="true" tabindex="-1"></a>            transforms.Resize((<span class="dv">224</span>, <span class="dv">224</span>)),</span>
+<span id="cb359-133"><a href="#cb359-133" aria-hidden="true" tabindex="-1"></a>            transforms.ToTensor(),</span>
+<span id="cb359-134"><a href="#cb359-134" aria-hidden="true" tabindex="-1"></a>            transforms.Normalize([<span class="fl">0.485</span>, <span class="fl">0.456</span>, <span class="fl">0.406</span>]</span>
+<span id="cb359-135"><a href="#cb359-135" aria-hidden="true" tabindex="-1"></a>                                ,[<span class="fl">0.229</span>, <span class="fl">0.224</span>, <span class="fl">0.225</span>]),</span>
+<span id="cb359-136"><a href="#cb359-136" aria-hidden="true" tabindex="-1"></a>        ]),</span>
+<span id="cb359-137"><a href="#cb359-137" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb359-138"><a href="#cb359-138" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-139"><a href="#cb359-139" aria-hidden="true" tabindex="-1"></a>    <span class="co"># データセットの読み込み</span></span>
+<span id="cb359-140"><a href="#cb359-140" aria-hidden="true" tabindex="-1"></a>    image_datasets <span class="op">=</span> {x: datasets.ImageFolder(os.path.join(data_dir, x),</span>
+<span id="cb359-141"><a href="#cb359-141" aria-hidden="true" tabindex="-1"></a>                                              data_transforms[x])</span>
+<span id="cb359-142"><a href="#cb359-142" aria-hidden="true" tabindex="-1"></a>                      <span class="cf">for</span> x <span class="kw">in</span> [<span class="st">&#39;train&#39;</span>, <span class="st">&#39;val&#39;</span>]}</span>
+<span id="cb359-143"><a href="#cb359-143" aria-hidden="true" tabindex="-1"></a>    dataloaders <span class="op">=</span> {x: DataLoader(image_datasets[x]</span>
+<span id="cb359-144"><a href="#cb359-144" aria-hidden="true" tabindex="-1"></a>                                ,batch_size<span class="op">=</span>batch_size</span>
+<span id="cb359-145"><a href="#cb359-145" aria-hidden="true" tabindex="-1"></a>                                ,shuffle<span class="op">=</span><span class="va">True</span></span>
+<span id="cb359-146"><a href="#cb359-146" aria-hidden="true" tabindex="-1"></a>                                ,num_workers<span class="op">=</span><span class="dv">4</span>) <span class="co">#使用するCore数</span></span>
+<span id="cb359-147"><a href="#cb359-147" aria-hidden="true" tabindex="-1"></a>                   <span class="cf">for</span> x <span class="kw">in</span> [<span class="st">&#39;train&#39;</span>, <span class="st">&#39;val&#39;</span>]}</span>
+<span id="cb359-148"><a href="#cb359-148" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-149"><a href="#cb359-149" aria-hidden="true" tabindex="-1"></a>    <span class="co"># デバイス設定</span></span>
+<span id="cb359-150"><a href="#cb359-150" aria-hidden="true" tabindex="-1"></a>    <span class="co">#GPUが利用できる場合はGPUを使う,そうでない場合はCPUを計算に利用します.</span></span>
+<span id="cb359-151"><a href="#cb359-151" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> torch.backends.mps.is_available():</span>
+<span id="cb359-152"><a href="#cb359-152" aria-hidden="true" tabindex="-1"></a>        device <span class="op">=</span> torch.device(<span class="st">&quot;mps&quot;</span>) <span class="co">#Mac GPU</span></span>
+<span id="cb359-153"><a href="#cb359-153" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> torch.cuda.is_available():</span>
+<span id="cb359-154"><a href="#cb359-154" aria-hidden="true" tabindex="-1"></a>        device <span class="op">=</span> torch.device(<span class="st">&quot;cuda:0&quot;</span>) <span class="co">#Win GPU</span></span>
+<span id="cb359-155"><a href="#cb359-155" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb359-156"><a href="#cb359-156" aria-hidden="true" tabindex="-1"></a>        device <span class="op">=</span> torch.device(<span class="st">&quot;cpu&quot;</span>) <span class="co">#CPU</span></span>
+<span id="cb359-157"><a href="#cb359-157" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-158"><a href="#cb359-158" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&#39;Using device: </span><span class="sc">{</span>device<span class="sc">}</span><span class="ss">&#39;</span>)</span>
+<span id="cb359-159"><a href="#cb359-159" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-160"><a href="#cb359-160" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ConvNextモデルの読み込みとカスタマイズ</span></span>
+<span id="cb359-161"><a href="#cb359-161" aria-hidden="true" tabindex="-1"></a>    weights <span class="op">=</span> ConvNeXt_Tiny_Weights.IMAGENET1K_V1  <span class="co"># 最新の重みを指定</span></span>
+<span id="cb359-162"><a href="#cb359-162" aria-hidden="true" tabindex="-1"></a>    model <span class="op">=</span> models.convnext_tiny(weights<span class="op">=</span>weights)  <span class="co"># ConvNextの小さいモデルを使用</span></span>
+<span id="cb359-163"><a href="#cb359-163" aria-hidden="true" tabindex="-1"></a>    <span class="co">#モデル分類層の最終層(第3層(0,1,2番目))の入力特徴量を取得</span></span>
+<span id="cb359-164"><a href="#cb359-164" aria-hidden="true" tabindex="-1"></a>    num_ftrs <span class="op">=</span> model.classifier[<span class="dv">2</span>].in_features</span>
+<span id="cb359-165"><a href="#cb359-165" aria-hidden="true" tabindex="-1"></a>    <span class="co">#既に学習されたモデルではクラス数がことなるので ,入力特徴量の数(num_ftrs)はそのまま</span></span>
+<span id="cb359-166"><a href="#cb359-166" aria-hidden="true" tabindex="-1"></a>    <span class="co">#出力をクラス数に変更</span></span>
+<span id="cb359-167"><a href="#cb359-167" aria-hidden="true" tabindex="-1"></a>    model.classifier[<span class="dv">2</span>] <span class="op">=</span> nn.Linear(num_ftrs, num_classes)</span>
+<span id="cb359-168"><a href="#cb359-168" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-169"><a href="#cb359-169" aria-hidden="true" tabindex="-1"></a>    model <span class="op">=</span> model.to(device)</span>
+<span id="cb359-170"><a href="#cb359-170" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-171"><a href="#cb359-171" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 損失関数とオプティマイザ</span></span>
+<span id="cb359-172"><a href="#cb359-172" aria-hidden="true" tabindex="-1"></a>    criterion <span class="op">=</span> nn.CrossEntropyLoss() <span class="co">#クロスエントロピー損失</span></span>
+<span id="cb359-173"><a href="#cb359-173" aria-hidden="true" tabindex="-1"></a>    optimizer <span class="op">=</span> optim.Adam(model.parameters() <span class="co">#Adam</span></span>
+<span id="cb359-174"><a href="#cb359-174" aria-hidden="true" tabindex="-1"></a>                          ,lr<span class="op">=</span><span class="fl">0.0001</span>) <span class="co">#Learning rate (学習率)</span></span>
+<span id="cb359-175"><a href="#cb359-175" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-176"><a href="#cb359-176" aria-hidden="true" tabindex="-1"></a>    <span class="co">#SGDを利用する場合</span></span>
+<span id="cb359-177"><a href="#cb359-177" aria-hidden="true" tabindex="-1"></a>    <span class="co">#optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)</span></span>
+<span id="cb359-178"><a href="#cb359-178" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-179"><a href="#cb359-179" aria-hidden="true" tabindex="-1"></a>    <span class="co">#結果の記録用</span></span>
+<span id="cb359-180"><a href="#cb359-180" aria-hidden="true" tabindex="-1"></a>    train_losses <span class="op">=</span> []</span>
+<span id="cb359-181"><a href="#cb359-181" aria-hidden="true" tabindex="-1"></a>    train_accuracies <span class="op">=</span> []</span>
+<span id="cb359-182"><a href="#cb359-182" aria-hidden="true" tabindex="-1"></a>    val_losses <span class="op">=</span> []</span>
+<span id="cb359-183"><a href="#cb359-183" aria-hidden="true" tabindex="-1"></a>    val_accuracies <span class="op">=</span> []</span>
+<span id="cb359-184"><a href="#cb359-184" aria-hidden="true" tabindex="-1"></a>    results <span class="op">=</span> []</span>
+<span id="cb359-185"><a href="#cb359-185" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-186"><a href="#cb359-186" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 学習ループ</span></span>
+<span id="cb359-187"><a href="#cb359-187" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> epoch <span class="kw">in</span> <span class="bu">range</span>(num_epochs):</span>
+<span id="cb359-188"><a href="#cb359-188" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f&#39;Epoch </span><span class="sc">{</span>epoch<span class="op">+</span><span class="dv">1</span><span class="sc">}</span><span class="ss">/</span><span class="sc">{</span>num_epochs<span class="sc">}</span><span class="ss">&#39;</span>)</span>
+<span id="cb359-189"><a href="#cb359-189" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="st">&#39;-&#39;</span> <span class="op">*</span> <span class="dv">10</span>)</span>
+<span id="cb359-190"><a href="#cb359-190" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-191"><a href="#cb359-191" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> phase <span class="kw">in</span> [<span class="st">&#39;train&#39;</span>, <span class="st">&#39;val&#39;</span>]:</span>
+<span id="cb359-192"><a href="#cb359-192" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> phase <span class="op">==</span> <span class="st">&#39;train&#39;</span>:</span>
+<span id="cb359-193"><a href="#cb359-193" aria-hidden="true" tabindex="-1"></a>                model.train()</span>
+<span id="cb359-194"><a href="#cb359-194" aria-hidden="true" tabindex="-1"></a>            <span class="cf">else</span>:</span>
+<span id="cb359-195"><a href="#cb359-195" aria-hidden="true" tabindex="-1"></a>                model.<span class="bu">eval</span>()</span>
+<span id="cb359-196"><a href="#cb359-196" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-197"><a href="#cb359-197" aria-hidden="true" tabindex="-1"></a>            running_loss <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="cb359-198"><a href="#cb359-198" aria-hidden="true" tabindex="-1"></a>            running_corrects <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb359-199"><a href="#cb359-199" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-200"><a href="#cb359-200" aria-hidden="true" tabindex="-1"></a>            <span class="cf">for</span> inputs, labels <span class="kw">in</span> dataloaders[phase]:</span>
+<span id="cb359-201"><a href="#cb359-201" aria-hidden="true" tabindex="-1"></a>                inputs <span class="op">=</span> inputs.to(device)</span>
+<span id="cb359-202"><a href="#cb359-202" aria-hidden="true" tabindex="-1"></a>                labels <span class="op">=</span> labels.to(device)</span>
+<span id="cb359-203"><a href="#cb359-203" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-204"><a href="#cb359-204" aria-hidden="true" tabindex="-1"></a>                optimizer.zero_grad()</span>
+<span id="cb359-205"><a href="#cb359-205" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-206"><a href="#cb359-206" aria-hidden="true" tabindex="-1"></a>                <span class="cf">with</span> torch.set_grad_enabled(phase <span class="op">==</span> <span class="st">&#39;train&#39;</span>):</span>
+<span id="cb359-207"><a href="#cb359-207" aria-hidden="true" tabindex="-1"></a>                    outputs <span class="op">=</span> model(inputs)</span>
+<span id="cb359-208"><a href="#cb359-208" aria-hidden="true" tabindex="-1"></a>                    _, preds <span class="op">=</span> torch.<span class="bu">max</span>(outputs, <span class="dv">1</span>)</span>
+<span id="cb359-209"><a href="#cb359-209" aria-hidden="true" tabindex="-1"></a>                    loss <span class="op">=</span> criterion(outputs, labels)</span>
+<span id="cb359-210"><a href="#cb359-210" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-211"><a href="#cb359-211" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">if</span> phase <span class="op">==</span> <span class="st">&#39;train&#39;</span>:</span>
+<span id="cb359-212"><a href="#cb359-212" aria-hidden="true" tabindex="-1"></a>                        loss.backward()</span>
+<span id="cb359-213"><a href="#cb359-213" aria-hidden="true" tabindex="-1"></a>                        optimizer.step()</span>
+<span id="cb359-214"><a href="#cb359-214" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-215"><a href="#cb359-215" aria-hidden="true" tabindex="-1"></a>                running_loss <span class="op">+=</span> loss.item() <span class="op">*</span> inputs.size(<span class="dv">0</span>)</span>
+<span id="cb359-216"><a href="#cb359-216" aria-hidden="true" tabindex="-1"></a>                running_corrects <span class="op">+=</span> torch.<span class="bu">sum</span>(preds <span class="op">==</span> labels.data)</span>
+<span id="cb359-217"><a href="#cb359-217" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> phase <span class="op">==</span> <span class="st">&#39;val&#39;</span>:  <span class="co"># バリデーション時に予測と実際のラベルを保存</span></span>
+<span id="cb359-218"><a href="#cb359-218" aria-hidden="true" tabindex="-1"></a>                    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(labels)):</span>
+<span id="cb359-219"><a href="#cb359-219" aria-hidden="true" tabindex="-1"></a>                        results.append({</span>
+<span id="cb359-220"><a href="#cb359-220" aria-hidden="true" tabindex="-1"></a>                            <span class="st">&#39;epoch&#39;</span>: epoch <span class="op">+</span> <span class="dv">1</span>,</span>
+<span id="cb359-221"><a href="#cb359-221" aria-hidden="true" tabindex="-1"></a>                            <span class="st">&#39;pred&#39;</span>: preds[i].item(),</span>
+<span id="cb359-222"><a href="#cb359-222" aria-hidden="true" tabindex="-1"></a>                            <span class="st">&#39;acctual&#39;</span>: labels[i].item()</span>
+<span id="cb359-223"><a href="#cb359-223" aria-hidden="true" tabindex="-1"></a>                        })</span>
+<span id="cb359-224"><a href="#cb359-224" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-225"><a href="#cb359-225" aria-hidden="true" tabindex="-1"></a>            epoch_loss <span class="op">=</span> running_loss <span class="op">/</span> <span class="bu">len</span>(image_datasets[phase])</span>
+<span id="cb359-226"><a href="#cb359-226" aria-hidden="true" tabindex="-1"></a>            epoch_acc <span class="op">=</span> running_corrects.<span class="bu">float</span>() <span class="op">/</span> <span class="bu">len</span>(image_datasets[phase])</span>
+<span id="cb359-227"><a href="#cb359-227" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-228"><a href="#cb359-228" aria-hidden="true" tabindex="-1"></a>            <span class="bu">print</span>(<span class="ss">f&#39;</span><span class="sc">{</span>phase<span class="sc">}</span><span class="ss"> Loss: </span><span class="sc">{</span>epoch_loss<span class="sc">:.4f}</span><span class="ss"> Acc: </span><span class="sc">{</span>epoch_acc<span class="sc">:.4f}</span><span class="ss">&#39;</span>)</span>
+<span id="cb359-229"><a href="#cb359-229" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> phase <span class="op">==</span> <span class="st">&#39;train&#39;</span>:</span>
+<span id="cb359-230"><a href="#cb359-230" aria-hidden="true" tabindex="-1"></a>                train_losses.append(epoch_loss)</span>
+<span id="cb359-231"><a href="#cb359-231" aria-hidden="true" tabindex="-1"></a>                train_accuracies.append(epoch_acc.item())</span>
+<span id="cb359-232"><a href="#cb359-232" aria-hidden="true" tabindex="-1"></a>            <span class="cf">else</span>:</span>
+<span id="cb359-233"><a href="#cb359-233" aria-hidden="true" tabindex="-1"></a>                val_losses.append(epoch_loss)</span>
+<span id="cb359-234"><a href="#cb359-234" aria-hidden="true" tabindex="-1"></a>                val_accuracies.append(epoch_acc.item())</span>
+<span id="cb359-235"><a href="#cb359-235" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-236"><a href="#cb359-236" aria-hidden="true" tabindex="-1"></a>    <span class="co">#結果の表示</span></span>
+<span id="cb359-237"><a href="#cb359-237" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-238"><a href="#cb359-238" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">&#39;Training complete&#39;</span>)</span>
+<span id="cb359-239"><a href="#cb359-239" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">&quot;Training Losses: &quot;</span>, train_losses)</span>
+<span id="cb359-240"><a href="#cb359-240" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">&quot;Training Accuracies: &quot;</span>, train_accuracies)</span>
+<span id="cb359-241"><a href="#cb359-241" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">&quot;Validation Losses: &quot;</span>, val_losses)</span>
+<span id="cb359-242"><a href="#cb359-242" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">&quot;Validation Accuracies: &quot;</span>, val_accuracies)</span>
+<span id="cb359-243"><a href="#cb359-243" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-244"><a href="#cb359-244" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 結果を可視化してCSVファイルに保存</span></span>
+<span id="cb359-245"><a href="#cb359-245" aria-hidden="true" tabindex="-1"></a>    loss_acc <span class="op">=</span> pd.DataFrame({<span class="st">&#39;train_losses&#39;</span>:train_losses</span>
+<span id="cb359-246"><a href="#cb359-246" aria-hidden="true" tabindex="-1"></a>                            ,<span class="st">&#39;train_accuracies&#39;</span>:train_accuracies</span>
+<span id="cb359-247"><a href="#cb359-247" aria-hidden="true" tabindex="-1"></a>                            ,<span class="st">&#39;val_losses&#39;</span>:val_losses</span>
+<span id="cb359-248"><a href="#cb359-248" aria-hidden="true" tabindex="-1"></a>                            ,<span class="st">&#39;val_accuracies&#39;</span>:val_accuracies})</span>
+<span id="cb359-249"><a href="#cb359-249" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">&#39;Losses&#39;</span>)</span>
+<span id="cb359-250"><a href="#cb359-250" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">&#39;Epoch&#39;</span>)</span>
+<span id="cb359-251"><a href="#cb359-251" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">&#39;Losses&#39;</span>)</span>
+<span id="cb359-252"><a href="#cb359-252" aria-hidden="true" tabindex="-1"></a>    plt.plot(np.arange(num_epochs),loss_acc[<span class="st">&#39;train_losses&#39;</span>],c<span class="op">=</span><span class="st">&#39;r&#39;</span>,label<span class="op">=</span><span class="st">&#39;train_losses&#39;</span>)</span>
+<span id="cb359-253"><a href="#cb359-253" aria-hidden="true" tabindex="-1"></a>    plt.plot(np.arange(num_epochs),loss_acc[<span class="st">&#39;val_losses&#39;</span>],c<span class="op">=</span><span class="st">&#39;b&#39;</span>,label<span class="op">=</span><span class="st">&#39;val_losses&#39;</span>)</span>
+<span id="cb359-254"><a href="#cb359-254" aria-hidden="true" tabindex="-1"></a>    plt.grid(<span class="va">True</span>)</span>
+<span id="cb359-255"><a href="#cb359-255" aria-hidden="true" tabindex="-1"></a>    plt.legend()</span>
+<span id="cb359-256"><a href="#cb359-256" aria-hidden="true" tabindex="-1"></a>    plt.savefig(<span class="st">&#39;data/result/convnext_loss.png&#39;</span>)</span>
+<span id="cb359-257"><a href="#cb359-257" aria-hidden="true" tabindex="-1"></a>    plt.close()</span>
+<span id="cb359-258"><a href="#cb359-258" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-259"><a href="#cb359-259" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">&#39;Accuracies&#39;</span>)</span>
+<span id="cb359-260"><a href="#cb359-260" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">&#39;Epoch&#39;</span>)</span>
+<span id="cb359-261"><a href="#cb359-261" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">&#39;Accuracies&#39;</span>)</span>
+<span id="cb359-262"><a href="#cb359-262" aria-hidden="true" tabindex="-1"></a>    plt.plot(np.arange(num_epochs),loss_acc[<span class="st">&#39;train_accuracies&#39;</span>],c<span class="op">=</span><span class="st">&#39;r&#39;</span>,label<span class="op">=</span><span class="st">&#39;train_accuracies&#39;</span>)</span>
+<span id="cb359-263"><a href="#cb359-263" aria-hidden="true" tabindex="-1"></a>    plt.plot(np.arange(num_epochs),loss_acc[<span class="st">&#39;val_accuracies&#39;</span>],c<span class="op">=</span><span class="st">&#39;b&#39;</span>,label<span class="op">=</span><span class="st">&#39;val_accuracies&#39;</span>)</span>
+<span id="cb359-264"><a href="#cb359-264" aria-hidden="true" tabindex="-1"></a>    plt.grid(<span class="va">True</span>)</span>
+<span id="cb359-265"><a href="#cb359-265" aria-hidden="true" tabindex="-1"></a>    plt.legend()</span>
+<span id="cb359-266"><a href="#cb359-266" aria-hidden="true" tabindex="-1"></a>    plt.savefig(<span class="st">&#39;data/result/convnext_acc.png&#39;</span>)</span>
+<span id="cb359-267"><a href="#cb359-267" aria-hidden="true" tabindex="-1"></a>    plt.close()</span>
+<span id="cb359-268"><a href="#cb359-268" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-269"><a href="#cb359-269" aria-hidden="true" tabindex="-1"></a>    loss_acc.to_csv(<span class="st">&#39;data/result/convnext_loss_acc.csv&#39;</span></span>
+<span id="cb359-270"><a href="#cb359-270" aria-hidden="true" tabindex="-1"></a>                   ,encoding<span class="op">=</span><span class="st">&#39;utf_8_sig&#39;</span>)</span>
+<span id="cb359-271"><a href="#cb359-271" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-272"><a href="#cb359-272" aria-hidden="true" tabindex="-1"></a>    results_df <span class="op">=</span> pd.DataFrame(results)</span>
+<span id="cb359-273"><a href="#cb359-273" aria-hidden="true" tabindex="-1"></a>    result_max_epochs <span class="op">=</span> results_df[results_df[<span class="st">&#39;epoch&#39;</span>] <span class="op">==</span> num_epochs]</span>
+<span id="cb359-274"><a href="#cb359-274" aria-hidden="true" tabindex="-1"></a>    result_heatmap <span class="op">=</span> pd.DataFrame(index<span class="op">=</span>np.arange(<span class="dv">6</span>)</span>
+<span id="cb359-275"><a href="#cb359-275" aria-hidden="true" tabindex="-1"></a>                                 ,columns<span class="op">=</span>np.arange(<span class="dv">6</span>)</span>
+<span id="cb359-276"><a href="#cb359-276" aria-hidden="true" tabindex="-1"></a>                                 ,data<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb359-277"><a href="#cb359-277" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-278"><a href="#cb359-278" aria-hidden="true" tabindex="-1"></a>    <span class="co">#実際のラベルに対する予測された回数をカウント</span></span>
+<span id="cb359-279"><a href="#cb359-279" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> result_max_epochs.index:</span>
+<span id="cb359-280"><a href="#cb359-280" aria-hidden="true" tabindex="-1"></a>        p <span class="op">=</span> result_max_epochs.at[i,<span class="st">&#39;pred&#39;</span>]</span>
+<span id="cb359-281"><a href="#cb359-281" aria-hidden="true" tabindex="-1"></a>        a <span class="op">=</span> result_max_epochs.at[i,<span class="st">&#39;acctual&#39;</span>]</span>
+<span id="cb359-282"><a href="#cb359-282" aria-hidden="true" tabindex="-1"></a>        result_heatmap.at[p,a] <span class="op">+=</span><span class="dv">1</span></span>
+<span id="cb359-283"><a href="#cb359-283" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-284"><a href="#cb359-284" aria-hidden="true" tabindex="-1"></a>    <span class="co">#列相対度数に変換</span></span>
+<span id="cb359-285"><a href="#cb359-285" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> c <span class="kw">in</span> result_heatmap:</span>
+<span id="cb359-286"><a href="#cb359-286" aria-hidden="true" tabindex="-1"></a>        result_heatmap[c] <span class="op">=</span> result_heatmap[c] <span class="op">/</span> result_heatmap[c].<span class="bu">sum</span>()</span>
+<span id="cb359-287"><a href="#cb359-287" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-288"><a href="#cb359-288" aria-hidden="true" tabindex="-1"></a>    <span class="co">#ヒートマップとして表現</span></span>
+<span id="cb359-289"><a href="#cb359-289" aria-hidden="true" tabindex="-1"></a>    sns.heatmap(result_heatmap</span>
+<span id="cb359-290"><a href="#cb359-290" aria-hidden="true" tabindex="-1"></a>               ,annot<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb359-291"><a href="#cb359-291" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">&#39;pred&#39;</span>)</span>
+<span id="cb359-292"><a href="#cb359-292" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">&#39;acctual&#39;</span>)</span>
+<span id="cb359-293"><a href="#cb359-293" aria-hidden="true" tabindex="-1"></a>    plt.savefig(<span class="st">&#39;data/result/pred_acctual_heatmap.png&#39;</span>)</span>
+<span id="cb359-294"><a href="#cb359-294" aria-hidden="true" tabindex="-1"></a>    plt.close()</span>
+<span id="cb359-295"><a href="#cb359-295" aria-hidden="true" tabindex="-1"></a>    results_df.to_csv(<span class="st">&#39;data/result/pred_acctual.csv&#39;</span></span>
+<span id="cb359-296"><a href="#cb359-296" aria-hidden="true" tabindex="-1"></a>                     ,encoding<span class="op">=</span><span class="st">&#39;utf_8_sig&#39;</span>)</span>
+<span id="cb359-297"><a href="#cb359-297" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-298"><a href="#cb359-298" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 特徴量を取得する</span></span>
+<span id="cb359-299"><a href="#cb359-299" aria-hidden="true" tabindex="-1"></a>    train_features, train_labels <span class="op">=</span> extract_features(model, dataloaders[<span class="st">&#39;train&#39;</span>], device)</span>
+<span id="cb359-300"><a href="#cb359-300" aria-hidden="true" tabindex="-1"></a>    val_features, val_labels <span class="op">=</span> extract_features(model, dataloaders[<span class="st">&#39;val&#39;</span>], device)</span>
+<span id="cb359-301"><a href="#cb359-301" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-302"><a href="#cb359-302" aria-hidden="true" tabindex="-1"></a>    <span class="co"># (毎回学習するのは大変なので)特徴量を表示または保存しておく</span></span>
+<span id="cb359-303"><a href="#cb359-303" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 読み込む場合は</span></span>
+<span id="cb359-304"><a href="#cb359-304" aria-hidden="true" tabindex="-1"></a>    <span class="co"># train_features, train_labels = torch.load(&#39;train_features.pth&#39;)</span></span>
+<span id="cb359-305"><a href="#cb359-305" aria-hidden="true" tabindex="-1"></a>    torch.save((train_features, train_labels), <span class="st">&#39;data/result/convnext_train_features.pth&#39;</span>)</span>
+<span id="cb359-306"><a href="#cb359-306" aria-hidden="true" tabindex="-1"></a>    torch.save((val_features, val_labels), <span class="st">&#39;data/result/convnext_val_features.pth&#39;</span>)</span>
+<span id="cb359-307"><a href="#cb359-307" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-308"><a href="#cb359-308" aria-hidden="true" tabindex="-1"></a>    <span class="co">#散布図の描画</span></span>
+<span id="cb359-309"><a href="#cb359-309" aria-hidden="true" tabindex="-1"></a>    plot_tsne(train_features, train_labels,<span class="st">&#39;data/result/convnext_tsne.png&#39;</span>)</span>
+<span id="cb359-310"><a href="#cb359-310" aria-hidden="true" tabindex="-1"></a>    plot_pca(train_features, train_labels,<span class="st">&#39;data/result/convnext_pca.png&#39;</span>)</span>
+<span id="cb359-311"><a href="#cb359-311" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb359-312"><a href="#cb359-312" aria-hidden="true" tabindex="-1"></a><span class="co">#スクリプトとして実行された場合(python convnext.py)で実行された場合に,</span></span>
+<span id="cb359-313"><a href="#cb359-313" aria-hidden="true" tabindex="-1"></a><span class="co"># if __name__ == &#39;__main__&#39;: 以下のみが実行される.</span></span>
+<span id="cb359-314"><a href="#cb359-314" aria-hidden="true" tabindex="-1"></a><span class="co"># 並列処理(multiprocessing)を行う場合にこのようにしないと,</span></span>
+<span id="cb359-315"><a href="#cb359-315" aria-hidden="true" tabindex="-1"></a><span class="co"># 各処理ですべて同じコードが実行されるため,無限ループなどが起きる.</span></span>
+<span id="cb359-316"><a href="#cb359-316" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="va">__name__</span> <span class="op">==</span> <span class="st">&#39;__main__&#39;</span>:</span>
+<span id="cb359-317"><a href="#cb359-317" aria-hidden="true" tabindex="-1"></a>    main()</span></code></pre></div>
+<p>出力されている<code>convnext_loss.png</code>と<code>convnext_acc.png</code>は<code>epoch</code>ごとの<code>loss</code>と<code>acc</code>の推移を表しています. <code>acc</code>は,モデルが予測したラベルの実際のラベルに対する正答率であり,<code>1</code>であれば予測が完全にラベルと一致していることを示しています. 今回は10代から60代までの6ラベルなので,完全にランダムにラベルを予測しても<code>0.16</code>程度はラベルと予測が一致します.</p>
+<figure>
+<img src="/images/convnext_loss_epoch20.png" alt="lossの推移" />
+<figcaption aria-hidden="true">lossの推移</figcaption>
+</figure>
+<figure>
+<img src="/images/convnext_acc_epoch20.png" alt="accの推移" />
+<figcaption aria-hidden="true">accの推移</figcaption>
+</figure>
+<p>グラフを確認してみると<code>epoch</code>が<code>5</code>をピークとして<code>loss</code>も<code>acc</code>も低下していることがわかります. そこで, もう一度,<code>num_epochs</code>を<code>5</code>に変更して,学習してみましょう. <code>random_seed</code>が固定されているので,基本的には同じ値が出力されるはずです.</p>
+<figure>
+<img src="/images/convnext_acc_epoch5.png" alt="accの推移(epoch 5)" />
+<figcaption aria-hidden="true">accの推移(epoch 5)</figcaption>
+</figure>
+<p>最終的に今回は, テストデータでの正答率が,<code>0.4</code>程度になりました. それほど高い値ではありませんが,ランダムに選択するよりはかなり良い値になったので,今回はこのくらいで良しとします. 実際の研究などでは,データ数を増やす,ハイパーパラメータやアルゴリズムを変更するなどして,もう少し良い値を目指したほうが良いでしょう.</p>
+<p>出力されている<code>pred_acctual_heatmap.png</code>は, テストデータにおける実際のラベルに対する予測値を予測値のラベル毎にカウントしたものを相対度数として表現したヒートマップです.すべて正確に予測されていた場合,度数は対角線上に集中します.
+このように可視化することで,モデルが何をどのように予測しているのかを確認できます.</p>
+<figure>
+<img src="/images/pred_acctual_heatmap.png" alt="accの推移(epoch 5)" />
+<figcaption aria-hidden="true">accの推移(epoch 5)</figcaption>
+</figure>
+<p>ヒートマップを確認すると概ね対角線上に度数が集中していることがわかります. 特に10,20代(y軸の0,1)を50,60代と予測した数は0であり,年齢が離れるほど正確に識別されていることがわかります.</p>
+<p>一方で,実際のラベルが10,20,40代であるときに,30代であると誤って予測する確率が高く,30代以前はあまり上手く識別できないことがわかります.</p>
+<p>続いて,<code>PCA</code>と<code>t-sne</code>の結果を確認してみましょう.</p>
+<figure>
+<img src="/images/convnext_pca.png" alt="PCA" />
+<figcaption aria-hidden="true">PCA</figcaption>
+</figure>
+<figure>
+<img src="/images/convnext_tsne.png" alt="t-sne" />
+<figcaption aria-hidden="true">t-sne</figcaption>
+</figure>
+<p>いずれも左から右に行くにつれて,年齢が高くなっており,ある程度識別できていることがわかります.一方で,30代の緑色が広い範囲に分布しているために識別が困難であること,50代と60代が左右とは別の特徴量で識別されていることなどがわかります.</p>
+<p>このように,学習されたモデルの特徴量を分析することで,それぞれのクラスの特徴がある程度見えてきます.</p>
+<p>それぞれの横軸,縦軸の特徴量が実際には何であるかは,各学習層でどのような特徴を抽出しているかを<strong>特徴マップ</strong>などによって可視化することが可能ですが,今回は扱いません. 興味がある方は,教員に聞いてみましょう.</p>
 <p>yakagika</p>
 ]]></description>
     <pubDate>Fri, 29 Mar 2024 00:00:00 UT</pubDate>
