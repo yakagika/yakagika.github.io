@@ -16,6 +16,8 @@ import qualified System.Process  as Process
 import qualified Text.Pandoc     as Pandoc
 import qualified Data.Set as S
 import Control.Monad (foldM, mplus)
+import Data.List (elemIndex)
+import Data.Maybe (fromMaybe)
 
 --------------------------------------------------------------------------------
 import           Hakyll
@@ -58,6 +60,7 @@ customWriterOptions = defaultHakyllWriterOptions
 myPandocCompiler :: Compiler (Item String)
 myPandocCompiler =
     pandocCompilerWith defaultHakyllReaderOptions customWriterOptions
+
 --------------------------------------------------------------------------------
 -- | Entry point
 main :: IO ()
@@ -164,10 +167,19 @@ main = hakyllWith config $ do
     match ("lectures/*.md" .||. "lectures/*.html" .||. "lectures/*.lhs") $ do
         route   $ setExtension ".html"
         compile $ do
+                -- 現在のアイテムのメタデータを取得
                 underlying <- getUnderlying
                 toc        <- getMetadataField underlying "tableOfContents"
-                let writerOptions' = maybe defaultHakyllWriterOptions (const customWriterOptions) toc
+                prev       <- getMetadataField underlying "previousChapter"
+                next       <- getMetadataField underlying "nextChapter"
+                date       <- getMetadataField underlying "date"
 
+                let writerOptions' = maybe defaultHakyllWriterOptions
+                                           (const customWriterOptions) toc
+                let postCtxWithChapters = postCtx tags <>
+                                  field "previousChapter" (\_ -> return $ maybe "#" toUrl prev) <>
+                                  field "nextChapter" (\_ -> return $ maybe "#" toUrl next) <>
+                                  field "date" (\_ -> return $ fromMaybe "No Date" date)
                 pandocCompilerWith defaultHakyllReaderOptions writerOptions'
                 >>= saveSnapshot "content"
                 >>= return . fmap demoteHeaders

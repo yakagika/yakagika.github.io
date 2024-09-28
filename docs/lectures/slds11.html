@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width">
+
+        <title>yakagika - 特別講義DS Ch11 線形回帰分析</title>
+
+        <!-- Stylesheets. -->
+        <link rel="stylesheet" type="text/css" href="../style.css?v=0">
+
+        <!-- RSS. -->
+        <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+        <!-- Metadata. -->
+        <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+        <meta name="description" content="Personal home page and blog of yakagika.">
+        
+        <!-- KaTeXのスタイルシートとJavaScriptのリンクを動的に挿入 -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css" integrity="sha384-wcIxkf4k558AjM3Yz3BBFQUbk/zgIYC2R0QpeeYb+TwlBVMrlgLqwRjRtGZiK7ww" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js" integrity="sha384-hIoBPJpTUs74ddyc4bFZSM1TVlQDA60VBbJS0oA934VSz82sBx1X7kSx2ATBDIyd" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+        <style>
+            .katex-display {
+                display: block;
+                margin: 1em 0;
+                text-align: center;
+            }
+
+            .katex .frac {
+                vertical-align: baseline;
+                -webkit-vertical-align: baseline; /* Safari用のベンダープリフィックス */
+            }
+
+            .katex .sqrt {
+                vertical-align: baseline;
+                -webkit-vertical-align: baseline; /* Safari用のベンダープリフィックス */
+            }
+
+            .katex .strut {
+                height: 1em;
+                -webkit-height: 1em; /* Safari用のベンダープリフィックス */
+            }
+
+            .katex .base {
+                font-family: 'KaTeX_Main', 'Arial', sans-serif;
+            }
+
+            /* Safari専用のスタイルを追加 */
+                @media screen and (-webkit-min-device-pixel-ratio:0) {
+                    .katex {
+                        line-height: normal !important;
+                    }
+                }
+            @media not all and (min-resolution: .001dpcm) {
+                @supports (-webkit-appearance:none) {
+                    .katex {
+                        line-height: normal !important;
+                    }
+                }
+            }
+        </style>
+        
+        <meta property="og:description" content="資料" />
+    </head>
+    <body>
+        <div id="navigation">
+            <h1>Contents</h1>
+            <a href="../">Home</a>
+            <a href="../posts.html">Blog</a>
+            <a href="../lectures.html">Lecture</a>
+            <a href="../research.html">Research</a>
+            <a href="../contact.html">Contact</a>
+            <!-- <a href="/cv.html">CV</a> -->
+            <h1>Links</h1>
+            <a href="http://github.com/yakagika">GitHub</a>
+            <a href="https://researchmap.jp/k-akagi">researchmap</a>
+
+        </div>
+
+        <div id="content">
+    <h1>特別講義DS Ch11 線形回帰分析</h1>
+<div class="soft">
+    資料<br />
+    Published on 2024-03-29 under the tag <a title="All pages tagged 'datascience'." href="../tags/datascience.html">datascience</a>, <a title="All pages tagged 'statistics'." href="../tags/statistics.html">statistics</a>, <a title="All pages tagged 'python'." href="../tags/python.html">python</a>
+</div>
+
+<!-- 前後の章へのナビゲーション -->
+<div class="chapter-navigation">
+    <nav>
+        
+            <a class="nav-link prev" href="slds10.html">← Previous Chapter</a>
+        
+        
+            <a class="nav-link next" href="slds12.html">Next Chapter →</a>
+        
+    </nav>
+</div>
+
+<br>
+
+<div class="toc"><div class="header">Table of Contents</div>
+<ul>
+<li><a href="#線形回帰分析" id="toc-線形回帰分析"><span class="toc-section-number">1</span> 線形回帰分析</a>
+<ul>
+<li><a href="#発展-回帰分析は何を行っているのか" id="toc-発展-回帰分析は何を行っているのか"><span class="toc-section-number">1.1</span> 発展: 回帰分析は何を行っているのか</a>
+<ul>
+<li><a href="#母回帰方程式" id="toc-母回帰方程式"><span class="toc-section-number">1.1.1</span> 母回帰方程式</a></li>
+<li><a href="#誤差項撹乱項" id="toc-誤差項撹乱項"><span class="toc-section-number">1.1.2</span> 誤差項,撹乱項</a></li>
+<li><a href="#最小二乗法" id="toc-最小二乗法"><span class="toc-section-number">1.1.3</span> 最小二乗法</a></li>
+<li><a href="#回帰係数の検定" id="toc-回帰係数の検定"><span class="toc-section-number">1.1.4</span> 回帰係数の検定</a></li>
+</ul></li>
+<li><a href="#重回帰分析" id="toc-重回帰分析"><span class="toc-section-number">1.2</span> 重回帰分析</a>
+<ul>
+<li><a href="#正規化標準化" id="toc-正規化標準化"><span class="toc-section-number">1.2.1</span> 正規化・標準化</a></li>
+<li><a href="#多重共線性multi-colinearlity" id="toc-多重共線性multi-colinearlity"><span class="toc-section-number">1.2.2</span> 多重共線性(multi-colinearlity)</a></li>
+<li><a href="#回帰分析の精度と判断" id="toc-回帰分析の精度と判断"><span class="toc-section-number">1.2.3</span> 回帰分析の精度と判断</a></li>
+<li><a href="#結果の図示" id="toc-結果の図示"><span class="toc-section-number">1.2.4</span> 結果の図示</a></li>
+</ul></li>
+</ul></li>
+</ul>
+</div>
+<h2 data-number="1" id="線形回帰分析"><span class="header-section-number">1</span> 線形回帰分析</h2>
+<p>相関分析では,ある変数間に関係があることを示すことができました. しかし,相関分析で示せるのは,変数Aによって変数Bが増加するか,減少するかということのみです. 具体的に,どの程度変数Aが動くことで,変数Bがどの程度変動するかを式によって<strong>説明する</strong>手法に<strong>回帰分析(Regression Analysis)</strong>があります.</p>
+<p>また,回帰分析は検定の手法によって求められた式がどの程度信頼できるのかを検定によって確かめることも可能です.</p>
+<div class="note">
+<p>回帰分析では,データ</p>
+<p><span class="math display">\[
+y = \beta_1 + \beta_2 x
+\]</span></p>
+<p>のような式で変数yとxの関係を説明し,この式を<strong>回帰式,回帰方程式</strong>と呼びます. このとき,</p>
+<ul>
+<li><p>説明される変数yを <strong>非説明変数</strong>,<strong>目的変数</strong>などと呼びます.</p></li>
+<li><p>説明する変数xを<strong>説明変数</strong>,<strong>従属変数</strong>などと呼びます.</p></li>
+<li><p>回帰式における <strong><span class="math inline">\(\beta_1\)</span></strong>のような変数に乗じられていない値を<strong>切片</strong>といいます.</p>
+<p>切片は, <span class="math inline">\(x = 0\)</span> のときのyの値を意味しています.</p></li>
+<li><p>変数に乗じられている<strong><span class="math inline">\(\beta_2\)</span></strong>のような値を<strong>傾き</strong>といい,<span class="math inline">\(\beta_1,\beta_2\)</span> などを併せて<strong>回帰係数</strong>といいます.</p>
+<p>傾きは,xが1変化した際のyの変化量を表しています.</p></li>
+<li><p>説明変数が一つの回帰式を求める分析を<strong>単回帰分析</strong>, 2つ以上の説明変数を用いる場合を<strong>重回帰分析</strong>といいます.</p></li>
+<li><p>yがxの線形関数である場合を <strong>線形回帰(Linear regression)</strong>,それ以外のものを<strong>非線形回帰(non-linear regression)</strong>といいます.</p></li>
+</ul>
+</div>
+<h3 data-number="1.1" id="発展-回帰分析は何を行っているのか"><span class="header-section-number">1.1</span> 発展: 回帰分析は何を行っているのか</h3>
+<p>回帰分析が何を行っているのかについて,単回帰で行っている最小二乗法を事例に確認していきましょう.
+重回帰に関しては, 線形計画問題など異なる学習が必要になるので,今回は扱いません. あくまで,回帰というものがどのような意味であるかに関して簡単に説明します.</p>
+<p>こちらの詳細は統計学入門で扱っていますので, この講義ではあまり深く扱いません.興味のある方は読んでみてください.</p>
+<h4 data-number="1.1.1" id="母回帰方程式"><span class="header-section-number">1.1.1</span> 母回帰方程式</h4>
+<p>体重<span class="math inline">\(y\)</span>を慎重<span class="math inline">\(x\)</span>によって説明する回帰方程式として, <span class="math inline">\(y = \beta_1 + \beta_2 x\)</span> を考えてみます.
+しかし, 実際の体重は身長以外の要素によってばらつきます. そのような<strong>ばらつき</strong>を考慮して,データの<span class="math inline">\(i\)</span>人目の体重,身長をそれぞれ,<span class="math inline">\(Y_i,X_i\)</span>として,身長以外の要素によるばらつきを<span class="math inline">\(\epsilon_i\)</span>とすると,母集団において,以下のような式が立てられます.</p>
+<p><span class="math display">\[
+Y_i = \beta_1 + \beta_2 X_i + \epsilon_i ~(i=1,2,...,n)
+\]</span></p>
+<p>これを<strong>母回帰方程式(Population Regression Equation)</strong>と呼びます.
+また, <span class="math inline">\(\beta_1, \beta_2\)</span>を<strong>母(偏)回帰係数</strong>といい,これを推定,検定することを回帰分析といいます.</p>
+<h4 data-number="1.1.2" id="誤差項撹乱項"><span class="header-section-number">1.1.2</span> 誤差項,撹乱項</h4>
+<p>母回帰方程式</p>
+<p><span class="math display">\[
+Y_i = \beta_1 + \beta_2 X_i + \epsilon_i ~(i=1,2,...,n)
+\]</span></p>
+<p>における <span class="math inline">\(\epsilon_i\)</span>は<span class="math inline">\(X_i\)</span>で説明できない誤差を表す確率変数であり,誤差項,撹乱項といいます.</p>
+<p>回帰分析において,誤差項は以下の仮定をおいています.</p>
+<div class="note">
+<ul>
+<li>期待値0: <span class="math inline">\(E(\epsilon_i) = 0 ~ (i=1,2,...,n)\)</span></li>
+<li>分散一定: <span class="math inline">\(V(\epsilon_i) = \sigma^2 ~ (i=1,2,...,n)\)</span></li>
+<li>無相関: <span class="math inline">\(i \neq j \Rightarrow Cov(\epsilon_i, \epsilon_j) = 0\)</span></li>
+<li>正規分布: <span class="math inline">\(\epsilon_i \sim N(o,\sigma^2)\)</span></li>
+</ul>
+</div>
+<p>これによって,</p>
+<p><span class="math display">\[
+E(Y_i) = \beta_1 + \beta_2 X_i
+\]</span></p>
+<p>が得られます.</p>
+<h4 data-number="1.1.3" id="最小二乗法"><span class="header-section-number">1.1.3</span> 最小二乗法</h4>
+<p>母回帰方程式</p>
+<p><span class="math display">\[
+Y_i = \beta_1 + \beta_2 X_i + \epsilon_i ~(i=1,2,...,n)
+\]</span>
+における母回帰係数<span class="math inline">\(\beta_1, \beta_2\)</span>は観測できないので,<strong>誤差項を最小化する</strong>母回帰係数を統計的推測することで求めます.</p>
+<p>誤差項を最小化する母回帰係数の推定方法を<strong>最小二乗法(least squares method)</strong>といいます.</p>
+<p>母回帰方程式を変形して,</p>
+<p><span class="math display">\[
+\epsilon_i = Y_i - (\beta_1 + \beta_2 X_i)
+\]</span></p>
+<p>が少ないほど, <span class="math inline">\(X_i\)</span>による<span class="math inline">\(Y_i\)</span>の説明力が上がります(モデルによってよく関係が説明できている.)</p>
+<p>なので,モデル全体で,<span class="math inline">\(\epsilon_i\)</span>を最小化することを考えてみます.</p>
+<figure>
+<img src="../images/least-squares-method1.png" alt="least squares method" />
+<figcaption aria-hidden="true">least squares method</figcaption>
+</figure>
+<p>誤差の正負を打ち消すために,モデル全体の誤差項の二乗の和</p>
+<p><span class="math display">\[
+S = \sum_{i=1} \epsilon_{1}^{2} = \sum \{Y_i - (\beta_1 + \beta_2 X_i)\}^2
+\]</span></p>
+<p>Sを最小化する<strong>(最小二乗)推定量</strong> <span class="math inline">\(\hat{\beta_1},\hat{\beta_2}\)</span>を求める問題として整理できます.</p>
+<p><span class="math inline">\(S\)</span>の偏微分を0とおいて,</p>
+<p><span class="math display">\[
+\frac{\partial S}{ \partial \beta_1} = -2 \sum (Y_i = \beta_1 - \beta_2 X_i) = 0 \\
+\frac{\partial S}{ \partial \beta_2} = -2 \sum (Y_i = \beta_1 - \beta_2 X_i)X_i = 0 \\
+\]</span></p>
+<p>これを解いて,</p>
+<p><span class="math display">\[
+\hat{\beta_1} = \bar{Y} - \hat{\beta_2}\bar{X} \\
+\hat{\beta_2} = \frac{\sum(X_i - \bar{X})(Y_i - \bar(Y))}{\sum(X_i - \bar{X})^2}
+\]</span>
+が得られます.</p>
+<h4 data-number="1.1.4" id="回帰係数の検定"><span class="header-section-number">1.1.4</span> 回帰係数の検定</h4>
+<p>最小二乗推定量によって得られた方程式</p>
+<p><span class="math display">\[
+Y = \hat{\beta_1} + \hat{\beta_2}X
+\]</span></p>
+<p>を<strong>標本回帰方程式</strong>といいます.</p>
+<p>求めた標本回帰方程式が,XとYの関係を説明できているのかを考えます. XがYを全く説明できていない場合, <span class="math inline">\(\epsilon_i\)</span>だけで説明ができるため, <span class="math inline">\(\beta_2 \neq 0\)</span>と言えれば,統計的にXがYを説明できていると言えます.</p>
+<p>そこで, 帰無仮説 <span class="math inline">\(H_0:\beta_2 = 0\)</span>として,偏回帰係数に関する統計的仮説検定を実施します.</p>
+<p>母数<span class="math inline">\(\beta_2\)</span>に関する仮説検定を行うために, <span class="math inline">\(\beta_2\)</span>の確率分布を考えます.</p>
+<p>誤差項 <span class="math inline">\(\epsilon_i \sim N(o,\sigma^2)\)</span>として,</p>
+<p><span class="math display">\[
+\hat{\beta_1} = \bar{Y} - \hat{\beta_2}\bar{X} \\
+\hat{\beta_2} = \frac{\sum(X_i - \bar{X})(Y_i - \bar(Y))}{\sum(X_i - \bar{X})^2}
+\]</span>
+であるから,</p>
+<p><span class="math display">\[
+V(\hat{\beta_1}) = \frac{\sigma^2 \sum X_i^2}{n\sum(X_i - \bar{X})^2} \\
+E(\hat{\beta_1}) = \beta_1 \\
+V(\hat{\beta_2}) = \frac{\sigma^2 }{\sum(X_i - \bar{X})^2} \\
+E(\hat{\beta_2}) = \beta_2
+\]</span>
+なので,</p>
+<p><span class="math display">\[
+\hat{\beta_2} \sim N(\beta_2,\frac{\sigma^2}{\sum(X_i - \bar{X})^2})
+\]</span></p>
+<p>となる.</p>
+<p>誤差項の母標準偏差 <span class="math inline">\(\sigma\)</span>が含まれるので,推定する.</p>
+<p>標本回帰方程式 <span class="math inline">\(Y=\hat{\beta_1}+\hat{\beta_2}X\)</span>によって求められる各<span class="math inline">\(i\)</span>の値(回帰値)</p>
+<p><span class="math display">\[
+\hat{Y_i} = \hat{\beta_1} + \hat{\beta_2}X_i
+\]</span></p>
+<p>と実際に観測された実測値 <span class="math inline">\(Y_i\)</span>との差を</p>
+<p><span class="math display">\[
+\hat{e_i} = Y_i - \hat{Y_i} = Y_i - \hat{\beta_1} - \hat{\beta_2}X_i
+\]</span></p>
+<p>を<strong>回帰残渣(residual)</strong>といい,Xで説明されなかった残渣を表す.</p>
+<p>回帰残渣を母回帰方程式 <span class="math inline">\(Y_i = \beta_1 + \beta_2 X_i + \epsilon_i\)</span>における誤差項<span class="math inline">\(\epsilon_i\)</span>の推定値として利用する.</p>
+<p>求める必要があるのは,誤差項の分散の推定値としての分散</p>
+<p><span class="math display">\[
+V(\hat{e_i}) = E(\hat{e_i^2}) - (E(\hat{e_i}))^2
+\]</span></p>
+<p>であるが,</p>
+<p><span class="math display">\[
+\frac{\partial S}{\partial \beta_2} = -2 \sum (Y_i - \beta_1 - \beta_2 X_i)X_i = 0
+\]</span>
+なので,</p>
+<p><span class="math display">\[
+\sum (Y_i - \beta_1 - \beta_2 X_i) = \sum \hat{e_i} = 0
+\]</span></p>
+<p>となり,</p>
+<p><span class="math display">\[
+\bar{e_i} = \frac{1}{n} \sum \hat{e_i} = 0
+\]</span></p>
+<p>なので,</p>
+<p><span class="math display">\[
+\begin{align*}
+V(\hat{e_i}) &amp;= E(\hat{eI^2}) \\
+&amp;= \frac{1}{n-2}\sum (\hat{e_i}^2 - \bar{e_i}^2) \\
+&amp;= \frac{\sum \hat{e_i}^2}{n-2}
+\end{align*}
+\]</span></p>
+<p>となります.</p>
+<p>これを誤差項の分散<span class="math inline">\(\sigma^2\)</span>の推定値</p>
+<p><span class="math display">\[
+S^2 = \frac{\sum \hat{e_i}^2}{n-2}
+\]</span>
+として利用します.</p>
+<p>なお,この累乗根は回帰式がどの程度実測値に当てはまっているかを表す,<strong>推定値の標準誤差(standard error of estimates)</strong>と呼ばれます.</p>
+<p><span class="math display">\[
+s.e. = \sqrt{S^2} = \sqrt{\frac{\sum \hat{e_i}^2}{n-2}}
+\]</span></p>
+<p>これを誤差項の母標準偏差<span class="math inline">\(\sigma\)</span>の推定値として利用して,<span class="math inline">\(\hat{\beta_2}\)</span>の標準誤差の推定値は,</p>
+<p><span class="math display">\[
+V(\hat{\beta_2}) = \frac{\sigma^2 }{\sum(X_i - \bar{X})^2}
+\]</span></p>
+<p>から,</p>
+<p><span class="math display">\[
+s.e.(\hat{\beta_2}) = \frac{s.e.}{\sqrt{\sum(X_i - \bar{X})^2}}
+\]</span></p>
+<p>となり,<span class="math inline">\(s.e.(\hat{\beta_2})\)</span>を用いて標準化した値は, <span class="math inline">\(t(n-2)\)</span>に従うので,</p>
+<p><span class="math display">\[
+t_2 = \frac{\hat{\beta_2} - \beta_2}{s.e.(\hat{\beta_2})} \sim t(n-2)
+\]</span></p>
+<h3 data-number="1.2" id="重回帰分析"><span class="header-section-number">1.2</span> 重回帰分析</h3>
+<p>説明変数も被説明変数も量的変数のときに,</p>
+<p><span class="math display">\[
+y_i = \beta_0 + \beta_1 x_{1i} + \beta_2 x_{2i} + ... + \beta_n x_{ni}
+\]</span></p>
+<p>のような回帰式を求めます.</p>
+<p>それでは,Pythonで重回帰分析を行ってみましょう.</p>
+<p>題材として以下の｢日本教育新聞｣の記事(<a href="https://www.kyoiku-press.com/post-223665/">https://www.kyoiku-press.com/post-223665/</a>)について考えてみます.</p>
+<div class="note">
+<blockquote>
+<p><strong>Wi-Fi電磁波で学力低下を懸念,市議ら意見交換会</strong></p>
+<p>2020年12月7日
+電磁波が人体に影響を与え,学力の低下を招くことなどを懸念する市議会議員らは11月8日,無線LANにより生じる「電磁波過敏症」への対策などについて,意見交換会をオンラインで開催した.
+　GIGAスクール構想でICT環境を整備するに当たって,電磁波による問題点とそれへの対策を話し合った.
+　東京都新宿区議会のよだかれん議員は,学力と健康の2つの観点から,「大人でもICT機器を使用すると前頭前野の機能が低下するという様々な研究報告がある.小学1年生からの使用で脳の発達への影響は懸念されないのか」と指摘した.
+　よだ議員は,9月議会の質疑の一部で,令和元年の全国学力テストの結果に基づき,電子黒板やプロジェクターなどの大型電子機器の整備率が1位の佐賀県は正答率が全国で43位だった一方,整備率最下位の秋田県は正答率が1位だったことを紹介した.
+　意見交換会を主催した「いのち環境ネットワーク」の加藤やすこ代表によると,電磁波過敏症は短い時間でも発症の可能性があり,一度の発症が長期に及んで続くという.
+　埼玉県日高市議会の松尾まよか議員は,GIGAスクール構想を進める上で,Wi-Fiのアクセスポイントの位置を児童・生徒から遠ざけた場所に設置する,使用していない時は電源を落とすことを重要な点に位置付けた.
+　松尾議員は,「発症者が出てからでは遅い.発症後の対策に予算をかけるよりも,事前に対策しておく方がよい」と強調した.
+　今回の意見交換会に参加した市議らは,9月議会の発言内容なども報告した.</p>
+</blockquote>
+<p>こちらの記事では,</p>
+<blockquote>
+<p>令和元年の全国学力テストの結果に基づき,電子黒板やプロジェクターなどの大型電子機器の整備率が1位の佐賀県は正答率が全国で43位だった一方,整備率最下位の秋田県は正答率が1位だった</p>
+</blockquote>
+<p>ことから,</p>
+<p>｢学校教育におけるICT機器の導入が学力低下を招いている｣ということを主張しています.</p>
+</div>
+<p>最下位と1位の2つの観測対象のデータだけでこのような主張が可能なのでしょうか. データを使ってこの主張を検証してみましょう. 必要なデータは<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/math_correct.csv">こちら</a>からダウンロード可能ですが,データの取得手順に興味がある方は,以下から確認して自分でデータを作成してみましょう.</p>
+<div class="note">
+<ul>
+<li>教育データの作成</li>
+</ul>
+<details open>
+<summary>
+開く/ 閉じる
+</summary>
+<p>まずは全国の県別の学力データを探してみます.</p>
+<p>国立教育政策研究所の行っている全国学力・学習状況調査(<a href="https://www.nier.go.jp/19chousakekkahoukoku/index.html">https://www.nier.go.jp/18chousakekkahoukoku/index.html</a>)から,令和元年の県別の小学生の学力データを取得します.</p>
+<figure>
+<img src="../images/regression1.png" alt="全国学力･学習状況調査" />
+<figcaption aria-hidden="true">全国学力･学習状況調査</figcaption>
+</figure>
+<p>ただし,こちらのデータはPDFでのみ公開されているためExcelやAIなどを利用して,CSVに変換する必要があります. 今回私はPDFからテキストエディタにコピー&amp;ペーストして, 不要な記号を置換しましたが,好きな方法でやりましょう.</p>
+<figure>
+<img src="../images/regression2.png" alt="全国学力･学習状況調査" />
+<figcaption aria-hidden="true">全国学力･学習状況調査</figcaption>
+</figure>
+<p>続いて, 記事にある,電子黒板やプロジェクターなどの大型電子機器の整備率に関するデータを<a href="https://www.e-stat.go.jp">e-stat</a>から取得します.</p>
+<p>今回は県別データなので,｢地域｣から,データを取得します.</p>
+<figure>
+<img src="../images/regression3.png" alt="e-stat 地域" />
+<figcaption aria-hidden="true">e-stat 地域</figcaption>
+</figure>
+<p>｢都道府県データ｣にチェックを入れて｢データ表示｣に進みます.</p>
+<figure>
+<img src="../images/regression4.png" alt="都道府県データ" />
+<figcaption aria-hidden="true">都道府県データ</figcaption>
+</figure>
+<p>｢地域選択｣において｢全て選択｣をクリックしたあと選択中地域から全国をクリックし,｢地域を削除｣
+を押し,47都道府県のみを選び,確定します.</p>
+<figure>
+<img src="../images/regression5.png" alt="地域選択" />
+<figcaption aria-hidden="true">地域選択</figcaption>
+</figure>
+<p>｢分野｣から｢教育｣を選び関連のありそうな
+- ｢教育用コンピュータ一台あたりの児童数(小学校)｣
+- ｢普通教室の電子黒板整備率(小学校)｣
+- ｢デジタル教科書の整備率(小学校)｣
+などを選択し,｢項目を選択｣を押し,確定します.</p>
+<figure>
+<img src="../images/regression6.png" alt="教育関連データの選択" />
+<figcaption aria-hidden="true">教育関連データの選択</figcaption>
+</figure>
+<p>｢調査年｣からデータが揃っている2017年度を選択し,｢再表示｣を押します.</p>
+<figure>
+<img src="../images/regression7.png" alt="調査年の選択" />
+<figcaption aria-hidden="true">調査年の選択</figcaption>
+</figure>
+<p>｢ダウンロード｣から,右の図のように選択して,ダウンロードします.</p>
+<figure>
+<img src="../images/regression8.png" alt="ダウンロード" />
+<figcaption aria-hidden="true">ダウンロード</figcaption>
+</figure>
+<p>学力のデータにダウンロードした黒板などのデータをコピーして,適切にヘッダーをつけ,Utf-8で作業フォルダの中のDataフォルダに保存しましょう.例ではmath_correct.csvと名前をつけています.
+- 数学正答率 → math
+- 一台あたりのPC → pc
+- 黒板 → board
+- 電子教科書 → text</p>
+<p>Excelで貼り付けた際に文字列情報になっている場合があり,!マークが表示されていたら数値に変換しておきましょう.</p>
+<figure>
+<img src="../images/regression9.png" alt="データの編集" />
+<figcaption aria-hidden="true">データの編集</figcaption>
+</figure>
+<p>データが読み込めるか確認してみましょう.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'Data/math_correct.csv'</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co">   pref  math   pc  board  text</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">0   北海道    64  5.8   20.8  38.5</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">1   青森県    67  5.3   22.4  30.9</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co">2   岩手県    66  5.4   19.6  35.9</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co">3   宮城県    65  6.8   14.0  66.6</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co">4   秋田県    70  5.6   22.4  36.8</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="co">5   山形県    65  5.7   16.6  44.0</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="co">6   福島県    65  5.3   24.6  47.2</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="co">7   茨城県    66  6.5   22.0  49.5</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="co">8   栃木県    65  5.9   42.6  70.8</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="co">9   群馬県    65  6.1   15.4  39.3</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="co">10  埼玉県    66  9.6   23.9  58.8</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="co">...</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+</details>
+</div>
+<p>それでは,このデータを利用して重回帰分析を行っていきます.</p>
+<div class="note">
+<p>Pythonで重回帰を行えるライブラリは多数ありますが, 今回は統計モデリングのためのライブラリ<code>statsmodels</code>を利用します. pip install し, プログラムの最初に, <code>import statsmodels.api as sm</code>と記述し<code>import</code>しておきましょう.</p>
+</div>
+<p>ただし, 重回帰を実施する前に,いくつか必要な前処理があります. 順番に見ていきましょう.</p>
+<h4 data-number="1.2.1" id="正規化標準化"><span class="header-section-number">1.2.1</span> 正規化・標準化</h4>
+<p>重回帰分析では,複数の説明変数の目的変数に対する影響を比較します. 各説明変数の目的変数への影響力は,回帰係数として現れますが説明変数1の単位がmm,説明変数2の単位がm, 説明変数3の単位がKgなどとなると,それぞれの回帰係数は,それぞれ1mmの変化,1mの変化,1Kgの変化に対する目的変数の変化量を表しているために,同じ基準で比較できません.そこで,<strong>正規化/標準化</strong>というデータの単位などを揃える操作を行う必要があります.</p>
+<div class="note">
+<ul>
+<li>正規化(Normalization)</li>
+</ul>
+<p>最大値を1,最小値を0に揃えること.</p>
+<p>データを <span class="math inline">\(X = {x_1,x_2,...,x_n}\)</span> とすると, 正規化後の値 <span class="math inline">\(x_i'\)</span>は</p>
+<p><span class="math display">\[
+x_i' = \frac{x_i - min(X)}{max(X) - min(X)}
+\]</span></p>
+<p><code>pandas</code>では<code>X</code>が対象のデータ列名のリストだとすると,以下のように正規化列<code>X_n</code>が求められる.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>X_n <span class="op">=</span> (df[X] <span class="op">-</span> df[X].<span class="bu">min</span>()) <span class="op">\</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="op">/</span> (df[X].<span class="bu">max</span>() <span class="op">-</span> df[X].<span class="bu">min</span>())</span></code></pre></div>
+</div>
+<div class="note">
+<ul>
+<li>標準化(Standarization)</li>
+</ul>
+<p>標準得点を求めて,平均0,分散1に揃える.</p>
+<p><span class="math display">\[
+z_i = \frac{x_i - \bar{x}}{\sigma}
+\]</span></p>
+<p><code>pandas</code>では<code>X</code>が対象のデータ列名のリストだとすると,以下のように標準化列<code>X_z</code>が求められる.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>X_z <span class="op">=</span> (df[X] <span class="op">-</span> df[X].mean()) <span class="op">\</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="op">/</span> df[X].std()</span></code></pre></div>
+<p>それでは, 先ほど得られた教育データを標準化してみましょう.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>Y_label <span class="op">=</span> <span class="st">'math'</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co">#標準化</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>Y <span class="op">=</span> (df[Y_label] <span class="op">-</span> df[Y_label].mean()) <span class="op">\</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="op">/</span> df[Y_label].std()</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>plt.hist(Y)</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>plt.title(Y_label)</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="co"># 説明変数のヘッダーを指定</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>X_labels <span class="op">=</span> [<span class="st">'pc'</span>,<span class="st">'board'</span>,<span class="st">'text'</span>]</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="co">#標準化</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>X  <span class="op">=</span> (df[X_labels] <span class="op">-</span> df[X_labels].mean()) <span class="op">\</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    <span class="op">/</span> df[X_labels].std()</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(nrows<span class="op">=</span> <span class="dv">3</span> <span class="co">#行数の指定</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>                        ,ncols<span class="op">=</span> <span class="dv">1</span> <span class="co">#列数の指定</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>                        ,sharex<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a><span class="co">#連番に変換</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>axes <span class="op">=</span> axes.flatten()</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">3</span>):</span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>    col <span class="op">=</span> X_labels[i] <span class="co">#countをiで共通化</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>    axes[i].hist(X[col])</span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>    axes[i].set_title(col)</span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<p><img src="../images/regression10.png" alt="Yのヒストグラム" />
+<img src="../images/regression11.png" alt="Xのヒストグラム" /></p>
+<div class="warn">
+<p>本来ならば,ここで<code>math</code>が左右対称ではないことから正規分布を仮定した回帰を行うべきではなく,ベータ分布などを仮定した一般化線形モデルにすることを検討します.</p>
+<p>また, <code>text</code>に外れ値(長崎県)があることなども考慮するべきですが,今回は線形回帰の事例ですのでそのまま進めてみます.</p>
+</div>
+</div>
+<h4 data-number="1.2.2" id="多重共線性multi-colinearlity"><span class="header-section-number">1.2.2</span> 多重共線性(multi-colinearlity)</h4>
+<div class="note">
+<p>説明変数 <span class="math inline">\(x_1, x_2, ..., x_n\)</span> において, 特定の変数<span class="math inline">\(x_i\)</span>が他の変数によって</p>
+<p><span class="math display">\[
+x_i = \sum_{i \neq j} \alpha_j x_j
+\]</span></p>
+<p>として,少なくとも1つが0でない<span class="math inline">\(\alpha_j\)</span>によって表すことができる場合に,すなわち各変数が一次独立でなくなる場合に,説明変数に<strong>完全な多重共線性</strong>が成り立っているといいます.</p>
+<p>このとき, 最小二乗法では, <span class="math inline">\(y = \beta_0 + \beta_1 x_1 + beta_2 x_2 + ... + \beta_n x_n\)</span>を解くことができなくなるため,解が得られなくなります.</p>
+</div>
+<p>例えば, <span class="math inline">\(x_1 = \alpha_2 x_2\)</span>であったとすると,</p>
+<p><span class="math display">\[
+y = \beta_0 + (\beta_1 + \alpha_2 \beta_2) x_1 + \beta_3 x_3 + ... + \beta_n x_n
+\]</span></p>
+<p>となり,推定値が <span class="math inline">\(\hat{\beta_{12}} = \hat{\beta_1} + \alpha_2 \hat{\beta_2}\)</span>であったとすると, <span class="math inline">\(\hat{\beta_{12}}\)</span>となる<span class="math inline">\(\hat{\beta_1}\)</span>と<span class="math inline">\(\hat{\beta_2}\)</span>の組み合わせは無数にあるため,<span class="math inline">\(\hat{\beta_1}\)</span>と<span class="math inline">\(\hat{\beta_2}\)</span>を特定することができなくなります.</p>
+<p>このような<strong>完全な多重共線性</strong>は,主に特定の説明変数を,他の説明変数の変形によって作成している場合に生じるため,変形した変数を利用するならば,変形前の変数はモデルに利用しないようにしましょう.</p>
+<p>例えば, これから使い方を学習する<code>statsmodels</code>を利用して,あえて<strong>完全な多重共線性</strong>が存在するような重回帰分析を行ってみます.
+(<code>statsmodels</code>や重回帰の実施については,後述するのでこの時点では変数の生成以外は意味を理解する必要はありません.)</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> statsmodels.api <span class="im">as</span> sm</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co">#乱数で目的変数と説明変数を生成</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> np.random.rand(<span class="dv">100</span>)</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>x_1 <span class="op">=</span> np.random.rand(<span class="dv">100</span>)</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.DataFrame({<span class="st">'y'</span>:y,<span class="st">'x_1'</span>:x_1})</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="co">#説明変数x_2をx_1から生成</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'x_2'</span>] <span class="op">=</span> df[<span class="st">'x_1'</span>] <span class="op">*</span> <span class="dv">2</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> [<span class="st">'x_1'</span>,<span class="st">'x_2'</span>]</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a><span class="co">#予測モデルを作成(重回帰)</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> sm.add_constant(df[X])</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> sm.OLS(df[<span class="st">'y'</span>],X)</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> model.fit()</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(result.summary())</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a><span class="co">                            OLS Regression Results</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a><span class="co">==============================================================================</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a><span class="co">Dep. Variable:                      y   R-squared:                       0.000</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a><span class="co">Model:                            OLS   Adj. R-squared:                 -0.010</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a><span class="co">Method:                 Least Squares   F-statistic:                   0.01870</span></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a><span class="co">Date:                Mon, 08 Jul 2024   Prob (F-statistic):              0.892</span></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a><span class="co">Time:                        18:24:01   Log-Likelihood:                -11.013</span></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a><span class="co">No. Observations:                 100   AIC:                             26.03</span></span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a><span class="co">Df Residuals:                      98   BIC:                             31.24</span></span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a><span class="co">Df Model:                           1</span></span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a><span class="co">Covariance Type:            nonrobust</span></span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a><span class="co">==============================================================================</span></span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a><span class="co">                 coef    std err          t      P&gt;|t|      [0.025      0.975]</span></span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a><span class="co">------------------------------------------------------------------------------</span></span>
+<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a><span class="co">const          0.4896      0.060      8.121      0.000       0.370       0.609</span></span>
+<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a><span class="co">x_1            0.0028      0.021      0.137      0.892      -0.038       0.044</span></span>
+<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a><span class="co">x_2            0.0056      0.041      0.137      0.892      -0.076       0.087</span></span>
+<span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a><span class="co">==============================================================================</span></span>
+<span id="cb5-40"><a href="#cb5-40" aria-hidden="true" tabindex="-1"></a><span class="co">Omnibus:                       19.023   Durbin-Watson:                   2.250</span></span>
+<span id="cb5-41"><a href="#cb5-41" aria-hidden="true" tabindex="-1"></a><span class="co">Prob(Omnibus):                  0.000   Jarque-Bera (JB):                5.214</span></span>
+<span id="cb5-42"><a href="#cb5-42" aria-hidden="true" tabindex="-1"></a><span class="co">Skew:                           0.170   Prob(JB):                       0.0738</span></span>
+<span id="cb5-43"><a href="#cb5-43" aria-hidden="true" tabindex="-1"></a><span class="co">Kurtosis:                       1.934   Cond. No.                     8.65e+16</span></span>
+<span id="cb5-44"><a href="#cb5-44" aria-hidden="true" tabindex="-1"></a><span class="co">==============================================================================</span></span>
+<span id="cb5-45"><a href="#cb5-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-46"><a href="#cb5-46" aria-hidden="true" tabindex="-1"></a><span class="co">Notes:</span></span>
+<span id="cb5-47"><a href="#cb5-47" aria-hidden="true" tabindex="-1"></a><span class="co">[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.</span></span>
+<span id="cb5-48"><a href="#cb5-48" aria-hidden="true" tabindex="-1"></a><span class="co">[2] The smallest eigenvalue is 3.44e-32. This might indicate that there are</span></span>
+<span id="cb5-49"><a href="#cb5-49" aria-hidden="true" tabindex="-1"></a><span class="co">strong multicollinearity problems or that the design matrix is singular.</span></span>
+<span id="cb5-50"><a href="#cb5-50" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p><code>statsmodels</code>では,一応重回帰自体は実施できるものの,</p>
+<blockquote>
+<p>The smallest eigenvalue is 3.44e-32. This might indicate that there are
+strong multicollinearity problems or that the design matrix is singular.</p>
+</blockquote>
+<p>のように,多重共線性の存在を教えてくれます. (乱数を利用していることもあり)当然モデルの精度も非常に悪くなっているため, このモデルは利用できません.</p>
+<p>一方で,</p>
+<div class="note">
+<p><span class="math display">\[
+x_i \approx \sum_{i \neq j} \alpha_j x_j
+\]</span></p>
+<p>で成り立つ(完全ではない/弱い)<strong>多重共線性</strong>という概念もあります. これは簡単に言えば, 説明変数間に相関関係が成り立つような場合を指しています.</p>
+<p>変数間に相関がある場合,</p>
+<ul>
+<li><p>サンプルサイズによって,推定値が大きく変わる</p></li>
+<li><p>データによって推定値が大きく変わる</p></li>
+</ul>
+<p>など, 利用するデータに対して推定値が不安定になると言われています. これはサンプルサイズを増やすことで対処できますが,一般には変数間の相関が強い場合には, 片方の変数は説明変数から除外することが望ましいとされています.</p>
+</div>
+<p>それでは,先程の教育データの多重共線性をチェックしてみましょう.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 多重共線性のチェック</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co"># 散布図行列を作成してみる</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>pd.plotting.scatter_matrix(df, range_padding<span class="op">=</span><span class="fl">0.2</span>)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="co">#ヒートマップで確認</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>sns.heatmap(df.corr()</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>            ,vmax<span class="op">=</span><span class="dv">1</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>            ,vmin<span class="op">=-</span><span class="dv">1</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>            ,annot<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<p><img src="../images/regression12.png" alt="クロスプロット" />
+<img src="../images/regression13.png" alt="相関係数のヒートマップ" /></p>
+<p>相関係数を確認すると,<code>board</code>と<code>text</code>の間に<code>0.56</code>の相関があることが分かります.
+<code>0.56</code>程度であればそれほど影響はないのでそのままにしても構いませんが,練習として片方を除外してみます. <code>text</code>のほうが<code>math</code>との相関が強いので,<code>board</code>を除外したいところですが,市議の主張では電子黒板の普及率が問題と成っていたので<code>text</code>を除外します.</p>
+<h4 data-number="1.2.3" id="回帰分析の精度と判断"><span class="header-section-number">1.2.3</span> 回帰分析の精度と判断</h4>
+<p>それでは, データの標準化,多重共線性を考慮して,実際に回帰分析を行ってみましょう.
+<code>statsmodels</code>では, <code>sm.add_constant(説明変数)</code>の形で,定数を追加し,切片をモデルに追加することができます.</p>
+<p><code>sm.OLS(Y,X)</code>で線形回帰モデルインスタンスを宣言し, <code>.fit()</code>で推定を行います.
+推定結果は<code>.summary()</code>で確認できます.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">#相関が見られるため,textを除外</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>X.drop(<span class="st">'text'</span>,axis<span class="op">=</span><span class="st">'columns'</span>,inplace<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="co">#予測モデルを作成(重回帰)</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> sm.OLS(Y,X)</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> model.fit()</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="co">#結果の表示</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(result.summary())</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a><span class="co">==============================================================================</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="co">Dep. Variable:                   math   R-squared:                       0.004</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a><span class="co">Model:                            OLS   Adj. R-squared:                 -0.042</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a><span class="co">Method:                 Least Squares   F-statistic:                   0.07867</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a><span class="co">Date:                Mon, 08 Jul 2024   Prob (F-statistic):              0.924</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="co">Time:                        23:55:07   Log-Likelihood:                -66.101</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a><span class="co">No. Observations:                  47   AIC:                             138.2</span></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a><span class="co">Df Residuals:                      44   BIC:                             143.8</span></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a><span class="co">Df Model:                           2</span></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a><span class="co">Covariance Type:            nonrobust</span></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a><span class="co">==============================================================================</span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a><span class="co">                 coef    std err          t      P&gt;|t|      [0.025      0.975]</span></span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a><span class="co">------------------------------------------------------------------------------</span></span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a><span class="co">const       3.995e-15      0.149   2.68e-14      1.000      -0.300       0.300</span></span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a><span class="co">pc             0.0493      0.162      0.305      0.762      -0.276       0.375</span></span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a><span class="co">board          0.0560      0.162      0.347      0.730      -0.270       0.382</span></span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a><span class="co">==============================================================================</span></span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a><span class="co">Omnibus:                       13.834   Durbin-Watson:                   1.557</span></span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a><span class="co">Prob(Omnibus):                  0.001   Jarque-Bera (JB):               14.866</span></span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a><span class="co">Skew:                           1.170   Prob(JB):                     0.000591</span></span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a><span class="co">Kurtosis:                       4.454   Cond. No.                         1.46</span></span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a><span class="co">==============================================================================</span></span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>さて,推定結果には様々な情報が記述されていますが,どこをどのように見ればいいのでしょうか.</p>
+<p><code>statsmodels</code>の<code>.summary()</code>では中央部分に各説明変数の評価が記載されています.</p>
+<ul>
+<li>各説明変数の評価</li>
+</ul>
+<div class="sourceCode" id="cb8"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">==============================================================================</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>                 <span class="ex">coef</span>    std err          t      P<span class="op">&gt;|</span>t<span class="kw">|</span>      <span class="ex">[0.025</span>      0.975]</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="ex">------------------------------------------------------------------------------</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="ex">const</span>       3.995e-15      0.149   2.68e-14      1.000      <span class="at">-0.300</span>       0.300</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="ex">pc</span>             0.0493      0.162      0.305      0.762      <span class="at">-0.276</span>       0.375</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="ex">board</span>          0.0560      0.162      0.347      0.730      <span class="at">-0.270</span>       0.382</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="ex">==============================================================================</span></span></code></pre></div>
+<p>それぞれいくつか重要なポイントを順に確認していきましょう.</p>
+<div class="note">
+<ul>
+<li><h3 id="回帰係数coef"><strong>回帰係数(coef)</strong></h3></li>
+</ul>
+<p>回帰係数は,説明変数毎に目的変数にどの程度影響力があるかを示したものになります.</p>
+</div>
+<p>今回の事例では, 切片(<code>const</code>)が<code>3.995e-15</code>であり,<code>pc</code>,<code>text</code>が0のとき<code>math</code>が<code>3.995e-15</code>となります. <code>pc</code>の回帰係数が<code>0.0493</code>,<code>text</code>の回帰係数が<code>0.0560</code>であり,それぞれの説明変数が1変化する毎に,回帰係数の分だけ目的変数が変化します.</p>
+<p>したがって,回帰式は,</p>
+<p><span class="math display">\[
+math = 3.995*10^{-15} + 0.0493 pc + 0.0560 text
+\]</span></p>
+<p>となり,いずれの変数も正の影響を持っており,市議の主張である電子黒板が普及するほどに成績が下がるという主張と逆の結果が出ています.値が標準化されているため,それぞれの回帰係数は相対的な影響力を表しており,実際の変化ではありません. <code>pc</code>の一人あたりの台数よりも,<code>text</code>の影響が強いことが分かります.</p>
+<p>しかし,回帰係数だけを見て,回帰の結果を判断することはできません. 出てきた値が,信頼に値するか,利用可能であるかを他の値を用いて判断する必要があります.</p>
+<div class="note">
+<ul>
+<li><h3 id="p値ptと95信頼区間0.025-0.975"><strong>P値(<code>P&gt;|t|</code>)と95%信頼区間(<code>[0.025 0.975]</code>)</strong></h3></li>
+</ul>
+<p>それぞれの説明変数のP値(<code>P&gt;|t|</code>)は,その説明変数に対する回帰係数が0である(影響がない)という仮説に対する仮説検定のP値を表しています. また, <code>[0.025      0.975]</code>はそれぞれ上側と下側の95%信頼区間を表しています.</p>
+<p>有意水準5%の場合, <code>P値 &lt; 0.025</code>で有意となり, 信頼区間が0をまたぎません. したがって,これらの値はいずれも同じ判断の基準となりますが,最近は論文などには両方載せることが主流です.
+(仮説検定や区間推定,P値の意味などに関しては,統計学入門で詳細を扱っています.分からない人はそちらを履修しましょう.)</p>
+</div>
+<p>今回の値を見てみると,いずれの説明変数も有意ではなく,区間推定の結果も0をまたいでいます. したがって,これらの回帰係数の推定値の解釈は, <strong>｢今回のデータと説明変数の組み合わせでは, 電子黒板や電子教科書が学業成績に影響を与えるかどうかは判断できない.｣</strong>ということになります.</p>
+<div class="warn">
+<p>有意でない説明変数は, 基本的にモデルから除外することが望ましいので,仮により良いモデルを構築する場合には,別の変数やモデルの組み合わせを探すことになります.</p>
+<p>それらの手法は,モデル選択などと呼ばれますが,モデル同士の比較の方法に関してはここでは扱わず,後の一般化線形モデルの章で扱うことにします.</p>
+</div>
+<p>これまで各説明変数の影響を見てみましたが, 変数毎ではなく,モデル全体の評価はどのように行うのでしょうか.
+<code>.summary()</code>の前半部分にはモデル全体での評価が記載されています.</p>
+<ul>
+<li>モデル全体の評価</li>
+</ul>
+<div class="sourceCode" id="cb9"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>                            <span class="ex">OLS</span> Regression Results</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="ex">==============================================================================</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="ex">Dep.</span> Variable:                   math   R-squared:                       0.004</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="ex">Model:</span>                            OLS   Adj. R-squared:                 <span class="at">-0.042</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="ex">Method:</span>                 Least Squares   F-statistic:                   0.07867</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="ex">Date:</span>                Mon, 08 Jul 2024   Prob <span class="er">(</span><span class="ex">F-statistic</span><span class="kw">)</span><span class="bu">:</span>              0.924</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="ex">Time:</span>                        23:55:07   Log-Likelihood:                <span class="at">-66.101</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="ex">No.</span> Observations:                  47   AIC:                             138.2</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="ex">Df</span> Residuals:                      44   BIC:                             143.8</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="ex">Df</span> Model:                           2</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="ex">Covariance</span> Type:            nonrobust</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a><span class="ex">==============================================================================</span></span></code></pre></div>
+<div class="note">
+<ul>
+<li><h3 id="調整済決定係数adj.-r-squared"><strong>調整済決定係数(Adj. R-squared)</strong></h3></li>
+</ul>
+<p>自由度調整済み決定係数<span class="math inline">\(Adj R^2\)</span>は,<strong>モデルがどの程度当てはまっているかの基準</strong>です.
+基本的に<span class="math inline">\(0 \leq Adj R^2 \leq 1\)</span>の値をとり,目安として<span class="math inline">\(0.5 \leq Adj 𝑅^2\)</span>であればある程度予測できていると考えられます.</p>
+<p>どんな散布図になっても回帰式自体は作成可能ですが,以下の左右どちらの予測値の方が信頼できそうでしょうか.</p>
+<figure>
+<img src="../images/regression14.png" alt="R2" />
+<figcaption aria-hidden="true">R2</figcaption>
+</figure>
+<p>直感的には左の方が<strong>回帰直線が実際の値にフィットしており</strong>信頼できそうな気がしますね. <span class="math inline">\(R^2\)</span>はその感覚を数値化したものになります.</p>
+<figure>
+<img src="../images/regression15.png" alt="R2" />
+<figcaption aria-hidden="true">R2</figcaption>
+</figure>
+<p><span class="math inline">\(R^2\)</span>は,式から作られた直線と,実際のデータの点の距離の和であり,<span class="math inline">\(Adj R^2\)</span>は,0から1に収まるように変換してものになります.
+<span class="math inline">\(AdjR^2\)</span>が1に近いほど, 式が点によく当てはまっていることを表します.</p>
+</div>
+<p>今回のモデルを見てみると,<code>Adj. R-squared:-0.042</code>であり,全く予測精度が高くないことが分かります.</p>
+<div class="note">
+<ul>
+<li><h3 id="有意f-prob-f-statistic"><strong>有意F (Prob (F-statistic))</strong></h3></li>
+</ul>
+<p>検定にはそれぞれの係数ごとにt検定,全体にF検定を用います.
+有意F(Prob (F-statistic))は,モデル全体にF検定を実施した際のp値を表し,値が小さいほど回帰式が有意であることを表します(0.025 &gt; F で有意).
+(検定に関しては,検定の章を参照してください.)</p>
+<p>以下の回帰式とデータを見るとどちらも,当てはまり方は同じだとしても, 左の方が信頼性が高いように感じます.</p>
+<figure>
+<img src="../images/regression16.png" alt="Prob F" />
+<figcaption aria-hidden="true">Prob F</figcaption>
+</figure>
+<p>点が少ないと,他のデータを持ってきたら全然違うところに点が行く可能性が高まります.
+この感覚=式が偶然の産物ではないかを検定したP値が有意Fです.
+0.025 以下で, 信頼できるといえます.</p>
+</div>
+<p>今回のモデルを見てみると<code>Prob (F-statistic):0.924</code>であり,回帰式全体は有意ではなく,このモデルは信頼できないことが分かります.</p>
+<h4 data-number="1.2.4" id="結果の図示"><span class="header-section-number">1.2.4</span> 結果の図示</h4>
+<p>これまでは数値によって,モデルの結果を確認してきましたが,結果を図示することでより直感的に説明が可能になります. 回帰分析の結果を図示する方法は様々ありますが,ここでは結果の散布図と,密度プロットによって確認してみましょう.</p>
+<p>各説明変数が,どの程度目的変数を説明しているかを確認する方法として,一つの説明変数を選んで散布図を作成し,予測値を重ねるという手法がよく用いられます.</p>
+<p><code>statsmodels</code>では,そのための<code>plot_partregress_grid</code>というメソッドが準備されています.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">#回帰グラフの作成</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> statsmodels.graphics.regressionplots <span class="im">import</span> plot_partregress_grid</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>fig <span class="op">=</span> plt.figure(figsize<span class="op">=</span>(<span class="dv">16</span>,<span class="dv">8</span>))</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>plot_partregress_grid(result, fig<span class="op">=</span>fig)</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<figure>
+<img src="../images/regression17.png" alt="3変数 Partial Plot" />
+<figcaption aria-hidden="true">3変数 Partial Plot</figcaption>
+</figure>
+<p>どの変数にもあまりフィットしていない様子が視覚的に把握できます.</p>
+<p>また,モデルによって予測される値と実際の値のヒストグラムや密度プロットを比較することも良く行われます.
+ここでは<code>seaborn</code>の<code>kdeplot</code>を利用してカーネル密度プロットを行ってみます.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">#予測結果の作成</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>pred <span class="op">=</span> result.predict(X)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>plt.figure(figsize<span class="op">=</span>(<span class="dv">16</span>,<span class="dv">8</span>))</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>sns.kdeplot(pred, label <span class="op">=</span> <span class="st">'Predicted'</span>)</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>sns.kdeplot(Y, label <span class="op">=</span> <span class="st">'Actual'</span>)</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">'Actual/Predicted'</span>)</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'math'</span>)</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'Density'</span>)</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>plt.legend()</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<figure>
+<img src="../images/regression18.png" alt="3変数 Density Plot" />
+<figcaption aria-hidden="true">3変数 Density Plot</figcaption>
+</figure>
+<p>実測値と予測値が全く違う分布をしており,予測がうまく行っていないことが視覚的に把握できます.</p>
+<p>結論として, 今回のモデルでは市議の主張に対しては,否定も肯定もできないが,市議の根拠とするデータでは,市議の主張が導かれないということになりました.</p>
+<p>実際に,どのような影響があるかを調べるためには,データかモデルのいずれかを変えて,説明可能なモデルを構築する必要があります.</p>
+<div class="note">
+<ul>
+<li>演習問題</li>
+</ul>
+<p>数学の成績と関連のありそうなデータをe-statから複数探し,重回帰分析を行い,その結果を解釈してください.</p>
+</div>
+
+
+<!-- 前後の章へのナビゲーション -->
+<div class="chapter-navigation">
+    <nav>
+        
+            <a class="nav-link prev" href="slds10.html">← Previous Chapter</a>
+        
+        
+            <a class="nav-link next" href="slds12.html">Next Chapter →</a>
+        
+    </nav>
+</div>
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        Site proudly generated by
+        <a href="http://jaspervdj.be/hakyll">Hakyll</a>.
+    </div>
+</div>
+
+        <!-- GUID -->
+        <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+        
+        <!-- KaTeX JavaScript and auto-render extension -->
+        <script>
+          document.addEventListener("DOMContentLoaded", function() {
+            renderMathInElement(document.body, {
+              delimiters: [
+                {left: "$$", right: "$$", display: true},
+                {left: "\[", right: "\]", display: true},
+                {left: "$", right: "$", display: false} // インライン数式用のデリミタを追加
+              ]
+            });
+          });
+        </script>
+        
+    </body>
+
+</html>

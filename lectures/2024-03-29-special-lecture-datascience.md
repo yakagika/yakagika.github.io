@@ -1,5 +1,5 @@
 ---
-title: 特別講義(データサイエンス)
+title: 特別講義(データサイエンス) Ch1
 description: 資料
 tags:
     - datascience
