@@ -105,7 +105,10 @@ GPSでは, ｢問題｣を｢現在と目標との差異｣と定義して,以�
 - 猫は鼻が赤く,犬は黒い
 - 猫は耳が立っており,犬は耳が下がっている
 
-などの違いがあるようにも思えますが,鼻が黒い猫も,耳が立っている犬もいます. 画像から犬と猫を見分けるルールを明確に定義するのはなかなか難しい作業です.
+などの違いがあるようにも思えますが,鼻が黒い猫も,耳が立っている犬もいます.
+先ほど説明したように,初期のAI開発ではこのようなルールを人間が発見し,プログラしていました. しかし,画像から犬と猫を見分けるルールを明確に定義するのはなかなか難しい作業です.
+
+そこで,AIの開発は,｢機械自体が判別のためのルールを発見する｣ための学習方法をプログラムする方向に進み始めます. そのような手法全般を**機械学習**といいます.
 
 機械学習の定義は様々ありますが,有名なものに以下があります.
 
@@ -115,12 +118,180 @@ GPSでは, ｢問題｣を｢現在と目標との差異｣と定義して,以�
 > Arthur Samuel (1951)
 
 
+これまでに行ってきた統計学の主な目的は以下のようなものです.
+
+- 記述統計学
+  - 集めたデータの特徴を代表値やグラフなどを用いて記述する
+
+- 推測統計学
+  - データを利用してその背景(母集団)を推測する.
+
+いずれも,得られたデータの特徴を知ることを目的としています.
+
+一方で機械学習は, 得られたデータを利用して, 要約・予測・判別などの｢判断｣を機械に行わせることが目的であり, どのようにデータを利用して判断するか自体は機械が自ら学習します.
+
+機械学習には大きく分けて｢**教師なし学習(Supervised learning)**｣と｢**教師なし学習(Unsupervised Learning)**｣の2種類が存在します.
+
+![教師あり/なし学習](/images/ch13-learning-types.png)
+
+::: note
+- 教師あり学習
+------------------------------------------------------------------
+
+訓練データ(データと答えのペア)を学習して,未知のデータから答えを正しく予測する.
+
+![教師あり学習のイメージ](/images/ch13-supervised-learning.png)
+
+本資料では以下のような教師あり学習を扱います
+
+- 回帰
+  - 線形回帰
+  - 一般化線形モデル
+
+- 決定木分析
+- k-近傍法
+- サポートベクターマシン
+- ニューラルネットワーク
+  - 自然言語処理
+  - 画像認識
+:::
+
+::: note
+- 教師なし学習
+------------------------------------------------------------------
+
+データの特徴(ベクトル)をもとに,似たものをグループ分け(クラスタリング)します.
+
+![教師なし学習のイメージ](/images/ch13-unspervised-learning.png)
+
+本資料で扱う教師なし学習には以下のようなものがあります.
+
+- クラスタリング
+  - 階層クラスタリング
+  - 非階層クラスタリング
+- 主成分分析
+
+:::
+
+# 教師あり学習
+
+まずは教師あり学習の手法をいくつか体験してみましょう.
+教師あり学習と一言にいってもいくつもの手法があり,目的及びデータの種類によって使い分けが必要となります.
+
+![scikit-learnにおける教師あり学習の使い分け](/images/ch13-chart-supervised-learning.png)
+[https://scikit-learn.org/stable/machine_learning_map.html](https://scikit-learn.org/stable/machine_learning_map.html)
+
+これらの手法からいくつかの手法を試しみましょう.
+
+::: warn
+基本的に本章では, 機械学習用ライブラリ`scikit-learn`(`pip`や`import`時には省略形の`sklearn`)を利用します. 以下のいくつかのライブラリも含めて `pip install`しておいてください.
+
+- `sklearn`
+- `pydotplus`
+- `ipython`
+:::
+
+## 決定木分析(Decision Tree Analysis)
+
+特定の目的に到達するためのデータの各属性の分岐を作成する手法を**決定木分析**といいます. 目的変数がカテゴリーデータの場合は,**分類木**,数値の場合には**回帰木**と呼びます.
 
 
+![決定木のイメージ](/images/ch13-decision-tree-analysis-image.png)
 
+分類性能はそれほど高くありませんが,視覚的に分かりやすく,またモデルを人間が理解しやすいという特徴があります.
 
+代表的なアルゴリズムとして,ジニ不純度を最小化する**CART(Classification and Regression Trees）**アルゴリズムがあります.
 
+$$
+ジニ不純度 = I_G(t) = 1 - \sum_{i=1}^{c}\frac{n_i}{N} \\
+c; クラス数, t;ノード, N;サンプル数, n_i;クラスに属するデータ数
+$$
 
+CARTは2分木を連続して作成するアルゴリズムです.まず,すべての特徴量毎に,ジニ不純度が最小化される分岐点を探索します.最も分類に影響を与える特徴量の2分木を決定したら,その後それぞれの分岐毎に再度残りのすべての特徴量で2分木を作成し,データが単一のクラスになる,あるいは分割が意味をなさなくなるまで分岐を繰り返してツリーを成長させます.
+
+::: note
+
+- Graphvizのインストール
+------------------------------------------------------------------
+
+scikit-learnを用いた決定木分析では, 最終的な結果として決定木をPDFで出力します. PDFを作成するためのソフト`Graphviz`をインストールしていないと,以下であつかう決定木分析作成用のプログラムは動きません.以下,Windows,Macそれぞれの指示に従ってインストールしましょう.
+
+- Windows
+------------------------------------------------------------------
+
+[Graphvizの公式サイト](https://www.graphviz.org/download/)から,インストーラをダウンロードしましょう.
+いくつか種類がありますが,`64bit`版の最新のものを選べば基本的には問題ありません.
+
+![Graphvizのインストーラダウンロード](/images/ch13-graphviz-win1.png)
+
+ダウンロードしたインストーラをクリックして開き,指示に従っていけばインストールは完了です.
+途中で, ｢`Add Graphviz to the system PATH for all users`｣にチェックをいれるのを忘れないようにしましょう.
+
+![Graphvizのインストール](/images/ch13-graphviz-win2.png)
+
+- Mac
+------------------------------------------------------------------
+Macは,`Homebrew`を利用します. [Homebrewの公式サイト](https://brew.sh)の`Install Homebrew`以下にあるshell promptをコピーしてTerminalで実行しましょう.
+
+![Homebrewのインストール](/images/ch13-graphviz-mac1.png)
+
+インストールが完了したら,
+
+`brew install graphviz`
+
+コマンドを実行して,Graphvizをインストールします.
+
+`brew list`
+
+コマンドでインストール済みのソフトが確認できればインストールされています.
+
+:::
+
+作成した電力データを利用して電力使用量から曜日を当ててみます.
+
+~~~ py
+import pandas as pd
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import train_test_split
+from sklearn import tree
+import pydotplus
+from six import StringIO
+from IPython.display import Image
+
+# 決定木分析(CART)で,電力データから祝日かどうかを当ててみる.
+# データを読み込み
+df = pd.read_csv("./data/energy_data.csv")
+X = df[['Lighting', 'Lamp', 'Power', 'Air']] #説明変数
+y = df['weekday'] #被説明変数
+
+#トレーニングデータの作成
+(train_X, test_X ,train_y, test_y) = train_test_split( X
+                                                     , y
+                                                     , test_size = 0.3
+                                                     , random_state = 666)
+#モデルの作成
+clf = DecisionTreeClassifier(random_state=0)
+clf = clf.fit(train_X, train_y)
+
+#作成したモデルを使って予測
+pred = clf.predict(test_X)
+
+#正解率
+print(sum(pred == test_y) / len(test_y))
+# 可視化
+# class_names; 目的変数の名前を入れる
+# feature_names; 説明変数の名前を入れるdot_data = StringIO()
+tree.export_graphviz( clf
+                    , out_file=dot_data
+                    , filled=True
+                    , feature_names=train_X.columns
+                    , class_names=df.weekday)
+
+# 結果がPDFとして保存される graph = pydotplus.graph_from_dot_data(dot_data.getvalue())
+graph.write_pdf("graph.pdf")
+Image(graph.create_png())
+
+~~~
 
 
 

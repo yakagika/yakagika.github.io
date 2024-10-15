@@ -4,7 +4,7 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width">
 
-        <title>yakagika - 特別講義DS Ch12 一般化線形モデル</title>
+        <title>yakagika - 特別講義DS Ch12 回帰分析の応用と一般化線形モデル</title>
 
         <!-- Stylesheets. -->
         <link rel="stylesheet" type="text/css" href="../style.css?v=0">
@@ -79,7 +79,7 @@
         </div>
 
         <div id="content">
-    <h1>特別講義DS Ch12 一般化線形モデル</h1>
+    <h1>特別講義DS Ch12 回帰分析の応用と一般化線形モデル</h1>
 <div class="soft">
     資料<br />
     Published on 2024-03-29 under the tag <a title="All pages tagged 'datascience'." href="../tags/datascience.html">datascience</a>, <a title="All pages tagged 'statistics'." href="../tags/statistics.html">statistics</a>, <a title="All pages tagged 'python'." href="../tags/python.html">python</a>
@@ -101,10 +101,715 @@
 
 <div class="toc"><div class="header">Table of Contents</div>
 <ul>
-<li><a href="#一般化線形モデル執筆中" id="toc-一般化線形モデル執筆中"><span class="toc-section-number">1</span> 一般化線形モデル(執筆中)</a></li>
+<li><a href="#数量化" id="toc-数量化"><span class="toc-section-number">1</span> 数量化</a></li>
+<li><a href="#時系列回帰" id="toc-時系列回帰"><span class="toc-section-number">2</span> 時系列回帰</a>
+<ul>
+<li><a href="#データの準備" id="toc-データの準備"><span class="toc-section-number">2.1</span> データの準備</a></li>
+<li><a href="#古典的時系列解析" id="toc-古典的時系列解析"><span class="toc-section-number">2.2</span> 古典的時系列解析</a></li>
+<li><a href="#section" id="toc-section"><span class="toc-section-number">2.3</span> </a></li>
+</ul></li>
+<li><a href="#一般化線形モデル執筆中" id="toc-一般化線形モデル執筆中"><span class="toc-section-number">3</span> 一般化線形モデル(執筆中)</a>
+<ul>
+<li><a href="#ロジスティック回帰" id="toc-ロジスティック回帰"><span class="toc-section-number">3.1</span> ロジスティック回帰</a></li>
+</ul></li>
 </ul>
 </div>
-<h2 data-number="1" id="一般化線形モデル執筆中"><span class="header-section-number">1</span> 一般化線形モデル(執筆中)</h2>
+<h2 data-number="1" id="数量化"><span class="header-section-number">1</span> 数量化</h2>
+<p>前章の重回帰分析では,すべての変数が量的データでした. しかし, 質的データがある場合にはどのように処理するのでしょうか.</p>
+<p>説明変数に質的データを含める重回帰分析を<strong>数量化1類(Quantification Method Type I)</strong>といいます.</p>
+<p>基本的に回帰分析における質的データは<code>0/1</code>からなる擬似的な量的変数である<strong>ダミー変数</strong>に変換して処理しますがこのような数への変換を総じて<strong>数量化</strong>といいます.</p>
+<div class="warn">
+<p>数量化にはこの他にも,目的変数と説明変数がともに質的データの場合の<strong>数量化2類(Quantification Method Type Ⅱ)</strong>, 説明変数に量的データが混ざっている場合の<strong>拡張型数量化2類</strong>などがあり,数量化3,4,5,6類なども存在します.</p>
+<p>数量化2類に関してはロジスティック回帰,数量化3類に関しては主成分分析が同様の目的で利用されるため,これらに関しては本資料では扱いません.</p>
+</div>
+<p>例えば,以下のような身長と体重,性別,国籍からなるデータがあった場合,新たに性別,国籍の種別の列を設けて当てはまる行に1,当てはまらない行に0を入力する変換を行います.</p>
+<ul>
+<li>変換前のデータ</li>
+</ul>
+<table>
+<thead>
+<tr class="header">
+<th>id</th>
+<th>体重</th>
+<th>身長</th>
+<th>性別</th>
+<th>国籍</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td>65</td>
+<td>170</td>
+<td>男</td>
+<td>日本</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td>58</td>
+<td>174</td>
+<td>女</td>
+<td>米国</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td>78</td>
+<td>189</td>
+<td>男</td>
+<td>オランダ</td>
+</tr>
+<tr class="even">
+<td>…</td>
+<td>…</td>
+<td>…</td>
+<td>…</td>
+<td>…</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>ダミー変数に変換したデータ</li>
+</ul>
+<table>
+<thead>
+<tr class="header">
+<th>id</th>
+<th>体重</th>
+<th>身長</th>
+<th>性別 男</th>
+<th>日本</th>
+<th>米国</th>
+<th>オランダ</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td>65</td>
+<td>170</td>
+<td>1</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td>58</td>
+<td>174</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td>78</td>
+<td>189</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td>…</td>
+<td>…</td>
+<td>…</td>
+<td>…</td>
+<td>…</td>
+<td>…</td>
+<td>…</td>
+</tr>
+</tbody>
+</table>
+<p>まずは,身長,体重,性別からなる,<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/quantification.csv">こちらのサンプルデータ</a>を利用して,身長,性別から体重を予測する数量化1類を試してみましょう.</p>
+<p>まずはデータの確認をしてみます.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> japanize_matplotlib</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> statsmodels.api <span class="im">as</span> sm</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">#データの確認</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/quantification.csv'</span>)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="co">     Gender      Height     Weight        BMI</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="co">0      Male  166.430341  71.355369  25.639518</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="co">1    Female  164.312585  57.693236  20.834761</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="co">2      Male  176.525613  66.619089  22.987388</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="co">3      Male  167.807888  52.236903  19.457056</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="co">4      Male  179.131402  71.557172  22.652586</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="co">..      ...         ...        ...        ...</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="co">195  Female  172.033565  64.506115  21.188950</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="co">196  Female  158.857271  55.028631  23.924375</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="co">197    Male  176.701624  56.014221  20.232505</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="co">198    Male  167.925367  69.257515  24.074144</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="co">199    Male  172.024625  70.693532  25.084344</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>データの特徴を見て見るために,クロスプロットを作成します. 質的変数を含めると上手く表現できないので除外しています.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>pd.plotting.scatter_matrix(df[[<span class="st">'Height'</span>,<span class="st">'Weight'</span>]], range_padding<span class="op">=</span><span class="fl">0.2</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<figure>
+<img src="../images/ch12_quantification1.png" alt="クロスプロットの確認" />
+<figcaption aria-hidden="true">クロスプロットの確認</figcaption>
+</figure>
+<p>また,男女別のプロットを同時に表示させるために,<code>seaborn</code>の<code>joinplot</code>を利用してみましょう. <code>joinplot</code>では,<code>hue</code>に質的変数のヘッダーをしていすることで,それぞれの密度プロットを表示してくれます.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">#joinplotで男女別に密度プロットを表示</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>fig <span class="op">=</span> sns.jointplot(data <span class="op">=</span> df</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>                   ,x <span class="op">=</span><span class="st">&quot;Height&quot;</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>                   ,y <span class="op">=</span><span class="st">&quot;Weight&quot;</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>                   ,hue<span class="op">=</span><span class="st">'Gender'</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>                   ,joint_kws <span class="op">=</span> <span class="bu">dict</span>(alpha<span class="op">=</span><span class="fl">0.5</span>))</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<figure>
+<img src="../images/ch12_quantification2.png" alt="ジョインプロットの確認" />
+<figcaption aria-hidden="true">ジョインプロットの確認</figcaption>
+</figure>
+<p>男女別に異なる分布であることが分かります. データをよく見てみると,男女で傾きが異なるように見えますが,数量化1類で扱えるのは男女別の切片の差のみです. 傾きを質的データに応じて変える場合には後に扱う一般化線形モデルの技法が必要となります.</p>
+<p>比較のためにまずは通常の単回帰を行ってみましょう.今回は量的変数が一つしか無いため,正規化や多重共線性のチェックは行っていないことに注意しましょう. 変数が複数ある場合にはそれらの処理が必要になります.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">#予測モデルを作成(単回帰)</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> sm.add_constant(df[<span class="st">'Height'</span>])</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> sm.OLS(df[<span class="st">'Weight'</span>],df[<span class="st">'Height'</span>])</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> model.fit()</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(result.summary())</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="co">                                 OLS Regression Results</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="co">=======================================================================================</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="co">Dep. Variable:                 Weight   R-squared (uncentered):                   0.980</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="co">Model:                            OLS   Adj. R-squared (uncentered):              0.980</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="co">Method:                 Least Squares   F-statistic:                              9587.</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="co">Date:                Wed, 09 Oct 2024   Prob (F-statistic):                   2.67e-170</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="co">Time:                        13:14:18   Log-Likelihood:                         -739.70</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a><span class="co">No. Observations:                 200   AIC:                                      1481.</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="co">Df Residuals:                     199   BIC:                                      1485.</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a><span class="co">Df Model:                           1</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a><span class="co">Covariance Type:            nonrobust</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a><span class="co">==============================================================================</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a><span class="co">                 coef    std err          t      P&gt;|t|      [0.025      0.975]</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a><span class="co">------------------------------------------------------------------------------</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a><span class="co">Height         0.3981      0.004     97.913      0.000       0.390       0.406</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a><span class="co">==============================================================================</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a><span class="co">Omnibus:                       22.723   Durbin-Watson:                   2.211</span></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a><span class="co">Prob(Omnibus):                  0.000   Jarque-Bera (JB):               27.460</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a><span class="co">Skew:                           0.793   Prob(JB):                     1.09e-06</span></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a><span class="co">Kurtosis:                       3.882   Cond. No.                         1.00</span></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a><span class="co">==============================================================================</span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>検定の結果も,予測精度もかなり高いことが分かりますが,ここに男女の違いをいれることで改善されるかをチェックしてみましょう.</p>
+<p>数量化1類を行うために<code>Gender</code>の列をダミー変数化してみます. <code>pandas</code>では,<code>get_dummies()</code>を利用することで簡単にダミー変数が作成できます <code>dtype='int'</code>と指定することで,<code>0/1</code>のダミー変数となります.省略した場合は<code>True/False</code>の値となるので忘れないようにしましょう.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># カテゴリカルデータのダミー変数化</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co"># get_dummies関数を使う(dtype='it'で0/1の数値に変換)</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> pd.get_dummies(df[[<span class="st">'Gender'</span>,<span class="st">'Height'</span>]],dtype<span class="op">=</span><span class="st">'int'</span>)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(X)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co">         Height  Gender_Female  Gender_Male</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="co">0    166.430341              0            1</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="co">1    164.312585              1            0</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="co">2    176.525613              0            1</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="co">3    167.807888              0            1</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="co">4    179.131402              0            1</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="co">..          ...            ...          ...</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="co">195  172.033565              1            0</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="co">196  158.857271              1            0</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a><span class="co">197  176.701624              0            1</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a><span class="co">198  167.925367              0            1</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a><span class="co">199  172.024625              0            1</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>ダミー変数を利用した重回帰分析を行います. 今回は,男女の2値なので,作成した<code>Gender_Male</code>のみを利用します.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">#予測モデルを作成(数量化1類)</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> sm.add_constant(X)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> sm.OLS(df[<span class="st">'Weight'</span>],X[[<span class="st">'Height'</span>,<span class="st">'Gender_Male'</span>]])</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> model.fit()</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(result.summary())</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="co">                                 OLS Regression Results</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="co">=======================================================================================</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="co">Dep. Variable:                 Weight   R-squared (uncentered):                   0.985</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="co">Model:                            OLS   Adj. R-squared (uncentered):              0.985</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="co">Method:                 Least Squares   F-statistic:                              6535.</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="co">Date:                Wed, 09 Oct 2024   Prob (F-statistic):                   1.62e-181</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="co">Time:                        13:14:18   Log-Likelihood:                         -708.75</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="co">No. Observations:                 200   AIC:                                      1421.</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="co">Df Residuals:                     198   BIC:                                      1428.</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a><span class="co">Df Model:                           2</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a><span class="co">Covariance Type:            nonrobust</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a><span class="co">===============================================================================</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a><span class="co">                  coef    std err          t      P&gt;|t|      [0.025      0.975]</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a><span class="co">-------------------------------------------------------------------------------</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a><span class="co">Height          0.3668      0.005     72.226      0.000       0.357       0.377</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a><span class="co">Gender_Male    10.3714      1.224      8.475      0.000       7.958      12.785</span></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a><span class="co">==============================================================================</span></span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a><span class="co">Omnibus:                       11.918   Durbin-Watson:                   2.088</span></span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a><span class="co">Prob(Omnibus):                  0.003   Jarque-Bera (JB):               16.036</span></span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a><span class="co">Skew:                           0.403   Prob(JB):                     0.000329</span></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a><span class="co">Kurtosis:                       4.129   Cond. No.                         350.</span></span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a><span class="co">==============================================================================</span></span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p><code>Adj. R-squared (uncentered)</code>と<code>Prob (F-statistic)</code>の双方が改善され,よりよいモデルができていることが分かります.</p>
+<div class="warn">
+<p>このように同一データで複数のモデルを比較し,より良いモデルを選ぶことを<strong>モデル選択</strong>といいます.</p>
+<p>今回は,<code>R-squared</code>などの値で比較していますが,本来はモデル選択においては,<code>AIC</code>や<code>BIC</code>の値を利用した比較を行います. この観点でも<code>AIC</code>が減少していることから数量化モデルのほうが良いことが分かります. しかし,今回はあくまで数量化の紹介が目的なのでその詳細は割愛します.</p>
+<p>モデル選択の詳細は後の一般化線形モデルの節で扱うので,興味がある方はそちらを読んでください.</p>
+</div>
+<h2 data-number="2" id="時系列回帰"><span class="header-section-number">2</span> 時系列回帰</h2>
+<p>前の節で質的データの処理を扱ったように,データの分析ではデータの種類に応じて手法を選択する必要があります.</p>
+<div class="note">
+<ul>
+<li><h3 id="代表的な時間に関するデータ">代表的な時間に関するデータ</h3></li>
+<li><h3 id="点過程データ">点過程データ</h3></li>
+</ul>
+<p>データの発生時刻が記録されたデータを<strong>点過程(Point Process)データ</strong>と言います. 代表的なものに購入された商品に関して,購入時点の日付とともに記録した<strong>POS(Point of Sales)</strong>データなどがあります.</p>
+<ul>
+<li>コンビニPOSデータの例</li>
+</ul>
+<table>
+<thead>
+<tr class="header">
+<th>商品名</th>
+<th>単価 (円)</th>
+<th>個数</th>
+<th>購入日時</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>おにぎり</td>
+<td>120</td>
+<td>2</td>
+<td>2024-10-01 08:15</td>
+</tr>
+<tr class="even">
+<td>サンドイッチ</td>
+<td>350</td>
+<td>1</td>
+<td>2024-10-01 12:30</td>
+</tr>
+<tr class="odd">
+<td>ペットボトル水</td>
+<td>100</td>
+<td>3</td>
+<td>2024-10-01 14:45</td>
+</tr>
+<tr class="even">
+<td>カップラーメン</td>
+<td>220</td>
+<td>1</td>
+<td>2024-10-02 11:00</td>
+</tr>
+<tr class="odd">
+<td>チョコレート</td>
+<td>150</td>
+<td>2</td>
+<td>2024-10-02 15:20</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><h3 id="時系列データ">時系列データ</h3></li>
+</ul>
+<p>決まった時間単位毎に観測項目を集計したデータ<strong>時系列(Time Series)データ</strong>といいます.</p>
+<p>例えば, 上の点過程データを日毎,月ごとなど決まった時間単位で集計することで下のような時系列データとなります.</p>
+<ul>
+<li>日ごとに集計した時系列データの例</li>
+</ul>
+<table>
+<thead>
+<tr class="header">
+<th>日付</th>
+<th>売上合計 (円)</th>
+<th>購入点数</th>
+<th>購入回数</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>2024-10-01</td>
+<td>1060</td>
+<td>6</td>
+<td>3</td>
+</tr>
+<tr class="even">
+<td>2024-10-02</td>
+<td>520</td>
+<td>3</td>
+<td>2</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 data-number="2.1" id="データの準備"><span class="header-section-number">2.1</span> データの準備</h3>
+<p>以下,時系列回帰などの練習用データを準備します.</p>
+<p>今回は,実データとして千葉商科大学の電力データを利用し,電力消費量から曜日や祝日を予測/判別してみましょう. 千葉商科大学では, 自然エネルギー100%大学の取り組みに関連して使用したエネルギーを電力の種別ごとに計測しています.
+今回は2021年5月の1号館の<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/energy_may_1.csv">データ</a>を利用してみます.</p>
+<p>ダウンロードしたデータを作業ディレクトリのデータフォルダに配置したら,いくつかの前処理を施します.
+まず, 元のデータを確認してみましょう.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'./data/energy_may_1.csv'</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="co">                 Date  1-1L-1-1-1F西/1(照明):kWh  ...  1号館動力盤1_T相/76_T(その他動力):kWh  1-太陽光発電量/82(発電):kWh</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="co">0     2021/05/01 0:00                   0.000  ...                    1.605610                  0.0</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="co">1     2021/05/01 1:00                   0.000  ...                    1.555380                  0.0</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="co">2     2021/05/01 2:00                   0.000  ...                    1.617734                  0.0</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="co">3     2021/05/01 3:00                   0.000  ...                    1.612538                  0.0</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="co">4     2021/05/01 4:00                   0.000  ...                    1.569237                  0.0</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a><span class="co">..                ...                     ...  ...                         ...                  ...</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="co">739  2021/05/31 19:00                   0.175  ...                    1.978000                  0.0</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a><span class="co">740  2021/05/31 20:00                   0.115  ...                    1.844633                  0.0</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a><span class="co">741  2021/05/31 21:00                   0.000  ...                    1.806529                  0.0</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a><span class="co">742  2021/05/31 22:00                   0.000  ...                    1.811724                  0.0</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="co">743  2021/05/31 23:00                   0.000  ...                    1.872346                  0.0</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>データが読み込めたようなのでまずは,列の情報を編集してみましょう. CSVファイルのヘッダーを確認してみると以下のようになっています.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">#列を確認する</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>cols <span class="op">=</span> <span class="bu">list</span>(df.columns)[<span class="dv">1</span>:] <span class="co">#Dateを除外</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>[<span class="bu">print</span>(c) <span class="cf">for</span> c <span class="kw">in</span> cols]</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-1-1-1F西/1(照明):kWh</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-1-2-1F西/2(照明):kWh</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-1-3-1F西/3(照明):kWh</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-1-4-1F西/4(照明):kWh</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-1-5-1F西/5(照明):kWh</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-1-6-1F西/6(照明):kWh</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-1-7-1F～3Fロビー/7(照明):kWh</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-1-8-1F西/8(照明):kWh</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-1-9-1F西/9(照明):kWh</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-1-10-1F西/10(照明):kWh</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-2-11-1F東/11(照明):kWh</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-2-12-1F東/12(照明):kWh</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-2-13-1F東/13(照明):kWh</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-2-14-1F東/14(照明):kWh</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-2-15-1F東/15(照明):kWh</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-2-16-1F東/16(照明):kWh</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-2-17-1F東/17(照明):kWh</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-11-18-1101教室/18(照明):kWh</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-11-19-1101教室/19(照明):kWh</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-11-20-1101教室/20(照明):kWh</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-11-21-1101教室/21(照明):kWh</span></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-11-22-1101教室/22(照明):kWh</span></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-11-23-1101教室/23(照明):kWh</span></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-12-24-1102教室/24(照明):kWh</span></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-12-25-1102教室/25(照明):kWh</span></span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-13-26-1103教室/26(照明):kWh</span></span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-13-27-1103教室/27(照明):kWh</span></span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-14-28-1104教室/28(照明):kWh</span></span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-14-29-1104教室/29(照明):kWh</span></span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-14-30-1104教室/30(照明):kWh</span></span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-14-31-1104教室/31(照明):kWh</span></span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-14-32-1104教室/32(照明):kWh</span></span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-14-33-1104教室/33(照明):kWh</span></span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-1-34-2F西/34(照明):kWh</span></span>
+<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-1-35-2F西/35(照明):kWh</span></span>
+<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-1-36-2F西/36(照明):kWh</span></span>
+<span id="cb8-41"><a href="#cb8-41" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-1-37-2F西/37(照明):kWh</span></span>
+<span id="cb8-42"><a href="#cb8-42" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-1-38-2F西 1201共同研究室1_2照明/38(照明):kWh</span></span>
+<span id="cb8-43"><a href="#cb8-43" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-1-39-2F西/39(照明):kWh</span></span>
+<span id="cb8-44"><a href="#cb8-44" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-1-40-2F西/40(照明):kWh</span></span>
+<span id="cb8-45"><a href="#cb8-45" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-1-41-2F西 共同研究室3～6照明/41(照明):kWh</span></span>
+<span id="cb8-46"><a href="#cb8-46" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-2-42-2F東/42(照明):kWh</span></span>
+<span id="cb8-47"><a href="#cb8-47" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-2-43-2F東/43(照明):kWh</span></span>
+<span id="cb8-48"><a href="#cb8-48" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-2-44-2F東/44(照明):kWh</span></span>
+<span id="cb8-49"><a href="#cb8-49" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-2-45-1202～1204照明/45(照明):kWh</span></span>
+<span id="cb8-50"><a href="#cb8-50" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-2-46-2F東/46(照明):kWh</span></span>
+<span id="cb8-51"><a href="#cb8-51" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-2-47-2F東/47(照明):kWh</span></span>
+<span id="cb8-52"><a href="#cb8-52" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-2-48-1205～1207照明/48(照明):kWh</span></span>
+<span id="cb8-53"><a href="#cb8-53" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-H-49-1208教室/49(照明):kWh</span></span>
+<span id="cb8-54"><a href="#cb8-54" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-I-50-1209教室/50(照明):kWh</span></span>
+<span id="cb8-55"><a href="#cb8-55" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-J-51-1210教室/51(照明):kWh</span></span>
+<span id="cb8-56"><a href="#cb8-56" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-K-52-1211教室/52(照明):kWh</span></span>
+<span id="cb8-57"><a href="#cb8-57" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-L-53-1212教室/53(照明):kWh</span></span>
+<span id="cb8-58"><a href="#cb8-58" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-1-54-3F東/54(照明):kWh</span></span>
+<span id="cb8-59"><a href="#cb8-59" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-1-55-3F東/55(照明):kWh</span></span>
+<span id="cb8-60"><a href="#cb8-60" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-1-56-3F東 ラボスクウェア1_2照明/56(照明):kWh</span></span>
+<span id="cb8-61"><a href="#cb8-61" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-1-57 共同研究室7～9/57(照明):kWh</span></span>
+<span id="cb8-62"><a href="#cb8-62" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-1-58 ラボスクウェア1_2照明/58(照明):kWh</span></span>
+<span id="cb8-63"><a href="#cb8-63" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-1-59 3F東/59(照明):kWh</span></span>
+<span id="cb8-64"><a href="#cb8-64" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-1-60 3F東/60(照明):kWh</span></span>
+<span id="cb8-65"><a href="#cb8-65" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-1-61 共同研究室10～12/61(照明):kWh</span></span>
+<span id="cb8-66"><a href="#cb8-66" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-2-62 3F西/62(照明):kWh</span></span>
+<span id="cb8-67"><a href="#cb8-67" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-2-63 3F西/63(照明):kWh</span></span>
+<span id="cb8-68"><a href="#cb8-68" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-2-64 3F西 ラボスクウェア3_4照明/64(照明):kWh</span></span>
+<span id="cb8-69"><a href="#cb8-69" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-2-65 3F西/65(照明):kWh</span></span>
+<span id="cb8-70"><a href="#cb8-70" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-2-66 共同研究室13西照明/66(照明):kWh</span></span>
+<span id="cb8-71"><a href="#cb8-71" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-2-67 ラボスクウェア3_4照明/67(照明):kWh</span></span>
+<span id="cb8-72"><a href="#cb8-72" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-2-68 3F西/68(照明):kWh</span></span>
+<span id="cb8-73"><a href="#cb8-73" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-2-69 3F西/69(照明):kWh</span></span>
+<span id="cb8-74"><a href="#cb8-74" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-2-70 3F西/70(照明):kWh</span></span>
+<span id="cb8-75"><a href="#cb8-75" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-2-71 3F西 共同研究室13東照明/71(照明):kWh</span></span>
+<span id="cb8-76"><a href="#cb8-76" aria-hidden="true" tabindex="-1"></a><span class="co">1号館電灯盤1_R相/73(主幹):kWh</span></span>
+<span id="cb8-77"><a href="#cb8-77" aria-hidden="true" tabindex="-1"></a><span class="co">1号館電灯盤2_R相/74(主幹):kWh</span></span>
+<span id="cb8-78"><a href="#cb8-78" aria-hidden="true" tabindex="-1"></a><span class="co">1号館電灯盤3_R相/75(主幹):kWh</span></span>
+<span id="cb8-79"><a href="#cb8-79" aria-hidden="true" tabindex="-1"></a><span class="co">1号館動力盤1_R相/76(その他動力):kWh</span></span>
+<span id="cb8-80"><a href="#cb8-80" aria-hidden="true" tabindex="-1"></a><span class="co">1-GHP-77/77GHP(空調熱源):m3</span></span>
+<span id="cb8-81"><a href="#cb8-81" aria-hidden="true" tabindex="-1"></a><span class="co">1号館電灯盤1_T相/73_T(照明等その他):kWh</span></span>
+<span id="cb8-82"><a href="#cb8-82" aria-hidden="true" tabindex="-1"></a><span class="co">1号館電灯盤2_T相/74_T(照明等その他):kWh</span></span>
+<span id="cb8-83"><a href="#cb8-83" aria-hidden="true" tabindex="-1"></a><span class="co">1号館電灯盤3_T相/75_T(照明等その他):kWh</span></span>
+<span id="cb8-84"><a href="#cb8-84" aria-hidden="true" tabindex="-1"></a><span class="co">1号館動力盤1_T相/76_T(その他動力):kWh</span></span>
+<span id="cb8-85"><a href="#cb8-85" aria-hidden="true" tabindex="-1"></a><span class="co">1-太陽光発電量/82(発電):kWh</span></span>
+<span id="cb8-86"><a href="#cb8-86" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb8-87"><a href="#cb8-87" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-88"><a href="#cb8-88" aria-hidden="true" tabindex="-1"></a><span class="co">#利用対象部分の抽出</span></span>
+<span id="cb8-89"><a href="#cb8-89" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="bu">list</span>(<span class="bu">set</span>([c[c.find(<span class="st">'('</span>) : c.find(<span class="st">')'</span>)<span class="op">+</span><span class="dv">1</span>] <span class="cf">for</span> c <span class="kw">in</span> cols])))</span>
+<span id="cb8-90"><a href="#cb8-90" aria-hidden="true" tabindex="-1"></a><span class="co"># &gt;&gt;&gt; ['(発電)', '(照明)', '(空調熱源)', '(照明等その他)', '(その他動力)', '(主幹)']</span></span></code></pre></div>
+<p>このデータでは1号館を｢1F西/1,1F西/2｣など分電盤毎に分割し,かつ電力の利用対象を｢照明,主幹,空調熱源,照明等その他,その他動力,発電｣の5種類に分けて記録しています. このうち｢照明等その他｣はコンセントなどの電源の利用を表しています.
+この分類は分析の練習用としては細かすぎるので,｢照明,電源,動力,空調｣の4つにまとめてみます.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 列の整形</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co"># 場所は無視して,照明(Lighting),電源(Others),動力(Power),空調(Air),だけに分ける</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co"># '照明'を含む列の抽出</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'Lighting'</span>] <span class="op">=</span> <span class="bu">sum</span>([df[x] <span class="cf">for</span> x <span class="kw">in</span> df.<span class="bu">filter</span>(like<span class="op">=</span><span class="st">'(照明)'</span>).columns])</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="co"># ''を含む列の抽出</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'Others'</span>] <span class="op">=</span> <span class="bu">sum</span>([df[x] <span class="cf">for</span> x <span class="kw">in</span> df.<span class="bu">filter</span>(like<span class="op">=</span><span class="st">'(照明等その他)'</span>).columns])</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="co"># '動力'を含む列の抽出</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'Power'</span>] <span class="op">=</span> <span class="bu">sum</span>([df[x] <span class="cf">for</span> x <span class="kw">in</span> df.<span class="bu">filter</span>(like<span class="op">=</span><span class="st">'(その他動力)'</span>).columns])</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="co"># ‘空調'を含む列の抽出</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'Air'</span>] <span class="op">=</span> <span class="bu">sum</span>([df[x] <span class="cf">for</span> x <span class="kw">in</span> df.<span class="bu">filter</span>(like<span class="op">=</span><span class="st">'(空調熱源)'</span>).columns])</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a><span class="co"># 結合した列以外を削除</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> df[[<span class="st">'Date'</span>,<span class="st">'Lighting'</span>, <span class="st">'Others'</span>, <span class="st">'Power'</span>, <span class="st">'Air'</span>]]</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a><span class="co"># totalを追加</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'Total'</span>] <span class="op">=</span> <span class="bu">sum</span>(df[x] <span class="cf">for</span> x <span class="kw">in</span> [<span class="st">'Lighting'</span>, <span class="st">'Others'</span>, <span class="st">'Power'</span>, <span class="st">'Air'</span>])</span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a><span class="co">                 Date  Lighting  Others     Power  Air      Total</span></span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a><span class="co">0     2021/05/01 0:00     0.000   6.518  2.876935    0   9.394935</span></span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a><span class="co">1     2021/05/01 1:00     0.000   6.490  2.835366    0   9.325366</span></span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a><span class="co">2     2021/05/01 2:00     0.000   6.558  2.982589    0   9.540589</span></span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a><span class="co">3     2021/05/01 3:00     0.000   6.444  2.932360    0   9.376360</span></span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a><span class="co">4     2021/05/01 4:00     0.000   6.724  2.864810    0   9.588810</span></span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a><span class="co">..                ...       ...     ...       ...  ...        ...</span></span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a><span class="co">739  2021/05/31 19:00     6.773  10.792  3.574950    0  21.139950</span></span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a><span class="co">740  2021/05/31 20:00     3.743   8.120  3.257986    0  15.120986</span></span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a><span class="co">741  2021/05/31 21:00     0.118   6.636  3.230273    0   9.984273</span></span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a><span class="co">742  2021/05/31 22:00     0.000   6.148  3.083049    0   9.231049</span></span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a><span class="co">743  2021/05/31 23:00     0.000   6.854  3.183508    0  10.037508</span></span>
+<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>一般的に,大学のイベントは時間割に沿って行われるため,電気使用量は曜日によって異なります.
+そこで,曜日や祝日の情報を追加して情報量を増やしてみましょう.
+<code>datetime</code>型は,<code>.weekday</code>属性で曜日が取得できます. <code>.weekday</code>は<code>0</code>が<code>月曜日</code>,<code>6</code>が<code>日曜日</code>の数値で返ってくるので,分かりやすく文字列に変更します.
+また,土日を<code>Holiday</code>列で1とする,<code>Holiday</code>フラグも作成します.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 曜日の取得</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'曜日の取得'</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> datetime <span class="im">as</span> dt</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 日付をインデックスに変更</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df.index) <span class="co">#現在は,行数がインデックスになっている</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="co"># RangeIndex(start=0, stop=744, step=1)</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'-'</span><span class="op">*</span><span class="dv">10</span>)</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="co">#indexを日付に変更</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>df.set_index(<span class="st">'Date'</span>, inplace<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df.index) <span class="co"># インデックスが変更できたことが確認できる</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="co">Index(['2021/05/01 0:00', '2021/05/01 1:00', '2021/05/01 2:00',</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a><span class="co">       '2021/05/01 3:00', '2021/05/01 4:00', '2021/05/01 5:00',</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a><span class="co">       '2021/05/01 6:00', '2021/05/01 7:00', '2021/05/01 8:00',</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a><span class="co">       '2021/05/01 9:00',</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a><span class="co">       ...</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a><span class="co">       '2021/05/31 14:00', '2021/05/31 15:00', '2021/05/31 16:00',</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a><span class="co">       '2021/05/31 17:00', '2021/05/31 18:00', '2021/05/31 19:00',</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a><span class="co">       '2021/05/31 20:00', '2021/05/31 21:00', '2021/05/31 22:00',</span></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a><span class="co">       '2021/05/31 23:00'],</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a><span class="co">      dtype='object', name='Date', length=744)</span></span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'-'</span><span class="op">*</span><span class="dv">10</span>)</span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a><span class="co"># 現在は日付と時間がただの文字列なので,datatime型に変換する</span></span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>df.index <span class="op">=</span> pd.to_datetime(df.index)</span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df.index)</span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a><span class="co">DatetimeIndex(['2021-05-01 00:00:00', '2021-05-01 01:00:00',</span></span>
+<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a><span class="co">               '2021-05-01 02:00:00', '2021-05-01 03:00:00',</span></span>
+<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a><span class="co">               '2021-05-01 04:00:00', '2021-05-01 05:00:00',</span></span>
+<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a><span class="co">               '2021-05-01 06:00:00', '2021-05-01 07:00:00',</span></span>
+<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a><span class="co">               '2021-05-01 08:00:00', '2021-05-01 09:00:00',</span></span>
+<span id="cb10-37"><a href="#cb10-37" aria-hidden="true" tabindex="-1"></a><span class="co">               ...</span></span>
+<span id="cb10-38"><a href="#cb10-38" aria-hidden="true" tabindex="-1"></a><span class="co">               '2021-05-31 14:00:00', '2021-05-31 15:00:00',</span></span>
+<span id="cb10-39"><a href="#cb10-39" aria-hidden="true" tabindex="-1"></a><span class="co">               '2021-05-31 16:00:00', '2021-05-31 17:00:00',</span></span>
+<span id="cb10-40"><a href="#cb10-40" aria-hidden="true" tabindex="-1"></a><span class="co">               '2021-05-31 18:00:00', '2021-05-31 19:00:00',</span></span>
+<span id="cb10-41"><a href="#cb10-41" aria-hidden="true" tabindex="-1"></a><span class="co">               '2021-05-31 20:00:00', '2021-05-31 21:00:00',</span></span>
+<span id="cb10-42"><a href="#cb10-42" aria-hidden="true" tabindex="-1"></a><span class="co">               '2021-05-31 22:00:00', '2021-05-31 23:00:00'],</span></span>
+<span id="cb10-43"><a href="#cb10-43" aria-hidden="true" tabindex="-1"></a><span class="co">              dtype='datetime64[ns]', name='Date', length=744, freq=None)</span></span>
+<span id="cb10-44"><a href="#cb10-44" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb10-45"><a href="#cb10-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-46"><a href="#cb10-46" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'-'</span><span class="op">*</span><span class="dv">10</span>)</span>
+<span id="cb10-47"><a href="#cb10-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-48"><a href="#cb10-48" aria-hidden="true" tabindex="-1"></a><span class="co"># 曜日を入れる</span></span>
+<span id="cb10-49"><a href="#cb10-49" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'weekday'</span>] <span class="op">=</span> df.index.weekday</span>
+<span id="cb10-50"><a href="#cb10-50" aria-hidden="true" tabindex="-1"></a>dayOfWeek <span class="op">=</span> { <span class="dv">0</span>:<span class="st">'Mon'</span></span>
+<span id="cb10-51"><a href="#cb10-51" aria-hidden="true" tabindex="-1"></a>            , <span class="dv">1</span>:<span class="st">'Tue'</span></span>
+<span id="cb10-52"><a href="#cb10-52" aria-hidden="true" tabindex="-1"></a>            , <span class="dv">2</span>:<span class="st">'Wed'</span></span>
+<span id="cb10-53"><a href="#cb10-53" aria-hidden="true" tabindex="-1"></a>            , <span class="dv">3</span>:<span class="st">'Thu'</span></span>
+<span id="cb10-54"><a href="#cb10-54" aria-hidden="true" tabindex="-1"></a>            , <span class="dv">4</span>:<span class="st">'Fri'</span></span>
+<span id="cb10-55"><a href="#cb10-55" aria-hidden="true" tabindex="-1"></a>            , <span class="dv">5</span>:<span class="st">'Sat'</span></span>
+<span id="cb10-56"><a href="#cb10-56" aria-hidden="true" tabindex="-1"></a>            , <span class="dv">6</span>:<span class="st">'Sun'</span>}</span>
+<span id="cb10-57"><a href="#cb10-57" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'weekday'</span>] <span class="op">=</span> df[<span class="st">'weekday'</span>].<span class="bu">map</span>(dayOfWeek)</span>
+<span id="cb10-58"><a href="#cb10-58" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-59"><a href="#cb10-59" aria-hidden="true" tabindex="-1"></a><span class="co"># 曜日を平日かどうかで分ける</span></span>
+<span id="cb10-60"><a href="#cb10-60" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'Holiday'</span>] <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb10-61"><a href="#cb10-61" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> df.index:</span>
+<span id="cb10-62"><a href="#cb10-62" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="st">'Sat'</span> <span class="op">==</span> df.at[i,<span class="st">'weekday'</span>]:</span>
+<span id="cb10-63"><a href="#cb10-63" aria-hidden="true" tabindex="-1"></a>        df.at[i,<span class="st">'Holiday'</span>] <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb10-64"><a href="#cb10-64" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> <span class="st">'Sun'</span> <span class="op">==</span> df.at[i,<span class="st">'weekday'</span>]:</span>
+<span id="cb10-65"><a href="#cb10-65" aria-hidden="true" tabindex="-1"></a>        df.at[i,<span class="st">'Holiday'</span>] <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb10-66"><a href="#cb10-66" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb10-67"><a href="#cb10-67" aria-hidden="true" tabindex="-1"></a>        df.at[i,<span class="st">'Holiday'</span>] <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb10-68"><a href="#cb10-68" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb10-69"><a href="#cb10-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-70"><a href="#cb10-70" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb10-71"><a href="#cb10-71" aria-hidden="true" tabindex="-1"></a><span class="co">                     Lighting  Others     Power  Air      Total weekday  Holiday</span></span>
+<span id="cb10-72"><a href="#cb10-72" aria-hidden="true" tabindex="-1"></a><span class="co">Date</span></span>
+<span id="cb10-73"><a href="#cb10-73" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-01 00:00:00     0.000   6.518  2.876935    0   9.394935     Sat        1</span></span>
+<span id="cb10-74"><a href="#cb10-74" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-01 01:00:00     0.000   6.490  2.835366    0   9.325366     Sat        1</span></span>
+<span id="cb10-75"><a href="#cb10-75" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-01 02:00:00     0.000   6.558  2.982589    0   9.540589     Sat        1</span></span>
+<span id="cb10-76"><a href="#cb10-76" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-01 03:00:00     0.000   6.444  2.932360    0   9.376360     Sat        1</span></span>
+<span id="cb10-77"><a href="#cb10-77" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-01 04:00:00     0.000   6.724  2.864810    0   9.588810     Sat        1</span></span>
+<span id="cb10-78"><a href="#cb10-78" aria-hidden="true" tabindex="-1"></a><span class="co">...                       ...     ...       ...  ...        ...     ...      ...</span></span>
+<span id="cb10-79"><a href="#cb10-79" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-31 19:00:00     6.773  10.792  3.574950    0  21.139950     Mon        0</span></span>
+<span id="cb10-80"><a href="#cb10-80" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-31 20:00:00     3.743   8.120  3.257986    0  15.120986     Mon        0</span></span>
+<span id="cb10-81"><a href="#cb10-81" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-31 21:00:00     0.118   6.636  3.230273    0   9.984273     Mon        0</span></span>
+<span id="cb10-82"><a href="#cb10-82" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-31 22:00:00     0.000   6.148  3.083049    0   9.231049     Mon        0</span></span>
+<span id="cb10-83"><a href="#cb10-83" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-31 23:00:00     0.000   6.854  3.183508    0  10.037508     Mon        0</span></span>
+<span id="cb10-84"><a href="#cb10-84" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>1日の中でも授業時間とそうでない時間によって,消費電力の傾向は異なりそうです. 授業時間割を授業前(before_class),1~5時限,昼休み(break),授業後(after_class)として設定してみましょう.</p>
+<p>ここまでの作業ができたら,<code>energy_may_hour.csv</code>として保存してみます.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">#授業時間割の情報を追加する</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co">#2020年から</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co">#https://www.cuc.ac.jp/dpt_grad_sch/graduate_sch/accounting/hours/index.html</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co">#1時限    9:00～10:45</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co">#2時限    10:55～12:40</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="co">#昼休み   12:40～13:30</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="co">#3時限    13:30～15:15</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="co">#4時限    15:25～17:10</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="co">#5時限    17:20～19:05</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> time2CTime(x):</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span>  <span class="dv">9</span> <span class="op">&lt;=</span> x.hour <span class="op">&lt;=</span> <span class="dv">11</span>:</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">'1'</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> <span class="dv">11</span> <span class="op">&lt;</span> x.hour <span class="op">&lt;=</span> <span class="dv">12</span>:</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">'2'</span></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> <span class="dv">12</span> <span class="op">&lt;</span> x.hour <span class="op">&lt;=</span> <span class="dv">13</span>:</span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">'break'</span></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> <span class="dv">13</span> <span class="op">&lt;</span> x.hour <span class="op">&lt;=</span> <span class="dv">15</span>:</span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">'3'</span></span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> <span class="dv">15</span> <span class="op">&lt;</span> x.hour <span class="op">&lt;=</span> <span class="dv">17</span>:</span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">'4'</span></span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> <span class="dv">17</span> <span class="op">&lt;</span> x.hour <span class="op">&lt;=</span> <span class="dv">20</span>:</span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">'5'</span></span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">'after_class'</span></span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'period'</span>] <span class="op">=</span> df.index.<span class="bu">map</span>(<span class="kw">lambda</span> x : time2CTime(x))</span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a><span class="co">                     Lighting  Others     Power  Air      Total weekday  Holiday       period</span></span>
+<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a><span class="co">Date</span></span>
+<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-01 00:00:00     0.000   6.518  2.876935    0   9.394935     Sat        1  after_class</span></span>
+<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-01 01:00:00     0.000   6.490  2.835366    0   9.325366     Sat        1  after_class</span></span>
+<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-01 02:00:00     0.000   6.558  2.982589    0   9.540589     Sat        1  after_class</span></span>
+<span id="cb11-34"><a href="#cb11-34" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-01 03:00:00     0.000   6.444  2.932360    0   9.376360     Sat        1  after_class</span></span>
+<span id="cb11-35"><a href="#cb11-35" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-01 04:00:00     0.000   6.724  2.864810    0   9.588810     Sat        1  after_class</span></span>
+<span id="cb11-36"><a href="#cb11-36" aria-hidden="true" tabindex="-1"></a><span class="co">...                       ...     ...       ...  ...        ...     ...      ...          ...</span></span>
+<span id="cb11-37"><a href="#cb11-37" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-31 19:00:00     6.773  10.792  3.574950    0  21.139950     Mon        0            5</span></span>
+<span id="cb11-38"><a href="#cb11-38" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-31 20:00:00     3.743   8.120  3.257986    0  15.120986     Mon        0            5</span></span>
+<span id="cb11-39"><a href="#cb11-39" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-31 21:00:00     0.118   6.636  3.230273    0   9.984273     Mon        0  after_class</span></span>
+<span id="cb11-40"><a href="#cb11-40" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-31 22:00:00     0.000   6.148  3.083049    0   9.231049     Mon        0  after_class</span></span>
+<span id="cb11-41"><a href="#cb11-41" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-31 23:00:00     0.000   6.854  3.183508    0  10.037508     Mon        0  after_class</span></span>
+<span id="cb11-42"><a href="#cb11-42" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb11-43"><a href="#cb11-43" aria-hidden="true" tabindex="-1"></a><span class="co">#保存</span></span>
+<span id="cb11-44"><a href="#cb11-44" aria-hidden="true" tabindex="-1"></a>df.to_csv(<span class="st">'data/energy_may_hour.csv'</span>,encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>)</span></code></pre></div>
+<p>今回は1時間毎に集計したデータを時系列分析に用いますが,次の章などで日ごとに集計したデータを利用するので,日毎の集計データも作成しておきましょう.
+<code>datetime</code>型では<code>date</code>によって日付が取得できます.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1時間ごとになっているので,一日ごとに集約</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'Day'</span>] <span class="op">=</span> df.index.date</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> df.set_index(df.index.date) <span class="co"># 時間の部分を削除</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="co">            Lighting  Others     Power  Air      Total         Day</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-01     0.000   6.518  2.876935    0   9.394935  2021-05-01</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-01     0.000   6.490  2.835366    0   9.325366  2021-05-01</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-01     0.000   6.558  2.982589    0   9.540589  2021-05-01</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-01     0.000   6.444  2.932360    0   9.376360  2021-05-01</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-01     0.000   6.724  2.864810    0   9.588810  2021-05-01</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a><span class="co">...              ...     ...       ...  ...        ...         ...</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-31     6.773  10.792  3.574950    0  21.139950  2021-05-31</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-31     3.743   8.120  3.257986    0  15.120986  2021-05-31</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-31     0.118   6.636  3.230273    0   9.984273  2021-05-31</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-31     0.000   6.148  3.083049    0   9.231049  2021-05-31</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-31     0.000   6.854  3.183508    0  10.037508  2021-05-31</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a><span class="co">[744 rows x 6 columns]</span></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>同じ日付によってまとめて集計するような作業は<code>for</code>文などでもできますが,<code>pandas</code>の<code>groupby</code>メソッドが便利です. <code>groupby('列名')</code>で指定した列名の同じデータごとにデータを区切ってくれます.</p>
+<p>更に, <code>.agg({'列名':'処理方法'})</code>を追記することでグループごとにデータを集計します.</p>
+<p>処理方法は文字列で指定し, <code>sum</code>(合計),<code>mean</code>(平均),<code>first</code>(最初の値)などが利用できます.</p>
+<p>集計したデータは<code>energy_may_day.csv</code>として保存します.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 一日単位で集計</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> df.groupby(<span class="st">'Day'</span>).agg({<span class="st">'Lighting'</span>:<span class="st">'sum'</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>                           ,<span class="st">'Others'</span>:<span class="st">'sum'</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>                           ,<span class="st">'Power'</span>:<span class="st">'sum'</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>                           ,<span class="st">'Air'</span>:<span class="st">'sum'</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>                           ,<span class="st">'Total'</span>:<span class="st">'sum'</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>                           ,<span class="st">'weekday'</span>:<span class="st">'first'</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>                           ,<span class="st">'Holiday'</span>:<span class="st">'first'</span>})</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>df.index <span class="op">=</span> pd.to_datetime(df.index)</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="co">            Lighting   Others       Power  Air       Total weekday  Holiday</span></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a><span class="co">Day</span></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-01   57.8590  164.026  150.925638    1  373.810638     Sat        1</span></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-02   61.3290  170.661  153.542773    0  385.532773     Sun        1</span></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-03   52.5590  153.860  162.455036    0  368.874036     Mon        0</span></span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-04   27.1570  142.110  190.401666    0  359.668666     Tue        0</span></span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-05   14.9370  141.365   96.532341    0  252.834341     Wed        0</span></span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-06  151.5430  252.266  163.735893    0  567.544893     Thu        0</span></span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-07  137.5760  265.376   90.321215    4  497.273215     Fri        0</span></span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-08   96.8080  202.206  159.786805    4  462.800805     Sat        1</span></span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-09   67.1230  173.335  181.672136    4  426.130136     Sun        1</span></span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-10  124.4350  234.587  187.283113    1  547.305113     Mon        0</span></span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-11  150.7050  271.478   85.611779    1  508.794779     Tue        0</span></span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-12  115.1820  231.200  142.734788    1  490.116788     Wed        0</span></span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-13  137.8290  283.480   80.014654    1  502.323654     Thu        0</span></span>
+<span id="cb13-28"><a href="#cb13-28" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-14  125.5200  235.470  176.655242    4  541.645242     Fri        0</span></span>
+<span id="cb13-29"><a href="#cb13-29" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-15  100.0060  207.944  174.805418    6  488.755418     Sat        1</span></span>
+<span id="cb13-30"><a href="#cb13-30" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-16   62.9970  189.768  101.143069    1  354.908069     Sun        1</span></span>
+<span id="cb13-31"><a href="#cb13-31" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-17  134.4200  253.678   85.963373    4  478.061373     Mon        0</span></span>
+<span id="cb13-32"><a href="#cb13-32" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-18  139.2750  275.532   85.630823    6  506.437823     Tue        0</span></span>
+<span id="cb13-33"><a href="#cb13-33" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-19  111.7410  254.229   79.302779    3  448.272779     Wed        0</span></span>
+<span id="cb13-34"><a href="#cb13-34" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-20  134.6820  258.456   96.874422    0  490.012422     Thu        0</span></span>
+<span id="cb13-35"><a href="#cb13-35" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-21  134.7470  270.402   91.587337   15  511.736337     Fri        0</span></span>
+<span id="cb13-36"><a href="#cb13-36" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-22   85.1020  214.783   89.615409    6  395.500409     Sat        1</span></span>
+<span id="cb13-37"><a href="#cb13-37" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-23   66.4360  176.641  140.140173    4  387.217173     Sun        1</span></span>
+<span id="cb13-38"><a href="#cb13-38" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-24  140.0200  237.016  151.007045   11  539.043045     Mon        0</span></span>
+<span id="cb13-39"><a href="#cb13-39" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-25  133.2290  239.769  183.644077   14  570.642077     Tue        0</span></span>
+<span id="cb13-40"><a href="#cb13-40" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-26  111.7810  220.848  167.229426   11  510.858426     Wed        0</span></span>
+<span id="cb13-41"><a href="#cb13-41" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-27  135.5230  265.379   79.695086    1  481.597086     Thu        0</span></span>
+<span id="cb13-42"><a href="#cb13-42" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-28  132.4820  247.760  141.465190    4  525.707190     Fri        0</span></span>
+<span id="cb13-43"><a href="#cb13-43" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-29  131.5140  226.797  129.222198   12  499.533198     Sat        1</span></span>
+<span id="cb13-44"><a href="#cb13-44" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-30   70.8040  188.536  139.632687    5  403.972687     Sun        1</span></span>
+<span id="cb13-45"><a href="#cb13-45" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-31  123.7695  231.010  164.885098    6  525.664598     Mon        0</span></span>
+<span id="cb13-46"><a href="#cb13-46" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb13-47"><a href="#cb13-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-48"><a href="#cb13-48" aria-hidden="true" tabindex="-1"></a>df.to_csv(<span class="st">'data/energy_may_day.csv'</span>,encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>)</span></code></pre></div>
+<p>作成したデータは,それぞれ<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/energy_may_hour.csv">時間ごと</a>,<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/energy_may_day.csv">日ごと</a>となります.
+以下,これらのデータを利用して,時系列解析を実施していきます.</p>
+<h3 data-number="2.2" id="古典的時系列解析"><span class="header-section-number">2.2</span> 古典的時系列解析</h3>
+<h3 data-number="2.3" id="section"><span class="header-section-number">2.3</span> </h3>
+<h2 data-number="3" id="一般化線形モデル執筆中"><span class="header-section-number">3</span> 一般化線形モデル(執筆中)</h2>
+<h3 data-number="3.1" id="ロジスティック回帰"><span class="header-section-number">3.1</span> ロジスティック回帰</h3>
+<div class="warn">
+<p>今回利用するデータは<strong>時系列データ</strong>であり本来回帰や判別問題を直接利用するべき対象ではありません.</p>
+<p>時系列データはトレンドや周期などの時系列のデータ構造を考慮した,時系列分析を行うべきですが,ここでは独立したデータとして扱っています.</p>
+</div>
+<p>判別を行うための基礎的な手法として目的変数に｢成功/失敗｣や｢0/1｣などのベルヌーイ分布に従う<strong>二項</strong>の質的変数を取り,目的変数の判別を行う<strong>ロジスティック回帰</strong>があります.</p>
+<p>なお,二項以上のクラスの識別を行うロジスティック回帰を<strong>多項ロジスティック回帰</strong>といいますが,ここでは二項の場合のみを扱います.</p>
 
 
 <!-- 前後の章へのナビゲーション -->
