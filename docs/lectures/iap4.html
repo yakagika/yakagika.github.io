@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width">
+
+        <title>yakagika - 代数プログラミング入門 Ch4 関数</title>
+
+        <!-- Stylesheets. -->
+        <link rel="stylesheet" type="text/css" href="../style.css?v=0">
+
+        <!-- RSS. -->
+        <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+        <!-- Metadata. -->
+        <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+        <meta name="description" content="Personal home page and blog of yakagika.">
+        
+        <!-- KaTeXのスタイルシートとJavaScriptのリンクを動的に挿入 -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css" integrity="sha384-wcIxkf4k558AjM3Yz3BBFQUbk/zgIYC2R0QpeeYb+TwlBVMrlgLqwRjRtGZiK7ww" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js" integrity="sha384-hIoBPJpTUs74ddyc4bFZSM1TVlQDA60VBbJS0oA934VSz82sBx1X7kSx2ATBDIyd" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js" integrity="sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+        <style>
+            .katex-display {
+                display: block;
+                margin: 1em 0;
+                text-align: center;
+            }
+
+            .katex .frac {
+                vertical-align: baseline;
+                -webkit-vertical-align: baseline; /* Safari用のベンダープリフィックス */
+            }
+
+            .katex .sqrt {
+                vertical-align: baseline;
+                -webkit-vertical-align: baseline; /* Safari用のベンダープリフィックス */
+            }
+
+            .katex .strut {
+                height: 1em;
+                -webkit-height: 1em; /* Safari用のベンダープリフィックス */
+            }
+
+            .katex .base {
+                font-family: 'KaTeX_Main', 'Arial', sans-serif;
+            }
+
+            /* Safari専用のスタイルを追加 */
+                @media screen and (-webkit-min-device-pixel-ratio:0) {
+                    .katex {
+                        line-height: normal !important;
+                    }
+                }
+            @media not all and (min-resolution: .001dpcm) {
+                @supports (-webkit-appearance:none) {
+                    .katex {
+                        line-height: normal !important;
+                    }
+                }
+            }
+        </style>
+        
+        <meta property="og:description" content="資料" />
+    </head>
+    <body>
+        <div id="navigation">
+            <h1>Contents</h1>
+            <a href="../">Home</a>
+            <a href="../posts.html">Blog</a>
+            <a href="../lectures.html">Lecture</a>
+            <a href="../research.html">Research</a>
+            <a href="../contact.html">Contact</a>
+            <!-- <a href="/cv.html">CV</a> -->
+            <h1>Links</h1>
+            <a href="http://github.com/yakagika">GitHub</a>
+            <a href="https://researchmap.jp/k-akagi">researchmap</a>
+
+        </div>
+
+        <div id="content">
+    <h1>代数プログラミング入門 Ch4 関数</h1>
+<div class="soft">
+    資料<br />
+    Published on 2024-10-18 under the tag <a title="All pages tagged 'algebra'." href="../tags/algebra.html">algebra</a>, <a title="All pages tagged 'lecture'." href="../tags/lecture.html">lecture</a>, <a title="All pages tagged 'statistics'." href="../tags/statistics.html">statistics</a>, <a title="All pages tagged 'haskell'." href="../tags/haskell.html">haskell</a>
+</div>
+
+<!-- 前後の章へのナビゲーション -->
+<div class="chapter-navigation">
+    <nav>
+        
+            <a class="nav-link prev" href="iap3.html">← Previous Chapter</a>
+        
+        
+            <a class="nav-link next" href="iap5.html">Next Chapter →</a>
+        
+    </nav>
+</div>
+
+<br>
+
+<div class="toc"><div class="header">Table of Contents</div>
+<ul>
+<li><a href="#関数" id="toc-関数"><span class="toc-section-number">1</span> 関数</a>
+<ul>
+<li><a href="#スクリプトファイルの実行" id="toc-スクリプトファイルの実行"><span class="toc-section-number">1.1</span> スクリプトファイルの実行</a></li>
+<li><a href="#関数と演算子" id="toc-関数と演算子"><span class="toc-section-number">1.2</span> 関数と演算子</a>
+<ul>
+<li><a href="#結合性" id="toc-結合性"><span class="toc-section-number">1.2.1</span> 結合性</a></li>
+</ul></li>
+<li><a href="#分岐" id="toc-分岐"><span class="toc-section-number">1.3</span> 分岐</a>
+<ul>
+<li><a href="#パターンマッチ" id="toc-パターンマッチ"><span class="toc-section-number">1.3.1</span> パターンマッチ</a></li>
+<li><a href="#ガード" id="toc-ガード"><span class="toc-section-number">1.3.2</span> ガード</a></li>
+<li><a href="#case式" id="toc-case式"><span class="toc-section-number">1.3.3</span> case式</a></li>
+<li><a href="#if式" id="toc-if式"><span class="toc-section-number">1.3.4</span> if式</a></li>
+</ul></li>
+<li><a href="#再帰" id="toc-再帰"><span class="toc-section-number">1.4</span> 再帰</a></li>
+<li><a href="#ラムダ式" id="toc-ラムダ式"><span class="toc-section-number">1.5</span> ラムダ式</a></li>
+<li><a href="#高階関数" id="toc-高階関数"><span class="toc-section-number">1.6</span> 高階関数</a></li>
+<li><a href="#合成" id="toc-合成"><span class="toc-section-number">1.7</span> 合成</a></li>
+<li><a href="#値の束縛" id="toc-値の束縛"><span class="toc-section-number">1.8</span> 値の束縛</a></li>
+</ul></li>
+</ul>
+</div>
+<h2 data-number="1" id="関数"><span class="header-section-number">1</span> 関数</h2>
+<p>Haskellは関数型言語なので,関数の記述がプログラミングにおける花形です. この章ではHaskellの関数に関する記法を学びましょう.</p>
+<h3 data-number="1.1" id="スクリプトファイルの実行"><span class="header-section-number">1.1</span> スクリプトファイルの実行</h3>
+<div class="warn">
+<p>ここから先は,コードが複数行に渡ることが多くなるので,ghciの利用をやめてスクリプトを書きます.</p>
+<p><code>app</code> フォルダ内に <code>practice.hs</code>を作成しそこで事例の勉強をしましょう.</p>
+</div>
+<p><code>practice.hs</code> ファイルを作成したら,ファイルを以下のように記述しましょう.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ot">{-# LANGUAGE OverloadedStrings #-}</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Data.Text</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">putStrLn</span> <span class="st">&quot;practice&quot;</span></span></code></pre></div>
+<div class="warn">
+<p><code>module XXX () where</code></p>
+<p>という記述は,他のファイルからインポート可能なmodule化を行うための宣言です.
+また,Stackでは,<strong>大文字で始まる<code>*.hs</code>ファイルは,moduleとして認識されます.</strong></p>
+<p>したがって,一つのプロジェクトに複数の実行可能ファイルを生成する場合には,</p>
+<p><code>module XXX () where</code></p>
+<p>の記述をなくし, ファイル名を小文字ではじめる必要があります.</p>
+<p>これは,<code>Hello World</code>のために編集した<code>Main.hs</code>も同様であるため,<code>Main.hs</code>を<code>hello.hs</code>に名前を変更し,ファイル内の <code>module Main (main) where</code>の記述も削除し,以下のように変更しましょう.</p>
+<p>cf. <a href="https://www.reddit.com/r/haskell/comments/capuz7/multiple_executable_in_project/">他にもいくつかの方法があるようです</a></p>
+</div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Lib</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> helloWorld</span></code></pre></div>
+<p><code>package.yaml</code>の<code>executables:</code>を以下のように編集して<code>hello.hs</code>と<code>practice.hs</code>を実行可能ファイルとして登録します. <code>Data.Text</code>を利用するために,<code>dependencies:</code>以下に<code>- text</code>を追加しておきましょう.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dependencies</span><span class="kw">:</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> base &gt;= 4.7 &amp;&amp; &lt; 5</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> text</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co">#ghc-options:</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span><span class="kw">:</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">source-dirs</span><span class="kw">:</span><span class="at"> src</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="fu">executables</span><span class="kw">:</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">hello</span><span class="kw">:</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">main</span><span class="kw">:</span><span class="at">                main.hs</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">source-dirs</span><span class="kw">:</span><span class="at">         app</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">ghc-options</span><span class="kw">:</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -threaded</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -rtsopts</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -with-rtsopts=-N</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">dependencies</span><span class="kw">:</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> hello-world</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">practice</span><span class="kw">:</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">main</span><span class="kw">:</span><span class="at">                practice.hs</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">source-dirs</span><span class="kw">:</span><span class="at">         app</span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">ghc-options</span><span class="kw">:</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -threaded</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -rtsopts</span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -with-rtsopts=-N</span></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">dependencies</span><span class="kw">:</span></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> hello-world</span></span></code></pre></div>
+<p><code>stack run practice</code> で<code>practice!</code>と表示されれば成功です.</p>
+<p>これからスクリプトで実行していくにあたって,<code>practice.hs</code>の中身をもう少し詳しく見てみましょう.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Lib</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">putStrLn</span> <span class="st">&quot;practice!!&quot;</span></span></code></pre></div>
+<p>haskellのプログラムを実行すると, <code>main関数</code>のみが実行されます.</p>
+<p>Haskellは関数型言語なので,これから<code>import Lib</code>と<code>main</code>の間に関数を定義していき,<code>main</code>の中で実行していくことになります.</p>
+<p>main 関数で行うことは関数として実行することになりますが,これから学習する通常の関数の定義で記述するのは今は難しいので,<code>do</code>記法を紹介します. main 関数の=以下に<code>do</code>と書くことで,do以下のインデントブロックに記述された内容が手続き型的に1行ずつ実行されます.</p>
+<p>以下のプログラムでは, <code>"practice1"</code>,<code>"practice2"</code>,<code>"practice3"</code>の順に標準出力されます.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Lib</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> <span class="st">&quot;practice1&quot;</span> <span class="co">-- &gt;&gt;&gt; &quot;practice1&quot;</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> <span class="st">&quot;practice2&quot;</span> <span class="co">-- &gt;&gt;&gt; &quot;practice2&quot;</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> <span class="st">&quot;practice3&quot;</span> <span class="co">-- &gt;&gt;&gt; &quot;practice3&quot;</span></span></code></pre></div>
+<p><code>stack run practice</code>の結果を確認すると以下のようになります.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> stack <span class="ex">run</span> practice</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;practice1&quot;</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;practice2&quot;</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="st">&quot;practice3&quot;</span></span></code></pre></div>
+<p>また,ghciと異なって,出力結果が同じ画面に現れないので,
+以降のコード例では, その行の結果をコメント内で<code>&gt;&gt;&gt;</code>に続けて書くこととします. コメント部分は,記述しなくても結果は変わらないので,省略しても構いません.</p>
+<h3 data-number="1.2" id="関数と演算子"><span class="header-section-number">1.2</span> 関数と演算子</h3>
+<p>関数型言語では関数を組み合わせてプログラムを書きます. 関数の正確な定義は後に譲るとして,ここでは取り敢えず｢特定のデータ型の値を受け取って,特定のデータ型の値を返すもの｣という定義にしましょう.このとき受け取る値を<strong>引数</strong>,返す値を<strong>返り値</strong>といいます.</p>
+<p>Haskellでは,数学の記法と非常に近い方法で関数を定義します.
+例えば,</p>
+<p><span class="math display">\[
+f : \mathbb{Z} \rightarrow \mathbb{Z} \\
+f(x) = x + 1
+\]</span></p>
+<p>という,整数<code>x</code>を受け取って整数<code>x + 1</code>を返すだけの関数について考えましょう.</p>
+<p>Haskellでは上の関数は以下のように定義されます.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ot">f ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>f x <span class="ot">=</span> x <span class="op">+</span> <span class="dv">1</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> f <span class="dv">4</span> <span class="co">-- &gt;&gt;&gt; 5</span></span></code></pre></div>
+<p><code>()</code>の代わりにスペースを使う点以外は全く同じ書き方で, <code>=</code>の左側に関数名と引数,右側に返り値を書きます.
+関数名は小文字の英字で始めれるというルールがあります.</p>
+<p><code>f :: Int -&gt; Int</code>は型注釈であり,この<code>f</code>という関数が,引数に<code>Int</code>を取り,返り値として<code>Int</code>を返すということを指定しています.</p>
+<p><code>do</code>以下の記述で, <code>f 4</code>の結果を確認しています. <code>print</code>は,文字列に変換可能な値を受取,標準出力する関数です. また <code>(f 4)</code>を省略して<code>$ f 4</code> としています.</p>
+<p>引数は何個でも利用できます. 例えば2引数関数</p>
+<p><span class="math display">\[ multiple(x,y) = x * y \]</span></p>
+<p>は以下のように定義できます.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ot">multiple ::</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Double</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>multiple x y <span class="ot">=</span> x <span class="op">*</span> y</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>multiple <span class="dv">3</span> <span class="dv">4</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> multiple <span class="dv">3</span> <span class="dv">4</span> <span class="co">-- &gt;&gt;&gt; 12.0</span></span></code></pre></div>
+<p>また,以下の記号を組み合わせて中置演算子名として利用することも可能です.</p>
+<div class="note">
+<p>~ ! # $ % &amp; * + = . / &lt; &gt; ? @   ^ | -</p>
+</div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ot">(.*) ::</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Double</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>x <span class="op">.*</span> y <span class="ot">=</span> x <span class="op">*</span> y</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> <span class="dv">3</span> <span class="op">.*</span> <span class="dv">4</span> <span class="co">-- &gt;&gt;&gt; 12.0</span></span></code></pre></div>
+<p>絵文字などのUnicode記号も利用することができます.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>(✖)<span class="ot"> ::</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Double</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>x ✖ y <span class="ot">=</span> x <span class="op">*</span> y</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> <span class="dv">3</span> ✖ <span class="dv">4</span> <span class="co">-- &gt;&gt;&gt; 12.0</span></span></code></pre></div>
+<p>記号を利用して関数を定義する場合には,定義時に<code>()</code> で囲うことで一般の関数のように定義することができます.
+例えば, 乗算を新たに定義するとして,以下のように書くことができます.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ot">(.*) ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>(<span class="op">.*</span>) x y <span class="ot">=</span> x <span class="op">*</span> y</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> <span class="dv">3</span> <span class="op">.*</span> <span class="dv">4</span> <span class="co">-- &gt;&gt;&gt; 12</span></span></code></pre></div>
+<p>前置の2引数関数も<code>``</code> (バッククオート)で囲むことで中置演算子として定義することができます.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">`multiple`</span> y <span class="ot">=</span> x <span class="op">*</span> y</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> <span class="dv">3</span> <span class="ot">`multiple `</span> <span class="dv">4</span> <span class="co">-- &gt;&gt;&gt; 12</span></span></code></pre></div>
+<h4 data-number="1.2.1" id="結合性"><span class="header-section-number">1.2.1</span> 結合性</h4>
+<p>先に述べたように異なる複数の演算子が連なっている式は, 演算子の優先順位に従って計算される順位が変わります.</p>
+<p>例えば,<code>*</code> の優先順位は7で, <code>+</code> の優先順位は6なので,<code>2 * 3 + 3</code> という式は,</p>
+<pre><code>   2 * 3  + 3
+= (2 * 3) + 3
+= 6 + 3
+= 9</code></pre>
+<p>と言う風に<code>*</code>が優先して計算されます.</p>
+<p>では,同じ演算子が複数回連なっている場合にはどのような順序で計算されるのでしょうか? このルールを決めるのが <strong>結合性(Associativity)</strong> です.</p>
+<div class="note">
+<p>結合性には, <strong>左結合(Left-associative)</strong>, <strong>右結合(Right-associative)</strong>, <strong>非結合(Non-associative)</strong> の3種類があり,ユーザーが定義することができます.</p>
+<ul>
+<li><strong>左結合(Left-associative)</strong></li>
+</ul>
+<p>左結合の場合, 演算子は左から右へと評価されます. 例えば, <code>+</code> は左結合であり,式 <code>a + b + c</code> は <code>(a + b) + c</code> として評価されます</p>
+<ul>
+<li><strong>右結合(Right-associative)</strong></li>
+</ul>
+<p>右結合演算子の場合,演算子は右から左へと評価されます.例えば、<code>^</code>は右結合です。式 <code>a ^ b ^ c</code> は <code>a ^ (b ^ c)</code> として評価されます</p>
+<ul>
+<li><strong>非結合(Non-associative)</strong></li>
+</ul>
+<p>非結合演算子は,同じ式内で連続して使用することは許されていません. 非結合演算子の例としては,比較演算子（<code>&lt;</code>,<code>&gt;</code> など）があります.</p>
+<p>式 <code>a &lt; b &lt; c</code> は Haskell では文法的に不正です. 比較を連鎖させる場合は,<code>a &lt; b &amp;&amp; b &lt; c</code>のように明確に分けて記述する必要があります.</p>
+</div>
+<p>ユーザーが作成した演算子の結合性を指定するには,右,左,非の順に<code>infixr</code>,<code>infixl</code>,<code>infix</code>宣言を利用します. いずれも, <code>infix(r/l/なし) 優先順位 記号</code> の順に書きます.</p>
+<p>例えば先程作成した,<code>.*</code> を右結合の優先順位7で指定するには,以下のように書きます.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>x <span class="op">.*</span> y <span class="ot">=</span> x <span class="op">*</span> y</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="kw">infixr</span> <span class="dv">7</span> <span class="op">.*</span></span></code></pre></div>
+<h3 data-number="1.3" id="分岐"><span class="header-section-number">1.3</span> 分岐</h3>
+<p>関数型言語において,手続き型言語におけるIF文に相当するのが<strong>パターンマッチ</strong>と<strong>指示関数(特性関数)</strong>です.</p>
+<h4 data-number="1.3.1" id="パターンマッチ"><span class="header-section-number">1.3.1</span> パターンマッチ</h4>
+<p>パターンマッチに近い概念は既にフィボナッチ数の漸化式として出てきています.フィボナッチ数の漸化式は,以下のように表されます.</p>
+<div class="note">
+<p><span class="math display">\[ F_0 = 1 \]</span>
+<span class="math display">\[ F_1 = 1 \]</span>
+<span class="math display">\[ F_n = F_{n-1} + F_{n-2} (n &gt;= 2)  \]</span></p>
+</div>
+<p>この関数はPythonでは,以下のようにif文による分岐で記述されるのが一般的です.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fib(x):</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> x <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="dv">1</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> x <span class="op">==</span> <span class="dv">1</span>:</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="dv">1</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> fib(x<span class="op">-</span><span class="dv">1</span>) <span class="op">+</span> f(x<span class="op">-</span><span class="dv">2</span>)</span></code></pre></div>
+<p>これをHaskellでパターンマッチを利用して以下のように定義することができます.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="ot">fib ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>fib <span class="dv">0</span> <span class="ot">=</span> <span class="dv">1</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>fib <span class="dv">1</span> <span class="ot">=</span> <span class="dv">1</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>fib n <span class="ot">=</span> fib (n <span class="op">-</span> <span class="dv">1</span>) <span class="op">+</span> fib (n <span class="op">-</span> <span class="dv">2</span>)</span></code></pre></div>
+<p>このHaskellのコードは,</p>
+<ul>
+<li><p>関数<code>fib</code>の引数が<code>0</code>のときには返り値として<code>1</code>を返し,</p></li>
+<li><p>関数<code>fib</code>の引数が<code>1</code>のときには返り値として<code>1</code>を返し,</p></li>
+<li><p>関数<code>fib</code>の引数が<code>それ以外</code>のときには返り値として<code>fib (n - 1) + fib (n - 2)</code>を返します.</p></li>
+</ul>
+<p>この最後の<code>fib n = fib (n - 1) + fib (n - 2)</code>は再帰関数といって後ほど扱いますが,取り敢えず,特定の引数に対して特定の返り値を指定するこのような関数の記述方法を<strong>パターンマッチ</strong>といいます.</p>
+<p>パターンマッチは,数値以外の引数に関しても適用可能であり,リストではリストの要素数に応じて使い分けることが多いです.</p>
+<p>以下の,<code>strHead</code>関数は,リストの先頭の要素を文字列として表示する関数です.リストが空のときには<code>"Empty"</code>,要素が一つのときにはその要素,それ以外のときには先頭の要素を文字列にして返します.</p>
+<p><code>show</code>の詳細は後ほど扱いますが,どの様に標準出力に表示するかを定めてあるデータ型を文字列に変換する関数です.</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="ot">strHead ::</span> <span class="dt">Show</span> a <span class="ot">=&gt;</span> [a] <span class="ot">-&gt;</span> <span class="dt">String</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>strHead []     <span class="ot">=</span> <span class="st">&quot;Empty&quot;</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>strHead [x]    <span class="ot">=</span> <span class="fu">show</span> x</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>strHead (x<span class="op">:</span>xs) <span class="ot">=</span> <span class="fu">show</span> x</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> strHead [] <span class="co">-- &gt;&gt;&gt; &quot;Empty&quot;</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> strHead [<span class="dv">3</span>,<span class="dv">4</span>] <span class="co">-- &gt;&gt;&gt; &quot;3&quot;</span></span></code></pre></div>
+<p>パターンマッチはこのようにリスト<code>x:xs</code>の先頭部分<code>x</code>を指定するなどの利用法が可能です. 値の特定の部分を取得する用法として頻出なのがタプルを引数に取るパターンマッチです.</p>
+<p>以下のコードは,3つ組のタプル<code>(x,y,z)</code>から指定した位置の値を取り出す関数<code>getFromTuple</code>です.</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>getFromTuple (x,y,z) <span class="dv">0</span> <span class="ot">=</span> x</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>getFromTuple (x,y,z) <span class="dv">1</span> <span class="ot">=</span> y</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>getFromTuple (x,y,z) <span class="dv">2</span> <span class="ot">=</span> z</span></code></pre></div>
+<p>このような用法は後に紹介する代数的データ型を扱う際にも頻出します.</p>
+<h4 data-number="1.3.2" id="ガード"><span class="header-section-number">1.3.2</span> ガード</h4>
+<p>数式における分岐は,指示関数を用いて行うこともできます.</p>
+<div class="note">
+<p><span class="math display">\[
+fib(n) =
+\begin{cases}
+1, ~if~n = 0 \\
+1, ~if~n = 1 \\
+fib(n-1) + fib(n-2),~if~n &gt;=2
+\end{cases}
+\]</span></p>
+</div>
+<p>Haskellにおいて指示関数の記法に相当するのが<strong>ガード</strong>です.</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="ot">fib ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>fib n <span class="op">|</span> n <span class="op">==</span> <span class="dv">0</span> <span class="ot">=</span> <span class="dv">1</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>      <span class="op">|</span> n <span class="op">==</span> <span class="dv">1</span> <span class="ot">=</span> <span class="dv">1</span></span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>      <span class="op">|</span> n <span class="op">&gt;=</span> <span class="dv">2</span> <span class="ot">=</span> fib (n<span class="op">-</span><span class="dv">1</span>) <span class="op">+</span> fib (n<span class="op">-</span><span class="dv">2</span>)</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> fib <span class="dv">5</span> <span class="co">-- &gt;&gt;&gt; 8</span></span></code></pre></div>
+<p>特徴関数におけるifの位置が先に来ている以外は,基本的に対応関係にあるのがわかるかと思います.</p>
+<h4 data-number="1.3.3" id="case式"><span class="header-section-number">1.3.3</span> case式</h4>
+<p>パターンマッチをインデントブロックで実現する手法として<strong>case式</strong>があります. パターンマッチで判定する変数を<code>case 変数 of</code> のあとに指定して, それぞれのパターンとその結果を<code>-&gt;</code>でつなげる記法です. 指定のパターンに当てはまらないものすべて(これを<strong>ワイルドカード</strong>といいます)を指定するために<code>_</code>を利用します.</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="ot">fib ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>fib n <span class="ot">=</span> <span class="kw">case</span> n <span class="kw">of</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>        <span class="dv">0</span> <span class="ot">-&gt;</span> <span class="dv">1</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>        <span class="dv">1</span> <span class="ot">-&gt;</span> <span class="dv">1</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>        _ <span class="ot">-&gt;</span> fib (n<span class="op">-</span><span class="dv">1</span>) <span class="op">+</span> fib (n<span class="op">-</span><span class="dv">2</span>)</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> fib <span class="dv">5</span> <span class="co">-- &gt;&gt;&gt; 8</span></span></code></pre></div>
+<p>ワイルドカードはどのような値に対しても同じ値を返す関数を実装する場合などにも利用されます.</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="ot">return10 ::</span> a <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>return10 _ <span class="ot">=</span> <span class="dv">10</span></span></code></pre></div>
+<h4 data-number="1.3.4" id="if式"><span class="header-section-number">1.3.4</span> if式</h4>
+<p>Haskellにはifも存在します. <code>if 条件</code>に当てはまる場合の返り値を<code>then</code>で指定します. <code>else if</code> で条件を追加し, <code>else</code>でそれ以外のパターンを指定します. Pythonなどのif文と異なり,式なので<code>else</code>の場合の返り値も必ず指定する必要があります.</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="ot">fib ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>fib n <span class="ot">=</span> <span class="kw">if</span> n <span class="op">==</span> <span class="dv">0</span> <span class="kw">then</span> <span class="dv">1</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>        <span class="kw">else</span> <span class="kw">if</span> n <span class="op">==</span> <span class="dv">1</span> <span class="kw">then</span> <span class="dv">1</span></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>        <span class="kw">else</span> fib (n<span class="op">-</span><span class="dv">1</span>) <span class="op">+</span> fib (n<span class="op">-</span><span class="dv">2</span>)</span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> fib <span class="dv">5</span> <span class="co">-- &gt;&gt;&gt; 8</span></span></code></pre></div>
+<p>Haskellではあまりif式は利用されませんが,
+1行で書けるため,式の中で部分的に利用する場合に便利です.</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="ot">fib ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>fib n <span class="ot">=</span> <span class="kw">if</span> n <span class="op">==</span> <span class="dv">0</span> <span class="kw">then</span> <span class="dv">1</span> <span class="kw">else</span> <span class="kw">if</span> n <span class="op">==</span> <span class="dv">1</span> <span class="kw">then</span> <span class="dv">1</span> <span class="kw">else</span> fib (n<span class="op">-</span><span class="dv">1</span>) <span class="op">+</span> fib (n<span class="op">-</span><span class="dv">2</span>)</span></code></pre></div>
+<h3 data-number="1.4" id="再帰"><span class="header-section-number">1.4</span> 再帰</h3>
+<p>Haskellにおいてもfor文に相当する記法は存在しますが,基本的にループは<strong>再帰</strong>によって実装されます.
+再帰とは関数内で自分自身を呼び出すことです. これまで何度も登場していた<code>fib</code>も再帰を利用していましたが,
+もう少し細かく見てみましょう.</p>
+<p>以下のPythonにおけるfor文を事例に考えてみましょう.</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> total(xs):</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>    result <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> x <span class="kw">in</span> xs:</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>        result <span class="op">+=</span> x</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> result</span></code></pre></div>
+<p>これと同値なプログラムをHaskellで記述すると以下のようになります.</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="ot">total ::</span> [<span class="dt">Int</span>] <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>total []  <span class="ot">=</span> <span class="dv">0</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>total [x] <span class="ot">=</span> x</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>total (x<span class="op">:</span>xs) <span class="ot">=</span> x <span class="op">+</span> (total xs)</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> <span class="op">$</span> tatal [<span class="dv">1</span><span class="op">..</span><span class="dv">10</span>] <span class="co">-- &gt;&gt;&gt; 55</span></span></code></pre></div>
+<p>このtotal関数は,与えられたリストが空の場合0を返し,要素が一つの場合その要素を返します.
+要素が複数あるリストの場合には,先頭の要素<code>x</code>をそれ以降の要素<code>xs</code>の合計に足すという処理を行います.</p>
+<p><code>total [1,2,3]</code>における処理の流れを追っていくと以下のようになります.</p>
+<pre><code>total [1,2,3]
+= 1 + (total [2,3])
+= 1 + (2 + (total [3]))
+= 1 + 2 + 3 + (total [])
+= 1 + 2 + 3 + 0
+= 6</code></pre>
+<p>再帰の基本は,<strong>ループの終了状態</strong>をパターンマッチなどで指定して,そこに至るまでの状態の変化を再帰で記述することです.
+処理がどのような状態になったら終わるのかを意識して記述しないと永遠に終了しないプログラムになるので注意しましょう.</p>
+<div class="note">
+<p>練習問題</p>
+<ol type="1">
+<li><p>リストの長さを返す<code>length2 :: [a] -&gt; Int</code> 関数を新しく実装してください.</p></li>
+<li><p>与えられた整数のリストを引数にとり,要素毎にFizzBuzzを実行した結果を文字列のリストで返す関数
+<code>fizzBuzz :: [Int] -&gt; [String]</code>実装してください.</p></li>
+</ol>
+</div>
+<h3 data-number="1.5" id="ラムダ式"><span class="header-section-number">1.5</span> ラムダ式</h3>
+<h3 data-number="1.6" id="高階関数"><span class="header-section-number">1.6</span> 高階関数</h3>
+<p>map, fold, zip</p>
+<h3 data-number="1.7" id="合成"><span class="header-section-number">1.7</span> 合成</h3>
+<h3 data-number="1.8" id="値の束縛"><span class="header-section-number">1.8</span> 値の束縛</h3>
+<p>Pythonなどの言語では,特定の変数に値を代入することができます.例えば,以下の最大値を求めるプログラムでは,変数<code>m</code>に最初の中身はリストの最初の要素が代入された後,次々とより大きな変数が代入されていきます. <code>変数</code>は名前の通り,次々とその値を変更していきます.</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>xs <span class="op">=</span> [<span class="dv">3</span>,<span class="dv">5</span>,<span class="dv">2</span>,<span class="dv">4</span>,<span class="dv">6</span>,<span class="dv">7</span>,<span class="dv">1</span>]</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>m  <span class="op">=</span> xs[<span class="dv">0</span>]</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> x <span class="kw">in</span> xs[<span class="dv">1</span>:]:</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> x <span class="op">&gt;</span> m:</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>        m <span class="op">=</span> x</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'max value:'</span>,m)</span></code></pre></div>
+<p>一方でHaskellでは,変数に一度値を割り当てると,その変数の値を後から変更することができません. 変数に値を再代入するという操作が許されていないのです. この性質を<code>普遍性</code> （immutability）といいます. したがって,Haskellでは代入という言葉を使わず<code>束縛</code>といいます.
+これは,通常の手続き型言語との大きな違いになります.</p>
+<div class="warn">
+<p>※1 値を変えられないなら｢変数じゃない｣じゃないという意見もありますが,数学において変数と呼ばれているものに近い概念だと考えましょう.</p>
+<p>※2 実は後にでてくるStateやSTなどHaskellでも<code>再代入(破壊的代入)</code>を扱うことはできますが,特定の仕組みによって以下の純粋関数型言語の特徴を保っています.</p>
+</div>
+<p>例えば,以下のように一度値を束縛した変数に新しく変数を代入しようとすると<code>xという変数に複数の宣言をしている</code>というエラーが出ます(ghciでやる場合には,<code>:{ :}</code>を入れる必要があり余計にややこしいですね.すみません).</p>
+<div class="sourceCode" id="cb28"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>ghci<span class="op">&gt;</span> <span class="op">:</span>{</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>ghci<span class="op">|</span> x <span class="ot">=</span> <span class="dv">1</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>ghci<span class="op">|</span> x <span class="ot">=</span> <span class="dv">2</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>ghci<span class="op">|</span> <span class="op">:</span>}</span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a><span class="op">&lt;</span>interactive<span class="op">&gt;:</span><span class="dv">5</span><span class="op">:</span><span class="dv">1</span><span class="op">:</span> <span class="fu">error</span><span class="op">:</span></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Multiple</span> declarations <span class="kw">of</span> ‘x’</span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Declared</span> at<span class="op">:</span> <span class="op">&lt;</span>interactive<span class="op">&gt;:</span><span class="dv">4</span><span class="op">:</span><span class="dv">1</span></span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>                 <span class="op">&lt;</span>interactive<span class="op">&gt;:</span><span class="dv">5</span><span class="op">:</span><span class="dv">1</span></span></code></pre></div>
+<p>これは一見非常に不便なように感じられますが,これによって関数型プログラムでは,プログラムの安全性を高めています.</p>
+<p>例えばPythonにおける以下のプログラムについて考えてみましょう.</p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>counter <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> count_plus(x):</span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">global</span> counter</span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>    counter <span class="op">+=</span> x</span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> counter</span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(count(<span class="dv">1</span>))  <span class="co"># 出力: 1</span></span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(count(<span class="dv">1</span>))  <span class="co"># 出力: 2</span></span></code></pre></div>
+<p>このプログラムでは,<code>count()</code>関数に対して同じ引数1を与えているにもかかわらず,関数を呼び出すたびに,グローバル変数<code>counter</code>が変更されて,結果が変わります. 同じ関数を呼び出しても,結果が変わるために関数のみから,関数の挙動を把握することができません.</p>
+<p>一方でHaskellでは,常に同じ関数は,同じ入力に対して,同じ返り値を返します. このような特性を<strong>参照透過性(Referential Transparency)</strong>と呼び,これによってプログラムの挙動を把握しやすくしています.</p>
+<p>また,上記のPythonのプログラムは,関数を実行するたびに,関数の外にある,<code>counter</code>という変数の状態が変化しています. このような,関数が実行されることで単に値を返す以外に何らかの｢外部の状態を変化させる｣ことを関数の<strong>副作用(Side Effect)</strong>といいます. これは言い換えれば,関数の実行によるプログラム全体への影響が,関数以外の外部の状態に依存していることを意味しており,プログラムの挙動を予測することを難しくします. Haskell</p>
+<p>参照透過性と副作用は相互に結びついた概念ですが,Haskellでは参照透過性を保ち,副作用を排除するようにプログラムが設計されています.
+このように, <strong>｢参照透過性｣</strong> と <strong>｢副作用の排除｣</strong> の両方を持った関数型言語を <strong>純粋関数型言語</strong> と呼びHaskellの大きな特徴の一つです.</p>
+<p>Haskellにおいて,変数への再代入が禁止されていることのメリットは理解していただけたかと思いますが,Haskellにも変数自体はあります.</p>
+<p>トップレベル変数</p>
+<p>ローカル変数
+where
+let</p>
+
+
+<!-- 前後の章へのナビゲーション -->
+<div class="chapter-navigation">
+    <nav>
+        
+            <a class="nav-link prev" href="iap3.html">← Previous Chapter</a>
+        
+        
+            <a class="nav-link next" href="iap5.html">Next Chapter →</a>
+        
+    </nav>
+</div>
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        Site proudly generated by
+        <a href="http://jaspervdj.be/hakyll">Hakyll</a>.
+    </div>
+</div>
+
+        <!-- GUID -->
+        <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+        
+        <!-- KaTeX JavaScript and auto-render extension -->
+        <script>
+          document.addEventListener("DOMContentLoaded", function() {
+            renderMathInElement(document.body, {
+              delimiters: [
+                {left: "$$", right: "$$", display: true},
+                {left: "\[", right: "\]", display: true},
+                {left: "$", right: "$", display: false} // インライン数式用のデリミタを追加
+              ]
+            });
+          });
+        </script>
+        
+    </body>
+
+</html>

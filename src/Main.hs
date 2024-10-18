@@ -189,18 +189,19 @@ main = hakyllWith config $ do
                 >>= relativizeUrls
 
     -- Lecture list
-    create ["lectures.html"] $ do
-        route idRoute
-        compile $ do
-            lectures <- recentFirst =<< loadAll "lectures/*"
-            let ctx = constField "title" "Lecture" <>
-                        listField "lectures" (postCtx tags) (return lectures) <>
-                        defaultContext
-            makeItem ""
-                >>= loadAndApplyTemplate "templates/lectures.html" ctx
-                >>= loadAndApplyTemplate "templates/content.html" ctx
-                >>= loadAndApplyTemplate "templates/default.html" ctx
-                >>= relativizeUrls
+    -- create ["lectures.html"] $ do
+    --     route idRoute
+    --     compile $ do
+    --         lectures <- recentFirst =<< loadAll "lectures/*"
+    --         let ctx = constField "title" "Lecture" <>
+    --                     listField "lectures" (postCtx tags) (return lectures) <>
+    --                     defaultContext
+    --         makeItem ""
+    --             >>= loadAndApplyTemplate "templates/lectures.html" ctx
+    --             >>= loadAndApplyTemplate "templates/content.html" ctx
+    --             >>= loadAndApplyTemplate "templates/default.html" ctx
+    --             >>= relativizeUrls
+
     -- Post tags
     tagsRules tags $ \tag pattern -> do
         let title = "Lectures tagged " ++ tag
@@ -304,6 +305,7 @@ main = hakyllWith config $ do
         [ "contact.markdown"
         , "research.markdown"
         , "links.markdown"
+        , "lectures.markdown"
         ]
 
     writeXeTex :: Item Pandoc.Pandoc -> Compiler (Item String)
