@@ -7,8 +7,815 @@
         <description><![CDATA[Personal blog of yakagika]]></description>
         <atom:link href="/tags/datascience.xml" rel="self"
                    type="application/rss+xml" />
-        <lastBuildDate>Sat, 28 Sep 2024 00:00:00 UT</lastBuildDate>
+        <lastBuildDate>Sat, 19 Oct 2024 00:00:00 UT</lastBuildDate>
         <item>
+    <title>特別講義DS Ch16 カテゴリーデータ処理</title>
+    <link>/lectures/slds16.html</link>
+    <description><![CDATA[<div class="toc"><div class="header">Table of Contents</div>
+<ul>
+<li><a href="#利用データ" id="toc-利用データ"><span class="toc-section-number">1</span> 利用データ</a></li>
+<li><a href="#データ処理" id="toc-データ処理"><span class="toc-section-number">2</span> データ処理</a></li>
+<li><a href="#ヒストグラム" id="toc-ヒストグラム"><span class="toc-section-number">3</span> ヒストグラム</a></li>
+<li><a href="#相関係数" id="toc-相関係数"><span class="toc-section-number">4</span> 相関係数</a></li>
+<li><a href="#同時度数分布表" id="toc-同時度数分布表"><span class="toc-section-number">5</span> 同時度数分布表</a></li>
+<li><a href="#独立性の検定" id="toc-独立性の検定"><span class="toc-section-number">6</span> 独立性の検定</a></li>
+<li><a href="#残渣分析" id="toc-残渣分析"><span class="toc-section-number">7</span> 残渣分析</a></li>
+<li><a href="#次元削減" id="toc-次元削減"><span class="toc-section-number">8</span> 次元削減</a></li>
+<li><a href="#共分散構造分析" id="toc-共分散構造分析"><span class="toc-section-number">9</span> 共分散構造分析</a></li>
+</ul>
+</div>
+<p>本章は,カテゴリーデータの処理手法に関するまとめの章となります. 学生の研究ではアンケートデータが非常によく利用されますが, アンケートでは5段階評価などの質問項目がよく利用されるため,得られたデータの大部分がカテゴリーデータとなります. この章では,アンケートデータを事例に,よく行われる分析手法をいくつか紹介・実践してみます.
+なお,本稿で紹介される手法は既にほかの章で説明されているものも含まれており, 内容の重複があります.</p>
+<h1 data-number="1" id="利用データ"><span class="header-section-number">1</span> 利用データ</h1>
+<p>本章では,仮想のアンケートデータとして,情報入門で利用されている理解度アンケートを利用します. なお,こちらのアンケートの質問形式は実際に利用しているものですが, 解答に関して仮想のものであり,得られた結果も実際の講義とは無関係であることに注意して下さい.</p>
+<p>データは<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/questionnaire_sample_original.csv">こちら</a>からダウンロードできます.</p>
+<p>こちらのデータは,Microsoft Formsで取得したアンケートデータになります. 自由回答や量的データを回答する質問項目はなく, 5段階の順序尺度及び複数選択式の質問項目からなります.</p>
+<p>質問項目は以下の通りです.</p>
+<div class="note">
+<ul>
+<li>あなたの「スマートフォン」に対する印象について、どれくらいあてはまるかを教えてください。</li>
+<li>あなたの「スマートフォン」に対する操作や知識について、どれくらい自信があるかを教えてください。</li>
+<li>あなたの「パソコン」に対する印象について、どれくらいあてはまるかを教えてください。</li>
+<li>あなたの「パソコン」に対する操作や知識について、どれくらい自信があるかを教えてください。</li>
+<li>あなたの「SNS（FacebookやInstagramなど）」に対する印象について、どれくらいあてはまるかを教えてください。</li>
+<li>あなたの「SNS（FacebookやInstagramなど）」に対する操作や知識について、どれくらい自信があるかを教えてください。</li>
+<li>あなたの「ネットを使ったコミュニケーション（LINEやTwitterなど）」に対する印象について、どれくらいあてはまるかを教えてください。</li>
+<li>あなたの「ネットを使ったコミュニケーション（LINEやTwitterなど）」に対する操作や知識について、どれくらい自信があるかを教えてください。</li>
+<li>次の「IT用語」について「知っている」という言葉にチェックをしてください（知っているものすべてにチェック）。</li>
+<li>Windowsの操作や事柄について「身に付いている」ものにチェックをしてください（身に付いているものすべてにチェック）。</li>
+<li>電子メールの操作や事柄について「身に付いている」ものにチェックをしてください（身に付いているものすべてにチェック）。</li>
+<li>WWW(ウェブ)の操作や事柄について「身に付いている」ものにチェックをしてください（身に付いているものすべてにチェック）。</li>
+<li>Wordの操作や事柄について「身に付いている」ものにチェックをしてください（身に付いているものすべてにチェック）。</li>
+<li>Excelの操作や事柄について「身に付いている」ものにチェックをしてください（身に付いているものすべてにチェック）。</li>
+<li>PowerPointの操作や事柄について「身に付いている」ものにチェックをしてください（身に付いているものすべてにチェック）。</li>
+<li>Officeの応用的な操作や事柄について「身に付いている」ものにチェックをしてください（身に付いているものすべてにチェック）。</li>
+<li>情報倫理について「身に付いている」ものにチェックをしてください（身に付いているものすべてにチェック）。’</li>
+</ul>
+</div>
+<h1 data-number="2" id="データ処理"><span class="header-section-number">2</span> データ処理</h1>
+<p>Microsoft Formsによるデータは,複数選択可能な質問項目への解答が一つのセルに｢<code>;</code>｣を用いて区切られて記入されるなど特徴があります.</p>
+<figure>
+<img src="/images/ch16-data-sample.png" alt="データの形式" />
+<figcaption aria-hidden="true">データの形式</figcaption>
+</figure>
+<p>分析の際には,これらの情報を利用しやすいように変形する必要があります. ここでは,練習も兼ねて一通りの処理を体験してみましょう.</p>
+<p>加工後のデータは<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/questionnaire_sample_edited.csv">こちら</a>で配布しているので,内容を確認して自力でできると感じた方はこの節は飛ばしていただいて構いません.</p>
+<p>まずはデータの形式を確認してみましょう.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> japanize_matplotlib</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> scipy.stats <span class="im">as</span> st</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">#グラフの保存場所</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>dir_fig <span class="op">=</span> <span class="st">&#39;./result/fig/&#39;</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co">#グラフの設定</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>plt.style.use(<span class="st">&#39;ggplot&#39;</span>) <span class="co">#グラフスタイル</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>plt.rcParams[<span class="st">&#39;figure.figsize&#39;</span>] <span class="op">=</span> [<span class="dv">12</span>, <span class="dv">9</span>] <span class="co">#グラフサイズ</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>plt.rcParams[<span class="st">&#39;font.size&#39;</span>] <span class="op">=</span> <span class="dv">14</span> <span class="co">#フォントサイズ</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="co">#------------------------------------------------------------------</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="co">#データの読み込み</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="co">#------------------------------------------------------------------</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">&#39;./data/questionnaire_sample_original.csv&#39;</span>)</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df.columns)</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="co">Index([&#39;あなたの「スマートフォン」に対する印象について、どれくらいあてはまるかを教えてください。&#39;,</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="co">       &#39;あなたの「スマートフォン」に対する操作や知識について、どれくらい自信があるかを教えてください。&#39;,</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="co">       &#39;あなたの「パソコン」に対する印象について、どれくらいあてはまるかを教えてください。&#39;,</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a><span class="co">       &#39;あなたの「パソコン」に対する操作や知識について、どれくらい自信があるかを教えてください。&#39;,</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="co">       &#39;あなたの「SNS（FacebookやInstagramなど）」に対する印象について、どれくらいあてはまるかを教えてください。&#39;,</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a><span class="co">       &#39;あなたの「SNS（FacebookやInstagramなど）」に対する操作や知識について、どれくらい自信があるかを教えてください。&#39;,</span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a><span class="co">       &#39;あなたの「ネットを使ったコミュニケーション（LINEやTwitterなど）」に対する印象について、どれくらいあてはまるかを教えてください。&#39;,</span></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a><span class="co">       &#39;あなたの「ネットを使ったコミュニケーション（LINEやTwitterなど）」に対する操作や知識について、どれくらい自信があるかを教えてください。&#39;,</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a><span class="co">       &#39;次の「IT用語」について「知っている」という言葉にチェックをしてください（知っているものすべてにチェック）。&#39;,</span></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a><span class="co">       &#39;Windowsの操作や事柄について「身に付いている」ものにチェックをしてください（身に付いているものすべてにチェック）。&#39;,</span></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a><span class="co">       &#39;電子メールの操作や事柄について「身に付いている」ものにチェックをしてください（身に付いているものすべてにチェック）。&#39;,</span></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a><span class="co">       &#39;WWW(ウェブ)の操作や事柄について「身に付いている」ものにチェックをしてください（身に付いているものすべてにチェック）。&#39;,</span></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a><span class="co">       &#39;Wordの操作や事柄について「身に付いている」ものにチェックをしてください（身に付いているものすべてにチェック）。&#39;,</span></span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a><span class="co">       &#39;Excelの操作や事柄について「身に付いている」ものにチェックをしてください（身に付いているものすべてにチェック）。&#39;,</span></span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a><span class="co">       &#39;PowerPointの操作や事柄について「身に付いている」ものにチェックをしてください（身に付いているものすべてにチェック）。&#39;,</span></span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a><span class="co">       &#39;Officeの応用的な操作や事柄について「身に付いている」ものにチェックをしてください（身に付いているものすべてにチェック）。&#39;,</span></span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a><span class="co">       &#39;情報倫理について「身に付いている」ものにチェックをしてください（身に付いているものすべてにチェック）。&#39;],</span></span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a><span class="co">      dtype=&#39;object&#39;)</span></span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>このままでは列名が長すぎてプログラムが書きにくいので,列名を順に<code>Q1~Q17</code>の連番に変更します.
+今回は辞書型で連番を作成するために,組み込み関数の<code>enumerate()</code>を利用しています.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>new_columns <span class="op">=</span> <span class="bu">dict</span>([(t,<span class="st">&#39;Q&#39;</span><span class="op">+</span><span class="bu">str</span>(n <span class="op">+</span> <span class="dv">1</span>))<span class="cf">for</span> (n,t) <span class="kw">in</span>  <span class="bu">enumerate</span>(df.columns)])</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co">一つ一つ手書きすると以下のようになる.</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co">new_columns = {&#39;あなたの「スマートフォン」に対する印象について、どれくらいあてはまるかを教えてください。&#39;:&#39;Q1&#39;</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co">              ,&#39;あなたの「スマートフォン」に対する操作や知識について、どれくらい自信があるかを教えてください。&#39;:&#39;Q2&#39;</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">              ,&#39;あなたの「パソコン」に対する印象について、どれくらいあてはまるかを教えてください。&#39;:&#39;Q3&#39;</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co">              ,&#39;あなたの「パソコン」に対する操作や知識について、どれくらい自信があるかを教えてください。&#39;:&#39;Q4&#39;</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="co">              ,&#39;あなたの「SNS（FacebookやInstagramなど）」に対する印象について、どれくらいあてはまるかを教えてください。&#39;:&#39;Q5&#39;</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="co">              ,&#39;あなたの「SNS（FacebookやInstagramなど）」に対する操作や知識について、どれくらい自信があるかを教えてください。&#39;:&#39;Q6&#39;</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="co">              ,&#39;あなたの「ネットを使ったコミュニケーション（LINEやTwitterなど）」に対する印象について、どれくらいあてはまるかを教えてください。&#39;:&#39;Q7&#39;</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="co">              ,&#39;あなたの「ネットを使ったコミュニケーション（LINEやTwitterなど）」に対する操作や知識について、どれくらい自信があるかを教えてください。&#39;:&#39;Q8&#39;</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="co">              ,&#39;次の「IT用語」について「知っている」という言葉にチェックをしてください（知っているものすべてにチェック）。&#39;:&#39;Q9&#39;</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="co">              ,&#39;Windowsの操作や事柄について「身に付いている」ものにチェックをしてください（身に付いているものすべてにチェック）。&#39;:&#39;Q10&#39;</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="co">              ,&#39;電子メールの操作や事柄について「身に付いている」ものにチェックをしてください（身に付いているものすべてにチェック）。&#39;:&#39;Q11&#39;</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="co">              ,&#39;WWW(ウェブ)の操作や事柄について「身に付いている」ものにチェックをしてください（身に付いているものすべてにチェック）。&#39;:&#39;Q12&#39;</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="co">              ,&#39;Wordの操作や事柄について「身に付いている」ものにチェックをしてください（身に付いているものすべてにチェック）。&#39;:&#39;Q13&#39;</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="co">              ,&#39;Excelの操作や事柄について「身に付いている」ものにチェックをしてください（身に付いているものすべてにチェック）。&#39;:&#39;Q14&#39;</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="co">              ,&#39;PowerPointの操作や事柄について「身に付いている」ものにチェックをしてください（身に付いているものすべてにチェック）。&#39;:&#39;Q15&#39;</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a><span class="co">              ,&#39;Officeの応用的な操作や事柄について「身に付いている」ものにチェックをしてください（身に付いているものすべてにチェック）。&#39;:&#39;Q16&#39;</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a><span class="co">              ,&#39;情報倫理について「身に付いている」ものにチェックをしてください（身に付いているものすべてにチェック）。&#39;:&#39;Q17&#39;}</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(new_columns)</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a><span class="co">{&#39;あなたの「スマートフォン」に対する印象について、どれくらいあてはまるかを教えてください。&#39;: &#39;Q1&#39;</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a><span class="co">, &#39;あなたの「スマートフォン」に対する操作や知識について、どれくらい自信があるかを教えてください。&#39;: &#39;Q2&#39;</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a><span class="co">, &#39;あなたの「パソコン」に対する印象について、どれくらいあてはまるかを教えてください。&#39;: &#39;Q3&#39;</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a><span class="co">, &#39;あなたの「パソコン」に対する操作や知識について、どれくらい自信があるかを教えてください。&#39;: &#39;Q4&#39;</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a><span class="co">, &#39;あなたの「SNS（FacebookやInstagramなど）」に対する印象について、どれくらいあてはまるかを教えてください。&#39;: &#39;Q5&#39;</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a><span class="co">, &#39;あなたの「SNS（FacebookやInstagramなど）」に対する操作や知識について、どれくらい自信があるかを教えてください。&#39;: &#39;Q6&#39;</span></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a><span class="co">, &#39;あなたの「ネットを使ったコミュニケーション（LINEやTwitterなど）」に対する印象について、どれくらいあてはまるかを教えてください。&#39;: &#39;Q7&#39;</span></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a><span class="co">, &#39;あなたの「ネットを使ったコミュニケーション（LINEやTwitterなど）」に対する操作や知識について、どれくらい自信があるかを教えてください。&#39;: &#39;Q8&#39;</span></span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a><span class="co">, &#39;次の「IT用語」について「知っている」という言葉にチェックをしてください（知っているものすべてにチェック）。&#39;: &#39;Q9&#39;</span></span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a><span class="co">, &#39;Windowsの操作や事柄について「身に付いている」ものにチェックをしてください（身に付いているものすべてにチェック）。&#39;: &#39;Q10&#39;</span></span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a><span class="co">, &#39;電子メールの操作や事柄について「身に付いている」ものにチェックをしてください（身に付いているものすべてにチェック）。&#39;: &#39;Q11&#39;</span></span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a><span class="co">, &#39;WWW(ウェブ)の操作や事柄について「身に付いている」ものにチェックをしてください（身に付いているものすべてにチェック）。&#39;: &#39;Q12&#39;</span></span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a><span class="co">, &#39;Wordの操作や事柄について「身に付いている」ものにチェックをしてください（身に付いているものすべてにチェック）。&#39;: &#39;Q13&#39;</span></span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a><span class="co">, &#39;Excelの操作や事柄について「身に付いている」ものにチェックをしてください（身に付いているものすべてにチェック）。&#39;: &#39;Q14&#39;</span></span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a><span class="co">, &#39;PowerPointの操作や事柄について「身に付いている」ものにチェックをしてください（身に付いているものすべてにチェック）。&#39;: &#39;Q15&#39;</span></span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a><span class="co">, &#39;Officeの応用的な操作や事柄について「身に付いている」ものにチェックをしてください（身に付いているものすべてにチェック）。&#39;: &#39;Q16&#39;</span></span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a><span class="co">, &#39;情報倫理について「身に付いている」ものにチェックをしてください（身に付いているものすべてにチェック）。&#39;: &#39;Q17&#39;}</span></span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a>df.rename(new_columns, inplace<span class="op">=</span><span class="va">True</span>,axis<span class="op">=</span><span class="st">&#39;columns&#39;</span>)</span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a><span class="co">             Q1         Q2         Q3  ...                                                Q15                         Q16                                                Q17</span></span>
+<span id="cb2-49"><a href="#cb2-49" aria-hidden="true" tabindex="-1"></a><span class="co">0     まあまあ興味がある    どちらでもない    どちらでもない  ...           スライドマスターを活用することができる;SmartArtを挿入することができる;  学内PCで作成したファイルを自宅のPCに持ち運べる;                                       どれも身についていない;</span></span>
+<span id="cb2-50"><a href="#cb2-50" aria-hidden="true" tabindex="-1"></a><span class="co">1      すごく興味がある  まあまあ自信がある   すごく興味がある  ...                                新しいスライドを追加することができる;    学術的文章の規則を踏まえてレポートを作成できる;  学内PCでログアウトせずに帰る危険性を理解している;マルウェア（不正ソフト）について理解して...</span></span>
+<span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a><span class="co">2      すごく興味がある   あまり自信がない  まあまあ興味がある  ...                                       どれも身についていない;                どれも身に付いていない;                                       どれも身についていない;</span></span>
+<span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a><span class="co">3       どちらでもない   あまり自信がない    全く興味がない  ...                                新しいスライドを追加することができる;                どれも身に付いていない;                         学内PCでログアウトせずに帰る危険性を理解している;</span></span>
+<span id="cb2-53"><a href="#cb2-53" aria-hidden="true" tabindex="-1"></a><span class="co">4     まあまあ興味がある  まあまあ自信がある   すごく興味がある  ...                                新しいスライドを追加することができる;                どれも身に付いていない;                                       どれも身についていない;</span></span>
+<span id="cb2-54"><a href="#cb2-54" aria-hidden="true" tabindex="-1"></a><span class="co">...         ...        ...        ...  ...                                                ...                         ...                                                ...</span></span>
+<span id="cb2-55"><a href="#cb2-55" aria-hidden="true" tabindex="-1"></a><span class="co">1347  まあまあ興味がある   あまり自信がない  まあまあ興味がある  ...  新しいスライドを追加することができる;スライドにページ番号を挿入することができる;スライドマ...                どれも身に付いていない;  学内PCでログアウトせずに帰る危険性を理解している;フィッシング詐欺について理解している;ウ...</span></span>
+<span id="cb2-56"><a href="#cb2-56" aria-hidden="true" tabindex="-1"></a><span class="co">1348  まあまあ興味がある   あまり自信がない  まあまあ興味がある  ...                                新しいスライドを追加することができる;                どれも身に付いていない;                         学内PCでログアウトせずに帰る危険性を理解している;</span></span>
+<span id="cb2-57"><a href="#cb2-57" aria-hidden="true" tabindex="-1"></a><span class="co">1349  まあまあ興味がある    全く自信がない    全く興味がない  ...                                新しいスライドを追加することができる;                どれも身に付いていない;                                       どれも身についていない;</span></span>
+<span id="cb2-58"><a href="#cb2-58" aria-hidden="true" tabindex="-1"></a><span class="co">1350  まあまあ興味がある  まあまあ自信がある  まあまあ興味がある  ...             アニメーション機能を使うことができる;新しいスライドを追加することができる;                どれも身に付いていない;  学内PCでログアウトせずに帰る危険性を理解している;ウェブ上の画像に関する著作権について理解...</span></span>
+<span id="cb2-59"><a href="#cb2-59" aria-hidden="true" tabindex="-1"></a><span class="co">1351  まあまあ興味がある   あまり自信がない  まあまあ興味がある  ...          新しいスライドを追加することができる;スライドにページ番号を挿入することができる;                どれも身に付いていない;  フィッシング詐欺について理解している;ウェブ上の画像に関する著作権について理解している;学内...</span></span>
+<span id="cb2-60"><a href="#cb2-60" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>続いて,質問項目を利用しやすいように変換します. このアンケートでは,<code>Q1~Q8</code>では,ITに関連する事柄に関する興味の強さと自信を5段階評価で聞いています.そのままでも使えますが,後の処理のために整数に変換します.
+もとの列も残して置くために,数値変換した列は <code>QX_num</code>の形で新しい列を作成しています.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>kyomi <span class="op">=</span> {<span class="st">&#39;すごく興味がある&#39;</span>:<span class="dv">5</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>        ,<span class="st">&#39;まあまあ興味がある&#39;</span>:<span class="dv">4</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>        ,<span class="st">&#39;どちらでもない&#39;</span>:<span class="dv">3</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>        ,<span class="st">&#39;あまり興味がない&#39;</span>:<span class="dv">2</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>        ,<span class="st">&#39;全く興味がない&#39;</span>:<span class="dv">1</span>}</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>zishin <span class="op">=</span> {<span class="st">&#39;すごく自信がある&#39;</span>:<span class="dv">5</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>         ,<span class="st">&#39;まあまあ自信がある&#39;</span>:<span class="dv">4</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>         ,<span class="st">&#39;どちらでもない&#39;</span>:<span class="dv">3</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>         ,<span class="st">&#39;あまり自信がない&#39;</span>:<span class="dv">2</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>         ,<span class="st">&#39;全く自信がない&#39;</span>:<span class="dv">1</span>}</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> [<span class="dv">1</span>,<span class="dv">3</span>,<span class="dv">5</span>,<span class="dv">7</span>]:</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    df[<span class="st">&#39;Q&#39;</span> <span class="op">+</span> <span class="bu">str</span>(i) <span class="op">+</span> <span class="st">&#39;_num&#39;</span>] <span class="op">=</span> df[<span class="st">&#39;Q&#39;</span> <span class="op">+</span> <span class="bu">str</span>(i)].<span class="bu">apply</span>(<span class="kw">lambda</span> x : kyomi[x])</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> [<span class="dv">2</span>,<span class="dv">4</span>,<span class="dv">6</span>,<span class="dv">8</span>]:</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>    df[<span class="st">&#39;Q&#39;</span> <span class="op">+</span> <span class="bu">str</span>(i) <span class="op">+</span> <span class="st">&#39;_num&#39;</span>] <span class="op">=</span> df[<span class="st">&#39;Q&#39;</span> <span class="op">+</span> <span class="bu">str</span>(i)].<span class="bu">apply</span>(<span class="kw">lambda</span> x : zishin[x])</span></code></pre></div>
+<p><code>Q9~Q17</code>では,身についているスキルを複数選択形式で尋ねています. 複数選択された項目は,セミコロン(<code>;</code>)で区切られています. 各質問項目で選択されたスキルの数に変換してみます.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">#｢身についているもの｣の数の列を作る</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co">#------------------------------------------------------------------</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> to_list(x):</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># &#39;;&#39;で区切ったリストにする</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="co"># &#39;どれも身についていない&#39;がある場合は空の列を返す</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    xs <span class="op">=</span> x.split(<span class="st">&#39;;&#39;</span>)[<span class="dv">0</span>:<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="st">&#39;どれも身についていない&#39;</span> <span class="kw">in</span> xs:</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> []</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> <span class="st">&#39;どれも知らない&#39;</span> <span class="kw">in</span> xs:</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> []</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> xs</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a><span class="co">#テスト</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df.at[<span class="dv">100</span>,<span class="st">&#39;Q13&#39;</span>])</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(to_list(df.at[<span class="dv">100</span>,<span class="st">&#39;Q13&#39;</span>]))</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a><span class="co"># &gt;&gt;&gt; フォントの種類やサイズを変更することができる;中央揃えや右揃えを設定することができる;</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a><span class="co"># &gt;&gt;&gt; [&#39;フォントの種類やサイズを変更することができる&#39;, &#39;中央揃えや右揃えを設定することができる&#39;]</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">9</span>,<span class="dv">18</span>,<span class="dv">1</span>):</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>    df[<span class="st">&#39;Q&#39;</span> <span class="op">+</span> <span class="bu">str</span>(i) <span class="op">+</span> <span class="st">&#39;_num&#39;</span>] <span class="op">=</span> df[<span class="st">&#39;Q&#39;</span> <span class="op">+</span> <span class="bu">str</span>(i)].<span class="bu">apply</span>(<span class="kw">lambda</span> x : <span class="bu">len</span>(to_list(x)))</span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df[<span class="st">&#39;Q17_num&#39;</span>])</span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a><span class="co">0       0</span></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a><span class="co">1       3</span></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a><span class="co">2       0</span></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a><span class="co">3       1</span></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a><span class="co">4       0</span></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a><span class="co">       ..</span></span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a><span class="co">1347    3</span></span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a><span class="co">1348    1</span></span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a><span class="co">1349    0</span></span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a><span class="co">1350    2</span></span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a><span class="co">1351    3</span></span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a><span class="co">Name: Q17_num, Length: 1352, dtype: int64</span></span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a>num_columns <span class="op">=</span> [<span class="st">&#39;Q&#39;</span> <span class="op">+</span> <span class="bu">str</span>(x) <span class="op">+</span> <span class="st">&#39;_num&#39;</span> <span class="cf">for</span> x <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>,<span class="dv">18</span>,<span class="dv">1</span>)]</span>
+<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(num_columns)</span>
+<span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a><span class="co">[&#39;Q1_num&#39;, &#39;Q2_num&#39;, &#39;Q3_num&#39;, &#39;Q4_num&#39;, &#39;Q5_num&#39;, &#39;Q6_num&#39;, &#39;Q7_num&#39;, &#39;Q8_num&#39;, &#39;Q9_num&#39;, &#39;Q10_num&#39;, &#39;Q11_num&#39;, &#39;Q12_num&#39;, &#39;Q13_num&#39;, &#39;Q14_num&#39;, &#39;Q15_num&#39;, &#39;Q16_num&#39;, &#39;Q17_num&#39;]</span></span>
+<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<h1 data-number="3" id="ヒストグラム"><span class="header-section-number">3</span> ヒストグラム</h1>
+<p>続いて<strong>データ分析のファーストステップ</strong>であるヒストグラムを作成して<strong>個別の質問項目ごとのデータの特徴を</strong>みてみましょう. ヒストグラムの作成方法などに関しては,<a href="slds8.html">データの可視化の章</a>を参照して下さい.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">#ヒストグラムを作る</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co">#------------------------------------------------------------------</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co">## Q1~Q6</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(nrows <span class="op">=</span> <span class="dv">6</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>                      ,ncols <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>                      ,tight_layout<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">6</span>):</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    col <span class="op">=</span> <span class="st">&#39;Q&#39;</span> <span class="op">+</span> <span class="bu">str</span>(i <span class="op">+</span> <span class="dv">1</span>) <span class="op">+</span> <span class="st">&#39;_num&#39;</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    xs <span class="op">=</span> df[col].value_counts().sort_index()</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    ax[i].bar(xs.index,xs.values, width <span class="op">=</span> <span class="dv">1</span>)</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    ax[i].set_title(col)</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>plt.savefig(dir_fig <span class="op">+</span> <span class="st">&#39;Q1_6_histgram.png&#39;</span>)</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>plt.close(fig)</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a><span class="co">##Q6~Q12</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(nrows <span class="op">=</span> <span class="dv">6</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>                      ,ncols <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>                      ,tight_layout<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">6</span>):</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    col <span class="op">=</span> <span class="st">&#39;Q&#39;</span> <span class="op">+</span> <span class="bu">str</span>(i <span class="op">+</span> <span class="dv">6</span>) <span class="op">+</span> <span class="st">&#39;_num&#39;</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>    xs <span class="op">=</span> df[col].value_counts().sort_index()</span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>    ax[i].bar(xs.index,xs.values, width <span class="op">=</span> <span class="dv">1</span>)</span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>    ax[i].set_title(col)</span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>plt.savefig(dir_fig <span class="op">+</span> <span class="st">&#39;Q7_12_histgram.png&#39;</span>)</span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>plt.close(fig)</span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a><span class="co">##Q13~Q17</span></span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(nrows <span class="op">=</span> <span class="dv">5</span></span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>                      ,ncols <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>                      ,tight_layout<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">5</span>):</span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a>    col <span class="op">=</span> <span class="st">&#39;Q&#39;</span> <span class="op">+</span> <span class="bu">str</span>(i <span class="op">+</span> <span class="dv">13</span>) <span class="op">+</span> <span class="st">&#39;_num&#39;</span></span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a>    xs <span class="op">=</span> df[col].value_counts().sort_index()</span>
+<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a>    ax[i].bar(xs.index,xs.values, width <span class="op">=</span> <span class="dv">1</span>)</span>
+<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a>    ax[i].set_title(col)</span>
+<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a>plt.savefig(dir_fig <span class="op">+</span> <span class="st">&#39;Q13_17_histgram.png&#39;</span>)</span>
+<span id="cb5-40"><a href="#cb5-40" aria-hidden="true" tabindex="-1"></a>plt.close(fig)</span></code></pre></div>
+<p>以下のようなグラフが最初に設定したグラフの保存場所 <code>./result/fig</code>に保存されているはずです.
+ここでは,ヒストグラムの分析の仕方については細かく扱いませんが,多くの示唆が得られます.
+<img src="/images/Ch16_Q13_17_histgram.png" alt="アンケートデータヒストグラム" /></p>
+<h1 data-number="4" id="相関係数"><span class="header-section-number">4</span> 相関係数</h1>
+<p>ヒストグラムで質問項目ごとのデータの特徴を把握したので,相関係数を求めて,データ間の関係性を可視化してみましょう. 今回のデータは<strong>順序尺度</strong>なので,<strong>スピアマンの順位相関係数</strong>を利用します. 相関に関する説明は,<a href="slds9.html">データの数値化に関する章</a>を参照してください.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co">#順位相関係数を求める</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co">#------------------------------------------------------------------</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>sns.heatmap(df[num_columns].corr(method<span class="op">=</span><span class="st">&#39;spearman&#39;</span>)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>           ,cmap<span class="op">=</span>plt.get_cmap(<span class="st">&#39;bwr&#39;</span>)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>           ,vmax<span class="op">=</span><span class="fl">1.0</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>           ,center <span class="op">=</span><span class="dv">0</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>           ,vmin<span class="op">=-</span><span class="fl">1.0</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>           ,xticklabels<span class="op">=</span><span class="dv">1</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>           ,yticklabels<span class="op">=</span><span class="dv">1</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>           ,linewidths<span class="op">=</span><span class="fl">.5</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>           ,annot<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">&#39;spearman&#39;</span>)</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>plt.xticks(rotation<span class="op">=</span><span class="dv">45</span>)</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>plt.savefig(dir_fig <span class="op">+</span> <span class="st">&#39;spearman.png&#39;</span>)</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>plt.close()</span></code></pre></div>
+<p>以下のような相関係数のヒートマップが作成されます. 細かな分析は行いませんが,<code>Q1~Q8</code>までの興味関心に関する質問項目間,<code>Q9~Q17</code>のスキルに関する質問間の相関が強いことなどが視覚的に表現されています.</p>
+<figure>
+<img src="/images/ch16_spearman.png" alt="スピアマンの順位相関係数" />
+<figcaption aria-hidden="true">スピアマンの順位相関係数</figcaption>
+</figure>
+<p>こちらの相関係数は,後に行う<strong>共分散構造分析(SEM)</strong>におけるモデル作成のためにも利用されます.</p>
+<h1 data-number="5" id="同時度数分布表"><span class="header-section-number">5</span> 同時度数分布表</h1>
+<p>相関係数によって相関が高い質問項目の組み合わせがいくつか把握されましたがこれは質問項目全体の関係性です. 解釈を行うには,相関係数の高い質問項目の組み合わせごとに更に詳細に,どの回答とどの回答がどのような関係にあるのか,といった分析が必要になります. そのような,<strong>質的データ</strong>に関してそのような分析に利用できるのが<strong>同時度数分布表</strong>です. 詳細は,<a href="slds8.html">可視化の章</a>を参照して下さい.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">#クロス表</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co">#------------------------------------------------------------------</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co">#質問項目の区分間にどのような関係があるのかを検定する</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="co">#今回はスマホの自信(Q2)と,PCの自信(Q4)だけ(自分の仮説に応じて色々ためす)</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co"># 作業手順</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="co">## クロス表を作成する</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="co">## 独立性の検定(お互いに影響があるか)を検定する</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="co">## 検定が有意であれば,どの項目が具体的にどの項目に影響しているかを残渣分析で明らかにする.</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="co">#クロス表の作成</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="co">## 列と行に指定する質問項目</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>target_row <span class="op">=</span> <span class="st">&#39;Q4&#39;</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>target_col <span class="op">=</span> <span class="st">&#39;Q2&#39;</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a><span class="co">## 選択肢の順序(指定しないとデータの出てきた順になる)</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>order <span class="op">=</span> {target_row:[<span class="st">&#39;すごく自信がある&#39;</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>                    ,<span class="st">&#39;まあまあ自信がある&#39;</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>                    ,<span class="st">&#39;どちらでもない&#39;</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>                    ,<span class="st">&#39;あまり自信がない&#39;</span></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>                    ,<span class="st">&#39;全く自信がない&#39;</span>]</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>        ,target_col:[<span class="st">&#39;すごく自信がある&#39;</span></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>                    ,<span class="st">&#39;まあまあ自信がある&#39;</span></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>                    ,<span class="st">&#39;どちらでもない&#39;</span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>                    ,<span class="st">&#39;あまり自信がない&#39;</span></span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>                    ,<span class="st">&#39;全く自信がない&#39;</span>]}</span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>crosstab <span class="op">=</span> pd.crosstab(df[target_row],df[target_col])</span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>crosstab <span class="op">=</span> crosstab.reindex(order[target_row],axis<span class="op">=</span><span class="st">&#39;index&#39;</span>)</span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>crosstab <span class="op">=</span> crosstab.reindex(order[target_col],axis<span class="op">=</span><span class="st">&#39;columns&#39;</span>)</span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a>sns.heatmap( crosstab</span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a>           , cmap<span class="op">=</span>plt.get_cmap(<span class="st">&#39;Reds&#39;</span>)</span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a>           , yticklabels<span class="op">=</span><span class="dv">1</span></span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a>           , xticklabels<span class="op">=</span><span class="dv">1</span></span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a>           , linewidths<span class="op">=</span><span class="fl">.5</span></span>
+<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a>           , annot<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-37"><a href="#cb7-37" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">&#39;クロステーブル:&#39;</span> <span class="op">+</span> target_row <span class="op">+</span> <span class="st">&#39;×&#39;</span> <span class="op">+</span> target_col)</span>
+<span id="cb7-38"><a href="#cb7-38" aria-hidden="true" tabindex="-1"></a>plt.xticks(rotation<span class="op">=</span><span class="dv">70</span>)</span>
+<span id="cb7-39"><a href="#cb7-39" aria-hidden="true" tabindex="-1"></a>plt.savefig(dir_fig <span class="op">+</span> <span class="st">&#39;cross_table_&#39;</span><span class="op">+</span> target_row <span class="op">+</span> <span class="st">&#39;_&#39;</span> <span class="op">+</span> target_col <span class="op">+</span><span class="st">&#39;.png&#39;</span>)</span>
+<span id="cb7-40"><a href="#cb7-40" aria-hidden="true" tabindex="-1"></a>plt.close()</span></code></pre></div>
+<p>作成された度数分布表を確認してみると,<code>Q2</code>と<code>Q2</code>の間に全体的に右肩下がりの関係性があること,それぞれの分布が分かります. 今回は一つの組み合わせについて注目してみましたが,様々な組み合わせについて分析してみましょう.</p>
+<figure>
+<img src="/images/ch16-cross.png" alt="同時度数分布表" />
+<figcaption aria-hidden="true">同時度数分布表</figcaption>
+</figure>
+<h1 data-number="6" id="独立性の検定"><span class="header-section-number">6</span> 独立性の検定</h1>
+<p>同時度数分布表によって,質問項目間の細かな関係性が分析されましたが,実際に2つの変数間に関係があるとは判断できていません. そのような判断のためには,<strong>検定</strong>を行う必要がありますが, 質的データの場合にしばしば用いられるのが,<strong>独立性の検定(Χ二乗検定)</strong>です. 詳細は<a href="slds9.html">数値化の章</a>を参照して下さい.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">#独立性の検定</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>x2, p, dof, e <span class="op">=</span> st.chi2_contingency(crosstab,correction<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(p)</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co"># &gt;&gt;&gt; 2.2871064452593352e-84</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> p <span class="op">&lt;=</span> <span class="fl">0.025</span>:</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">&#39;有意&#39;</span>)</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span>:</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">&#39;有意でない&#39;</span>)</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="co"># &gt;&gt;&gt; 有意</span></span></code></pre></div>
+<h1 data-number="7" id="残渣分析"><span class="header-section-number">7</span> 残渣分析</h1>
+<p>2つの質問項目間に期待値に対する偏りがあることが分かりました. 偏りが確認された場合には, 相関係数の場合と同様に,質問項目のどの回答同士が偏っているのかを把握するためには<strong>残渣分析</strong>が利用できます. 詳細は<a href="slds9.html">数値化の章</a>を参照して下さい.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">#有意であれば,残渣分析を行う</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="co">##期待値表の計算</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>expect <span class="op">=</span> pd.DataFrame(e)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>expect.columns <span class="op">=</span> crosstab.columns</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>expect.index   <span class="op">=</span> crosstab.index</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="co">#残渣の計算</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>residual <span class="op">=</span> crosstab <span class="op">-</span> expect</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="co">#標準化残渣の計算</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>col_sum <span class="op">=</span> crosstab.<span class="bu">sum</span>()</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>row_sum <span class="op">=</span> crosstab.transpose().<span class="bu">sum</span>()</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>total   <span class="op">=</span> col_sum.<span class="bu">sum</span>()</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>stdres  <span class="op">=</span> residual</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> c <span class="kw">in</span> stdres.columns:</span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> r <span class="kw">in</span> stdres.index:</span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>        stdres.at[r,c]    <span class="op">=</span> stdres.at[r,c] <span class="op">\</span></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>                         <span class="op">/</span> np.sqrt( expect.at[r,c]</span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>                                  <span class="op">*</span> (<span class="dv">1</span> <span class="op">-</span> col_sum[c] <span class="op">/</span> total)</span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>                                  <span class="op">*</span> (<span class="dv">1</span> <span class="op">-</span> row_sum[r] <span class="op">/</span> total))</span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a><span class="co">#ヒートマップの作成</span></span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>sns.heatmap(stdres</span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>           ,cmap<span class="op">=</span>plt.get_cmap(<span class="st">&#39;bwr&#39;</span>)</span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>           ,vmax<span class="op">=</span><span class="fl">1.96</span></span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>           ,vmin<span class="op">=-</span><span class="fl">1.96</span></span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>           ,center<span class="op">=</span><span class="dv">0</span></span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a>           ,xticklabels<span class="op">=</span><span class="dv">1</span></span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>           ,linewidths<span class="op">=</span><span class="fl">.5</span></span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>           ,annot<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">&#39;標準化残渣:&#39;</span><span class="op">+</span> target_row <span class="op">+</span> <span class="st">&#39;×&#39;</span> <span class="op">+</span> target_col)</span>
+<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>plt.xticks(rotation<span class="op">=</span><span class="dv">70</span>)</span>
+<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a>plt.savefig(dir_fig <span class="op">+</span> <span class="st">&#39;stdres_&#39;</span> <span class="op">+</span> target_row <span class="op">+</span> <span class="st">&#39;_&#39;</span> <span class="op">+</span> target_col <span class="op">+</span> <span class="st">&#39;.png&#39;</span>)</span>
+<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a>plt.close()</span></code></pre></div>
+<p>作成された標準化残渣を確認すると, 全体的に右肩下がりの偏りがあることが統計的に判断されました.</p>
+<figure>
+<img src="/images/ch16-regit.png" alt="標準化残渣" />
+<figcaption aria-hidden="true">標準化残渣</figcaption>
+</figure>
+<h1 data-number="8" id="次元削減"><span class="header-section-number">8</span> 次元削減</h1>
+<p>これまでは一つ一つの質問項目及び質問項目間の関係に注目してきましたが, いくつかの質問項目をまとめてどのような関係があるのか,あるいは全体の質問をまとめてどのようなことが言えるのかという着眼点もあります.
+そのような場合に使える手法の一つが, <strong>次元削減</strong>です. 次元削減は,多数の変数がある場合にいくつかの変数を要約した一つの<strong>合成変数</strong>を作成する手法になります.</p>
+<p>例えば, 以下のような各科目の成績データを考えた場合に,個別の科目の成績を見ると,国語は高いが,数学は低い人と社会は高いが,英語は低い人のどちらが学力が高いのかというような判断は困難です.</p>
+<table>
+<thead>
+<tr class="header">
+<th>id</th>
+<th>国語 (x₁)</th>
+<th>英語 (x₂)</th>
+<th>社会 (x₃)</th>
+<th>物理 (x₄)</th>
+<th>化学 (x₅)</th>
+<th>数学 (x₆)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td>78</td>
+<td>80</td>
+<td>49</td>
+<td>76</td>
+<td>70</td>
+<td>35</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td>66</td>
+<td>90</td>
+<td>68</td>
+<td>47</td>
+<td>60</td>
+<td>55</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td>55</td>
+<td>89</td>
+<td>90</td>
+<td>88</td>
+<td>82</td>
+<td>78</td>
+</tr>
+<tr class="even">
+<td>…</td>
+<td>…</td>
+<td>…</td>
+<td>…</td>
+<td>…</td>
+<td>…</td>
+<td>…</td>
+</tr>
+</tbody>
+</table>
+<p>そこで, 以下のように文系の科目をまとめた文系力やすべての科目を合成した総合学力のような変数を作成することで全体的な傾向が判断できます.
+<span class="math display">\[
+z_1 = \beta_{11}u_1 + \beta_{12}u_2 + \beta_{13}u_3 + \beta_{14}u_4 + \beta_{15}u_5 + \beta_{16}u_6 \implies 総合学力
+\]</span>
+<span class="math display">\[
+z_2 = \beta_{21}u_1 + \beta_{22}u_2 + \beta_{23}u_3  \implies 文系力
+\]</span>
+<span class="math display">\[
+z_3 =  \beta_{34}u_4 + \beta_{35}u_5 + \beta_{36}u_6 \implies 理系力
+\]</span></p>
+<p>ここで,<span class="math inline">\(u_i\)</span> は <span class="math inline">\(x_i\)</span> を標準化したものです.</p>
+<p>このようにそれぞれの点数をまとめて,要約した変数に変換することで,文系力が高いグループを文系に分類するなど全体的な解釈を行うことが可能になります. 変数の要約は,上の用に回帰式を用いて分析者が独自に設計することも可能ですが, まとめられる以前の情報の情報をできるだけ損なわずに自動的に合成変数を作成する<strong>次元削減</strong>手法を利用することが一般的です.</p>
+<p>次元削減手法にはいくつかありますが,ここでは代表的な手法である<strong>主成分分析(Principle component analysis)</strong>を利用してみましょう.</p>
+<div class="note">
+<ul>
+<li>主成分分析(PCA;Principle component analysis)</li>
+</ul>
+<p>主成分分析は,多数の変数の持つ情報を損なわずに圧縮する技術(次数削減)であり,予測モデル構築の前処理としてもよく使われます.
+主成分分析では,主成分の分散が最大になる軸(主成分)を探しその軸に直行する軸の中で分散が最大になる主成分を順に探していく手法です. 最も分散の大きい主成分を<strong>第1主成分</strong>,次に大きいものを<strong>第2主成分</strong>といい,以下順に数字が増えていきます.</p>
+<p>通常は人間が把握できない多次元(多変数)を要約するために利用されますが,ここでは理解のために,二次元の場合のイメージを考えてみましょう.</p>
+<figure>
+<img src="/images/ch16-pca.png" alt="PCA" />
+<figcaption aria-hidden="true">PCA</figcaption>
+</figure>
+<p>第1主成分を軸としてみると,第2主成分の情報は失われますが,情報の損失が最も少なく2次元から1次元に情報を圧縮できます. これは,<span class="math inline">\([x,y]\)</span>を<span class="math inline">\(\theta\)</span>だけ回転させて,<span class="math inline">\([x,y][cos(\theta),sin(\theta)]^t\)</span>を計算していることになります.</p>
+</div>
+<p>ここでは,アンケートデータの興味に関する質問<code>Q1,Q3,Q5,Q7</code>,自信に関する質問<code>Q2,Q4,Q6,Q8</code>,知識に関する質問<code>Q9~Q17</code>をそれぞれ要約して合成変数を作成してみます.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">#次元削減</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="co">#------------------------------------------------------------------</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="co">#興味,自信,知識を統合して3変数にする</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>interest    <span class="op">=</span> df[[<span class="st">&#39;Q&#39;</span> <span class="op">+</span> <span class="bu">str</span>(x) <span class="op">+</span> <span class="st">&#39;_num&#39;</span> <span class="cf">for</span> x <span class="kw">in</span> [<span class="dv">1</span>,<span class="dv">3</span>,<span class="dv">5</span>,<span class="dv">7</span>]]]</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>confidence  <span class="op">=</span> df[[<span class="st">&#39;Q&#39;</span> <span class="op">+</span> <span class="bu">str</span>(x) <span class="op">+</span> <span class="st">&#39;_num&#39;</span> <span class="cf">for</span> x <span class="kw">in</span> [<span class="dv">2</span>,<span class="dv">4</span>,<span class="dv">6</span>,<span class="dv">8</span>]]]</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>knowledge   <span class="op">=</span>  df[[<span class="st">&#39;Q&#39;</span> <span class="op">+</span> <span class="bu">str</span>(x) <span class="op">+</span> <span class="st">&#39;_num&#39;</span> <span class="cf">for</span> x <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">9</span>,<span class="dv">18</span>,<span class="dv">1</span>)]]</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="co">#普通に平均値を出して,正規化するパターン</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="co">def min_max_scaling(x):</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a><span class="co">    return (x - x.min())/(x.max() - x.min())</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="co">interest = min_max_scaling(interest.mean(axis=1))</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a><span class="co">confidence = min_max_scaling(confidence.mean(axis=1))</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a><span class="co">knowledge = min_max_scaling(knowledge.mean(axis=1))</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a><span class="co">print(interest)</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a><span class="co">#PCAやt-sneでやってみるパターン(ただし,解釈が難しい)</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.decomposition  <span class="im">import</span> PCA</span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>pca <span class="op">=</span> PCA()</span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>pca.fit(interest)</span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>interest <span class="op">=</span> pca.transform(interest)[:,<span class="dv">0</span>]</span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">&#39;interest:&#39;</span>, pca.explained_variance_ratio_[<span class="dv">0</span>])</span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>pca.fit(confidence)</span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>confidence <span class="op">=</span> pca.transform(confidence)[:,<span class="dv">0</span>]</span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">&#39;confidence:&#39;</span>, pca.explained_variance_ratio_[<span class="dv">0</span>])</span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a>pca.fit(knowledge)</span>
+<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a>knowledge <span class="op">=</span> pca.transform(knowledge)[:,<span class="dv">0</span>]</span>
+<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">&#39;knowledge:&#39;</span>, pca.explained_variance_ratio_[<span class="dv">0</span>])</span>
+<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-37"><a href="#cb10-37" aria-hidden="true" tabindex="-1"></a><span class="co">#図示してみる</span></span>
+<span id="cb10-38"><a href="#cb10-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-39"><a href="#cb10-39" aria-hidden="true" tabindex="-1"></a><span class="co">## interest-confidence</span></span>
+<span id="cb10-40"><a href="#cb10-40" aria-hidden="true" tabindex="-1"></a>plt.scatter(y<span class="op">=</span>interest,x<span class="op">=</span>confidence)</span>
+<span id="cb10-41"><a href="#cb10-41" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">&#39;interest-confidence&#39;</span>)</span>
+<span id="cb10-42"><a href="#cb10-42" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">&#39;interest&#39;</span>)</span>
+<span id="cb10-43"><a href="#cb10-43" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">&#39;confidence&#39;</span>)</span>
+<span id="cb10-44"><a href="#cb10-44" aria-hidden="true" tabindex="-1"></a>plt.savefig(dir_fig <span class="op">+</span> <span class="st">&#39;interest-confidence.png&#39;</span>)</span>
+<span id="cb10-45"><a href="#cb10-45" aria-hidden="true" tabindex="-1"></a>plt.close()</span>
+<span id="cb10-46"><a href="#cb10-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-47"><a href="#cb10-47" aria-hidden="true" tabindex="-1"></a><span class="co">## interest-knowledge</span></span>
+<span id="cb10-48"><a href="#cb10-48" aria-hidden="true" tabindex="-1"></a>plt.scatter(y<span class="op">=</span>interest,x<span class="op">=</span>knowledge)</span>
+<span id="cb10-49"><a href="#cb10-49" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">&#39;interest-knowledge&#39;</span>)</span>
+<span id="cb10-50"><a href="#cb10-50" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">&#39;interest&#39;</span>)</span>
+<span id="cb10-51"><a href="#cb10-51" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">&#39;knowledge&#39;</span>)</span>
+<span id="cb10-52"><a href="#cb10-52" aria-hidden="true" tabindex="-1"></a>plt.savefig(dir_fig <span class="op">+</span> <span class="st">&#39;interest-knowledge.png&#39;</span>)</span>
+<span id="cb10-53"><a href="#cb10-53" aria-hidden="true" tabindex="-1"></a>plt.close()</span>
+<span id="cb10-54"><a href="#cb10-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-55"><a href="#cb10-55" aria-hidden="true" tabindex="-1"></a><span class="co">## confidence-knowledge</span></span>
+<span id="cb10-56"><a href="#cb10-56" aria-hidden="true" tabindex="-1"></a>plt.scatter(y<span class="op">=</span>confidence,x<span class="op">=</span>knowledge)</span>
+<span id="cb10-57"><a href="#cb10-57" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">&#39;confidence-knowledge&#39;</span>)</span>
+<span id="cb10-58"><a href="#cb10-58" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">&#39;confidence&#39;</span>)</span>
+<span id="cb10-59"><a href="#cb10-59" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">&#39;knowledge&#39;</span>)</span>
+<span id="cb10-60"><a href="#cb10-60" aria-hidden="true" tabindex="-1"></a>plt.savefig(dir_fig <span class="op">+</span> <span class="st">&#39;confidence-knowledge.png&#39;</span>)</span>
+<span id="cb10-61"><a href="#cb10-61" aria-hidden="true" tabindex="-1"></a>plt.close()</span>
+<span id="cb10-62"><a href="#cb10-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-63"><a href="#cb10-63" aria-hidden="true" tabindex="-1"></a><span class="co">##3変数</span></span>
+<span id="cb10-64"><a href="#cb10-64" aria-hidden="true" tabindex="-1"></a>fig <span class="op">=</span> plt.figure()</span>
+<span id="cb10-65"><a href="#cb10-65" aria-hidden="true" tabindex="-1"></a>ax <span class="op">=</span> fig.add_subplot(projection<span class="op">=</span><span class="st">&#39;3d&#39;</span>)</span>
+<span id="cb10-66"><a href="#cb10-66" aria-hidden="true" tabindex="-1"></a>ax.scatter(interest,confidence,knowledge)</span>
+<span id="cb10-67"><a href="#cb10-67" aria-hidden="true" tabindex="-1"></a>plt.savefig(dir_fig <span class="op">+</span> <span class="st">&#39;pca3d.png&#39;</span>)</span>
+<span id="cb10-68"><a href="#cb10-68" aria-hidden="true" tabindex="-1"></a>plt.close(fig)</span>
+<span id="cb10-69"><a href="#cb10-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-70"><a href="#cb10-70" aria-hidden="true" tabindex="-1"></a><span class="co">#それぞれの相関係数を確認する</span></span>
+<span id="cb10-71"><a href="#cb10-71" aria-hidden="true" tabindex="-1"></a>df[<span class="st">&#39;interest&#39;</span>]      <span class="op">=</span> interest</span>
+<span id="cb10-72"><a href="#cb10-72" aria-hidden="true" tabindex="-1"></a>df[<span class="st">&#39;confidence&#39;</span>]    <span class="op">=</span> confidence</span>
+<span id="cb10-73"><a href="#cb10-73" aria-hidden="true" tabindex="-1"></a>df[<span class="st">&#39;knowledge&#39;</span>]     <span class="op">=</span> knowledge</span>
+<span id="cb10-74"><a href="#cb10-74" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-75"><a href="#cb10-75" aria-hidden="true" tabindex="-1"></a>sns.heatmap(df[[<span class="st">&#39;interest&#39;</span>,<span class="st">&#39;confidence&#39;</span>,<span class="st">&#39;knowledge&#39;</span>]].corr(method<span class="op">=</span><span class="st">&#39;spearman&#39;</span>)</span>
+<span id="cb10-76"><a href="#cb10-76" aria-hidden="true" tabindex="-1"></a>           ,cmap<span class="op">=</span>plt.get_cmap(<span class="st">&#39;bwr&#39;</span>)</span>
+<span id="cb10-77"><a href="#cb10-77" aria-hidden="true" tabindex="-1"></a>           ,vmax<span class="op">=</span><span class="fl">1.0</span></span>
+<span id="cb10-78"><a href="#cb10-78" aria-hidden="true" tabindex="-1"></a>           ,center <span class="op">=</span><span class="dv">0</span></span>
+<span id="cb10-79"><a href="#cb10-79" aria-hidden="true" tabindex="-1"></a>           ,vmin<span class="op">=-</span><span class="fl">1.0</span></span>
+<span id="cb10-80"><a href="#cb10-80" aria-hidden="true" tabindex="-1"></a>           ,xticklabels<span class="op">=</span><span class="dv">1</span></span>
+<span id="cb10-81"><a href="#cb10-81" aria-hidden="true" tabindex="-1"></a>           ,yticklabels<span class="op">=</span><span class="dv">1</span></span>
+<span id="cb10-82"><a href="#cb10-82" aria-hidden="true" tabindex="-1"></a>           ,linewidths<span class="op">=</span><span class="fl">.5</span></span>
+<span id="cb10-83"><a href="#cb10-83" aria-hidden="true" tabindex="-1"></a>           ,annot<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb10-84"><a href="#cb10-84" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-85"><a href="#cb10-85" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">&#39;pca_spearman&#39;</span>)</span>
+<span id="cb10-86"><a href="#cb10-86" aria-hidden="true" tabindex="-1"></a>plt.xticks(rotation<span class="op">=</span><span class="dv">45</span>)</span>
+<span id="cb10-87"><a href="#cb10-87" aria-hidden="true" tabindex="-1"></a>plt.savefig(dir_fig <span class="op">+</span> <span class="st">&#39;pca_spearman.png&#39;</span>)</span>
+<span id="cb10-88"><a href="#cb10-88" aria-hidden="true" tabindex="-1"></a>plt.close()</span>
+<span id="cb10-89"><a href="#cb10-89" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-90"><a href="#cb10-90" aria-hidden="true" tabindex="-1"></a><span class="co">#このあとクラスタリングしてみることで,学生の分類ができるかもしれない</span></span>
+<span id="cb10-91"><a href="#cb10-91" aria-hidden="true" tabindex="-1"></a><span class="co">#(けど今回はやらない)</span></span></code></pre></div>
+<p>PCAによる合成変数の関係を散布図で確認し,それぞれの合成変数間の関係性を見てみることで個別にはわからなかった特徴が見えることがあります. 今回は,これ以上は扱いませんが,可視化によって特徴が見えた場合にはこのあと作成した変数を利用した解析,クラスタリングなどでデータの解釈を進めることになります.</p>
+<figure>
+<img src="/images/ch16-pca-graph.png" alt="次元削減の結果確認" />
+<figcaption aria-hidden="true">次元削減の結果確認</figcaption>
+</figure>
+<figure>
+<img src="/images/ch16-pca-corr.png" alt="合成変数の相関係数" />
+<figcaption aria-hidden="true">合成変数の相関係数</figcaption>
+</figure>
+<h1 data-number="9" id="共分散構造分析"><span class="header-section-number">9</span> 共分散構造分析</h1>
+<p>これまでに残渣分析などで2変数間の関係性を確かめてきました. しかし,アンケート調査のように多数の項目がある場合には, より複雑な多数の変数間の関係性を知りたい場合があります.
+そのような場合に利用できるのが<strong>共分散構造分析(SEM;Covariance Structure Analysis, Structural Equation Modeling）</strong>です.
+SEMは社会科学,心理学,マーケティング,教育研究などの分野でよく用いられる複数の変数間の関係をモデル化し分析する統計的手法です.
+SEMはこれまでの分析手法のように2つのデータの関係を対等に分析するのではなく, 先に理論や仮説に基づいたモデルを構築し,そのモデルの適合性をデータを通じて検証します. したがって,事前にモデルを構築する必要があり,その点が難しいポイントとなります.</p>
+<p>SEMに関して説明する前に,SEMと関連が深い<strong>因子分析</strong>に関して説明しておきます.</p>
+<div class="note">
+<ul>
+<li>因子分析
+観測された複数の変数の背景にある因子を想定して,その因子を明らかにする分析手法を<strong>因子分析</strong>といいます.
+例として,学生別の｢100M走のタイム｣と｢走り幅跳びの飛距離｣は,背景にデータとして観測されていないである｢脚力｣という共通の<strong>潜在変数</strong>を持つと仮定します. その場合に,</li>
+</ul>
+<p><span class="math display">\[脚力=100M + 走り幅跳び + ... \]</span></p>
+<p>のような形で,背景にある因子を説明するのが因子分析です.</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: center;">ID</th>
+<th style="text-align: center;">100M</th>
+<th style="text-align: center;">走り幅跳び</th>
+<th style="text-align: center;">遠投</th>
+<th style="text-align: center;">懸垂</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">14.5</td>
+<td style="text-align: center;">2.2</td>
+<td style="text-align: center;">20</td>
+<td style="text-align: center;">12</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">15.2</td>
+<td style="text-align: center;">1.7</td>
+<td style="text-align: center;">18</td>
+<td style="text-align: center;">7</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">…</td>
+<td style="text-align: center;">…</td>
+<td style="text-align: center;">…</td>
+<td style="text-align: center;">…</td>
+<td style="text-align: center;"></td>
+</tr>
+</tbody>
+</table>
+<p><img src="/images/ch16-sem-1.png" /></p>
+</div>
+<div class="note">
+<ul>
+<li>共分散構造分析</li>
+</ul>
+<p>SEMで適合度を検討するモデルは<strong>構造モデル</strong>と呼ばれます. 構造モデルは,<strong>観測変数(直接測定される変数)</strong>と<strong>潜在変数(直接測定はできないが,観測変数を通じて推定される変数)</strong>によって構成される複数の方程式からなります.</p>
+<p>SEMでは以下のような観測変数と潜在変数からなる回帰モデルによって<strong>因果関係</strong>を表します.</p>
+<p><span class="math display">\[ 体育大学合格率(観測) = 脚力(潜在) + 腕力(潜在) + 筆記テスト成績(観測)  \]</span></p>
+<p>更に, 変数間の双方向の相関関係も同時に検討します.</p>
+<p>まとめると,SEMはモデルを構築するための,回帰分析と因子分析を同時に行う分析手法になります.</p>
+<p>SEMにおける構造モデルは,複数の観測変数からなる潜在変数,観測変数と潜在変数からなる因果関係から構成され,非常に複雑な構造を持ちます. そのようなモデルの全体像を視覚的に把握できるように図にしたものを<strong>パス図</strong>といい,SEMを利用するためにはこの図を最初に仮説として作成する必要があります.</p>
+<p>パス図では,モデル内の変数間の因果関係を矢印として表し, p値と偏回帰係数によってそれぞれの因果関係の検定と影響力が示されます.</p>
+<p><img src="/images/ch16-sem2.png" /></p>
+<p>データによってモデルはその適合性が確認されますが,確認すべき結果は以下の表のようになります.</p>
+<table>
+<colgroup>
+<col style="width: 21%" />
+<col style="width: 56%" />
+<col style="width: 21%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>評価指標</th>
+<th>意味</th>
+<th>目安</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>カイ二乗適合度検定 (Chi-Square Goodness-of-Fit Test)</td>
+<td>モデルによって生成された共分散行列とサンプルデータの共分散行列との誤差を評価</td>
+<td>p値 &lt; 0.05</td>
+</tr>
+<tr class="even">
+<td>ルート平均二乗誤差の近似 (RMSEA: Root Mean Square Error of Approximation)</td>
+<td>一人一人の観測値に対してモデルの適合度がどれだけ良いか</td>
+<td>0.05以下であれば良い 0.05〜0.08であれば許可範囲 0.08〜0.10は許可 それ以上であれば不適切</td>
+</tr>
+<tr class="odd">
+<td>標準化平均二乗残差 (SRMR: Standardized Root Mean Square Residual)</td>
+<td>モデルとデータの間の差異の平均</td>
+<td>SRMR値が0.05以下であれば,モデルの適合度は良い</td>
+</tr>
+<tr class="even">
+<td>比較適合指数 (CFI: Comparative Fit Index)</td>
+<td>モデルの適合度を、無制約のベースラインモデル（すべての観測変数が独立しているモデル）と比較して評価</td>
+<td>CFI値は0.9から1の範囲 0.95以上であれば非常に良い適合度 0.9以上であれば可</td>
+</tr>
+<tr class="odd">
+<td>GFI (Goodness of Fit Index)</td>
+<td>モデルによって再現された共分散および共分散の割合</td>
+<td>GFI値が1から0の範囲、0.95以上であれば非常に良い適合度 0.9以上であれば可</td>
+</tr>
+<tr class="even">
+<td>AGFI (Adjusted Goodness of Fit Index)</td>
+<td>GFIをモデルの複雑さ（モデルに含まれるパラメータの数）で調整したもの</td>
+<td>0.95以上であれば非常に良い適合度 0.9以上であれば可</td>
+</tr>
+<tr class="odd">
+<td>NFI (Normed Fit Index)</td>
+<td>モデルの適合度を独立している無制約の帰無仮説モデル（null model）と比較して評価し,モデルがモデルにどれだけ適合度を示しているかを測定</td>
+<td>0.95以上であれば非常に良い適合度 0.9以上であれば可</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>それでは,アンケートデータを利用してSEMを実際に行ってみましょう. 今回は以下のパス図によって表される図を検証します.</p>
+<p><img src="/images/ch16-sem-4.png" /></p>
+<p>今回はあくまで仮想データを利用した練習なので,このモデルは深く考えられたものではありませんが,実際にSEMを利用する場合には事前に仮説を立てて, アンケートの質問の設計自体を仮説が検証できるような形にしておく必要があります.</p>
+<p>今回は, 潜在因子として, Word,Excel,PowerPointのスキルによって構成される<strong>情報作成志向</strong>,情報倫理,IT用語に関する知識によって構成される<strong>情報探求志向</strong>,SNSやネットのコミュニケーション能力によって構成される<strong>情報消費志向</strong>によって,パソコンとスマートフォンに対する自信が決まるという因果関係を表しています. また,情報作成志向を構成する観測変数は,Office操作技能によって影響を受けるという構造になっています.</p>
+<p>Pythonでは,共分散構造分析用のライブラリ<code>semopy</code>を利用してSEMを実施できます.
+<code>semopy</code>では,モデルを文字列で指定します.</p>
+<p>指定される,潜在変数,因果関係,相関関係は記号を用いてそれぞれ以下のように表現されます.</p>
+<ul>
+<li><strong>潜在因子</strong></li>
+</ul>
+<p><code>潜在変数 =~ 観測変数1 + 観測変数2 + ...</code></p>
+<ul>
+<li><strong>因果関係</strong></li>
+</ul>
+<p><code>目的変数 ~ 説明変数1 + 説明変数2 + ...</code></p>
+<ul>
+<li><strong>相関関係</strong></li>
+</ul>
+<p><code>変数 ~ 変数</code></p>
+<p>それでは,モデルを構築し,実際のデータで検証してみましょう.
+SEMは,回帰分析を行うので回帰係数の解釈のために事前に変数を標準化しておくことを忘れないようにしましょう.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">#共分散構造分析</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co">#------------------------------------------------------------------</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="co">#変数間の因果関係をモデル化する.</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> semopy</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> semopy <span class="im">import</span> Model</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy <span class="im">import</span> stats</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="co">#標準化する</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>df[num_columns] <span class="op">=</span> stats.zscore(df[num_columns])</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a><span class="co">#データ型の変換</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a><span class="co">## すべてfloatでないとだめ.</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>df_sem <span class="op">=</span> df[num_columns].astype(<span class="st">&#39;float64&#39;</span>)</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a><span class="co">#わかりにくいから名前を変える</span></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>df_sem.rename({<span class="st">&#39;Q2_num&#39;</span>:<span class="st">&#39;Smartphone&#39;</span></span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>              ,<span class="st">&#39;Q4_num&#39;</span>:<span class="st">&#39;PC&#39;</span></span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>              ,<span class="st">&#39;Q13_num&#39;</span>:<span class="st">&#39;Word&#39;</span></span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>              ,<span class="st">&#39;Q14_num&#39;</span>:<span class="st">&#39;Excel&#39;</span></span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>              ,<span class="st">&#39;Q15_num&#39;</span>:<span class="st">&#39;PowerPoint&#39;</span></span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>              ,<span class="st">&#39;Q10_num&#39;</span>:<span class="st">&#39;Windows&#39;</span></span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>              ,<span class="st">&#39;Q16_num&#39;</span>:<span class="st">&#39;Office&#39;</span></span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>              ,<span class="st">&#39;Q17_num&#39;</span>:<span class="st">&#39;Info&#39;</span></span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>              ,<span class="st">&#39;Q9_num&#39;</span>:<span class="st">&#39;IT&#39;</span></span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>              ,<span class="st">&#39;Q8_num&#39;</span>:<span class="st">&#39;Communication&#39;</span></span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a>              ,<span class="st">&#39;Q6_num&#39;</span>:<span class="st">&#39;SNS&#39;</span>}</span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a>              ,inplace<span class="op">=</span><span class="va">True</span></span>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a>              ,axis<span class="op">=</span><span class="st">&#39;columns&#39;</span>)</span>
+<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df_sem)</span>
+<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a><span class="co"># 仮説(割と適当です)</span></span>
+<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a><span class="co"># 文字列で指定する</span></span>
+<span id="cb11-34"><a href="#cb11-34" aria-hidden="true" tabindex="-1"></a>desc <span class="op">=</span> <span class="st">&#39;&#39;&#39;</span></span>
+<span id="cb11-35"><a href="#cb11-35" aria-hidden="true" tabindex="-1"></a><span class="st">    # (潜在因子) 潜在変数=~観測変数</span></span>
+<span id="cb11-36"><a href="#cb11-36" aria-hidden="true" tabindex="-1"></a><span class="st">    ##隠れた因子を作成する</span></span>
+<span id="cb11-37"><a href="#cb11-37" aria-hidden="true" tabindex="-1"></a><span class="st">    creation =~ Word + Excel + PowerPoint + Windows</span></span>
+<span id="cb11-38"><a href="#cb11-38" aria-hidden="true" tabindex="-1"></a><span class="st">    knowledge =~ Info + IT</span></span>
+<span id="cb11-39"><a href="#cb11-39" aria-hidden="true" tabindex="-1"></a><span class="st">    consumption =~ Communication + SNS</span></span>
+<span id="cb11-40"><a href="#cb11-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-41"><a href="#cb11-41" aria-hidden="true" tabindex="-1"></a><span class="st">    # (因果関係) 目的変数 ~ 説明変数</span></span>
+<span id="cb11-42"><a href="#cb11-42" aria-hidden="true" tabindex="-1"></a><span class="st">    ## 変数の間の因果関係の仮説(潜在,観測どちらでも)</span></span>
+<span id="cb11-43"><a href="#cb11-43" aria-hidden="true" tabindex="-1"></a><span class="st">    PC ~ creation + knowledge + consumption</span></span>
+<span id="cb11-44"><a href="#cb11-44" aria-hidden="true" tabindex="-1"></a><span class="st">    Smartphone ~ creation + knowledge + consumption</span></span>
+<span id="cb11-45"><a href="#cb11-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-46"><a href="#cb11-46" aria-hidden="true" tabindex="-1"></a><span class="st">    # (相関関係 双方向)</span></span>
+<span id="cb11-47"><a href="#cb11-47" aria-hidden="true" tabindex="-1"></a><span class="st">    ## 向きはどちらでも良い</span></span>
+<span id="cb11-48"><a href="#cb11-48" aria-hidden="true" tabindex="-1"></a><span class="st">    ### 面倒なので1つだけ</span></span>
+<span id="cb11-49"><a href="#cb11-49" aria-hidden="true" tabindex="-1"></a><span class="st">    PC ~~ Smartphone</span></span>
+<span id="cb11-50"><a href="#cb11-50" aria-hidden="true" tabindex="-1"></a><span class="st">    &#39;&#39;&#39;</span></span>
+<span id="cb11-51"><a href="#cb11-51" aria-hidden="true" tabindex="-1"></a><span class="co"># 学習器を用意</span></span>
+<span id="cb11-52"><a href="#cb11-52" aria-hidden="true" tabindex="-1"></a>mod <span class="op">=</span> Model(desc)</span>
+<span id="cb11-53"><a href="#cb11-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-54"><a href="#cb11-54" aria-hidden="true" tabindex="-1"></a><span class="co"># 学習結果をresに代入する</span></span>
+<span id="cb11-55"><a href="#cb11-55" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> mod.fit(df_sem)</span>
+<span id="cb11-56"><a href="#cb11-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-57"><a href="#cb11-57" aria-hidden="true" tabindex="-1"></a><span class="co"># 学習結果のパラメータ一覧を表示する</span></span>
+<span id="cb11-58"><a href="#cb11-58" aria-hidden="true" tabindex="-1"></a><span class="co">#CFI、GFI、AGFI、NFI &gt;= 0.95非常に良い &lt;0.9 悪い</span></span>
+<span id="cb11-59"><a href="#cb11-59" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-60"><a href="#cb11-60" aria-hidden="true" tabindex="-1"></a>inspect <span class="op">=</span> mod.inspect()</span>
+<span id="cb11-61"><a href="#cb11-61" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(inspect)</span>
+<span id="cb11-62"><a href="#cb11-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-63"><a href="#cb11-63" aria-hidden="true" tabindex="-1"></a><span class="co"># モデルの評価指標を表示</span></span>
+<span id="cb11-64"><a href="#cb11-64" aria-hidden="true" tabindex="-1"></a>stats <span class="op">=</span> semopy.calc_stats(mod)</span>
+<span id="cb11-65"><a href="#cb11-65" aria-hidden="true" tabindex="-1"></a><span class="co"># 転置して表示</span></span>
+<span id="cb11-66"><a href="#cb11-66" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(stats.T)</span>
+<span id="cb11-67"><a href="#cb11-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-68"><a href="#cb11-68" aria-hidden="true" tabindex="-1"></a><span class="co">#偏回帰係数(因果の大きさ+p値(0.05以下で有意))</span></span>
+<span id="cb11-69"><a href="#cb11-69" aria-hidden="true" tabindex="-1"></a><span class="co">#plot_covs=True で共分散を表示</span></span>
+<span id="cb11-70"><a href="#cb11-70" aria-hidden="true" tabindex="-1"></a><span class="co">#engine=</span></span>
+<span id="cb11-71"><a href="#cb11-71" aria-hidden="true" tabindex="-1"></a><span class="co">## &#39;circo&#39; 円形</span></span>
+<span id="cb11-72"><a href="#cb11-72" aria-hidden="true" tabindex="-1"></a><span class="co">## &#39;dot&#39; 階層型のグラフ</span></span>
+<span id="cb11-73"><a href="#cb11-73" aria-hidden="true" tabindex="-1"></a>pass_graph <span class="op">=</span> semopy.semplot(mod</span>
+<span id="cb11-74"><a href="#cb11-74" aria-hidden="true" tabindex="-1"></a>                           ,dir_fig <span class="op">+</span> <span class="st">&#39;SEM.png&#39;</span></span>
+<span id="cb11-75"><a href="#cb11-75" aria-hidden="true" tabindex="-1"></a>                           ,plot_covs<span class="op">=</span><span class="va">True</span></span>
+<span id="cb11-76"><a href="#cb11-76" aria-hidden="true" tabindex="-1"></a>                           ,engine<span class="op">=</span><span class="st">&#39;dot&#39;</span>)</span></code></pre></div>
+<p><code>semopy</code>では以下のような形でパス図におけるそれぞれの矢印毎にp値を求めてくれます.</p>
+<p><img src="/images/ch16-sem-5.png" /></p>
+<p>また,パス図として結果を表示してくれる機能もあります.</p>
+<p><img src="/images/ch16-sem6.png" /></p>
+<p>今回は,スマートフォンに関する興味関心から情報作成志向に対するパス以外は有意でした.また,モデル全体を評価する指標も概ね問題なく,データによってモデルの適合性が確認されました.</p>
+]]></description>
+    <pubDate>Sat, 19 Oct 2024 00:00:00 UT</pubDate>
+    <guid>/lectures/slds16.html</guid>
+    <dc:creator>yakagika</dc:creator>
+</item>
+<item>
+    <title>特別講義DS Ch15 自然言語処理</title>
+    <link>/lectures/slds15.html</link>
+    <description><![CDATA[<div class="toc"><div class="header">Table of Contents</div>
+
+</div>
+<p>準備中</p>
+]]></description>
+    <pubDate>Sat, 19 Oct 2024 00:00:00 UT</pubDate>
+    <guid>/lectures/slds15.html</guid>
+    <dc:creator>yakagika</dc:creator>
+</item>
+<item>
     <title>特別講義DS Ch14 画像認識</title>
     <link>/lectures/slds14.html</link>
     <description><![CDATA[<div class="toc"><div class="header">Table of Contents</div>
@@ -270,10 +1077,6 @@
 <span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
 <p>今回は<code>celebrity2000_meta.mat</code>を利用するので必要ありませんが,試しに同じように画像を表示してみましょう.</p>
-<details>
-<summary>
-詳細 開く/閉じる
-</summary>
 <p><code>HDF5</code>は多重の辞書型ような構造をしており,<code>key</code>によってデータにアクセスできます.</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> h5py <span class="co">#HDF5を扱うライブラリ</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> PIL <span class="im">import</span> Image <span class="co">#画像の表示/保存/書き込みなどを扱うライブラリ</span></span>
@@ -337,7 +1140,6 @@
 <span id="cb4-60"><a href="#cb4-60" aria-hidden="true" tabindex="-1"></a>            <span class="bu">print</span>(<span class="ss">f&quot;Image file not found: </span><span class="sc">{</span>img_path<span class="sc">}</span><span class="ss">&quot;</span>)</span>
 <span id="cb4-61"><a href="#cb4-61" aria-hidden="true" tabindex="-1"></a>    <span class="co"># &gt;&gt;&gt; 画像が表示される</span></span></code></pre></div>
 <p>同じ用にデータを抽出できることが確認できます.</p>
-</details>
 </div>
 <p>それでは,<code>celebrity2000_meta.mat</code>から年齢別にフォルダを分けて画像を保存してみます.年齢区分は,<code>10</code>,<code>20</code>,…,<code>100</code>としてみましょう. 画像ファイル名の先頭の数字が年齢を表しているので,そちらを利用しても構いませんが,せっかくなのでメタデータを利用してみましょう. 年齢は<code>image_data[0][0][0]</code>に入っているようです.</p>
 <p>研究であれば画像データの枚数は多いほど良いですが, 今回は一通りの流れを体験してみることが目的なので学生の環境でも利用しやすいように各年代200枚だけコピーします.</p>
@@ -7327,828 +8129,6 @@ PythonではAND は <code>&amp;</code>, OR は <code>|</code>, NOT は <code>not
 ]]></description>
     <pubDate>Fri, 29 Mar 2024 00:00:00 UT</pubDate>
     <guid>/lectures/slds3.html</guid>
-    <dc:creator>yakagika</dc:creator>
-</item>
-<item>
-    <title>特別講義DS Ch2 イントロダクション</title>
-    <link>/lectures/slds2.html</link>
-    <description><![CDATA[<div class="toc"><div class="header">Table of Contents</div>
-<ul>
-<li><a href="#イントロダクション" id="toc-イントロダクション"><span class="toc-section-number">1</span> イントロダクション</a>
-<ul>
-<li><a href="#プログラミング言語の種類" id="toc-プログラミング言語の種類"><span class="toc-section-number">1.1</span> プログラミング言語の種類</a></li>
-<li><a href="#授業準備" id="toc-授業準備"><span class="toc-section-number">1.2</span> 授業準備</a>
-<ul>
-<li><a href="#テキストエディタ" id="toc-テキストエディタ"><span class="toc-section-number">1.2.1</span> テキストエディタ</a></li>
-</ul></li>
-<li><a href="#imeの設定" id="toc-imeの設定"><span class="toc-section-number">1.3</span> IMEの設定</a></li>
-<li><a href="#cliの基本操作" id="toc-cliの基本操作"><span class="toc-section-number">1.4</span> CLIの基本操作</a>
-<ul>
-<li><a href="#エンコーディング" id="toc-エンコーディング"><span class="toc-section-number">1.4.1</span> エンコーディング</a></li>
-<li><a href="#日本語表示" id="toc-日本語表示"><span class="toc-section-number">1.4.2</span> 日本語表示</a></li>
-<li><a href="#ディレクトリ" id="toc-ディレクトリ"><span class="toc-section-number">1.4.3</span> ディレクトリ</a></li>
-</ul></li>
-<li><a href="#基礎的なコマンド" id="toc-基礎的なコマンド"><span class="toc-section-number">1.5</span> 基礎的なコマンド</a></li>
-<li><a href="#環境構築" id="toc-環境構築"><span class="toc-section-number">1.6</span> 環境構築</a></li>
-<li><a href="#hello-world" id="toc-hello-world"><span class="toc-section-number">1.7</span> Hello World</a></li>
-<li><a href="#プログラミングの勉強の仕方" id="toc-プログラミングの勉強の仕方"><span class="toc-section-number">1.8</span> プログラミングの勉強の仕方</a></li>
-</ul></li>
-</ul>
-</div>
-<h1 data-number="1" id="イントロダクション"><span class="header-section-number">1</span> イントロダクション</h1>
-<p>データサイエンスは,データを利用して現象を発見したり,予測をする科学の総称です. データの作成やデータを分析する前の処理,利用するコンピュータ関連の技術なども対象となります.</p>
-<p>データサイエンスと関連の深い分野/用語として統計や機械学習,AIがありますが,それらもデータサイエンスの一部とみなすことができます.</p>
-<p>統計は,データ自体の取得・作成・集計から,データの構造を分かりやすく分析・可視化する学問です.機械学習は,データから予測モデルを作り,意思決定などに応用する学問です. 統計や機械学習・AIは明確に分割することができるものではなく,かなりの部分が共通しています. 特に皆さんがこの講義の先修科目である統計学入門で学んだ,初歩的な統計は,機械学習やAI,データサイエンス全般を学ぶ上で,前提知識となります.この他,どちらかに分類できるわけではない,モデリング,AI,シミュレーション,最適化,次元削減,など様々なトピックが含まれています.</p>
-<figure>
-<img src="/images/data-science-and-components.png" alt="データサイエンス" />
-<figcaption aria-hidden="true">データサイエンス</figcaption>
-</figure>
-<p>この講義では,統計学入門で学んだ,可視化,数値化,検定,回帰などの統計学の手法をPCを使って行う他,統計学入門の範囲を超えたより発展的な手法に関しても学習します.</p>
-<p>しかし,このようにデータサイエンスは非常に広範な学問なので,統計学入門のように個別の手法に関して,細かく理解することはせず,それぞれの概要と利用方に関してのみを扱います.</p>
-<h2 data-number="1.1" id="プログラミング言語の種類"><span class="header-section-number">1.1</span> プログラミング言語の種類</h2>
-<p>データサイエンスは言葉の通り,データを扱います. 現在ではデータは基本的に,電子データとして収集,処理されるため,それらの編集,処理にはコンピュータを利用し,操作は基本的にはプログラムによってなされます. したがってプログラミングは,データサイエンスのための前提知識となります.</p>
-<p>この講義では最終的には,学生それぞれに研究のためのプログラムを組んでもらいます.
-データサイエンスや統計でよく使われる言語は, Python, Julia, R, SPSS, matlab などいくつかありますが, この授業では, 現在世界的に広く使われており,習得も容易なPythonを利用します.</p>
-<p>プログラミング言語には沢山の種類がありますが,言語によって機能や得意なことが異なります.</p>
-<figure>
-<img src="/images/2024-04-08-lecture-DS-languages.png" alt="Langage icons" />
-<figcaption aria-hidden="true">Langage icons</figcaption>
-</figure>
-<p>プログラミング言語は <strong>実行方式</strong>, <strong>書き方</strong>,<strong>検査の仕方</strong>などの特徴がそれぞれ異なり,大まかにはそれぞれ以下のような意味になります.</p>
-<hr />
-<p><strong>実行方式</strong></p>
-<p>プログラミング言語は,人間にとって理解しやすくデータ構造やアルゴリズムを記述するための手段です.しかし,コンピュータはプログラミング言語を直接理解することはできません.そのため,書かれたプログラムはコンピュータが解釈できる形式,すなわち0と1のビット列である機械語に翻訳される必要があります.この翻訳プロセスは,プログラムの実行方式を以下の二つに分ける要因となります.</p>
-<div class="note">
-<ul>
-<li>インタプリタ方式</li>
-</ul>
-<p>インタプリタ方式では,プログラムは逐次的に機械語に翻訳されながら実行されます.この方式の特徴は,コンパイルする必要がないため,翻訳と実行が同時に行われる点です.これにより,プログラムの変更がすぐに反映されるため,開発中のテストやデバッグが容易になります.しかし,実行のたびに翻訳を行う必要があるため,実行速度が遅くなることが欠点です.</p>
-</div>
-<div class="note">
-<ul>
-<li>コンパイラ方式</li>
-</ul>
-<p>コンパイラ方式では,プログラム全体が事前に機械語に翻訳され,その結果として得られる実行可能なプログラムが生成されます.コンパイラ方式の利点は,一度コンパイルされたプログラムは,何度も実行される際に追加の翻訳が不要であるため,実行速度が速いことです.また,コンパイル時にプログラム全体を分析できるため,エラーやバグの発見が早期に行え,より安全性が高まるという利点があります.</p>
-</div>
-<p>この二つの実行方式は,プログラムの性質や用途に応じて選択されます.インタプリタ方式は開発の柔軟性が求められる場合に適しており,コンパイラ方式は性能が重視される場合に好まれます.プログラマはこれらの特性を理解し,それぞれの場面で最適な選択をすることが求められます.</p>
-<hr />
-<p><strong>書き方</strong></p>
-<p>プログラミングとは,基本的にコンピュータに対して実行してほしい命令を記述する作業です.現在主流のプログラミング言語には,大まかに<strong>手続き型言語</strong>と<strong>関数型言語</strong>の二つの記述方法が存在します.</p>
-<div class="note">
-<ul>
-<li>手続き型言語</li>
-</ul>
-<p>この言語タイプでは,プログラムが｢何を,どうするか｣を順番に記述していきます. Python,Java,VBAなど多くの広く使われている言語がこの方法を採用しています. これにより,処理の流れが直観的に理解しやすくなります.</p>
-</div>
-<div class="note">
-<ul>
-<li>関数型言語</li>
-</ul>
-<p>関数型言語では,プログラムを実行によってユーザーが得たい結果を抽象化し,関数の組み合わせで記述します.このアプローチは,安全性の向上やデバッグのしやすさといったメリットを提供しますが. 概念の抽象化により理解が難しくなることがあります.</p>
-</div>
-<p>近年では,手続き型言語にも関数型の構文が取り入れられるようになり,手続き型言語内で関数型風に記述することや,その逆も可能になっています.</p>
-<p>これらの違いについて更に詳しく知りたい方は,別の<a href="/lectures/2024-03-29-introduction-to-algebraic-programing.html">講義資料</a>で更に詳しく説明しています.</p>
-<hr />
-<p><strong>検査の仕方</strong></p>
-<p>プログラミングは,データ構造とアルゴリズムを使用して命令を記述する作業です.ここではデータ型の詳細に深くは触れませんが,あらゆるプログラミング言語において,データはコンピュータのメモリ上に数値の羅列として存在します.それらの数値に意味を与えることでデータ型が形成されます.</p>
-<p>プログラムは実行時に,これらのデータ型が適切に使用されているかを検査します.主な検査方法には<strong>動的型付け</strong>と<strong>静的型付け</strong>があります.動的型付けでは,プログラムの実行時にデータ型が決定され,静的型付けではコンパイル時にデータ型が固定されます.さらに,型付けには「弱い型付け」と「強い型付け」という区別も存在しますが,この講義ではその詳細には触れません.興味のある方は,このトピックについてさらに調査してみてください.</p>
-<div class="note">
-<ul>
-<li>動的型付け
-動的型付けのシステムでは,プログラマが変数の型を明示的に宣言する必要がありません.代わりに,コンピュータはプログラムの実行時に型を推論し,適切な型を自動で割り当てます.この柔軟性により,プログラマはより迅速に開発を進めることが可能になります.一方で,このシステムではコンパイル時の型チェックが行われないため,実行時に型関連のエラーが発生するリスクが高まります.そのため,安全性を確保するためには,プログラマ自身が型の整合性に注意を払い,エラー処理やテストにより問題を検出する必要があります.</li>
-</ul>
-</div>
-<div class="note">
-<ul>
-<li>静的型付け</li>
-</ul>
-<p>静的型付けでは,プログラマが変数や関数の型をコード内で明示的に宣言し,これらはコンパイル時にチェックされます.この事前の型チェックにより,プログラムの安全性が向上し,実行時のエラーが減少します.また,コンパイラが型情報を利用して効率的なコード生成を行い,パフォーマンスが向上することがあります.静的型付けは特に,大規模プロジェクトや高い信頼性が求められる場合に適しています.</p>
-</div>
-<hr />
-<p>プログラミング言語は,このような区分や,それ以外の様々な機能によって,用途の向き不向きが決まります(大雑把な目安です).</p>
-<figure>
-<img src="/images/2024-04-08-language-and-purpose.png" alt="Languages and usages" />
-<figcaption aria-hidden="true">Languages and usages</figcaption>
-</figure>
-<p>ではこれらの特徴を踏まえて,Pythonとはどのような言語なのかを見てみましょう.</p>
-<div class="note">
-<p>Pythonは</p>
-<pre><code>- インタプリタ型言語で
-    - 機械語に翻訳しながら動く
-    - 手軽に書けて手軽に試せる
-    - でも少し安全性が低く,遅い
-
-- 手続き型言語で
-    - 次に何をするかを順番に書く
-    - (ただし関数型っぽい書き方もできる)
-
-- 動的型付け言語で
-    - 型検査を動かしながら実施
-    - 動かしてから型が違うと失敗する</code></pre>
-</div>
-<p>これらは,プログラミング言語の大きな分類からみたPythonですが, Python固有の特徴として以下のようなものがあります.</p>
-<div class="note">
-<pre><code>- とにかく読みやすく書きやすく覚えやすい
-    - ABC言語という教育用言語が元になっている
-        - 予約語が少ない,      → 覚えることが少ない
-        - インデントでかき分け → 間違いが少ない
-        - だれが書いても同じになる(と言われてはいる)
-
-- ライブラリが豊富
-    - 統計処理を全部0から自分で書くのは大変
-    - 他の人が作ったものを使えるようにするのがライブラリ
-    - 様々な大学や企業,研究者が膨大な量の統計処理,機械学習ライブラリを開発している
-
-- 遅いけど,Cなどと連携しやすい.
-    - プログラミング言語ごとに速度は異なる.
-    - Pythonは結構遅いので大きな計算に時間がかかる.
-        - とても早い言語で遅い部分を書き換えやすい
-        - ライブラリは基本的に早くなっている</code></pre>
-</div>
-<p>Pythonが教育用に良く使われるのは, インタプリタ方式の動的型付け言語であることから手軽に書けるだけではなく,もともと言語として簡単に書けるように作られていることが大きいです.</p>
-<p>また, 統計,データサイエンス分野のライブラリが充実しており, これによって誰でも簡単に複雑な統計処理やデータサイエンスの技法が利用できることで,Pythonが広く普及しています.</p>
-<p>簡単 → 教育用に → 多くの人が使う → ライブラリが充実 → もっと多くの人が使う</p>
-<p>という流れがPythonの最大の強みと言えるでしょう.</p>
-<p>実際にPythonはユーザー数が増え続けており,プログラムの共有サイトGitHubにおける2023年のすべての言語のなかで2番目にユーザ数が多い言語となっています.
-<a href="https://github.blog/2023-11-08-the-state-of-open-source-and-ai/">Top 10 Programming languages on GitHub</a></p>
-<figure>
-<img src="/images/top-programming-languages-2023.png" alt="Top 10 Programming languages on GitHub" />
-<figcaption aria-hidden="true">Top 10 Programming languages on GitHub</figcaption>
-</figure>
-<h2 data-number="1.2" id="授業準備"><span class="header-section-number">1.2</span> 授業準備</h2>
-<p>この講義では,プログラムを自分で作成し,様々な演習をこなしてもらいますが,その前段階として,いくつかの準備が必要となります. このあたりはこの科目の先修科目の統計学入門でも扱っていますが,履修していない人もいますので,順番にやっていきましょう. 非常に基礎的な内容なので, 問題のない人は飛ばしましょう.</p>
-<h3 data-number="1.2.1" id="テキストエディタ"><span class="header-section-number">1.2.1</span> テキストエディタ</h3>
-<p>テキストエディタとは,プログラムを書くためのソフトウェアです.
-プログラムを書くことをコーディング(Coding)といいます.</p>
-<p>テキストエディタには沢山の種類があり,それぞれ独自の機能を持っています.
-Windwosに最初から入っている｢メモ帳｣もテキストエディタですが,プログラムを書くために様々な機能が追加された高機能なテキストエディタも沢山あります.</p>
-<p>例えば,シンタックスハイライト機能は,以下のプログラムのように,プログラムの記述を役割や意味に応じて色付けして見やすくしてくれます.</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">## シンタックスハイライト</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> datetime <span class="im">import</span> datetime</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> greet_based_on_time():</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    now <span class="op">=</span> datetime.now()</span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    current_hour <span class="op">=</span> now.hour</span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="dv">5</span> <span class="op">&lt;=</span> current_hour <span class="op">&lt;</span> <span class="dv">12</span>:</span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>        greeting <span class="op">=</span> <span class="st">&quot;Good morning, world!&quot;</span></span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> <span class="dv">12</span> <span class="op">&lt;=</span> current_hour <span class="op">&lt;</span> <span class="dv">18</span>:</span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>        greeting <span class="op">=</span> <span class="st">&quot;Good afternoon, world!&quot;</span></span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>        greeting <span class="op">=</span> <span class="st">&quot;Good night, world!&quot;</span></span>
-<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> greeting</span>
-<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a><span class="co"># 関数を呼び出して結果を表示</span></span>
-<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(greet_based_on_time())</span></code></pre></div>
-<p>また,スペースをタブに変換するなどの機能も非常に便利です. 最近では生成AIを利用した自動補完機能がついたエディタなどもありますが,本講義における生成AIの利用に関しては第2回でコードを書き始めた際に説明します.</p>
-<p>今までメモ帳以外のテキストエディタを利用したことが無い方には,シンプルなSublime Text 3をおすすめします(今世界的に人気があるのは VSCodeです.非常に便利ですが機能が多すぎて皆さんが混乱する可能性があるので,こちらを選びました).</p>
-<p>既に何かしらのテキストエディタを利用している方は,現在使用しているエディタをそのまま利用して頂いても構いません.</p>
-<p><a href="https://www.sublimetext.com/3">このURL</a>をクリックして,ページ上部にあるDownloadをクリックします. 自分のPCに合わせたインストール方法を選択しましょう.</p>
-<figure>
-<img src="/images/2024-04-08-lecture-DS-sublime-install.png" alt="Screenshot Sublime Text" />
-<figcaption aria-hidden="true">Screenshot Sublime Text</figcaption>
-</figure>
-<div class="warn">
-<p>SublimeTextもいろいろな機能を追加することができます.
-｢SublimeText 設定｣などで調べて,好きなようにカスタマイズして構い舞いません.
-カスタマイズをしなくても基本的な機能には問題ありません.</p>
-</div>
-<h2 data-number="1.3" id="imeの設定"><span class="header-section-number">1.3</span> IMEの設定</h2>
-<p>プログラムは基本的に <strong>｢半角英数字｣</strong> で記述されます. プログラム中に全角の空白や記号が交じるとエラーの原因となる場合があります. そのため,プログラムを書く前に,そういったミスが起きないようにIMEの設定をしましょう.</p>
-<p>タスクトレーからIMEの設定ができます．基本的に記号をすべて半角に設定しましょう（スペースは必ず半角にしましょう）．特に，句読点をコンマとピリオドに変更しましょう．</p>
-<figure>
-<img src="/images/2024-04-08-lecture-DS-IME.png" alt="IME" />
-<figcaption aria-hidden="true">IME</figcaption>
-</figure>
-<h2 data-number="1.4" id="cliの基本操作"><span class="header-section-number">1.4</span> CLIの基本操作</h2>
-<p>プログラムの開発環境にはマウスなどでクリックして操作するGUI(Graphical User Interface)をもったIDE(Integrated Development Environment)などもありますが,基本的には文字によってコンピュータに命令を送るCLI(Command Line Interface)を利用します. 映画やマンガなどで,ハッカーが黒い画面に文字を打っているあれのことです.</p>
-<p>コンピュータのオペレーティングシステムとユーザー間のCLIを提供するプログラムをShellといい,Windowsでは,Command PromptやPowerShellなどがあります. MacなどのUnix系では,Bashやzshがあります. いずれも (Windows) Terminalというソフトウェアを介して利用します.</p>
-<p>本講義では環境や好みによって好きな環境で開発して構いませんが,ここでは,PowerShellの利用法を解説します.</p>
-<p>Windows11の検索バーで <code>Terminal</code>と検索して,出てきた <code>Terminal</code>をクリックしましょう.</p>
-<figure>
-<img src="/images/Terminal-launch.png" alt="Screenshot Terminal" />
-<figcaption aria-hidden="true">Screenshot Terminal</figcaption>
-</figure>
-<p>自動的に<code>Windows PowerShell</code>が起動します. 立ち上がった,黒色の画面に文字でコマンド(命令)を入力して,コンピュータを操作します.</p>
-<figure>
-<img src="/images/Terminal-window.png" alt="Screenshot Terminal" />
-<figcaption aria-hidden="true">Screenshot Terminal</figcaption>
-</figure>
-<h3 data-number="1.4.1" id="エンコーディング"><span class="header-section-number">1.4.1</span> エンコーディング</h3>
-<p>実際にコマンドを入力する前に, 初心者がつまづきやすいポイントとして,Windowsのエンコーディングについて解説します.</p>
-<p>PCは人間の使う文字（日本語，英語など）が理解できません.PCは機械語と呼ばれる言語で命令を受け付けます.一方で,人間は機械語を読むのが困難です.そこで,人間の使う文字と,機械語の間に変換ルールを設けて人間の文字でされた命令をPCにわかる文字に変換します.この変換ルールを文字エンコーディングと呼びます.</p>
-<p>エンコーディングには複数の種類があります(日本語設定のWindowsはShift-JIS,Unix系はUnicodeが一般的です).
-PythonはUTF-8という文字エンコーディングがデフォルトなので,Windowsにおいても可能な限りUTF-8を用いた方が良いです.</p>
-<p>そこで,ターミナル上で利用するエンコーディングを変更します.
-PowerShellを起動して, <code>chcp 65001</code> と打ち込み, PowerShell上で利用する文字エンコーディングをUTF-8に変更しましょう. <code>chcp</code>が利用する文字コードを変更するコマンド(change code page)で,その後に変更したい文字コードを入力します. <code>65001</code>は<code>UTF-8</code>のコードページ(Windows独自の文字エンコーディング)です. これはPowerShellを起動する度に行ってください．</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">chcp</span> 65001</span></code></pre></div>
-<p>と入力すると,</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">Active</span> code page: 65001</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="ex">PS</span> C:<span class="dt">\U</span>sers<span class="dt">\u</span>ser<span class="op">&gt;</span></span></code></pre></div>
-<p>のように表示されるはずです.</p>
-<h3 data-number="1.4.2" id="日本語表示"><span class="header-section-number">1.4.2</span> 日本語表示</h3>
-<p>Power Shellの設定によっては日本語が表示されず,日本語部分が <code>□</code> で置き換えられて表示されます.これは,使用しているフォントに日本語が含まれていないために発生します.</p>
-<figure>
-<img src="/images/powershell-tofu.png" alt="Screenshot PowerShell" />
-<figcaption aria-hidden="true">Screenshot PowerShell</figcaption>
-</figure>
-<p>設定を変更してて日本語を表示可能にしましょう(
-適当な日本語を入力してみて,問題なく表示されるようであれば,変更は必要ありません).</p>
-<p>左上の<code>下向きの矢印 &gt; 既定値 &gt; 外観 &gt; フォントフェイス</code>の部分を日本語フォントに変更し<code>保存</code>をクリックすることで,日本語が表示されるようになります.</p>
-<figure>
-<img src="/images/Terminal-setting1.png" alt="Screenshot Terminal" />
-<figcaption aria-hidden="true">Screenshot Terminal</figcaption>
-</figure>
-<figure>
-<img src="/images/Terminal-setting2.png" alt="Screenshot Terminal" />
-<figcaption aria-hidden="true">Screenshot Terminal</figcaption>
-</figure>
-<figure>
-<img src="/images/Terminal-setting3.png" alt="Screenshot Terminal" />
-<figcaption aria-hidden="true">Screenshot Terminal</figcaption>
-</figure>
-<p>その他色やサイズなど,好きな設定に変更できます. あとで,好みにカスタマイズしましょう.</p>
-<h3 data-number="1.4.3" id="ディレクトリ"><span class="header-section-number">1.4.3</span> ディレクトリ</h3>
-<p>基礎的なコマンドを学ぶ前に,ディレクトリに関して理解しておきましょう.
-コンピュータの中のデータは,以下のような木構造になっています. このような木構造によるファイルの構造をディレクトリといいます.</p>
-<pre><code>C: -- Users -- hoge
-          |
-            -- hoge2 -- Desktop
-                   |
-                     -- Downloads
-                   |
-                     -- Documents -- huga
-                                |
-                                  -- huga2</code></pre>
-<p>CLIにおいて,ユーザはこの木構造のどこかに存在しており,この木構造を移動しながら様々な作業を行います. 現在いるディレクトリのことを <code>working directory</code>(以下wd)や<code>current directory</code>といいます.</p>
-<h2 data-number="1.5" id="基礎的なコマンド"><span class="header-section-number">1.5</span> 基礎的なコマンド</h2>
-<p>ここでは, この講義で必要となる最低限のコマンド,特にディレクトリの移動に関するコマンドを学習します.</p>
-<p>wdは, CLIの左側に表示されていることが多いです.</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">PS</span> C:/Users/hoge2<span class="op">&gt;</span></span></code></pre></div>
-<p>のように表示されていれば今<code>C:</code>ドライブ下の<code>Users</code>下の<code>hoge2</code>がwdとなります.</p>
-<div class="warn">
-<ul>
-<li><p>Windowsでは,ディレクトリを区切る文字が<code>¥</code>あるいは<code>\</code>で表示されていると思います.</p></li>
-<li><p>Macでは,<code>/</code>です.</p></li>
-</ul>
-<p>本資料では,<code>/</code>を利用しています. 自分の環境に併せて適宜読み替えてください.</p>
-</div>
-<p>CLIの左側に表示されていない場合にも<code>pwd</code>コマンド (print working directory)を入力すると,現在のディレクトリが表示されます.</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">PS</span> C:/Users/hoge2<span class="op">&gt;</span> pwd</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="ex">PATH</span></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="ex">----</span></span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="ex">C:/Users/hoge2</span></span></code></pre></div>
-<p>wdの下に何があるかを調べるコマンドとして<code>ls</code>コマンド(list)があります.</p>
-<div class="warn">
-<p>以下, <code>PS C:\Users\hoge2</code>の部分は省略します.</p>
-</div>
-<div class="sourceCode" id="cb9"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> ls</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="ex">Desktop</span></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="ex">Downloads</span></span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="ex">Documents</span></span></code></pre></div>
-<p>※実際の画面では,もう少しいろいろな情報が書かれているかと思います.</p>
-<p>ディレクトリ構造を確認するCommandとして<code>tree</code>があります. <code>tree</code>と入力してEnterすることで,wd以下のディレクトリ構成が確認できます.</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> tree</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="ex">Folder</span> PATH listing</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="ex">Volume</span> serial number is 00000157 B8F4:6480</span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="ex">C:.</span></span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="ex">├───Contacts</span></span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="ex">├───Desktop</span></span>
-<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="ex">├───Documents</span></span>
-<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="ex">│</span>   ├───hoge</span>
-<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="ex">│</span>   └───slds</span>
-<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="ex">│</span>       └───program</span>
-<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="ex">├───Downloads</span></span></code></pre></div>
-<p><code>tree [PAHT]</code>と入力すると, wdではなく指定した<code>[PATH]</code>以下のディレクトリ構造が表示されます.
-また, <code>/f</code> オプションを加えることでファイルも表示されます.</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> tree <span class="bu">.</span><span class="dt">\D</span>ocuments\ /f</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="ex">Folder</span> PATH listing</span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="ex">Volume</span> serial number is 000001D1 B8F4:6480</span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="ex">C:\USERS\AKAGI\DOCUMENTS</span></span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="ex">├───hoge</span></span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="ex">│</span>       hello.py</span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="ex">│</span>       slds-2-10.py</span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="ex">│</span></span>
-<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="ex">└───slds</span></span>
-<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>    <span class="ex">└───program</span></span>
-<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>            <span class="ex">hello.py</span></span></code></pre></div>
-<div class="warn">
-<p>Macの場合は,<code>tree</code>コマンドは入っていないので,<code>brew</code>などを利用してインストールする必要があります.
-<code>brew</code>に関しては自分で調べてみましょう.</p>
-<p>また,オプションもWindowsとは異なっています.</p>
-<table>
-<thead>
-<tr class="header">
-<th style="text-align: center;">コマンド</th>
-<th style="text-align: center;">意味</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: center;">-d</td>
-<td style="text-align: center;">ディレクトリのみ表示</td>
-</tr>
-<tr class="even">
-<td style="text-align: center;">-L N</td>
-<td style="text-align: center;">N 階層まで表示</td>
-</tr>
-<tr class="odd">
-<td style="text-align: center;">-P X</td>
-<td style="text-align: center;">正規表現Xに従って表示</td>
-</tr>
-</tbody>
-</table>
-<div class="sourceCode" id="cb12"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> tree</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="bu">.</span></span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="ex">├──</span> hoge</span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="ex">│</span>      └── hoge.py</span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="ex">└──</span> huga</span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>        <span class="ex">└──</span> huga.py</span>
-<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="ex">3</span> directories, 2 files</span>
-<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> tree <span class="ex">-d</span></span>
-<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="bu">.</span></span>
-<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a><span class="ex">├──</span> hoge</span>
-<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a><span class="ex">└──</span> huga</span>
-<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a><span class="ex">3</span> directories</span>
-<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> tree <span class="ex">-L</span> 1</span>
-<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a><span class="bu">.</span></span>
-<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a><span class="ex">├──</span> hoge</span>
-<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a><span class="ex">└──</span> huga</span>
-<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a><span class="ex">3</span> directories, 0 files</span>
-<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> tree <span class="ex">-P</span> <span class="st">&quot;hoge*&quot;</span></span>
-<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a><span class="bu">.</span></span>
-<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a><span class="ex">├──</span> hoge</span>
-<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a><span class="ex">│</span>     └── hoge.py</span>
-<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a><span class="ex">└──</span> huga</span></code></pre></div>
-</div>
-<p>wdから別のディレクトリに移動するコマンドとして <code>cd</code> コマンド(change directory)があります</p>
-<p><code>cd [移動先]</code> と打つことで,lsコマンドで出てきた,ディレクトリに移動することができます.</p>
-<div class="sourceCode" id="cb13"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> ls</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="ex">Desktop</span></span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="ex">Downloads</span></span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="ex">Documents</span></span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> cd <span class="ex">Documents</span></span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> pwd</span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="ex">PS</span> C:/Users/hoge2/Documents</span></code></pre></div>
-<div class="warn">
-<p>移動先のディレクトリ名はすべて自分で入力する必要はありません. 最初の数文字を入力して<code>Tab</code> Keyを押すと,自動で保管してくれます.</p>
-</div>
-<p><code>cd ..</code> と打つと一つ前のディレクトリ,<code>cd ~</code>と打つとホームディレクトリ(基本的には最初に開いた際にいた場所)に一挙に移動することができます.</p>
-<div class="sourceCode" id="cb14"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> pwd</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="ex">PS</span> C:/Users/hoge2/Documents</span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> cd <span class="ex">..</span></span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> pwd</span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="ex">PS</span> C:/Users/hoge2</span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> cd <span class="ex">Documents/huga</span></span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> pwd</span>
-<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="ex">PS</span> C:/Users/hoge2/huga</span>
-<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> cd <span class="ex">~</span></span>
-<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> pwd</span>
-<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a><span class="ex">PS</span> C:/Users/hoge2</span></code></pre></div>
-<p><code>mkdir [作りたいディレクトリ名]</code> コマンド(make directory)で,新しいディレクトリを作成できます.</p>
-<p><code>rmdir [消したいディレクトリ名]</code> コマンド(remove directory)で,ディレクトリを消すことができます.</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> pwd</span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="ex">PS</span> C:/Users/hoge2</span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> ls</span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="ex">Desktop</span></span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="ex">Downloads</span></span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="ex">Documents</span></span>
-<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> cd <span class="ex">Documents</span></span>
-<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> ls</span>
-<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a><span class="ex">huga</span></span>
-<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a><span class="ex">huga2</span></span>
-<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> mkdir <span class="ex">huga3</span></span>
-<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> ls</span>
-<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a><span class="ex">huga</span></span>
-<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a><span class="ex">huga2</span></span>
-<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a><span class="ex">huga3</span></span>
-<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> rmdir <span class="ex">huga3</span></span>
-<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> ls</span>
-<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a><span class="ex">huga</span></span>
-<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a><span class="ex">huga2</span></span></code></pre></div>
-<p><code>rmdir</code> コマンドでは中身のあるディレクトリは消せません. オプションを追加することで消せますが,危険なのでここでは教えません.興味があったら自分で調べてみましょう.</p>
-<div class="note">
-<p><strong>練習:作業用ディレクトリを作ろう</strong></p>
-<ul>
-<li><p>これから,作業をするためのディレクトリをコマンドで作成しましょう.</p>
-<ul>
-<li>Documentsに移動</li>
-<li>Programs というディレクトリを作成し移動</li>
-<li>Python というディレクトリを作成し移動</li>
-<li>slds というディレクトリを作成し移動
-(名前は好きに設定して良いです. slds; special lecture data science)</li>
-</ul></li>
-</ul>
-<p>これからこの講義で利用するプログラムなどはsldsに保存しましょう.</p>
-</div>
-<h2 data-number="1.6" id="環境構築"><span class="header-section-number">1.6</span> 環境構築</h2>
-<p>自身の環境(PC)でプログラムが動くようにすることを環境構築といいます. Python自分のPCで動くように設定をしましょう.</p>
-<p>Pythonの環境構築に関して説明します.Pythonを動かす方法は沢山あります.一つのソフトの中でプログラムの編集から実行まで全て完結するIDE(統合開発環境)やブラウザ上で実行する方法もありますが,ここではCLIを利用して実行する方法を準備します.Windowsを所有している学生が多いと思われるので,Windowsを前提に説明します. それ以外のOSの方は分からなければ教員に聞いて下さい.</p>
-<div class="note">
-<ul>
-<li>pythonの環境</li>
-</ul>
-<p>現在のPythonの開発環境は, <a href="https://github.com/pyenv/pyenv"><code>pyenv</code></a>や<a href="https://www.docker.com"><code>Docker</code></a>を利用した仮想環境でpythonのversionやライブラリをアプリケーションごとに分ける方法が主流です.</p>
-<p>ただし,本資料では複数のアプリケーションを設定すると手順が煩雑になり,環境変数の設定など作業量が多くなるため扱いません.興味がある方は,調べて自分で導入してみましょう.</p>
-<p>特にMacユーザーは,以下の手順で公式サイトのインストーラーを利用した場合,新しいversionのpythonを導入する際に苦労することになるかと思います. もし,自分で環境を再構築して上手く以下なかった場合は,教員に聞いてみましょう.</p>
-</div>
-<p>Pythonの<a href="https://www.python.org/downloads/windows/">公式サイト</a>からPythonをダウンロードしましょう.</p>
-<p>Windows → 最新の一つ前のバージョンの Windows installer (64-bit) をクリック</p>
-<p>最新版を入れたいところですが,最新のVersionは色々と不具合が起きる可能性があるので,上から1つ目のVersionにしておきましょう.ここでは最新が3.12.2なので,3.11台のバージョンを入れます.(バージョンの数字は,サイトを開いた時期によって変わります.)</p>
-<figure>
-<img src="/images/python-download.png" alt="Download Python" />
-<figcaption aria-hidden="true">Download Python</figcaption>
-</figure>
-<p>ダウンロードした Python-3.11.8.exeをクリックするとウィンドウが開きます. 指示に従ってインストールしましょう．</p>
-<div class="warn">
-<p>注意点</p>
-<p>開いたWindowで</p>
-<ul>
-<li><p><code>Insatall launcher for all users(recommended)</code></p></li>
-<li><p><code>Add Python 11.8 to PATH</code></p></li>
-</ul>
-<p>というチェックボックスが出てきたら,それらにチェックを入れてから次に進みましょう.</p>
-<p>この画面もVersionなどによって変わるため,分からなければ教員に聞いて下さい.</p>
-<figure>
-<img src="/images/install-python.png" alt="Install Python" />
-<figcaption aria-hidden="true">Install Python</figcaption>
-</figure>
-</div>
-<p>インストールが終わったら <strong>新しくPowerShellを開いて</strong> <code>python --version</code> と入力しましょう.
-<strong>Macの人は</strong> <code>python3 --version</code> とコマンドが変わりますので注意してください. Macの人は以降,<code>python</code> コマンドはすべて <code>python3</code> コマンドに読み替えてください.</p>
-<p>install したversionのPythonが表示されれば無事インストールされています.</p>
-<div class="sourceCode" id="cb16"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> python <span class="ex">--version</span></span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="ex">Python</span> 3.11.8</span></code></pre></div>
-<h2 data-number="1.7" id="hello-world"><span class="header-section-number">1.7</span> Hello World</h2>
-<p>初めて作成するプログラムとして標準出力(PowerShellなどの画面)に<code>Hello World</code>と出力するだけのプログラムを作成してみます.</p>
-<p><code>PowerShell</code>を開いて,自分の作業用ディレクトリに移動します.</p>
-<div class="sourceCode" id="cb17"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> chcp <span class="ex">65001</span></span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> cd <span class="ex">Documents/Programs/Python/slds</span></span></code></pre></div>
-<p>テキストエディタで新しいファイルを開き,<strong>作業用ディレクトリ</strong>に<code>hello.py</code>という名前で保存しましょう.</p>
-<p><code>.py</code>はPythonプログラムの拡張子です.</p>
-<p>保存は,タブから<code>File &gt; save with encoding &gt; UTF-8</code>の順にクリックし<code>UTF-8</code>で保存しましょう.
-それ以降は <code>Ctrl + s</code>などで上書き保存しても構いません.</p>
-<p>作成したディレクトリに移動し, lsコマンドでファイルがあるか確認しましょう.
-ょう.</p>
-<div class="sourceCode" id="cb18"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> ls</span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="ex">hello.py</span></span></code></pre></div>
-<p>確認できたらhello.pyに以下の2行を書き足して上書き保存します.</p>
-<div class="sourceCode" id="cb19"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># -*- coding:utf-8 -*-</span></span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(“Hello world<span class="op">!</span>”)</span></code></pre></div>
-<p>保存できたら<code>python hello.py</code>コマンドでプログラムを実行します.
-(Macの人は <code>python3 hello.py</code>です.)</p>
-<p>標準出力に<code>Hello World!</code>と表示されれば成功です.</p>
-<div class="sourceCode" id="cb20"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> python <span class="ex">hello.py</span></span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="ex">Hello</span> World!</span></code></pre></div>
-<p>ここまでで，皆さんはPCでプログラムを書く準備が整いました．
-あとはプログラムの書き方を学習すれば自身の環境で開発が行なえます．</p>
-<h2 data-number="1.8" id="プログラミングの勉強の仕方"><span class="header-section-number">1.8</span> プログラミングの勉強の仕方</h2>
-<p>プログラミング言語は,文字通り<strong>言語</strong>です. 英語などと同じ様に,使わないと身につきません.なので,大事なことは<strong>勉強するより使う</strong>ことです.</p>
-<p>英語の勉強で,一つひとつ文法を覚えることは大切かもしれませんが,実際に英文を書いたり,会話しないと使えるようにはなりません. プログラミングの学習で,学習用の資料や教科書を一つ一つ<strong>読んだり,ノートに書き写す人</strong>がたまにいますが,かなり効率が悪い方法です. 何も分からなくてもいいので,取り敢えずプログラムを書いて実行するようにしましょう. 資料に載っている例はすべて,実際に書いて実行してみましょう.</p>
-<p>一番いい方法は,何も分からなくても取り敢えず,プログラムをつかってしてみたいことを実行することです.1からすべての構文などを覚えようとしないで,自分がやりたい,しなければならないことを,書き始めましょう. <strong>分からないところだけを</strong>調べれば十分です.</p>
-<p>その際に,新しく知ったことは,メモなどして,あとで参照できるようにしておきましょう. その資料が後々役に立ちます.</p>
-<p>プログラミングは,すべて暗記する必要はありません. 覚えていなくても,それの調べ方や載っている資料を知っていれば十分です. 何回も使う機能であれば自然に覚えます.</p>
-<p><strong>ただし,</strong> Pythonは非常に多くの人が利用しているので,みなさんがこの講義で習うレベルのことは検索すれば既に,完成したプログラムを参考にすることができます. また,ChatGPTなどの生成AIを利用すれば,皆さんの書いたプログラムよりかなりできの良いものをすぐに得ることができます. それらを見て勉強することは大切ですが,ただ,只管コピペしたり,生成AIの結果を利用しているだけでは,全く身につきません. 検索して出てきたコードや,生成AIによるコードを利用しても構いませんが, それをただ貼り付けるのではなく,<strong>自分で読んで,理解する</strong>ようにしましょう.</p>
-<p>知らない部分,自分では書けない部分が見つかったらそれを理解するように勉強しましょう. ChatGPTに質問しても構いません. ただ,聞いたことを説明できるようにしましょう.</p>
-<p>自分で説明できないものを使えるのは<strong>せいぜい学校の課題くらいです</strong>. 仕事や研究では,中身の良く分からないコードは利用できません. 最低限自分で理解したものだけを利用してください.</p>
-<p>講義では,結果があっていればよいだけではなく,<strong>なぜそのように書いたのか</strong>,<strong>どのような意味か</strong>,<strong>なぜこうなるのか</strong>などを皆さんに聞きますので,理解に務めるようにしましょう.</p>
-<div class="note">
-<p><strong>演習</strong></p>
-<ul>
-<li><u>演習1 Shellコマンドの調査</u></li>
-</ul>
-<p>今回ならったいくつかのコマンド以外にも便利なコマンドが沢山あります. 3つ調べて,使い方を説明してください.</p>
-<ul>
-<li><u>演習2 チートシートの作成</u></li>
-</ul>
-<p>チートシートとは「それだけを見れば必要な情報が分かるメモ書き」のことです.
-プログラミングの学習では, 自分でノートを取って,それさえ見ればなんとかできる資料を作る のは非常に有用です.</p>
-<p><code>.ppt</code>でも<code>.txt</code>でも形態は何でも良いので, 自分だけのチートシートを作成して, 今日覚えたこと,調べたことなどをメモしていきましょう.</p>
-<p>◦ CLI, Pythonの基礎, Pandasなど学習の区切りごとにシートを分けると便利です.</p>
-<p>◦ スライドサイズを事前に大きく設定しておくと便利です</p>
-<p>書き方は自由ですが, <a href="https://www.google.com/search?newwindow=1&amp;client=safari&amp;sca_esv=635483f0705dd420&amp;sca_upv=1&amp;q=python+%E3%83%81%E3%83%BC%E3%83%88%E3%82%B7%E3%83%BC%E3%83%88&amp;uds=AMwkrPtd7EXxieMQKehnHvZf8S6pNpVcJzQvmfSMfustdt5GVU4paqDezVS1KwRLLfnWdTPfRKqI2vio1swnpAMe65pQfFGqsLrhLm9FBruViqbu8gs83egRP5pID9cAUWbOoFAII8Bi4Sa9pC2nZB8uNY_Im_IVhSc-ISQJazoPJyS7Y5hq8j_wtxEDwusT0kav7Mhx_On2phc8rZKZ0rWb3f5AykS1iJlyMqAYBs5Ke8QgUSIasP6AkeP9P6DIKWQaXCglNYTRDcA_cLO0qv_MU45G2ng9BfipwmjcaL4l2EsY-TdRRazsTUowT__BAUHIv2lsEG32&amp;udm=2&amp;prmd=ivsnmbtz&amp;sa=X&amp;ved=2ahUKEwiA48qB-bOFAxU3aPUHHYJmBQsQtKgLegQICRAB&amp;biw=1147&amp;bih=1269&amp;dpr=1">検索して</a>有名なチートシートを参考にしてください.</p>
-<p>このチートシートは後で紹介してもらいます.</p>
-<ul>
-<li><u>演習3 <code>print()</code>の利用</u></li>
-</ul>
-<p>今回作成した<code>hello.py</code>における
-<code>print()</code> という関数は()内の文字(<code>""</code>で囲われている部分)を標準出力する関数です.
-<code>print()</code>の括弧内の <code>Hello World!</code> 部分を好きな文字に書き換えて実行してみましょう.</p>
-</div>
-<div class="warn">
-<p><strong>演習について</strong></p>
-<p>この資料では,所々に演習が指定されています.
-演習は自分で行い, どのようにやったのかを講義中に発表,あるいは宿題として提出してもらいます.</p>
-<p>家で演習を進めた場合には,講義中にそれが再現できるように,</p>
-<ul>
-<li>どのようにやったのか</li>
-<li>なぜやったのか</li>
-</ul>
-<p>などを人に説明できるように<strong>必ず作成したメモ,資料</strong>などを残しておきましょう.</p>
-</div>
-]]></description>
-    <pubDate>Fri, 29 Mar 2024 00:00:00 UT</pubDate>
-    <guid>/lectures/slds2.html</guid>
-    <dc:creator>yakagika</dc:creator>
-</item>
-<item>
-    <title>特別講義DS Ch13 機械学習</title>
-    <link>/lectures/slds13.html</link>
-    <description><![CDATA[<div class="toc"><div class="header">Table of Contents</div>
-<ul>
-<li><a href="#人工知能の歴史" id="toc-人工知能の歴史"><span class="toc-section-number">1</span> 人工知能の歴史</a></li>
-<li><a href="#機械学習" id="toc-機械学習"><span class="toc-section-number">2</span> 機械学習</a></li>
-<li><a href="#教師あり学習-1" id="toc-教師あり学習-1"><span class="toc-section-number">3</span> 教師あり学習</a>
-<ul>
-<li><a href="#決定木分析decision-tree-analysis" id="toc-決定木分析decision-tree-analysis"><span class="toc-section-number">3.1</span> 決定木分析(Decision Tree Analysis)</a></li>
-</ul></li>
-</ul>
-</div>
-<h1 data-number="1" id="人工知能の歴史"><span class="header-section-number">1</span> 人工知能の歴史</h1>
-<p>この講義は,文科省の定める｢数理・AI・データサイエンス教育プログラム｣の一貫ですが,統計,機械学習,AI,データサイエンスなどの違いはそれほどはっきりしていません.このことについては<a href="slds.html">Ch2</a>で扱いましたが,ここではAIや機械学習についてもう少し掘り下げてみましょう.</p>
-<p>AIは<em>Artificial Inteligence (人工知能)</em>の略語です. 世の中では,様々なものがAIと呼ばれており,</p>
-<div class="note">
-<ul>
-<li>Automated Instruments (自動化されたなにか)</li>
-<li>Anything IT-related (ITに関連したなんでも)</li>
-</ul>
-</div>
-<p>などのAIという用語の濫用を揶揄する言葉もあります.</p>
-<p>AIが最初に研究において提起された1904年のダートマス会議における<a href="https://ojs.aaai.org/aimagazine/index.php/aimagazine/article/view/1904">提案書</a>ではAIの研究を以下のように定義しています.</p>
-<blockquote>
-<p>この研究は,学習のあらゆる側面,あるいは知能のその他の特徴は原則として,機械がそれをシミュレートできるほど正確に記述できるという推測に基づいて進められる.</p>
-<p>機械に言語を使わせ,抽象や概念を形成させ,現在人間にしかできないような種類の問題を解決させ,自らを向上させる方法を見つける試みがなされる.</p>
-<p>注意深く選ばれた科学者たちがひと夏の間,一緒にこの問題に取り組めば,これらの問題のひとつやふたつに大きな進歩がもたらされると,私たちは考えている.</p>
-</blockquote>
-<p>このように当初のAIの定義によれば,AIは,</p>
-<ol type="1">
-<li>抽象や概念を形成する</li>
-<li>現在人間にしかできないような種類の問題を解決し</li>
-<li>自らを向上させる方法を見つける</li>
-</ol>
-<p>ことができる機械であるとされています.</p>
-<p>当初のAI研究では,特に2番目の問題解決に商店を当てていました.</p>
-<p>例えば, ノーベル経済学賞を受賞した,ハーバート・A・サイモンが人間の問題解決手法を模倣して作った最初期のAIである<strong>GPS (General Problem Solver) 一般問題解決器</strong>が有名です.</p>
-<p>GPSでは, ｢問題｣を｢現在と目標との差異｣と定義して,以下のように差を分解して差を埋めることでおおよそすべての問題が解決できるとしました.</p>
-<div class="note">
-<ul>
-<li>目標：対象Aを対象Bに変換せよ
-<ul>
-<li>対象Aと対象Bを照合し差Dを見つけよ</li>
-<li>サブゴールDを縮小せよ</li>
-<li>サブゴールA’をBに変換せよ</li>
-</ul></li>
-<li>目標：対象Aと対象Bとの間の差Dを縮小せよ
-<ul>
-<li>Dを縮小するのに適した作用子Qを探せ</li>
-<li>実行可能かどうかテストせよ</li>
-<li>サブゴールAにQを適用してA’を作る</li>
-</ul></li>
-<li>目標：対象Aに作用子Qを適用せよ
-<ul>
-<li>Qの条件をAと照合し差を見つけよ</li>
-<li>サブゴールDを縮小せよ</li>
-<li>サブゴールA’にQを適用せよ</li>
-</ul></li>
-</ul>
-<p>(cf.Newell, Allen, and Herbert A. Simon: “GPS, A Program that Simulates Human Thought,”Lernende Automaten, Munchen (R. Oldenbourg, ed.) (1961), Reprinted in Computers and Thought(Feigenbaum and Feldman, eds.) (1963) )</p>
-</div>
-<p>しかし,このような手法は明確に目標と現在を記述可能,その差が計測可能,かつ,差を埋める手段が明確であるようなチェスや迷路などに限定して適用できるものでした.</p>
-<p>その他にも,基本的には当時のAIは,｢問題の解決の仕方｣を人間が定義して,それを直接的にプログラムするという手法で開発されています.</p>
-<p>その後,AIの発展は以下の年表のような歴史を辿ります.</p>
-<div class="note">
-<table>
-<colgroup>
-<col style="width: 17%" />
-<col style="width: 82%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th>AIブーム</th>
-<th>内容</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>第1次AIブーム</td>
-<td>• 1956年: ダートマス会議でスタート<br>• 汎用問題解決機 (物理現象と理想との差異)<br>• 国際的な解決手法をプログラム<br>• 1960年代にはじめ: 機械翻訳の失敗で収斂</td>
-</tr>
-<tr class="even">
-<td>第2次AIブーム</td>
-<td>• 1980年代はじめ: エキスパートシステム、機械翻訳<br>• 知識の扱いをあきらむ<br>• 1980年代はじめ: 第5世代コンピュータープロジェクト<br>• 1990年代はじめ: 知識導入・商業性で収斂</td>
-</tr>
-<tr class="odd">
-<td>第3次AIブーム</td>
-<td>• 2010年から現在: ANN(Artificial Neural Network)の復活<br>• 検査エンジン研究で発達<br>• ゲームでの成功 (チェス、将棋、囲碁)<br>• パターン認識での成功例 (音声解析、画像解析etc…)</td>
-</tr>
-<tr class="even">
-<td>第4次AIブーム</td>
-<td>• 現在:生成系AI<br>• 画像・動画・音声</td>
-</tr>
-</tbody>
-</table>
-<p>(cf.cf. 寺野隆雄,生成系AIの歴史・原理・現状,千葉商科大学 2023年 第1回FD 「生成系AIに関するFD」 ,2023/05/18)</p>
-</div>
-<p>この歴史をすべて概説することはここでは行いませんが,第3次以降のAIブームでは,ダートマス会議における提案での ｢3.自らを向上させる方法を見つける｣に関わるAIの発展に依るものです.</p>
-<p>以下,本章ではこの｢自らを向上させる｣機械である,<strong>機械学習</strong>の概要と,いくつかの事例を扱います.
-また以降の章では, 機械学習の事例として個別に,クラスタリング,自然言語処理,画像処理などの手法を扱います.</p>
-<h1 data-number="2" id="機械学習"><span class="header-section-number">2</span> 機械学習</h1>
-<p>これまで,回帰などの手法によって,データを用いた<strong>予測</strong>や<strong>判別</strong>を行ってきました. 本章で学ぶ<strong>機械学習</strong>も予測や判別を行うための手法です.</p>
-<p>例として,以下の犬と猫の画像について考えてみましょう.</p>
-<figure>
-<img src="/images/ch13-cats-dogs.png" alt="Cats and Dogs" />
-<figcaption aria-hidden="true">Cats and Dogs</figcaption>
-</figure>
-<p>人間であれば,それが犬でどれが猫であるかは簡単に判別可能です. しかし,<strong>どのようにして判別しているか</strong>を人に説明できるでしょうか?</p>
-<p>例えば,上の画像であれば,</p>
-<ul>
-<li>猫は鼻が赤く,犬は黒い</li>
-<li>猫は耳が立っており,犬は耳が下がっている</li>
-</ul>
-<p>などの違いがあるようにも思えますが,鼻が黒い猫も,耳が立っている犬もいます.
-先ほど説明したように,初期のAI開発ではこのようなルールを人間が発見し,プログラしていました. しかし,画像から犬と猫を見分けるルールを明確に定義するのはなかなか難しい作業です.</p>
-<p>そこで,AIの開発は,｢機械自体が判別のためのルールを発見する｣ための学習方法をプログラムする方向に進み始めます. そのような手法全般を<strong>機械学習</strong>といいます.</p>
-<p>機械学習の定義は様々ありますが,有名なものに以下があります.</p>
-<blockquote>
-<p>“Field of study that gives computers the ability to learn without being explicitly programmed”
-((機械学習とは)コンピュータに、明示的にプログラムされなくても学習する能力を与える学問分野)</p>
-<p>Arthur Samuel (1951)</p>
-</blockquote>
-<p>これまでに行ってきた統計学の主な目的は以下のようなものです.</p>
-<ul>
-<li>記述統計学
-<ul>
-<li>集めたデータの特徴を代表値やグラフなどを用いて記述する</li>
-</ul></li>
-<li>推測統計学
-<ul>
-<li>データを利用してその背景(母集団)を推測する.</li>
-</ul></li>
-</ul>
-<p>いずれも,得られたデータの特徴を知ることを目的としています.</p>
-<p>一方で機械学習は, 得られたデータを利用して, 要約・予測・判別などの｢判断｣を機械に行わせることが目的であり, どのようにデータを利用して判断するか自体は機械が自ら学習します.</p>
-<p>機械学習には大きく分けて｢<strong>教師なし学習(Supervised learning)</strong>｣と｢<strong>教師なし学習(Unsupervised Learning)</strong>｣の2種類が存在します.</p>
-<figure>
-<img src="/images/ch13-learning-types.png" alt="教師あり/なし学習" />
-<figcaption aria-hidden="true">教師あり/なし学習</figcaption>
-</figure>
-<div class="note">
-<ul>
-<li><h2 id="教師あり学習">教師あり学習</h2></li>
-</ul>
-<p>訓練データ(データと答えのペア)を学習して,未知のデータから答えを正しく予測する.</p>
-<figure>
-<img src="/images/ch13-supervised-learning.png" alt="教師あり学習のイメージ" />
-<figcaption aria-hidden="true">教師あり学習のイメージ</figcaption>
-</figure>
-<p>本資料では以下のような教師あり学習を扱います</p>
-<ul>
-<li>回帰
-<ul>
-<li>線形回帰</li>
-<li>一般化線形モデル</li>
-</ul></li>
-<li>決定木分析</li>
-<li>k-近傍法</li>
-<li>サポートベクターマシン</li>
-<li>ニューラルネットワーク
-<ul>
-<li>自然言語処理</li>
-<li>画像認識</li>
-</ul></li>
-</ul>
-</div>
-<div class="note">
-<ul>
-<li><h2 id="教師なし学習">教師なし学習</h2></li>
-</ul>
-<p>データの特徴(ベクトル)をもとに,似たものをグループ分け(クラスタリング)します.</p>
-<figure>
-<img src="/images/ch13-unspervised-learning.png" alt="教師なし学習のイメージ" />
-<figcaption aria-hidden="true">教師なし学習のイメージ</figcaption>
-</figure>
-<p>本資料で扱う教師なし学習には以下のようなものがあります.</p>
-<ul>
-<li>クラスタリング
-<ul>
-<li>階層クラスタリング</li>
-<li>非階層クラスタリング</li>
-</ul></li>
-<li>主成分分析</li>
-</ul>
-</div>
-<h1 data-number="3" id="教師あり学習-1"><span class="header-section-number">3</span> 教師あり学習</h1>
-<p>まずは教師あり学習の手法をいくつか体験してみましょう.
-教師あり学習と一言にいってもいくつもの手法があり,目的及びデータの種類によって使い分けが必要となります.</p>
-<p><img src="/images/ch13-chart-supervised-learning.png" alt="scikit-learnにおける教師あり学習の使い分け" />
-<a href="https://scikit-learn.org/stable/machine_learning_map.html">https://scikit-learn.org/stable/machine_learning_map.html</a></p>
-<p>これらの手法からいくつかの手法を試しみましょう.</p>
-<div class="warn">
-<p>基本的に本章では, 機械学習用ライブラリ<code>scikit-learn</code>(<code>pip</code>や<code>import</code>時には省略形の<code>sklearn</code>)を利用します. 以下のいくつかのライブラリも含めて <code>pip install</code>しておいてください.</p>
-<ul>
-<li><code>sklearn</code></li>
-<li><code>pydotplus</code></li>
-<li><code>ipython</code></li>
-</ul>
-</div>
-<h2 data-number="3.1" id="決定木分析decision-tree-analysis"><span class="header-section-number">3.1</span> 決定木分析(Decision Tree Analysis)</h2>
-<p>特定の目的に到達するためのデータの各属性の分岐を作成する手法を<strong>決定木分析</strong>といいます. 目的変数がカテゴリーデータの場合は,<strong>分類木</strong>,数値の場合には<strong>回帰木</strong>と呼びます.</p>
-<figure>
-<img src="/images/ch13-decision-tree-analysis-image.png" alt="決定木のイメージ" />
-<figcaption aria-hidden="true">決定木のイメージ</figcaption>
-</figure>
-<p>分類性能はそれほど高くありませんが,視覚的に分かりやすく,またモデルを人間が理解しやすいという特徴があります.</p>
-<p>代表的なアルゴリズムとして,ジニ不純度を最小化する<strong>CART(Classification and Regression Trees）</strong>アルゴリズムがあります.</p>
-<p><span class="math display">\[
-ジニ不純度 = I_G(t) = 1 - \sum_{i=1}^{c}\frac{n_i}{N} \\
-c; クラス数, t;ノード, N;サンプル数, n_i;クラスに属するデータ数
-\]</span></p>
-<p>CARTは2分木を連続して作成するアルゴリズムです.まず,すべての特徴量毎に,ジニ不純度が最小化される分岐点を探索します.最も分類に影響を与える特徴量の2分木を決定したら,その後それぞれの分岐毎に再度残りのすべての特徴量で2分木を作成し,データが単一のクラスになる,あるいは分割が意味をなさなくなるまで分岐を繰り返してツリーを成長させます.</p>
-<div class="note">
-<ul>
-<li><h2 id="graphvizのインストール">Graphvizのインストール</h2></li>
-</ul>
-<p>scikit-learnを用いた決定木分析では, 最終的な結果として決定木をPDFで出力します. PDFを作成するためのソフト<code>Graphviz</code>をインストールしていないと,以下であつかう決定木分析作成用のプログラムは動きません.以下,Windows,Macそれぞれの指示に従ってインストールしましょう.</p>
-<ul>
-<li><h2 id="windows">Windows</h2></li>
-</ul>
-<p><a href="https://www.graphviz.org/download/">Graphvizの公式サイト</a>から,インストーラをダウンロードしましょう.
-いくつか種類がありますが,<code>64bit</code>版の最新のものを選べば基本的には問題ありません.</p>
-<figure>
-<img src="/images/ch13-graphviz-win1.png" alt="Graphvizのインストーラダウンロード" />
-<figcaption aria-hidden="true">Graphvizのインストーラダウンロード</figcaption>
-</figure>
-<p>ダウンロードしたインストーラをクリックして開き,指示に従っていけばインストールは完了です.
-途中で, ｢<code>Add Graphviz to the system PATH for all users</code>｣にチェックをいれるのを忘れないようにしましょう.</p>
-<figure>
-<img src="/images/ch13-graphviz-win2.png" alt="Graphvizのインストール" />
-<figcaption aria-hidden="true">Graphvizのインストール</figcaption>
-</figure>
-<ul>
-<li><h2 id="mac">Mac</h2>
-Macは,<code>Homebrew</code>を利用します. <a href="https://brew.sh">Homebrewの公式サイト</a>の<code>Install Homebrew</code>以下にあるshell promptをコピーしてTerminalで実行しましょう.</li>
-</ul>
-<figure>
-<img src="/images/ch13-graphviz-mac1.png" alt="Homebrewのインストール" />
-<figcaption aria-hidden="true">Homebrewのインストール</figcaption>
-</figure>
-<p>インストールが完了したら,</p>
-<p><code>brew install graphviz</code></p>
-<p>コマンドを実行して,Graphvizをインストールします.</p>
-<p><code>brew list</code></p>
-<p>コマンドでインストール済みのソフトが確認できればインストールされています.</p>
-</div>
-<p>作成した電力データを利用して電力使用量から曜日を当ててみます.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.tree <span class="im">import</span> DecisionTreeClassifier</span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> train_test_split</span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn <span class="im">import</span> tree</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pydotplus</span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> six <span class="im">import</span> StringIO</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> IPython.display <span class="im">import</span> Image</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co"># 決定木分析(CART)で,電力データから祝日かどうかを当ててみる.</span></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co"># データを読み込み</span></span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">&quot;./data/energy_data.csv&quot;</span>)</span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> df[[<span class="st">&#39;Lighting&#39;</span>, <span class="st">&#39;Lamp&#39;</span>, <span class="st">&#39;Power&#39;</span>, <span class="st">&#39;Air&#39;</span>]] <span class="co">#説明変数</span></span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> df[<span class="st">&#39;weekday&#39;</span>] <span class="co">#被説明変数</span></span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="co">#トレーニングデータの作成</span></span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>(train_X, test_X ,train_y, test_y) <span class="op">=</span> train_test_split( X</span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>                                                     , y</span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>                                                     , test_size <span class="op">=</span> <span class="fl">0.3</span></span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>                                                     , random_state <span class="op">=</span> <span class="dv">666</span>)</span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="co">#モデルの作成</span></span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>clf <span class="op">=</span> DecisionTreeClassifier(random_state<span class="op">=</span><span class="dv">0</span>)</span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>clf <span class="op">=</span> clf.fit(train_X, train_y)</span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="co">#作成したモデルを使って予測</span></span>
-<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>pred <span class="op">=</span> clf.predict(test_X)</span>
-<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a><span class="co">#正解率</span></span>
-<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="bu">sum</span>(pred <span class="op">==</span> test_y) <span class="op">/</span> <span class="bu">len</span>(test_y))</span>
-<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a><span class="co"># 可視化</span></span>
-<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a><span class="co"># class_names; 目的変数の名前を入れる</span></span>
-<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a><span class="co"># feature_names; 説明変数の名前を入れるdot_data = StringIO()</span></span>
-<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>tree.export_graphviz( clf</span>
-<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>                    , out_file<span class="op">=</span>dot_data</span>
-<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>                    , filled<span class="op">=</span><span class="va">True</span></span>
-<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>                    , feature_names<span class="op">=</span>train_X.columns</span>
-<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>                    , class_names<span class="op">=</span>df.weekday)</span>
-<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a><span class="co"># 結果がPDFとして保存される graph = pydotplus.graph_from_dot_data(dot_data.getvalue())</span></span>
-<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>graph.write_pdf(<span class="st">&quot;graph.pdf&quot;</span>)</span>
-<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>Image(graph.create_png())</span></code></pre></div>
-]]></description>
-    <pubDate>Fri, 29 Mar 2024 00:00:00 UT</pubDate>
-    <guid>/lectures/slds13.html</guid>
     <dc:creator>yakagika</dc:creator>
 </item>
 

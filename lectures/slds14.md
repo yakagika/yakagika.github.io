@@ -212,10 +212,6 @@ NotImplementedError: Please use HDF reader for matlab v7.3 files, e.g. h5py
 
 今回は`celebrity2000_meta.mat`を利用するので必要ありませんが,試しに同じように画像を表示してみましょう.
 
-<details>
-    <summary> 詳細 開く/閉じる </summary>
-
-
 `HDF5`は多重の辞書型ような構造をしており,`key`によってデータにアクセスできます.
 
 ~~~ py
@@ -284,7 +280,6 @@ with h5py.File('data/celebrity2000.mat', 'r') as file:
 
 同じ用にデータを抽出できることが確認できます.
 
-</details>
 
 :::
 
