@@ -82,7 +82,7 @@
     <h1>特別講義DS Ch15 自然言語処理</h1>
 <div class="soft">
     資料<br />
-    Published on 2024-10-19 under the tag <a title="All pages tagged 'datascience'." href="../tags/datascience.html">datascience</a>, <a title="All pages tagged 'statistics'." href="../tags/statistics.html">statistics</a>, <a title="All pages tagged 'python'." href="../tags/python.html">python</a>
+    Published on 2024-11-12 under the tag <a title="All pages tagged 'datascience'." href="../tags/datascience.html">datascience</a>, <a title="All pages tagged 'statistics'." href="../tags/statistics.html">statistics</a>, <a title="All pages tagged 'python'." href="../tags/python.html">python</a>
 </div>
 
 <!-- 前後の章へのナビゲーション -->
@@ -100,9 +100,866 @@
 <br>
 
 <div class="toc"><div class="header">Table of Contents</div>
-
+<ul>
+<li><a href="#自然言語処理" id="toc-自然言語処理"><span class="toc-section-number">1</span> 自然言語処理</a></li>
+<li><a href="#トークン化と形態素解析" id="toc-トークン化と形態素解析"><span class="toc-section-number">2</span> トークン化と形態素解析</a></li>
+<li><a href="#wordcloud" id="toc-wordcloud"><span class="toc-section-number">3</span> WordCloud</a></li>
+<li><a href="#トピックモデル" id="toc-トピックモデル"><span class="toc-section-number">4</span> トピックモデル</a>
+<ul>
+<li><a href="#xtwitter-apiを用いたデータの取得" id="toc-xtwitter-apiを用いたデータの取得"><span class="toc-section-number">4.1</span> X(Twitter) APIを用いたデータの取得</a></li>
+<li><a href="#トピックモデル実践" id="toc-トピックモデル実践"><span class="toc-section-number">4.2</span> トピックモデル実践</a></li>
+</ul></li>
+<li><a href="#ニューラル言語モデル" id="toc-ニューラル言語モデル"><span class="toc-section-number">5</span> ニューラル言語モデル</a>
+<ul>
+<li><a href="#マルチラベル分類" id="toc-マルチラベル分類"><span class="toc-section-number">5.1</span> マルチラベル分類</a></li>
+</ul></li>
+</ul>
 </div>
-<p>準備中</p>
+<h2 data-number="1" id="自然言語処理"><span class="header-section-number">1</span> 自然言語処理</h2>
+<p>非構造化データの分析手法として,前章では画像データを扱いました. 本章では, テキストデータを分析する手法である<strong>自然言語処理 (NPL; Natural Language Processing)</strong>について解説します.</p>
+<h2 data-number="2" id="トークン化と形態素解析"><span class="header-section-number">2</span> トークン化と形態素解析</h2>
+<p>自然言語処理にも様々な手法がありますが,基本的には元の文章データをそのまま使うことはなく,文章を適切な単位に分割するなどの前処理を施します. これを<strong>トークン化</strong>といい,代表的な手法としては<strong>単語分割</strong>,<strong>品詞分割</strong>,<strong>文字分割</strong>,<strong>サブワード分割</strong>などがあります.</p>
+<p>単語分割に関して元の文章が英語などの単語ごとに区切られている文章であれば</p>
+<p><code>"This is a pen"</code> → <code>"This","is","a","pen"</code></p>
+<p>という風に簡単に分割できますが,日本語のように単語間に空白などがない言語では特別な処理が必要になります.</p>
+<p>また,英語であっても, 代名詞 <code>'This'</code>, 動詞 <code>is</code>, 冠詞 <code>"a"</code>, 名詞 <code>"pen"</code>などのように品詞分割するためには特別な処理が必要になります.</p>
+<p>このような処理を施すために文章を最小の意味を持つ言語単位(<strong>形態素</strong>)に分割し,それぞれの品詞を識別処理を
+<strong>形態素解析(Morphological Analysis)</strong>といいます.</p>
+<div class="note">
+<p>形態素解析の基本的な手順は以下のようになります.</p>
+<ul>
+<li><h3 id="データの作成">データの作成</h3></li>
+</ul>
+<p>PDFやホームページなどから直接処理することも可能ですが, <code>.txt</code>や<code>.csv</code>,<code>.xlm</code>などの構造化データに変換しておくと処理が楽になります.</p>
+<p>入力例文: <code>"太陽が昇る東の空が美しい"</code></p>
+<ul>
+<li><h3 id="テキストの前処理">テキストの前処理</h3></li>
+</ul>
+<p>不要なスペースや記号を除去しテキストを処理しやすい形に整理します.</p>
+<ul>
+<li><h3 id="形態素への分割">形態素への分割</h3></li>
+</ul>
+<p>文章を形態素と呼ばれる最小単位に分割します.</p>
+<p><code>"太陽","が","昇る","東","の","空","が","美しい"</code></p>
+<ul>
+<li><h3 id="品詞のタグ付け">品詞のタグ付け</h3></li>
+</ul>
+<p>分割された形態素に品詞情報を付与します.</p>
+<p><code>"太陽"</code>: 名詞</p>
+<p><code>"が"</code>: 助詞</p>
+<p><code>"昇る"</code>: 動詞</p>
+<p><code>"東"</code>: 名詞</p>
+<p><code>"の"</code>: 助詞</p>
+<p><code>"空"</code>: 名詞</p>
+<p><code>"が"</code>: 助詞</p>
+<p><code>"美しい"</code>: 形容詞</p>
+</div>
+<p>日本語の形態素解析用のPythonパッケージとして有名なものには,<code>Mecab</code>や<code>Janome</code>があります.</p>
+<div class="note">
+<ul>
+<li><code>Mecab</code>
+<ul>
+<li>日本語のオープンソース形態素解析システム</li>
+<li>pythonのライブラリとしてはmecab-python3</li>
+</ul></li>
+<li><code>janome</code>
+<ul>
+<li>Pythonで書かれた日本語形態素解析器</li>
+<li>MecabよりインストールなどがPythonに最適化されており,インストールなどが楽</li>
+<li>ただし,遅いので大規模な処理では余り使われない</li>
+</ul></li>
+</ul>
+<p>本資料では,以下形態素解析用ライブラリとして<code>Mecab</code>を利用するので</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install mecab-python3</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install unidic-lite</span></code></pre></div>
+<p>を実行してインストールしておきましょう(<code>unidic-lite</code>は形態素解析用の日本語の辞書です.)</p>
+</div>
+<p>形態素解析の練習用のデータとして<a href="https://www.cuc.ac.jp/about_cuc/outline/spirits/index.html">千葉商科大学のHPに掲載されている理念</a>を利用してみます. テキスト部分をコピーして,<code>UTF-8</code>の<code>cuc.txt</code>ファイルを作成し,<code>data</code>フォルダに保存しましょう.</p>
+<p><img src="../images/Ch15-WordCloud1.png" /></p>
+<p>まずは,テキストデータを読み込んでみます. <code>pandas</code>などを利用して読み込むこともできますが,ここではPythonの組み込みメソッドである,<code>open()</code>でファイルを開き,<code>read()</code>で読み込み,<code>close()</code>でファイルを閉じます.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ファイルを開く</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>f <span class="op">=</span> <span class="bu">open</span>(<span class="st">'data/cuc.txt'</span>, encoding<span class="op">=</span><span class="st">'utf-8'</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co"># ファイルを読み込む</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>raw <span class="op">=</span> f.read()</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co"># ファイルを閉じる</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>f.close()</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(raw)</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="co">建学の精神と理念:有用の学術と商業道徳の涵養</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="co">巣鴨高等商業学校を創設した文学博士遠藤隆吉は、自らの志とする学府創立に当たり、「建学の趣旨」を次のように述べています。</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="co">創設者 文学博士 遠藤 隆吉</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="co">...</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p><code>pandas</code>などではこれらの手順を一度にまとめて行ってくれていましたが,この手法で行う場合は<code>close()</code>を利用してファイルを閉じることを忘れないようにしましょう. 忘れた場合,システムのリソースが無駄に占有され,他のプログラムやソフトがファイルにアクセスできなくなるなどの問題が生じる可能性があります. 今回はファイルを読み込むだけですが,間に適用される処理が多くなるほど,<code>open()</code>と<code>close()</code>の間の対応関係が分かりづらくなります.</p>
+<p>そこでこのように手動で<code>close()</code>を呼ぶ代わりに,Pythonでは<code>with文</code>を使うことで,インデントブロックを抜けた時に自動的にファイルを閉じるようにできます.<code>with文</code>を使うことでコードがよりシンプルかつエラーに強くなりますので,一般的にはwith文の使用が推奨されます.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">'data/cuc.txt'</span>, encoding<span class="op">=</span><span class="st">'utf-8'</span>) <span class="im">as</span> f:</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    raw <span class="op">=</span> f.read()</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(raw)</span></code></pre></div>
+<p>続いて形態素解析の前の前処理を行います.
+(以下の形態素解析のコードなどは<a href="https://rinsaka.com/python/nltk/05-wordcloud.html">神戸学院大学 林坂ゼミの資料</a>を参考にしました.)</p>
+<p>前処理として, テキストファイルの改行,タブ,などを削除するための関数を用意します.
+文字列を正規表現操作するための標準ライブラリ<code>re</code>を<code>import</code>する必要があるので注意して下さい.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> re <span class="co">#正規表現操作のための標準ライブラリ</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> strip_CRLF_from_Text(text):</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;テキストファイルの改行,タブを削除し,形態素解析を実行</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="co">    改行前後が日本語文字の場合は改行を削除する．</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="co">    それ以外はスペースに置換する．</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="co">    &quot;&quot;&quot;</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 改行前後の文字が日本語文字の場合は改行を削除する</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    plaintext <span class="op">=</span> re.sub(<span class="st">'([ぁ-んー]+|[ァ-ンー]+|[</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+|[ぁ-んァ-ンー</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+)(</span><span class="ch">\n</span><span class="st">)([ぁ-んー]+|[ァ-ンー]+|[</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+|[ぁ-んァ-ンー</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+)'</span>,</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>                       <span class="vs">r'\1\3'</span>,</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>                       text)</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 残った改行とタブ記号はスペースに置換する</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    plaintext <span class="op">=</span> plaintext.replace(<span class="st">'</span><span class="ch">\n</span><span class="st">'</span>, <span class="st">' '</span>).replace(<span class="st">'</span><span class="ch">\t</span><span class="st">'</span>, <span class="st">' '</span>)</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> plaintext</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>text <span class="op">=</span> strip_CRLF_from_Text(raw)</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(text)</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a><span class="co">建学の精神と理念:有用の学術と商業道徳の涵養  巣鴨高等商業学校を創設した文学博士遠藤隆吉は...</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>改行やタブが消えて, 文毎にスペースで区切られた文章が作成されました. 日本語の文章の途中で改行がある場合には,改行前後を結合して1文としてまとめられていることを確認しましょう.</p>
+<p>続いて,前処理が施された文章を<code>mecab</code>を利用して形態素解析を実施してみます.</p>
+<p>抽出する品詞は<code>word_types</code>に<code>[String]</code>で指定します.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> MeCab <span class="im">as</span> mc</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> mecab_wakati(text,word_types <span class="op">=</span> [<span class="st">&quot;名詞&quot;</span>,<span class="st">&quot;動詞&quot;</span>,<span class="st">&quot;形容詞&quot;</span>,<span class="st">&quot;副詞&quot;</span>]):</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">#分かち書き</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    t <span class="op">=</span> mc.Tagger()</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">#word_types = [String]で指定 (&quot;名詞&quot;,&quot;動詞&quot;,&quot;形容詞&quot;,&quot;副詞&quot;)</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    node <span class="op">=</span> t.parseToNode(text)</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    sent <span class="op">=</span> <span class="st">&quot;&quot;</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    noun <span class="op">=</span> [x <span class="cf">for</span> x <span class="kw">in</span> word_types <span class="cf">if</span> x <span class="op">==</span> <span class="st">&quot;名詞&quot;</span>]</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    others <span class="op">=</span> [x <span class="cf">for</span> x <span class="kw">in</span> word_types <span class="cf">if</span> x <span class="kw">in</span> [ <span class="st">&quot;動詞&quot;</span>, <span class="st">&quot;形容詞&quot;</span>,<span class="st">&quot;副詞&quot;</span>]]</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span>(node):</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> node.surface <span class="op">!=</span> <span class="st">&quot;&quot;</span>:  <span class="co"># ヘッダとフッタを除外</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>            word_type <span class="op">=</span> node.feature.split(<span class="st">&quot;,&quot;</span>)[<span class="dv">0</span>]</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> word_type <span class="kw">in</span> noun:</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>                 sent <span class="op">+=</span> node.surface <span class="op">+</span> <span class="st">&quot; &quot;</span> <span class="co"># node.surface は「表層形」</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> word_type <span class="kw">in</span> others:</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>                sent <span class="op">+=</span> node.feature.split(<span class="st">&quot;,&quot;</span>)[<span class="dv">6</span>] <span class="op">+</span> <span class="st">&quot; &quot;</span> <span class="co"># node.feature.split(&quot;,&quot;)[6] は形態素解析結果の「原型」</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>        node <span class="op">=</span> node.<span class="bu">next</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> node <span class="kw">is</span> <span class="va">None</span>:</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>            <span class="cf">break</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> sent</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>sent <span class="op">=</span> mecab_wakati(text)</span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(sent)</span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a><span class="co">建学 精神 理念 有用 学術 商業 道徳 涵養 巣鴨 商業 学校 創設 し...</span></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a><span class="co">#動詞だけ抽出</span></span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>sent <span class="op">=</span> mecab_wakati(text,[<span class="st">'動詞'</span>])</span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'-'</span><span class="op">*</span><span class="dv">10</span> <span class="op">+</span> <span class="st">'</span><span class="ch">\n</span><span class="st">'</span>, sent)</span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a><span class="co"> スル スル アタル ノベル イル マサル</span></span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>以上で文章の形態素解析は完了です.</p>
+<h2 data-number="3" id="wordcloud"><span class="header-section-number">3</span> WordCloud</h2>
+<p>広く使われる文章の可視化手法として,文章中に利用されている単語の頻度などを基準に文字の色や大きさを変える<code>WordCloud</code>があります. 先ほど形態素解析した文章を利用して,<code>WordCloud</code>を作成してみましょう.</p>
+<p>まず日本語を表示するためにフォントの設定を行います.</p>
+<p><code>Windwos</code>と<code>Mac</code>で異なりますので,自身の環境に併せて<code>コメントアウト</code>を外して下さい.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># フォントの保存先を指定する（環境によって書き換えてください）</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>font_path <span class="op">=</span> <span class="st">&quot;C:</span><span class="ch">\\</span><span class="st">WINDOWS</span><span class="ch">\\</span><span class="st">FONTS</span><span class="ch">\\</span><span class="st">MEIRYO.TTC&quot;</span>    <span class="co">## Windows 版はこちら</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co"># font_path = &quot;/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc&quot;  ## Mac 版はこちら</span></span></code></pre></div>
+<p><code>wordcloud</code>を<code>import</code>して,画像を生成します.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install wordcloud</span></code></pre></div>
+<p>をしてから以下を実行しましょう.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> wordcloud <span class="im">import</span> WordCloud</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>wc <span class="op">=</span> WordCloud(width<span class="op">=</span><span class="dv">1000</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>              ,height<span class="op">=</span><span class="dv">400</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>              ,background_color<span class="op">=</span><span class="st">'white'</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>              , regexp<span class="op">=</span><span class="vs">r&quot;[\w']+&quot;</span> <span class="co">#一文字を表示</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>              ,font_path<span class="op">=</span>font_path).generate(sent)</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>wc.to_file(<span class="st">&quot;result/fig/cuc.png&quot;</span>)</span></code></pre></div>
+<p>指定した保存先(<code>"result/fig/cuc.png"</code>)に以下の画像が保存されているはずです.</p>
+<p><img src="../images/ch15-WordCloud2.png" /></p>
+<p>WordCloudでは登場する用語の頻度で大きさや色などが強調されています. 千葉商科大学の理念では,実業,道徳,などが強調されていることが分かります.</p>
+<p>WordCloudを作成する場合<code>'こと'</code>,<code>'もの'</code>などどのような文章にも頻出する用語は削除した方が望ましいです.
+その場合,<code>stopwords</code>に記述した単語が除外されるので,除外しましょう.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>stopwords <span class="op">=</span> [<span class="st">'こと'</span>,<span class="st">'もの'</span>,<span class="st">'ため'</span>]</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>wc <span class="op">=</span> WordCloud(width<span class="op">=</span><span class="dv">1000</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>              ,height<span class="op">=</span><span class="dv">400</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>              ,background_color<span class="op">=</span><span class="st">'white'</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>              , regexp<span class="op">=</span><span class="vs">r&quot;[\w']+&quot;</span> <span class="co">#一文字を表示</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>              ,font_path<span class="op">=</span>font_path</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>              ,stopwords<span class="op">=</span>stopwords).generate(sent)</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>wc.to_file(<span class="st">&quot;result/fig/cuc2.png&quot;</span>)</span></code></pre></div>
+<p><img src="../images/ch15-WordCloud3.png" /></p>
+<p>これまでのコードを整理すると以下のようになります.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> wordcloud <span class="im">import</span> WordCloud</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> re <span class="co">#正規表現操作のための標準ライブラリ</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> MeCab <span class="im">as</span> mc</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> strip_CRLF_from_Text(text):</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;テキストファイルの改行,タブを削除し,形態素解析を実行</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="co">    改行前後が日本語文字の場合は改行を削除する．</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="co">    それ以外はスペースに置換する．</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="co">    &quot;&quot;&quot;</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 改行前後の文字が日本語文字の場合は改行を削除する</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    plaintext <span class="op">=</span> re.sub(<span class="st">'([ぁ-んー]+|[ァ-ンー]+|[</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+|[ぁ-んァ-ンー</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+)(</span><span class="ch">\n</span><span class="st">)([ぁ-んー]+|[ァ-ンー]+|[</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+|[ぁ-んァ-ンー</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+)'</span>,</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>                       <span class="vs">r'\1\3'</span>,</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>                       text)</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 残った改行とタブ記号はスペースに置換する</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>    plaintext <span class="op">=</span> plaintext.replace(<span class="st">'</span><span class="ch">\n</span><span class="st">'</span>, <span class="st">' '</span>).replace(<span class="st">'</span><span class="ch">\t</span><span class="st">'</span>, <span class="st">' '</span>)</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> plaintext</span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> mecab_wakati(text,word_types <span class="op">=</span> [<span class="st">&quot;名詞&quot;</span>,<span class="st">&quot;動詞&quot;</span>,<span class="st">&quot;形容詞&quot;</span>,<span class="st">&quot;副詞&quot;</span>]):</span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>    <span class="co">#分かち書き</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>    t <span class="op">=</span> mc.Tagger()</span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>    <span class="co">#word_types = [String]で指定 (&quot;名詞&quot;,&quot;動詞&quot;,&quot;形容詞&quot;,&quot;副詞&quot;)</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>    node <span class="op">=</span> t.parseToNode(text)</span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>    sent <span class="op">=</span> <span class="st">&quot;&quot;</span></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>    noun <span class="op">=</span> [x <span class="cf">for</span> x <span class="kw">in</span> word_types <span class="cf">if</span> x <span class="op">==</span> <span class="st">&quot;名詞&quot;</span>]</span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>    others <span class="op">=</span> [x <span class="cf">for</span> x <span class="kw">in</span> word_types <span class="cf">if</span> x <span class="kw">in</span> [ <span class="st">&quot;動詞&quot;</span>, <span class="st">&quot;形容詞&quot;</span>,<span class="st">&quot;副詞&quot;</span>]]</span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span>(node):</span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> node.surface <span class="op">!=</span> <span class="st">&quot;&quot;</span>:  <span class="co"># ヘッダとフッタを除外</span></span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>            word_type <span class="op">=</span> node.feature.split(<span class="st">&quot;,&quot;</span>)[<span class="dv">0</span>]</span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> word_type <span class="kw">in</span> noun:</span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a>                 sent <span class="op">+=</span> node.surface <span class="op">+</span> <span class="st">&quot; &quot;</span> <span class="co"># node.surface は「表層形」</span></span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> word_type <span class="kw">in</span> others:</span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a>                sent <span class="op">+=</span> node.feature.split(<span class="st">&quot;,&quot;</span>)[<span class="dv">6</span>] <span class="op">+</span> <span class="st">&quot; &quot;</span> <span class="co"># node.feature.split(&quot;,&quot;)[6] は形態素解析結果の「原型」</span></span>
+<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a>        node <span class="op">=</span> node.<span class="bu">next</span></span>
+<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> node <span class="kw">is</span> <span class="va">None</span>:</span>
+<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a>            <span class="cf">break</span></span>
+<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> sent</span>
+<span id="cb10-37"><a href="#cb10-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-38"><a href="#cb10-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-39"><a href="#cb10-39" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> <span class="bu">open</span>(<span class="st">'data/cuc.txt'</span>, encoding<span class="op">=</span><span class="st">'utf-8'</span>) <span class="im">as</span> f:</span>
+<span id="cb10-40"><a href="#cb10-40" aria-hidden="true" tabindex="-1"></a>    raw <span class="op">=</span> f.read()</span>
+<span id="cb10-41"><a href="#cb10-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-42"><a href="#cb10-42" aria-hidden="true" tabindex="-1"></a>text <span class="op">=</span> strip_CRLF_from_Text(raw)</span>
+<span id="cb10-43"><a href="#cb10-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-44"><a href="#cb10-44" aria-hidden="true" tabindex="-1"></a><span class="co">#名詞だけ抽出</span></span>
+<span id="cb10-45"><a href="#cb10-45" aria-hidden="true" tabindex="-1"></a>sent <span class="op">=</span> mecab_wakati(text,[<span class="st">'名詞'</span>])</span>
+<span id="cb10-46"><a href="#cb10-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-47"><a href="#cb10-47" aria-hidden="true" tabindex="-1"></a><span class="co"># WordCloud</span></span>
+<span id="cb10-48"><a href="#cb10-48" aria-hidden="true" tabindex="-1"></a><span class="co"># フォントの保存先を指定する（環境によって書き換えてください）</span></span>
+<span id="cb10-49"><a href="#cb10-49" aria-hidden="true" tabindex="-1"></a>font_path <span class="op">=</span> <span class="st">&quot;C:</span><span class="ch">\\</span><span class="st">WINDOWS</span><span class="ch">\\</span><span class="st">FONTS</span><span class="ch">\\</span><span class="st">MEIRYO.TTC&quot;</span>    <span class="co">## Windows 版はこちら</span></span>
+<span id="cb10-50"><a href="#cb10-50" aria-hidden="true" tabindex="-1"></a><span class="co">#font_path = &quot;/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc&quot;  ## Mac 版はこちら</span></span>
+<span id="cb10-51"><a href="#cb10-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-52"><a href="#cb10-52" aria-hidden="true" tabindex="-1"></a>stopwords <span class="op">=</span> [<span class="st">'こと'</span>,<span class="st">'もの'</span>,<span class="st">'ため'</span>]</span>
+<span id="cb10-53"><a href="#cb10-53" aria-hidden="true" tabindex="-1"></a>wc <span class="op">=</span> WordCloud(width<span class="op">=</span><span class="dv">1000</span></span>
+<span id="cb10-54"><a href="#cb10-54" aria-hidden="true" tabindex="-1"></a>              ,height<span class="op">=</span><span class="dv">400</span></span>
+<span id="cb10-55"><a href="#cb10-55" aria-hidden="true" tabindex="-1"></a>              ,background_color<span class="op">=</span><span class="st">'white'</span></span>
+<span id="cb10-56"><a href="#cb10-56" aria-hidden="true" tabindex="-1"></a>              , regexp<span class="op">=</span><span class="vs">r&quot;[\w']+&quot;</span> <span class="co">#一文字を表示</span></span>
+<span id="cb10-57"><a href="#cb10-57" aria-hidden="true" tabindex="-1"></a>              ,font_path<span class="op">=</span>font_path</span>
+<span id="cb10-58"><a href="#cb10-58" aria-hidden="true" tabindex="-1"></a>              ,stopwords<span class="op">=</span>stopwords).generate(sent)</span>
+<span id="cb10-59"><a href="#cb10-59" aria-hidden="true" tabindex="-1"></a>wc.to_file(<span class="st">&quot;result/fig/cuc2.png&quot;</span>)</span></code></pre></div>
+<h2 data-number="4" id="トピックモデル"><span class="header-section-number">4</span> トピックモデル</h2>
+<p>続いて, テキスト文書の集合から潜在的なトピック(話題)を抽出するために広く利用される古典的手法である,トピックモデルを利用してみましょう.</p>
+<p>トピックモデルでは単語の分布を使って,文章が何について話しているかを抽出します.ただし,出力は単語の集合で表されるため,そのトピックが何に関する話題かは利用者が判断する必要があります.</p>
+<pre><code>- 例: トピックA: ｢経済｣｢市場｣｢投資｣ ← 経済に関するトピック
+- 例: トピックB: ｢ねこ｣｢いぬ｣｢ペット｣ ← ペットに関するトピック と解釈できる</code></pre>
+<p>トピックモデルにもいくつかの手法がありますが,最も一般的な実装手法の一つにLDA（Latent Dirichlet Allocation: 潜在的ディリクレ配分法）があります. LDA以外にもPLSA（Probabilistic Latent Semantic Analysis）などがあります.</p>
+<p>LDAでは各文章をトピックの混合分布として表現します.</p>
+<pre><code>-   例: 文章1: トピックA 0.5, トピックB 0.4, トピックD 0.1
+-   例: 文章2: トピックA 0.6, トピックE 0.3</code></pre>
+<p>LDAでは,各文書のトピック分布と各トピックの単語分布にディリクレ分布を使用します.ディリクレ分布は,確率の分布に対する分布（事前分布）として使われ,特にトピックの混合率が異なる多様な文書集合に対応できます.この過程では「ギブスサンプリング」や「変分ベイズ法」といった推論手法を使い,文書全体のトピックと単語の分布が収束するまで反復的に計算されます.ギブスサンプリングや事後分布,事前分布などに関しては, 一般化線形モデルの章で扱っています.</p>
+<h3 data-number="4.1" id="xtwitter-apiを用いたデータの取得"><span class="header-section-number">4.1</span> X(Twitter) APIを用いたデータの取得</h3>
+<p>自然言語解析では,ワードクラウドの事例のように,まとまった文章を分析する場合もありますが,X(旧:Twitter)のつぶやきのように,短い文章の集合を扱う場合もあります. ここでは, TwitterのAPIを利用して,つぶやきを取得し,そのつぶやきに関して分析してみましょう.</p>
+<div class="note">
+<p><code>API（Application Programming Interface）</code>とは,ソフトウェア同士がデータや機能をやりとりするための「窓口」のようなものです.開発者はAPIを通じて,他のサービスやアプリケーションの機能を利用できるため,複雑な処理を簡単に実行したり,他のサービスと連携することができます.</p>
+<p>APIの利用に関わる主な通信技術には, <code>HTTP/HTTPSプロトコル</code>, <code>REST（Representational State Transfer）</code>, <code>SOAP（Simple Object Access Protocol）</code>,および<code>WebSocket</code>などがあり,それぞれ異なる目的や特徴を持っています.</p>
+</div>
+<p><code>X.API</code>は<code>REST</code>アーキテクチャで提供されて降りその概要は以下のとおりです.</p>
+<div class="note">
+<ul>
+<li><code>HTTP/HTTPSプロトコル</code></li>
+</ul>
+<p>APIの通信は通常,ウェブブラウザと同様にHTTPやHTTPSプロトコルを使って行われます.HTTPSは通信を暗号化し,セキュリティを確保するため,多くのAPIで推奨されます.</p>
+<ul>
+<li><code>REST（Representational State Transfer）</code></li>
+</ul>
+<p>RESTは,HTTPを利用してリソース（データや機能）にアクセスするための設計原則で,最も広く使われるAPI通信の形式です.REST APIでは,<code>GET</code>,<code>POST</code>,<code>PUT</code>,<code>DELETE</code>などのHTTPメソッドを使ってデータを取得,作成,更新,削除します.シンプルかつ軽量なため,モバイルアプリやWebサービスでの利用に適しています.</p>
+<ul>
+<li><code>GET</code></li>
+</ul>
+<p>概要: リソース（データ）の取得に使用される.</p>
+<p>例: ユーザー情報を取得する場合,GET /users/123のように送信すると,ユーザーIDが123のデータが返されます.</p>
+<p>特徴: サーバー上のデータを変更しない「読み取り専用」操作.</p>
+<ul>
+<li><code>POST</code></li>
+</ul>
+<p>概要: 新しいリソースを作成するために使用される.</p>
+<p>例: 新しい記事を投稿する場合,POST /articlesで記事データをサーバーに送信すると,新しい記事が作成されます.</p>
+<p>特徴: サーバーにデータを送信して新しいエントリを追加する操作.</p>
+<ul>
+<li><code>PUT</code></li>
+</ul>
+<p>概要: 既存のリソースを更新するために使用される.</p>
+<p>例: 記事の内容を変更する場合,PUT /articles/456で新しいデータを送信し,記事ID456の内容を更新します.</p>
+<p>特徴: 指定されたリソース全体を置き換える操作.</p>
+<ul>
+<li><code>DELETE</code></li>
+</ul>
+<p>概要: リソースの削除に使用される.</p>
+<p>例: 記事を削除する場合,DELETE /articles/456を実行すると,記事ID456が削除されます.</p>
+<p>特徴: サーバーからリソースを取り除く操作.</p>
+</div>
+<p>REST APIでデータをやりとりする際のデータ形式として,<strong><code>JSON（JavaScript Object Notation）</code></strong>が一般的に使用されます.JSONはシンプルで軽量なテキスト形式で,読みやすく,プログラミング言語間の互換性も高いため,多くのAPIで標準的なフォーマットとして採用されています.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="dv">123</span><span class="fu">,</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;John Doe&quot;</span><span class="fu">,</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;email&quot;</span><span class="fu">:</span> <span class="st">&quot;johndoe@example.com&quot;</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>これから,<code>X.API</code>にGETメソッドを利用し呟きを取得します.APIから返答されるデータはjsonですが,今回はJSONを直接触らず,これまでに扱ってきた<code>CSV</code>に変換します. APIを操作するためのライブラリ<code>requests</code>をinstallしておきましょう.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install requests</span></code></pre></div>
+<p>以下の処理はX APIの無料の範囲で行っていますので,誰でも再現できますが, アカウントの登録など手間が多く,また無料版のAPIでは15分に一回しかリクエストが送れないため,データの取得には最低でも30分かかります.
+社長と社名が変わってからAPI機能が物凄く使いにくくなっており,値段も高額になっています.まともに研究で利用しようと思うと月5000ドルのAPI使用料を払う必要があります.2000ドルはこの講義のために払うのが難しいので,月200ドルのBasicプランであれば利用できるアカウントは準備しますが,Basicプランでは<strong>過去7日間の呟きしか取得できない</strong>ので注意しましょう.</p>
+<p><img src="../images/ch15-XAPIV2Products.png" /></p>
+<p>研究で利用する人以外は完成した<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/tweet.csv">こちらのデータ</a>をダウンロードして利用しましょう.</p>
+<p>XのAPIを利用するには,認証トークン(<code>Bearer Token</code>)を発行する必要があります.認証トークンとは<code>X.API</code>にアクセスするための認証情報です.</p>
+<p><a href="https://x.com/i/flow/login?input_flow_data=%7B%22requested_variant%22%3A%22eyJyZWRpcmVjdF9hZnRlcl9sb2dpbiI6Imh0dHBzOi8vZGV2ZWxvcGVyLnguY29tL2VuL3BvcnRhbC9wcm9qZWN0cy1hbmQtYXBwcyJ9%22%7D">Xのデベロッパー用ページ</a>からまずはサインアップします.</p>
+<p>今回は無料版を利用するので, <code>Sign up for Free Account</code>をクリックしましょう.</p>
+<p><img src="../images/ch15-X-sign-up.png" /></p>
+<p>利用目的を尋ねられるので,<strong>250文字以上の英文で</strong>回答しましょう. その他のチェックを入れて,次に進みます.</p>
+<p><img src="../images/ch15-X-reason.png" /></p>
+<p>左のメニューの<code>Dashboard</code>に表示されている<code>Project APP</code>の<code>Keys and Tokens</code>(鍵)ボタンを押します.</p>
+<p><img src="../images/ch15-XAPI-Dashbooard.png" /></p>
+<p><code>Bearer Token</code>の<code>Regenerate</code>をクリックすると<code>Bearer Token</code>が表示されます. クリップボードにコピーしてどこかに保存しましょう.このトークンは一度しか表示されません.忘れた場合は別のトークンを再生成する必要があるので注意しましょう.</p>
+<p><img src="../images/ch15-XAPI-Token.png" /></p>
+<p>取得したトークンを利用してプログラムを書いていきます.</p>
+<p>まずは認証トークンを設定します.先ほど取得した認証トークンを<code>bearer_token</code>という変数に格納し,API呼び出し時に利用します(<code>YOUR_BEARER_TOKEN</code>の部分を書き換えましょう.)</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> requests <span class="co">#HTTPリクエストを送るためのライブラリです.このライブラリを使ってAPIにアクセスします.</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co"># 認証トークン</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>bearer_token <span class="op">=</span> <span class="st">'YOUR_BEARER_TOKEN'</span></span></code></pre></div>
+<p><code>X.API</code>の「検索」機能にアクセスするためのURLを指定します. ここでは,最近のツイートを取得するエンドポイント<code>search/recent</code>を指定しています. <code>search/recent</code>では直近7日間のつぶやきを取得できます. それ以上過去のつぶやきは<code>Pro</code>アカウントでしか取得することができません.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Twitter APIのエンドポイントURL</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>search_url <span class="op">=</span> <span class="st">&quot;https://api.x.com/2/tweets/search/recent&quot;</span></span></code></pre></div>
+<p>取得対象のキーワード（検索ワード）を指定します.このコードでは「自民党」に関するツイートを検索します.このコードでは面倒ですが,自民党の検索が終わったらこの部分を｢国民民主党｣に書き換えて再度実行します.一つのプログラムで両方取得することも可能ですが,<code>X.API</code>の無料版では,<strong>15分に1回しかリクエストが送れない</strong>ため,複数のワードで検索するにはコード内で15分間待機する機能を入れる必要があるので,手動で切り替えるようにしています.</p>
+<p><code>tweet_count</code>で各検索で取得するツイート数の上限です.無料版のAPI機能では, <strong>1ヶ月あたり100ツイートのみアクセスできる</strong>ので,50にすると1ヶ月に2回アクセスできます. 1度失敗すると数を大幅に減らすか,1ヶ月待つか,課金する必要があるので注意して下さい.</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 検索ワード</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>word <span class="op">=</span> <span class="st">&quot;国民民主党&quot;</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>tweet_count <span class="op">=</span> <span class="dv">50</span></span></code></pre></div>
+<p>認証トークンをリクエストヘッダーに追加するための関数<code>bearer_oauth()</code>を作成します.この関数で設定されたヘッダーを使って,<code>X.API</code>へのリクエストが認証されます.</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> bearer_oauth(r):</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    r.headers[<span class="st">&quot;Authorization&quot;</span>] <span class="op">=</span> <span class="ss">f&quot;Bearer </span><span class="sc">{</span>bearer_token<span class="sc">}</span><span class="ss">&quot;</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    r.headers[<span class="st">&quot;User-Agent&quot;</span>] <span class="op">=</span> <span class="st">&quot;v2RecentSearchPython&quot;</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> r</span></code></pre></div>
+<p>指定されたURLにGETリクエストを送信し,APIのレスポンスを取得します.<code>response.status_code != 200</code>でAPIからエラーが返された場合,例外を発生させます.正常なレスポンスを受け取った場合,JSON形式でデータを返します.</p>
+<div class="sourceCode" id="cb19"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> connect_to_endpoint(url, params):</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>    response <span class="op">=</span> requests.get(url, auth<span class="op">=</span>bearer_oauth, params<span class="op">=</span>params)</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>    response.encoding <span class="op">=</span> response.apparent_encoding</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> response.status_code <span class="op">!=</span> <span class="dv">200</span>:</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">raise</span> <span class="pp">Exception</span>(response.status_code, response.text)</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> response.json()</span></code></pre></div>
+<p>特定の検索ワードに関するツイートを取得します. 検索パラメータを<code>lang:ja</code>に設定し,日本語のツイートに限定しています.</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fetch_tweets_for_party(party):</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>    query_params <span class="op">=</span> {</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;query&quot;</span>: <span class="ss">f&quot;</span><span class="sc">{</span>party<span class="sc">}</span><span class="ss"> lang:ja&quot;</span>,</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;max_results&quot;</span>: tweet_count</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>    json_response <span class="op">=</span> connect_to_endpoint(search_url, query_params)</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>    tweets_data <span class="op">=</span> json_response.get(<span class="st">&quot;data&quot;</span>, [])</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> [tweet[<span class="st">&quot;text&quot;</span>] <span class="cf">for</span> tweet <span class="kw">in</span> tweets_data]</span></code></pre></div>
+<p>作成した関数を利用して,つぶやきを取得します.</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> main():</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>    all_tweets <span class="op">=</span> []</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;</span><span class="sc">{</span>word<span class="sc">}</span><span class="ss">のツイートを取得中...&quot;</span>)</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>    tweets <span class="op">=</span> fetch_tweets_for_party(word)</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> tweet <span class="kw">in</span> tweets:</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>        all_tweets.append({<span class="st">&quot;Word&quot;</span>: word, <span class="st">&quot;Tweet&quot;</span>: tweet})</span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> all_tweets:</span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>        df <span class="op">=</span> pd.DataFrame(all_tweets)</span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>        df.to_csv(<span class="st">&quot;tweets.csv&quot;</span>, index<span class="op">=</span><span class="va">False</span>, encoding<span class="op">=</span><span class="st">&quot;utf-8-sig&quot;</span>)</span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="st">&quot;tweets.csvにデータを書き出しました。&quot;</span>)</span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="st">&quot;取得したデータがありません。&quot;</span>)</span></code></pre></div>
+<p>コード全体は以下のようになります.</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> requests</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 認証トークン</span></span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>bearer_token <span class="op">=</span> <span class="st">'YOUR_BEARER_TOKEN'</span></span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Twitter APIのエンドポイントURL</span></span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>search_url <span class="op">=</span> <span class="st">&quot;https://api.x.com/2/tweets/search/recent&quot;</span></span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a><span class="co"># 検索ワード</span></span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>word <span class="op">=</span> <span class="st">&quot;国民民主党&quot;</span></span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a><span class="co"># 各政党ごとに取得する件数</span></span>
+<span id="cb22-14"><a href="#cb22-14" aria-hidden="true" tabindex="-1"></a>tweet_count <span class="op">=</span> <span class="dv">50</span></span>
+<span id="cb22-15"><a href="#cb22-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-16"><a href="#cb22-16" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> bearer_oauth(r):</span>
+<span id="cb22-17"><a href="#cb22-17" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb22-18"><a href="#cb22-18" aria-hidden="true" tabindex="-1"></a><span class="co">    Method required by bearer token authentication.</span></span>
+<span id="cb22-19"><a href="#cb22-19" aria-hidden="true" tabindex="-1"></a><span class="co">    &quot;&quot;&quot;</span></span>
+<span id="cb22-20"><a href="#cb22-20" aria-hidden="true" tabindex="-1"></a>    r.headers[<span class="st">&quot;Authorization&quot;</span>] <span class="op">=</span> <span class="ss">f&quot;Bearer </span><span class="sc">{</span>bearer_token<span class="sc">}</span><span class="ss">&quot;</span></span>
+<span id="cb22-21"><a href="#cb22-21" aria-hidden="true" tabindex="-1"></a>    r.headers[<span class="st">&quot;User-Agent&quot;</span>] <span class="op">=</span> <span class="st">&quot;v2RecentSearchPython&quot;</span></span>
+<span id="cb22-22"><a href="#cb22-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> r</span>
+<span id="cb22-23"><a href="#cb22-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-24"><a href="#cb22-24" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> connect_to_endpoint(url, params):</span>
+<span id="cb22-25"><a href="#cb22-25" aria-hidden="true" tabindex="-1"></a>    response <span class="op">=</span> requests.get(url, auth<span class="op">=</span>bearer_oauth, params<span class="op">=</span>params)</span>
+<span id="cb22-26"><a href="#cb22-26" aria-hidden="true" tabindex="-1"></a>    response.encoding <span class="op">=</span> response.apparent_encoding</span>
+<span id="cb22-27"><a href="#cb22-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> response.status_code <span class="op">!=</span> <span class="dv">200</span>:</span>
+<span id="cb22-28"><a href="#cb22-28" aria-hidden="true" tabindex="-1"></a>        <span class="cf">raise</span> <span class="pp">Exception</span>(response.status_code, response.text)</span>
+<span id="cb22-29"><a href="#cb22-29" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> response.json()</span>
+<span id="cb22-30"><a href="#cb22-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-31"><a href="#cb22-31" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fetch_tweets_for_party(party):</span>
+<span id="cb22-32"><a href="#cb22-32" aria-hidden="true" tabindex="-1"></a>    <span class="co"># パラメータの設定</span></span>
+<span id="cb22-33"><a href="#cb22-33" aria-hidden="true" tabindex="-1"></a>    query_params <span class="op">=</span> {</span>
+<span id="cb22-34"><a href="#cb22-34" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;query&quot;</span>: <span class="ss">f&quot;</span><span class="sc">{</span>party<span class="sc">}</span><span class="ss"> lang:ja&quot;</span>,</span>
+<span id="cb22-35"><a href="#cb22-35" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;max_results&quot;</span>: tweet_count  <span class="co"># APIの制限で一度に取得できるのは最大100件まで</span></span>
+<span id="cb22-36"><a href="#cb22-36" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb22-37"><a href="#cb22-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-38"><a href="#cb22-38" aria-hidden="true" tabindex="-1"></a>    <span class="co"># エンドポイントに接続してデータを取得</span></span>
+<span id="cb22-39"><a href="#cb22-39" aria-hidden="true" tabindex="-1"></a>    json_response <span class="op">=</span> connect_to_endpoint(search_url, query_params)</span>
+<span id="cb22-40"><a href="#cb22-40" aria-hidden="true" tabindex="-1"></a>    tweets_data <span class="op">=</span> json_response.get(<span class="st">&quot;data&quot;</span>, [])</span>
+<span id="cb22-41"><a href="#cb22-41" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> [tweet[<span class="st">&quot;text&quot;</span>] <span class="cf">for</span> tweet <span class="kw">in</span> tweets_data]</span>
+<span id="cb22-42"><a href="#cb22-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-43"><a href="#cb22-43" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> main():</span>
+<span id="cb22-44"><a href="#cb22-44" aria-hidden="true" tabindex="-1"></a>    all_tweets <span class="op">=</span> []</span>
+<span id="cb22-45"><a href="#cb22-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-46"><a href="#cb22-46" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 各政党ごとのツイートを取得してデータを集約</span></span>
+<span id="cb22-47"><a href="#cb22-47" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;</span><span class="sc">{</span>word<span class="sc">}</span><span class="ss">のツイートを取得中...&quot;</span>)</span>
+<span id="cb22-48"><a href="#cb22-48" aria-hidden="true" tabindex="-1"></a>    tweets <span class="op">=</span> fetch_tweets_for_party(party)</span>
+<span id="cb22-49"><a href="#cb22-49" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> tweet <span class="kw">in</span> tweets:</span>
+<span id="cb22-50"><a href="#cb22-50" aria-hidden="true" tabindex="-1"></a>        all_tweets.append({<span class="st">&quot;Word&quot;</span>: party, <span class="st">&quot;Tweet&quot;</span>: tweet})</span>
+<span id="cb22-51"><a href="#cb22-51" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-52"><a href="#cb22-52" aria-hidden="true" tabindex="-1"></a>    <span class="co"># データをDataFrameに変換してCSVに書き出し</span></span>
+<span id="cb22-53"><a href="#cb22-53" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> all_tweets:</span>
+<span id="cb22-54"><a href="#cb22-54" aria-hidden="true" tabindex="-1"></a>        df <span class="op">=</span> pd.DataFrame(all_tweets)</span>
+<span id="cb22-55"><a href="#cb22-55" aria-hidden="true" tabindex="-1"></a>        df.to_csv(<span class="st">&quot;tweets.csv&quot;</span>, index<span class="op">=</span><span class="va">False</span>, encoding<span class="op">=</span><span class="st">&quot;utf-8-sig&quot;</span>)</span>
+<span id="cb22-56"><a href="#cb22-56" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="st">&quot;tweets.csvにデータを書き出しました。&quot;</span>)</span>
+<span id="cb22-57"><a href="#cb22-57" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb22-58"><a href="#cb22-58" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="st">&quot;取得したデータがありません。&quot;</span>)</span>
+<span id="cb22-59"><a href="#cb22-59" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb22-60"><a href="#cb22-60" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="va">__name__</span> <span class="op">==</span> <span class="st">&quot;__main__&quot;</span>:</span>
+<span id="cb22-61"><a href="#cb22-61" aria-hidden="true" tabindex="-1"></a>    main()</span></code></pre></div>
+<p>このコードを<code>自民党</code>,<code>国民民主党</code>で二回走らせて,取得したそれぞれ50件の呟きをまとめたデータが<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/tweet.csv">こちら</a>になります.</p>
+<p>以下,このデータを利用して分析を行ってみましょう.</p>
+<h3 data-number="4.2" id="トピックモデル実践"><span class="header-section-number">4.2</span> トピックモデル実践</h3>
+<p>LDAによるトピックモデルを利用するためにライブラリ<code>gensim</code>と,LDAの可視化用のライブラリ<code>pyLDAvis</code>をインストールしましょう.</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install gensim pyLDAvis</span></code></pre></div>
+<p><code>import</code>と形態素解析のための関数を定義しておきます.
+URLは上手く形態素解析できないので,URLを削除する関数も新たに定義しています.</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> MeCab <span class="im">as</span> mc</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> re</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> gensim.corpora.dictionary <span class="im">import</span> Dictionary</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> gensim.models <span class="im">import</span> LdaModel</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pyLDAvis</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pyLDAvis.gensim_models <span class="im">as</span> gensimvis</span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pyLDAvis.gensim</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> strip_CRLF_from_Text(text):</span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;テキストファイルの改行,タブを削除し,形態素解析を実行</span></span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a><span class="co">    改行前後が日本語文字の場合は改行を削除する．</span></span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a><span class="co">    それ以外はスペースに置換する．</span></span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a><span class="co">    &quot;&quot;&quot;</span></span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 改行前後の文字が日本語文字の場合は改行を削除する</span></span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a>    plaintext <span class="op">=</span> re.sub(<span class="st">'([ぁ-んー]+|[ァ-ンー]+|[</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+|[ぁ-んァ-ンー</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+)(</span><span class="ch">\n</span><span class="st">)([ぁ-んー]+|[ァ-ンー]+|[</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+|[ぁ-んァ-ンー</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+)'</span>,</span>
+<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a>                       <span class="vs">r'\1\3'</span>,</span>
+<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a>                       text)</span>
+<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 残った改行とタブ記号はスペースに置換する</span></span>
+<span id="cb24-20"><a href="#cb24-20" aria-hidden="true" tabindex="-1"></a>    plaintext <span class="op">=</span> plaintext.replace(<span class="st">'</span><span class="ch">\n</span><span class="st">'</span>, <span class="st">' '</span>).replace(<span class="st">'</span><span class="ch">\t</span><span class="st">'</span>, <span class="st">' '</span>)</span>
+<span id="cb24-21"><a href="#cb24-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> plaintext</span>
+<span id="cb24-22"><a href="#cb24-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-23"><a href="#cb24-23" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> mecab_wakati(text,word_types <span class="op">=</span> [<span class="st">&quot;名詞&quot;</span>,<span class="st">&quot;動詞&quot;</span>,<span class="st">&quot;形容詞&quot;</span>,<span class="st">&quot;副詞&quot;</span>]):</span>
+<span id="cb24-24"><a href="#cb24-24" aria-hidden="true" tabindex="-1"></a>    <span class="co">#分かち書き</span></span>
+<span id="cb24-25"><a href="#cb24-25" aria-hidden="true" tabindex="-1"></a>    t <span class="op">=</span> mc.Tagger()</span>
+<span id="cb24-26"><a href="#cb24-26" aria-hidden="true" tabindex="-1"></a>    <span class="co">#word_types = [String]で指定 (&quot;名詞&quot;,&quot;動詞&quot;,&quot;形容詞&quot;,&quot;副詞&quot;)</span></span>
+<span id="cb24-27"><a href="#cb24-27" aria-hidden="true" tabindex="-1"></a>    node <span class="op">=</span> t.parseToNode(text)</span>
+<span id="cb24-28"><a href="#cb24-28" aria-hidden="true" tabindex="-1"></a>    sent <span class="op">=</span> <span class="st">&quot;&quot;</span></span>
+<span id="cb24-29"><a href="#cb24-29" aria-hidden="true" tabindex="-1"></a>    noun <span class="op">=</span> [x <span class="cf">for</span> x <span class="kw">in</span> word_types <span class="cf">if</span> x <span class="op">==</span> <span class="st">&quot;名詞&quot;</span>]</span>
+<span id="cb24-30"><a href="#cb24-30" aria-hidden="true" tabindex="-1"></a>    others <span class="op">=</span> [x <span class="cf">for</span> x <span class="kw">in</span> word_types <span class="cf">if</span> x <span class="kw">in</span> [ <span class="st">&quot;動詞&quot;</span>, <span class="st">&quot;形容詞&quot;</span>,<span class="st">&quot;副詞&quot;</span>]]</span>
+<span id="cb24-31"><a href="#cb24-31" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span>(node):</span>
+<span id="cb24-32"><a href="#cb24-32" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> node.surface <span class="op">!=</span> <span class="st">&quot;&quot;</span>:  <span class="co"># ヘッダとフッタを除外</span></span>
+<span id="cb24-33"><a href="#cb24-33" aria-hidden="true" tabindex="-1"></a>            word_type <span class="op">=</span> node.feature.split(<span class="st">&quot;,&quot;</span>)[<span class="dv">0</span>]</span>
+<span id="cb24-34"><a href="#cb24-34" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> word_type <span class="kw">in</span> noun:</span>
+<span id="cb24-35"><a href="#cb24-35" aria-hidden="true" tabindex="-1"></a>                 sent <span class="op">+=</span> node.surface <span class="op">+</span> <span class="st">&quot; &quot;</span> <span class="co"># node.surface は「表層形」</span></span>
+<span id="cb24-36"><a href="#cb24-36" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> word_type <span class="kw">in</span> others:</span>
+<span id="cb24-37"><a href="#cb24-37" aria-hidden="true" tabindex="-1"></a>                sent <span class="op">+=</span> node.feature.split(<span class="st">&quot;,&quot;</span>)[<span class="dv">6</span>] <span class="op">+</span> <span class="st">&quot; &quot;</span> <span class="co"># node.feature.split(&quot;,&quot;)[6] は形態素解析結果の「原型」</span></span>
+<span id="cb24-38"><a href="#cb24-38" aria-hidden="true" tabindex="-1"></a>        node <span class="op">=</span> node.<span class="bu">next</span></span>
+<span id="cb24-39"><a href="#cb24-39" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> node <span class="kw">is</span> <span class="va">None</span>:</span>
+<span id="cb24-40"><a href="#cb24-40" aria-hidden="true" tabindex="-1"></a>            <span class="cf">break</span></span>
+<span id="cb24-41"><a href="#cb24-41" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> sent</span>
+<span id="cb24-42"><a href="#cb24-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-43"><a href="#cb24-43" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> remove_urls(text):</span>
+<span id="cb24-44"><a href="#cb24-44" aria-hidden="true" tabindex="-1"></a>    <span class="co"># URLを検出する正規表現パターン</span></span>
+<span id="cb24-45"><a href="#cb24-45" aria-hidden="true" tabindex="-1"></a>    url_pattern <span class="op">=</span> <span class="vs">r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&amp;+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'</span></span>
+<span id="cb24-46"><a href="#cb24-46" aria-hidden="true" tabindex="-1"></a>    <span class="co"># URLを空文字に置換して除外</span></span>
+<span id="cb24-47"><a href="#cb24-47" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> re.sub(url_pattern, <span class="st">''</span>, text)</span></code></pre></div>
+<p>データを読み込みます. 今回は,自民党のつぶやきだけ抽出して利用してみましょう.
+(このデータを取得した次の日に国民民主党の党首の不倫騒動があったので,そのつぶやきが取れていれば面白かったのですが,残念です.)</p>
+<p>トークナイズ(形態素解析),と削除文字の指定,削除までをまとめて行います. ここで,指定している削除文字は一度結果を見たあとで追加したものです.実際の分析では,結果とコードを何往復かして,調整する作業が必要になります.</p>
+<p>形態素解析の前に<code>remove_urls()</code>を適用していることに注意して下さい.</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co">#データの読み込み</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/tweets.csv'</span>)</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="co">#国民民主党のリアクションシートだけのデータを作る</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>akagi <span class="op">=</span> df[df[<span class="st">'Word'</span>] <span class="op">==</span> <span class="st">'自民党'</span>][<span class="st">'Tweet'</span>]</span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a><span class="co">#トークナイズ</span></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>txt <span class="op">=</span> [mecab_wakati(strip_CRLF_from_Text(remove_urls(x)),[<span class="st">&quot;名詞&quot;</span>,<span class="st">&quot;動詞&quot;</span>]).split(<span class="st">' '</span>) <span class="cf">for</span> x <span class="kw">in</span> akagi]</span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a><span class="co">#削除文字の指定</span></span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>stopwords <span class="op">=</span> [<span class="st">'オモウ'</span>,<span class="st">'イウ'</span>,<span class="st">'イル'</span>,<span class="st">'アル'</span>,<span class="st">'こと'</span>]</span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>txt <span class="op">=</span> [[x <span class="cf">for</span> x <span class="kw">in</span> t <span class="cf">if</span> x <span class="kw">not</span> <span class="kw">in</span> stopwords] <span class="cf">for</span> t <span class="kw">in</span> txt]</span></code></pre></div>
+<p>前回扱った｢千葉商科大学の理念｣は単一のテキストデータでしたが,今回の分析の対象は50件のつぶやきです. このような複数のテキストを扱う際には,前処理として<strong>出現頻度による単語の削除</strong>がよく用いられます. 殆ど全てのテキストに出てくるような単語(数字や副詞などが多い)は特徴を抽出する際には役に立たないので削除したほうが良い場合があります. また,反対に出現が非常に稀な単語,造語や個人名なども削除したほうがいい場合があります.</p>
+<p>実際の分析では,どの程度の頻度を基準とするかを結果を見ながら調整する必要がありますが,今回は練習なので<code>2文書未満にしか出現しない単語</code>と,<code>全体の50%以上に出現する単語</code>を削除しています.</p>
+<p>実装は<code>dictionary</code>クラスの<code>filter_extremes()</code>メソッドを利用しています.</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co">#辞書の作成</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>dictionary <span class="op">=</span> Dictionary(txt)</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="co">#出現がx文書に満たない単語と、y%以上の文書に出現する単語を極端と見做し削除する</span></span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span><span class="dv">2</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span><span class="fl">0.5</span></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>dictionary.filter_extremes(no_below<span class="op">=</span>x,no_above<span class="op">=</span>y)</span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a><span class="co"># LdaModelが読み込めるBoW形式に変換</span></span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>corpus <span class="op">=</span> [dictionary.doc2bow(x) <span class="cf">for</span> x <span class="kw">in</span> txt]</span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Number of unique tokens: </span><span class="sc">{</span><span class="bu">len</span>(dictionary)<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Number of documents: </span><span class="sc">{</span><span class="bu">len</span>(corpus)<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a><span class="co">Number of unique tokens: 200</span></span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a><span class="co">Number of documents: 50</span></span>
+<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>LDAでは,事前に抽出するトピック数を決めることができます.こちらも実際には調整が必要ですが,今回は決め打ちで<code>3</code>としています.</p>
+<p><code>LDA</code>の結果は<code>pyLDAvis</code>によって<code>html</code>形式で出力されます.</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co">#3トピックを抽出</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>num_topics <span class="op">=</span><span class="dv">3</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>lda <span class="op">=</span> LdaModel(corpus, id2word <span class="op">=</span>dictionary, num_topics<span class="op">=</span>num_topics, alpha<span class="op">=</span><span class="fl">0.01</span>)</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a><span class="co">#トピックごとに上位5単語を表示</span></span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span>pd.DataFrame()</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> t <span class="kw">in</span> <span class="bu">range</span>(num_topics):</span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>    word<span class="op">=</span>[]</span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i, prob <span class="kw">in</span> lda.get_topic_terms(t, topn<span class="op">=</span><span class="dv">5</span>):</span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a>        word.append(dictionary.id2token[<span class="bu">int</span>(i)])</span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a>    _ <span class="op">=</span> pd.DataFrame([word],index<span class="op">=</span>[<span class="ss">f'topic</span><span class="sc">{</span>t<span class="op">+</span><span class="dv">1</span><span class="sc">}</span><span class="ss">'</span>])</span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> df._append(_)</span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df.T)</span>
+<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a><span class="co">  topic1 topic2 topic3</span></span>
+<span id="cb27-17"><a href="#cb27-17" aria-hidden="true" tabindex="-1"></a><span class="co">0    ホロブ     こと     反対</span></span>
+<span id="cb27-18"><a href="#cb27-18" aria-hidden="true" tabindex="-1"></a><span class="co">1     報道     立憲     問題</span></span>
+<span id="cb27-19"><a href="#cb27-19" aria-hidden="true" tabindex="-1"></a><span class="co">2     日本     国民     日本</span></span>
+<span id="cb27-20"><a href="#cb27-20" aria-hidden="true" tabindex="-1"></a><span class="co">3     兵庫      国     国民</span></span>
+<span id="cb27-21"><a href="#cb27-21" aria-hidden="true" tabindex="-1"></a><span class="co">4      県     政党     クル</span></span>
+<span id="cb27-22"><a href="#cb27-22" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb27-23"><a href="#cb27-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-24"><a href="#cb27-24" aria-hidden="true" tabindex="-1"></a><span class="co">#可視化</span></span>
+<span id="cb27-25"><a href="#cb27-25" aria-hidden="true" tabindex="-1"></a><span class="co">#PyLDAvisの実装</span></span>
+<span id="cb27-26"><a href="#cb27-26" aria-hidden="true" tabindex="-1"></a>visualisation <span class="op">=</span> pyLDAvis.gensim.prepare(lda, corpus, dictionary)</span>
+<span id="cb27-27"><a href="#cb27-27" aria-hidden="true" tabindex="-1"></a>pyLDAvis.save_html(visualisation, <span class="st">'result/LDA_Visualization.html'</span>)</span></code></pre></div>
+<p>今回は3つのトピックで,<code>兵庫県知事の話題(?)</code>,<code>立憲民主党や,国民民主党など政党の話題(?)</code>,<code>なにかに反対している問題(?)</code>などが抽出されました. あまりはっきりしていませんが,もう少しつぶやきの数を増やすと分かりやすくなるかもしれません.</p>
+<p>出力された<code>LDA_Visualization.html</code>をクリックするとブラウザ上で確認することができます.</p>
+<p><img src="../images/ch15-LDA-result1.png" /></p>
+<p>左側には主成分分析による第1主成分,第2主成分上にマッピングされたトピックの集合が可視化されており,右側には全体のトピックにおける単語の分布が表示されています.</p>
+<p>それぞれのトピックをクリックすることでトピックごとの単語の分布が表示されます.</p>
+<p><img src="../images/ch15-LDA-result2.png" />
+<img src="../images/ch15-LDA-result3.png" /></p>
+<p>右上のバーで調整できるラムダは,トピックモデルの結果を調整するためのパラメータです.ラムダの値が大きいほど,他のトピックにも出現する一般的な単語を除外し,トピック内の単語の特徴を強調します. 値を変化させてどのようにトピックの分布が変わるかを確認してみましょう.</p>
+<p>コード全体は以下のようになっています.</p>
+<div class="sourceCode" id="cb28"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> MeCab <span class="im">as</span> mc</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> re</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> gensim.corpora.dictionary <span class="im">import</span> Dictionary</span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> gensim.models <span class="im">import</span> LdaModel</span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pyLDAvis</span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pyLDAvis.gensim_models <span class="im">as</span> gensimvis</span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pyLDAvis.gensim</span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> strip_CRLF_from_Text(text):</span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;テキストファイルの改行,タブを削除し,形態素解析を実行</span></span>
+<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a><span class="co">    改行前後が日本語文字の場合は改行を削除する．</span></span>
+<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a><span class="co">    それ以外はスペースに置換する．</span></span>
+<span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a><span class="co">    &quot;&quot;&quot;</span></span>
+<span id="cb28-16"><a href="#cb28-16" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 改行前後の文字が日本語文字の場合は改行を削除する</span></span>
+<span id="cb28-17"><a href="#cb28-17" aria-hidden="true" tabindex="-1"></a>    plaintext <span class="op">=</span> re.sub(<span class="st">'([ぁ-んー]+|[ァ-ンー]+|[</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+|[ぁ-んァ-ンー</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+)(</span><span class="ch">\n</span><span class="st">)([ぁ-んー]+|[ァ-ンー]+|[</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+|[ぁ-んァ-ンー</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+)'</span>,</span>
+<span id="cb28-18"><a href="#cb28-18" aria-hidden="true" tabindex="-1"></a>                       <span class="vs">r'\1\3'</span>,</span>
+<span id="cb28-19"><a href="#cb28-19" aria-hidden="true" tabindex="-1"></a>                       text)</span>
+<span id="cb28-20"><a href="#cb28-20" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 残った改行とタブ記号はスペースに置換する</span></span>
+<span id="cb28-21"><a href="#cb28-21" aria-hidden="true" tabindex="-1"></a>    plaintext <span class="op">=</span> plaintext.replace(<span class="st">'</span><span class="ch">\n</span><span class="st">'</span>, <span class="st">' '</span>).replace(<span class="st">'</span><span class="ch">\t</span><span class="st">'</span>, <span class="st">' '</span>)</span>
+<span id="cb28-22"><a href="#cb28-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> plaintext</span>
+<span id="cb28-23"><a href="#cb28-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-24"><a href="#cb28-24" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> mecab_wakati(text,word_types <span class="op">=</span> [<span class="st">&quot;名詞&quot;</span>,<span class="st">&quot;動詞&quot;</span>,<span class="st">&quot;形容詞&quot;</span>,<span class="st">&quot;副詞&quot;</span>]):</span>
+<span id="cb28-25"><a href="#cb28-25" aria-hidden="true" tabindex="-1"></a>    <span class="co">#分かち書き</span></span>
+<span id="cb28-26"><a href="#cb28-26" aria-hidden="true" tabindex="-1"></a>    t <span class="op">=</span> mc.Tagger()</span>
+<span id="cb28-27"><a href="#cb28-27" aria-hidden="true" tabindex="-1"></a>    <span class="co">#word_types = [String]で指定 (&quot;名詞&quot;,&quot;動詞&quot;,&quot;形容詞&quot;,&quot;副詞&quot;)</span></span>
+<span id="cb28-28"><a href="#cb28-28" aria-hidden="true" tabindex="-1"></a>    node <span class="op">=</span> t.parseToNode(text)</span>
+<span id="cb28-29"><a href="#cb28-29" aria-hidden="true" tabindex="-1"></a>    sent <span class="op">=</span> <span class="st">&quot;&quot;</span></span>
+<span id="cb28-30"><a href="#cb28-30" aria-hidden="true" tabindex="-1"></a>    noun <span class="op">=</span> [x <span class="cf">for</span> x <span class="kw">in</span> word_types <span class="cf">if</span> x <span class="op">==</span> <span class="st">&quot;名詞&quot;</span>]</span>
+<span id="cb28-31"><a href="#cb28-31" aria-hidden="true" tabindex="-1"></a>    others <span class="op">=</span> [x <span class="cf">for</span> x <span class="kw">in</span> word_types <span class="cf">if</span> x <span class="kw">in</span> [ <span class="st">&quot;動詞&quot;</span>, <span class="st">&quot;形容詞&quot;</span>,<span class="st">&quot;副詞&quot;</span>]]</span>
+<span id="cb28-32"><a href="#cb28-32" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span>(node):</span>
+<span id="cb28-33"><a href="#cb28-33" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> node.surface <span class="op">!=</span> <span class="st">&quot;&quot;</span>:  <span class="co"># ヘッダとフッタを除外</span></span>
+<span id="cb28-34"><a href="#cb28-34" aria-hidden="true" tabindex="-1"></a>            word_type <span class="op">=</span> node.feature.split(<span class="st">&quot;,&quot;</span>)[<span class="dv">0</span>]</span>
+<span id="cb28-35"><a href="#cb28-35" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> word_type <span class="kw">in</span> noun:</span>
+<span id="cb28-36"><a href="#cb28-36" aria-hidden="true" tabindex="-1"></a>                 sent <span class="op">+=</span> node.surface <span class="op">+</span> <span class="st">&quot; &quot;</span> <span class="co"># node.surface は「表層形」</span></span>
+<span id="cb28-37"><a href="#cb28-37" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> word_type <span class="kw">in</span> others:</span>
+<span id="cb28-38"><a href="#cb28-38" aria-hidden="true" tabindex="-1"></a>                sent <span class="op">+=</span> node.feature.split(<span class="st">&quot;,&quot;</span>)[<span class="dv">6</span>] <span class="op">+</span> <span class="st">&quot; &quot;</span> <span class="co"># node.feature.split(&quot;,&quot;)[6] は形態素解析結果の「原型」</span></span>
+<span id="cb28-39"><a href="#cb28-39" aria-hidden="true" tabindex="-1"></a>        node <span class="op">=</span> node.<span class="bu">next</span></span>
+<span id="cb28-40"><a href="#cb28-40" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> node <span class="kw">is</span> <span class="va">None</span>:</span>
+<span id="cb28-41"><a href="#cb28-41" aria-hidden="true" tabindex="-1"></a>            <span class="cf">break</span></span>
+<span id="cb28-42"><a href="#cb28-42" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> sent</span>
+<span id="cb28-43"><a href="#cb28-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-44"><a href="#cb28-44" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> remove_urls(text):</span>
+<span id="cb28-45"><a href="#cb28-45" aria-hidden="true" tabindex="-1"></a>    <span class="co"># URLを検出する正規表現パターン</span></span>
+<span id="cb28-46"><a href="#cb28-46" aria-hidden="true" tabindex="-1"></a>    url_pattern <span class="op">=</span> <span class="vs">r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&amp;+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'</span></span>
+<span id="cb28-47"><a href="#cb28-47" aria-hidden="true" tabindex="-1"></a>    <span class="co"># URLを空文字に置換して除外</span></span>
+<span id="cb28-48"><a href="#cb28-48" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> re.sub(url_pattern, <span class="st">''</span>, text)</span>
+<span id="cb28-49"><a href="#cb28-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-50"><a href="#cb28-50" aria-hidden="true" tabindex="-1"></a><span class="co">#------------------------------------------------------------------</span></span>
+<span id="cb28-51"><a href="#cb28-51" aria-hidden="true" tabindex="-1"></a><span class="co"># ↑ ここまで,関数定義</span></span>
+<span id="cb28-52"><a href="#cb28-52" aria-hidden="true" tabindex="-1"></a><span class="co"># ↓ ここから,データ処理</span></span>
+<span id="cb28-53"><a href="#cb28-53" aria-hidden="true" tabindex="-1"></a><span class="co">#------------------------------------------------------------------</span></span>
+<span id="cb28-54"><a href="#cb28-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-55"><a href="#cb28-55" aria-hidden="true" tabindex="-1"></a><span class="co">#データの読み込み</span></span>
+<span id="cb28-56"><a href="#cb28-56" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/tweets.csv'</span>)</span>
+<span id="cb28-57"><a href="#cb28-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-58"><a href="#cb28-58" aria-hidden="true" tabindex="-1"></a><span class="co">#国民民主党のリアクションシートだけのデータを作る</span></span>
+<span id="cb28-59"><a href="#cb28-59" aria-hidden="true" tabindex="-1"></a>akagi <span class="op">=</span> df[df[<span class="st">'Word'</span>] <span class="op">==</span> <span class="st">'自民党'</span>][<span class="st">'Tweet'</span>]</span>
+<span id="cb28-60"><a href="#cb28-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-61"><a href="#cb28-61" aria-hidden="true" tabindex="-1"></a><span class="co">#トークナイズ</span></span>
+<span id="cb28-62"><a href="#cb28-62" aria-hidden="true" tabindex="-1"></a>txt <span class="op">=</span> [mecab_wakati(strip_CRLF_from_Text(remove_urls(x)),[<span class="st">&quot;名詞&quot;</span>,<span class="st">&quot;動詞&quot;</span>]).split(<span class="st">' '</span>) <span class="cf">for</span> x <span class="kw">in</span> akagi]</span>
+<span id="cb28-63"><a href="#cb28-63" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-64"><a href="#cb28-64" aria-hidden="true" tabindex="-1"></a><span class="co">#削除文字の指定</span></span>
+<span id="cb28-65"><a href="#cb28-65" aria-hidden="true" tabindex="-1"></a>stopwords <span class="op">=</span> [<span class="st">'オモウ'</span>,<span class="st">'イウ'</span>,<span class="st">'イル'</span>,<span class="st">'アル'</span>,<span class="st">'こと'</span>]</span>
+<span id="cb28-66"><a href="#cb28-66" aria-hidden="true" tabindex="-1"></a>txt <span class="op">=</span> [[x <span class="cf">for</span> x <span class="kw">in</span> t <span class="cf">if</span> x <span class="kw">not</span> <span class="kw">in</span> stopwords] <span class="cf">for</span> t <span class="kw">in</span> txt]</span>
+<span id="cb28-67"><a href="#cb28-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-68"><a href="#cb28-68" aria-hidden="true" tabindex="-1"></a><span class="co">#辞書の作成</span></span>
+<span id="cb28-69"><a href="#cb28-69" aria-hidden="true" tabindex="-1"></a>dictionary <span class="op">=</span> Dictionary(txt)</span>
+<span id="cb28-70"><a href="#cb28-70" aria-hidden="true" tabindex="-1"></a><span class="co">#出現がx文書に満たない単語と、y%以上の文書に出現する単語を極端と見做し削除する</span></span>
+<span id="cb28-71"><a href="#cb28-71" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span><span class="dv">2</span></span>
+<span id="cb28-72"><a href="#cb28-72" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span><span class="fl">0.5</span></span>
+<span id="cb28-73"><a href="#cb28-73" aria-hidden="true" tabindex="-1"></a>dictionary.filter_extremes(no_below<span class="op">=</span>x,no_above<span class="op">=</span>y)</span>
+<span id="cb28-74"><a href="#cb28-74" aria-hidden="true" tabindex="-1"></a><span class="co"># LdaModelが読み込めるBoW形式に変換</span></span>
+<span id="cb28-75"><a href="#cb28-75" aria-hidden="true" tabindex="-1"></a>corpus <span class="op">=</span> [dictionary.doc2bow(x) <span class="cf">for</span> x <span class="kw">in</span> txt]</span>
+<span id="cb28-76"><a href="#cb28-76" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-77"><a href="#cb28-77" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Number of unique tokens: </span><span class="sc">{</span><span class="bu">len</span>(dictionary)<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb28-78"><a href="#cb28-78" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Number of documents: </span><span class="sc">{</span><span class="bu">len</span>(corpus)<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb28-79"><a href="#cb28-79" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-80"><a href="#cb28-80" aria-hidden="true" tabindex="-1"></a><span class="co">#3トピックを抽出</span></span>
+<span id="cb28-81"><a href="#cb28-81" aria-hidden="true" tabindex="-1"></a>num_topics <span class="op">=</span><span class="dv">3</span></span>
+<span id="cb28-82"><a href="#cb28-82" aria-hidden="true" tabindex="-1"></a>lda <span class="op">=</span> LdaModel(corpus, id2word <span class="op">=</span>dictionary, num_topics<span class="op">=</span>num_topics, alpha<span class="op">=</span><span class="fl">0.01</span>)</span>
+<span id="cb28-83"><a href="#cb28-83" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-84"><a href="#cb28-84" aria-hidden="true" tabindex="-1"></a><span class="co">#トピックごとに上位5単語を表示</span></span>
+<span id="cb28-85"><a href="#cb28-85" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span>pd.DataFrame()</span>
+<span id="cb28-86"><a href="#cb28-86" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> t <span class="kw">in</span> <span class="bu">range</span>(num_topics):</span>
+<span id="cb28-87"><a href="#cb28-87" aria-hidden="true" tabindex="-1"></a>    word<span class="op">=</span>[]</span>
+<span id="cb28-88"><a href="#cb28-88" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i, prob <span class="kw">in</span> lda.get_topic_terms(t, topn<span class="op">=</span><span class="dv">5</span>):</span>
+<span id="cb28-89"><a href="#cb28-89" aria-hidden="true" tabindex="-1"></a>        word.append(dictionary.id2token[<span class="bu">int</span>(i)])</span>
+<span id="cb28-90"><a href="#cb28-90" aria-hidden="true" tabindex="-1"></a>    _ <span class="op">=</span> pd.DataFrame([word],index<span class="op">=</span>[<span class="ss">f'topic</span><span class="sc">{</span>t<span class="op">+</span><span class="dv">1</span><span class="sc">}</span><span class="ss">'</span>])</span>
+<span id="cb28-91"><a href="#cb28-91" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> df._append(_)</span>
+<span id="cb28-92"><a href="#cb28-92" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-93"><a href="#cb28-93" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df.T)</span>
+<span id="cb28-94"><a href="#cb28-94" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-95"><a href="#cb28-95" aria-hidden="true" tabindex="-1"></a><span class="co">#可視化</span></span>
+<span id="cb28-96"><a href="#cb28-96" aria-hidden="true" tabindex="-1"></a><span class="co">#PyLDAvisの実装</span></span>
+<span id="cb28-97"><a href="#cb28-97" aria-hidden="true" tabindex="-1"></a>visualisation <span class="op">=</span> pyLDAvis.gensim.prepare(lda, corpus, dictionary)</span>
+<span id="cb28-98"><a href="#cb28-98" aria-hidden="true" tabindex="-1"></a>pyLDAvis.save_html(visualisation, <span class="st">'result/LDA_Visualization.html'</span>)</span></code></pre></div>
+<h2 data-number="5" id="ニューラル言語モデル"><span class="header-section-number">5</span> ニューラル言語モデル</h2>
+<p>トピックモデルでは,単語の分布を解釈していましたが,文章自体の意味を扱っているわけでは有りません. 文章や単語の意味を利用した分析手法について見てみましょう.</p>
+<p>本節では, 2018年にGoogleが発表したニューラル言語モデルのである<strong><code>BERT(Bidirectional Encoder Representations from Transformers)</code></strong>を利用して見ましょう(なお,BERTの後継に<code>ELECTRA</code>がありますが,資料の更新ができていません.)</p>
+<p>BERTはなどのニューラル言語モデルは<strong>事前学習</strong>と<strong>ファインチューニング</strong>という二段階の学習を行うのが一般的です.</p>
+<div class="note">
+<ul>
+<li>事前学習</li>
+</ul>
+<p>(日本語など)言語全般に関して大規模なテキストコーパス(Wikipediaなど)で学習
+こちらのモデルがGoogleによって公開されている(ライブラリとして利用可能)</p>
+<ul>
+<li>ファインチューニング</li>
+</ul>
+<p>事前学習済みのBERTモデルをタスク(穴埋め,ラベリング,校正などの用途)によって追加学習させる.
+タスクに関連した新たなデータセットが必要
+ラベリングをするのであれば,ラベル付けされた教師データが必要</p>
+</div>
+<p>BERTはコーパスを用いてどのような学習を行っているのでしょうか. 基本的にBERTが行っているのは文章の穴埋め精度を高めるための学習です.</p>
+<ul>
+<li>私はりんごを【MASK】</li>
+</ul>
+<p>という一部が隠れた文章があったとき, 【MASK】の部分に入る文字列の確率計算をしています.
+通常,文章の【MASK】部分に入る文章は,それぞれ確率が異なります.</p>
+<p>例えば,上の文章では【MASK】部分に｢行う｣｢走る｣などの動詞が続く確率よりも｢食べる｣｢買う｣｢調理する｣などの動詞が続く確率が高いと考えられます.</p>
+<ul>
+<li>私はりんごを行った ← 確率低い</li>
+<li>私はりんごを食べた ← 確率高い</li>
+</ul>
+<p>人間は過去の学習から,このような確率をなんとなく判断できますが,BERTはコーパスから教師あり学習をして,あらゆる語彙の連なりやすさの確率を計算しています.</p>
+<p><span class="math display">\[𝑃(食べた│私はりんごを)=\frac{(コーパス中の頻度(私はりんごを食べた))}{(コーパス中の頻度(私はりんごを))}\]</span></p>
+<p><span class="math display">\[𝑃(食べた│私はりんごを)= \frac{(コーパス中の頻度(私はりんごを行った))}{(コーパス中の頻度(私はりんごを))}\]</span></p>
+<p>大抵はすでにこのような事前学習が行われたモデルを利用し,必要があればファインチューニングをそれぞれの利用者が行います. 日本語で有名な学習済みモデルには東北大がWikipediaの日本語記事ので学習したモデル(<code>'tohoku-nlp/bert-base-japanese-whole-word-masking</code>)などがあります.</p>
+<p>BERTのファインチューニングのためには,目的に応じたデータセットが必要となります.このデータは,トピックモデルなどで扱ってきたような分析用のデータではなく,学習用のデータです.</p>
+<div class="note">
+<ul>
+<li>データセット</li>
+</ul>
+<p>日本語データセットとして良く利用されるものは以下のとおりです.</p>
+<ul>
+<li><a href="https://www.db.info.gifu-u.ac.jp/sentiment_analysis/">Twitter日本語評判分析データセット</a></li>
+</ul>
+<p>Twitterの商品に関するポジティブ,ネガティブ,ニュートラルのラベリングデータ</p>
+<ul>
+<li><a href="https://www.jnlp.org/GengoHouse/snow/d18">SNOW D18日本語感情表現辞書</a></li>
+</ul>
+<p>日本語を48の勘定に分類</p>
+<blockquote>
+<p>安らぎ、楽しさ親しみ、尊敬・尊さ、感謝、気持ちが良い、誇らしい、感動、喜び、悲しさ、寂しさ不満、切なさ、苦しさ、不安、憂鬱、辛さ、好き、嫌悪、恥ずかしい、焦り、驚き、怒り、幸福感、恨み、恐れ（恐縮等の意味で）、恐怖、悔しさ、祝う気持ち、困惑、きまずさ、興奮、悩み、願望、失望、あわれみ、見下し、謝罪、ためらい、不快、怠さ、あきれ、心配、緊張、妬み、憎い、残念、情けない、穏やか</p>
+</blockquote>
+<ul>
+<li><a href="https://www.rondhuit.com/download.html#news%20corpus">livedorニュースコーパス</a></li>
+</ul>
+<p>ニュース記事をサイト別/ジャンル別に分類</p>
+<ul>
+<li><p><a href="http://news.livedoor.com/category/vender/news/">トピックニュース</a></p></li>
+<li><p><a href="http://news.livedoor.com/category/vender/208/">Sports Watch</a></p></li>
+<li><p><a href="http://news.livedoor.com/category/vender/223/">ITライフハック</a></p></li>
+<li><p><a href="http://news.livedoor.com/category/vender/kadench/">家電チャンネル</a></p></li>
+<li><p><a href="http://news.livedoor.com/category/vender/movie_enter/">MOVIE ENTER</a></p></li>
+<li><p><a href="http://news.livedoor.com/category/vender/90/">独女通信</a></p></li>
+<li><p><a href="http://news.livedoor.com/category/vender/smax/">エスマックス</a></p></li>
+<li><p><a href="http://news.livedoor.com/category/vender/homme/">livedoor HOMME</a></p></li>
+<li><p><a href="http://news.livedoor.com/category/vender/ldgirls/">Peachy</a></p></li>
+<li><p><a href="https://github.com/chakki-works/chABSA-dataset">有価証券報告書ネガポジデータセット</a></p></li>
+</ul>
+<p>TIS株式会社が公開している上場企業の有価証券報告書を用いて作成されたマルチラベルのネガポジデータセット</p>
+<p>ネガティブ, ポジティブ, ニュートラルの3ラベル</p>
+</div>
+<p>BERTをどのように利用するかは,様々な応用がありえますが, 良く利用される事例は以下のようなものです.</p>
+<div class="note">
+<ul>
+<li><h3 id="bertの利用例">BERTの利用例</h3></li>
+</ul>
+<ol type="1">
+<li><p><strong>文章の穴埋め（Masked Language Model, MLM）</strong></p>
+<p>トークンを利用して文中の一部を隠し,その隠れた部分を予測します.たとえば「今日は【MASK】に行く」という文が与えられた場合,BERTは文脈に基づいて【MASK】部分が「学校」「会社」などになると予測します.この機能により,文章の補完やオートコンプリート機能に利用できます.</p></li>
+<li><p><strong>文章分類</strong></p>
+<p>BERTは感情分析や話題の分類などの文章分類タスクで広く使われています.例えば,商品レビューやSNSの投稿をポジティブ・ネガティブといった感情ラベルに分類することで,マーケティング分析やレコメンドシステムの精度を向上させます.また,ニュース記事をカテゴリに分けるなど,文書分類にも応用されています.</p></li>
+<li><p><strong>マルチラベル文章分類</strong></p>
+<p>一部の文章は,複数の感情やカテゴリに属することがあり,BERTは「ポジティブかつネガティブ」のように複数のラベルを付与するマルチラベル分類も可能です.これにより,特定のジャンルに限らない複数の特徴や感情を同時に判別し,より高度な文章分析を可能にします.たとえば,レビューが「高評価だが高価」といった異なる側面を含む場合も,それぞれの特徴を捉えることができます.</p></li>
+<li><p><strong>固有表現抽出（Named Entity Recognition, NER）</strong></p>
+<p>BERTを用いて文章から特定の固有名詞を抽出できます.例えば,文中の「人名」「組織名」「地名」などの固有表現を検出し,ビジネスや医療,自然言語処理の分野で多用されます.ニュース記事から企業名や国名を抽出して情報整理を行ったり,顧客対応で企業名や製品名を抽出して対応を迅速化するなどの応用が可能です.</p></li>
+<li><p><strong>文章校正</strong></p>
+<p>BERTを使った校正機能は,文法チェックやスペルチェックに利用され,Grammarlyのようなサービスに応用できます.文脈を考慮した校正が可能なため,単なる誤字脱字の修正だけでなく,不自然な表現を検知し,より適切な言い回しに修正することも可能です.</p></li>
+<li><p><strong>データの可視化と類似文章検索</strong></p>
+<p>BERTのエンコーディング機能を使うと,文章をベクトル化し,意味の似た文章を数値的に比較できるようになります.これにより,多次元空間における文章の類似性が計算でき,例えばPCAやt-SNEで次元を減らし,クラスタリングを行ってデータを可視化できます.類似した内容の文書を自動でグループ分けしたり,ユーザーが検索したい文に近い内容の文書を瞬時に探すといった検索機能にも利用されます.</p></li>
+</ol>
+</div>
+<h3 data-number="5.1" id="マルチラベル分類"><span class="header-section-number">5.1</span> マルチラベル分類</h3>
+<p>マルチラベル分類とは選択肢の中から復数のカテゴリーを選ぶ分類手法です.
+今回は有価証券報告書データを利用して{ネガティブ,ニュートラル,ポジティブ}に分類します.
+ネガティブと判定されると{1,0,0},ニュートラルと判定されると{0,1,0}のようなベクトルが返ってきます.</p>
+<div class="note">
+<ul>
+<li><h3 id="gpu計算とcpu計算">GPU計算とCPU計算</h3>
+PCにおける計算は通常CPUによって行われます.
+これまでに実行してきたPythonプログラムは全てCPUを用いた計算を行っていました(画像処理ではGPU計算も可能なプログラムになっていました.)
+一方でGPU(Graphics Processing Unit,画像処理装置,いわゆるグラボ)を利用してプログラムを計算することも可能です.
+ニューラルネットワークモデルは,その特性から単純な計算を大量に行うためGPUを用いた並列計算が行われることが多いです.</li>
+</ul>
+<p><img src="../images/ch15-cpu-gpu.png" /></p>
+</div>
+<p>これからBERTを利用してマルチラベル分類を実施してみます. ただし,ニューラルモデルを利用するにあたって,学生それぞれのノートPCでGPU計算の環境を構築することが困難なので, Googleの提供するオンライン上のPythonの実行環境である<code>Colaboratory</code>を利用します.</p>
+<p>まずは,<a href="https://www.google.com">Google</a>のサービスを利用するためのGoogleアカウントを作成しましょう(既にある人はスキップ)</p>
+<p><img src="../images/ch15-google.png" /></p>
+<p>プログラムやデータなどはGoogleのクラウドストレージであるGoogle Driveに保存されます.
+Google Drive上に作業用ディレクトリを作りましょう.</p>
+<p><img src="../images/ch15-google2.png" /></p>
+<p>新規作成からフォルダを作成し,適当な名前をつけましょう. フォルダ内にはデータを保存するフォルダ<code>data</code>を作成しておきましょう.
+<img src="../images/ch15-google3.png" /></p>
+<p>作成したフォルダにプログラムやデータをドラッグアンドドロップすることでアップロードできます.</p>
+<p>実際にコードやデータを利用する前にGoogle Drive上で<code>Colaboratory</code>のファイルを扱えるようにしましょう.</p>
+<p>右下<code>+</code>ボタンをクリックして,<code>Colaboratory</code>のアドオンを検索し,インストールしましょう.</p>
+<p><img src="../images/ch15-google4.png" /></p>
+<div class="warn">
+<p>インストールが完了したら一度ページを再読み込みしましょう.</p>
+</div>
+<p>今回はマルチラベル用のプログラムを新規作成します. フォルダの何もない部分を右クリックして,その他から,Colaboratoryのファイル(拡張子<code>.ipynb</code>)を作成しましょう.</p>
+<p><img src="../images/ch15-google5.png" /></p>
+<p>作成したファイルをダブルクリックするとColaboratoryが起動します.
+まずは,右上の設定からGPU計算が可能なように設定を変更しましょう.</p>
+<p><img src="../images/ch15-colab.png" /></p>
+<p>Colaboratoryは対話型環境になっており, プログラムを書いてブロックごとに実行します. 各ブロックの左側にある再生ボタンを押すか,<code>Runtime</code>から実行方法を選択して実行します. <code>Run all</code>をクリックすると全てのブロックが上から順に実行されます.</p>
+<p><img src="../images/ch15-colab1.png" /></p>
+<p><img src="../images/ch15-colab2.png" /></p>
+<p><code>!</code>に続けて入力することでシェルコマンドも実行可能です.</p>
+<p>最初に,今回のプログラムで必要となるライブラリをインストールしてみましょう.</p>
+<div class="sourceCode" id="cb29"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co">#ライブラリのインストール</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>pip install transformers<span class="op">==</span><span class="fl">4.18.0</span> fugashi<span class="op">==</span><span class="fl">1.1.0</span> ipadic<span class="op">==</span><span class="fl">1.0.0</span> pytorch_lightning</span></code></pre></div>
+<div class="sourceCode" id="cb30"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> random</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> glob</span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json</span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> tqdm <span class="im">import</span> tqdm</span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
+<span id="cb30-7"><a href="#cb30-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch.utils.data <span class="im">import</span> DataLoader</span>
+<span id="cb30-8"><a href="#cb30-8" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> transformers <span class="im">import</span> BertJapaneseTokenizer, BertModel</span>
+<span id="cb30-9"><a href="#cb30-9" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pytorch_lightning <span class="im">as</span> pl</span>
+<span id="cb30-10"><a href="#cb30-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-11"><a href="#cb30-11" aria-hidden="true" tabindex="-1"></a><span class="co"># 日本語の学習モデル</span></span>
+<span id="cb30-12"><a href="#cb30-12" aria-hidden="true" tabindex="-1"></a>MODEL_NAME <span class="op">=</span> <span class="st">'tohoku-nlp/bert-base-japanese-whole-word-masking'</span></span>
+<span id="cb30-13"><a href="#cb30-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-14"><a href="#cb30-14" aria-hidden="true" tabindex="-1"></a><span class="co"># ------------------------------------------------------------------</span></span>
+<span id="cb30-15"><a href="#cb30-15" aria-hidden="true" tabindex="-1"></a><span class="co"># マルチラベル文章分類用のクラス</span></span>
+<span id="cb30-16"><a href="#cb30-16" aria-hidden="true" tabindex="-1"></a><span class="co"># ------------------------------------------------------------------</span></span>
+<span id="cb30-17"><a href="#cb30-17" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> BertForSequenceClassificationMultiLabel(torch.nn.Module):</span>
+<span id="cb30-18"><a href="#cb30-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-19"><a href="#cb30-19" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, model_name, num_labels):</span>
+<span id="cb30-20"><a href="#cb30-20" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>().<span class="fu">__init__</span>()</span>
+<span id="cb30-21"><a href="#cb30-21" aria-hidden="true" tabindex="-1"></a>        <span class="co"># BertModelのロード</span></span>
+<span id="cb30-22"><a href="#cb30-22" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.bert <span class="op">=</span> BertModel.from_pretrained(model_name)</span>
+<span id="cb30-23"><a href="#cb30-23" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 線形変換を初期化しておく</span></span>
+<span id="cb30-24"><a href="#cb30-24" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.linear <span class="op">=</span> torch.nn.Linear(</span>
+<span id="cb30-25"><a href="#cb30-25" aria-hidden="true" tabindex="-1"></a>            <span class="va">self</span>.bert.config.hidden_size, num_labels</span>
+<span id="cb30-26"><a href="#cb30-26" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb30-27"><a href="#cb30-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-28"><a href="#cb30-28" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> forward(</span>
+<span id="cb30-29"><a href="#cb30-29" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>,</span>
+<span id="cb30-30"><a href="#cb30-30" aria-hidden="true" tabindex="-1"></a>        input_ids<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb30-31"><a href="#cb30-31" aria-hidden="true" tabindex="-1"></a>        attention_mask<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb30-32"><a href="#cb30-32" aria-hidden="true" tabindex="-1"></a>        token_type_ids<span class="op">=</span><span class="va">None</span>,</span>
+<span id="cb30-33"><a href="#cb30-33" aria-hidden="true" tabindex="-1"></a>        labels<span class="op">=</span><span class="va">None</span></span>
+<span id="cb30-34"><a href="#cb30-34" aria-hidden="true" tabindex="-1"></a>    ):</span>
+<span id="cb30-35"><a href="#cb30-35" aria-hidden="true" tabindex="-1"></a>        <span class="co"># データを入力しBERTの最終層の出力を得る。</span></span>
+<span id="cb30-36"><a href="#cb30-36" aria-hidden="true" tabindex="-1"></a>        bert_output <span class="op">=</span> <span class="va">self</span>.bert(</span>
+<span id="cb30-37"><a href="#cb30-37" aria-hidden="true" tabindex="-1"></a>            input_ids<span class="op">=</span>input_ids,</span>
+<span id="cb30-38"><a href="#cb30-38" aria-hidden="true" tabindex="-1"></a>            attention_mask<span class="op">=</span>attention_mask,</span>
+<span id="cb30-39"><a href="#cb30-39" aria-hidden="true" tabindex="-1"></a>            token_type_ids<span class="op">=</span>token_type_ids)</span>
+<span id="cb30-40"><a href="#cb30-40" aria-hidden="true" tabindex="-1"></a>        last_hidden_state <span class="op">=</span> bert_output.last_hidden_state</span>
+<span id="cb30-41"><a href="#cb30-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-42"><a href="#cb30-42" aria-hidden="true" tabindex="-1"></a>        <span class="co"># [PAD]以外のトークンで隠れ状態の平均をとる</span></span>
+<span id="cb30-43"><a href="#cb30-43" aria-hidden="true" tabindex="-1"></a>        averaged_hidden_state <span class="op">=</span> <span class="op">\</span></span>
+<span id="cb30-44"><a href="#cb30-44" aria-hidden="true" tabindex="-1"></a>            (last_hidden_state<span class="op">*</span>attention_mask.unsqueeze(<span class="op">-</span><span class="dv">1</span>)).<span class="bu">sum</span>(<span class="dv">1</span>) <span class="op">\</span></span>
+<span id="cb30-45"><a href="#cb30-45" aria-hidden="true" tabindex="-1"></a>            <span class="op">/</span> attention_mask.<span class="bu">sum</span>(<span class="dv">1</span>, keepdim<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb30-46"><a href="#cb30-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-47"><a href="#cb30-47" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 線形変換</span></span>
+<span id="cb30-48"><a href="#cb30-48" aria-hidden="true" tabindex="-1"></a>        scores <span class="op">=</span> <span class="va">self</span>.linear(averaged_hidden_state)</span>
+<span id="cb30-49"><a href="#cb30-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-50"><a href="#cb30-50" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 出力の形式を整える。</span></span>
+<span id="cb30-51"><a href="#cb30-51" aria-hidden="true" tabindex="-1"></a>        output <span class="op">=</span> {<span class="st">'logits'</span>: scores}</span>
+<span id="cb30-52"><a href="#cb30-52" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-53"><a href="#cb30-53" aria-hidden="true" tabindex="-1"></a>        <span class="co"># labelsが入力に含まれていたら、損失を計算し出力する。</span></span>
+<span id="cb30-54"><a href="#cb30-54" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> labels <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span>:</span>
+<span id="cb30-55"><a href="#cb30-55" aria-hidden="true" tabindex="-1"></a>            loss <span class="op">=</span> torch.nn.BCEWithLogitsLoss()(scores, labels.<span class="bu">float</span>())</span>
+<span id="cb30-56"><a href="#cb30-56" aria-hidden="true" tabindex="-1"></a>            output[<span class="st">'loss'</span>] <span class="op">=</span> loss</span>
+<span id="cb30-57"><a href="#cb30-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-58"><a href="#cb30-58" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 属性でアクセスできるようにする。</span></span>
+<span id="cb30-59"><a href="#cb30-59" aria-hidden="true" tabindex="-1"></a>        output <span class="op">=</span> <span class="bu">type</span>(<span class="st">'bert_output'</span>, (<span class="bu">object</span>,), output)</span>
+<span id="cb30-60"><a href="#cb30-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-61"><a href="#cb30-61" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> output</span>
+<span id="cb30-62"><a href="#cb30-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb30-63"><a href="#cb30-63" aria-hidden="true" tabindex="-1"></a><span class="co"># モデルとトークナイザのロード</span></span>
+<span id="cb30-64"><a href="#cb30-64" aria-hidden="true" tabindex="-1"></a><span class="co"># num_label:カテゴリー数</span></span>
+<span id="cb30-65"><a href="#cb30-65" aria-hidden="true" tabindex="-1"></a>tokenizer <span class="op">=</span> BertJapaneseTokenizer.from_pretrained(MODEL_NAME)</span>
+<span id="cb30-66"><a href="#cb30-66" aria-hidden="true" tabindex="-1"></a>bert_scml <span class="op">=</span> BertForSequenceClassificationMultiLabel(</span>
+<span id="cb30-67"><a href="#cb30-67" aria-hidden="true" tabindex="-1"></a>    MODEL_NAME, num_labels<span class="op">=</span><span class="dv">2</span></span>
+<span id="cb30-68"><a href="#cb30-68" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb30-69"><a href="#cb30-69" aria-hidden="true" tabindex="-1"></a>bert_scml <span class="op">=</span> bert_scml.cuda()</span></code></pre></div>
 
 
 <!-- 前後の章へのナビゲーション -->
