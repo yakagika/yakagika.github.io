@@ -113,6 +113,7 @@
 <ul>
 <li><a href="#マルチラベル分類" id="toc-マルチラベル分類"><span class="toc-section-number">5.1</span> マルチラベル分類</a></li>
 </ul></li>
+<li><a href="#自然言語ベクトル抽出によるデータ可視化と類似度評価" id="toc-自然言語ベクトル抽出によるデータ可視化と類似度評価"><span class="toc-section-number">6</span> 自然言語ベクトル抽出によるデータ可視化と類似度評価</a></li>
 </ul>
 </div>
 <h2 data-number="1" id="自然言語処理"><span class="header-section-number">1</span> 自然言語処理</h2>
@@ -413,10 +414,10 @@
 <span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
 <p>これから,<code>X.API</code>にGETメソッドを利用し呟きを取得します.APIから返答されるデータはjsonですが,今回はJSONを直接触らず,これまでに扱ってきた<code>CSV</code>に変換します. APIを操作するためのライブラリ<code>requests</code>をinstallしておきましょう.</p>
 <div class="sourceCode" id="cb14"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pip</span> install requests</span></code></pre></div>
-<p>以下の処理はX APIの無料の範囲で行っていますので,誰でも再現できますが, アカウントの登録など手間が多く,また無料版のAPIでは15分に一回しかリクエストが送れないため,データの取得には最低でも30分かかります.
+<p>以下の処理はX APIの無料の範囲で行っていますので,誰でも再現できますが, アカウントの登録など手間が多く,また無料版のAPIでは15分に一回しかリクエストが送れないため,データの取得には最低でも15分かかります.
 社長と社名が変わってからAPI機能が物凄く使いにくくなっており,値段も高額になっています.まともに研究で利用しようと思うと月5000ドルのAPI使用料を払う必要があります.2000ドルはこの講義のために払うのが難しいので,月200ドルのBasicプランであれば利用できるアカウントは準備しますが,Basicプランでは<strong>過去7日間の呟きしか取得できない</strong>ので注意しましょう.</p>
 <p><img src="../images/ch15-XAPIV2Products.png" /></p>
-<p>研究で利用する人以外は完成した<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/tweet.csv">こちらのデータ</a>をダウンロードして利用しましょう.</p>
+<p>研究で利用する人以外は完成した<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/tweets.csv">こちらのデータ</a>をダウンロードして利用しましょう.</p>
 <p>XのAPIを利用するには,認証トークン(<code>Bearer Token</code>)を発行する必要があります.認証トークンとは<code>X.API</code>にアクセスするための認証情報です.</p>
 <p><a href="https://x.com/i/flow/login?input_flow_data=%7B%22requested_variant%22%3A%22eyJyZWRpcmVjdF9hZnRlcl9sb2dpbiI6Imh0dHBzOi8vZGV2ZWxvcGVyLnguY29tL2VuL3BvcnRhbC9wcm9qZWN0cy1hbmQtYXBwcyJ9%22%7D">Xのデベロッパー用ページ</a>からまずはサインアップします.</p>
 <p>今回は無料版を利用するので, <code>Sign up for Free Account</code>をクリックしましょう.</p>
@@ -436,7 +437,7 @@
 <p><code>X.API</code>の「検索」機能にアクセスするためのURLを指定します. ここでは,最近のツイートを取得するエンドポイント<code>search/recent</code>を指定しています. <code>search/recent</code>では直近7日間のつぶやきを取得できます. それ以上過去のつぶやきは<code>Pro</code>アカウントでしか取得することができません.</p>
 <div class="sourceCode" id="cb16"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Twitter APIのエンドポイントURL</span></span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>search_url <span class="op">=</span> <span class="st">&quot;https://api.x.com/2/tweets/search/recent&quot;</span></span></code></pre></div>
-<p>取得対象のキーワード（検索ワード）を指定します.このコードでは「自民党」に関するツイートを検索します.このコードでは面倒ですが,自民党の検索が終わったらこの部分を｢国民民主党｣に書き換えて再度実行します.一つのプログラムで両方取得することも可能ですが,<code>X.API</code>の無料版では,<strong>15分に1回しかリクエストが送れない</strong>ため,複数のワードで検索するにはコード内で15分間待機する機能を入れる必要があるので,手動で切り替えるようにしています.</p>
+<p>取得対象のキーワード（検索ワード）を指定します.このコードでは「国民民主党」に関するツイートを検索します.一つのプログラムで複数のワードを取得することも可能ですが,<code>X.API</code>の無料版では,<strong>15分に1回しかリクエストが送れない</strong>ため,複数のワードで検索するにはコード内で15分間待機する機能を入れる必要があるので今回は一つだけ検索してみましょう.</p>
 <p><code>tweet_count</code>で各検索で取得するツイート数の上限です.無料版のAPI機能では, <strong>1ヶ月あたり100ツイートのみアクセスできる</strong>ので,50にすると1ヶ月に2回アクセスできます. 1度失敗すると数を大幅に減らすか,1ヶ月待つか,課金する必要があるので注意して下さい.</p>
 <div class="sourceCode" id="cb17"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 検索ワード</span></span>
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>word <span class="op">=</span> <span class="st">&quot;国民民主党&quot;</span></span>
@@ -538,7 +539,7 @@
 <span id="cb22-59"><a href="#cb22-59" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb22-60"><a href="#cb22-60" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="va">__name__</span> <span class="op">==</span> <span class="st">&quot;__main__&quot;</span>:</span>
 <span id="cb22-61"><a href="#cb22-61" aria-hidden="true" tabindex="-1"></a>    main()</span></code></pre></div>
-<p>このコードを<code>自民党</code>,<code>国民民主党</code>で二回走らせて,取得したそれぞれ50件の呟きをまとめたデータが<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/tweet.csv">こちら</a>になります.</p>
+<p>このコードで取得した50件の呟きをまとめたデータが<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/tweets.csv">こちら</a>になります.</p>
 <p>以下,このデータを利用して分析を行ってみましょう.</p>
 <h3 data-number="4.2" id="トピックモデル実践"><span class="header-section-number">4.2</span> トピックモデル実践</h3>
 <p>LDAによるトピックモデルを利用するためにライブラリ<code>gensim</code>と,LDAの可視化用のライブラリ<code>pyLDAvis</code>をインストールしましょう.</p>
@@ -592,15 +593,14 @@ URLは上手く形態素解析できないので,URLを削除する関数も新�
 <span id="cb24-45"><a href="#cb24-45" aria-hidden="true" tabindex="-1"></a>    url_pattern <span class="op">=</span> <span class="vs">r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&amp;+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'</span></span>
 <span id="cb24-46"><a href="#cb24-46" aria-hidden="true" tabindex="-1"></a>    <span class="co"># URLを空文字に置換して除外</span></span>
 <span id="cb24-47"><a href="#cb24-47" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> re.sub(url_pattern, <span class="st">''</span>, text)</span></code></pre></div>
-<p>データを読み込みます. 今回は,自民党のつぶやきだけ抽出して利用してみましょう.
-(このデータを取得した次の日に国民民主党の党首の不倫騒動があったので,そのつぶやきが取れていれば面白かったのですが,残念です.)</p>
+<p>データを読み込みます(このデータを取得した次の日に国民民主党の党首の不倫騒動があったので,そのつぶやきが取れていれば面白かったのですが,残念です.)</p>
 <p>トークナイズ(形態素解析),と削除文字の指定,削除までをまとめて行います. ここで,指定している削除文字は一度結果を見たあとで追加したものです.実際の分析では,結果とコードを何往復かして,調整する作業が必要になります.</p>
 <p>形態素解析の前に<code>remove_urls()</code>を適用していることに注意して下さい.</p>
 <div class="sourceCode" id="cb25"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co">#データの読み込み</span></span>
 <span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/tweets.csv'</span>)</span>
 <span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="co">#国民民主党のリアクションシートだけのデータを作る</span></span>
-<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>akagi <span class="op">=</span> df[df[<span class="st">'Word'</span>] <span class="op">==</span> <span class="st">'自民党'</span>][<span class="st">'Tweet'</span>]</span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>akagi <span class="op">=</span> df[<span class="st">'Tweet'</span>]</span>
 <span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a><span class="co">#トークナイズ</span></span>
 <span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>txt <span class="op">=</span> [mecab_wakati(strip_CRLF_from_Text(remove_urls(x)),[<span class="st">&quot;名詞&quot;</span>,<span class="st">&quot;動詞&quot;</span>]).split(<span class="st">' '</span>) <span class="cf">for</span> x <span class="kw">in</span> akagi]</span>
@@ -644,18 +644,19 @@ URLは上手く形態素解析できないので,URLを削除する関数も新�
 <span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df.T)</span>
 <span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
 <span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a><span class="co">  topic1 topic2 topic3</span></span>
-<span id="cb27-17"><a href="#cb27-17" aria-hidden="true" tabindex="-1"></a><span class="co">0    ホロブ     こと     反対</span></span>
-<span id="cb27-18"><a href="#cb27-18" aria-hidden="true" tabindex="-1"></a><span class="co">1     報道     立憲     問題</span></span>
-<span id="cb27-19"><a href="#cb27-19" aria-hidden="true" tabindex="-1"></a><span class="co">2     日本     国民     日本</span></span>
-<span id="cb27-20"><a href="#cb27-20" aria-hidden="true" tabindex="-1"></a><span class="co">3     兵庫      国     国民</span></span>
-<span id="cb27-21"><a href="#cb27-21" aria-hidden="true" tabindex="-1"></a><span class="co">4      県     政党     クル</span></span>
+<span id="cb27-17"><a href="#cb27-17" aria-hidden="true" tabindex="-1"></a><span class="co">0      金      万     増税</span></span>
+<span id="cb27-18"><a href="#cb27-18" aria-hidden="true" tabindex="-1"></a><span class="co">1     立憲      円      壁</span></span>
+<span id="cb27-19"><a href="#cb27-19" aria-hidden="true" tabindex="-1"></a><span class="co">2      案      壁   メディア</span></span>
+<span id="cb27-20"><a href="#cb27-20" aria-hidden="true" tabindex="-1"></a><span class="co">3     給付    103     自民</span></span>
+<span id="cb27-21"><a href="#cb27-21" aria-hidden="true" tabindex="-1"></a><span class="co">4     経済      話     結果</span></span>
 <span id="cb27-22"><a href="#cb27-22" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
 <span id="cb27-23"><a href="#cb27-23" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb27-24"><a href="#cb27-24" aria-hidden="true" tabindex="-1"></a><span class="co">#可視化</span></span>
 <span id="cb27-25"><a href="#cb27-25" aria-hidden="true" tabindex="-1"></a><span class="co">#PyLDAvisの実装</span></span>
 <span id="cb27-26"><a href="#cb27-26" aria-hidden="true" tabindex="-1"></a>visualisation <span class="op">=</span> pyLDAvis.gensim.prepare(lda, corpus, dictionary)</span>
 <span id="cb27-27"><a href="#cb27-27" aria-hidden="true" tabindex="-1"></a>pyLDAvis.save_html(visualisation, <span class="st">'result/LDA_Visualization.html'</span>)</span></code></pre></div>
-<p>今回は3つのトピックで,<code>兵庫県知事の話題(?)</code>,<code>立憲民主党や,国民民主党など政党の話題(?)</code>,<code>なにかに反対している問題(?)</code>などが抽出されました. あまりはっきりしていませんが,もう少しつぶやきの数を増やすと分かりやすくなるかもしれません.</p>
+<p>今回は3つのトピックではいずれも103万円の壁の話をしていますが<code>topic1</code>では立憲民主党の対案としての低所得者への給付の話題,<code>topic3</code>ではメディアや自民党に対する批判などの話題
+が抽出されました. あまりはっきりしていませんが,もう少しつぶやきの数を増やすと分かりやすくなるかもしれません.</p>
 <p>出力された<code>LDA_Visualization.html</code>をクリックするとブラウザ上で確認することができます.</p>
 <p><img src="../images/ch15-LDA-result1.png" /></p>
 <p>左側には主成分分析による第1主成分,第2主成分上にマッピングされたトピックの集合が可視化されており,右側には全体のトピックにおける単語の分布が表示されています.</p>
@@ -801,31 +802,23 @@ URLは上手く形態素解析できないので,URLを削除する関数も新�
 </ul>
 <p>日本語データセットとして良く利用されるものは以下のとおりです.</p>
 <ul>
-<li><a href="https://www.db.info.gifu-u.ac.jp/sentiment_analysis/">Twitter日本語評判分析データセット</a></li>
+<li><h3 id="twitter日本語評判分析データセット"><a href="http://www.cl.ecei.tohoku.ac.jp/resources/twitter_target_review/">Twitter日本語評判分析データセット</a></h3></li>
 </ul>
 <p>Twitterの商品に関するポジティブ,ネガティブ,ニュートラルのラベリングデータ</p>
 <ul>
-<li><a href="https://www.jnlp.org/GengoHouse/snow/d18">SNOW D18日本語感情表現辞書</a></li>
+<li><h3 id="snow-d18日本語感情表現辞書"><a href="https://www.jnlp.org/GengoHouse/snow/d18">SNOW D18日本語感情表現辞書</a></h3></li>
 </ul>
 <p>日本語を48の勘定に分類</p>
 <blockquote>
 <p>安らぎ、楽しさ親しみ、尊敬・尊さ、感謝、気持ちが良い、誇らしい、感動、喜び、悲しさ、寂しさ不満、切なさ、苦しさ、不安、憂鬱、辛さ、好き、嫌悪、恥ずかしい、焦り、驚き、怒り、幸福感、恨み、恐れ（恐縮等の意味で）、恐怖、悔しさ、祝う気持ち、困惑、きまずさ、興奮、悩み、願望、失望、あわれみ、見下し、謝罪、ためらい、不快、怠さ、あきれ、心配、緊張、妬み、憎い、残念、情けない、穏やか</p>
 </blockquote>
 <ul>
-<li><a href="https://www.rondhuit.com/download.html#news%20corpus">livedorニュースコーパス</a></li>
+<li><h3 id="livedorニュースコーパス"><a href="https://www.rondhuit.com/download.html#news%20corpus">livedorニュースコーパス</a></h3></li>
 </ul>
 <p>ニュース記事をサイト別/ジャンル別に分類</p>
 <ul>
-<li><p><a href="http://news.livedoor.com/category/vender/news/">トピックニュース</a></p></li>
-<li><p><a href="http://news.livedoor.com/category/vender/208/">Sports Watch</a></p></li>
-<li><p><a href="http://news.livedoor.com/category/vender/223/">ITライフハック</a></p></li>
-<li><p><a href="http://news.livedoor.com/category/vender/kadench/">家電チャンネル</a></p></li>
-<li><p><a href="http://news.livedoor.com/category/vender/movie_enter/">MOVIE ENTER</a></p></li>
-<li><p><a href="http://news.livedoor.com/category/vender/90/">独女通信</a></p></li>
-<li><p><a href="http://news.livedoor.com/category/vender/smax/">エスマックス</a></p></li>
-<li><p><a href="http://news.livedoor.com/category/vender/homme/">livedoor HOMME</a></p></li>
-<li><p><a href="http://news.livedoor.com/category/vender/ldgirls/">Peachy</a></p></li>
-<li><p><a href="https://github.com/chakki-works/chABSA-dataset">有価証券報告書ネガポジデータセット</a></p></li>
+<li><p><a href="http://news.livedoor.com/category/vender/news/">トピックニュース</a> - <a href="http://news.livedoor.com/category/vender/208/">Sports Watch</a> - <a href="http://news.livedoor.com/category/vender/223/">ITライフハック</a> - <a href="http://news.livedoor.com/category/vender/kadench/">家電チャンネル</a> - <a href="http://news.livedoor.com/category/vender/movie_enter/">MOVIE ENTER</a> - <a href="http://news.livedoor.com/category/vender/90/">独女通信</a> - <a href="http://news.livedoor.com/category/vender/smax/">エスマックス</a> - <a href="http://news.livedoor.com/category/vender/homme/">livedoor HOMME</a> - <a href="http://news.livedoor.com/category/vender/ldgirls/">Peachy</a></p></li>
+<li><h3 id="有価証券報告書ネガポジデータセット"><a href="https://github.com/chakki-works/chABSA-dataset">有価証券報告書ネガポジデータセット</a></h3></li>
 </ul>
 <p>TIS株式会社が公開している上場企業の有価証券報告書を用いて作成されたマルチラベルのネガポジデータセット</p>
 <p>ネガティブ, ポジティブ, ニュートラルの3ラベル</p>
@@ -852,8 +845,9 @@ URLは上手く形態素解析できないので,URLを削除する関数も新�
 </div>
 <h3 data-number="5.1" id="マルチラベル分類"><span class="header-section-number">5.1</span> マルチラベル分類</h3>
 <p>マルチラベル分類とは選択肢の中から復数のカテゴリーを選ぶ分類手法です.
-今回は有価証券報告書データを利用して{ネガティブ,ニュートラル,ポジティブ}に分類します.
-ネガティブと判定されると{1,0,0},ニュートラルと判定されると{0,1,0}のようなベクトルが返ってきます.</p>
+今回は有価証券報告書データを利用して<code>[ネガティブ,ニュートラル,ポジティブ]</code>に分類します.
+ネガティブと判定されると<code>[1,0,0]</code>,ニュートラルと判定されると<code>[0,1,0]</code>のようなベクトルが返ってきます.
+また,一つの文章にネガティブな内容とポジティブな内容両方が含まれている場合には<code>[1,0,1]</code>のような結果となります.</p>
 <div class="note">
 <ul>
 <li><h3 id="gpu計算とcpu計算">GPU計算とCPU計算</h3>
@@ -888,9 +882,11 @@ Google Drive上に作業用ディレクトリを作りましょう.</p>
 <p><img src="../images/ch15-colab1.png" /></p>
 <p><img src="../images/ch15-colab2.png" /></p>
 <p><code>!</code>に続けて入力することでシェルコマンドも実行可能です.</p>
-<p>最初に,今回のプログラムで必要となるライブラリをインストールしてみましょう.</p>
+<p>最初に,今回のプログラムで必要となるライブラリをインストールしてみましょう.なお,以下のマルチラベル文章分類に関するコードは,<strong><a href="https://www.ohmsha.co.jp/book/9784274227264/">BERTによる自然言語処理入門 オーム社</a></strong>を参考にしています.</p>
 <div class="sourceCode" id="cb29"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="co">#ライブラリのインストール</span></span>
 <span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>pip install transformers<span class="op">==</span><span class="fl">4.18.0</span> fugashi<span class="op">==</span><span class="fl">1.1.0</span> ipadic<span class="op">==</span><span class="fl">1.0.0</span> pytorch_lightning</span></code></pre></div>
+<p>まずは,学習済みのモデルを読み込みます. ニューラルモデルに関するこれらのコードは全て理解しようと思うと,膨大な時間が必要になります.
+なので,ここでは取り敢えずそれぞれの部分で何をやっているのかを大雑把に把握するようにしましょう.</p>
 <div class="sourceCode" id="cb30"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> random</span>
 <span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> glob</span>
 <span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> json</span>
@@ -960,6 +956,567 @@ Google Drive上に作業用ディレクトリを作りましょう.</p>
 <span id="cb30-67"><a href="#cb30-67" aria-hidden="true" tabindex="-1"></a>    MODEL_NAME, num_labels<span class="op">=</span><span class="dv">2</span></span>
 <span id="cb30-68"><a href="#cb30-68" aria-hidden="true" tabindex="-1"></a>)</span>
 <span id="cb30-69"><a href="#cb30-69" aria-hidden="true" tabindex="-1"></a>bert_scml <span class="op">=</span> bert_scml.cuda()</span></code></pre></div>
+<p>これでBertのマルチラベル変換用のモデルが利用できるようになりました. 続いて,ファインチューニングを実施します.
+今回は先述のTIS株式会社による上場企業の有価証券報告書を用いて作成されたマルチラベルのネガポジデータセット <a href="https://www.tis.co.jp/news/2018/tis_news/20180410_1.html"><code>chABSA-dataset</code></a>を利用します.</p>
+<p>データとしては<code>json</code>でそれぞれの文章が,ネガティブなのか,ポジティブなのかが記録されています.</p>
+<div class="sourceCode" id="cb31"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co"># データのダウンロード</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>wget https:<span class="op">//</span>s3<span class="op">-</span>ap<span class="op">-</span>northeast<span class="op">-</span><span class="fl">1.</span><span class="er">amazonaws</span>.com<span class="op">/</span>dev.tech<span class="op">-</span>sketch.jp<span class="op">/</span>chakki<span class="op">/</span>public<span class="op">/</span>chABSA<span class="op">-</span>dataset.<span class="bu">zip</span></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a><span class="co"># データの解凍</span></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>unzip chABSA<span class="op">-</span>dataset.<span class="bu">zip</span></span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a><span class="co"># chABSA-dataset</span></span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a><span class="co">#     - xxx.json</span></span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a><span class="co"># の形で保存</span></span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>data <span class="op">=</span> json.load(<span class="bu">open</span>(<span class="st">'chABSA-dataset/e00030_ann.json'</span>))</span>
+<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>( data[<span class="st">'sentences'</span>][<span class="dv">0</span>] )</span>
+<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a><span class="co">#データから文章とカテゴリーを抜き出して整形しておく</span></span>
+<span id="cb31-14"><a href="#cb31-14" aria-hidden="true" tabindex="-1"></a>category_id <span class="op">=</span> {<span class="st">'negative'</span>:<span class="dv">0</span>, <span class="st">'neutral'</span>:<span class="dv">1</span> , <span class="st">'positive'</span>:<span class="dv">2</span>}</span>
+<span id="cb31-15"><a href="#cb31-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-16"><a href="#cb31-16" aria-hidden="true" tabindex="-1"></a>dataset <span class="op">=</span> []</span>
+<span id="cb31-17"><a href="#cb31-17" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> <span class="bu">file</span> <span class="kw">in</span> glob.glob(<span class="st">'chABSA-dataset/*.json'</span>):</span>
+<span id="cb31-18"><a href="#cb31-18" aria-hidden="true" tabindex="-1"></a>    data <span class="op">=</span> json.load(<span class="bu">open</span>(<span class="bu">file</span>))</span>
+<span id="cb31-19"><a href="#cb31-19" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 各データから文章（text）を抜き出し、ラベル（'labels'）を作成</span></span>
+<span id="cb31-20"><a href="#cb31-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> sentence <span class="kw">in</span> data[<span class="st">'sentences'</span>]:</span>
+<span id="cb31-21"><a href="#cb31-21" aria-hidden="true" tabindex="-1"></a>        text <span class="op">=</span> sentence[<span class="st">'sentence'</span>]</span>
+<span id="cb31-22"><a href="#cb31-22" aria-hidden="true" tabindex="-1"></a>        labels <span class="op">=</span> [<span class="dv">0</span>,<span class="dv">0</span>,<span class="dv">0</span>]</span>
+<span id="cb31-23"><a href="#cb31-23" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> opinion <span class="kw">in</span> sentence[<span class="st">'opinions'</span>]:</span>
+<span id="cb31-24"><a href="#cb31-24" aria-hidden="true" tabindex="-1"></a>            labels[category_id[opinion[<span class="st">'polarity'</span>]]] <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb31-25"><a href="#cb31-25" aria-hidden="true" tabindex="-1"></a>        sample <span class="op">=</span> {<span class="st">'text'</span>: text, <span class="st">'labels'</span>: labels}</span>
+<span id="cb31-26"><a href="#cb31-26" aria-hidden="true" tabindex="-1"></a>        dataset.append(sample)</span>
+<span id="cb31-27"><a href="#cb31-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-28"><a href="#cb31-28" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(dataset[<span class="dv">0</span>])</span>
+<span id="cb31-29"><a href="#cb31-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-30"><a href="#cb31-30" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb31-31"><a href="#cb31-31" aria-hidden="true" tabindex="-1"></a><span class="co">{'text': '当連結会計年度（平成28年１月１日から平成29年３月31日まで）におけるわが国経済は...</span></span>
+<span id="cb31-32"><a href="#cb31-32" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p><code>print</code>による表示結果は省略していますが,もとのデータセットが表示されているかと思います.</p>
+<p>続いて,文章をトークン化した後,学習用(60%),検証用(20%),テスト用(20%)にそれぞれ分割します.
+文章のトークン化には,Bertのトークナイザを利用します.</p>
+<div class="sourceCode" id="cb32"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co"># トークナイザのロード</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>tokenizer <span class="op">=</span> BertJapaneseTokenizer.from_pretrained(MODEL_NAME)</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 各データの形式を整える</span></span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>max_length <span class="op">=</span> <span class="dv">128</span></span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>dataset_for_loader <span class="op">=</span> []</span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> sample <span class="kw">in</span> dataset:</span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a>    text <span class="op">=</span> sample[<span class="st">'text'</span>]</span>
+<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a>    labels <span class="op">=</span> sample[<span class="st">'labels'</span>]</span>
+<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a>    encoding <span class="op">=</span> tokenizer(</span>
+<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a>        text,</span>
+<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a>        max_length<span class="op">=</span>max_length,</span>
+<span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a>        padding<span class="op">=</span><span class="st">'max_length'</span>,</span>
+<span id="cb32-14"><a href="#cb32-14" aria-hidden="true" tabindex="-1"></a>        truncation<span class="op">=</span><span class="va">True</span></span>
+<span id="cb32-15"><a href="#cb32-15" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb32-16"><a href="#cb32-16" aria-hidden="true" tabindex="-1"></a>    encoding[<span class="st">'labels'</span>] <span class="op">=</span> labels</span>
+<span id="cb32-17"><a href="#cb32-17" aria-hidden="true" tabindex="-1"></a>    encoding <span class="op">=</span> { k: torch.tensor(v) <span class="cf">for</span> k, v <span class="kw">in</span> encoding.items() }</span>
+<span id="cb32-18"><a href="#cb32-18" aria-hidden="true" tabindex="-1"></a>    dataset_for_loader.append(encoding)</span>
+<span id="cb32-19"><a href="#cb32-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-20"><a href="#cb32-20" aria-hidden="true" tabindex="-1"></a><span class="co"># データセットの分割</span></span>
+<span id="cb32-21"><a href="#cb32-21" aria-hidden="true" tabindex="-1"></a>random.shuffle(dataset_for_loader)</span>
+<span id="cb32-22"><a href="#cb32-22" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> <span class="bu">len</span>(dataset_for_loader)</span>
+<span id="cb32-23"><a href="#cb32-23" aria-hidden="true" tabindex="-1"></a>n_train <span class="op">=</span> <span class="bu">int</span>(<span class="fl">0.6</span><span class="op">*</span>n)</span>
+<span id="cb32-24"><a href="#cb32-24" aria-hidden="true" tabindex="-1"></a>n_val <span class="op">=</span> <span class="bu">int</span>(<span class="fl">0.2</span><span class="op">*</span>n)</span>
+<span id="cb32-25"><a href="#cb32-25" aria-hidden="true" tabindex="-1"></a>dataset_train <span class="op">=</span> dataset_for_loader[:n_train] <span class="co"># 学習データ</span></span>
+<span id="cb32-26"><a href="#cb32-26" aria-hidden="true" tabindex="-1"></a>dataset_val <span class="op">=</span> dataset_for_loader[n_train:n_train<span class="op">+</span>n_val] <span class="co"># 検証データ</span></span>
+<span id="cb32-27"><a href="#cb32-27" aria-hidden="true" tabindex="-1"></a>dataset_test <span class="op">=</span> dataset_for_loader[n_train<span class="op">+</span>n_val:] <span class="co"># テストデータ</span></span>
+<span id="cb32-28"><a href="#cb32-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-29"><a href="#cb32-29" aria-hidden="true" tabindex="-1"></a><span class="co"># データセットからデータローダを作成</span></span>
+<span id="cb32-30"><a href="#cb32-30" aria-hidden="true" tabindex="-1"></a>dataloader_train <span class="op">=</span> DataLoader(</span>
+<span id="cb32-31"><a href="#cb32-31" aria-hidden="true" tabindex="-1"></a>    dataset_train, batch_size<span class="op">=</span><span class="dv">32</span>, shuffle<span class="op">=</span><span class="va">True</span></span>
+<span id="cb32-32"><a href="#cb32-32" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb32-33"><a href="#cb32-33" aria-hidden="true" tabindex="-1"></a>dataloader_val <span class="op">=</span> DataLoader(dataset_val, batch_size<span class="op">=</span><span class="dv">256</span>)</span>
+<span id="cb32-34"><a href="#cb32-34" aria-hidden="true" tabindex="-1"></a>dataloader_test <span class="op">=</span> DataLoader(dataset_test, batch_size<span class="op">=</span><span class="dv">256</span>)</span></code></pre></div>
+<p>データの準備が整ったので,ファインチューニングを行います. 今回はエポック数を5として,決め打ちで行っていますが,
+実際に研究等で使用する場合には前章に習って過学習の確認や学習率(<code>lr</code>)の調整などを行いましょう.</p>
+<p>以下の処理は,およそ10分程度かかるので,時間的に余裕のあるときに実行して下さい.</p>
+<div class="sourceCode" id="cb33"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> BertForSequenceClassificationMultiLabel_pl(pl.LightningModule):</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, model_name, num_labels, lr):</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>().<span class="fu">__init__</span>()</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.save_hyperparameters()</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.bert_scml <span class="op">=</span> BertForSequenceClassificationMultiLabel(</span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>            model_name, num_labels<span class="op">=</span>num_labels</span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> training_step(<span class="va">self</span>, batch, batch_idx):</span>
+<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>        output <span class="op">=</span> <span class="va">self</span>.bert_scml(<span class="op">**</span>batch)</span>
+<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>        loss <span class="op">=</span> output.loss</span>
+<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.log(<span class="st">'train_loss'</span>, loss)</span>
+<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> loss</span>
+<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-16"><a href="#cb33-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> validation_step(<span class="va">self</span>, batch, batch_idx):</span>
+<span id="cb33-17"><a href="#cb33-17" aria-hidden="true" tabindex="-1"></a>        output <span class="op">=</span> <span class="va">self</span>.bert_scml(<span class="op">**</span>batch)</span>
+<span id="cb33-18"><a href="#cb33-18" aria-hidden="true" tabindex="-1"></a>        val_loss <span class="op">=</span> output.loss</span>
+<span id="cb33-19"><a href="#cb33-19" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.log(<span class="st">'val_loss'</span>, val_loss)</span>
+<span id="cb33-20"><a href="#cb33-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-21"><a href="#cb33-21" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> test_step(<span class="va">self</span>, batch, batch_idx):</span>
+<span id="cb33-22"><a href="#cb33-22" aria-hidden="true" tabindex="-1"></a>        labels <span class="op">=</span> batch.pop(<span class="st">'labels'</span>)</span>
+<span id="cb33-23"><a href="#cb33-23" aria-hidden="true" tabindex="-1"></a>        output <span class="op">=</span> <span class="va">self</span>.bert_scml(<span class="op">**</span>batch)</span>
+<span id="cb33-24"><a href="#cb33-24" aria-hidden="true" tabindex="-1"></a>        scores <span class="op">=</span> output.logits</span>
+<span id="cb33-25"><a href="#cb33-25" aria-hidden="true" tabindex="-1"></a>        labels_predicted <span class="op">=</span> ( scores <span class="op">&gt;</span> <span class="dv">0</span> ).<span class="bu">int</span>()</span>
+<span id="cb33-26"><a href="#cb33-26" aria-hidden="true" tabindex="-1"></a>        num_correct <span class="op">=</span> ( labels_predicted <span class="op">==</span> labels ).<span class="bu">all</span>(<span class="op">-</span><span class="dv">1</span>).<span class="bu">sum</span>().item()</span>
+<span id="cb33-27"><a href="#cb33-27" aria-hidden="true" tabindex="-1"></a>        accuracy <span class="op">=</span> num_correct<span class="op">/</span>scores.size(<span class="dv">0</span>)</span>
+<span id="cb33-28"><a href="#cb33-28" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.log(<span class="st">'accuracy'</span>, accuracy)</span>
+<span id="cb33-29"><a href="#cb33-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-30"><a href="#cb33-30" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> configure_optimizers(<span class="va">self</span>):</span>
+<span id="cb33-31"><a href="#cb33-31" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> torch.optim.Adam(<span class="va">self</span>.parameters(), lr<span class="op">=</span><span class="va">self</span>.hparams.lr)</span>
+<span id="cb33-32"><a href="#cb33-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-33"><a href="#cb33-33" aria-hidden="true" tabindex="-1"></a>checkpoint <span class="op">=</span> pl.callbacks.ModelCheckpoint(</span>
+<span id="cb33-34"><a href="#cb33-34" aria-hidden="true" tabindex="-1"></a>    monitor<span class="op">=</span><span class="st">'val_loss'</span>,</span>
+<span id="cb33-35"><a href="#cb33-35" aria-hidden="true" tabindex="-1"></a>    mode<span class="op">=</span><span class="st">'min'</span>,</span>
+<span id="cb33-36"><a href="#cb33-36" aria-hidden="true" tabindex="-1"></a>    save_top_k<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb33-37"><a href="#cb33-37" aria-hidden="true" tabindex="-1"></a>    save_weights_only<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb33-38"><a href="#cb33-38" aria-hidden="true" tabindex="-1"></a>    dirpath<span class="op">=</span><span class="st">'model/'</span>,</span>
+<span id="cb33-39"><a href="#cb33-39" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb33-40"><a href="#cb33-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-41"><a href="#cb33-41" aria-hidden="true" tabindex="-1"></a>trainer <span class="op">=</span> pl.Trainer(</span>
+<span id="cb33-42"><a href="#cb33-42" aria-hidden="true" tabindex="-1"></a>    max_epochs<span class="op">=</span><span class="dv">5</span>,</span>
+<span id="cb33-43"><a href="#cb33-43" aria-hidden="true" tabindex="-1"></a>    callbacks <span class="op">=</span> [checkpoint]</span>
+<span id="cb33-44"><a href="#cb33-44" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb33-45"><a href="#cb33-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-46"><a href="#cb33-46" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> BertForSequenceClassificationMultiLabel_pl(</span>
+<span id="cb33-47"><a href="#cb33-47" aria-hidden="true" tabindex="-1"></a>    MODEL_NAME,</span>
+<span id="cb33-48"><a href="#cb33-48" aria-hidden="true" tabindex="-1"></a>    num_labels<span class="op">=</span><span class="dv">3</span>,</span>
+<span id="cb33-49"><a href="#cb33-49" aria-hidden="true" tabindex="-1"></a>    lr<span class="op">=</span><span class="fl">1e-5</span></span>
+<span id="cb33-50"><a href="#cb33-50" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb33-51"><a href="#cb33-51" aria-hidden="true" tabindex="-1"></a>trainer.fit(model, dataloader_train, dataloader_val)</span>
+<span id="cb33-52"><a href="#cb33-52" aria-hidden="true" tabindex="-1"></a>test <span class="op">=</span> trainer.test(dataloaders<span class="op">=</span>dataloader_test)</span>
+<span id="cb33-53"><a href="#cb33-53" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Accuracy: </span><span class="sc">{</span>test[<span class="dv">0</span>][<span class="st">&quot;accuracy&quot;</span>]<span class="sc">:.2f}</span><span class="ss">'</span>)</span>
+<span id="cb33-54"><a href="#cb33-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-55"><a href="#cb33-55" aria-hidden="true" tabindex="-1"></a><span class="co"># Accuracy: 0.90</span></span></code></pre></div>
+<p>テストデータに対する正確率は90%程を確保できているようです.</p>
+<p>それではファインチューニングしたモデルを利用して,マルチラベル分類を行ってみます.</p>
+<p>最初の<code>text_list</code>部分に適当に作成した文章をリスト形式で与えます. 研究などではここにCSVなどで取得した外部のデータを指定します. それぞれのネガティブ,ニュートラル,ポジティブの判定結果を見てみましょう.</p>
+<div class="sourceCode" id="cb34"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 入力する文章</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a><span class="co"># 結果はネガティブ,ニュートラル,ポジティブの順</span></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>text_list <span class="op">=</span> [<span class="st">&quot;当連結会計年度の売上高は前期比5.8%増加し、業績は堅調に推移しました。&quot;</span></span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>            ,<span class="st">&quot;海外市場での需要拡大が寄与し、売上および営業利益が過去最高を記録しました。&quot;</span></span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>            ,<span class="st">&quot;一部事業における原材料価格の高騰の影響を受け、収益性が低下しました。&quot;</span></span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>            ,<span class="st">&quot;国内景気は緩やかな回復基調を維持したものの、インフレ率の上昇が購買力に影響を及ぼしました。&quot;</span></span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>            ,<span class="st">&quot;新興市場における競争激化により、当社製品のシェアは微減しましたが、全体的な市場拡大により売上は増加しました。&quot;</span></span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a>            ,<span class="st">&quot;為替変動が利益にプラスの影響を与えた一方で、サプライチェーンの遅延が一部事業の成長を抑制しました。&quot;</span></span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a>            ,<span class="st">&quot;2025年度に向けて、成長市場への積極的な投資と新規事業の開発に注力する予定です。&quot;</span></span>
+<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a>            ,<span class="st">&quot;業界全体の需要鈍化が予想される中で、コスト構造の見直しにより安定的な収益を確保していきます。&quot;</span></span>
+<span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a>            ,<span class="st">&quot;カーボンニュートラル達成を目指し、再生可能エネルギーへのシフトを加速させます。&quot;</span></span>
+<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a>            ,<span class="st">&quot;当社は、デジタル化の遅れが競争力に与える影響を認識しており、ITシステムへの投資を増強する方針です。&quot;</span></span>
+<span id="cb34-13"><a href="#cb34-13" aria-hidden="true" tabindex="-1"></a>            ,<span class="st">&quot;地政学的リスクの高まりにより、一部の輸出取引に不確実性が生じています。&quot;</span></span>
+<span id="cb34-14"><a href="#cb34-14" aria-hidden="true" tabindex="-1"></a>            ,<span class="st">&quot;半導体不足の影響を受け、特定製品の納期が遅延する可能性があります。&quot;</span></span>
+<span id="cb34-15"><a href="#cb34-15" aria-hidden="true" tabindex="-1"></a>            ]</span>
+<span id="cb34-16"><a href="#cb34-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-17"><a href="#cb34-17" aria-hidden="true" tabindex="-1"></a><span class="co"># モデルのロード</span></span>
+<span id="cb34-18"><a href="#cb34-18" aria-hidden="true" tabindex="-1"></a>best_model_path <span class="op">=</span> checkpoint.best_model_path</span>
+<span id="cb34-19"><a href="#cb34-19" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> BertForSequenceClassificationMultiLabel_pl.load_from_checkpoint(best_model_path)</span>
+<span id="cb34-20"><a href="#cb34-20" aria-hidden="true" tabindex="-1"></a>bert_scml <span class="op">=</span> model.bert_scml.cuda()</span>
+<span id="cb34-21"><a href="#cb34-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-22"><a href="#cb34-22" aria-hidden="true" tabindex="-1"></a><span class="co"># データの符号化</span></span>
+<span id="cb34-23"><a href="#cb34-23" aria-hidden="true" tabindex="-1"></a>encoding <span class="op">=</span> tokenizer(</span>
+<span id="cb34-24"><a href="#cb34-24" aria-hidden="true" tabindex="-1"></a>    text_list,</span>
+<span id="cb34-25"><a href="#cb34-25" aria-hidden="true" tabindex="-1"></a>    padding <span class="op">=</span> <span class="st">'longest'</span>,</span>
+<span id="cb34-26"><a href="#cb34-26" aria-hidden="true" tabindex="-1"></a>    return_tensors<span class="op">=</span><span class="st">'pt'</span></span>
+<span id="cb34-27"><a href="#cb34-27" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb34-28"><a href="#cb34-28" aria-hidden="true" tabindex="-1"></a>encoding <span class="op">=</span> { k: v.cuda() <span class="cf">for</span> k, v <span class="kw">in</span> encoding.items() }</span>
+<span id="cb34-29"><a href="#cb34-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-30"><a href="#cb34-30" aria-hidden="true" tabindex="-1"></a><span class="co"># BERTへデータを入力し分類スコアを得る。</span></span>
+<span id="cb34-31"><a href="#cb34-31" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> torch.no_grad():</span>
+<span id="cb34-32"><a href="#cb34-32" aria-hidden="true" tabindex="-1"></a>    output <span class="op">=</span> bert_scml(<span class="op">**</span>encoding)</span>
+<span id="cb34-33"><a href="#cb34-33" aria-hidden="true" tabindex="-1"></a>scores <span class="op">=</span> output.logits</span>
+<span id="cb34-34"><a href="#cb34-34" aria-hidden="true" tabindex="-1"></a>labels_predicted <span class="op">=</span> ( scores <span class="op">&gt;</span> <span class="dv">0</span> ).<span class="bu">int</span>().cpu().numpy().tolist()</span>
+<span id="cb34-35"><a href="#cb34-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-36"><a href="#cb34-36" aria-hidden="true" tabindex="-1"></a><span class="co"># 結果を表示</span></span>
+<span id="cb34-37"><a href="#cb34-37" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> text, label <span class="kw">in</span> <span class="bu">zip</span>(text_list, labels_predicted):</span>
+<span id="cb34-38"><a href="#cb34-38" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">'--'</span>)</span>
+<span id="cb34-39"><a href="#cb34-39" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'入力：</span><span class="sc">{</span>text<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb34-40"><a href="#cb34-40" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'出力：</span><span class="sc">{</span>label<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb34-41"><a href="#cb34-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-42"><a href="#cb34-42" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb34-43"><a href="#cb34-43" aria-hidden="true" tabindex="-1"></a><span class="co">--</span></span>
+<span id="cb34-44"><a href="#cb34-44" aria-hidden="true" tabindex="-1"></a><span class="co">入力：当連結会計年度の売上高は前期比5.8%増加し、業績は堅調に推移しました。</span></span>
+<span id="cb34-45"><a href="#cb34-45" aria-hidden="true" tabindex="-1"></a><span class="co">出力：[0, 0, 1]</span></span>
+<span id="cb34-46"><a href="#cb34-46" aria-hidden="true" tabindex="-1"></a><span class="co">--</span></span>
+<span id="cb34-47"><a href="#cb34-47" aria-hidden="true" tabindex="-1"></a><span class="co">入力：海外市場での需要拡大が寄与し、売上および営業利益が過去最高を記録しました。</span></span>
+<span id="cb34-48"><a href="#cb34-48" aria-hidden="true" tabindex="-1"></a><span class="co">出力：[0, 0, 1]</span></span>
+<span id="cb34-49"><a href="#cb34-49" aria-hidden="true" tabindex="-1"></a><span class="co">--</span></span>
+<span id="cb34-50"><a href="#cb34-50" aria-hidden="true" tabindex="-1"></a><span class="co">入力：一部事業における原材料価格の高騰の影響を受け、収益性が低下しました。</span></span>
+<span id="cb34-51"><a href="#cb34-51" aria-hidden="true" tabindex="-1"></a><span class="co">出力：[1, 0, 0]</span></span>
+<span id="cb34-52"><a href="#cb34-52" aria-hidden="true" tabindex="-1"></a><span class="co">--</span></span>
+<span id="cb34-53"><a href="#cb34-53" aria-hidden="true" tabindex="-1"></a><span class="co">入力：国内景気は緩やかな回復基調を維持したものの、インフレ率の上昇が購買力に影響を及ぼしました。</span></span>
+<span id="cb34-54"><a href="#cb34-54" aria-hidden="true" tabindex="-1"></a><span class="co">出力：[1, 0, 1]</span></span>
+<span id="cb34-55"><a href="#cb34-55" aria-hidden="true" tabindex="-1"></a><span class="co">--</span></span>
+<span id="cb34-56"><a href="#cb34-56" aria-hidden="true" tabindex="-1"></a><span class="co">入力：新興市場における競争激化により、当社製品のシェアは微減しましたが、全体的な市場拡大により売上は増加しました。</span></span>
+<span id="cb34-57"><a href="#cb34-57" aria-hidden="true" tabindex="-1"></a><span class="co">出力：[1, 0, 1]</span></span>
+<span id="cb34-58"><a href="#cb34-58" aria-hidden="true" tabindex="-1"></a><span class="co">--</span></span>
+<span id="cb34-59"><a href="#cb34-59" aria-hidden="true" tabindex="-1"></a><span class="co">入力：為替変動が利益にプラスの影響を与えた一方で、サプライチェーンの遅延が一部事業の成長を抑制しました。</span></span>
+<span id="cb34-60"><a href="#cb34-60" aria-hidden="true" tabindex="-1"></a><span class="co">出力：[1, 0, 1]</span></span>
+<span id="cb34-61"><a href="#cb34-61" aria-hidden="true" tabindex="-1"></a><span class="co">--</span></span>
+<span id="cb34-62"><a href="#cb34-62" aria-hidden="true" tabindex="-1"></a><span class="co">入力：2025年度に向けて、成長市場への積極的な投資と新規事業の開発に注力する予定です。</span></span>
+<span id="cb34-63"><a href="#cb34-63" aria-hidden="true" tabindex="-1"></a><span class="co">出力：[0, 0, 0]</span></span>
+<span id="cb34-64"><a href="#cb34-64" aria-hidden="true" tabindex="-1"></a><span class="co">--</span></span>
+<span id="cb34-65"><a href="#cb34-65" aria-hidden="true" tabindex="-1"></a><span class="co">入力：業界全体の需要鈍化が予想される中で、コスト構造の見直しにより安定的な収益を確保していきます。</span></span>
+<span id="cb34-66"><a href="#cb34-66" aria-hidden="true" tabindex="-1"></a><span class="co">出力：[0, 0, 1]</span></span>
+<span id="cb34-67"><a href="#cb34-67" aria-hidden="true" tabindex="-1"></a><span class="co">--</span></span>
+<span id="cb34-68"><a href="#cb34-68" aria-hidden="true" tabindex="-1"></a><span class="co">入力：カーボンニュートラル達成を目指し、再生可能エネルギーへのシフトを加速させます。</span></span>
+<span id="cb34-69"><a href="#cb34-69" aria-hidden="true" tabindex="-1"></a><span class="co">出力：[0, 0, 0]</span></span>
+<span id="cb34-70"><a href="#cb34-70" aria-hidden="true" tabindex="-1"></a><span class="co">--</span></span>
+<span id="cb34-71"><a href="#cb34-71" aria-hidden="true" tabindex="-1"></a><span class="co">入力：当社は、デジタル化の遅れが競争力に与える影響を認識しており、ITシステムへの投資を増強する方針です。</span></span>
+<span id="cb34-72"><a href="#cb34-72" aria-hidden="true" tabindex="-1"></a><span class="co">出力：[0, 0, 0]</span></span>
+<span id="cb34-73"><a href="#cb34-73" aria-hidden="true" tabindex="-1"></a><span class="co">--</span></span>
+<span id="cb34-74"><a href="#cb34-74" aria-hidden="true" tabindex="-1"></a><span class="co">入力：地政学的リスクの高まりにより、一部の輸出取引に不確実性が生じています。</span></span>
+<span id="cb34-75"><a href="#cb34-75" aria-hidden="true" tabindex="-1"></a><span class="co">出力：[1, 0, 0]</span></span>
+<span id="cb34-76"><a href="#cb34-76" aria-hidden="true" tabindex="-1"></a><span class="co">--</span></span>
+<span id="cb34-77"><a href="#cb34-77" aria-hidden="true" tabindex="-1"></a><span class="co">入力：半導体不足の影響を受け、特定製品の納期が遅延する可能性があります。</span></span>
+<span id="cb34-78"><a href="#cb34-78" aria-hidden="true" tabindex="-1"></a><span class="co">出力：[1, 0, 0]</span></span>
+<span id="cb34-79"><a href="#cb34-79" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>結果を見てみるとかなり正確に文章のネガティブポジティブ判定ができていることが分かります.
+文章を変える,外部からデータを取り込むなどして,これ以外の事例でも試してみましょう.</p>
+<h2 data-number="6" id="自然言語ベクトル抽出によるデータ可視化と類似度評価"><span class="header-section-number">6</span> 自然言語ベクトル抽出によるデータ可視化と類似度評価</h2>
+<p>続いて,BERTを利用して文章をベクトルに変換しクラスタリングや類似度の評価を行ってみます.
+事例として,異なる言語(アラビア語,中国語,英語,フランス語,ドイツ度,ヒンディー語,インドネシア語,イタリア語,日本語,韓国語,ポルトガル語,ロシア語,スペイン語,トルコ語,)でのWikipediaにおけるLGBTQに関する記事の類似度を評価してみます.</p>
+<p><a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/LGBTWiki.csv"><code>こちら</code></a>の各言語の記事を日本語に翻訳したデータをダウンロードして,Google Driveの作業用ディレクトリの<code>Data</code>フォルダ内に配置しましょう. 本来は, 英語に翻訳したほうが翻訳精度の関係から望ましいですが,ここでは分かりやすいように日本語に翻訳してあります.</p>
+<p>また,<code>Colaboratory</code>上で日本語のワードクラウドなどを作成するために,日本語のフォントをGoogle Driveにアップロードしておく必要があります. <a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/fonts-japanese-gothic.ttf"><code>こちら</code></a>の日本語フォントをダウンロードして,<code>Data</code>フォルダ内に配置してきましょう.</p>
+<p>まずは,Google Driveのマウントと必要なライブラリのインストールを行います.</p>
+<div class="sourceCode" id="cb35"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co">#Google Drive上のデータを利用できるようにする</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> google.colab <span class="im">import</span> drive</span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>drive.mount(<span class="st">'/content/drive'</span>)</span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a><span class="co">#ディレクトリの移動</span></span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a><span class="co">#ここを自分のディレクトリにすればデータが利用可能</span></span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a><span class="op">%</span>cd <span class="op">/</span>content<span class="op">/</span>drive<span class="op">/</span>My Drive<span class="op">/</span>slds</span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>pip install transformers<span class="op">==</span><span class="fl">4.18.0</span> fugashi<span class="op">==</span><span class="fl">1.1.0</span> ipadic<span class="op">==</span><span class="fl">1.0.0</span></span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>pip install japanize_matplotlib</span>
+<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>pip install adjustText</span></code></pre></div>
+<p>続いて各種インポートと,設定を行います.</p>
+<div class="sourceCode" id="cb36"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> random</span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> glob</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> tqdm <span class="im">import</span> tqdm</span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.manifold <span class="im">import</span> TSNE</span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.decomposition <span class="im">import</span> PCA</span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> japanize_matplotlib</span>
+<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
+<span id="cb36-11"><a href="#cb36-11" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch.utils.data <span class="im">import</span> DataLoader</span>
+<span id="cb36-12"><a href="#cb36-12" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> transformers <span class="im">import</span> BertJapaneseTokenizer, BertModel</span>
+<span id="cb36-13"><a href="#cb36-13" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb36-14"><a href="#cb36-14" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> adjustText <span class="im">import</span> adjust_text</span>
+<span id="cb36-15"><a href="#cb36-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-16"><a href="#cb36-16" aria-hidden="true" tabindex="-1"></a><span class="co">#グラフの設定</span></span>
+<span id="cb36-17"><a href="#cb36-17" aria-hidden="true" tabindex="-1"></a>plt.style.use(<span class="st">'ggplot'</span>) <span class="co">#グラフスタイル</span></span>
+<span id="cb36-18"><a href="#cb36-18" aria-hidden="true" tabindex="-1"></a>plt.rcParams[<span class="st">'figure.figsize'</span>] <span class="op">=</span> [<span class="dv">20</span>, <span class="dv">15</span>] <span class="co">#グラフサイズ</span></span>
+<span id="cb36-19"><a href="#cb36-19" aria-hidden="true" tabindex="-1"></a>plt.rcParams[<span class="st">'font.size'</span>] <span class="op">=</span> <span class="dv">14</span> <span class="co">#フォントサイズ</span></span>
+<span id="cb36-20"><a href="#cb36-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-21"><a href="#cb36-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-22"><a href="#cb36-22" aria-hidden="true" tabindex="-1"></a><span class="co"># BERTの日本語モデル</span></span>
+<span id="cb36-23"><a href="#cb36-23" aria-hidden="true" tabindex="-1"></a>MODEL_NAME <span class="op">=</span> <span class="st">'tohoku-nlp/bert-base-japanese-whole-word-masking'</span></span></code></pre></div>
+<p>データを読み込み,ベクトル化します. 今回はファインチューニングは行わず日本語Wikipediaで学習したBERTのモデルをそのまま利用します.</p>
+<div class="sourceCode" id="cb37"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ベクトルを作成するデータの読み込み</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>df_wiki <span class="op">=</span> pd.read_csv(<span class="st">'./data/LGBTWiki.csv'</span>)</span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>category_list <span class="op">=</span> [<span class="st">'Arabic'</span></span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>                ,<span class="st">'Chinese'</span></span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>                ,<span class="st">'English'</span></span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a>                ,<span class="st">'France'</span></span>
+<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a>                ,<span class="st">'German'</span></span>
+<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a>                ,<span class="st">'Hindi'</span></span>
+<span id="cb37-9"><a href="#cb37-9" aria-hidden="true" tabindex="-1"></a>                ,<span class="st">'Indonesian'</span></span>
+<span id="cb37-10"><a href="#cb37-10" aria-hidden="true" tabindex="-1"></a>                ,<span class="st">'Italian'</span></span>
+<span id="cb37-11"><a href="#cb37-11" aria-hidden="true" tabindex="-1"></a>                ,<span class="st">'Japanese'</span></span>
+<span id="cb37-12"><a href="#cb37-12" aria-hidden="true" tabindex="-1"></a>                ,<span class="st">'Korean'</span></span>
+<span id="cb37-13"><a href="#cb37-13" aria-hidden="true" tabindex="-1"></a>                ,<span class="st">'Portuguese'</span></span>
+<span id="cb37-14"><a href="#cb37-14" aria-hidden="true" tabindex="-1"></a>                ,<span class="st">'Russian'</span></span>
+<span id="cb37-15"><a href="#cb37-15" aria-hidden="true" tabindex="-1"></a>                ,<span class="st">'Spanish'</span></span>
+<span id="cb37-16"><a href="#cb37-16" aria-hidden="true" tabindex="-1"></a>                ,<span class="st">'Turkish'</span>]</span>
+<span id="cb37-17"><a href="#cb37-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df_wiki)</span>
+<span id="cb37-18"><a href="#cb37-18" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df_wiki[<span class="st">'Text'</span>][<span class="dv">0</span>])</span>
+<span id="cb37-19"><a href="#cb37-19" aria-hidden="true" tabindex="-1"></a>df_wiki[<span class="st">'Text'</span>] <span class="op">=</span> df_wiki[<span class="st">'Text'</span>].astype(<span class="bu">str</span>)</span>
+<span id="cb37-20"><a href="#cb37-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-21"><a href="#cb37-21" aria-hidden="true" tabindex="-1"></a><span class="co"># トークナイザとモデルのロード</span></span>
+<span id="cb37-22"><a href="#cb37-22" aria-hidden="true" tabindex="-1"></a>tokenizer <span class="op">=</span> BertJapaneseTokenizer.from_pretrained(MODEL_NAME)</span>
+<span id="cb37-23"><a href="#cb37-23" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> BertModel.from_pretrained(MODEL_NAME)</span>
+<span id="cb37-24"><a href="#cb37-24" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> model.cuda()</span>
+<span id="cb37-25"><a href="#cb37-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-26"><a href="#cb37-26" aria-hidden="true" tabindex="-1"></a><span class="co"># 各データの形式を整える</span></span>
+<span id="cb37-27"><a href="#cb37-27" aria-hidden="true" tabindex="-1"></a>max_length <span class="op">=</span> <span class="dv">256</span></span>
+<span id="cb37-28"><a href="#cb37-28" aria-hidden="true" tabindex="-1"></a>sentence_vectors <span class="op">=</span> [] <span class="co"># 文章ベクトルを追加していく。</span></span>
+<span id="cb37-29"><a href="#cb37-29" aria-hidden="true" tabindex="-1"></a>labels <span class="op">=</span> [] <span class="co"># ラベルを追加していく。</span></span>
+<span id="cb37-30"><a href="#cb37-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-31"><a href="#cb37-31" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> tqdm(df_wiki.index):</span>
+<span id="cb37-32"><a href="#cb37-32" aria-hidden="true" tabindex="-1"></a>    encoding <span class="op">=</span> tokenizer(</span>
+<span id="cb37-33"><a href="#cb37-33" aria-hidden="true" tabindex="-1"></a>        df_wiki.at[i,<span class="st">'Text'</span>],</span>
+<span id="cb37-34"><a href="#cb37-34" aria-hidden="true" tabindex="-1"></a>        max_length<span class="op">=</span>max_length,</span>
+<span id="cb37-35"><a href="#cb37-35" aria-hidden="true" tabindex="-1"></a>        padding<span class="op">=</span><span class="st">'max_length'</span>,</span>
+<span id="cb37-36"><a href="#cb37-36" aria-hidden="true" tabindex="-1"></a>        truncation<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb37-37"><a href="#cb37-37" aria-hidden="true" tabindex="-1"></a>        return_tensors<span class="op">=</span><span class="st">'pt'</span></span>
+<span id="cb37-38"><a href="#cb37-38" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb37-39"><a href="#cb37-39" aria-hidden="true" tabindex="-1"></a>    encoding <span class="op">=</span> { k: v.cuda() <span class="cf">for</span> k, v <span class="kw">in</span> encoding.items() }</span>
+<span id="cb37-40"><a href="#cb37-40" aria-hidden="true" tabindex="-1"></a>    attention_mask <span class="op">=</span> encoding[<span class="st">'attention_mask'</span>]</span>
+<span id="cb37-41"><a href="#cb37-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-42"><a href="#cb37-42" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 文章ベクトルを計算</span></span>
+<span id="cb37-43"><a href="#cb37-43" aria-hidden="true" tabindex="-1"></a>    <span class="co"># BERTの最終層の出力を平均を計算する。（ただし、[PAD]は除く。）</span></span>
+<span id="cb37-44"><a href="#cb37-44" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> torch.no_grad():</span>
+<span id="cb37-45"><a href="#cb37-45" aria-hidden="true" tabindex="-1"></a>        output <span class="op">=</span> model(<span class="op">**</span>encoding)</span>
+<span id="cb37-46"><a href="#cb37-46" aria-hidden="true" tabindex="-1"></a>        last_hidden_state <span class="op">=</span> output.last_hidden_state</span>
+<span id="cb37-47"><a href="#cb37-47" aria-hidden="true" tabindex="-1"></a>        averaged_hidden_state <span class="op">=</span> <span class="op">\</span></span>
+<span id="cb37-48"><a href="#cb37-48" aria-hidden="true" tabindex="-1"></a>            (last_hidden_state<span class="op">*</span>attention_mask.unsqueeze(<span class="op">-</span><span class="dv">1</span>)).<span class="bu">sum</span>(<span class="dv">1</span>) <span class="op">\</span></span>
+<span id="cb37-49"><a href="#cb37-49" aria-hidden="true" tabindex="-1"></a>            <span class="op">/</span> attention_mask.<span class="bu">sum</span>(<span class="dv">1</span>, keepdim<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb37-50"><a href="#cb37-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-51"><a href="#cb37-51" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 文章ベクトルとラベルを追加</span></span>
+<span id="cb37-52"><a href="#cb37-52" aria-hidden="true" tabindex="-1"></a>    sentence_vectors.append(averaged_hidden_state[<span class="dv">0</span>].cpu().numpy())</span>
+<span id="cb37-53"><a href="#cb37-53" aria-hidden="true" tabindex="-1"></a>    labels.append(df_wiki.at[i,<span class="st">'Country'</span>])</span>
+<span id="cb37-54"><a href="#cb37-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-55"><a href="#cb37-55" aria-hidden="true" tabindex="-1"></a><span class="co"># それぞれをnumpy.ndarrayにする。</span></span>
+<span id="cb37-56"><a href="#cb37-56" aria-hidden="true" tabindex="-1"></a>sentence_vectors <span class="op">=</span> np.vstack(sentence_vectors)</span>
+<span id="cb37-57"><a href="#cb37-57" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(sentence_vectors)</span>
+<span id="cb37-58"><a href="#cb37-58" aria-hidden="true" tabindex="-1"></a>labels <span class="op">=</span> np.array(labels)</span>
+<span id="cb37-59"><a href="#cb37-59" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(labels)</span></code></pre></div>
+<p>各Wikipediaの記事がベクトル化されたので,それぞれのコサイン距離を計算します.</p>
+<div class="sourceCode" id="cb38"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>df_vector <span class="op">=</span> pd.DataFrame(data<span class="op">=</span>sentence_vectors.T,columns<span class="op">=</span>labels)</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df_vector)</span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>df_vector.to_csv(<span class="st">'data/vector.csv'</span>,encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>)</span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a><span class="co">#コサイン類似度の計算</span></span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> cos(x,y):</span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>  <span class="cf">return</span> np.dot(x,y) <span class="op">/</span> (np.linalg.norm(x)<span class="op">*</span>np.linalg.norm(y))</span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a><span class="co">#全組み合わせのコサイン距離</span></span>
+<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a>df_cos <span class="op">=</span> pd.DataFrame(columns<span class="op">=</span>[<span class="bu">str</span>(x) <span class="cf">for</span> x <span class="kw">in</span> labels]</span>
+<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a>                      ,index<span class="op">=</span>[<span class="bu">str</span>(x) <span class="cf">for</span> x <span class="kw">in</span> labels])</span>
+<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> df_cos.index:</span>
+<span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> c <span class="kw">in</span> df_cos.columns:</span>
+<span id="cb38-13"><a href="#cb38-13" aria-hidden="true" tabindex="-1"></a>    df_cos.at[i,c] <span class="op">=</span> cos(df_vector[i],df_vector[c])</span>
+<span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a>df_cos <span class="op">=</span> df_cos[labels].astype(<span class="bu">float</span>)</span>
+<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df_cos.dtypes)</span>
+<span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a>df_cos.sort_values(inplace<span class="op">=</span><span class="va">True</span>, by<span class="op">=</span>[<span class="st">'German'</span>],ascending<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb38-17"><a href="#cb38-17" aria-hidden="true" tabindex="-1"></a>df_cos <span class="op">=</span> df_cos.reindex(columns<span class="op">=</span>df_cos.index)</span>
+<span id="cb38-18"><a href="#cb38-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-19"><a href="#cb38-19" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'コサイン距離------'</span>)</span>
+<span id="cb38-20"><a href="#cb38-20" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df_cos)</span>
+<span id="cb38-21"><a href="#cb38-21" aria-hidden="true" tabindex="-1"></a>sns.heatmap(df_cos)</span>
+<span id="cb38-22"><a href="#cb38-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-23"><a href="#cb38-23" aria-hidden="true" tabindex="-1"></a>df_cos.to_csv(<span class="st">'data/cos.csv'</span>,encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>)</span>
+<span id="cb38-24"><a href="#cb38-24" aria-hidden="true" tabindex="-1"></a><span class="co">#ドイツとの距離を測る</span></span>
+<span id="cb38-25"><a href="#cb38-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-26"><a href="#cb38-26" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb38-27"><a href="#cb38-27" aria-hidden="true" tabindex="-1"></a><span class="co">コサイン距離------</span></span>
+<span id="cb38-28"><a href="#cb38-28" aria-hidden="true" tabindex="-1"></a><span class="co">              German   Spanish  Portuguese    France   Italian   Russian  </span><span class="ch">\</span></span>
+<span id="cb38-29"><a href="#cb38-29" aria-hidden="true" tabindex="-1"></a><span class="co">German      1.000000  0.979876    0.977262  0.972203  0.971380  0.969898</span></span>
+<span id="cb38-30"><a href="#cb38-30" aria-hidden="true" tabindex="-1"></a><span class="co">Spanish     0.979876  1.000000    0.982863  0.978872  0.979864  0.978996</span></span>
+<span id="cb38-31"><a href="#cb38-31" aria-hidden="true" tabindex="-1"></a><span class="co">Portuguese  0.977262  0.982863    1.000000  0.976089  0.981436  0.982457</span></span>
+<span id="cb38-32"><a href="#cb38-32" aria-hidden="true" tabindex="-1"></a><span class="co">France      0.972203  0.978872    0.976089  1.000000  0.976741  0.970900</span></span>
+<span id="cb38-33"><a href="#cb38-33" aria-hidden="true" tabindex="-1"></a><span class="co">Italian     0.971380  0.979864    0.981436  0.976741  1.000000  0.976250</span></span>
+<span id="cb38-34"><a href="#cb38-34" aria-hidden="true" tabindex="-1"></a><span class="co">Russian     0.969898  0.978996    0.982457  0.970900  0.976250  1.000000</span></span>
+<span id="cb38-35"><a href="#cb38-35" aria-hidden="true" tabindex="-1"></a><span class="co">Hindi       0.968832  0.973127    0.980610  0.963404  0.976204  0.975082</span></span>
+<span id="cb38-36"><a href="#cb38-36" aria-hidden="true" tabindex="-1"></a><span class="co">Arabic      0.967984  0.970234    0.980389  0.958874  0.968162  0.975689</span></span>
+<span id="cb38-37"><a href="#cb38-37" aria-hidden="true" tabindex="-1"></a><span class="co">Japanese    0.956910  0.962005    0.955607  0.964237  0.967997  0.953722</span></span>
+<span id="cb38-38"><a href="#cb38-38" aria-hidden="true" tabindex="-1"></a><span class="co">Turkish     0.940751  0.944137    0.937296  0.952527  0.953905  0.943392</span></span>
+<span id="cb38-39"><a href="#cb38-39" aria-hidden="true" tabindex="-1"></a><span class="co">Chinise     0.933739  0.952394    0.945277  0.935895  0.951706  0.941210</span></span>
+<span id="cb38-40"><a href="#cb38-40" aria-hidden="true" tabindex="-1"></a><span class="co">Korean      0.927201  0.927902    0.905628  0.919758  0.928268  0.904069</span></span>
+<span id="cb38-41"><a href="#cb38-41" aria-hidden="true" tabindex="-1"></a><span class="co">English     0.912216  0.912019    0.890923  0.910977  0.916483  0.889809</span></span>
+<span id="cb38-42"><a href="#cb38-42" aria-hidden="true" tabindex="-1"></a><span class="co">Indonesian  0.882634  0.879143    0.856105  0.877627  0.882631  0.857904</span></span>
+<span id="cb38-43"><a href="#cb38-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-44"><a href="#cb38-44" aria-hidden="true" tabindex="-1"></a><span class="co">               Hindi    Arabic  Japanese   Turkish   Chinise    Korean  </span><span class="ch">\</span></span>
+<span id="cb38-45"><a href="#cb38-45" aria-hidden="true" tabindex="-1"></a><span class="co">German      0.968832  0.967984  0.956910  0.940751  0.933739  0.927201</span></span>
+<span id="cb38-46"><a href="#cb38-46" aria-hidden="true" tabindex="-1"></a><span class="co">Spanish     0.973127  0.970234  0.962005  0.944137  0.952394  0.927902</span></span>
+<span id="cb38-47"><a href="#cb38-47" aria-hidden="true" tabindex="-1"></a><span class="co">Portuguese  0.980610  0.980389  0.955607  0.937296  0.945277  0.905628</span></span>
+<span id="cb38-48"><a href="#cb38-48" aria-hidden="true" tabindex="-1"></a><span class="co">France      0.963404  0.958874  0.964237  0.952527  0.935895  0.919758</span></span>
+<span id="cb38-49"><a href="#cb38-49" aria-hidden="true" tabindex="-1"></a><span class="co">Italian     0.976204  0.968162  0.967997  0.953905  0.951706  0.928268</span></span>
+<span id="cb38-50"><a href="#cb38-50" aria-hidden="true" tabindex="-1"></a><span class="co">Russian     0.975082  0.975689  0.953722  0.943392  0.941210  0.904069</span></span>
+<span id="cb38-51"><a href="#cb38-51" aria-hidden="true" tabindex="-1"></a><span class="co">Hindi       1.000000  0.976721  0.962024  0.939230  0.945298  0.889991</span></span>
+<span id="cb38-52"><a href="#cb38-52" aria-hidden="true" tabindex="-1"></a><span class="co">Arabic      0.976721  1.000000  0.944017  0.932226  0.924914  0.881642</span></span>
+<span id="cb38-53"><a href="#cb38-53" aria-hidden="true" tabindex="-1"></a><span class="co">Japanese    0.962024  0.944017  1.000000  0.952746  0.918798  0.903691</span></span>
+<span id="cb38-54"><a href="#cb38-54" aria-hidden="true" tabindex="-1"></a><span class="co">Turkish     0.939230  0.932226  0.952746  1.000000  0.902123  0.894593</span></span>
+<span id="cb38-55"><a href="#cb38-55" aria-hidden="true" tabindex="-1"></a><span class="co">Chinise     0.945298  0.924914  0.918798  0.902123  1.000000  0.927152</span></span>
+<span id="cb38-56"><a href="#cb38-56" aria-hidden="true" tabindex="-1"></a><span class="co">Korean      0.889991  0.881642  0.903691  0.894593  0.927152  1.000000</span></span>
+<span id="cb38-57"><a href="#cb38-57" aria-hidden="true" tabindex="-1"></a><span class="co">English     0.875571  0.867936  0.895869  0.893318  0.898600  0.978736</span></span>
+<span id="cb38-58"><a href="#cb38-58" aria-hidden="true" tabindex="-1"></a><span class="co">Indonesian  0.837501  0.831484  0.856639  0.860593  0.869281  0.970492</span></span>
+<span id="cb38-59"><a href="#cb38-59" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-60"><a href="#cb38-60" aria-hidden="true" tabindex="-1"></a><span class="co">             English  Indonesian</span></span>
+<span id="cb38-61"><a href="#cb38-61" aria-hidden="true" tabindex="-1"></a><span class="co">German      0.912216    0.882634</span></span>
+<span id="cb38-62"><a href="#cb38-62" aria-hidden="true" tabindex="-1"></a><span class="co">Spanish     0.912019    0.879143</span></span>
+<span id="cb38-63"><a href="#cb38-63" aria-hidden="true" tabindex="-1"></a><span class="co">Portuguese  0.890923    0.856105</span></span>
+<span id="cb38-64"><a href="#cb38-64" aria-hidden="true" tabindex="-1"></a><span class="co">France      0.910977    0.877627</span></span>
+<span id="cb38-65"><a href="#cb38-65" aria-hidden="true" tabindex="-1"></a><span class="co">Italian     0.916483    0.882631</span></span>
+<span id="cb38-66"><a href="#cb38-66" aria-hidden="true" tabindex="-1"></a><span class="co">Russian     0.889809    0.857904</span></span>
+<span id="cb38-67"><a href="#cb38-67" aria-hidden="true" tabindex="-1"></a><span class="co">Hindi       0.875571    0.837501</span></span>
+<span id="cb38-68"><a href="#cb38-68" aria-hidden="true" tabindex="-1"></a><span class="co">Arabic      0.867936    0.831484</span></span>
+<span id="cb38-69"><a href="#cb38-69" aria-hidden="true" tabindex="-1"></a><span class="co">Japanese    0.895869    0.856639</span></span>
+<span id="cb38-70"><a href="#cb38-70" aria-hidden="true" tabindex="-1"></a><span class="co">Turkish     0.893318    0.860593</span></span>
+<span id="cb38-71"><a href="#cb38-71" aria-hidden="true" tabindex="-1"></a><span class="co">Chinise     0.898600    0.869281</span></span>
+<span id="cb38-72"><a href="#cb38-72" aria-hidden="true" tabindex="-1"></a><span class="co">Korean      0.978736    0.970492</span></span>
+<span id="cb38-73"><a href="#cb38-73" aria-hidden="true" tabindex="-1"></a><span class="co">English     1.000000    0.972170</span></span>
+<span id="cb38-74"><a href="#cb38-74" aria-hidden="true" tabindex="-1"></a><span class="co">Indonesian  0.972170    1.000000</span></span>
+<span id="cb38-75"><a href="#cb38-75" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>各言語間の記事の内容のコサイン類似度をヒートマップで表現すると以下のようになりました.</p>
+<p><img src="../images/ch15-wiki-cos.png" /></p>
+<p>今回はドイツ語からの距離を基準にソートされていますが,ドイツ語と類似度が高いヨーロッパ言語圏のクラスタ,韓国語,インドネシア語,英語のクラスタがあることが見受けられます.</p>
+<p>続いて,各言語のベクトルをPCAとt-sneによって次元削減して,2次元上に配置してみます.</p>
+<div class="sourceCode" id="cb39"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="co">#PCAとtsneの比較</span></span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a><span class="co">#PCAによる次元削減</span></span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>pca <span class="op">=</span> sentence_vectors_pca <span class="op">=</span> PCA(n_components<span class="op">=</span><span class="dv">2</span>).fit_transform(sentence_vectors)</span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>plt.scatter(pca[:,<span class="dv">0</span>],pca[:,<span class="dv">1</span>])</span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>text <span class="op">=</span> [plt.text(pca[i,<span class="dv">0</span>],pca[i,<span class="dv">1</span>],l) <span class="cf">for</span> i,l <span class="kw">in</span> <span class="bu">enumerate</span>(labels)]</span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">'PCA'</span>)</span>
+<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a>adjust_text(text, arrowprops<span class="op">=</span><span class="bu">dict</span>(arrowstyle<span class="op">=</span><span class="st">'-'</span>, color<span class="op">=</span><span class="st">'gray'</span>, lw<span class="op">=</span><span class="fl">0.5</span>))</span>
+<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a><span class="co"># t-sneによる次元削減 pの適正値を探す</span></span>
+<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb39-12"><a href="#cb39-12" aria-hidden="true" tabindex="-1"></a><span class="co">for p in range(5,14):</span></span>
+<span id="cb39-13"><a href="#cb39-13" aria-hidden="true" tabindex="-1"></a><span class="co">  tsne = sentence_vectors_tsne = TSNE(n_components=2,perplexity=p).fit_transform(sentence_vectors)</span></span>
+<span id="cb39-14"><a href="#cb39-14" aria-hidden="true" tabindex="-1"></a><span class="co">  plt.scatter(tsne[:,0],tsne[:,1])</span></span>
+<span id="cb39-15"><a href="#cb39-15" aria-hidden="true" tabindex="-1"></a><span class="co">  for i,l in enumerate(labels):</span></span>
+<span id="cb39-16"><a href="#cb39-16" aria-hidden="true" tabindex="-1"></a><span class="co">    plt.text(tsne[i,0],tsne[i,1],l)</span></span>
+<span id="cb39-17"><a href="#cb39-17" aria-hidden="true" tabindex="-1"></a><span class="co">  plt.title('TSNE p = '+ str(p))</span></span>
+<span id="cb39-18"><a href="#cb39-18" aria-hidden="true" tabindex="-1"></a><span class="co">  plt.show()</span></span>
+<span id="cb39-19"><a href="#cb39-19" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb39-20"><a href="#cb39-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-21"><a href="#cb39-21" aria-hidden="true" tabindex="-1"></a><span class="co">#距離と整合的なのでp=5で決め打ち</span></span>
+<span id="cb39-22"><a href="#cb39-22" aria-hidden="true" tabindex="-1"></a>tsne <span class="op">=</span> sentence_vectors_tsne <span class="op">=</span> TSNE(n_components<span class="op">=</span><span class="dv">2</span>,perplexity<span class="op">=</span><span class="dv">5</span>).fit_transform(sentence_vectors)</span>
+<span id="cb39-23"><a href="#cb39-23" aria-hidden="true" tabindex="-1"></a>plt.scatter(tsne[:,<span class="dv">0</span>],tsne[:,<span class="dv">1</span>])</span>
+<span id="cb39-24"><a href="#cb39-24" aria-hidden="true" tabindex="-1"></a>text <span class="op">=</span> [plt.text(tsne[i,<span class="dv">0</span>],tsne[i,<span class="dv">1</span>],l) <span class="cf">for</span> i,l <span class="kw">in</span> <span class="bu">enumerate</span>(labels)]</span>
+<span id="cb39-25"><a href="#cb39-25" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">'TSNE'</span>)</span>
+<span id="cb39-26"><a href="#cb39-26" aria-hidden="true" tabindex="-1"></a>adjust_text(text, arrowprops<span class="op">=</span><span class="bu">dict</span>(arrowstyle<span class="op">=</span><span class="st">'-'</span>, color<span class="op">=</span><span class="st">'gray'</span>, lw<span class="op">=</span><span class="fl">0.5</span>))</span>
+<span id="cb39-27"><a href="#cb39-27" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<p>結果は以下のようになりました. いずれの次元削減手法でも,韓国語,インドネシア語,英語のクラスタが見て取れますが,PCAではトルコ語,日本語,中国語などが離れた位置に配置され,それ以外の言語が固まっています.</p>
+<p><img src="../images/ch15-wiki-pca.png" /></p>
+<p><img src="../images/ch15-wiki-tsne.png" /></p>
+<p>ここではよりクラスタに特徴が見られる,PCAを利用してクラスタリングを行ってみましょう.
+教師なし学習なので,階層クラスタリングを行ってみます.
+研究では,中心や距離を適切に設定する必要がありますが,ここではWard法を用いてみます.</p>
+<div class="sourceCode" id="cb40"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 階層クラスタリングで決め打ちする.</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.cluster.hierarchy <span class="im">import</span> dendrogram, linkage, fcluster</span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a><span class="co">#ward法で分類</span></span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.DataFrame({<span class="st">'x'</span>:pca[:,<span class="dv">0</span>]</span>
+<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a>                  ,<span class="st">'y'</span>:pca[:,<span class="dv">1</span>]}</span>
+<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a>                  ,index<span class="op">=</span>labels)</span>
+<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a>res <span class="op">=</span> linkage(df[[<span class="st">'x'</span>,<span class="st">'y'</span>]]</span>
+<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a>             , method <span class="op">=</span> <span class="st">'ward'</span>)</span>
+<span id="cb40-10"><a href="#cb40-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-11"><a href="#cb40-11" aria-hidden="true" tabindex="-1"></a><span class="co"># デンドログラムの図示</span></span>
+<span id="cb40-12"><a href="#cb40-12" aria-hidden="true" tabindex="-1"></a>dendrogram(res,labels<span class="op">=</span>labels)</span>
+<span id="cb40-13"><a href="#cb40-13" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">&quot;Dedrogram&quot;</span>)</span>
+<span id="cb40-14"><a href="#cb40-14" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">&quot;Threshold&quot;</span>)</span>
+<span id="cb40-15"><a href="#cb40-15" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<p><img src="../images/ch15-wiki-dendrogram.png" /></p>
+<p>階層クラスタリングで得られた結果を散布図上に色で表現してみます.</p>
+<div class="sourceCode" id="cb41"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>clusters <span class="op">=</span> fcluster(res, t<span class="op">=</span><span class="dv">5</span>, criterion<span class="op">=</span><span class="st">'maxclust'</span>)</span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>colors <span class="op">=</span>   [<span class="st">&quot;orange&quot;</span>, <span class="st">&quot;pink&quot;</span>, <span class="st">&quot;blue&quot;</span>, <span class="st">&quot;brown&quot;</span>, <span class="st">&quot;red&quot;</span>, <span class="st">&quot;grey&quot;</span>, <span class="st">&quot;yellow&quot;</span>, <span class="st">&quot;green&quot;</span>]</span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(clusters)</span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'c'</span>] <span class="op">=</span> clusters</span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">list</span>(<span class="bu">set</span>(clusters)):</span>
+<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>  x <span class="op">=</span> df[df[<span class="st">'c'</span>]<span class="op">==</span>i][<span class="st">'x'</span>]</span>
+<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a>  y <span class="op">=</span> df[df[<span class="st">'c'</span>]<span class="op">==</span>i][<span class="st">'y'</span>]</span>
+<span id="cb41-9"><a href="#cb41-9" aria-hidden="true" tabindex="-1"></a>  plt.scatter( x</span>
+<span id="cb41-10"><a href="#cb41-10" aria-hidden="true" tabindex="-1"></a>             , y</span>
+<span id="cb41-11"><a href="#cb41-11" aria-hidden="true" tabindex="-1"></a>             , alpha<span class="op">=</span><span class="fl">0.8</span></span>
+<span id="cb41-12"><a href="#cb41-12" aria-hidden="true" tabindex="-1"></a>             , label <span class="op">=</span> i</span>
+<span id="cb41-13"><a href="#cb41-13" aria-hidden="true" tabindex="-1"></a>             , c<span class="op">=</span>colors[i])</span>
+<span id="cb41-14"><a href="#cb41-14" aria-hidden="true" tabindex="-1"></a>text <span class="op">=</span> [plt.text(pca[i,<span class="dv">0</span>],pca[i,<span class="dv">1</span>],l) <span class="cf">for</span> i,l <span class="kw">in</span> <span class="bu">enumerate</span>(labels)]</span>
+<span id="cb41-15"><a href="#cb41-15" aria-hidden="true" tabindex="-1"></a>adjust_text(text, arrowprops<span class="op">=</span><span class="bu">dict</span>(arrowstyle<span class="op">=</span><span class="st">'-'</span>, color<span class="op">=</span><span class="st">'gray'</span>, lw<span class="op">=</span><span class="fl">0.5</span>))</span>
+<span id="cb41-16"><a href="#cb41-16" aria-hidden="true" tabindex="-1"></a>plt.legend()</span>
+<span id="cb41-17"><a href="#cb41-17" aria-hidden="true" tabindex="-1"></a>plt.grid()</span>
+<span id="cb41-18"><a href="#cb41-18" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'x'</span>)</span>
+<span id="cb41-19"><a href="#cb41-19" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'y'</span>)</span>
+<span id="cb41-20"><a href="#cb41-20" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<p><img src="../images/ch15-wiki-cluster.png" /></p>
+<p>英語,韓国語,インドネシア語の<code>クラスタ1</code>,日本語,トルコ語の<code>クラスタ2</code>,アラビア語,ヒンディー語,ポルトガル語,ロシア語の<code>クラスタ3</code>,フランス語,ドイツ語,スペイン語,イタリア語の<code>クラスタ4</code>,中国語単体の<code>クラスタ5</code>になりました.
+研究で行う場合には,それぞれのクラスタの背景などを考察する必要があります.例えば,ここではLGBTQに関する各言語圏での考え方がWikipediaの記事に反映されていると想定して, 各国の法制度や世界価値観調査などと比較すると面白いかもしれません.</p>
+<p>続いて,それぞれのクラスタごとの特徴をワードクラウドで確認してみましょう.</p>
+<p>ワードクラウドの作成に必要なライブラリをインストールします.</p>
+<div class="sourceCode" id="cb42"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="op">!</span>pip install mecab<span class="op">-</span>python3 unidic<span class="op">-</span>lite wordcloud gensim</span></code></pre></div>
+<p>各クラスタごとにワードクラウドを作成してみます.</p>
+<div class="sourceCode" id="cb43"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="co">#クラスタごとの中身を見てみる</span></span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> wordcloud <span class="im">import</span> WordCloud</span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> re</span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> MeCab <span class="im">as</span> mc</span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> gensim.corpora.dictionary <span class="im">import</span> Dictionary</span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> gensim.models <span class="im">import</span> LdaModel</span>
+<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a>df_wiki[<span class="st">'c'</span>] <span class="op">=</span> clusters</span>
+<span id="cb43-10"><a href="#cb43-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df_wiki[<span class="st">'c'</span>])</span>
+<span id="cb43-11"><a href="#cb43-11" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> strip_CRLF_from_Text(text):</span>
+<span id="cb43-12"><a href="#cb43-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;テキストファイルの改行，タブを削除し，形態素解析を実行する．</span></span>
+<span id="cb43-13"><a href="#cb43-13" aria-hidden="true" tabindex="-1"></a><span class="co">    改行前後が日本語文字の場合は改行を削除する．</span></span>
+<span id="cb43-14"><a href="#cb43-14" aria-hidden="true" tabindex="-1"></a><span class="co">    それ以外はスペースに置換する．</span></span>
+<span id="cb43-15"><a href="#cb43-15" aria-hidden="true" tabindex="-1"></a><span class="co">    &quot;&quot;&quot;</span></span>
+<span id="cb43-16"><a href="#cb43-16" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 改行前後の文字が日本語文字の場合は改行を削除する</span></span>
+<span id="cb43-17"><a href="#cb43-17" aria-hidden="true" tabindex="-1"></a>    plaintext <span class="op">=</span> re.sub(<span class="st">'([ぁ-んー]+|[ァ-ンー]+|[</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+|[ぁ-んァ-ンー</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+)(</span><span class="ch">\n</span><span class="st">)([ぁ-んー]+|[ァ-ンー]+|[</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+|[ぁ-んァ-ンー</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+)'</span>,</span>
+<span id="cb43-18"><a href="#cb43-18" aria-hidden="true" tabindex="-1"></a>                       <span class="vs">r'\1\3'</span>,</span>
+<span id="cb43-19"><a href="#cb43-19" aria-hidden="true" tabindex="-1"></a>                       text)</span>
+<span id="cb43-20"><a href="#cb43-20" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 残った改行とタブ記号はスペースに置換する</span></span>
+<span id="cb43-21"><a href="#cb43-21" aria-hidden="true" tabindex="-1"></a>    plaintext <span class="op">=</span> plaintext.replace(<span class="st">'</span><span class="ch">\n</span><span class="st">'</span>, <span class="st">' '</span>).replace(<span class="st">'</span><span class="ch">\t</span><span class="st">'</span>, <span class="st">' '</span>)</span>
+<span id="cb43-22"><a href="#cb43-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> plaintext</span>
+<span id="cb43-23"><a href="#cb43-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-24"><a href="#cb43-24" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> mecab_wakati(text):</span>
+<span id="cb43-25"><a href="#cb43-25" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb43-26"><a href="#cb43-26" aria-hidden="true" tabindex="-1"></a><span class="co">    MeCabで分かち書き．</span></span>
+<span id="cb43-27"><a href="#cb43-27" aria-hidden="true" tabindex="-1"></a><span class="co">    ただし品詞は名詞だけに限定．</span></span>
+<span id="cb43-28"><a href="#cb43-28" aria-hidden="true" tabindex="-1"></a><span class="co">    &quot;&quot;&quot;</span></span>
+<span id="cb43-29"><a href="#cb43-29" aria-hidden="true" tabindex="-1"></a>    t <span class="op">=</span> mc.Tagger()</span>
+<span id="cb43-30"><a href="#cb43-30" aria-hidden="true" tabindex="-1"></a>    <span class="co"># t = mc.Tagger('-d /usr/local/lib/mecab/dic/mecab-ipadic-neologd/')</span></span>
+<span id="cb43-31"><a href="#cb43-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-32"><a href="#cb43-32" aria-hidden="true" tabindex="-1"></a>    node <span class="op">=</span> t.parseToNode(text)</span>
+<span id="cb43-33"><a href="#cb43-33" aria-hidden="true" tabindex="-1"></a>    sent <span class="op">=</span> <span class="st">&quot;&quot;</span></span>
+<span id="cb43-34"><a href="#cb43-34" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span>(node):</span>
+<span id="cb43-35"><a href="#cb43-35" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> node.surface <span class="op">!=</span> <span class="st">&quot;&quot;</span>:  <span class="co"># ヘッダとフッタを除外</span></span>
+<span id="cb43-36"><a href="#cb43-36" aria-hidden="true" tabindex="-1"></a>            word_type <span class="op">=</span> node.feature.split(<span class="st">&quot;,&quot;</span>)[<span class="dv">0</span>]</span>
+<span id="cb43-37"><a href="#cb43-37" aria-hidden="true" tabindex="-1"></a>            <span class="co"># 名詞だけをリストに追加する</span></span>
+<span id="cb43-38"><a href="#cb43-38" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> word_type <span class="kw">in</span> [<span class="st">&quot;名詞&quot;</span>]:</span>
+<span id="cb43-39"><a href="#cb43-39" aria-hidden="true" tabindex="-1"></a>                sent <span class="op">+=</span> node.surface <span class="op">+</span> <span class="st">&quot; &quot;</span>  <span class="co"># node.surface は「表層形」</span></span>
+<span id="cb43-40"><a href="#cb43-40" aria-hidden="true" tabindex="-1"></a>            <span class="co"># 動詞（の原型），形容詞，副詞もリストに加えたい場合は次の２行を有効にする</span></span>
+<span id="cb43-41"><a href="#cb43-41" aria-hidden="true" tabindex="-1"></a>            <span class="co">#if word_type in [ &quot;動詞&quot;, &quot;形容詞&quot;,&quot;副詞&quot;]:</span></span>
+<span id="cb43-42"><a href="#cb43-42" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> word_type <span class="kw">in</span> [ <span class="st">&quot;動詞&quot;</span>,<span class="st">&quot;副詞&quot;</span>,<span class="st">&quot;形容詞&quot;</span>]:</span>
+<span id="cb43-43"><a href="#cb43-43" aria-hidden="true" tabindex="-1"></a>                sent <span class="op">+=</span> node.feature.split(<span class="st">&quot;,&quot;</span>)[<span class="dv">6</span>] <span class="op">+</span> <span class="st">&quot; &quot;</span> <span class="co"># node.feature.split(&quot;,&quot;)[6] は形態素解析結果の「原型」</span></span>
+<span id="cb43-44"><a href="#cb43-44" aria-hidden="true" tabindex="-1"></a>        node <span class="op">=</span> node.<span class="bu">next</span></span>
+<span id="cb43-45"><a href="#cb43-45" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> node <span class="kw">is</span> <span class="va">None</span>:</span>
+<span id="cb43-46"><a href="#cb43-46" aria-hidden="true" tabindex="-1"></a>            <span class="cf">break</span></span>
+<span id="cb43-47"><a href="#cb43-47" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> sent</span>
+<span id="cb43-48"><a href="#cb43-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-49"><a href="#cb43-49" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> ids_to_words(dictionary: Dictionary, ids):</span>
+<span id="cb43-50"><a href="#cb43-50" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> [dictionary[idx] <span class="cf">for</span> idx <span class="kw">in</span> ids]</span>
+<span id="cb43-51"><a href="#cb43-51" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> most_frequent_words_rate(dictionary: Dictionary, threshold: <span class="bu">float</span>):</span>
+<span id="cb43-52"><a href="#cb43-52" aria-hidden="true" tabindex="-1"></a>    threshold_abs <span class="op">=</span> <span class="bu">int</span>(threshold <span class="op">*</span> dictionary.num_docs)</span>
+<span id="cb43-53"><a href="#cb43-53" aria-hidden="true" tabindex="-1"></a>    ids <span class="op">=</span> [ v <span class="cf">for</span> v <span class="kw">in</span> dictionary.token2id.values() <span class="cf">if</span> threshold <span class="op">&lt;=</span> dictionary.dfs.get(v, <span class="dv">0</span>) <span class="op">&gt;</span> threshold_abs]</span>
+<span id="cb43-54"><a href="#cb43-54" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> ids_to_words(dictionary, ids)</span>
+<span id="cb43-55"><a href="#cb43-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-56"><a href="#cb43-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-57"><a href="#cb43-57" aria-hidden="true" tabindex="-1"></a><span class="co">#クラスタごとにテキストをまとめてワードクラウドを作ってみる</span></span>
+<span id="cb43-58"><a href="#cb43-58" aria-hidden="true" tabindex="-1"></a>font_path_gothic <span class="op">=</span> <span class="st">'./data/fonts-japanese-gothic.ttf'</span></span>
+<span id="cb43-59"><a href="#cb43-59" aria-hidden="true" tabindex="-1"></a>stop_words <span class="op">=</span> [<span class="st">'こと'</span>,<span class="st">'繁体'</span>,<span class="st">'簡体'</span>,<span class="st">'日本'</span>,<span class="st">'ブラジル'</span>,<span class="st">'ポルトガル'</span>]</span>
+<span id="cb43-60"><a href="#cb43-60" aria-hidden="true" tabindex="-1"></a>txts <span class="op">=</span> []</span>
+<span id="cb43-61"><a href="#cb43-61" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> c <span class="kw">in</span> <span class="bu">list</span>(df_wiki[<span class="st">'c'</span>].unique()):</span>
+<span id="cb43-62"><a href="#cb43-62" aria-hidden="true" tabindex="-1"></a>  txt <span class="op">=</span> <span class="st">&quot;&quot;</span></span>
+<span id="cb43-63"><a href="#cb43-63" aria-hidden="true" tabindex="-1"></a>  df_t <span class="op">=</span> df_wiki[df_wiki[<span class="st">'c'</span>] <span class="op">==</span> c]</span>
+<span id="cb43-64"><a href="#cb43-64" aria-hidden="true" tabindex="-1"></a>  <span class="cf">for</span> j <span class="kw">in</span> df_t[<span class="st">'Text'</span>]:</span>
+<span id="cb43-65"><a href="#cb43-65" aria-hidden="true" tabindex="-1"></a>    txt <span class="op">+=</span> j <span class="op">+</span> <span class="st">&quot;</span><span class="ch">\n</span><span class="st">&quot;</span></span>
+<span id="cb43-66"><a href="#cb43-66" aria-hidden="true" tabindex="-1"></a>  txt <span class="op">=</span> strip_CRLF_from_Text(txt)</span>
+<span id="cb43-67"><a href="#cb43-67" aria-hidden="true" tabindex="-1"></a>  txt <span class="op">=</span> mecab_wakati(txt)</span>
+<span id="cb43-68"><a href="#cb43-68" aria-hidden="true" tabindex="-1"></a>  txts.append(txt)</span>
+<span id="cb43-69"><a href="#cb43-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-70"><a href="#cb43-70" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(txts)</span>
+<span id="cb43-71"><a href="#cb43-71" aria-hidden="true" tabindex="-1"></a>dictionary <span class="op">=</span> Dictionary([x.split(<span class="st">' '</span>) <span class="cf">for</span> x <span class="kw">in</span> txts])</span>
+<span id="cb43-72"><a href="#cb43-72" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(most_frequent_words_rate(dictionary, <span class="fl">0.5</span>))</span>
+<span id="cb43-73"><a href="#cb43-73" aria-hidden="true" tabindex="-1"></a>stop_words <span class="op">+=</span> most_frequent_words_rate(dictionary, <span class="fl">0.5</span>)</span>
+<span id="cb43-74"><a href="#cb43-74" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(stop_words)</span>
+<span id="cb43-75"><a href="#cb43-75" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> c,txt <span class="kw">in</span> <span class="bu">zip</span>(<span class="bu">list</span>(df_wiki[<span class="st">'c'</span>].unique()),txts):</span>
+<span id="cb43-76"><a href="#cb43-76" aria-hidden="true" tabindex="-1"></a>  result <span class="op">=</span> WordCloud( width<span class="op">=</span><span class="dv">1000</span>,height<span class="op">=</span><span class="dv">400</span>,background_color<span class="op">=</span><span class="st">'white'</span></span>
+<span id="cb43-77"><a href="#cb43-77" aria-hidden="true" tabindex="-1"></a>                    , font_path<span class="op">=</span>font_path_gothic</span>
+<span id="cb43-78"><a href="#cb43-78" aria-hidden="true" tabindex="-1"></a>                    , regexp<span class="op">=</span><span class="vs">r&quot;[\w']+&quot;</span> <span class="co">#一文字を表示</span></span>
+<span id="cb43-79"><a href="#cb43-79" aria-hidden="true" tabindex="-1"></a>                    , stopwords<span class="op">=</span>stop_words).generate(txt)</span>
+<span id="cb43-80"><a href="#cb43-80" aria-hidden="true" tabindex="-1"></a>  plt.figure(figsize<span class="op">=</span>(<span class="dv">12</span>,<span class="dv">10</span>))</span>
+<span id="cb43-81"><a href="#cb43-81" aria-hidden="true" tabindex="-1"></a>  plt.imshow(result)</span>
+<span id="cb43-82"><a href="#cb43-82" aria-hidden="true" tabindex="-1"></a>  plt.title(<span class="bu">str</span>(c))</span>
+<span id="cb43-83"><a href="#cb43-83" aria-hidden="true" tabindex="-1"></a>  plt.axis(<span class="st">'off'</span>)</span>
+<span id="cb43-84"><a href="#cb43-84" aria-hidden="true" tabindex="-1"></a>  plt.show()</span></code></pre></div>
+<p><img src="../images/ch15-wiki-c1.png" alt="クラスタ1(英語,韓国語,インドネシア語)" />
+<img src="../images/ch15-wiki-c2.png" alt="クラスタ2(日本語,トルコ語)" />
+<img src="../images/ch15-wiki-c3.png" alt="クラスタ3(アラビア語,ヒンディー語,ポルトガル語,ロシア語)" />
+<img src="../images/ch15-wiki-c4.png" alt="クラスタ4(フランス語,ドイツ語,スペイン語,イタリア語)" />
+<img src="../images/ch15-wiki-c5.png" alt="クラスタ5(中国語)" /></p>
+<p>それぞれ異なる単語が表れており興味深いです. 研究の場合は,それぞれの特徴やその理由に関して考察すると面白いでしょう.</p>
 
 
 <!-- 前後の章へのナビゲーション -->
