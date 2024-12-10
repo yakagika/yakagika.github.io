@@ -247,7 +247,13 @@ Macは,`Homebrew`を利用します. [Homebrewの公式サイト](https://brew.s
 
 :::
 
-作成した電力データを利用して電力使用量から曜日を当ててみます.
+その他必要なライブラリをインストールします.
+
+~~~ sh
+pip install pydotplus Ipython sklearn
+~~~
+
+作成した電力データを利用して電力使用量から平日か土日かを当ててみます.
 
 ~~~ py
 import pandas as pd
@@ -260,9 +266,9 @@ from IPython.display import Image
 
 # 決定木分析(CART)で,電力データから祝日かどうかを当ててみる.
 # データを読み込み
-df = pd.read_csv("./data/energy_data.csv")
-X = df[['Lighting', 'Lamp', 'Power', 'Air']] #説明変数
-y = df['weekday'] #被説明変数
+df = pd.read_csv("./data/energy_may_day.csv")
+X = df[['Lighting', 'Others', 'Power', 'Air']] #説明変数
+y = df['Holiday'] #被説明変数
 
 #トレーニングデータの作成
 (train_X, test_X ,train_y, test_y) = train_test_split( X
@@ -285,14 +291,19 @@ tree.export_graphviz( clf
                     , out_file=dot_data
                     , filled=True
                     , feature_names=train_X.columns
-                    , class_names=df.weekday)
+                    , class_names=df['Holiday'])
 
 # 結果がPDFとして保存される graph = pydotplus.graph_from_dot_data(dot_data.getvalue())
-graph.write_pdf("graph.pdf")
+graph.write_pdf('result/tree_graph.pdf')
 Image(graph.create_png())
 
 ~~~
 
+
+##
+
+
+# 教師なし学習
 
 
 

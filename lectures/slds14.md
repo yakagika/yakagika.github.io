@@ -12,7 +12,7 @@ previousChapter: slds13.html
 nextChapter: slds15.html
 ---
 
-# ニューラルネットワーク概要(執筆中)
+# ニューラルネットワーク概要
 
 この章と次の章ではニューラルネットワークの概要を学び,画像や文章などの非構造化データを利用した学習を扱います.
 本講義はニューラルネットワークモデル等を直接開発,学習することは行わないため詳細については扱いません.そのため,この節では何を行っているのかの概要を掴むための基礎知識を学習します.
@@ -743,7 +743,29 @@ CNNを利用した主な画像認識モデルの歴史は以下のようにま�
 
 今回は,事例としてConvNeXtを利用した画像認識を実行してみます.
 
-[ConvNeXt](https://github.com/facebookresearch/ConvNeXt)は,Meta(旧Facebook)によって発表されたモデルで,Vision Transformer (ViT) を参考にしつつResNet（Residual Network）を基盤として作られたCNNです.
+[ConvNeXt](https://github.com/facebookresearch/ConvNeXt)は,Meta(旧Facebook)によって発表されたモデルで,Swin Transformer を参考にしつつResNet（Residual Network）を基盤として作られたCNNです.
+
+ConvNeXtでは畳み込み層に`Depthwise Convolution`を用いています. これは畳み込み処理を入力画像のチャンネル事に独立して計算する手法です.通常の畳み込みでは,入力画像の複数チャンネルを同時に処理するため計算コストが大きくなります.一方, Depthwise Convolutionでは, 1つのチャンネルに対して1つのフィルタで畳み込みを行い, それを全チャンネル分繰り返した後に, 別の1x1畳み込み(これをPointwise Convolutionと呼ぶことが多い)でチャネル間情報を組み合わせます. これにより演算コストと性能向上を両立したのがConvNeXtの大きな特徴になります.
+
+Pooling層では,`Adaptive Average Pooling`(アダプティブ平均プーリング)を採用しています.
+普通の平均プーリングでは, プーリング領域の大きさを固定して画素を平均化しますが, Adaptive Average Poolingは, 「最終的に出力したいサイズ」を指定します. すると, 入力画像がどんなサイズであっても, そのサイズに合わせて自動的に区切り方を調整し, 均等に平均をとってくれます. これにより, 入力画像の解像度が変わっても, ネットワークの最終的な出力ベクトルの大きさを一定に保ちやすくなります.
+
+また,活性化関数として`RELU`の発展形である`GELU(Gaussian Error Linear Unit)`を採用しています.
+
+$$
+GELU(x) = \frac{x}{2} \left[ 1 + erf(\frac{x}{\sqrt{2}}) \right]
+$$
+ここで$erf(x)$は**`誤差関数(error function)`**と呼ばれる関数です.
+
+$$
+erf(x) = \frac{2}{\sqrt{x}}\int_{0}^{x} e^{-t^2} dt
+$$
+
+`GELU`は, 入力が小さい(特に0より負側)場合には出力を小さく抑え, 入力が大きくなるにつれて徐々に出力を増やしていく, なめらかな活性化関数です. `ReLU`と比較すると, 入力が0付近で緩やかに変化するため, 勾配が急に0になることがなく, 学習を安定させる効果が期待できます. つまり, 「入力値がある程度以上大きい場合は強く反応し, 入力値が小さい場合はあまり反応しない」ことをなめらかに表現する非線形関数です.
+
+
+![GELU](/images/ch14-GELU.png)
+
 
 PythonのCNNのライブラリはいくつか存在しますが,ConvNeXtは,Metaによって開発された`PyTorch`上で実装されています.
 
@@ -1359,7 +1381,432 @@ information and possible workarounds, please see
 :::
 
 
-コードの全体像は以下のようになります.
+出力されている`convnext_loss.png`と`convnext_acc.png`は`epoch`ごとの`loss`と`acc`の推移を表しています. `acc`は,モデルが予測したラベルの実際のラベルに対する正答率であり,`1`であれば予測が完全にラベルと一致していることを示しています. 今回は10代から60代までの6ラベルなので,完全にランダムにラベルを予測しても`0.16`程度はラベルと予測が一致します.
+
+![lossの推移](/images/convnext_loss_epoch20.png)
+
+![accの推移](/images/convnext_acc_epoch20.png)
+
+グラフを確認してみると`epoch`が`5`をピークとして`loss`も`acc`も低下していることがわかります. そこで, もう一度,`num_epochs`を`5`に変更して,学習してみましょう. `random_seed`が固定されているので,基本的には同じ値が出力されるはずです.
+
+![accの推移(epoch 5)](/images/convnext_acc_epoch5.png)
+
+最終的に今回は, テストデータでの正答率が,`0.4`程度になりました. それほど高い値ではありませんが,ランダムに選択するよりはかなり良い値になったので,今回はこのくらいで良しとします. 実際の研究などでは,データ数を増やす,ハイパーパラメータやアルゴリズムを変更するなどして,もう少し良い値を目指したほうが良いでしょう.
+
+出力されている`pred_acctual_heatmap.png`は, テストデータにおける実際のラベルに対する予測値を予測値のラベル毎にカウントしたものを相対度数として表現したヒートマップです.すべて正確に予測されていた場合,度数は対角線上に集中します.
+このように可視化することで,モデルが何をどのように予測しているのかを確認できます.
+
+![accの推移(epoch 5)](/images/pred_acctual_heatmap.png)
+
+ヒートマップを確認すると概ね対角線上に度数が集中していることがわかります. 特に10,20代(y軸の0,1)を50,60代と予測した数は0であり,年齢が離れるほど正確に識別されていることがわかります.
+
+一方で,実際のラベルが10,20,40代であるときに,30代であると誤って予測する確率が高く,30代以前はあまり上手く識別できないことがわかります.
+
+続いて,`PCA`と`t-sne`の結果を確認してみましょう.
+
+![PCA](/images/convnext_pca.png)
+
+![t-sne](/images/convnext_tsne.png)
+
+いずれも左から右に行くにつれて,年齢が高くなっており,ある程度識別できていることがわかります.一方で,30代の緑色が広い範囲に分布しているために識別が困難であること,50代と60代が左右とは別の特徴量で識別されていることなどがわかります.
+
+このように,学習されたモデルの特徴量を分析することで,それぞれのクラスの特徴がある程度見えてきます.
+
+### 特徴マップ
+機械学習がどのような基準で判断を行っているかを説明することはこんなんですが,いくつかの方法があります. まずは,基本的な手法として各学習層でどのような特徴を抽出しているかを可視化する**特徴マップ**を見てみましょう.
+
+
+今回は,畳み込み層をそれぞれ年代(10s~60s)事に可視化してみましょう.
+特徴マップは最初の層から最終層に近づくにつれて,抽象度が上がり解釈が困難になります.
+今回は `target_layers_indices = [0,5,-1]`で指定している,`0`層,`5`層,最終層(`-1`)を対象にしていますが,必要であれば可視化する層を増やしてみましょう.
+
+画像は以下のようなフォルダ構成で保存されます.
+
+~~~ sh
+❯ tree -d data/result
+data/result
+└── feature_maps
+    ├── 10s
+    │   ├── features_-1
+    │   ├── features_0
+    │   ├── features_5
+    │   ├── last_conv
+    │   └── pooling
+    ├── 20s
+    │   ├── features_-1
+    │   ├── features_0
+    │   ├── features_5
+    │   ├── last_conv
+    │   └── pooling
+    ├── 30s
+    │   ├── features_-1
+    │   ├── features_0
+    │   ├── features_5
+    │   ├── last_conv
+    │   └── pooling
+    ├── 40s
+    │   ├── features_-1
+    │   ├── features_0
+    │   ├── features_5
+    │   ├── last_conv
+    │   └── pooling
+    ├── 50s
+    │   ├── features_-1
+    │   ├── features_0
+    │   ├── features_5
+    │   ├── last_conv
+    │   └── pooling
+    └── 60s
+        ├── features_-1
+        ├── features_0
+        ├── features_5
+        ├── last_conv
+        └── pooling
+~~~
+
+コードは以下になります.
+
+~~~ py
+#------------------------------------------------------------------
+#特徴マップの描画
+#------------------------------------------------------------------
+# 中間層のフックを設定する層リストの設定例
+target_layers_indices = [0, 5, -1]  # お好みで変更可能
+
+# フックで取り出した特徴マップを保持する辞書
+intermediate_feature_maps = {}
+
+def get_intermediate_hook(name):
+    def hook_fn(m, input, output):
+        # output: [B, C, H, W]
+        intermediate_feature_maps[name] = output.detach().cpu()
+    return hook_fn
+
+# 対象層にフックを登録
+hooks = []
+for idx in target_layers_indices:
+    layer_name = f"features_{idx}"
+    h = model.features[idx].register_forward_hook(get_intermediate_hook(layer_name))
+    hooks.append(h)
+
+# --- 最後の畳み込み層のフック ---
+feature_maps_last_conv = []
+def get_feature_map_hook_conv(self, input, output):
+    feature_maps_last_conv.append(output.detach().cpu())
+
+hook_conv = model.features[-1].register_forward_hook(get_feature_map_hook_conv)
+
+
+# 抽出したいクラス (0:10s,1:20s,...,5:60s)
+target_classes = [0,1,2,3,4,5]
+# 各クラスから9枚ずつ取得するためのカウンタ
+images_per_class = 9
+extracted_counts = {cls: 0 for cls in target_classes}
+
+# 保存ディレクトリの用意
+base_dir = 'data/result/feature_maps'
+if not os.path.exists(base_dir):
+    os.makedirs(base_dir)
+
+# クラスごとのフォルダを作成 (10s～60s)
+for cls in target_classes:
+    class_label_str = f"{(cls+1)*10}s"
+    class_dir = os.path.join(base_dir, class_label_str)
+    if not os.path.exists(class_dir):
+        os.makedirs(class_dir)
+    # 中間層用のサブフォルダを用意
+    for idx in target_layers_indices:
+        layer_name = f"features_{idx}"
+        layer_dir = os.path.join(class_dir, layer_name)
+        if not os.path.exists(layer_dir):
+            os.makedirs(layer_dir)
+
+    # 最終Conv層用のフォルダ
+    last_conv_dir = os.path.join(class_dir, 'last_conv')
+    if not os.path.exists(last_conv_dir):
+        os.makedirs(last_conv_dir)
+
+model.eval()
+val_iter = iter(dataloaders['val'])
+with torch.no_grad():
+    # 全クラスが指定枚数分揃うまで繰り返す
+    while not all(count == images_per_class for count in extracted_counts.values()):
+        try:
+            inputs, labels = next(val_iter)
+        except StopIteration:
+            # データがなくなったら終了
+            break
+
+        inputs = inputs.to(device)
+        # フック用リストをクリア
+        feature_maps_last_conv.clear()
+        intermediate_feature_maps.clear()
+
+        # 順伝播：フックで特徴マップ取得
+        outputs = model(inputs)
+
+        fm_batch = feature_maps_last_conv[0]   # [B, C, H, W] 最終Conv層出力
+
+        for i in range(inputs.size(0)):
+            cls = labels[i].item()
+            if cls in target_classes and extracted_counts[cls] < images_per_class:
+
+                class_label_str = f"{(cls+1)*10}s"
+                class_dir = os.path.join(base_dir, class_label_str)
+
+                # 中間層特徴マップ可視化
+                for idx in target_layers_indices:
+                    layer_name = f"features_{idx}"
+                    fm_intermediate = intermediate_feature_maps[layer_name][i] # shape: [C, H, W]
+                    num_channels_to_plot = min(8, fm_intermediate.shape[0])
+
+                    fig, axes = plt.subplots(2, 4, figsize=(12, 6))
+                    axes = axes.flatten()
+                    for ch in range(num_channels_to_plot):
+                        ax = axes[ch]
+                        ax.imshow(fm_intermediate[ch].numpy(), cmap='viridis')
+                        ax.axis('off')
+                    plt.suptitle(f'Intermediate Layer {layer_name} Feature Maps: Class {(cls+1)*10}s (Image {extracted_counts[cls]+1})')
+
+                    layer_dir = os.path.join(class_dir, layer_name)
+                    out_path = os.path.join(layer_dir, f'feature_map_{extracted_counts[cls]+1}.png')
+                    plt.savefig(out_path)
+                    plt.close()
+
+                # 最終Conv層特徴マップ可視化
+                fm = fm_batch[i]  # shape: [C, H, W]
+                num_channels_to_plot = min(8, fm.shape[0])
+                fig, axes = plt.subplots(2, 4, figsize=(12, 6))
+                axes = axes.flatten()
+                for ch in range(num_channels_to_plot):
+                    ax = axes[ch]
+                    ax.imshow(fm[ch].numpy(), cmap='viridis')
+                    ax.axis('off')
+                plt.suptitle(f'Last Conv Feature Maps: Class {(cls+1)*10}s (Image {extracted_counts[cls]+1})')
+                last_conv_dir = os.path.join(class_dir, 'last_conv')
+                out_path = os.path.join(last_conv_dir, f'feature_map_{extracted_counts[cls]+1}.png')
+                plt.savefig(out_path)
+                plt.close()
+
+                extracted_counts[cls] += 1
+
+                if all(count == images_per_class for count in extracted_counts.values()):
+                    break
+
+# フックを削除
+hook_conv.remove()
+for h in hooks:
+    h.remove()
+print('特徴マップ描画完了')
+~~~
+
+生成した画像のうち,10代(10s)と60代(60s)の特徴マップを確認してみましょう.
+
+![10s 0層](/images/ch14_10s_0_6.png)
+![60s 0層](/images/ch14_60s_0_8.png)
+
+初期段階の特徴マップでは,抽象化が進んでおらず入力画像に近い計上や明暗が捉えられています.この段階ではまだ「顔」や「目」「鼻」などの明確な概念は捉えられておらず, 画素レベルでの色・輝度・エッジなど, 低レベルな特徴(輪郭や縞模様, 明るい部分や暗い部分など)を抽出している段階に見えます.
+
+
+![10s 5層](/images/ch14_10s_5_6.png)
+![60s 5層](/images/ch14_60s_5_8.png)
+
+第5層では,人物の顔そのものが明示的に分かるわけではありませんが,明暗や模様の分布がより粗い粒度(低い解像度)で表現され,モザイク状に見える特徴マップが示唆するように,特定の領域に強く反応するフィルタも存在しています.
+
+![10s 最終層](/images/ch14_10s_last_6.png)
+![60s 5層](/images/ch14_60s_last_8.png)
+
+最終層になると,抽象化が進み人間の目が見ても元の画像との直接的な対応は難しくなりますが, ネットワークにとって意味のある特徴(特定の配置や模様, 対象物の概形など)がチャネルごとに表現されていると考えられます. このレベルでは,すでに「顔」のような意味的な概念へのマッピングが進み,分類タスクで役立つ特徴が凝縮されている段階です.
+
+
+特徴マップによって学習したCNNがどのような判断を行っているかを可視化することができました.しかし,特徴マップ自体を人間が解釈することによって,CNNの判断基準を説明することは困難です.そのような問題を解決するための手法として,人間がCNNの判断を説明できるように特徴マップの情報を画像にマッピングするいくつかの技法があります.
+
+::: note
+1.  `Grad-CAM(Gradient-weighted Class Activation Mapping)`
+Grad-CAMは, 最終的な予測クラスに対する勾配情報を, CNNの中間層(通常は最後の畳み込み層)における特徴マップに結びつけることで,画像のどの領域が最もクラス識別に寄与しているかを可視化する手法です.
+具体的には,対象クラスに対する損失の勾配を特徴マップに逆伝播させ,各チャネルごとの重みを算出し, その重みを特徴マップ上で合計することで,元画像上にクラス特有の関心領域を示すヒートマップを得ます.これにより,ネットワークが最終判断の際に注目した入力画像内の箇所が視覚的に明確になります.
+
+2.  `Guided Backpropagation`
+Guided Backpropagationは,ネットワーク内部の勾配情報を「正方向のみ」通過できるように制約することで, 入力画像に対してどの画素が予測へ大きく寄与しているかを可視化する手法です. これにより, ネットワーク内部を通る勾配経路を強制的に正の影響のみ残すため,予測クラスを支持する特徴に焦点を当てられます.
+
+3. `Guided Grad CAM`
+Grad-CAMとGuided Backpropagationを組み合わせた手法です. CNNモデルが出力した予測に対し, どのピクセルがどの程度そのクラス予測に貢献しているのかをより詳細かつ直感的に可視化することを目指した手法となります.
+
+:::
+
+ここでは10sと60sに限定して,これらの手法を実行してみましょう.
+
+~~~py
+#------------------------------------------------------------------
+# Grad-CAM, Guided Backprop, Guided Grad-CAM の実行 (10s, 60sに限定)
+#------------------------------------------------------------------
+import cv2
+
+# 対象クラスIDとクラス名
+target_cam_classes = {0:'10s', 5:'60s'}
+
+# valデータからサンプル画像を取得
+base_val_dir = os.path.join(data_dir, 'val')
+sample_images = {}
+for cls_id, cls_name in target_cam_classes.items():
+    cls_dir = os.path.join(base_val_dir, cls_name)
+    img_name = os.listdir(cls_dir)[0]
+    img_path = os.path.join(cls_dir, img_name)
+    sample_images[cls_id] = img_path
+
+# Grad-CAM用フック設定
+target_layer = model.features[-1]
+features = None
+gradients = None
+
+def forward_hook(module, input, output):
+    nonlocal features
+    features = output
+
+def backward_hook(module, grad_input, grad_output):
+    nonlocal gradients
+    gradients = grad_output[0]
+
+forward_h = target_layer.register_forward_hook(forward_hook)
+backward_h = target_layer.register_full_backward_hook(backward_hook)
+
+# Guided Backprop用：ConvNeXtはGELUを使用, そのためGELUに対するGuided Backpropを実装
+# 出力が正の部分のみ勾配を通す
+gelu_outputs = {}  # moduleをキーにしてforward出力を保存
+
+def gelu_forward_hook(module, input, output):
+    gelu_outputs[module] = output
+
+def gelu_backward_hook(module, grad_input, grad_output):
+    # grad_input: tuple of gradients wrt input of gelu
+    # grad_output: tuple of gradients wrt output of gelu
+    # guided backprop: 出力が正の位置のみ勾配を通す
+    out = gelu_outputs[module]
+    # outと同じ形状で, out>0のとこだけ1, それ以外0
+    positive_mask = (out > 0).float()
+    # grad_output[0]に対して, positive_maskをかけて負の領域をカット
+    guided_grad = grad_output[0] * positive_mask
+    return (guided_grad,)
+
+# GELU層にフックを登録
+guided_hooks = []
+for m in model.modules():
+    if isinstance(m, nn.GELU):
+        fh = m.register_forward_hook(gelu_forward_hook)
+        bh = m.register_backward_hook(gelu_backward_hook)
+        guided_hooks.append(fh)
+        guided_hooks.append(bh)
+
+def preprocess_image(img_path):
+    img = Image.open(img_path).convert('RGB')
+    img = img.resize((224, 224))
+    img_tensor = data_transforms['val'](img).unsqueeze(0).to(device)
+    return img, img_tensor
+
+def generate_gradcam():
+    pooled_gradients = torch.mean(gradients, dim=[0,2,3])
+    cam = torch.zeros(features.shape[2:], dtype=features.dtype, device=features.device)
+    for i in range(features.shape[1]):
+        cam += pooled_gradients[i] * features[0,i,:,:]
+    cam = cam.cpu().data.numpy()
+    cam = np.maximum(cam, 0)
+    if np.max(cam) != 0:
+        cam = cam / np.max(cam)
+    return cam
+
+def do_guided_backprop(model, img_tensor, target_class):
+    # 勾配リセット
+    model.zero_grad()
+    img_tensor.grad = None
+    # forward
+    output = model(img_tensor)
+    loss = output[0, target_class]
+    model.zero_grad()
+    loss.backward()
+    guided_grad = img_tensor.grad.data[0].cpu().numpy().transpose(1,2,0)
+    guided_grad = guided_grad - guided_grad.min()
+    guided_grad = guided_grad / (guided_grad.max() + 1e-8)
+    return guided_grad
+
+def apply_colormap_on_image(org_img, cam, alpha=0.5):
+    H_org, W_org, _ = org_img.shape
+    cam_resized = cv2.resize(cam, (W_org, H_org))
+
+    heatmap = cv2.applyColorMap(np.uint8(255*cam_resized), cv2.COLORMAP_JET)
+    heatmap = np.float32(heatmap)/255.0
+    org_img = np.float32(org_img)/255.0
+
+    cam_img = heatmap * alpha + org_img
+    cam_img = cam_img / np.max(cam_img)
+    return np.uint8(255*cam_img)
+
+def guided_gradcam(guided_grad, cam):
+    H, W, _ = guided_grad.shape
+    cam_resized = cv2.resize(cam, (W, H))
+    guided_gradcam = guided_grad * cam_resized[..., np.newaxis]
+    guided_gradcam = guided_gradcam - guided_gradcam.min()
+    guided_gradcam = guided_gradcam / (guided_gradcam.max()+1e-8)
+    return guided_gradcam
+
+gradcam_dir = 'data/result/gradcam_guided'
+if not os.path.exists(gradcam_dir):
+    os.makedirs(gradcam_dir)
+
+model.eval()
+from PIL import Image
+for cls_id, img_path in sample_images.items():
+    # original画像読み込み
+    org_img, img_tensor = preprocess_image(img_path)
+    org_img_np = np.array(org_img)  # RGB, 224x224
+    img_tensor.requires_grad = True
+
+    # Grad-CAM
+    model.zero_grad()
+    output = model(img_tensor)
+    target_score = output[0, cls_id]
+    target_score.backward()
+    cam = generate_gradcam()
+
+    # Grad-CAM画像
+    org_img_cv = org_img_np[:,:,::-1].copy()
+    gradcam_img = apply_colormap_on_image(org_img_cv, cam)
+    gradcam_img_rgb = gradcam_img[:,:,::-1]
+
+    # Guided Backprop
+    gb = do_guided_backprop(model, img_tensor, cls_id) # 0-1 float
+    g_gradcam = guided_gradcam(gb, cam) # 0-1 float
+
+    original_uint8 = org_img_np
+    gradcam_uint8 = gradcam_img_rgb
+    gb_uint8 = (gb*255).astype(np.uint8)
+    g_gradcam_uint8 = (g_gradcam*255).astype(np.uint8)
+
+    combined = np.hstack([original_uint8, gradcam_uint8, gb_uint8, g_gradcam_uint8])
+    plt.imsave(os.path.join(gradcam_dir, f'class_{cls_id}_combined.png'), combined)
+
+forward_h.remove()
+backward_h.remove()
+for h in guided_hooks:
+    h.remove()
+
+print("Grad-CAM, Guided Backprop, Guided Grad-CAM 完了")
+~~~
+
+10代の写真と,60代の写真を適当に選んで,手法を適用した画像が以下になります.左から元画像,`Grad-CAM`,`Guided Backpropagation`,`Guided Grad CAM`の順に結合されています.
+
+![](/images/ch14-gradcam_10s.png)
+
+![](/images/ch14-gradcam_60s.png)
+
+::: warn
+`Guided Backpropagation`が上手くできていませんが,これは学習が上手くいっていない(6割程度の正答率であること)によるか,コードのミスによるか判断できていません.後ほど確認します.
+:::
+
+この結果を見ると,今回の学習済みモデルは,10代では鼻や首,60代では画像の顎や首部分に注目していることが分かります. 現実世界でも女性の年齢などを判断する際に首を見るというのはよく聞く話なので,それなりに説得力がありそうです.
+実際の研究では,多くの画像を比較してよりモデルが何に注目しているかを分析することで,多くの示唆を得ることができます.
+
+これまでのコードの全体は以下になります.
+特徴マップ以降のために毎回学習するのは大変なので,初回以降は学習をスキップして保存された重みを利用するように分岐が入っています.
 
 ~~~ py
 import os
@@ -1475,13 +1922,33 @@ def main():
     # シードを設定する
     #(自分の研究でやる場合は以下の行は消しても問題ない.)
     set_seed(2024)
-
     # データのディレクトリ設定
     data_dir = 'data/sorted_images_split'
     batch_size = 32
     num_epochs = 5
     num_classes = 6  # 10代, 20代, ..., 60代
 
+    # デバイス設定
+    #GPUが利用できる場合はGPUを使う,そうでない場合はCPUを計算に利用します.
+    if torch.backends.mps.is_available():
+        device = torch.device("mps") #Mac GPU
+    elif torch.cuda.is_available():
+        device = torch.device("cuda:0") #Win GPU
+    else:
+        device = torch.device("cpu") #CPU
+
+    print(f'Using device: {device}')
+
+    # モデル定義
+    # ConvNextモデルの読み込みとカスタマイズ
+    weights = ConvNeXt_Tiny_Weights.IMAGENET1K_V1  # 最新の重みを指定
+    model = models.convnext_tiny(weights=weights)  # ConvNextの小さいモデルを使用
+    #モデル分類層の最終層(第3層(0,1,2番目))の入力特徴量を取得
+    num_ftrs = model.classifier[2].in_features
+    #既に学習されたモデルではクラス数がことなるので ,入力特徴量の数(num_ftrs)はそのまま
+    #出力をクラス数に変更
+    model.classifier[2] = nn.Linear(num_ftrs, num_classes)
+    model = model.to(device)
     # データ変換（前処理）
     data_transforms = {
         'train': transforms.Compose([
@@ -1510,169 +1977,439 @@ def main():
                                 ,num_workers=4) #使用するCore数
                    for x in ['train', 'val']}
 
-    # デバイス設定
-    #GPUが利用できる場合はGPUを使う,そうでない場合はCPUを計算に利用します.
-    if torch.backends.mps.is_available():
-        device = torch.device("mps") #Mac GPU
-    elif torch.cuda.is_available():
-        device = torch.device("cuda:0") #Win GPU
+    # 毎回学習するの大変なので,学習済みの場合は結果を読み込む
+    if os.path.exists('data/result/trained_model_weights.pth'):
+        print("学習済みデータのロード中")
+        model.load_state_dict(torch.load('data/result/trained_model_weights.pth', map_location=device))
     else:
-        device = torch.device("cpu") #CPU
+        print("学習開始")
+        # 損失関数とオプティマイザ
+        criterion = nn.CrossEntropyLoss() #クロスエントロピー損失
+        optimizer = optim.Adam(model.parameters() #Adam
+                              ,lr=0.0001) #Learning rate (学習率)
 
-    print(f'Using device: {device}')
+        #SGDを利用する場合
+        #optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
 
-    # ConvNextモデルの読み込みとカスタマイズ
-    weights = ConvNeXt_Tiny_Weights.IMAGENET1K_V1  # 最新の重みを指定
-    model = models.convnext_tiny(weights=weights)  # ConvNextの小さいモデルを使用
-    #モデル分類層の最終層(第3層(0,1,2番目))の入力特徴量を取得
-    num_ftrs = model.classifier[2].in_features
-    #既に学習されたモデルではクラス数がことなるので ,入力特徴量の数(num_ftrs)はそのまま
-    #出力をクラス数に変更
-    model.classifier[2] = nn.Linear(num_ftrs, num_classes)
+        #結果の記録用
+        train_losses = []
+        train_accuracies = []
+        val_losses = []
+        val_accuracies = []
+        results = []
 
-    model = model.to(device)
+        # 学習ループ
+        for epoch in range(num_epochs):
+            print(f'Epoch {epoch+1}/{num_epochs}')
+            print('-' * 10)
 
-    # 損失関数とオプティマイザ
-    criterion = nn.CrossEntropyLoss() #クロスエントロピー損失
-    optimizer = optim.Adam(model.parameters() #Adam
-                          ,lr=0.0001) #Learning rate (学習率)
+            for phase in ['train', 'val']:
+                if phase == 'train':
+                    model.train()
+                else:
+                    model.eval()
 
-    #SGDを利用する場合
-    #optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+                running_loss = 0.0
+                running_corrects = 0
 
-    #結果の記録用
-    train_losses = []
-    train_accuracies = []
-    val_losses = []
-    val_accuracies = []
-    results = []
+                for inputs, labels in dataloaders[phase]:
+                    inputs = inputs.to(device)
+                    labels = labels.to(device)
 
-    # 学習ループ
-    for epoch in range(num_epochs):
-        print(f'Epoch {epoch+1}/{num_epochs}')
-        print('-' * 10)
+                    optimizer.zero_grad()
 
-        for phase in ['train', 'val']:
-            if phase == 'train':
-                model.train()
-            else:
-                model.eval()
+                    with torch.set_grad_enabled(phase == 'train'):
+                        outputs = model(inputs)
+                        _, preds = torch.max(outputs, 1)
+                        loss = criterion(outputs, labels)
 
-            running_loss = 0.0
-            running_corrects = 0
+                        if phase == 'train':
+                            loss.backward()
+                            optimizer.step()
 
-            for inputs, labels in dataloaders[phase]:
-                inputs = inputs.to(device)
-                labels = labels.to(device)
+                    running_loss += loss.item() * inputs.size(0)
+                    running_corrects += torch.sum(preds == labels.data)
+                    if phase == 'val':  # バリデーション時に予測と実際のラベルを保存
+                        for i in range(len(labels)):
+                            results.append({
+                                'epoch': epoch + 1,
+                                'pred': preds[i].item(),
+                                'acctual': labels[i].item()
+                            })
 
-                optimizer.zero_grad()
+                epoch_loss = running_loss / len(image_datasets[phase])
+                epoch_acc = running_corrects.float() / len(image_datasets[phase])
 
-                with torch.set_grad_enabled(phase == 'train'):
-                    outputs = model(inputs)
-                    _, preds = torch.max(outputs, 1)
-                    loss = criterion(outputs, labels)
+                print(f'{phase} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
+                if phase == 'train':
+                    train_losses.append(epoch_loss)
+                    train_accuracies.append(epoch_acc.item())
+                else:
+                    val_losses.append(epoch_loss)
+                    val_accuracies.append(epoch_acc.item())
 
-                    if phase == 'train':
-                        loss.backward()
-                        optimizer.step()
+        #------------------------------------------------------------------
+        #結果の表示
+        #------------------------------------------------------------------
 
-                running_loss += loss.item() * inputs.size(0)
-                running_corrects += torch.sum(preds == labels.data)
-                if phase == 'val':  # バリデーション時に予測と実際のラベルを保存
-                    for i in range(len(labels)):
-                        results.append({
-                            'epoch': epoch + 1,
-                            'pred': preds[i].item(),
-                            'acctual': labels[i].item()
-                        })
+        print('Training complete')
+        print("Training Losses: ", train_losses)
+        print("Training Accuracies: ", train_accuracies)
+        print("Validation Losses: ", val_losses)
+        print("Validation Accuracies: ", val_accuracies)
 
-            epoch_loss = running_loss / len(image_datasets[phase])
-            epoch_acc = running_corrects.float() / len(image_datasets[phase])
+        # 結果を可視化してCSVファイルに保存
+        loss_acc = pd.DataFrame({'train_losses':train_losses
+                                ,'train_accuracies':train_accuracies
+                                ,'val_losses':val_losses
+                                ,'val_accuracies':val_accuracies})
+        plt.title('Losses')
+        plt.xlabel('Epoch')
+        plt.ylabel('Losses')
+        plt.plot(np.arange(num_epochs),loss_acc['train_losses'],c='r',label='train_losses')
+        plt.plot(np.arange(num_epochs),loss_acc['val_losses'],c='b',label='val_losses')
+        plt.grid(True)
+        plt.legend()
+        plt.savefig('data/result/convnext_loss.png')
+        plt.close()
 
-            print(f'{phase} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
-            if phase == 'train':
-                train_losses.append(epoch_loss)
-                train_accuracies.append(epoch_acc.item())
-            else:
-                val_losses.append(epoch_loss)
-                val_accuracies.append(epoch_acc.item())
+        plt.title('Accuracies')
+        plt.xlabel('Epoch')
+        plt.ylabel('Accuracies')
+        plt.plot(np.arange(num_epochs),loss_acc['train_accuracies'],c='r',label='train_accuracies')
+        plt.plot(np.arange(num_epochs),loss_acc['val_accuracies'],c='b',label='val_accuracies')
+        plt.grid(True)
+        plt.legend()
+        plt.savefig('data/result/convnext_acc.png')
+        plt.close()
 
-    #結果の表示
+        loss_acc.to_csv('data/result/convnext_loss_acc.csv'
+                       ,encoding='utf_8_sig')
 
-    print('Training complete')
-    print("Training Losses: ", train_losses)
-    print("Training Accuracies: ", train_accuracies)
-    print("Validation Losses: ", val_losses)
-    print("Validation Accuracies: ", val_accuracies)
+        results_df = pd.DataFrame(results)
+        result_max_epochs = results_df[results_df['epoch'] == num_epochs]
+        result_heatmap = pd.DataFrame(index=np.arange(6)
+                                     ,columns=np.arange(6)
+                                     ,data=0)
 
-    # 結果を可視化してCSVファイルに保存
-    loss_acc = pd.DataFrame({'train_losses':train_losses
-                            ,'train_accuracies':train_accuracies
-                            ,'val_losses':val_losses
-                            ,'val_accuracies':val_accuracies})
-    plt.title('Losses')
-    plt.xlabel('Epoch')
-    plt.ylabel('Losses')
-    plt.plot(np.arange(num_epochs),loss_acc['train_losses'],c='r',label='train_losses')
-    plt.plot(np.arange(num_epochs),loss_acc['val_losses'],c='b',label='val_losses')
-    plt.grid(True)
-    plt.legend()
-    plt.savefig('data/result/convnext_loss.png')
-    plt.close()
+        #実際のラベルに対する予測された回数をカウント
+        for i in result_max_epochs.index:
+            p = result_max_epochs.at[i,'pred']
+            a = result_max_epochs.at[i,'acctual']
+            result_heatmap.at[p,a] +=1
 
-    plt.title('Accuracies')
-    plt.xlabel('Epoch')
-    plt.ylabel('Accuracies')
-    plt.plot(np.arange(num_epochs),loss_acc['train_accuracies'],c='r',label='train_accuracies')
-    plt.plot(np.arange(num_epochs),loss_acc['val_accuracies'],c='b',label='val_accuracies')
-    plt.grid(True)
-    plt.legend()
-    plt.savefig('data/result/convnext_acc.png')
-    plt.close()
+        #列相対度数に変換
+        for c in result_heatmap:
+            result_heatmap[c] = result_heatmap[c] / result_heatmap[c].sum()
 
-    loss_acc.to_csv('data/result/convnext_loss_acc.csv'
-                   ,encoding='utf_8_sig')
+        #ヒートマップとして表現
+        sns.heatmap(result_heatmap
+                   ,annot=True)
+        plt.ylabel('pred')
+        plt.xlabel('acctual')
+        plt.savefig('data/result/pred_acctual_heatmap.png')
+        plt.close()
+        results_df.to_csv('data/result/pred_acctual.csv'
+                         ,encoding='utf_8_sig')
 
-    results_df = pd.DataFrame(results)
-    result_max_epochs = results_df[results_df['epoch'] == num_epochs]
-    result_heatmap = pd.DataFrame(index=np.arange(6)
-                                 ,columns=np.arange(6)
-                                 ,data=0)
+        # 特徴量を取得する
+        train_features, train_labels = extract_features(model, dataloaders['train'], device)
+        val_features, val_labels = extract_features(model, dataloaders['val'], device)
 
-    #実際のラベルに対する予測された回数をカウント
-    for i in result_max_epochs.index:
-        p = result_max_epochs.at[i,'pred']
-        a = result_max_epochs.at[i,'acctual']
-        result_heatmap.at[p,a] +=1
 
-    #列相対度数に変換
-    for c in result_heatmap:
-        result_heatmap[c] = result_heatmap[c] / result_heatmap[c].sum()
+        #散布図の描画
+        plot_tsne(train_features, train_labels,'data/result/convnext_tsne.png')
+        plot_pca(train_features, train_labels,'data/result/convnext_pca.png')
 
-    #ヒートマップとして表現
-    sns.heatmap(result_heatmap
-               ,annot=True)
-    plt.ylabel('pred')
-    plt.xlabel('acctual')
-    plt.savefig('data/result/pred_acctual_heatmap.png')
-    plt.close()
-    results_df.to_csv('data/result/pred_acctual.csv'
-                     ,encoding='utf_8_sig')
+        # (毎回学習するのは大変なので)特徴量を表示または保存しておく
+        torch.save(model.state_dict(), 'data/result/trained_model_weights.pth')
 
-    # 特徴量を取得する
-    train_features, train_labels = extract_features(model, dataloaders['train'], device)
-    val_features, val_labels = extract_features(model, dataloaders['val'], device)
+    #------------------------------------------------------------------
+    #特徴マップの描画
+    #------------------------------------------------------------------
+    # 中間層のフックを設定する層リストの設定例
+    target_layers_indices = [0, 5, -1]  # お好みで変更可能
 
-    # (毎回学習するのは大変なので)特徴量を表示または保存しておく
-    # 読み込む場合は
-    # train_features, train_labels = torch.load('train_features.pth')
-    torch.save((train_features, train_labels), 'data/result/convnext_train_features.pth')
-    torch.save((val_features, val_labels), 'data/result/convnext_val_features.pth')
+    # フックで取り出した特徴マップを保持する辞書
+    intermediate_feature_maps = {}
 
-    #散布図の描画
-    plot_tsne(train_features, train_labels,'data/result/convnext_tsne.png')
-    plot_pca(train_features, train_labels,'data/result/convnext_pca.png')
+    def get_intermediate_hook(name):
+        def hook_fn(m, input, output):
+            # output: [B, C, H, W]
+            intermediate_feature_maps[name] = output.detach().cpu()
+        return hook_fn
 
+    # 対象層にフックを登録
+    hooks = []
+    for idx in target_layers_indices:
+        layer_name = f"features_{idx}"
+        h = model.features[idx].register_forward_hook(get_intermediate_hook(layer_name))
+        hooks.append(h)
+
+    # --- 最後の畳み込み層のフック ---
+    feature_maps_last_conv = []
+    def get_feature_map_hook_conv(self, input, output):
+        feature_maps_last_conv.append(output.detach().cpu())
+
+    hook_conv = model.features[-1].register_forward_hook(get_feature_map_hook_conv)
+
+
+    # 抽出したいクラス (0:10s,1:20s,...,5:60s)
+    target_classes = [0,1,2,3,4,5]
+    # 各クラスから9枚ずつ取得するためのカウンタ
+    images_per_class = 9
+    extracted_counts = {cls: 0 for cls in target_classes}
+
+    # 保存ディレクトリの用意
+    base_dir = 'data/result/feature_maps'
+    if not os.path.exists(base_dir):
+        os.makedirs(base_dir)
+
+    # クラスごとのフォルダを作成 (10s～60s)
+    for cls in target_classes:
+        class_label_str = f"{(cls+1)*10}s"
+        class_dir = os.path.join(base_dir, class_label_str)
+        if not os.path.exists(class_dir):
+            os.makedirs(class_dir)
+        # 中間層用のサブフォルダを用意
+        for idx in target_layers_indices:
+            layer_name = f"features_{idx}"
+            layer_dir = os.path.join(class_dir, layer_name)
+            if not os.path.exists(layer_dir):
+                os.makedirs(layer_dir)
+
+        # 最終Conv層用のフォルダ
+        last_conv_dir = os.path.join(class_dir, 'last_conv')
+        if not os.path.exists(last_conv_dir):
+            os.makedirs(last_conv_dir)
+
+    model.eval()
+    val_iter = iter(dataloaders['val'])
+    with torch.no_grad():
+        # 全クラスが指定枚数分揃うまで繰り返す
+        while not all(count == images_per_class for count in extracted_counts.values()):
+            try:
+                inputs, labels = next(val_iter)
+            except StopIteration:
+                # データがなくなったら終了
+                break
+
+            inputs = inputs.to(device)
+            # フック用リストをクリア
+            feature_maps_last_conv.clear()
+            intermediate_feature_maps.clear()
+
+            # 順伝播：フックで特徴マップ取得
+            outputs = model(inputs)
+
+            fm_batch = feature_maps_last_conv[0]   # [B, C, H, W] 最終Conv層出力
+
+            for i in range(inputs.size(0)):
+                cls = labels[i].item()
+                if cls in target_classes and extracted_counts[cls] < images_per_class:
+
+                    class_label_str = f"{(cls+1)*10}s"
+                    class_dir = os.path.join(base_dir, class_label_str)
+
+                    # 中間層特徴マップ可視化
+                    for idx in target_layers_indices:
+                        layer_name = f"features_{idx}"
+                        fm_intermediate = intermediate_feature_maps[layer_name][i] # shape: [C, H, W]
+                        num_channels_to_plot = min(8, fm_intermediate.shape[0])
+
+                        fig, axes = plt.subplots(2, 4, figsize=(12, 6))
+                        axes = axes.flatten()
+                        for ch in range(num_channels_to_plot):
+                            ax = axes[ch]
+                            ax.imshow(fm_intermediate[ch].numpy(), cmap='viridis')
+                            ax.axis('off')
+                        plt.suptitle(f'Intermediate Layer {layer_name} Feature Maps: Class {(cls+1)*10}s (Image {extracted_counts[cls]+1})')
+
+                        layer_dir = os.path.join(class_dir, layer_name)
+                        out_path = os.path.join(layer_dir, f'feature_map_{extracted_counts[cls]+1}.png')
+                        plt.savefig(out_path)
+                        plt.close()
+
+                    # 最終Conv層特徴マップ可視化
+                    fm = fm_batch[i]  # shape: [C, H, W]
+                    num_channels_to_plot = min(8, fm.shape[0])
+                    fig, axes = plt.subplots(2, 4, figsize=(12, 6))
+                    axes = axes.flatten()
+                    for ch in range(num_channels_to_plot):
+                        ax = axes[ch]
+                        ax.imshow(fm[ch].numpy(), cmap='viridis')
+                        ax.axis('off')
+                    plt.suptitle(f'Last Conv Feature Maps: Class {(cls+1)*10}s (Image {extracted_counts[cls]+1})')
+                    last_conv_dir = os.path.join(class_dir, 'last_conv')
+                    out_path = os.path.join(last_conv_dir, f'feature_map_{extracted_counts[cls]+1}.png')
+                    plt.savefig(out_path)
+                    plt.close()
+
+                    extracted_counts[cls] += 1
+
+                    if all(count == images_per_class for count in extracted_counts.values()):
+                        break
+
+    # フックを削除
+    hook_conv.remove()
+    for h in hooks:
+        h.remove()
+    print('特徴マップ描画完了')
+
+    #------------------------------------------------------------------
+    # Grad-CAM, Guided Backprop, Guided Grad-CAM の実行 (10s, 60sに限定)
+    #------------------------------------------------------------------
+    import cv2
+
+    # 対象クラスIDとクラス名
+    target_cam_classes = {0:'10s', 5:'60s'}
+
+    # valデータからサンプル画像を取得
+    base_val_dir = os.path.join(data_dir, 'val')
+    sample_images = {}
+    for cls_id, cls_name in target_cam_classes.items():
+        cls_dir = os.path.join(base_val_dir, cls_name)
+        img_name = os.listdir(cls_dir)[0]
+        img_path = os.path.join(cls_dir, img_name)
+        sample_images[cls_id] = img_path
+
+    # Grad-CAM用フック設定
+    target_layer = model.features[-1]
+    features = None
+    gradients = None
+
+    def forward_hook(module, input, output):
+        nonlocal features
+        features = output
+
+    def backward_hook(module, grad_input, grad_output):
+        nonlocal gradients
+        gradients = grad_output[0]
+
+    forward_h = target_layer.register_forward_hook(forward_hook)
+    backward_h = target_layer.register_full_backward_hook(backward_hook)
+
+    # Guided Backprop用：ConvNeXtはGELUを使用, そのためGELUに対するGuided Backpropを実装
+    # 出力が正の部分のみ勾配を通す
+    gelu_outputs = {}  # moduleをキーにしてforward出力を保存
+
+    def gelu_forward_hook(module, input, output):
+        gelu_outputs[module] = output
+
+    def gelu_backward_hook(module, grad_input, grad_output):
+        # grad_input: tuple of gradients wrt input of gelu
+        # grad_output: tuple of gradients wrt output of gelu
+        # guided backprop: 出力が正の位置のみ勾配を通す
+        out = gelu_outputs[module]
+        # outと同じ形状で, out>0のとこだけ1, それ以外0
+        positive_mask = (out > 0).float()
+        # grad_output[0]に対して, positive_maskをかけて負の領域をカット
+        guided_grad = grad_output[0] * positive_mask
+        return (guided_grad,)
+
+    # GELU層にフックを登録
+    guided_hooks = []
+    for m in model.modules():
+        if isinstance(m, nn.GELU):
+            fh = m.register_forward_hook(gelu_forward_hook)
+            bh = m.register_backward_hook(gelu_backward_hook)
+            guided_hooks.append(fh)
+            guided_hooks.append(bh)
+
+    def preprocess_image(img_path):
+        img = Image.open(img_path).convert('RGB')
+        img = img.resize((224, 224))
+        img_tensor = data_transforms['val'](img).unsqueeze(0).to(device)
+        return img, img_tensor
+
+    def generate_gradcam():
+        pooled_gradients = torch.mean(gradients, dim=[0,2,3])
+        cam = torch.zeros(features.shape[2:], dtype=features.dtype, device=features.device)
+        for i in range(features.shape[1]):
+            cam += pooled_gradients[i] * features[0,i,:,:]
+        cam = cam.cpu().data.numpy()
+        cam = np.maximum(cam, 0)
+        if np.max(cam) != 0:
+            cam = cam / np.max(cam)
+        return cam
+
+    def do_guided_backprop(model, img_tensor, target_class):
+        # 勾配リセット
+        model.zero_grad()
+        img_tensor.grad = None
+        # forward
+        output = model(img_tensor)
+        loss = output[0, target_class]
+        model.zero_grad()
+        loss.backward()
+        guided_grad = img_tensor.grad.data[0].cpu().numpy().transpose(1,2,0)
+        guided_grad = guided_grad - guided_grad.min()
+        guided_grad = guided_grad / (guided_grad.max() + 1e-8)
+        return guided_grad
+
+    def apply_colormap_on_image(org_img, cam, alpha=0.5):
+        H_org, W_org, _ = org_img.shape
+        cam_resized = cv2.resize(cam, (W_org, H_org))
+
+        heatmap = cv2.applyColorMap(np.uint8(255*cam_resized), cv2.COLORMAP_JET)
+        heatmap = np.float32(heatmap)/255.0
+        org_img = np.float32(org_img)/255.0
+
+        cam_img = heatmap * alpha + org_img
+        cam_img = cam_img / np.max(cam_img)
+        return np.uint8(255*cam_img)
+
+    def guided_gradcam(guided_grad, cam):
+        H, W, _ = guided_grad.shape
+        cam_resized = cv2.resize(cam, (W, H))
+        guided_gradcam = guided_grad * cam_resized[..., np.newaxis]
+        guided_gradcam = guided_gradcam - guided_gradcam.min()
+        guided_gradcam = guided_gradcam / (guided_gradcam.max()+1e-8)
+        return guided_gradcam
+
+    gradcam_dir = 'data/result/gradcam_guided'
+    if not os.path.exists(gradcam_dir):
+        os.makedirs(gradcam_dir)
+
+    model.eval()
+    from PIL import Image
+    for cls_id, img_path in sample_images.items():
+        # original画像読み込み
+        org_img, img_tensor = preprocess_image(img_path)
+        org_img_np = np.array(org_img)  # RGB, 224x224
+        img_tensor.requires_grad = True
+
+        # Grad-CAM
+        model.zero_grad()
+        output = model(img_tensor)
+        target_score = output[0, cls_id]
+        target_score.backward()
+        cam = generate_gradcam()
+
+        # Grad-CAM画像
+        org_img_cv = org_img_np[:,:,::-1].copy()
+        gradcam_img = apply_colormap_on_image(org_img_cv, cam)
+        gradcam_img_rgb = gradcam_img[:,:,::-1]
+
+        # Guided Backprop
+        gb = do_guided_backprop(model, img_tensor, cls_id) # 0-1 float
+        g_gradcam = guided_gradcam(gb, cam) # 0-1 float
+
+        original_uint8 = org_img_np
+        gradcam_uint8 = gradcam_img_rgb
+        gb_uint8 = (gb*255).astype(np.uint8)
+        g_gradcam_uint8 = (g_gradcam*255).astype(np.uint8)
+
+        combined = np.hstack([original_uint8, gradcam_uint8, gb_uint8, g_gradcam_uint8])
+        plt.imsave(os.path.join(gradcam_dir, f'class_{cls_id}_combined.png'), combined)
+
+    forward_h.remove()
+    backward_h.remove()
+    for h in guided_hooks:
+        h.remove()
+
+    print("Grad-CAM, Guided Backprop, Guided Grad-CAM 完了")
+#------------------------------------------------------------------
 #スクリプトとして実行された場合(python convnext.py)で実行された場合に,
 # if __name__ == '__main__': 以下のみが実行される.
 # 並列処理(multiprocessing)を行う場合にこのようにしないと,
@@ -1681,37 +2418,5 @@ if __name__ == '__main__':
     main()
 ~~~
 
-出力されている`convnext_loss.png`と`convnext_acc.png`は`epoch`ごとの`loss`と`acc`の推移を表しています. `acc`は,モデルが予測したラベルの実際のラベルに対する正答率であり,`1`であれば予測が完全にラベルと一致していることを示しています. 今回は10代から60代までの6ラベルなので,完全にランダムにラベルを予測しても`0.16`程度はラベルと予測が一致します.
-
-![lossの推移](/images/convnext_loss_epoch20.png)
-
-![accの推移](/images/convnext_acc_epoch20.png)
-
-グラフを確認してみると`epoch`が`5`をピークとして`loss`も`acc`も低下していることがわかります. そこで, もう一度,`num_epochs`を`5`に変更して,学習してみましょう. `random_seed`が固定されているので,基本的には同じ値が出力されるはずです.
-
-![accの推移(epoch 5)](/images/convnext_acc_epoch5.png)
-
-最終的に今回は, テストデータでの正答率が,`0.4`程度になりました. それほど高い値ではありませんが,ランダムに選択するよりはかなり良い値になったので,今回はこのくらいで良しとします. 実際の研究などでは,データ数を増やす,ハイパーパラメータやアルゴリズムを変更するなどして,もう少し良い値を目指したほうが良いでしょう.
-
-出力されている`pred_acctual_heatmap.png`は, テストデータにおける実際のラベルに対する予測値を予測値のラベル毎にカウントしたものを相対度数として表現したヒートマップです.すべて正確に予測されていた場合,度数は対角線上に集中します.
-このように可視化することで,モデルが何をどのように予測しているのかを確認できます.
-
-![accの推移(epoch 5)](/images/pred_acctual_heatmap.png)
-
-ヒートマップを確認すると概ね対角線上に度数が集中していることがわかります. 特に10,20代(y軸の0,1)を50,60代と予測した数は0であり,年齢が離れるほど正確に識別されていることがわかります.
-
-一方で,実際のラベルが10,20,40代であるときに,30代であると誤って予測する確率が高く,30代以前はあまり上手く識別できないことがわかります.
-
-続いて,`PCA`と`t-sne`の結果を確認してみましょう.
-
-![PCA](/images/convnext_pca.png)
-
-![t-sne](/images/convnext_tsne.png)
-
-いずれも左から右に行くにつれて,年齢が高くなっており,ある程度識別できていることがわかります.一方で,30代の緑色が広い範囲に分布しているために識別が困難であること,50代と60代が左右とは別の特徴量で識別されていることなどがわかります.
-
-このように,学習されたモデルの特徴量を分析することで,それぞれのクラスの特徴がある程度見えてきます.
-
-それぞれの横軸,縦軸の特徴量が実際には何であるかは,各学習層でどのような特徴を抽出しているかを**特徴マップ**などによって可視化することが可能ですが,今回は扱いません. 興味がある方は,教員に聞いてみましょう.
 
 yakagika
