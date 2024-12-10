@@ -1425,43 +1425,38 @@ information and possible workarounds, please see
 ~~~ sh
 ❯ tree -d data/result
 data/result
-└── feature_maps
-    ├── 10s
-    │   ├── features_-1
-    │   ├── features_0
-    │   ├── features_5
-    │   ├── last_conv
-    │   └── pooling
-    ├── 20s
-    │   ├── features_-1
-    │   ├── features_0
-    │   ├── features_5
-    │   ├── last_conv
-    │   └── pooling
-    ├── 30s
-    │   ├── features_-1
-    │   ├── features_0
-    │   ├── features_5
-    │   ├── last_conv
-    │   └── pooling
-    ├── 40s
-    │   ├── features_-1
-    │   ├── features_0
-    │   ├── features_5
-    │   ├── last_conv
-    │   └── pooling
-    ├── 50s
-    │   ├── features_-1
-    │   ├── features_0
-    │   ├── features_5
-    │   ├── last_conv
-    │   └── pooling
-    └── 60s
-        ├── features_-1
-        ├── features_0
-        ├── features_5
-        ├── last_conv
-        └── pooling
+├── feature_maps
+│   ├── 10s
+│   │   ├── features_-1
+│   │   ├── features_0
+│   │   ├── features_5
+│   │   └── last_conv
+│   ├── 20s
+│   │   ├── features_-1
+│   │   ├── features_0
+│   │   ├── features_5
+│   │   └── last_conv
+│   ├── 30s
+│   │   ├── features_-1
+│   │   ├── features_0
+│   │   ├── features_5
+│   │   └── last_conv
+│   ├── 40s
+│   │   ├── features_-1
+│   │   ├── features_0
+│   │   ├── features_5
+│   │   └── last_conv
+│   ├── 50s
+│   │   ├── features_-1
+│   │   ├── features_0
+│   │   ├── features_5
+│   │   └── last_conv
+│   └── 60s
+│       ├── features_-1
+│       ├── features_0
+│       ├── features_5
+│       └── last_conv
+
 ~~~
 
 コードは以下になります.
