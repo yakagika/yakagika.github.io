@@ -16,11 +16,11 @@ nextChapter: iap3.html
 
 # Haskellセットアップ
 
-言語の特徴や意味を色々と説明してきましたが,習うより慣れろということで,そろそろHaskellを利用してみましょう.Haskell Haskellの開発環境には様々なものがありますが,現在良く使われているものとして[Cabal](https://www.haskell.org/cabal/) + [GHCup](https://www.haskell.org/ghcup/)あるいは[Stack](https://docs.haskellstack.org/en/stable/)の2つがあります. CabalとStackはプロジェクトのビルドを行うためのアーキテクチャであり,GHCupは周辺環境のインストーラーです. どちらで開発を行ってもいいのですが,本稿ではStackを用います.
+言語の特徴や意味を色々と説明してきましたが,習うより慣れろということで,そろそろHaskellを利用してみましょう.Haskellの開発環境には様々なものがありますが,現在良く使われているものとして[`Cabal`](https://www.haskell.org/cabal/) + [`GHCup`](https://www.haskell.org/ghcup/)あるいは[`Stack`](https://docs.haskellstack.org/en/stable/)の2つがあります. CabalとStackはプロジェクトのビルドを行うためのアーキテクチャであり,GHCupは周辺環境のインストーラーです. どちらで開発を行ってもいいのですが,本稿では`Stack`を用います.
 
-Stackは現在のHaskellの標準的なコンパイラである,Glasgow Haskell Compiler（GHC）に基づいたビルド環境である.(cabalもGHCですが). 他の言語と同様にHaskellでも様々なpackage(ライブラリ)を利用するのですが,package毎に他のpackageや,GHC(Haskellのコンパイラ)との依存関係があります.それらを使用するpackage事に調整することが人間には至難の業であり, 特定のpackageの依存関係を満たせば他のpackageの依存関係が満たされなくなるという試行錯誤を永遠と繰り返すことを`cabal hell`などと呼びます.
+Stackは現在のHaskellの標準的なコンパイラである,`Glasgow Haskell Compiler（GHC）`に基づいたビルド環境です(cabalもGHCですが). 他の言語と同様にHaskellでも様々なpackage(ライブラリ)を利用するのですが,package毎に他のpackageや,GHC(Haskellのコンパイラ)との依存関係があります.それらを使用するpackage事に調整することが人間には至難の業であり, 特定のpackageの依存関係を満たせば他のpackageの依存関係が満たされなくなるという試行錯誤を永遠と繰り返すことを`cabal hell`などと呼びます.
 
-Stackにはそのようなpackage間の依存関係を満たすバージョンの組み合わせ(resolver)を利用して,自動で解決してくれる機能があり,Haskellでのブロジェクトの開発を容易にしてくれます. resolverの集まりを[Stackage](https://www.stackage.org)といい, resolverで扱われるpackageをまとめて管理するレポジトリのことを[Hackage](https://hackage.haskell.org)といいます.
+Stackにはそのようなpackage間の依存関係を満たすバージョンの組み合わせ(`resolver`)を利用して,自動で解決してくれる機能があり,Haskellでのブロジェクトの開発を容易にしてくれます. resolverの集まりを[`Stackage`](https://www.stackage.org)といい, resolverで扱われるpackageをまとめて管理するレポジトリのことを[`Hackage`](https://hackage.haskell.org)といいます.
 
 ## 環境構築
 
@@ -46,18 +46,22 @@ hello-world
 
 作成されたディレクトリの構成は以下のようになっています.
 
-~~~
+~~~ sh
+❯ tree
 .
+├── CHANGELOG.md
+├── LICENSE
+├── README.md
+├── Setup.hs
 ├── app
-│    └── Main.hs
-├── src
-│    └── Lib.hs
-├── test
-│   └── Spec.hs
+│   ├── hello.hs
 ├── hello-world.cabal
 ├── package.yaml
-└── stack.yaml
-
+├── src
+│   └── Lib.hs
+├── stack.yaml
+└── test
+    └── Spec.hs
 ~~~
 
 それぞれの用途と意味は以下のとおりです.
@@ -70,9 +74,13 @@ hello-world
 
     - この後,`Main.hs`の中身を編集して`Hello World`用のプログラムを作成します.
 
+---
+
 - `src`フォルダ内には,実行可能ファイルで利用するライブラリが格納されます.
 
     - ここに自分で開発したライブラリを含めることも可能です.
+
+---
 
 - `package.yaml`ファイルはプロジェクトの設定を記入するファイルです.
 
@@ -86,6 +94,7 @@ hello-world
     - `package.yaml` の設定に従って,プロジェクトの設定ファイル `test.cabal`が自動で作成されます.
     基本的にstackを使っている範囲では`.cabal`ファイルを自分で編集することはありません.
 
+---
 
 - `stack.yaml`ファイルは,stackの設定を記入します
 
@@ -94,11 +103,11 @@ hello-world
 
 :::
 
-これらの利用法は,今後ライブラリを使用し始めたときに改めて学習すれば大丈夫ですが,取り敢えずプログラムを作成してきましょう.
+これらの利用法は,今後ライブラリを使用し始めたときに改めて学習すれば大丈夫なので,取り敢えずプログラムを作成してきましょう.
 
 `app/Main.hs`をテキストエディタで開いて編集していきましょう.
 
-`app/Main.hs`を開くと,以下のようなファイル担っているかと思います. Haskellのプログラムをコンパイルした実行可能ファイルでは,`main =` 内の記述が実行されます.
+`app/Main.hs`を開くと,以下のようなファイルになっているかと思います. Haskellのプログラムをコンパイルした実行可能ファイルでは,`main =` 内の記述が実行されます.
 
 ~~~ haskell
 module Main (main) where
@@ -180,7 +189,7 @@ executables:
     - hello-world
 ~~~
 
-`ghc-options:` 以下の項目はghcのコンパイルオプションであり,`W`で始まるいずれのオプションもコンパイル時の`Warning`を追加するものである. これらのコンパイルオプションがあると,プログラムの品質を高めることができるが, 利用していてWarningが邪魔に感じた場合は,すべて削除しても問題ありません(
+`ghc-options:` 以下の項目はghcのコンパイルオプションであり,`W`で始まるいずれのオプションもコンパイル時の`Warning`を追加するものです. これらのコンパイルオプションがあると,プログラムの品質を高めることができますが, 利用していてWarningが邪魔に感じた場合は,すべて削除しても問題ありません(
 その場合は以下のように,`ghc-options:`部分を`#`でコメントアウトしてください.)
 
 ~~~ yaml
@@ -201,7 +210,7 @@ executables:
     - hello-world
 ~~~
 
-特に,本講義資料では,品質よりも分かりやすさを優先してできるだけシンプルな実装を紹介する他,事例としてあえて間違ったコードを入力する場面も存在する. そのままサンプルを入力すると多数のWarningが表示されることになるので,以下の説明中で登場する出力結果ではこれらのオプションはすべて切った状態のものとなっている点に留意していただきたい.
+特に,本講義資料では,品質よりも分かりやすさを優先してできるだけシンプルな実装を紹介する他,事例としてあえて間違ったコードを入力する場面も存在します. そのままサンプルを入力すると多数のWarningが表示されることになるので,以下の説明中で登場する出力結果ではこれらのオプションはすべて切った状態のものとなっている点に留意してください.
 
 `library:`以下の記述で,利用するライブラリのPATH,`executables:`以下の記述で実行可能ファイルについて記述されています. ここでは, executableとして'app'フォルダ内にある'Main.hs'が'hello-world-exe'という名称でコンパイルされることが書かれています.`ghc-options:`以下は,コンパイル時のオプションを設定していますが,ここでは詳細は省略します.
 
