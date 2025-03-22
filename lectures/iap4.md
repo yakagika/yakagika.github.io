@@ -4,7 +4,6 @@ description: 資料
 tags:
     - algebra
     - lecture
-    - statistics
     - haskell
 featured: true
 katex: true
@@ -559,9 +558,89 @@ print(count(1))  # 出力: 2
 
 Haskellにおいて,変数への再代入が禁止されていることのメリットは理解していただけたかと思いますが,Haskellにも変数自体はあります.
 
-トップレベル変数
+Haskellにおける変数は主に,**トップレベル変数**及び**ローカル変数**に大別されます.
 
-ローカル変数
-where
-let
+## トップレベル変数
+
+先程の `x=1`のように,独立して宣言される変数を`トップレベル変数`と呼びます. トップレベル変数は,Pythonなどの言語における`グローバル変数`と同様に,スクリプト内のどこ場所からでも利用することができます.
+
+
+~~~ haskell
+x = 1
+
+someFunc :: Int -> Int
+someFunc y = x + y
+
+main = do
+    print $ someFunc 1 -- 2
+~~~
+
+## ローカル変数
+手続き型言語においてスコープが制限された変数のように,特定の関数内でのみ参照可能な局所変数として,**ローカル変数**が存在します. Haskellにおけるローカル変数は, `let式`,`where節`の2つのパターンが用意されています(ラムダ式内の引数も見方によってはローカル変数かもしれません.)
+
+### let式
+関数内で `let 宣言 in 式`の形式で局所変数を定義できます.
+
+~~~ haskell
+someFunc :: Int -> Int
+someFunc y = let x = 1
+           in x + y
+
+main = do
+    print $ someFunc 1 -- 2
+~~~
+
+この変数`x`は別の関数内で参照することはできません.
+
+~~~ haskell
+someFunc :: Int -> Int
+someFunc y = let x = 1
+           in x + y
+
+someFunc2 :: Int -> Int
+someFunc2 y = x + y
+
+main = do
+    print $ someFunc2 1 -- Variable not in scope: x :: Int
+~~~
+複数の宣言をひとまとめにすることも可能です.
+
+~~~ haskell
+someFunc :: Int -> Int
+someFunc z = let x = 1
+                 y = 2
+           in x + y + z
+
+main = do
+    print $ someFunc 1 -- 4
+~~~
+
+`Do`記法を利用すると`in`を省略することができます.
+
+~~~ haskell
+someFunc :: Int -> Int
+someFunc z = do
+    let x = 1
+        y = 2
+    x + y + z
+
+main = do
+    print $ someFunc 1 -- 4
+~~~
+
+### where節
+数式の直後にインデントをつけて`where 宣言`と書くことでも局所変数や局所関数を定義できます.
+
+~~~ haskell
+someFunc :: Int -> Int
+someFunc z = f z
+    where
+    x = 1
+    y = 2
+    f z = x + y + z
+
+main = do
+    print $ someFunc 1 -- 4
+~~~
+
 
