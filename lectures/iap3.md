@@ -593,3 +593,121 @@ True
 - x + y が奇数
 
 :::
+
+
+## スクリプトファイルの実行
+
+::: warn
+ここから先は,コードが複数行に渡ることが多くなるので,ghciの利用をやめてスクリプトを書きます.
+
+`app` フォルダ内に `practice.hs`を作成しそこで事例の勉強をしましょう.
+:::
+
+`practice.hs` ファイルを作成したら,ファイルを以下のように記述しましょう.
+
+~~~ haskell
+{-# LANGUAGE OverloadedStrings #-}
+import Data.Text
+
+main :: IO ()
+main = putStrLn "practice"
+~~~
+
+::: warn
+`module XXX () where`
+
+という記述は,他のファイルからインポート可能なmodule化を行うための宣言です.
+また,Stackでは,**大文字で始まる`*.hs`ファイルは,moduleとして認識されます.**
+
+したがって,一つのプロジェクトに複数の実行可能ファイルを生成する場合には,
+
+`module XXX () where`
+
+の記述をなくし, ファイル名を小文字ではじめる必要があります.
+
+これは,`Hello World`のために編集した`Main.hs`も同様であるため,`Main.hs`を`hello.hs`に名前を変更し,ファイル内の `module Main (main) where`の記述も削除し,以下のように変更しましょう.
+
+cf. [他にもいくつかの方法があるようです](https://www.reddit.com/r/haskell/comments/capuz7/multiple_executable_in_project/)
+:::
+
+~~~ haskell
+import Lib
+
+main :: IO ()
+main = helloWorld
+~~~
+
+`package.yaml`の`executables:`を以下のように編集して`hello.hs`と`practice.hs`を実行可能ファイルとして登録します. `Data.Text`を利用するために,`dependencies:`以下に`- text`を追加しておきましょう.
+
+~~~ yaml
+dependencies:
+- base >= 4.7 && < 5
+- text
+
+#ghc-options:
+
+library:
+  source-dirs: src
+
+executables:
+  hello:
+    main:                main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - hello-world
+
+  practice:
+    main:                practice.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - hello-world
+~~~
+
+`stack run practice` で`practice!`と表示されれば成功です.
+
+これからスクリプトで実行していくにあたって,`practice.hs`の中身をもう少し詳しく見てみましょう.
+
+~~~ haskell
+import Lib
+
+main :: IO ()
+main = putStrLn "practice!!"
+~~~
+
+haskellのプログラムを実行すると, `main関数`のみが実行されます.
+
+Haskellは関数型言語なので,これから`import Lib`と`main`の間に関数を定義していき,`main`の中で実行していくことになります.
+
+main 関数で行うことは関数として実行することになりますが,これから学習する通常の関数の定義で記述するのは今は難しいので,`do`記法を紹介します. main 関数の=以下に`do`と書くことで,do以下のインデントブロックに記述された内容が手続き型的に1行ずつ実行されます.
+
+以下のプログラムでは, `"practice1"`,`"practice2"`,`"practice3"`の順に標準出力されます.
+
+~~~ haskell
+import Lib
+
+main :: IO ()
+main = do
+    putStrLn "practice1" -- >>> "practice1"
+    putStrLn "practice2" -- >>> "practice2"
+    putStrLn "practice3" -- >>> "practice3"
+~~~
+
+`stack run practice`の結果を確認すると以下のようになります.
+
+~~~ sh
+> stack run practice
+"practice1"
+"practice2"
+"practice3"
+~~~
+
+また,ghciと異なって,出力結果が同じ画面に現れないので,
+以降のコード例では, その行の結果をコメント内で`>>>`に続けて書くこととします. コメント部分は,記述しなくても結果は変わらないので,省略しても構いません.

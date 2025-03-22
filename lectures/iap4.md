@@ -17,126 +17,6 @@ nextChapter: iap5.html
 
 Haskellは関数型言語なので,関数の記述がプログラミングにおける花形です. この章ではHaskellの関数に関する記法を学びましょう.
 
-
-## スクリプトファイルの実行
-
-::: warn
-ここから先は,コードが複数行に渡ることが多くなるので,ghciの利用をやめてスクリプトを書きます.
-
-`app` フォルダ内に `practice.hs`を作成しそこで事例の勉強をしましょう.
-:::
-
-`practice.hs` ファイルを作成したら,ファイルを以下のように記述しましょう.
-
-~~~ haskell
-{-# LANGUAGE OverloadedStrings #-}
-import Data.Text
-
-main :: IO ()
-main = putStrLn "practice"
-~~~
-
-::: warn
-`module XXX () where`
-
-という記述は,他のファイルからインポート可能なmodule化を行うための宣言です.
-また,Stackでは,**大文字で始まる`*.hs`ファイルは,moduleとして認識されます.**
-
-したがって,一つのプロジェクトに複数の実行可能ファイルを生成する場合には,
-
-`module XXX () where`
-
-の記述をなくし, ファイル名を小文字ではじめる必要があります.
-
-これは,`Hello World`のために編集した`Main.hs`も同様であるため,`Main.hs`を`hello.hs`に名前を変更し,ファイル内の `module Main (main) where`の記述も削除し,以下のように変更しましょう.
-
-cf. [他にもいくつかの方法があるようです](https://www.reddit.com/r/haskell/comments/capuz7/multiple_executable_in_project/)
-:::
-
-~~~ haskell
-import Lib
-
-main :: IO ()
-main = helloWorld
-~~~
-
-`package.yaml`の`executables:`を以下のように編集して`hello.hs`と`practice.hs`を実行可能ファイルとして登録します. `Data.Text`を利用するために,`dependencies:`以下に`- text`を追加しておきましょう.
-
-~~~ yaml
-dependencies:
-- base >= 4.7 && < 5
-- text
-
-#ghc-options:
-
-library:
-  source-dirs: src
-
-executables:
-  hello:
-    main:                main.hs
-    source-dirs:         app
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - hello-world
-
-  practice:
-    main:                practice.hs
-    source-dirs:         app
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - hello-world
-~~~
-
-`stack run practice` で`practice!`と表示されれば成功です.
-
-これからスクリプトで実行していくにあたって,`practice.hs`の中身をもう少し詳しく見てみましょう.
-
-~~~ haskell
-import Lib
-
-main :: IO ()
-main = putStrLn "practice!!"
-~~~
-
-haskellのプログラムを実行すると, `main関数`のみが実行されます.
-
-Haskellは関数型言語なので,これから`import Lib`と`main`の間に関数を定義していき,`main`の中で実行していくことになります.
-
-main 関数で行うことは関数として実行することになりますが,これから学習する通常の関数の定義で記述するのは今は難しいので,`do`記法を紹介します. main 関数の=以下に`do`と書くことで,do以下のインデントブロックに記述された内容が手続き型的に1行ずつ実行されます.
-
-以下のプログラムでは, `"practice1"`,`"practice2"`,`"practice3"`の順に標準出力されます.
-
-~~~ haskell
-import Lib
-
-main :: IO ()
-main = do
-    putStrLn "practice1" -- >>> "practice1"
-    putStrLn "practice2" -- >>> "practice2"
-    putStrLn "practice3" -- >>> "practice3"
-~~~
-
-`stack run practice`の結果を確認すると以下のようになります.
-
-~~~ sh
-> stack run practice
-"practice1"
-"practice2"
-"practice3"
-~~~
-
-また,ghciと異なって,出力結果が同じ画面に現れないので,
-以降のコード例では, その行の結果をコメント内で`>>>`に続けて書くこととします. コメント部分は,記述しなくても結果は変わらないので,省略しても構いません.
-
-
-
 ## 関数と演算子
 
 関数型言語では関数を組み合わせてプログラムを書きます. 関数の正確な定義は後に譲るとして,ここでは取り敢えず｢特定のデータ型の値を受け取って,特定のデータ型の値を返すもの｣という定義にしましょう.このとき受け取る値を**引数**,返す値を**返り値**といいます.
@@ -162,11 +42,12 @@ main = do
 ~~~
 
 `()`の代わりにスペースを使う点以外は全く同じ書き方で, `=`の左側に関数名と引数,右側に返り値を書きます.
-関数名は小文字の英字で始めれるというルールがあります.
+関数名は小文字の英字で始めるというルールがあります.
 
 `f :: Int -> Int`は型注釈であり,この`f`という関数が,引数に`Int`を取り,返り値として`Int`を返すということを指定しています.
+型注釈は高度な処理をしない限り省略しても自動的にGHCが推論してくれますが,可読性のためにもできるだけ書くようにしましょう.
 
-`do`以下の記述で, `f 4`の結果を確認しています. `print`は,文字列に変換可能な値を受取,標準出力する関数です. また `(f 4)`を省略して`$ f 4` としています.
+`do`以下の記述で, `f 4`の結果を確認しています. `print`は,文字列に変換可能な値を受け取り,標準出力する関数です. また `(f 4)`を省略して`$ f 4` としています.
 
 引数は何個でも利用できます. 例えば2引数関数
 
@@ -274,6 +155,54 @@ x .* y = x * y
 infixr 7 .*
 ~~~
 
+## カリー化,部分適用
+
+Haskellでは多引数関数を実装できることは先程確認しました. しかし,Haskellは**すべての関数が,引数を一つだけとる**という原則があります. これは,矛盾するようですが,この矛盾を解消する概念が**`カリー化(Currying)
+`**です.
+
+カリー化とは複数引数関数に対して,｢一つの引数を取り,次に残りの引数を取る関数を返すようにする変換｣です.
+
+例として,以下のxとyを受け取りその和を返す関数`add`は
+
+~~~ haskell
+add :: Int -> Int -> Int
+add x y = x + y
+~~~
+
+実際には
+
+~~~ haskell
+add :: Int -> (Int -> Int)
+~~~
+
+として機能しています. 関数の呼び出しは左結合なので,
+
+
+`add 5 10 = (add 5) 10` であり, ここで`(add 5) :: Int -> Int`という新たな関数に2が適用されています.
+
+~~~ sh
+ghci> :{
+ghci| add :: Int -> Int -> Int
+ghci| add x y = x + y
+ghci| :}
+ghci> :t add
+add :: Int -> Int -> Int
+ghci> :t (add 5)
+(add 5) :: Int -> Int
+~~~
+
+Haskellでは,標準で全ての関数がカリー化されており,これによって関数の複数の引数のうち一部だけを与えて,残りの引数を持つ関数を生成する**`部分適用(Partial Application)`**が可能となっています.
+
+~~~ haskell
+-- add関数を利用した部分適用
+add5 :: Int -> Int
+add5 = add 5
+
+-- 実際の利用例
+result = add5 10
+~~~
+
+
 ## 分岐
 
 関数型言語において,手続き型言語におけるIF文に相当するのが**パターンマッチ**と**指示関数(特性関数)**です.
@@ -303,7 +232,7 @@ def fib(x):
 これをHaskellでパターンマッチを利用して以下のように定義することができます.
 
 ~~~ haskell
-fib :: Int -> Int -> Int
+fib :: Int -> Int
 fib 0 = 1
 fib 1 = 1
 fib n = fib (n - 1) + fib (n - 2)
@@ -324,6 +253,9 @@ fib n = fib (n - 1) + fib (n - 2)
 以下の,`strHead`関数は,リストの先頭の要素を文字列として表示する関数です.リストが空のときには`"Empty"`,要素が一つのときにはその要素,それ以外のときには先頭の要素を文字列にして返します.
 
 `show`の詳細は後ほど扱いますが,どの様に標準出力に表示するかを定めてあるデータ型を文字列に変換する関数です.
+
+`Show a =>`の部分は任意のデータ型`a`が`show`を利用できるという制約を意味しており, **型クラス制約**といいます.
+クラスの詳細に関しては後ほど扱います.
 
 ~~~ haskell
 strHead :: Show a => [a] -> String
@@ -431,7 +363,7 @@ fib n = if n == 0 then 1 else if n == 1 then 1 else fib (n-1) + fib (n-2)
 
 ## 再帰
 
-Haskellにおいてもfor文に相当する記法は存在しますが,基本的にループは**再帰**によって実装されます.
+Haskellにおいても**for文に相当する記法は存在します**が,基本的にループは**再帰**によって実装されます.
 再帰とは関数内で自分自身を呼び出すことです. これまで何度も登場していた`fib`も再帰を利用していましたが,
 もう少し細かく見てみましょう.
 
@@ -486,13 +418,111 @@ total [1,2,3]
 
 :::
 
-## ラムダ式
+
 
 ## 高階関数
-map, fold, zip
+これまで扱ってきた関数の引数はすべて,値でしたが値ではなく**関数**を引数として指定することが可能です. **関数を引数に取る関数を高階関数といいます**.
+
+例えば関数`f`とリスト`[x,y,z]`を引数として受け取り,リストの各要素に`f`を適用したリスト`[f x, f y, f z]`を返す関数は以下のように実装できます.
+
+~~~ haskell
+applyFToList :: (a -> b) -> [a] -> [b]
+applyFToList f []     = []
+applyFToList f [x]    = [f x]
+applyFToList f (x:xs) =  (f x): (applyFToList f xs)
+
+main = do
+    print $ applyFToList (2*) [4,5,6]  -- [8,10,12]
+    print $ applyFToList (1+) [4,5,6]  -- [5,6,7]
+    print $ applyFToList show [4,5,6]  -- ["4","5","6"]
+    print $ applyFToList fib  [4,5,6]  -- [5,8,13]
+~~~
+
+関数部分は, `(a -> b)`のように,丸括弧で囲んでいます.
+
+### map
+
+この関数と同じものが組み込み関数(あらかじめ定義された関数)として提供されている代表的な高階関数`map :: (a -> b) -> [a] -> [b]`です.
+
+~~~ haskell
+main = do
+    print $ map (2*) [4,5,6]  -- [8,10,12]
+    print $ map (1+) [4,5,6]  -- [5,6,7]
+    print $ map show [4,5,6]  -- ["4","5","6"]
+    print $ map fib  [4,5,6]  -- [5,8,13]
+~~~
+
+::: warn
+- Prelude
+---
+Haskellの組み込み関数はライブラリ`Prelude`として提供されています.
+`Prelude`はすべてのプロジェクトで自動で読み込まれています.
+
+`map`関数は他のライブラリでも同名のものが提供されているため,それらと名前が被っている場合はどちらの`map`を利用するのか判別できないというエラーが起きます.
+
+例として,`Data.Text`も`map`を提供しているために,`Data.Text`を`import`している場合には以下のようなエラーが出ます.
+
+~~~ sh
+Ambiguous occurrence ‘map’
+    It could refer to
+       either ‘Prelude.map’,
+              imported from ‘Prelude’ at app/practice.hs:1:1
+              (and originally defined in ‘GHC.Base’)
+           or ‘Data.Text.map’,
+              imported from ‘Data.Text’ at app/practice.hs:4:1-16
+~~~
+
+同名の関数が複数のライブラリで定義されている場合は,`Prelude.map`など,どのライブラリの`map`であるかを明示するか,
+`hiding`を利用して特定の関数のみを`import`対象から外します.
+
+~~~ haskell
+import Data.Text hiding (map)
+-- map 以外すべてをimport
+~~~
+
+あるいは,利用する関数のみを明示的に`import`することも可能です.
+
+~~~ haskell
+import Data.Text hiding (Text,empty)
+-- Text,emptyのみをimport
+~~~
+
+:::
+
+以下, よく用いられる代表的な高階関数に関して紹介します.
+
+### filter
+
+`filter :: (a -> Bool) -> [a] -> [a]`はリストの中から与えられた関数で判定される条件に合致するもののみを抽出する関数です.
 
 
-## 合成
+~~~ haskell
+{-# LANGUAGE OverloadedStrings #-}
+import Data.Text (elem)
+
+main = do
+    print $ filter (10 < ) [5,10,15,20] -- >>> [15,20]
+    print $ filter (Data.Text.elem 'a') ["cat","dog","bird"] -- >>> ["cat"]
+~~~
+
+### fold
+
+
+### zipWith
+
+
+::: 練習問題
+
+
+
+:::
+
+## 無名関数(ラムダ式)
+
+
+## 関数合成
+
+
 
 # 変数(値の束縛)
 
@@ -572,7 +602,7 @@ someFunc :: Int -> Int
 someFunc y = x + y
 
 main = do
-    print $ someFunc 1 -- 2
+    print $ someFunc 1 -- >>> 2
 ~~~
 
 ## ローカル変数
@@ -587,7 +617,7 @@ someFunc y = let x = 1
            in x + y
 
 main = do
-    print $ someFunc 1 -- 2
+    print $ someFunc 1 -- >>> 2
 ~~~
 
 この変数`x`は別の関数内で参照することはできません.
@@ -601,7 +631,7 @@ someFunc2 :: Int -> Int
 someFunc2 y = x + y
 
 main = do
-    print $ someFunc2 1 -- Variable not in scope: x :: Int
+    print $ someFunc2 1 -- >>> Variable not in scope: x :: Int
 ~~~
 複数の宣言をひとまとめにすることも可能です.
 
@@ -612,7 +642,7 @@ someFunc z = let x = 1
            in x + y + z
 
 main = do
-    print $ someFunc 1 -- 4
+    print $ someFunc 1 -- >>> 4
 ~~~
 
 `Do`記法を利用すると`in`を省略することができます.
@@ -625,7 +655,7 @@ someFunc z = do
     x + y + z
 
 main = do
-    print $ someFunc 1 -- 4
+    print $ someFunc 1 -- >>> 4
 ~~~
 
 ### where節
@@ -640,7 +670,7 @@ someFunc z = f z
     f z = x + y + z
 
 main = do
-    print $ someFunc 1 -- 4
+    print $ someFunc 1 -- >>> 4
 ~~~
 
 

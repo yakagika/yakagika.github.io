@@ -75,7 +75,7 @@ MyDogs = & \{ GoldenRetriever \\
 
 このとき,`GoldenRetriever`や,`ShetlandSheepdog`は`MyDogs`の`要素`であるといい,要素が特定の集合に属するとき,
 
-$$ GoldenRetriever \in MyPets $$ の様に書きます. 要素に属さないことは $Chihuahua \notin MyPet$と書きます.
+$$ GoldenRetriever \in MyDogs $$ の様に書きます. 要素に属さないことは $Chihuahua \notin MyDogs$と書きます.
 
 Haskellにおいて,このようなデータ型を以下の様に定義することが可能です.
 データ型の宣言は, `data`のあとに続いて,`データ型の名前(型構築子)`を書き,`=`の後ろにその`中身(コンストラクタ/データ構築子)`を書きます.
