@@ -112,18 +112,19 @@ ghci> :type (1 :: Int)
 
 ### 数値型
 
-Haskellの基本的な数値型には以下の4つがあります.
+Haskellの基本的な数値型には以下の4つがあります. クラスに関しては後に扱うので,今はデータ型の更に大きな分類程度に考えておいてください.
 
-|  型        | 意味             |
-| ------     | ---------------- |
-| `Int`      | 固定長整数型     |
-| `Integer`  | 多倍長整数型     |
-| `Float`    | 単精度浮動小数型 |
-| `Double`   | 倍精度浮動小数型 |
-
+| クラス            |  データ型  | 意味             |
+| ------            | ------     | ---------------- |
+| Integer (整数)    | `Int`      | 固定長整数型     |
+| Integer (整数)    | `Integer`  | 多倍長整数型     |
+| Fractional (小数) | `Float`    | 単精度浮動小数型 |
+| Fractional (小数) | `Double`   | 倍精度浮動小数型 |
 
 
 `Int`と`Integer`は`整数`, `Float`と`Double`は`実数`を表しています.
+
+::: note
 
 `固定長/多倍長`, `単精度/倍精度` というのはどういう意味でしょうか?
 
@@ -151,7 +152,10 @@ ghci> 9223372036854775807 :: Int
 ghci> (9223372036854775807 + 1) :: Int
 -9223372036854775808
 ~~~
+:::
 
+
+### 数値型の演算
 
 Haskellにおける数値型の基本的な演算子は以下のように定義されています. 実数と整数で挙動が異なるものがあるので注意が必要です.
 
@@ -227,6 +231,44 @@ ghci> 5 `div` 2
 ghci> 5 `mod` 2
 1
 ~~~
+
+### 数値型の変換
+
+`Integral(整数)`から`Fractional(小数)`への変換は, `fromIntegral`を利用します.
+
+~~~ sh
+ghci> fromIntegral (1 :: Int) :: Double
+1.0
+ghci> div 5 2
+2
+ghci> 2 ** (div 5 2)
+
+<interactive>:6:1: error: [GHC-39999]
+    • Ambiguous type variable ‘a0’ arising from a use of ‘print’
+      prevents the constraint ‘(Show a0)’ from being solved.
+      Probable fix: use a type annotation to specify what ‘a0’ should be.
+      Potentially matching instances:
+        instance [safe] Show Version -- Defined in ‘Data.Version’
+        instance Show Exception.ArithException
+          -- Defined in ‘GHC.Exception.Type’
+        ...plus 39 others
+        ...plus 20 instances involving out-of-scope types
+        (use -fprint-potential-instances to see them all)
+    • In a stmt of an interactive GHCi command: print it
+ghci> 2 ** (fromIntegral (div 5 2))
+4.0
+~~~
+
+`Fractional(小数)`から`Integral(整数)`への変換は,基本的に何かしらの**切り捨て**を実施します.
+
+| 切り捨て関数名 | 意味                       | 例                                                       |
+| -------------- | -------------------------- | ----------------------------------                       |
+| ceiling        | 小数点以下を切り上げる     | `ceiling 3.2 → 4`, `ceiling (-3.2) → -3`               |
+| floor          | 小数点以下を切り下げる     | `floor 3.8 → 3`, `floor (-3.8) → -4`                   |
+| truncate       | 小数部分を単純に切り捨てる | `truncate 3.8 → 3`, `truncate (-3.8) → -3`             |
+| round          | 最も近い整数に丸める       | `round 3.5 → 4`, `round 3.4 → 3`, `round (-3.5) → -4` |
+
+
 
 ::: note
 
@@ -695,9 +737,9 @@ import Lib
 
 main :: IO ()
 main = do
-    putStrLn "practice1" -- >>> "practice1"
-    putStrLn "practice2" -- >>> "practice2"
-    putStrLn "practice3" -- >>> "practice3"
+    putStrLn "practice1" -- "practice1"
+    putStrLn "practice2" -- "practice2"
+    putStrLn "practice3" -- "practice3"
 ~~~
 
 `stack run practice`の結果を確認すると以下のようになります.
@@ -710,4 +752,4 @@ main = do
 ~~~
 
 また,ghciと異なって,出力結果が同じ画面に現れないので,
-以降のコード例では, その行の結果をコメント内で`>>>`に続けて書くこととします. コメント部分は,記述しなくても結果は変わらないので,省略しても構いません.
+以降のコード例では, その行の結果をコメントで書くこととします. コメント部分は,記述しなくても結果は変わらないので,省略しても構いません.

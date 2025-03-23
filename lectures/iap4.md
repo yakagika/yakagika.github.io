@@ -38,7 +38,7 @@ f :: Int -> Int
 f x = x + 1
 
 main = do
-    print $ f 4 -- >>> 5
+    print $ f 4 --  5
 ~~~
 
 `()`の代わりにスペースを使う点以外は全く同じ書き方で, `=`の左側に関数名と引数,右側に返り値を書きます.
@@ -61,7 +61,7 @@ multiple x y = x * y
 multiple 3 4
 
 main = do
-    print $ multiple 3 4 -- >>> 12.0
+    print $ multiple 3 4 --  12.0
 ~~~
 
 また,以下の記号を組み合わせて中置演算子名として利用することも可能です.
@@ -76,7 +76,7 @@ main = do
 x .* y = x * y
 
 main = do
-    print $ 3 .* 4 -- >>> 12.0
+    print $ 3 .* 4 --  12.0
 ~~~
 
 絵文字などのUnicode記号も利用することができます.
@@ -87,7 +87,7 @@ main = do
 x ✖ y = x * y
 
 main = do
-    print $ 3 ✖ 4 -- >>> 12.0
+    print $ 3 ✖ 4 --  12.0
 ~~~
 
 記号を利用して関数を定義する場合には,定義時に`()` で囲うことで一般の関数のように定義することができます.
@@ -97,7 +97,7 @@ main = do
 (.*) :: Int -> Int -> Int
 (.*) x y = x * y
 main = do
-    print $ 3 .* 4 -- >>> 12
+    print $ 3 .* 4 --  12
 ~~~
 
 前置の2引数関数も` `` ` (バッククオート)で囲むことで中置演算子として定義することができます.
@@ -106,7 +106,7 @@ main = do
 x `multiple` y = x * y
 
 main = do
-    print $ 3 `multiple ` 4 -- >>> 12
+    print $ 3 `multiple ` 4 --  12
 ~~~
 
 ### 結合性
@@ -212,9 +212,11 @@ result = add5 10
 パターンマッチに近い概念は既にフィボナッチ数の漸化式として出てきています.フィボナッチ数の漸化式は,以下のように表されます.
 
 ::: note
-$$ F_0 = 1 $$
-$$ F_1 = 1 $$
-$$ F_n = F_{n-1} + F_{n-2} (n >= 2)  $$
+$$
+F_0 = 1 \\
+F_1 = 1 \\
+F_n = F_{n-1} + F_{n-2} (n >= 2)
+$$
 :::
 
 この関数はPythonでは,以下のようにif文による分岐で記述されるのが一般的です.
@@ -254,8 +256,10 @@ fib n = fib (n - 1) + fib (n - 2)
 
 `show`の詳細は後ほど扱いますが,どの様に標準出力に表示するかを定めてあるデータ型を文字列に変換する関数です.
 
+::: warn
 `Show a =>`の部分は任意のデータ型`a`が`show`を利用できるという制約を意味しており, **型クラス制約**といいます.
 クラスの詳細に関しては後ほど扱います.
+:::
 
 ~~~ haskell
 strHead :: Show a => [a] -> String
@@ -264,8 +268,8 @@ strHead [x]    = show x
 strHead (x:xs) = show x
 
 main = do
-    print $ strHead [] -- >>> "Empty"
-    print $ strHead [3,4] -- >>> "3"
+    print $ strHead [] --  "Empty"
+    print $ strHead [3,4] --  "3"
 ~~~
 
 パターンマッチはこのようにリスト`x:xs`の先頭部分`x`を指定するなどの利用法が可能です. 値の特定の部分を取得する用法として頻出なのがタプルを引数に取るパターンマッチです.
@@ -308,7 +312,7 @@ fib n | n == 0 = 1
       | n >= 2 = fib (n-1) + fib (n-2)
 
 main = do
-    print $ fib 5 -- >>> 8
+    print $ fib 5 --  8
 ~~~
 
 特徴関数におけるifの位置が先に来ている以外は,基本的に対応関係にあるのがわかるかと思います.
@@ -325,7 +329,7 @@ fib n = case n of
         _ -> fib (n-1) + fib (n-2)
 
 main = do
-    print $ fib 5 -- >>> 8
+    print $ fib 5 --  8
 ~~~
 
 ワイルドカードはどのような値に対しても同じ値を返す関数を実装する場合などにも利用されます.
@@ -349,7 +353,7 @@ fib n = if n == 0 then 1
         else fib (n-1) + fib (n-2)
 
 main = do
-    print $ fib 5 -- >>> 8
+    print $ fib 5 --  8
 ~~~
 
 Haskellではあまりif式は利用されませんが,
@@ -385,7 +389,7 @@ total []  = 0
 total [x] = x
 total (x:xs) = x + (total xs)
 
-main = print $ tatal [1..10] -- >>> 55
+main = print $ tatal [1..10] --  55
 ~~~
 
 このtotal関数は,与えられたリストが空の場合0を返し,要素が一つの場合その要素を返します.
@@ -501,28 +505,231 @@ import Data.Text hiding (Text,empty)
 import Data.Text (elem)
 
 main = do
-    print $ filter (10 < ) [5,10,15,20] -- >>> [15,20]
-    print $ filter (Data.Text.elem 'a') ["cat","dog","bird"] -- >>> ["cat"]
+    print $ filter (10 < ) [5,10,15,20] --  [15,20]
+    print $ filter (Data.Text.elem 'a') ["cat","dog","bird"] --  ["cat"]
 ~~~
 
 ### fold
+`foldl :: (a -> b -> a) -> a -> [b] -> a`,
+
+`foldr :: (a -> b -> b) -> b -> [a] -> b`
+
+は畳み込み関数です.`foldl`はリストの左端,`foldr`はリストの右端から値を一つずつ抜き出して,2引数関数によって一つの値に畳み込んでいきます.
+リストのデータ構造的に基本的には`foldl`のほうが効率が良いので`foldl`が用いられます.
+
+例として,
+
+~~~ haskell
+main = do
+    print $ foldl (+) 0 [1,2,3] --  6
+~~~
+
+の挙動は,
+
+`foldl (+) 0 [1,2,3]`
+
+`foldl (+) (0+1) [2,3]`
+
+`foldl (+) (1+2) [3]`
+
+`foldl (+) (3+3) []`
+
+`6`
+
+となります.
+
+### zipWith, zip
+
+`zipWith :: (a -> b -> c) -> [a] -> [b] -> [c]`
+
+は2つのリストからそれぞれ値を順番に取り出して,関数を適用した結果をリストに格納する高階関数です.
+
+例として.
+
+~~~ haskell
+main = do
+    print $ zipWith (++) ["a","b","c"] ["x","y","z"] --  ["ax","by","cz"]
+~~~
+
+の挙動は,
+
+`zipWith (++) ["a","b","c"] ["x","y","z"] `
+
+`["a" ++ "x" ,"b" ++ "y","c" ++ "z"]`
+
+となります.
+
+`zip :: [a] -> [b] -> [(a,b)]`
+
+は2つのリストからそれぞれ値を順番に取り出して,`[(左のリスト値,右のリストの値)]`を返す関数です.
+タプルを返す2引数関数 `,` によって `zipWith (,)` として実装されます.
+
+~~~ haskell
+zip' :: [a] -> [b] -> [(a,b)]
+zip' = zipWith (,)
+
+tuple :: a -> b -> (a,b)
+tuple a b = (a,b)
+
+zip'' :: [a] -> [b] -> [(a,b)]
+zip'' = zipWith tuple
+
+main = do
+    print $ zip [1,2,3] [11,12,13] --  [(1,11),(2,12),(3,13)]
+    print $ zip' [1,2,3] [11,12,13] --  [(1,11),(2,12),(3,13)]
+    print $ zip'' [1,2,3] [11,12,13] --  [(1,11),(2,12),(3,13)]
+~~~
+
+::: note
+
+- 練習問題
+---
+
+- 与えられた整数のリストの各要素を二乗する関数squareListを,mapを使って定義してください.
+
+~~~ haskell
+squareList [1,2,3,4] -- [1,4,9,16]
+~~~
+
+- 整数のリストの総積を計算する関数productListを,foldlを使って定義してください.
+
+~~~ haskell
+productList [1,2,3,4] -- 24
+~~~
 
 
-### zipWith
+- 2つのリストから,それぞれの要素の大きい方を選んで新しいリストを作る関数maxListを,zipWithを使って定義してください.
 
-
-::: 練習問題
-
+~~~ haskell
+maxList [1,4,3] [2,2,5] -- [2,4,5]
+~~~
 
 
 :::
 
 ## 無名関数(ラムダ式)
 
+高階関数に与える関数はその場限りの利用となる場合が多いため,先程の`zipWith`と`tuple`によって`zip`を定義した例のように, いちいち別の関数名をつけることは手間が多くなり,コードも冗長になりがちです.
+そのような場合に, 使い捨ての関数を定義する手法が,**無名関数(ラムダ式) Lambda expression**です.
+
+ラムダ計算は$\lambda$を表す記号,`\`を用いて, `\ 引数 -> 返り値`の形で式を定義できます.
+
+例として,
+
+`f x y z = x + y + z` は
+
+`\ x y z -> x + y + z` となります.
+
+`zipWith` の例は以下のようにも定義できます.
+
+~~~ haskell
+main = do
+    print $ zip [1,2,3] [11,12,13] -- [(1,11),(2,12),(3,13)]
+    print $ zipWith (\ x y -> (x,y)) [1,2,3] [11,12,13] --  [(1,11),(2,12),(3,13)]
+~~~
+
+また,練習問題中の`maxList`は,以下のように定義できます.
+
+
+~~~ haskell
+main = do
+    print $ zipWith (\x y -> if x > y then x else y)
+                    [1,4,3]
+                    [2,2,5] -- [2,4,5]
+~~~
+
+::: note
+- `flip` と高階関数
+---
+
+`flip :: (a -> b -> c) -> b -> a -> c`は,**関数の引数の順番を入れ替える関数**であり,以下のような挙動を示します.
+
+~~~ haskell
+main = do
+   print $ (,) "a" "b" -- ("a","b")
+   print $ flip (,) "a" "b" -- ("b","a")
+   ---
+   print $ (>) 1 2 -- False
+   print $ flip (>) 1 2 -- True
+~~~
+
+高階関数にラムダ式を組み合わせたことで,記述が長くなった場合などには,`flip`で引数の関数とリストを入れ替え,**手続き型言語における`for文`に近い記法**を採用する場合があります.
+
+
+~~~ haskell
+main :: IO ()
+main = do
+   print $ flip map [-3 .. 3]
+         $ \ x -> case x >= 0 of
+                True  -> 1
+                False -> 0
+        -- [0,0,0,1,1,1,1]
+~~~
+
+このような`flip`,ラムダ式と`$`を組み合わせた記法は今後の**状態系**や**モナド**に関する議論などで頻出します.
+また,このような書き方を前提とした`forM`,`forM_`などの関数も登場するので,頭の片隅に入れておいてください.
+
+:::
+
+::: note
+
+- 練習問題
+---
+
+- ラムダ式と高階関数を利用して,リストの各要素に3を加える関数addThreeを定義してください.
+
+~~~ haskell
+addThree [1,2,3] -- [4,5,6]
+~~~
+
+- ラムダ式と高階関数を利用して,整数のリストから偶数だけを取り出す関数onlyEvenを定義してください.
+
+~~~ haskell
+onlyEven [1,2,3,4,5,6] -- [2,4,6]
+~~~
+
+- ラムダ式と高階関数を利用して,整数のリストに含まれる要素の絶対値の合計を求める関数sumAbsを定義してください.
+
+~~~ haskell
+sumAbs [-3,4,-1,2] -- 10
+~~~
+
+::::
+
 
 ## 関数合成
 
+数学において,2つの関数 $f(x), g(x)$があるとき, $f(g(x))$を合成関数と呼び, $$f \circ g $$ とも書きます.
+通常Haskellでも関数を合成する場合には,
 
+`f (g x)` あるいは `f $ g x` と書きますが,関数 `(.)`によって `(f . g) x` と書くことができます.
+関数定義においては
+
+`h = f . g` のように定義することが可能です.
+
+
+~~~ haskell
+f :: Int -> Int
+f x = 2 * x
+
+g :: Int -> Int
+g x = 3 + x
+
+
+-- 実行例
+main :: IO ()
+main = do
+    -- f(g(x))
+    print $ f $ g 2 -- 10
+    -- \[f \circ  g \]
+    print $ (f . g) 2 -- 10
+    -- 定義
+    let h = f . g
+    print $ h 2 -- 10
+~~~
+
+
+:::
 
 # 変数(値の束縛)
 
@@ -602,7 +809,7 @@ someFunc :: Int -> Int
 someFunc y = x + y
 
 main = do
-    print $ someFunc 1 -- >>> 2
+    print $ someFunc 1 --  2
 ~~~
 
 ## ローカル変数
@@ -617,7 +824,7 @@ someFunc y = let x = 1
            in x + y
 
 main = do
-    print $ someFunc 1 -- >>> 2
+    print $ someFunc 1 --  2
 ~~~
 
 この変数`x`は別の関数内で参照することはできません.
@@ -631,7 +838,7 @@ someFunc2 :: Int -> Int
 someFunc2 y = x + y
 
 main = do
-    print $ someFunc2 1 -- >>> Variable not in scope: x :: Int
+    print $ someFunc2 1 --  Variable not in scope: x :: Int
 ~~~
 複数の宣言をひとまとめにすることも可能です.
 
@@ -642,7 +849,7 @@ someFunc z = let x = 1
            in x + y + z
 
 main = do
-    print $ someFunc 1 -- >>> 4
+    print $ someFunc 1 --  4
 ~~~
 
 `Do`記法を利用すると`in`を省略することができます.
@@ -655,7 +862,7 @@ someFunc z = do
     x + y + z
 
 main = do
-    print $ someFunc 1 -- >>> 4
+    print $ someFunc 1 --  4
 ~~~
 
 ### where節
@@ -670,7 +877,126 @@ someFunc z = f z
     f z = x + y + z
 
 main = do
-    print $ someFunc 1 -- >>> 4
+    print $ someFunc 1 --  4
 ~~~
+
+# 練習問題(関数総合)
+
+::: note
+
+1. 統計量
+---
+
+- 与えられたリストの標本標準偏差`s`を計算する関数を実装してください.
+
+- 与えられた2つのリストの積率相関係数`r`を計算する関数を実装してください.
+
+それぞれの定義は以下とします.
+
+$$
+s = \sqrt{\frac{\sum_{i=1}^{n}(x_i - \bar{x})^2}{n}}
+$$
+$$
+r = \frac{\sum_{i=1}^{n}(x_i - \bar{x})(y_i - \bar{y})}{\sqrt{\sum_{i=1}^{n}(x_i - \bar{x})^2 \sum_{i=1}^{n}(y_i - \bar{y})^2}}
+$$
+
+~~~ haskell
+-- 実行例
+main :: IO ()
+main = do
+  let xs = [1, 2 .. 5]
+      ys = [5, 4 .. 1]
+  putStrLn $ "標準偏差: " ++ show (stddev xs) ---  1.4142135623730951
+  putStrLn $ "相関係数: " ++ show (correlation xs ys) --- -0.9999999999999998
+~~~
+
+
+<details>
+    <summary> 回答例 </summary>
+
+~~~ haskell
+-- 平均値を求める関数\mean :: [Double] -> Double
+mean xs = sum xs / fromIntegral (length xs)
+
+-- 標本標準偏差を求める関数
+stddev :: [Double] -> Double
+stddev xs = sqrt variance
+  where
+    m = mean xs
+    n = fromIntegral (length xs)
+    variance = sum (map (\x -> (x - m)^2) xs) / n
+
+-- 積率相関係数を求める関数
+correlation :: [Double] -> [Double] -> Double
+correlation xs ys = covariance / (stddev xs * stddev ys)
+  where
+    mx = mean xs
+    my = mean ys
+    n  = fromIntegral (length xs)
+    covariance = sum (zipWith (\x y -> (x - mx)*(y - my)) xs ys) / n
+
+-- 実行例
+main :: IO ()
+main = do
+  let xs = [1, 2 .. 5]
+      ys = [5, 4 .. 1]
+  putStrLn $ "標準偏差: " ++ show (stddev xs) ---  1.4142135623730951
+  putStrLn $ "相関係数: " ++ show (correlation xs ys) --- -0.9999999999999998
+~~~
+
+</details>
+
+
+2. パーセプトロン
+---
+
+- or 回路を表すパーセプトロンの発火関数 `f x1 x2` を以下のように定める.
+(パーセプトロンの意味などがわからない場合は, [特別講義資料](slds14.html)を参照のこと)
+
+$$
+f(x1, x2) =
+\begin{cases}
+1 & (0.5 x_1 + 0.5 x_2 \geq 0.2)\\
+0 & (\text{otherwise})
+\end{cases}
+$$
+
+この回路を表す`perceptronOR :: Bool -> Bool -> Bool`を実装せよ.
+
+~~~ haskell
+-- 実行例
+main :: IO ()
+main = do
+   print $ perceptronOR False False -- False
+   print $ perceptronOR True False  -- True
+   print $ perceptronOR False True  -- True
+   print $ perceptronOR True True   -- True
+~~~
+
+<details>
+    <summary> 回答例 </summary>
+
+~~~ haskell
+perceptronOR :: Bool -> Bool -> Bool
+perceptronOR x1 x2
+  | sum >= 0  = True
+  | otherwise = False
+  where
+    g True = 1
+    g False = 0
+    sum = 0.5 * g x1 + 0.5 * g x2 - 0.2
+
+-- 実行例
+main :: IO ()
+main = do
+   print $ perceptronOR False False -- False
+   print $ perceptronOR True False  -- True
+   print $ perceptronOR False True  -- True
+   print $ perceptronOR True True   -- True
+~~~
+
+</details>
+
+:::
 
 
