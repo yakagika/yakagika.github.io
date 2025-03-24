@@ -268,6 +268,16 @@ ghci> 2 ** (fromIntegral (div 5 2))
 | truncate       | 小数部分を単純に切り捨てる | `truncate 3.8 → 3`, `truncate (-3.8) → -3`             |
 | round          | 最も近い整数に丸める       | `round 3.5 → 4`, `round 3.4 → 3`, `round (-3.5) → -4` |
 
+~~~ haskell
+2 ^ (2 / 1)
+
+<interactive>:8:3: error: [GHC-39999]
+    • Could not deduce ‘Integral b0’ arising from a use of ‘^’
+      --- 省略
+
+ghci> 2 ^ (truncate (2 / 1))
+4
+~~~
 
 
 ::: note
