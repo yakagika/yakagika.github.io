@@ -263,13 +263,13 @@ ghci> 2 ** (fromIntegral (div 5 2))
 
 | 切り捨て関数名 | 意味                       | 例                                                       |
 | -------------- | -------------------------- | ----------------------------------                       |
-| ceiling        | 小数点以下を切り上げる     | `ceiling 3.2 → 4`, `ceiling (-3.2) → -3`               |
-| floor          | 小数点以下を切り下げる     | `floor 3.8 → 3`, `floor (-3.8) → -4`                   |
-| truncate       | 小数部分を単純に切り捨てる | `truncate 3.8 → 3`, `truncate (-3.8) → -3`             |
-| round          | 最も近い整数に丸める       | `round 3.5 → 4`, `round 3.4 → 3`, `round (-3.5) → -4` |
+| ceiling        | 小数点以下を切り上げる     | `ceiling 3.2 → 4`, <br> `ceiling (-3.2) → -3`               |
+| floor          | 小数点以下を切り下げる     | `floor 3.8 → 3`, <br>`floor (-3.8) → -4`                   |
+| truncate       | 小数部分を単純に切り捨てる | `truncate 3.8 → 3`, <br>`truncate (-3.8) → -3`             |
+| round          | 最も近い整数に丸める       | `round 3.5 → 4`, <br>`round 3.4 → 3`, <br>`round (-3.5) → -4` |
 
 ~~~ haskell
-2 ^ (2 / 1)
+ghci> 2 ^ (2 / 1)
 
 <interactive>:8:3: error: [GHC-39999]
     • Could not deduce ‘Integral b0’ arising from a use of ‘^’
@@ -502,7 +502,7 @@ ghci> :t "String"
 "String" :: String
 ~~~
 
-Haskellにおける文字型`Char`のリスト`[Char]`の別名(`型シノニム`)です. `型シノニム`は型に別の名前をつけることで,形の用途などを区別する機能です.
+Haskellにおける文字型`Char`のリスト`[Char]`の別名(`型シノニム`)です. `型シノニム`は型に別の名前をつけることで,用途などを区別する機能です.
 型シノニムは,以下のように, `type 型シノニム = 元のデータ型`という形で定義します.
 
 ~~~ haskell

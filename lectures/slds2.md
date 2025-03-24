@@ -529,61 +529,130 @@ huga2
 
 ## 環境構築
 
-自身の環境(PC)でプログラムが動くようにすることを環境構築といいます. Python自分のPCで動くように設定をしましょう.
+自身の環境(PC)でプログラムが動くようにすることを**環境構築**といいます. Python自分のPCで動くように設定をしましょう.
 
-Pythonの環境構築に関して説明します.Pythonを動かす方法は沢山あります.一つのソフトの中でプログラムの編集から実行まで全て完結するIDE(統合開発環境)やブラウザ上で実行する方法もありますが,ここではCLIを利用して実行する方法を準備します.Windowsを所有している学生が多いと思われるので,Windowsを前提に説明します. それ以外のOSの方は分からなければ教員に聞いて下さい.
-
-::: note
-
-- pythonの環境
-
-現在のPythonの開発環境は, [`pyenv`](https://github.com/pyenv/pyenv)や[`Docker`](https://www.docker.com)を利用した仮想環境でpythonのversionやライブラリをアプリケーションごとに分ける方法が主流です.
-
-ただし,本資料では複数のアプリケーションを設定すると手順が煩雑になり,環境変数の設定など作業量が多くなるため扱いません.興味がある方は,調べて自分で導入してみましょう.
-
-特にMacユーザーは,以下の手順で公式サイトのインストーラーを利用した場合,新しいversionのpythonを導入する際に苦労することになるかと思います. もし,自分で環境を再構築して上手く以下なかった場合は,教員に聞いてみましょう.
-
-:::
+Pythonの環境構築に関して説明します.Pythonを動かす方法は沢山あります.一つのソフトの中でプログラムの編集から実行まで全て完結するIDE(統合開発環境)やブラウザ上でSaaSを通じて実行する方法もありますが,ここではCLIを利用して実行する方法を準備します.Windowsを所有している学生が多いと思われるので,Windowsを前提に説明します. それ以外のOSの方は分からなければ教員に聞いて下さい.
 
 
-Pythonの[公式サイト](https://www.python.org/downloads/windows/)からPythonをダウンロードしましょう.
+Pythonの環境構築にもいくつかの手法がありますが,現在は [`pyenv`](https://github.com/pyenv/pyenv)や[`Docker`](https://www.docker.com)を利用した仮想環境でpythonのversionやライブラリをアプリケーションごとに分ける方法が主流です.
 
-Windows → 最新の一つ前のバージョンの Windows installer (64-bit) をクリック
+本講義では, `pyenv`を利用するため,以下`pyenv`環境の構築を行います.
 
-最新版を入れたいところですが,最新のVersionは色々と不具合が起きる可能性があるので,上から1つ目のVersionにしておきましょう.ここでは最新が3.12.2なので,3.11台のバージョンを入れます.(バージョンの数字は,サイトを開いた時期によって変わります.)
+### 現状の開発環境の削除
 
-![Download Python](/images/python-download.png)
-
-ダウンロードした Python-3.11.8.exeをクリックするとウィンドウが開きます. 指示に従ってインストールしましょう．
-
-::: warn
-注意点
-
-開いたWindowで
-
--  `Insatall launcher for all users(recommended)`
-
-- `Add Python 11.8 to PATH`
-
-というチェックボックスが出てきたら,それらにチェックを入れてから次に進みましょう.
-
-この画面もVersionなどによって変わるため,分からなければ教員に聞いて下さい.
-
-![Install Python](/images/install-python.png)
-
-:::
-
-インストールが終わったら **新しくPowerShellを開いて** `python --version` と入力しましょう.
-**Macの人は** `python3 --version` とコマンドが変わりますので注意してください. Macの人は以降,`python` コマンドはすべて  `python3` コマンドに読み替えてください.
-
-install したversionのPythonが表示されれば無事インストールされています.
-
-
+Terminalを開いて, `python --version`と入力しましょう. すでに`python` が入っている場合は,Pythonのversion情報が表示されます.
 
 ~~~ sh
 > python --version
-Python 3.11.8
+Python 3.11.9
 ~~~
+
+Pythonがインストールされていない場合は以下のような表示になります.
+
+~~~ sh
+> python --version
+fha : The term 'python' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the s
+pelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:1
+~~~
+
+Python の version情報が表示された場合は, `pyenv --version` と入力してすでに`pyenv`が入っていないか確認してください.
+
+~~~ sh
+> pyenv --version
+pyenv 3.1.1
+~~~
+
+pyenv の version情報が表示されている場合はすでに環境構築が済んでいるので飛ばしてください. pyenvのversion情報が表示されない人はまず現行のPythonを削除しましょう.
+
+`設定 > アプリ > インストールされているアプリ`から `python`を検索して, `Python X.X` の形式のアプリと,`Python Luncher`などを`アンインストール`してください.
+
+その他, `anaconda`などが入っていたらアンインストールしておいてください.
+
+ ![](/images/python-delete1.png)
+
+ ![](/images/python-delete2.png)
+
+ ![](/images/python-delete3.png)
+
+
+アンインストールが終わったら,terminal を一度開き直して, `python --version` コマンドで確認してみましょう.
+(VSCodeなどTerminalにアクセスするアプリを開いている場合は,閉じておきましょう.)
+
+### pyenvのインストール
+
+続いて [pyenv for windows](https://github.com/pyenv-win/pyenv-win/tree/master)を参考に`pyenv`環境を構築します.
+
+Terminal を再度開き以下のコマンドをコピー,貼り付けしてEnterを押してください.
+
+~~~ sh
+ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+~~~
+
+Quick start 内のコマンドをコピーしてTerminalに貼り付け,Enterを押してください.
+
+![インストールコマンド](/images/pyenv-win1.png)
+
+Terminalを再起動して,`pyenv --version`を入力し,version情報が表示されれば成功です.
+
+~~~ sh
+> pyenv --version
+pyenv 3.1.1
+~~~
+
+### Pythonのインストール
+
+Pythonにはいくつかのversionがあり,必要に応じて切り替えて利用します.
+まずはインストール可能なversionを `pyenv install --list`コマンドで確認してみましょう.
+
+~~~ sh
+> pyenv install --list
+:: [Info] ::  Mirror: https://www.python.org/ftp/python
+:: [Info] ::  Mirror: https://downloads.python.org/pypy/versions.json
+:: [Info] ::  Mirror: https://api.github.com/repos/oracle/graalpython/releases
+2.4-win32
+2.4.1-win32
+2.4.2-win32
+.
+.
+.
+~~~
+
+この中から一つを選んでインストールします.
+最新のものをインストールするとライブラリなどが対応していない場合があるので,`3.11.9`あたりをインストールしておきましょう.
+
+~~~ sh
+> pyenv install 3.11.9
+:: [Info] ::  Mirror: https://www.python.org/ftp/python
+:: [Info] ::  Mirror: https://downloads.python.org/pypy/versions.json
+:: [Info] ::  Mirror: https://api.github.com/repos/oracle/graalpython/releases
+:: [Downloading] ::  3.11.9 ...
+:: [Downloading] ::  From https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe
+:: [Downloading] ::  To   C:\Users\akagi\.pyenv\pyenv-win\install_cache\python-3.11.9-amd64.exe
+:: [Installing] ::  3.11.9 ...
+:: [Info] :: completed! 3.11.9
+~~~
+
+`pyenv`はディレクトリごとに使用するPythonのバージョンなどを管理できます.
+現行のディレクトリのみで,特定のversionのPythonを利用したい場合は
+
+`pyenv local <使いたいPython>`で設定します.
+
+`local`で設定されているディレクトリ以外全てで共通のPythonを使用したい場合は
+
+`pyenv global <使いたいPython>` で設定します.
+
+今は,
+
+`pyenv global 3.11.9` で全体に`3.11.9`を設定しましょう.
+
+~~~ sh
+> pyenv global 3.11.9
+> python --version
+Python 3.11.9
+~~~
+
+`python --version`で指定したversionのpythonが表示されればPythonの環境構築完了です.
 
 ## Hello World
 
