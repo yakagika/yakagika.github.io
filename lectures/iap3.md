@@ -8,7 +8,7 @@ tags:
     - haskell
 featured: true
 katex: true
-date: 2024-10-18
+date: 2025-03-24
 tableOfContents: true
 previousChapter: iap2.html
 nextChapter: iap4.html

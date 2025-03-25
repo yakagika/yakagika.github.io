@@ -167,40 +167,27 @@ main = hakyllWith config $ do
     match ("lectures/*.md" .||. "lectures/*.html" .||. "lectures/*.lhs") $ do
         route   $ setExtension ".html"
         compile $ do
-                -- 現在のアイテムのメタデータを取得
-                underlying <- getUnderlying
-                toc        <- getMetadataField underlying "tableOfContents"
-                prev       <- getMetadataField underlying "previousChapter"
-                next       <- getMetadataField underlying "nextChapter"
-                date       <- getMetadataField underlying "date"
+            underlying <- getUnderlying
+            prev       <- getMetadataField underlying "previousChapter"
+            next       <- getMetadataField underlying "nextChapter"
+            date       <- getMetadataField underlying "date"
 
-                let writerOptions' = maybe defaultHakyllWriterOptions
-                                           (const customWriterOptions) toc
-                let postCtxWithChapters = postCtx tags <>
-                                  field "previousChapter" (\_ -> return $ maybe "#" toUrl prev) <>
-                                  field "nextChapter" (\_ -> return $ maybe "#" toUrl next) <>
-                                  field "date" (\_ -> return $ fromMaybe "No Date" date)
-                pandocCompilerWith defaultHakyllReaderOptions writerOptions'
+            -- Always use the default writer options (i.e. no built-in TOC)
+            let writerOptions' = defaultHakyllWriterOptions
+            let postCtxWithChapters = postCtx tags <>
+                  field "previousChapter" (\_ -> return $ maybe "#" toUrl prev) <>
+                  field "nextChapter" (\_ -> return $ maybe "#" toUrl next) <>
+                  field "date" (\_ -> return $ fromMaybe "No Date" date)
+            pandocCompilerWith defaultHakyllReaderOptions writerOptions'
                 >>= saveSnapshot "content"
                 >>= return . fmap demoteHeaders
-                >>= loadAndApplyTemplate "templates/lecture.html" (postCtx tags)
-                >>= loadAndApplyTemplate "templates/content.html" (mathCtx <> defaultContext )
-                >>= loadAndApplyTemplate "templates/default.html" (mathCtx <> defaultContext)
+                >>= loadAndApplyTemplate "templates/lecture.html" postCtxWithChapters
+                >>= loadAndApplyTemplate "templates/content.html" (mathCtx <> defaultContext)
+                -- Add a flag "lecture" so default.html can render the TOC placeholder
+                >>= loadAndApplyTemplate "templates/default.html" (mathCtx <> defaultContext <> constField "lecture" "true")
+                >>= relativizeUrls
                 >>= relativizeUrls
 
-    -- Lecture list
-    -- create ["lectures.html"] $ do
-    --     route idRoute
-    --     compile $ do
-    --         lectures <- recentFirst =<< loadAll "lectures/*"
-    --         let ctx = constField "title" "Lecture" <>
-    --                     listField "lectures" (postCtx tags) (return lectures) <>
-    --                     defaultContext
-    --         makeItem ""
-    --             >>= loadAndApplyTemplate "templates/lectures.html" ctx
-    --             >>= loadAndApplyTemplate "templates/content.html" ctx
-    --             >>= loadAndApplyTemplate "templates/default.html" ctx
-    --             >>= relativizeUrls
 
     -- Post tags
     tagsRules tags $ \tag pattern -> do

@@ -5,8 +5,8 @@ tags:
     - datascience
     - statistics
     - python
-date: 2024-03-29
 featured: true
+date: 2025-03-24
 tableOfContents: true
 previousChapter: slds1.html
 nextChapter: slds3.html
