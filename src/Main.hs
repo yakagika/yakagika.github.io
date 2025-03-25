@@ -344,6 +344,7 @@ feedCtx = mconcat
 config :: Configuration
 config = defaultConfiguration
   { destinationDirectory = "docs"
+  , previewHost = "0.0.0.0"
   }
 
 --------------------------------------------------------------------------------
