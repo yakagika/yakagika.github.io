@@ -1,10 +1,14 @@
 ---
 title: Hakyllでブログ作成
 description: 最初の投稿. Hakyllでブログを作成するあれこれ.
-tags: haskell
+tags:
+    - haskell
+    - hakyll
+    - KaTeX
 featured: true
 katex: true
 tableOfContents: true
+date: 2024-03-29
 ---
 
 
@@ -90,7 +94,8 @@ mathCtx = field "katex" $ \item -> do
                              \<script defer src=\"https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js\" integrity=\"sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk\" crossorigin=\"anonymous\" onload=\"renderMathInElement(document.body);\"></script>"
 ~~~
 
-これでコンテクストを作って,mappend (<>)でdefaultContext (template/default.html)についかする.
+これでコンテクストを作って,mappend (<>)でdefaultContext (template/default.html)に追加する.
+
 
 ~~~ haskell
 match ("lectures/*.md" .||. "lectures/*.html" .||. "lectures/*.lhs") $ do
@@ -107,9 +112,10 @@ match ("lectures/*.md" .||. "lectures/*.html" .||. "lectures/*.lhs") $ do
 もとのブログは,markdownのメタデータにおいて,
 katex : trueとなっているものだけにKaTeXを適用するのが方針で,
 以下のように書くことで実現できる.
-"\$\$"で数式が書けるようにdelimitersを設定する必要があるのだが,Hakyllの仕様で,"\$"が消えるので全部二重にしたら上手く行った.
+~~"\$\$"で数式が書けるようにdelimitersを設定する必要があるのだが,Hakyllの仕様で,"\$"が消えるので全部二重にしたら上手く行った.~~
 
 ~~~ html
+<!-- 旧版 -->
 <!DOCTYPE html>
 <html lang="en" $if(dark)$class="dark"$endif$>
     <head>
@@ -168,7 +174,7 @@ katex : trueとなっているものだけにKaTeXを適用するのが方針で
 
 ~~~
 
-とりあえずこんな感じで出せる.
+~~とりあえずこんな感じで出せる.~~
 
 ~~~ tex
 あいうえお \\( f(あ) = a^2 \\) かきくけこ
@@ -179,11 +185,97 @@ $$ f(x) = \frac{1}{x}  $$
 
 ~~~
 
-あいうえお \\( f(あ) = a^2 \\) かきくけこ
+~~あいうえお \\( f(あ) = a^2 \\) かきくけこ~~
 
-あいうえお $ f(あ) = a^2 $ かきくけこ
+~~あいうえお $ f(あ) = a^2 $ かきくけこ~~
 
-$$ f(x) = \frac{1}{x}  $$
+~~$$ f(x) = \frac{1}{x}  $$~~
+
+
+(2025/03/27修正) --
+
+上の方法だと,`Pandoc`時点で数式処理されて`math inline`となった要素と`JavaScript`側で処理されて`latex.inlline`となった要素が混在して,ところどころデザインが崩れるので,Pandocの時点でKaTeXを使用するように変更した.
+
+
+結構苦労したので追記.
+
+`writerOption` において `Pandoc.writerHTMLMathMethod  = Pandoc.KaTeX ""` と設定することでKaTeXで数式が処理される.
+`$ ... $`で式を示したい場合は,
+`Pandoc.writerExtensions`に`Pandoc.enableExtension Pandoc.Ext_tex_math_dollars`を指定する. `Ext_tex_math_double_backslash`は`\( .. \)`など.
+
+
+~~~ haskell
+-- Custom WriterOptions: disable `$...$` math, enable fenced_divs, plus TOC etc.
+customWriterOptions :: Pandoc.WriterOptions
+customWriterOptions = defaultHakyllWriterOptions
+  { Pandoc.writerHTMLMathMethod  = Pandoc.KaTeX ""
+  , Pandoc.writerExtensions      = Pandoc.enableExtension Pandoc.Ext_fenced_divs
+                                 $ Pandoc.enableExtension Pandoc.Ext_tex_math_dollars
+                                 $ Pandoc.enableExtension Pandoc.Ext_tex_math_double_backslash
+                                 $ Pandoc.enableExtension Pandoc.Ext_tex_math_single_backslash
+                                 $ Pandoc.pandocExtensions
+  }
+
+match ("lectures/*.md" .||. "lectures/*.html" .||. "lectures/*.lhs") $ do
+        route   $ setExtension ".html"
+        compile $ pandocCompilerWith customReaderOptions customWriterOptions
+                >>= saveSnapshot "content"
+                >>= return . fmap demoteHeaders
+                >>= loadAndApplyTemplate "templates/lecture.html" (postCtx tags)
+                >>= loadAndApplyTemplate "templates/content.html" (mathCtx <> defaultContext )
+                >>= loadAndApplyTemplate "templates/default.html" (mathCtx <> defaultContext)
+                >>= relativizeUrls
+~~~
+
+これで
+
+~~~ tex
+$x=1$
+
+$$
+x = 1
+$$
+~~~
+
+と書かれているmdから
+
+~~~ html
+
+<span class="math inline"> $x=1$ </span>
+
+<span class="math display"> $x=1$ </span>
+
+~~~
+
+のような形のhtmlに変換される. これを`default.html`側でレンダリングする.レンダリングは以下でOK.
+(cf.[https://github.com/jaspervdj/hakyll/issues/1006#issuecomment-2369250865](https://github.com/jaspervdj/hakyll/issues/1006#issuecomment-2369250865))
+
+~~~ html
+<head>
+$if(katex)$
+    $katex$
+$endif$
+</head>
+
+<body>
+ <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            katex.render( texText.data
+                        , mathElements[i]
+                        , { displayMode: mathElements[i].classList.contains("display")
+                          , throwOnError: true }
+                        );
+          }
+      }
+    });
+  </script>
+</body>
+~~~
+
 
 # シンタクスハイライトの変更
 

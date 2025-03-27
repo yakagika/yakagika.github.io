@@ -18,26 +18,30 @@ import qualified Data.Set as S
 import Control.Monad (foldM, mplus)
 import Data.List (elemIndex)
 import Data.Maybe (fromMaybe)
-
---------------------------------------------------------------------------------
 import           Hakyll
 
 import qualified Data.Map as M
 import Text.Pandoc.Highlighting
+
+--------------------------------------------------------------------------------
+-- KaTeX context
 mathCtx :: Context a
 mathCtx = field "katex" $ \item -> do
-    katex <- getMetadataField (itemIdentifier item) "katex"
-    return $ case katex of
-                    Just "false" -> ""
-                    Just "off" -> ""
-                    _ -> "<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css\" integrity=\"sha384-wcIxkf4k558AjM3Yz3BBFQUbk/zgIYC2R0QpeeYb+TwlBVMrlgLqwRjRtGZiK7ww\" crossorigin=\"anonymous\">\n\
-                             \<script defer src=\"https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js\" integrity=\"sha384-hIoBPJpTUs74ddyc4bFZSM1TVlQDA60VBbJS0oA934VSz82sBx1X7kSx2ATBDIyd\" crossorigin=\"anonymous\"></script>\n\
-                             \<script defer src=\"https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js\" integrity=\"sha384-43gviWU0YVjaDtb/GhzOouOXtZMP/7XUzwPTstBeZFe/+rCMvRwr4yROQP43s0Xk\" crossorigin=\"anonymous\" onload=\"renderMathInElement(document.body);\"></script>"
-
-
+  katex <- getMetadataField (itemIdentifier item) "katex"
+  return $ case katex of
+    Just "false" -> ""
+    Just "off"   -> ""
+    _ ->
+      "<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css\" integrity=\"sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC\" crossorigin=\"anonymous\">\n\
+      \<script defer src=\"https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js\" integrity=\"sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja\" crossorigin=\"anonymous\"></script>\n\
+      \<script defer src=\"https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js\" integrity=\"sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR\" crossorigin=\"anonymous\" onload=\"renderMathInElement(document.body);\"></script>"
+--------------------------------------------------------------------------------
+-- Pandoc styling
 pandocCodeStyle :: Style
 pandocCodeStyle = breezeDark
 
+--------------------------------------------------------------------------------
+-- Table of Contents template
 tocTemplate = either error Prelude.id . runIdentity . Pandoc.compileTemplate "" $ T.unlines
   [ "<div class=\"toc\"><div class=\"header\">Table of Contents</div>"
   , "$toc$"
@@ -45,21 +49,29 @@ tocTemplate = either error Prelude.id . runIdentity . Pandoc.compileTemplate "" 
   , "$body$"
   ]
 
-customWriterOptions:: Pandoc.WriterOptions
+
+--------------------------------------------------------------------------------
+-- Custom ReaderOptions: disable `$...$` math, enable fenced_divs, plus TOC etc.
+
+customReaderOptions :: Pandoc.ReaderOptions
+customReaderOptions =
+  defaultHakyllReaderOptions
+
+--------------------------------------------------------------------------------
+-- Custom WriterOptions: disable `$...$` math, enable fenced_divs, plus TOC etc.
+customWriterOptions :: Pandoc.WriterOptions
 customWriterOptions = defaultHakyllWriterOptions
-                        { Pandoc.writerHTMLMathMethod   = Pandoc.MathJax ""       -- LaTeX
-                        , Pandoc.writerNumberSections   = True
-                        , Pandoc.writerHighlightStyle   = Just pandocCodeStyle    -- Syntax
-                        , Pandoc.writerTableOfContents  = True                    -- toc
-                        , Pandoc.writerTOCDepth         = 3
-                        , Pandoc.writerTemplate         = Just tocTemplate
-                        , Pandoc.writerExtensions       = Pandoc.enableExtension Pandoc.Ext_fenced_divs Pandoc.pandocExtensions
-                        }
-
-
-myPandocCompiler :: Compiler (Item String)
-myPandocCompiler =
-    pandocCompilerWith defaultHakyllReaderOptions customWriterOptions
+  { Pandoc.writerNumberSections  = True
+  , Pandoc.writerTableOfContents = True                  -- TOC
+  , Pandoc.writerTOCDepth        = 3
+  , Pandoc.writerTemplate        = Just tocTemplate
+  , Pandoc.writerHTMLMathMethod  = Pandoc.KaTeX ""
+  , Pandoc.writerExtensions      = Pandoc.enableExtension Pandoc.Ext_fenced_divs
+                                 $ Pandoc.enableExtension Pandoc.Ext_tex_math_dollars
+                                 $ Pandoc.enableExtension Pandoc.Ext_tex_math_double_backslash
+                                 $ Pandoc.enableExtension Pandoc.Ext_tex_math_single_backslash
+                                 $ Pandoc.pandocExtensions
+  }
 
 --------------------------------------------------------------------------------
 -- | Entry point
@@ -112,16 +124,22 @@ main = hakyllWith config $ do
         route   $ setExtension ".html"
         compile $ do
                 underlying <- getUnderlying
-                toc        <- getMetadataField underlying "tableOfContents"
-                let writerOptions' = maybe defaultHakyllWriterOptions (const customWriterOptions) toc
+                prev       <- getMetadataField underlying "previousChapter"
+                next       <- getMetadataField underlying "nextChapter"
+                date       <- getMetadataField underlying "date"
 
-                pandocCompilerWith defaultHakyllReaderOptions writerOptions'
-                >>= saveSnapshot "content"
-                >>= return . fmap demoteHeaders
-                >>= loadAndApplyTemplate "templates/post.html" (postCtx tags)
-                >>= loadAndApplyTemplate "templates/content.html" (mathCtx <> defaultContext)
-                >>= loadAndApplyTemplate "templates/default.html" (mathCtx <> defaultContext)
-                >>= relativizeUrls
+                let postCtxWithChapters = postCtx tags <>
+                        field "previousChapter" (\_ -> return $ maybe "#" toUrl prev) <>
+                        field "nextChapter" (\_ -> return $ maybe "#" toUrl next) <>
+                        field "date" (\_ -> return $ fromMaybe "No Date" date)
+
+                pandocCompilerWith customReaderOptions customWriterOptions
+                    >>= saveSnapshot "content"
+                    >>= return . fmap demoteHeaders
+                    >>= loadAndApplyTemplate "templates/post.html" postCtxWithChapters
+                    >>= loadAndApplyTemplate "templates/content.html" (defaultContext)
+                    >>= loadAndApplyTemplate "templates/default.html" (mathCtx <> defaultContext <> constField "post" "true")
+                    >>= relativizeUrls
 
     -- Post list
     create ["posts.html"] $ do
@@ -172,17 +190,15 @@ main = hakyllWith config $ do
             next       <- getMetadataField underlying "nextChapter"
             date       <- getMetadataField underlying "date"
 
-            -- Always use the default writer options (i.e. no built-in TOC)
-            let writerOptions' = defaultHakyllWriterOptions
             let postCtxWithChapters = postCtx tags <>
                   field "previousChapter" (\_ -> return $ maybe "#" toUrl prev) <>
                   field "nextChapter" (\_ -> return $ maybe "#" toUrl next) <>
                   field "date" (\_ -> return $ fromMaybe "No Date" date)
-            pandocCompilerWith defaultHakyllReaderOptions writerOptions'
+            pandocCompilerWith customReaderOptions customWriterOptions
                 >>= saveSnapshot "content"
                 >>= return . fmap demoteHeaders
                 >>= loadAndApplyTemplate "templates/lecture.html" postCtxWithChapters
-                >>= loadAndApplyTemplate "templates/content.html" (mathCtx <> defaultContext)
+                >>= loadAndApplyTemplate "templates/content.html" (defaultContext )
                 -- Add a flag "lecture" so default.html can render the TOC placeholder
                 >>= loadAndApplyTemplate "templates/default.html" (mathCtx <> defaultContext <> constField "lecture" "true")
                 >>= relativizeUrls
@@ -240,7 +256,7 @@ main = hakyllWith config $ do
     -- Render some static pages
     match (fromList pages) $ do
         route   $ setExtension ".html"
-        compile $ pandocCompiler
+        compile $ pandocCompilerWith customReaderOptions customWriterOptions
             >>= loadAndApplyTemplate "templates/content.html" defaultContext
             >>= loadAndApplyTemplate "templates/default.html" defaultContext
             >>= relativizeUrls
@@ -248,7 +264,7 @@ main = hakyllWith config $ do
     -- Render the 404 page, we don't relativize URL's here.
     match "404.html" $ do
         route idRoute
-        compile $ pandocCompiler
+        compile $ pandocCompilerWith customReaderOptions customWriterOptions
             >>= loadAndApplyTemplate "templates/content.html" defaultContext
             >>= loadAndApplyTemplate "templates/default.html" defaultContext
 
