@@ -134,20 +134,20 @@ S & = \sum_{i=1} \epsilon_{1}^{2} \\
 \end{align*}
 $$
 
-Sを最小化する**(最小二乗)推定量** $\hat{\beta_1},\hat{\beta_2}$ を求める問題として整理できます.
+Sを最小化する**(最小二乗)推定量** $\hat{\beta_0},\hat{\beta_1}$ を求める問題として整理できます.
 
 $S$の偏微分を0とおいて,
 
 $$
-\frac{\partial S}{ \partial \beta_1} = -2 \sum (Y_i = \beta_1 - \beta_2 X_i) = 0 \\
-\frac{\partial S}{ \partial \beta_2} = -2 \sum (Y_i = \beta_1 - \beta_2 X_i)X_i = 0 \\
+\frac{\partial S}{ \partial \beta_0} = -2 \sum (Y_i = \beta_0 - \beta_1 X_i) = 0 \\
+\frac{\partial S}{ \partial \beta_1} = -2 \sum (Y_i = \beta_0 - \beta_1 X_i)X_i = 0 \\
 $$
 
 これを解いて,
 
 $$
-\hat{\beta_1} = \bar{Y} - \hat{\beta_2}\bar{X} \\
-\hat{\beta_2} = \frac{\sum(X_i - \bar{X})(Y_i - \bar(Y))}{\sum(X_i - \bar{X})^2}
+\hat{\beta_0} = \bar{Y} - \hat{\beta_1}\bar{X} \\
+\hat{\beta_1} = \frac{\sum(X_i - \bar{X})(Y_i - \bar(Y))}{\sum(X_i - \bar{X})^2}
 $$
 が得られます.
 
@@ -156,56 +156,56 @@ $$
 最小二乗推定量によって得られた方程式
 
 $$
-Y = \hat{\beta_1} + \hat{\beta_2}X
+Y = \hat{\beta_0} + \hat{\beta_1}X
 $$
 
 を**標本回帰方程式**といいます.
 
-求めた標本回帰方程式が,XとYの関係を説明できているのかを考えます. XがYを全く説明できていない場合, $\epsilon_i$だけで説明ができるため, $\beta_2 \neq 0$と言えれば,統計的にXがYを説明できていると言えます.
+求めた標本回帰方程式が,XとYの関係を説明できているのかを考えます. XがYを全く説明できていない場合, $\epsilon_i$ だけで説明ができるため, $\beta_1 \neq 0$ と言えれば,統計的にXがYを説明できていると言えます.
 
-そこで, 帰無仮説 $H_0:\beta_2 = 0$として,偏回帰係数に関する統計的仮説検定を実施します.
+そこで, 帰無仮説 $H_0:\beta_1 = 0$ として,偏回帰係数に関する統計的仮説検定を実施します.
 
-母数$\beta_2$に関する仮説検定を行うために, $\beta_2$の確率分布を考えます.
+母数 $\beta_1$ に関する仮説検定を行うために, $\beta_1$ の確率分布を考えます.
 
-誤差項 $\epsilon_i \sim N(o,\sigma^2)$として,
+誤差項 $\epsilon_i \sim N(o,\sigma^2)$ として,
 
 $$
-\hat{\beta_1} = \bar{Y} - \hat{\beta_2}\bar{X} \\
-\hat{\beta_2} = \frac{\sum(X_i - \bar{X})(Y_i - \bar(Y))}{\sum(X_i - \bar{X})^2}
+\hat{\beta_0} = \bar{Y} - \hat{\beta_1}\bar{X} \\
+\hat{\beta_1} = \frac{\sum(X_i - \bar{X})(Y_i - \bar(Y))}{\sum(X_i - \bar{X})^2}
 $$
 であるから,
 
 $$
-V(\hat{\beta_1}) = \frac{\sigma^2 \sum X_i^2}{n\sum(X_i - \bar{X})^2} \\
-E(\hat{\beta_1}) = \beta_1 \\
+V(\hat{\beta_0}) = \frac{\sigma^2 \sum X_i^2}{n\sum(X_i - \bar{X})^2} \\
+E(\hat{\beta_0}) = \beta_0 \\
 V(\hat{\beta_2}) = \frac{\sigma^2 }{\sum(X_i - \bar{X})^2} \\
-E(\hat{\beta_2}) = \beta_2
+E(\hat{\beta_1}) = \beta_1
 $$
 なので,
 
 $$
-\hat{\beta_2} \sim N(\beta_2,\frac{\sigma^2}{\sum(X_i - \bar{X})^2})
+\hat{\beta_1} \sim N(\beta_1,\frac{\sigma^2}{\sum(X_i - \bar{X})^2})
 $$
 
 となる.
 
-誤差項の母標準偏差 $\sigma$が含まれるので,推定する.
+誤差項の母標準偏差 $\sigma$ が含まれるので,推定する.
 
-標本回帰方程式 $Y=\hat{\beta_1}+\hat{\beta_2}X$によって求められる各$i$の値(回帰値)
+標本回帰方程式 $Y=\hat{\beta_0}+\hat{\beta_1}X$ によって求められる各 $i$ の値(回帰値)
 
 $$
-\hat{Y_i} = \hat{\beta_1} + \hat{\beta_2}X_i
+\hat{Y_i} = \hat{\beta_0} + \hat{\beta_1}X_i
 $$
 
 と実際に観測された実測値 $Y_i$との差を
 
 $$
-\hat{e_i} = Y_i - \hat{Y_i} = Y_i - \hat{\beta_1} - \hat{\beta_2}X_i
+\hat{e_i} = Y_i - \hat{Y_i} = Y_i - \hat{\beta_0} - \hat{\beta_1}X_i
 $$
 
 を**回帰残渣(residual)**といい,Xで説明されなかった残渣を表す.
 
-回帰残渣を母回帰方程式 $Y_i = \beta_1 + \beta_2 X_i + \epsilon_i$における誤差項$\epsilon_i$の推定値として利用する.
+回帰残渣を母回帰方程式 $Y_i = \beta_0 + \beta_1 X_i + \epsilon_i$ における誤差項 $\epsilon_i$ の推定値として利用する.
 
 求める必要があるのは,誤差項の分散の推定値としての分散
 
@@ -216,12 +216,12 @@ $$
 であるが,
 
 $$
-\frac{\partial S}{\partial \beta_2} = -2 \sum (Y_i - \beta_1 - \beta_2 X_i)X_i = 0
+\frac{\partial S}{\partial \beta_1} = -2 \sum (Y_i - \beta_0 - \beta_1 X_i)X_i = 0
 $$
 なので,
 
 $$
-\sum (Y_i - \beta_1 - \beta_2 X_i) = \sum \hat{e_i} = 0
+\sum (Y_i - \beta_0 - \beta_1 X_i) = \sum \hat{e_i} = 0
 $$
 
 となり,
@@ -258,20 +258,48 @@ $$
 これを誤差項の母標準偏差$\sigma$の推定値として利用して,$\hat{\beta_2}$の標準誤差の推定値は,
 
 $$
-V(\hat{\beta_2}) = \frac{\sigma^2 }{\sum(X_i - \bar{X})^2}
+V(\hat{\beta_1}) = \frac{\sigma^2 }{\sum(X_i - \bar{X})^2}
 $$
 
 から,
 
 $$
-s.e.(\hat{\beta_2}) = \frac{s.e.}{\sqrt{\sum(X_i - \bar{X})^2}}
+s.e.(\hat{\beta_1}) = \frac{s.e.}{\sqrt{\sum(X_i - \bar{X})^2}}
 $$
 
 となり,$s.e.(\hat{\beta_2})$を用いて標準化した値は, $t(n-2)$に従うので,
 
 $$
-t_2 = \frac{\hat{\beta_2} - \beta_2}{s.e.(\hat{\beta_2})} \sim t(n-2)
+t_2 = \frac{\hat{\beta_1} - \beta_1}{s.e.(\hat{\beta_1})} \sim t(n-2)
 $$
+
+あとは得られた推定量を用いて,帰無仮説に関するt検定を実施する.
+
+## 単回帰分析
+
+それでは,実際に単回帰分析を実施してみる. 事例として,以下の分析にどのような問題点があるのかを考えてみよう.
+
+<blockquote class="twitter-tweet"><p lang="ja" dir="ltr">今回に限らず毎度毎度のことだけど、日本「経済」新聞を名乗りながら、お粗末な統計リテラシーだからな。。。<br>日経に限らず、本邦の大手紙は例外なく全てお粗末な統計リテラシー。<br>統計の基礎を勉強したい人はツッコミを入れると良いよ。ツッコミを入れるところだらけで勉強になるから。<a href="https://twitter.com/IsayaShimizu?ref_src=twsrc%5Etfw">@IsayaShimizu</a> <a href="https://t.co/cxMAFDPRfM">https://t.co/cxMAFDPRfM</a></p>&mdash; 糸石 浩司 (@itoishi) <a href="https://twitter.com/itoishi/status/1445026338885103618?ref_src=twsrc%5Etfw">October 4, 2021</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+<blockquote class="twitter-tweet"><p lang="ja" dir="ltr">相関があることを言いたいなら散布図を描くべきでは？ あと，この16カ国はどうやって選んだのか？ <a href="https://t.co/ncWWtQ8A8L">https://t.co/ncWWtQ8A8L</a></p>&mdash; Haruhiko Okumura (@h_okumura) <a href="https://twitter.com/h_okumura/status/1444983348862996485?ref_src=twsrc%5Etfw">October 4, 2021</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+
+これらのPOSTは何を懸念しているのでしょうか.
+
+元POSTでは, 日本経済新聞が[OECD Family Database](https://www.oecd.org/en/data/datasets/oecd-family-database.html )のデータから作成したグラフを用いて男性の育児・家事時間の少なさが日本の少子化の原因であると主張しています.
+
+![[出典：日本経済新聞,「男性の育児・家事時間、出生率に影響　日本は女性の二割](https://www.nikkei.com/article/DGXZQOFE308UG0Q1A830C2000000/) ](/images/ch11-oecd-nikkei.png)
+
+この分析の問題点は主に以下の2つです.
+
+1. 元のPOSTの通り,この記事ではグラフを主張の根拠としていますが,棒グラフと散布図を組み合わせたような独自のグラフを作成しており,これを持って何が主張できるのかが明確ではありません. 2つの量的データの関係性を示す場合は散布図が適当です.
+
+2. また,グラフが適当であったとしても,グラフはデータの概観の把握にや役立ちますが,グラフのみから明確な主張が主張できるわけではない場合が多いです.
+
+まずは,グラフに関して考えてみましょう. 実は,内閣府もこのデータを利用して同様の主張をしています. 内閣府のグラフでは,独自のグラフではなく,散布図が作成されています.
+
+![[出典：内閣府　政策統括官（経済社会システム担当）第４回会議資料　選択する未来2.0, 資料２　参考資料②(事務局資料)](https://www5.cao.go.jp/keizai2/keizai-syakai/future2/20200409/shiryou2.pdf)
+](/images/ch11-oecd-cabinet.png)
 
 
 

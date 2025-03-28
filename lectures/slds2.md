@@ -690,7 +690,6 @@ print(“Hello world!”)
 ~~~
 
 保存できたら`python hello.py`コマンドでプログラムを実行します.
-(Macの人は `python3 hello.py`です.)
 
 標準出力に`Hello World!`と表示されれば成功です.
 
