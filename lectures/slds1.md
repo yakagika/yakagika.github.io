@@ -33,17 +33,17 @@ nextChapter: slds2.html
 
 [第1章 本資料の読み方](slds1.html)
 
-[第2章 イントロダクション](slds2.html)
+[第2章 データサイエンスを始めよう](slds2.html)
 
-[第3章 Pythonことはじめ](slds3.html)
+[第3章 Pythonと環境構築](slds3.html)
 
-[第4章 ライブラリの利用](slds4.html)
+[第4章 Pythonことはじめ](slds4.html)
 
-[第5章 データの取得と編集](slds5.html)
+[第5章 ライブラリの利用](slds5.html)
 
-[第6章 アルゴリズムとPythonの基本構文](slds6.html)
+[第6章 データの取得と編集](slds6.html)
 
-[第7章 データサイエンスを始めよう](slds7.html)
+[第7章 アルゴリズムとPythonの基本構文](slds7.html)
 
 [第8章 データの可視化](slds8.html)
 
