@@ -1120,8 +1120,8 @@ Sal列のデータ型:float64
 ~~~ py
 #読み込み時のデータ型の指定
 df = pd.read_csv('data/salary.csv'
-                ,dtype = {'Industry':str
-                         ,'Salary':float})
+                ,dtype = {'industry':str
+                         ,'salary':float})
 df.columns = ['Ind','Sal']
 print(df.dtypes)
 ~~~
