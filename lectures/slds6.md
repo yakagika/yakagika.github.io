@@ -1344,7 +1344,7 @@ pandasでは,csvの空白, 作成時の未定義部分 などが欠損値`NaN`(N
 例えば,DataFrame作成時にvaluesのサイズが合わない場合にはデータのない部分が`NaN`となります.
 また,以下のように空白のあるCSVを読み込んだ場合には空白のセルが`NaN`となります.
 
-![salary_nan.cav](/images/salary_nan.png)
+![salary_nan.csv](/images/salary_nan.png)
 
 ~~~ py
 #DataFrameの作成
