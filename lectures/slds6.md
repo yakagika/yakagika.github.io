@@ -1252,7 +1252,7 @@ print(df)
 print('追加前:\n',df)
 df['name'] = ['pochi','tama','kintaro']
 print('列の追加:\n',df)
-df.loc[4] = ['bird',1.0,3,'piyo']
+df.loc[3] = ['bird',1.0,3,'piyo']
 print('行の追加:\n',df)
 ~~~
 
@@ -1272,7 +1272,7 @@ print('行の追加:\n',df)
 0         dog    5.0  60.0    pochi
 1         cat    6.0  30.0     tama
 2        fish   0.15   0.5  kintaro
-4        bird    1.0     3     piyo
+3        bird    1.0     3     piyo
 ~~~
 
 特定の列の値を利用して計算された新たな列を作成することも可能です.ここでは,`size`あたりの`weight`を計算してみます. 列を用いた計算では各行の値が計算されます.
@@ -1288,7 +1288,7 @@ print(df)
 0         dog    5.00  60.0    pochi  0.083333
 1         cat    6.00  30.0     tama  0.200000
 2        fish    0.15   0.5  kintaro  0.300000
-4        bird    1.00   3.0     piyo  0.333333
+3        bird    1.00   3.0     piyo  0.333333
 ~~~
 
 
@@ -1303,7 +1303,7 @@ df.drop('name'
 print(df)
 
 #行の削除
-df.drop(4
+df.drop(3
        ,axis='index' # or axis = 0
        ,inplace=True)
 print(df)
@@ -1314,7 +1314,7 @@ print(df)
 0         dog    5.00  60.0  0.083333
 1         cat    6.00  30.0  0.200000
 2        fish    0.15   0.5  0.300000
-4        bird    1.00   3.0  0.333333
+3        bird    1.00   3.0  0.333333
   animal_kind  weight  size   density
 0         dog    5.00  60.0  0.083333
 1         cat    6.00  30.0  0.200000
