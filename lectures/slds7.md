@@ -1597,7 +1597,7 @@ else:
             
             # ファイル名から月を抽出
             # 例: "monthly_data/sales_202301.csv" → "202301" → "01" → 1
-            month = int(file.split('_')[1].split('.')[0][-2:])
+            month = int(file.split('.')[0][-2:])
             df['source_file'] = file  # 元のファイル名を記録
             df['month'] = month       # 月の数字を追加
             
