@@ -1041,7 +1041,7 @@ Colaboratoryは対話型環境になっており, プログラムを書いてブ
 
 ~~~ py
 #ライブラリのインストール
-!pip install transformers==4.18.0 fugashi==1.1.0 ipadic==1.0.0 pytorch_lightning
+!pip install transformers fugashi ipadic pytorch_lightning
 ~~~
 
 まずは,学習済みのモデルを読み込みます. ニューラルモデルに関するこれらのコードは全て理解しようと思うと,膨大な時間が必要になります.
