@@ -171,6 +171,17 @@ result = sm.OLS(y, X).fit()
 print(result.summary())
 
 
+
+plt.figure(figsize=(8, 6))
+plt.scatter(y, pred, alpha=0.7, edgecolors="k")
+plt.xlabel("Predicted")
+plt.ylabel("Actual")
+plt.title("Actual vs. Predicted")
+plt.plot([y.min(), y.max()], [y.min(), y.max()], color="red", linestyle="--")  # 完全一致のライン
+plt.grid()
+plt.savefig('../../images/ch11-multi-regression5.png')
+plt.close()
+
 #予測結果の作成
 pred = result.predict(X)
 plt.figure(figsize=(16,8))
@@ -180,18 +191,9 @@ plt.title('Actual/Predicted')
 plt.xlabel('GPA')
 plt.ylabel('Density')
 plt.legend()
-plt.savefig('../../images/ch11-multi-regression5.png')
-plt.close()
-
-plt.figure(figsize=(8, 6))
-plt.scatter(y, pred, alpha=0.7, edgecolors="k")
-plt.xlabel("Predicted")
-plt.ylabel("Actual")
-plt.title("Actual vs. Predicted")
-plt.plot([y.min(), y.max()], [y.min(), y.max()], color="red", linestyle="--")  # 完全一致のライン
-plt.grid()
 plt.savefig('../../images/ch11-multi-regression6.png')
 plt.close()
+
 
 #回帰グラフの作成
 from statsmodels.graphics.regressionplots import plot_partregress_grid
