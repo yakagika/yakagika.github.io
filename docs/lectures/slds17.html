@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>yakagika - 特別講義DS Ch17 時系列分析(執筆中)</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../style.css?v=0">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+      <meta property="og:description" content="資料" />
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../">
+          <img src="../favicon.ico" alt="Home" style="width: 32px; height: 32px;">
+        </a>
+      </div>
+      <div class="hamburger" onclick="toggleMenu()">☰</div>
+    </header>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <div id="navigation" class="drawer-menu">
+      <h1>Contents</h1>
+      <a href="../">Home</a>
+      <a href="../posts.html">Blog</a>
+      <a href="../lectures.html">Lecture</a>
+      <a href="../research.html">Research</a>
+      <a href="../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h1>Links</h1>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      <div id="lecture-toc">
+        <h1>Index</h1>
+        <!-- The TOC will be generated here by JavaScript -->
+      </div>
+      
+      
+    </div>
+
+    <div id="content">
+    <h1>特別講義DS Ch17 時系列分析(執筆中)</h1>
+<div class="soft">
+    資料<br />
+    Published on 2025-10-30 under the tag <a title="All pages tagged 'datascience'." href="../tags/datascience.html">datascience</a>, <a title="All pages tagged 'statistics'." href="../tags/statistics.html">statistics</a>, <a title="All pages tagged 'python'." href="../tags/python.html">python</a>
+</div>
+
+<!-- 前後の章へのナビゲーション -->
+<div class="chapter-navigation">
+    <nav>
+        
+            <a class="nav-link prev" href="slds16.html">← Previous Chapter</a>
+        
+        
+            <a class="nav-link next" href="slds18.html">Next Chapter →</a>
+        
+    </nav>
+</div>
+
+<br>
+
+<div class="toc"><div class="header">Table of Contents</div>
+<ul>
+<li><a href="#時系列回帰" id="toc-時系列回帰"><span class="toc-section-number">1</span> 時系列回帰</a>
+<ul>
+<li><a href="#データの準備" id="toc-データの準備"><span class="toc-section-number">1.1</span> データの準備</a></li>
+<li><a href="#古典的時系列解析" id="toc-古典的時系列解析"><span class="toc-section-number">1.2</span> 古典的時系列解析</a></li>
+</ul></li>
+</ul>
+</div>
+<h2 data-number="1" id="時系列回帰"><span class="header-section-number">1</span> 時系列回帰</h2>
+<p>前の節で質的データの処理を扱ったように,データの分析ではデータの種類に応じて手法を選択する必要があります.</p>
+<div class="note">
+<ul>
+<li><h3 id="代表的な時間に関するデータ">代表的な時間に関するデータ</h3></li>
+<li><h3 id="点過程データ">点過程データ</h3></li>
+</ul>
+<p>データの発生時刻が記録されたデータを<strong>点過程(Point Process)データ</strong>と言います. 代表的なものに購入された商品に関して,購入時点の日付とともに記録した<strong>POS(Point of Sales)</strong>データなどがあります.</p>
+<ul>
+<li>コンビニPOSデータの例</li>
+</ul>
+<table>
+<thead>
+<tr class="header">
+<th>商品名</th>
+<th>単価 (円)</th>
+<th>個数</th>
+<th>購入日時</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>おにぎり</td>
+<td>120</td>
+<td>2</td>
+<td>2024-10-01 08:15</td>
+</tr>
+<tr class="even">
+<td>サンドイッチ</td>
+<td>350</td>
+<td>1</td>
+<td>2024-10-01 12:30</td>
+</tr>
+<tr class="odd">
+<td>ペットボトル水</td>
+<td>100</td>
+<td>3</td>
+<td>2024-10-01 14:45</td>
+</tr>
+<tr class="even">
+<td>カップラーメン</td>
+<td>220</td>
+<td>1</td>
+<td>2024-10-02 11:00</td>
+</tr>
+<tr class="odd">
+<td>チョコレート</td>
+<td>150</td>
+<td>2</td>
+<td>2024-10-02 15:20</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><h3 id="時系列データ">時系列データ</h3></li>
+</ul>
+<p>決まった時間単位毎に観測項目を集計したデータ<strong>時系列(Time Series)データ</strong>といいます.</p>
+<p>例えば, 上の点過程データを日毎,月ごとなど決まった時間単位で集計することで下のような時系列データとなります.</p>
+<ul>
+<li>日ごとに集計した時系列データの例</li>
+</ul>
+<table>
+<thead>
+<tr class="header">
+<th>日付</th>
+<th>売上合計 (円)</th>
+<th>購入点数</th>
+<th>購入回数</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>2024-10-01</td>
+<td>1060</td>
+<td>6</td>
+<td>3</td>
+</tr>
+<tr class="even">
+<td>2024-10-02</td>
+<td>520</td>
+<td>3</td>
+<td>2</td>
+</tr>
+</tbody>
+</table>
+</div>
+<h3 data-number="1.1" id="データの準備"><span class="header-section-number">1.1</span> データの準備</h3>
+<p>以下,時系列回帰などの練習用データを準備します.</p>
+<p>今回は,実データとして千葉商科大学の電力データを利用し,電力消費量から曜日や祝日を予測/判別してみましょう. 千葉商科大学では, 自然エネルギー100%大学の取り組みに関連して使用したエネルギーを電力の種別ごとに計測しています.
+今回は2021年5月の1号館の<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/energy_may_1.csv">データ</a>を利用してみます.</p>
+<p>ダウンロードしたデータを作業ディレクトリのデータフォルダに配置したら,いくつかの前処理を施します.
+まず, 元のデータを確認してみましょう.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'./data/energy_may_1.csv'</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co">                 Date  1-1L-1-1-1F西/1(照明):kWh  ...  1号館動力盤1_T相/76_T(その他動力):kWh  1-太陽光発電量/82(発電):kWh</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">0     2021/05/01 0:00                   0.000  ...                    1.605610                  0.0</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">1     2021/05/01 1:00                   0.000  ...                    1.555380                  0.0</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co">2     2021/05/01 2:00                   0.000  ...                    1.617734                  0.0</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co">3     2021/05/01 3:00                   0.000  ...                    1.612538                  0.0</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co">4     2021/05/01 4:00                   0.000  ...                    1.569237                  0.0</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="co">..                ...                     ...  ...                         ...                  ...</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="co">739  2021/05/31 19:00                   0.175  ...                    1.978000                  0.0</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="co">740  2021/05/31 20:00                   0.115  ...                    1.844633                  0.0</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="co">741  2021/05/31 21:00                   0.000  ...                    1.806529                  0.0</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="co">742  2021/05/31 22:00                   0.000  ...                    1.811724                  0.0</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="co">743  2021/05/31 23:00                   0.000  ...                    1.872346                  0.0</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>データが読み込めたようなのでまずは,列の情報を編集してみましょう. CSVファイルのヘッダーを確認してみると以下のようになっています.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">#列を確認する</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>cols <span class="op">=</span> <span class="bu">list</span>(df.columns)[<span class="dv">1</span>:] <span class="co">#Dateを除外</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>[<span class="bu">print</span>(c) <span class="cf">for</span> c <span class="kw">in</span> cols]</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-1-1-1F西/1(照明):kWh</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-1-2-1F西/2(照明):kWh</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-1-3-1F西/3(照明):kWh</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-1-4-1F西/4(照明):kWh</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-1-5-1F西/5(照明):kWh</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-1-6-1F西/6(照明):kWh</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-1-7-1F～3Fロビー/7(照明):kWh</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-1-8-1F西/8(照明):kWh</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-1-9-1F西/9(照明):kWh</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-1-10-1F西/10(照明):kWh</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-2-11-1F東/11(照明):kWh</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-2-12-1F東/12(照明):kWh</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-2-13-1F東/13(照明):kWh</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-2-14-1F東/14(照明):kWh</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-2-15-1F東/15(照明):kWh</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-2-16-1F東/16(照明):kWh</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-2-17-1F東/17(照明):kWh</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-11-18-1101教室/18(照明):kWh</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-11-19-1101教室/19(照明):kWh</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-11-20-1101教室/20(照明):kWh</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-11-21-1101教室/21(照明):kWh</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-11-22-1101教室/22(照明):kWh</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-11-23-1101教室/23(照明):kWh</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-12-24-1102教室/24(照明):kWh</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-12-25-1102教室/25(照明):kWh</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-13-26-1103教室/26(照明):kWh</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-13-27-1103教室/27(照明):kWh</span></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-14-28-1104教室/28(照明):kWh</span></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-14-29-1104教室/29(照明):kWh</span></span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-14-30-1104教室/30(照明):kWh</span></span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-14-31-1104教室/31(照明):kWh</span></span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-14-32-1104教室/32(照明):kWh</span></span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a><span class="co">1-1L-14-33-1104教室/33(照明):kWh</span></span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-1-34-2F西/34(照明):kWh</span></span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-1-35-2F西/35(照明):kWh</span></span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-1-36-2F西/36(照明):kWh</span></span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-1-37-2F西/37(照明):kWh</span></span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-1-38-2F西 1201共同研究室1_2照明/38(照明):kWh</span></span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-1-39-2F西/39(照明):kWh</span></span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-1-40-2F西/40(照明):kWh</span></span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-1-41-2F西 共同研究室3～6照明/41(照明):kWh</span></span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-2-42-2F東/42(照明):kWh</span></span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-2-43-2F東/43(照明):kWh</span></span>
+<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-2-44-2F東/44(照明):kWh</span></span>
+<span id="cb2-49"><a href="#cb2-49" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-2-45-1202～1204照明/45(照明):kWh</span></span>
+<span id="cb2-50"><a href="#cb2-50" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-2-46-2F東/46(照明):kWh</span></span>
+<span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-2-47-2F東/47(照明):kWh</span></span>
+<span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-2-48-1205～1207照明/48(照明):kWh</span></span>
+<span id="cb2-53"><a href="#cb2-53" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-H-49-1208教室/49(照明):kWh</span></span>
+<span id="cb2-54"><a href="#cb2-54" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-I-50-1209教室/50(照明):kWh</span></span>
+<span id="cb2-55"><a href="#cb2-55" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-J-51-1210教室/51(照明):kWh</span></span>
+<span id="cb2-56"><a href="#cb2-56" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-K-52-1211教室/52(照明):kWh</span></span>
+<span id="cb2-57"><a href="#cb2-57" aria-hidden="true" tabindex="-1"></a><span class="co">1-2L-L-53-1212教室/53(照明):kWh</span></span>
+<span id="cb2-58"><a href="#cb2-58" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-1-54-3F東/54(照明):kWh</span></span>
+<span id="cb2-59"><a href="#cb2-59" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-1-55-3F東/55(照明):kWh</span></span>
+<span id="cb2-60"><a href="#cb2-60" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-1-56-3F東 ラボスクウェア1_2照明/56(照明):kWh</span></span>
+<span id="cb2-61"><a href="#cb2-61" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-1-57 共同研究室7～9/57(照明):kWh</span></span>
+<span id="cb2-62"><a href="#cb2-62" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-1-58 ラボスクウェア1_2照明/58(照明):kWh</span></span>
+<span id="cb2-63"><a href="#cb2-63" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-1-59 3F東/59(照明):kWh</span></span>
+<span id="cb2-64"><a href="#cb2-64" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-1-60 3F東/60(照明):kWh</span></span>
+<span id="cb2-65"><a href="#cb2-65" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-1-61 共同研究室10～12/61(照明):kWh</span></span>
+<span id="cb2-66"><a href="#cb2-66" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-2-62 3F西/62(照明):kWh</span></span>
+<span id="cb2-67"><a href="#cb2-67" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-2-63 3F西/63(照明):kWh</span></span>
+<span id="cb2-68"><a href="#cb2-68" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-2-64 3F西 ラボスクウェア3_4照明/64(照明):kWh</span></span>
+<span id="cb2-69"><a href="#cb2-69" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-2-65 3F西/65(照明):kWh</span></span>
+<span id="cb2-70"><a href="#cb2-70" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-2-66 共同研究室13西照明/66(照明):kWh</span></span>
+<span id="cb2-71"><a href="#cb2-71" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-2-67 ラボスクウェア3_4照明/67(照明):kWh</span></span>
+<span id="cb2-72"><a href="#cb2-72" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-2-68 3F西/68(照明):kWh</span></span>
+<span id="cb2-73"><a href="#cb2-73" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-2-69 3F西/69(照明):kWh</span></span>
+<span id="cb2-74"><a href="#cb2-74" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-2-70 3F西/70(照明):kWh</span></span>
+<span id="cb2-75"><a href="#cb2-75" aria-hidden="true" tabindex="-1"></a><span class="co">1-3L-2-71 3F西 共同研究室13東照明/71(照明):kWh</span></span>
+<span id="cb2-76"><a href="#cb2-76" aria-hidden="true" tabindex="-1"></a><span class="co">1号館電灯盤1_R相/73(主幹):kWh</span></span>
+<span id="cb2-77"><a href="#cb2-77" aria-hidden="true" tabindex="-1"></a><span class="co">1号館電灯盤2_R相/74(主幹):kWh</span></span>
+<span id="cb2-78"><a href="#cb2-78" aria-hidden="true" tabindex="-1"></a><span class="co">1号館電灯盤3_R相/75(主幹):kWh</span></span>
+<span id="cb2-79"><a href="#cb2-79" aria-hidden="true" tabindex="-1"></a><span class="co">1号館動力盤1_R相/76(その他動力):kWh</span></span>
+<span id="cb2-80"><a href="#cb2-80" aria-hidden="true" tabindex="-1"></a><span class="co">1-GHP-77/77GHP(空調熱源):m3</span></span>
+<span id="cb2-81"><a href="#cb2-81" aria-hidden="true" tabindex="-1"></a><span class="co">1号館電灯盤1_T相/73_T(照明等その他):kWh</span></span>
+<span id="cb2-82"><a href="#cb2-82" aria-hidden="true" tabindex="-1"></a><span class="co">1号館電灯盤2_T相/74_T(照明等その他):kWh</span></span>
+<span id="cb2-83"><a href="#cb2-83" aria-hidden="true" tabindex="-1"></a><span class="co">1号館電灯盤3_T相/75_T(照明等その他):kWh</span></span>
+<span id="cb2-84"><a href="#cb2-84" aria-hidden="true" tabindex="-1"></a><span class="co">1号館動力盤1_T相/76_T(その他動力):kWh</span></span>
+<span id="cb2-85"><a href="#cb2-85" aria-hidden="true" tabindex="-1"></a><span class="co">1-太陽光発電量/82(発電):kWh</span></span>
+<span id="cb2-86"><a href="#cb2-86" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb2-87"><a href="#cb2-87" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-88"><a href="#cb2-88" aria-hidden="true" tabindex="-1"></a><span class="co">#利用対象部分の抽出</span></span>
+<span id="cb2-89"><a href="#cb2-89" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="bu">list</span>(<span class="bu">set</span>([c[c.find(<span class="st">'('</span>) : c.find(<span class="st">')'</span>)<span class="op">+</span><span class="dv">1</span>] <span class="cf">for</span> c <span class="kw">in</span> cols])))</span>
+<span id="cb2-90"><a href="#cb2-90" aria-hidden="true" tabindex="-1"></a><span class="co"># &gt;&gt;&gt; ['(発電)', '(照明)', '(空調熱源)', '(照明等その他)', '(その他動力)', '(主幹)']</span></span></code></pre></div>
+<p>このデータでは1号館を｢1F西/1,1F西/2｣など分電盤毎に分割し,かつ電力の利用対象を｢照明,主幹,空調熱源,照明等その他,その他動力,発電｣の5種類に分けて記録しています. このうち｢照明等その他｣はコンセントなどの電源の利用を表しています.
+この分類は分析の練習用としては細かすぎるので,｢照明,電源,動力,空調｣の4つにまとめてみます.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 列の整形</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co"># 場所は無視して,照明(Lighting),電源(Others),動力(Power),空調(Air),だけに分ける</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># '照明'を含む列の抽出</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'Lighting'</span>] <span class="op">=</span> <span class="bu">sum</span>([df[x] <span class="cf">for</span> x <span class="kw">in</span> df.<span class="bu">filter</span>(like<span class="op">=</span><span class="st">'(照明)'</span>).columns])</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="co"># ''を含む列の抽出</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'Others'</span>] <span class="op">=</span> <span class="bu">sum</span>([df[x] <span class="cf">for</span> x <span class="kw">in</span> df.<span class="bu">filter</span>(like<span class="op">=</span><span class="st">'(照明等その他)'</span>).columns])</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="co"># '動力'を含む列の抽出</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'Power'</span>] <span class="op">=</span> <span class="bu">sum</span>([df[x] <span class="cf">for</span> x <span class="kw">in</span> df.<span class="bu">filter</span>(like<span class="op">=</span><span class="st">'(その他動力)'</span>).columns])</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="co"># ‘空調'を含む列の抽出</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'Air'</span>] <span class="op">=</span> <span class="bu">sum</span>([df[x] <span class="cf">for</span> x <span class="kw">in</span> df.<span class="bu">filter</span>(like<span class="op">=</span><span class="st">'(空調熱源)'</span>).columns])</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="co"># 結合した列以外を削除</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> df[[<span class="st">'Date'</span>,<span class="st">'Lighting'</span>, <span class="st">'Others'</span>, <span class="st">'Power'</span>, <span class="st">'Air'</span>]]</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="co"># totalを追加</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'Total'</span>] <span class="op">=</span> <span class="bu">sum</span>(df[x] <span class="cf">for</span> x <span class="kw">in</span> [<span class="st">'Lighting'</span>, <span class="st">'Others'</span>, <span class="st">'Power'</span>, <span class="st">'Air'</span>])</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a><span class="co">                 Date  Lighting  Others     Power  Air      Total</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a><span class="co">0     2021/05/01 0:00     0.000   6.518  2.876935    0   9.394935</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a><span class="co">1     2021/05/01 1:00     0.000   6.490  2.835366    0   9.325366</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a><span class="co">2     2021/05/01 2:00     0.000   6.558  2.982589    0   9.540589</span></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a><span class="co">3     2021/05/01 3:00     0.000   6.444  2.932360    0   9.376360</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a><span class="co">4     2021/05/01 4:00     0.000   6.724  2.864810    0   9.588810</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a><span class="co">..                ...       ...     ...       ...  ...        ...</span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a><span class="co">739  2021/05/31 19:00     6.773  10.792  3.574950    0  21.139950</span></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a><span class="co">740  2021/05/31 20:00     3.743   8.120  3.257986    0  15.120986</span></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a><span class="co">741  2021/05/31 21:00     0.118   6.636  3.230273    0   9.984273</span></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a><span class="co">742  2021/05/31 22:00     0.000   6.148  3.083049    0   9.231049</span></span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a><span class="co">743  2021/05/31 23:00     0.000   6.854  3.183508    0  10.037508</span></span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>一般的に,大学のイベントは時間割に沿って行われるため,電気使用量は曜日によって異なります.
+そこで,曜日や祝日の情報を追加して情報量を増やしてみましょう.
+<code>datetime</code>型は,<code>.weekday</code>属性で曜日が取得できます. <code>.weekday</code>は<code>0</code>が<code>月曜日</code>,<code>6</code>が<code>日曜日</code>の数値で返ってくるので,分かりやすく文字列に変更します.
+また,土日を<code>Holiday</code>列で1とする,<code>Holiday</code>フラグも作成します.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 曜日の取得</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'曜日の取得'</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> datetime <span class="im">as</span> dt</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 日付をインデックスに変更</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df.index) <span class="co">#現在は,行数がインデックスになっている</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="co"># RangeIndex(start=0, stop=744, step=1)</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'-'</span><span class="op">*</span><span class="dv">10</span>)</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="co">#indexを日付に変更</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>df.set_index(<span class="st">'Date'</span>, inplace<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df.index) <span class="co"># インデックスが変更できたことが確認できる</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="co">Index(['2021/05/01 0:00', '2021/05/01 1:00', '2021/05/01 2:00',</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="co">       '2021/05/01 3:00', '2021/05/01 4:00', '2021/05/01 5:00',</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a><span class="co">       '2021/05/01 6:00', '2021/05/01 7:00', '2021/05/01 8:00',</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="co">       '2021/05/01 9:00',</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a><span class="co">       ...</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a><span class="co">       '2021/05/31 14:00', '2021/05/31 15:00', '2021/05/31 16:00',</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a><span class="co">       '2021/05/31 17:00', '2021/05/31 18:00', '2021/05/31 19:00',</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a><span class="co">       '2021/05/31 20:00', '2021/05/31 21:00', '2021/05/31 22:00',</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a><span class="co">       '2021/05/31 23:00'],</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a><span class="co">      dtype='object', name='Date', length=744)</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'-'</span><span class="op">*</span><span class="dv">10</span>)</span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a><span class="co"># 現在は日付と時間がただの文字列なので,datatime型に変換する</span></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>df.index <span class="op">=</span> pd.to_datetime(df.index)</span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df.index)</span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a><span class="co">DatetimeIndex(['2021-05-01 00:00:00', '2021-05-01 01:00:00',</span></span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a><span class="co">               '2021-05-01 02:00:00', '2021-05-01 03:00:00',</span></span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a><span class="co">               '2021-05-01 04:00:00', '2021-05-01 05:00:00',</span></span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a><span class="co">               '2021-05-01 06:00:00', '2021-05-01 07:00:00',</span></span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a><span class="co">               '2021-05-01 08:00:00', '2021-05-01 09:00:00',</span></span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a><span class="co">               ...</span></span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a><span class="co">               '2021-05-31 14:00:00', '2021-05-31 15:00:00',</span></span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a><span class="co">               '2021-05-31 16:00:00', '2021-05-31 17:00:00',</span></span>
+<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a><span class="co">               '2021-05-31 18:00:00', '2021-05-31 19:00:00',</span></span>
+<span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a><span class="co">               '2021-05-31 20:00:00', '2021-05-31 21:00:00',</span></span>
+<span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a><span class="co">               '2021-05-31 22:00:00', '2021-05-31 23:00:00'],</span></span>
+<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a><span class="co">              dtype='datetime64[ns]', name='Date', length=744, freq=None)</span></span>
+<span id="cb4-44"><a href="#cb4-44" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb4-45"><a href="#cb4-45" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-46"><a href="#cb4-46" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'-'</span><span class="op">*</span><span class="dv">10</span>)</span>
+<span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-48"><a href="#cb4-48" aria-hidden="true" tabindex="-1"></a><span class="co"># 曜日を入れる</span></span>
+<span id="cb4-49"><a href="#cb4-49" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'weekday'</span>] <span class="op">=</span> df.index.weekday</span>
+<span id="cb4-50"><a href="#cb4-50" aria-hidden="true" tabindex="-1"></a>dayOfWeek <span class="op">=</span> { <span class="dv">0</span>:<span class="st">'Mon'</span></span>
+<span id="cb4-51"><a href="#cb4-51" aria-hidden="true" tabindex="-1"></a>            , <span class="dv">1</span>:<span class="st">'Tue'</span></span>
+<span id="cb4-52"><a href="#cb4-52" aria-hidden="true" tabindex="-1"></a>            , <span class="dv">2</span>:<span class="st">'Wed'</span></span>
+<span id="cb4-53"><a href="#cb4-53" aria-hidden="true" tabindex="-1"></a>            , <span class="dv">3</span>:<span class="st">'Thu'</span></span>
+<span id="cb4-54"><a href="#cb4-54" aria-hidden="true" tabindex="-1"></a>            , <span class="dv">4</span>:<span class="st">'Fri'</span></span>
+<span id="cb4-55"><a href="#cb4-55" aria-hidden="true" tabindex="-1"></a>            , <span class="dv">5</span>:<span class="st">'Sat'</span></span>
+<span id="cb4-56"><a href="#cb4-56" aria-hidden="true" tabindex="-1"></a>            , <span class="dv">6</span>:<span class="st">'Sun'</span>}</span>
+<span id="cb4-57"><a href="#cb4-57" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'weekday'</span>] <span class="op">=</span> df[<span class="st">'weekday'</span>].<span class="bu">map</span>(dayOfWeek)</span>
+<span id="cb4-58"><a href="#cb4-58" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-59"><a href="#cb4-59" aria-hidden="true" tabindex="-1"></a><span class="co"># 曜日を平日かどうかで分ける</span></span>
+<span id="cb4-60"><a href="#cb4-60" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'Holiday'</span>] <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb4-61"><a href="#cb4-61" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> df.index:</span>
+<span id="cb4-62"><a href="#cb4-62" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="st">'Sat'</span> <span class="op">==</span> df.at[i,<span class="st">'weekday'</span>]:</span>
+<span id="cb4-63"><a href="#cb4-63" aria-hidden="true" tabindex="-1"></a>        df.at[i,<span class="st">'Holiday'</span>] <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb4-64"><a href="#cb4-64" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> <span class="st">'Sun'</span> <span class="op">==</span> df.at[i,<span class="st">'weekday'</span>]:</span>
+<span id="cb4-65"><a href="#cb4-65" aria-hidden="true" tabindex="-1"></a>        df.at[i,<span class="st">'Holiday'</span>] <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb4-66"><a href="#cb4-66" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb4-67"><a href="#cb4-67" aria-hidden="true" tabindex="-1"></a>        df.at[i,<span class="st">'Holiday'</span>] <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb4-68"><a href="#cb4-68" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb4-69"><a href="#cb4-69" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-70"><a href="#cb4-70" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb4-71"><a href="#cb4-71" aria-hidden="true" tabindex="-1"></a><span class="co">                     Lighting  Others     Power  Air      Total weekday  Holiday</span></span>
+<span id="cb4-72"><a href="#cb4-72" aria-hidden="true" tabindex="-1"></a><span class="co">Date</span></span>
+<span id="cb4-73"><a href="#cb4-73" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-01 00:00:00     0.000   6.518  2.876935    0   9.394935     Sat        1</span></span>
+<span id="cb4-74"><a href="#cb4-74" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-01 01:00:00     0.000   6.490  2.835366    0   9.325366     Sat        1</span></span>
+<span id="cb4-75"><a href="#cb4-75" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-01 02:00:00     0.000   6.558  2.982589    0   9.540589     Sat        1</span></span>
+<span id="cb4-76"><a href="#cb4-76" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-01 03:00:00     0.000   6.444  2.932360    0   9.376360     Sat        1</span></span>
+<span id="cb4-77"><a href="#cb4-77" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-01 04:00:00     0.000   6.724  2.864810    0   9.588810     Sat        1</span></span>
+<span id="cb4-78"><a href="#cb4-78" aria-hidden="true" tabindex="-1"></a><span class="co">...                       ...     ...       ...  ...        ...     ...      ...</span></span>
+<span id="cb4-79"><a href="#cb4-79" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-31 19:00:00     6.773  10.792  3.574950    0  21.139950     Mon        0</span></span>
+<span id="cb4-80"><a href="#cb4-80" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-31 20:00:00     3.743   8.120  3.257986    0  15.120986     Mon        0</span></span>
+<span id="cb4-81"><a href="#cb4-81" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-31 21:00:00     0.118   6.636  3.230273    0   9.984273     Mon        0</span></span>
+<span id="cb4-82"><a href="#cb4-82" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-31 22:00:00     0.000   6.148  3.083049    0   9.231049     Mon        0</span></span>
+<span id="cb4-83"><a href="#cb4-83" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-31 23:00:00     0.000   6.854  3.183508    0  10.037508     Mon        0</span></span>
+<span id="cb4-84"><a href="#cb4-84" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>1日の中でも授業時間とそうでない時間によって,消費電力の傾向は異なりそうです. 授業時間割を授業前(before_class),1~5時限,昼休み(break),授業後(after_class)として設定してみましょう.</p>
+<p>ここまでの作業ができたら,<code>energy_may_hour.csv</code>として保存してみます.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">#授業時間割の情報を追加する</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co">#2020年から</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co">#https://www.cuc.ac.jp/dpt_grad_sch/graduate_sch/accounting/hours/index.html</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co">#1時限    9:00～10:45</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co">#2時限    10:55～12:40</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co">#昼休み   12:40～13:30</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="co">#3時限    13:30～15:15</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="co">#4時限    15:25～17:10</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="co">#5時限    17:20～19:05</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> time2CTime(x):</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span>  <span class="dv">9</span> <span class="op">&lt;=</span> x.hour <span class="op">&lt;=</span> <span class="dv">11</span>:</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">'1'</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> <span class="dv">11</span> <span class="op">&lt;</span> x.hour <span class="op">&lt;=</span> <span class="dv">12</span>:</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">'2'</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> <span class="dv">12</span> <span class="op">&lt;</span> x.hour <span class="op">&lt;=</span> <span class="dv">13</span>:</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">'break'</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> <span class="dv">13</span> <span class="op">&lt;</span> x.hour <span class="op">&lt;=</span> <span class="dv">15</span>:</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">'3'</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> <span class="dv">15</span> <span class="op">&lt;</span> x.hour <span class="op">&lt;=</span> <span class="dv">17</span>:</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">'4'</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> <span class="dv">17</span> <span class="op">&lt;</span> x.hour <span class="op">&lt;=</span> <span class="dv">20</span>:</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">'5'</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="st">'after_class'</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'period'</span>] <span class="op">=</span> df.index.<span class="bu">map</span>(<span class="kw">lambda</span> x : time2CTime(x))</span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a><span class="co">                     Lighting  Others     Power  Air      Total weekday  Holiday       period</span></span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a><span class="co">Date</span></span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-01 00:00:00     0.000   6.518  2.876935    0   9.394935     Sat        1  after_class</span></span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-01 01:00:00     0.000   6.490  2.835366    0   9.325366     Sat        1  after_class</span></span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-01 02:00:00     0.000   6.558  2.982589    0   9.540589     Sat        1  after_class</span></span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-01 03:00:00     0.000   6.444  2.932360    0   9.376360     Sat        1  after_class</span></span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-01 04:00:00     0.000   6.724  2.864810    0   9.588810     Sat        1  after_class</span></span>
+<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a><span class="co">...                       ...     ...       ...  ...        ...     ...      ...          ...</span></span>
+<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-31 19:00:00     6.773  10.792  3.574950    0  21.139950     Mon        0            5</span></span>
+<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-31 20:00:00     3.743   8.120  3.257986    0  15.120986     Mon        0            5</span></span>
+<span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-31 21:00:00     0.118   6.636  3.230273    0   9.984273     Mon        0  after_class</span></span>
+<span id="cb5-40"><a href="#cb5-40" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-31 22:00:00     0.000   6.148  3.083049    0   9.231049     Mon        0  after_class</span></span>
+<span id="cb5-41"><a href="#cb5-41" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-31 23:00:00     0.000   6.854  3.183508    0  10.037508     Mon        0  after_class</span></span>
+<span id="cb5-42"><a href="#cb5-42" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb5-43"><a href="#cb5-43" aria-hidden="true" tabindex="-1"></a><span class="co">#保存</span></span>
+<span id="cb5-44"><a href="#cb5-44" aria-hidden="true" tabindex="-1"></a>df.to_csv(<span class="st">'data/energy_may_hour.csv'</span>,encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>)</span></code></pre></div>
+<p>今回は1時間毎に集計したデータを時系列分析に用いますが,次の章などで日ごとに集計したデータを利用するので,日毎の集計データも作成しておきましょう.
+<code>datetime</code>型では<code>date</code>によって日付が取得できます.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 1時間ごとになっているので,一日ごとに集約</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'Day'</span>] <span class="op">=</span> df.index.date</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> df.set_index(df.index.date) <span class="co"># 時間の部分を削除</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="co">            Lighting  Others     Power  Air      Total         Day</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-01     0.000   6.518  2.876935    0   9.394935  2021-05-01</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-01     0.000   6.490  2.835366    0   9.325366  2021-05-01</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-01     0.000   6.558  2.982589    0   9.540589  2021-05-01</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-01     0.000   6.444  2.932360    0   9.376360  2021-05-01</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-01     0.000   6.724  2.864810    0   9.588810  2021-05-01</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="co">...              ...     ...       ...  ...        ...         ...</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-31     6.773  10.792  3.574950    0  21.139950  2021-05-31</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-31     3.743   8.120  3.257986    0  15.120986  2021-05-31</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-31     0.118   6.636  3.230273    0   9.984273  2021-05-31</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-31     0.000   6.148  3.083049    0   9.231049  2021-05-31</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-31     0.000   6.854  3.183508    0  10.037508  2021-05-31</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a><span class="co">[744 rows x 6 columns]</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>同じ日付によってまとめて集計するような作業は<code>for</code>文などでもできますが,<code>pandas</code>の<code>groupby</code>メソッドが便利です. <code>groupby('列名')</code>で指定した列名の同じデータごとにデータを区切ってくれます.</p>
+<p>更に, <code>.agg({'列名':'処理方法'})</code>を追記することでグループごとにデータを集計します.</p>
+<p>処理方法は文字列で指定し, <code>sum</code>(合計),<code>mean</code>(平均),<code>first</code>(最初の値)などが利用できます.</p>
+<p>集計したデータは<code>energy_may_day.csv</code>として保存します.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 一日単位で集計</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> df.groupby(<span class="st">'Day'</span>).agg({<span class="st">'Lighting'</span>:<span class="st">'sum'</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>                           ,<span class="st">'Others'</span>:<span class="st">'sum'</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>                           ,<span class="st">'Power'</span>:<span class="st">'sum'</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>                           ,<span class="st">'Air'</span>:<span class="st">'sum'</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>                           ,<span class="st">'Total'</span>:<span class="st">'sum'</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>                           ,<span class="st">'weekday'</span>:<span class="st">'first'</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>                           ,<span class="st">'Holiday'</span>:<span class="st">'first'</span>})</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>df.index <span class="op">=</span> pd.to_datetime(df.index)</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="co">            Lighting   Others       Power  Air       Total weekday  Holiday</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a><span class="co">Day</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-01   57.8590  164.026  150.925638    1  373.810638     Sat        1</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-02   61.3290  170.661  153.542773    0  385.532773     Sun        1</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-03   52.5590  153.860  162.455036    0  368.874036     Mon        0</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-04   27.1570  142.110  190.401666    0  359.668666     Tue        0</span></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-05   14.9370  141.365   96.532341    0  252.834341     Wed        0</span></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-06  151.5430  252.266  163.735893    0  567.544893     Thu        0</span></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-07  137.5760  265.376   90.321215    4  497.273215     Fri        0</span></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-08   96.8080  202.206  159.786805    4  462.800805     Sat        1</span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-09   67.1230  173.335  181.672136    4  426.130136     Sun        1</span></span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-10  124.4350  234.587  187.283113    1  547.305113     Mon        0</span></span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-11  150.7050  271.478   85.611779    1  508.794779     Tue        0</span></span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-12  115.1820  231.200  142.734788    1  490.116788     Wed        0</span></span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-13  137.8290  283.480   80.014654    1  502.323654     Thu        0</span></span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-14  125.5200  235.470  176.655242    4  541.645242     Fri        0</span></span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-15  100.0060  207.944  174.805418    6  488.755418     Sat        1</span></span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-16   62.9970  189.768  101.143069    1  354.908069     Sun        1</span></span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-17  134.4200  253.678   85.963373    4  478.061373     Mon        0</span></span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-18  139.2750  275.532   85.630823    6  506.437823     Tue        0</span></span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-19  111.7410  254.229   79.302779    3  448.272779     Wed        0</span></span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-20  134.6820  258.456   96.874422    0  490.012422     Thu        0</span></span>
+<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-21  134.7470  270.402   91.587337   15  511.736337     Fri        0</span></span>
+<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-22   85.1020  214.783   89.615409    6  395.500409     Sat        1</span></span>
+<span id="cb7-37"><a href="#cb7-37" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-23   66.4360  176.641  140.140173    4  387.217173     Sun        1</span></span>
+<span id="cb7-38"><a href="#cb7-38" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-24  140.0200  237.016  151.007045   11  539.043045     Mon        0</span></span>
+<span id="cb7-39"><a href="#cb7-39" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-25  133.2290  239.769  183.644077   14  570.642077     Tue        0</span></span>
+<span id="cb7-40"><a href="#cb7-40" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-26  111.7810  220.848  167.229426   11  510.858426     Wed        0</span></span>
+<span id="cb7-41"><a href="#cb7-41" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-27  135.5230  265.379   79.695086    1  481.597086     Thu        0</span></span>
+<span id="cb7-42"><a href="#cb7-42" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-28  132.4820  247.760  141.465190    4  525.707190     Fri        0</span></span>
+<span id="cb7-43"><a href="#cb7-43" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-29  131.5140  226.797  129.222198   12  499.533198     Sat        1</span></span>
+<span id="cb7-44"><a href="#cb7-44" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-30   70.8040  188.536  139.632687    5  403.972687     Sun        1</span></span>
+<span id="cb7-45"><a href="#cb7-45" aria-hidden="true" tabindex="-1"></a><span class="co">2021-05-31  123.7695  231.010  164.885098    6  525.664598     Mon        0</span></span>
+<span id="cb7-46"><a href="#cb7-46" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb7-47"><a href="#cb7-47" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-48"><a href="#cb7-48" aria-hidden="true" tabindex="-1"></a>df.to_csv(<span class="st">'data/energy_may_day.csv'</span>,encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>)</span></code></pre></div>
+<p>作成したデータは,それぞれ<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/energy_may_hour.csv">時間ごと</a>,<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/energy_may_day.csv">日ごと</a>となります.
+以下,これらのデータを利用して,時系列解析を実施していきます.</p>
+<h3 data-number="1.2" id="古典的時系列解析"><span class="header-section-number">1.2</span> 古典的時系列解析</h3>
+
+
+<!-- 前後の章へのナビゲーション -->
+<div class="chapter-navigation">
+    <nav>
+        
+            <a class="nav-link prev" href="slds16.html">← Previous Chapter</a>
+        
+        
+            <a class="nav-link next" href="slds18.html">Next Chapter →</a>
+        
+    </nav>
+</div>
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        Site proudly generated by
+        <a href="http://jaspervdj.be/hakyll">Hakyll</a>.
+    </div>
+</div>
+
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      // メインコンテンツから h2, h3, h4 を抽出
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0) return;
+
+      // 目次用のUL要素を作成
+      var tocList = document.createElement('ul');
+
+      // 章番号カウンタ (h2, h3, h4に対応して配列を用意)
+      var chapterNumbers = [0, 0, 0];
+
+      headings.forEach(function(heading) {
+        if (heading.closest('li')) return;
+
+        var level;
+        switch (heading.tagName.toLowerCase()) {
+          case 'h2': level = 0; break;
+          case 'h3': level = 1; break;
+          case 'h4': level = 2; break;
+          default: return;
+        }
+
+        chapterNumbers[level]++;
+        for (var i = level + 1; i < chapterNumbers.length; i++) {
+          chapterNumbers[i] = 0;
+        }
+
+
+        var li = document.createElement('li');
+        li.classList.add('toc-level-' + (level + 1));
+
+        var anchor = document.createElement('a');
+        anchor.href = '#' + heading.id;
+        anchor.textContent =  heading.textContent;
+
+        li.appendChild(anchor);
+        tocList.appendChild(li);
+      });
+
+      tocContainer.appendChild(tocList);
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得
+      const pre = codeBlock.parentNode;
+
+      // <pre> を相対配置にし、子要素を絶対配置できるようにする
+      pre.style.position = 'relative';
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.textContent = 'Copy';
+      // ボタンのデザインはCSSで指定するのが望ましいが、簡易的にスタイルを直接指定する例:
+      copyButton.style.position = 'absolute';
+      copyButton.style.top = '8px';
+      copyButton.style.right = '8px';
+      copyButton.style.backgroundColor = '#add8e6'; // 水色
+      copyButton.style.color = '#fff';             // 白文字
+      copyButton.style.border = 'none';
+      copyButton.style.padding = '6px 10px';
+      copyButton.style.borderRadius = '4px';
+      copyButton.style.cursor = 'pointer';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      nav.classList.toggle('open');
+    }
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            katex.render( texText.data
+                        , mathElements[i]
+                        , { displayMode: mathElements[i].classList.contains("display")
+                          , throwOnError: true
+                         }
+                        );
+          }
+      }
+    });
+  </script>
+
+  </body>
+</html>

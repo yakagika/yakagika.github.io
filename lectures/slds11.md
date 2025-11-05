@@ -6,7 +6,7 @@ tags:
     - statistics
     - python
 featured: true
-date: 2024-03-29
+date: 2025-10-30
 tableOfContents: true
 previousChapter: slds10.html
 nextChapter: slds12.html
@@ -40,14 +40,14 @@ $$
 
     傾きは,xが1変化した際のyの変化量を表しています.
 
-![](/images/ch11-regression-image.png)
+![](/images/slds/ch11/regression-image.png)
 
 
 - 説明変数が一つの回帰式を求める分析を**単回帰分析**, 2つ以上の説明変数を用いる場合を**重回帰分析**といいます.
 
 - yがxの線形関数である場合を **線形回帰(Linear regression)**,それ以外のものを**非線形回帰(non-linear regression)**といいます.
 
-![](/images/ch11-regression-image2.png)
+![](/images/slds/ch11/regression-image2.png)
 
 
 :::
@@ -82,7 +82,7 @@ $$
 における $\epsilon_i$は$X_i$で説明できない誤差を表す確率変数であり,**誤差項**,**撹乱項**といいます.
 
 
-![](/images/ch11-regression-images3.png)
+![](/images/slds/ch11/regression-images3.png)
 
 回帰分析において,誤差項は以下の仮定をおいています.
 
@@ -288,7 +288,7 @@ $$
 
 元POSTでは, 日本経済新聞が[OECD Family Database](https://www.oecd.org/en/data/datasets/oecd-family-database.html )のデータから作成したグラフを用いて男性の育児・家事時間の少なさが日本の少子化の原因であると主張しています.
 
-![[出典：日本経済新聞,「男性の育児・家事時間、出生率に影響　日本は女性の二割](https://www.nikkei.com/article/DGXZQOFE308UG0Q1A830C2000000/) ](/images/ch11-oecd-nikkei.png)
+![[出典：日本経済新聞,「男性の育児・家事時間、出生率に影響　日本は女性の二割](https://www.nikkei.com/article/DGXZQOFE308UG0Q1A830C2000000/) ](/images/slds/ch11/oecd-nikkei.png)
 
 ::: note
 この分析の問題点は主に以下の2つです.
@@ -302,7 +302,7 @@ $$
 まずは,グラフに関して考えてみましょう. 実は,内閣府もこのデータを利用して同様の主張をしています. 内閣府のグラフでは,独自のグラフではなく,散布図が作成されています.
 
 ![[出典：内閣府　政策統括官（経済社会システム担当）第４回会議資料　選択する未来2.0, 資料２　参考資料②(事務局資料)](https://www5.cao.go.jp/keizai2/keizai-syakai/future2/20200409/shiryou2.pdf)
-](/images/ch11-oecd-cabinet.png)
+](/images/slds/ch11/oecd-cabinet.png)
 
 内閣府の資料でも,同じデータを利用して,同じ主張をしています. しかし,こちらの資料では独自のグラフではなく,散布図を作成しており,追加的に回帰式($y=0.0132x + 1.2027$)及びR2も求めています.
 
@@ -628,7 +628,7 @@ plt.grid()
 plt.show()
 ~~~
 
-![](/images/ch11_oecd_scatter_no_line.png)
+![](/images/slds/ch11/oecd_scatter_no_line.png)
 
 おおよそ政府と同じグラフが完成しました.
 
@@ -815,7 +815,7 @@ $R^2$ が1に近いほど, 式が点によく当てはまっていることを�
 
 求めた回帰式と,データそれぞれの散らばりは,**全変動**,**回帰変動**,**残渣変動**によって表現可能です.
 
-![](/images/ch11-prob-f.png)
+![](/images/slds/ch11/prob-f.png)
 
 - 全変動:データと平均値の差の合計(の二乗和)
 
@@ -871,7 +871,7 @@ $$
 
 が成り立ちます.
 
-![](/images/ch11-prob-f2.png)
+![](/images/slds/ch11/prob-f2.png)
 
 また,この説明の割合はF分布に従うことが知られており,
 
@@ -945,7 +945,7 @@ plt.grid()
 plt.show()
 ~~~
 
-![](/images/ch11_oecd_scatter_with_line.png)
+![](/images/slds/ch11/oecd_scatter_with_line.png)
 
 このようなグラフによって実測値に対する回帰直線の当てはまりを確認することもできますが,もう少しわかりやすい手法として,縦軸に実測値 $Y$ ,横軸に予測値 $\hat{\beta}_0 + \sum \hat{\beta}_i X_i$ をプロットした散布図もよく用いられます.
 
@@ -963,7 +963,7 @@ plt.grid()
 plt.show()
 ~~~
 
-![](/images/ch11_oecd_pred_actual.png)
+![](/images/slds/ch11/oecd_pred_actual.png)
 
 実測値と予測値が一致していれば,この散布図はグラフの45度線(赤い点線)上に一直線になります.
 $R^2$の結果通り,あまり予測精度が高くないことがわかります.
@@ -987,7 +987,7 @@ plt.show()
 plt.close()
 ~~~
 
-![](/images/ch11_oecd_density.png)
+![](/images/slds/ch11/oecd_density.png)
 
 実測値と予測値で大きく分布が異なることがわかり,やはりあまり良いモデルとはいえなさそうです.
 
@@ -1090,7 +1090,7 @@ plt.show()
 散布図行列において各交点には,異なる変数の場合は散布図,同じ変数の場合はヒストグラムが表示されています.
 Scholorshipは質的変数なので除外しています.
 
-![](/images/ch11-multi-regression1.png)
+![](/images/slds/ch11/multi-regression1.png)
 
 散布図行列を確認する場合は,散布図とヒストグラムそれぞれを確認する必要があります.それぞれの見方は可視化の章で説明したとおりです.
 
@@ -1120,7 +1120,7 @@ sns.heatmap(df[['GPA'
             ,annot=True)
 plt.show()
 ~~~
-![](/images/ch11-multi-regression3.png)
+![](/images/slds/ch11/multi-regression3.png)
 
 注目する点は,基本的に散布図と同様です.
 
@@ -1213,7 +1213,7 @@ plt.suptitle("Scatterplot Matrix with Scholarship", y=1.02)
 plt.show()
 ~~~
 
-![](/images/ch11-multi-regression2.png)
+![](/images/slds/ch11/multi-regression2.png)
 
 奨学金をもらっている(True)の分布と,もらっていない(False)分布で`GPA`が異なることが分かります.
 つまり,奨学生とそれ以外の影響を分析に追加するべきであることが分かります.
@@ -1236,7 +1236,7 @@ fig = sns.jointplot(data = df
 plt.show()
 ~~~
 
-![](/images/ch11-multi-regression4.png)
+![](/images/slds/ch11/multi-regression4.png)
 
 基本的には勉強時間が上がるほど,GPAが高くなるという傾向が見られます.
 また,奨学生の方が非奨学生よりも全体的に`GPA`が高いことが散布図,カーネル密度プロットの双方から分かります.
@@ -1559,7 +1559,7 @@ plt.show()
 実測値と予測値が一致していれば,この散布図はグラフの45度線(赤い点線)上に一直線になります.
 殆どの点が45度線付近に集まっているからかなり正確に予測ができていることが分かります.
 
-![](/images/ch11-multi-regression5.png)
+![](/images/slds/ch11/multi-regression5.png)
 
 
 実測値と予測値の**カーネル密度プロット (Karnel Densiti Estimation Plot)**を重ねたグラフもベイズモデルなどでよく利用される手法です.
@@ -1579,7 +1579,7 @@ plt.show()
 ~~~
 
 
-![](/images/ch11-multi-regression6.png)
+![](/images/slds/ch11/multi-regression6.png)
 
 
 実測値の分布と予測値の分布を見比べることで,値全体でどの部分が過大/過少に推測されているかモデルの想定する分布がデータの分布と近いかがが視覚化されます.
@@ -1604,7 +1604,7 @@ plot_partregress_grid(result, fig=fig)
 plt.show()
 ~~~
 
-![](/images/ch11-multi-regression7.png)
+![](/images/slds/ch11/multi-regression7.png)
 
 このグラフでは他の変数の影響を取り除いた上でのYと$X_i$の関係を可視化する手法であり,回帰直線の傾きが大きいほど他の変数の影響を取り除いた上での$X_i$のYへの影響力が強いことが分かります.
 

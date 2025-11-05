@@ -83,8 +83,8 @@ main = hakyllWith config $ do
         makeItem $ styleToCss pandocCodeStyle
 
     -- Static files
-    match ("images/*.jpg" .||. "images/*.png" .||. "images/*.gif" .||.
-            "images/*.mp4" .||.
+    match ("images/**.jpg" .||. "images/**.png" .||. "images/**.gif" .||.
+            "images/**.mp4" .||.
             "favicon.ico" .||. "files/**") $ do
         route   idRoute
         compile copyFileCompiler
