@@ -990,7 +990,6 @@ Application     python.exe                                         3.11.14... C:
 
 ~~~ sh
 conda install seaborn scikit-learn statsmodels
-conda install -c conda-forge compilers
 ~~~
 
 途中で,`Proceed ([y]/n)?` と表示されたら`y`と入力してENTERを押します.
