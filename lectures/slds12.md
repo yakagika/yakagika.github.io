@@ -1386,7 +1386,8 @@ if __name__ == "__main__":
     
     results_df = pd.DataFrame(results_summary)
     results_df.to_csv("model_results_summary.csv", index=False, encoding='utf-8-sig')
-    ~~~
+
+~~~
 
 以下, 個別の部分に関して確認していきます.
 特にモデルの設定部分に関して,モデルの定義との対応関係を確認するようにしましょう.
