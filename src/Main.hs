@@ -16,8 +16,10 @@ import qualified System.Process  as Process
 import qualified Text.Pandoc     as Pandoc
 import qualified Data.Set as S
 import Control.Monad (foldM, mplus)
-import Data.List (elemIndex)
+import Data.List (elemIndex, sortBy)
 import Data.Maybe (fromMaybe)
+import Data.Ord (Down(..))
+import           Data.Time.Clock (UTCTime)
 import           Data.Time.Clock.POSIX (getPOSIXTime)
 import           Hakyll
 
@@ -242,8 +244,8 @@ main = do
     match "index.html" $ do
         route idRoute
         compile $ do
-            posts <- recentFirst =<< featured =<< loadAll "posts/*"
-            lectures <- recentFirst =<< featured =<< loadAll "lectures/*"
+            posts <- recentByMtime =<< featured =<< loadAll "posts/*"
+            lectures <- fmap (take 5) (recentByMtime =<< featured =<< loadAll "lectures/*")
             let indexContext =
                     versionCtx <>
                     listField "posts" (postCtx tags) (return (posts)) <>
@@ -430,3 +432,12 @@ featured = filterM $ \item -> do
 --------------------------------------------------------------------------------
 filterM :: Monad m => (a -> m Bool) -> [a] -> m [a]
 filterM p = mapM (\x -> (,) x <$> p x) >=> pure . map fst . filter snd
+
+--------------------------------------------------------------------------------
+-- | Sort items by file modification time (most recent first)
+recentByMtime :: [Item a] -> Compiler [Item a]
+recentByMtime items = do
+    itemsWithTime <- mapM (\item -> do
+        time <- getItemModificationTime (itemIdentifier item)
+        return (item, time)) items
+    return $ map fst $ sortBy (\(_, t1) (_, t2) -> compare (Down t1) (Down t2)) itemsWithTime
