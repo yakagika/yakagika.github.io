@@ -18,6 +18,7 @@ import qualified Data.Set as S
 import Control.Monad (foldM, mplus)
 import Data.List (elemIndex)
 import Data.Maybe (fromMaybe)
+import           Data.Time.Clock.POSIX (getPOSIXTime)
 import           Hakyll
 
 import qualified Data.Map as M
@@ -76,7 +77,11 @@ customWriterOptions = defaultHakyllWriterOptions
 --------------------------------------------------------------------------------
 -- | Entry point
 main :: IO ()
-main = hakyllWith config $ do
+main = do
+  now <- getPOSIXTime
+  let cssVersion = show (round now :: Integer)
+      versionCtx = constField "cssVersion" cssVersion
+  hakyllWith config $ do
     create ["css/syntax.css"] $ do
       route idRoute
       compile $ do
@@ -138,7 +143,7 @@ main = hakyllWith config $ do
                     >>= return . fmap demoteHeaders
                     >>= loadAndApplyTemplate "templates/post.html" postCtxWithChapters
                     >>= loadAndApplyTemplate "templates/content.html" (defaultContext)
-                    >>= loadAndApplyTemplate "templates/default.html" (mathCtx <> defaultContext <> constField "post" "true")
+                    >>= loadAndApplyTemplate "templates/default.html" (versionCtx <> mathCtx <> defaultContext <> constField "post" "true")
                     >>= relativizeUrls
 
     -- Post list
@@ -146,7 +151,8 @@ main = hakyllWith config $ do
         route idRoute
         compile $ do
             posts <- recentFirst =<< loadAll "posts/*"
-            let ctx = constField "title" "Posts" <>
+            let ctx = versionCtx <>
+                        constField "title" "Posts" <>
                         listField "posts" (postCtx tags) (return posts) <>
                         defaultContext
             makeItem ""
@@ -163,7 +169,8 @@ main = hakyllWith config $ do
         route idRoute
         compile $ do
             posts <- recentFirst =<< loadAll pattern
-            let ctx = constField "title" title <>
+            let ctx = versionCtx <>
+                        constField "title" title <>
                         listField "posts" (postCtx tags) (return posts) <>
                         defaultContext
             makeItem ""
@@ -200,7 +207,7 @@ main = hakyllWith config $ do
                 >>= loadAndApplyTemplate "templates/lecture.html" postCtxWithChapters
                 >>= loadAndApplyTemplate "templates/content.html" (defaultContext )
                 -- Add a flag "lecture" so default.html can render the TOC placeholder
-                >>= loadAndApplyTemplate "templates/default.html" (mathCtx <> defaultContext <> constField "lecture" "true")
+                >>= loadAndApplyTemplate "templates/default.html" (versionCtx <> mathCtx <> defaultContext <> constField "lecture" "true")
                 >>= relativizeUrls
                 >>= relativizeUrls
 
@@ -213,7 +220,8 @@ main = hakyllWith config $ do
         route idRoute
         compile $ do
             lectures <- recentFirst =<< loadAll pattern
-            let ctx = constField "title" title <>
+            let ctx = versionCtx <>
+                        constField "title" title <>
                         listField "lectures" (postCtx tags) (return lectures) <>
                         defaultContext
             makeItem ""
@@ -237,6 +245,7 @@ main = hakyllWith config $ do
             posts <- recentFirst =<< featured =<< loadAll "posts/*"
             lectures <- recentFirst =<< featured =<< loadAll "lectures/*"
             let indexContext =
+                    versionCtx <>
                     listField "posts" (postCtx tags) (return (posts)) <>
                     listField "lectures" (postCtx tags) (return lectures) <>
                     field "tags" (\_ -> renderTagList tags) <>
@@ -258,7 +267,7 @@ main = hakyllWith config $ do
         route   $ setExtension ".html"
         compile $ pandocCompilerWith customReaderOptions customWriterOptions
             >>= loadAndApplyTemplate "templates/content.html" defaultContext
-            >>= loadAndApplyTemplate "templates/default.html" defaultContext
+            >>= loadAndApplyTemplate "templates/default.html" (versionCtx <> defaultContext)
             >>= relativizeUrls
 
     -- Render the 404 page, we don't relativize URL's here.
@@ -266,7 +275,7 @@ main = hakyllWith config $ do
         route idRoute
         compile $ pandocCompilerWith customReaderOptions customWriterOptions
             >>= loadAndApplyTemplate "templates/content.html" defaultContext
-            >>= loadAndApplyTemplate "templates/default.html" defaultContext
+            >>= loadAndApplyTemplate "templates/default.html" (versionCtx <> defaultContext)
 
     -- Render RSS feed
     create ["rss.xml"] $ do
