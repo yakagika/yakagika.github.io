@@ -6,7 +6,7 @@
     <title>yakagika - Posts tagged haskell</title>
 
     <!-- Stylesheets. -->
-    <link rel="stylesheet" type="text/css" href="../style.css?v=1775787716">
+    <link rel="stylesheet" type="text/css" href="../style.css?v=1775794330">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -154,46 +154,133 @@
       var tocContainer = document.getElementById('lecture-toc');
       if (!tocContainer) return;
 
-      // メインコンテンツから h2, h3, h4 を抽出
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level;
+          switch (heading.tagName.toLowerCase()) {
+            case 'h2': level = 0; break;
+            case 'h3': level = 1; break;
+            case 'h4': level = 2; break;
+            default: return;
+          }
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          anchor.href = '#' + heading.id;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
       var content = document.querySelector('article') || document.getElementById('content') || document.body;
-      var headings = content.querySelectorAll('h2, h3, h4');
-      if (headings.length === 0) return;
 
-      // 目次用のUL要素を作成
-      var tocList = document.createElement('ul');
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
 
-      // 章番号カウンタ (h2, h3, h4に対応して配列を用意)
-      var chapterNumbers = [0, 0, 0];
-
-      headings.forEach(function(heading) {
-        if (heading.closest('li')) return;
-
-        var level;
-        switch (heading.tagName.toLowerCase()) {
-          case 'h2': level = 0; break;
-          case 'h3': level = 1; break;
-          case 'h4': level = 2; break;
-          default: return;
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
         }
 
-        chapterNumbers[level]++;
-        for (var i = level + 1; i < chapterNumbers.length; i++) {
-          chapterNumbers[i] = 0;
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
         }
-
-
-        var li = document.createElement('li');
-        li.classList.add('toc-level-' + (level + 1));
-
-        var anchor = document.createElement('a');
-        anchor.href = '#' + heading.id;
-        anchor.textContent =  heading.textContent;
-
-        li.appendChild(anchor);
-        tocList.appendChild(li);
-      });
-
-      tocContainer.appendChild(tocList);
+      }
     });
     </script>
      <script>

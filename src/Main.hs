@@ -10,7 +10,7 @@ import           Control.Monad   ((>=>))
 import           Prelude
 import           Data.Functor.Identity (runIdentity)
 import           System.Exit     (ExitCode)
-import           System.FilePath (replaceExtension, takeDirectory)
+import           System.FilePath (replaceExtension, takeDirectory, takeFileName)
 import qualified Data.Text as T
 import qualified System.Process  as Process
 import qualified Text.Pandoc     as Pandoc
@@ -44,16 +44,6 @@ pandocCodeStyle :: Style
 pandocCodeStyle = breezeDark
 
 --------------------------------------------------------------------------------
--- Table of Contents template
-tocTemplate = either error Prelude.id . runIdentity . Pandoc.compileTemplate "" $ T.unlines
-  [ "<div class=\"toc\"><div class=\"header\">Table of Contents</div>"
-  , "$toc$"
-  , "</div>"
-  , "$body$"
-  ]
-
-
---------------------------------------------------------------------------------
 -- Custom ReaderOptions: disable `$...$` math, enable fenced_divs, plus TOC etc.
 
 customReaderOptions :: Pandoc.ReaderOptions
@@ -64,10 +54,10 @@ customReaderOptions =
 -- Custom WriterOptions: disable `$...$` math, enable fenced_divs, plus TOC etc.
 customWriterOptions :: Pandoc.WriterOptions
 customWriterOptions = defaultHakyllWriterOptions
-  { Pandoc.writerNumberSections  = True
-  , Pandoc.writerTableOfContents = True                  -- TOC
+  { Pandoc.writerNumberSections  = False
+  , Pandoc.writerTableOfContents = False
   , Pandoc.writerTOCDepth        = 3
-  , Pandoc.writerTemplate        = Just tocTemplate
+  , Pandoc.writerTemplate        = Nothing
   , Pandoc.writerHTMLMathMethod  = Pandoc.KaTeX ""
   , Pandoc.writerExtensions      = Pandoc.enableExtension Pandoc.Ext_fenced_divs
                                  $ Pandoc.enableExtension Pandoc.Ext_tex_math_dollars
@@ -138,7 +128,8 @@ main = do
                 let postCtxWithChapters = postCtx tags <>
                         field "previousChapter" (\_ -> return $ maybe "#" toUrl prev) <>
                         field "nextChapter" (\_ -> return $ maybe "#" toUrl next) <>
-                        field "date" (\_ -> return $ fromMaybe "No Date" date)
+                        field "date" (\_ -> return $ fromMaybe "No Date" date) <>
+                        constField "category" "Blog"
 
                 pandocCompilerWith customReaderOptions customWriterOptions
                     >>= saveSnapshot "content"
@@ -198,18 +189,28 @@ main = do
             prev       <- getMetadataField underlying "previousChapter"
             next       <- getMetadataField underlying "nextChapter"
             date       <- getMetadataField underlying "date"
+            prevTitle  <- getChapterTitle prev
+            nextTitle  <- getChapterTitle next
+            series     <- buildSeries underlying
+            let seriesHtml = renderSeriesHtml underlying series
 
             let postCtxWithChapters = postCtx tags <>
-                  field "previousChapter" (\_ -> return $ maybe "#" toUrl prev) <>
-                  field "nextChapter" (\_ -> return $ maybe "#" toUrl next) <>
-                  field "date" (\_ -> return $ fromMaybe "No Date" date)
+                  field "previousChapter" (\_ -> maybe (noResult "no prev") (return . toUrl) prev) <>
+                  field "nextChapter" (\_ -> maybe (noResult "no next") (return . toUrl) next) <>
+                  field "previousChapterTitle" (\_ -> return prevTitle) <>
+                  field "nextChapterTitle" (\_ -> return nextTitle) <>
+                  field "date" (\_ -> return $ fromMaybe "No Date" date) <>
+                  constField "category" "Lecture"
             pandocCompilerWith customReaderOptions customWriterOptions
                 >>= saveSnapshot "content"
                 >>= return . fmap demoteHeaders
                 >>= loadAndApplyTemplate "templates/lecture.html" postCtxWithChapters
                 >>= loadAndApplyTemplate "templates/content.html" (defaultContext )
-                -- Add a flag "lecture" so default.html can render the TOC placeholder
-                >>= loadAndApplyTemplate "templates/default.html" (versionCtx <> mathCtx <> defaultContext <> constField "lecture" "true")
+                -- Add flags and series HTML for default.html sidebar
+                >>= loadAndApplyTemplate "templates/default.html"
+                        (versionCtx <> mathCtx <> defaultContext
+                         <> constField "lecture" "true"
+                         <> constField "seriesChapters" seriesHtml)
                 >>= relativizeUrls
                 >>= relativizeUrls
 
@@ -432,6 +433,87 @@ featured = filterM $ \item -> do
 --------------------------------------------------------------------------------
 filterM :: Monad m => (a -> m Bool) -> [a] -> m [a]
 filterM p = mapM (\x -> (,) x <$> p x) >=> pure . map fst . filter snd
+
+--------------------------------------------------------------------------------
+-- | Look up the title of a chapter by its filename (e.g. "iap1.html" -> "Ch1 ...")
+getChapterTitle :: Maybe String -> Compiler String
+getChapterTitle Nothing     = return ""
+getChapterTitle (Just file) = do
+    titleMaybe <- getMetadataField (chapterFileToIdentifier file) "title"
+    return $ fromMaybe "" titleMaybe
+
+--------------------------------------------------------------------------------
+-- | Convert a chapter filename (e.g. "iap1.html") to a lecture Identifier
+chapterFileToIdentifier :: String -> Identifier
+chapterFileToIdentifier file =
+    let baseName = takeWhile (/= '.') file
+    in fromFilePath ("lectures/" ++ baseName ++ ".md")
+
+--------------------------------------------------------------------------------
+-- | Walk backward via previousChapter to find the first chapter of a series
+-- Stops if the referenced chapter file doesn't exist
+findFirstChapter :: Identifier -> Compiler Identifier
+findFirstChapter ident = do
+    prev <- getMetadataField ident "previousChapter"
+    case prev of
+        Nothing -> return ident
+        Just p  -> do
+            let prevIdent = chapterFileToIdentifier p
+            prevTitle <- getMetadataField prevIdent "title"
+            case prevTitle of
+                Nothing -> return ident  -- broken link
+                Just _  -> findFirstChapter prevIdent
+
+--------------------------------------------------------------------------------
+-- | Walk forward via nextChapter collecting (filename, title, identifier)
+-- Stops if the referenced chapter doesn't exist (no title found)
+collectForward :: Identifier -> Compiler [(String, String, Identifier)]
+collectForward ident = do
+    title <- getMetadataField ident "title"
+    case title of
+        Nothing -> return []  -- chapter file doesn't exist
+        Just t  -> do
+            let file    = toFilePath ident
+                urlFile = replaceExtension (takeFileName file) "html"
+            next <- getMetadataField ident "nextChapter"
+            rest <- case next of
+                Nothing -> return []
+                Just n  -> collectForward (chapterFileToIdentifier n)
+            return $ (urlFile, t, ident) : rest
+
+--------------------------------------------------------------------------------
+-- | Build the full chapter series containing the given lecture
+buildSeries :: Identifier -> Compiler [(String, String, Identifier)]
+buildSeries ident = do
+    start <- findFirstChapter ident
+    collectForward start
+
+--------------------------------------------------------------------------------
+-- | Render the chapter series as an HTML list with current chapter marked
+renderSeriesHtml :: Identifier -> [(String, String, Identifier)] -> String
+renderSeriesHtml curIdent chapters =
+    "<ul class=\"toc-root\">" ++
+    concatMap renderOne chapters ++
+    "</ul>"
+  where
+    renderOne (url, title, ident) =
+        let currentClass = if ident == curIdent then " current" else ""
+        in "<li class=\"toc-item toc-series-item" ++ currentClass ++ "\">" ++
+           "<div class=\"toc-row\">" ++
+           "<span class=\"toc-toggle\">▾</span>" ++
+           "<a href=\"" ++ url ++ "\">" ++ escapeHtmlChars title ++ "</a>" ++
+           "</div>" ++
+           "<ul class=\"toc-sublist\"></ul>" ++
+           "</li>"
+
+escapeHtmlChars :: String -> String
+escapeHtmlChars = concatMap f
+  where
+    f '<' = "&lt;"
+    f '>' = "&gt;"
+    f '&' = "&amp;"
+    f '"' = "&quot;"
+    f c   = [c]
 
 --------------------------------------------------------------------------------
 -- | Sort items by file modification time (most recent first)
