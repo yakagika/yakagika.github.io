@@ -12,6 +12,7 @@ date: 2024-10-18
 tableOfContents: true
 previousChapter: iap4.html
 nextChapter: iap6.html
+open: false
 ---
 
 # 代数的データ型(集合論的解釈)

@@ -7,6 +7,7 @@ tags:
     - python
 featured: true
 date: 2024-03-29
+open: false
 tableOfContents: true
 previousChapter: slds9.html
 nextChapter: slds11.html

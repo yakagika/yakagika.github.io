@@ -124,6 +124,7 @@ main = do
                 prev       <- getMetadataField underlying "previousChapter"
                 next       <- getMetadataField underlying "nextChapter"
                 date       <- getMetadataField underlying "date"
+                open       <- isOpen underlying
 
                 let postCtxWithChapters = postCtx tags <>
                         field "previousChapter" (\_ -> return $ maybe "#" toUrl prev) <>
@@ -131,19 +132,30 @@ main = do
                         field "date" (\_ -> return $ fromMaybe "No Date" date) <>
                         constField "category" "Blog"
 
-                pandocCompilerWith customReaderOptions customWriterOptions
-                    >>= saveSnapshot "content"
-                    >>= return . fmap demoteHeaders
-                    >>= loadAndApplyTemplate "templates/post.html" postCtxWithChapters
-                    >>= loadAndApplyTemplate "templates/content.html" (defaultContext)
-                    >>= loadAndApplyTemplate "templates/default.html" (versionCtx <> mathCtx <> defaultContext <> constField "post" "true")
-                    >>= relativizeUrls
+                if open
+                  then pandocCompilerWith customReaderOptions customWriterOptions
+                        >>= saveSnapshot "content"
+                        >>= return . fmap demoteHeaders
+                        >>= loadAndApplyTemplate "templates/post.html" postCtxWithChapters
+                        >>= loadAndApplyTemplate "templates/content.html" (defaultContext)
+                        >>= loadAndApplyTemplate "templates/default.html" (versionCtx <> mathCtx <> defaultContext <> constField "post" "true")
+                        >>= relativizeUrls
+                  else makeItem ""
+                        >>= saveSnapshot "content"
+                        >>= loadAndApplyTemplate "templates/placeholder.html" postCtxWithChapters
+                        >>= loadAndApplyTemplate "templates/content.html" defaultContext
+                        >>= loadAndApplyTemplate "templates/default.html"
+                                (versionCtx <> defaultContext
+                                 <> constField "post" "true"
+                                 <> constField "noindex" "true")
+                        >>= relativizeUrls
 
     -- Post list
     create ["posts.html"] $ do
         route idRoute
         compile $ do
             posts <- recentFirst =<< loadAll "posts/*"
+            -- keep closed items visible but marked "準備中"
             let ctx = versionCtx <>
                         constField "title" "Posts" <>
                         listField "posts" (postCtx tags) (return posts) <>
@@ -176,6 +188,7 @@ main = do
         version "rss" $ do
             route   $ setExtension "xml"
             compile $ loadAllSnapshots pattern "content"
+                >>= filterOpen
                 >>= fmap (take 10) . recentFirst
                 >>= renderRss (feedConfiguration title) feedCtx
 
@@ -192,6 +205,7 @@ main = do
             prevTitle  <- getChapterTitle prev
             nextTitle  <- getChapterTitle next
             series     <- buildSeries underlying
+            open       <- isOpen underlying
             let seriesHtml = renderSeriesHtml underlying series
 
             let postCtxWithChapters = postCtx tags <>
@@ -201,18 +215,27 @@ main = do
                   field "nextChapterTitle" (\_ -> return nextTitle) <>
                   field "date" (\_ -> return $ fromMaybe "No Date" date) <>
                   constField "category" "Lecture"
-            pandocCompilerWith customReaderOptions customWriterOptions
-                >>= saveSnapshot "content"
-                >>= return . fmap demoteHeaders
-                >>= loadAndApplyTemplate "templates/lecture.html" postCtxWithChapters
-                >>= loadAndApplyTemplate "templates/content.html" (defaultContext )
-                -- Add flags and series HTML for default.html sidebar
-                >>= loadAndApplyTemplate "templates/default.html"
-                        (versionCtx <> mathCtx <> defaultContext
-                         <> constField "lecture" "true"
-                         <> constField "seriesChapters" seriesHtml)
-                >>= relativizeUrls
-                >>= relativizeUrls
+            if open
+              then pandocCompilerWith customReaderOptions customWriterOptions
+                    >>= saveSnapshot "content"
+                    >>= return . fmap demoteHeaders
+                    >>= loadAndApplyTemplate "templates/lecture.html" postCtxWithChapters
+                    >>= loadAndApplyTemplate "templates/content.html" (defaultContext )
+                    >>= loadAndApplyTemplate "templates/default.html"
+                            (versionCtx <> mathCtx <> defaultContext
+                             <> constField "lecture" "true"
+                             <> constField "seriesChapters" seriesHtml)
+                    >>= relativizeUrls
+              else makeItem ""
+                    >>= saveSnapshot "content"
+                    >>= loadAndApplyTemplate "templates/placeholder.html" postCtxWithChapters
+                    >>= loadAndApplyTemplate "templates/content.html" defaultContext
+                    >>= loadAndApplyTemplate "templates/default.html"
+                            (versionCtx <> defaultContext
+                             <> constField "lecture" "true"
+                             <> constField "seriesChapters" seriesHtml
+                             <> constField "noindex" "true")
+                    >>= relativizeUrls
 
 
     -- Post tags
@@ -237,6 +260,7 @@ main = do
         version "rss" $ do
             route   $ setExtension "xml"
             compile $ loadAllSnapshots pattern "content"
+                >>= filterOpen
                 >>= fmap (take 10) . recentFirst
                 >>= renderRss (feedConfiguration title) feedCtx
 
@@ -245,8 +269,8 @@ main = do
     match "index.html" $ do
         route idRoute
         compile $ do
-            posts <- recentByMtime =<< featured =<< loadAll "posts/*"
-            lectures <- fmap (take 5) (recentByMtime =<< featured =<< loadAll "lectures/*")
+            posts <- recentByMtime =<< featured =<< filterOpen =<< loadAll "posts/*"
+            lectures <- fmap (take 5) (recentByMtime =<< featured =<< filterOpen =<< loadAll "lectures/*")
             let indexContext =
                     versionCtx <>
                     listField "posts" (postCtx tags) (return (posts)) <>
@@ -285,14 +309,15 @@ main = do
         route idRoute
         compile $ do
             loadAllSnapshots "posts/*" "content"
+                >>= filterOpen
                 >>= fmap (take 10) . recentFirst
                 >>= renderRss (feedConfiguration "All posts") feedCtx
 
     create ["sitemap.xml"] $ do
         route idRoute
         compile $ do
-            posts <- loadAllSnapshots "posts/*" "content"
-            lectures <- loadAllSnapshots "lectures/*" "content"
+            posts <- filterOpen =<< loadAllSnapshots "posts/*" "content"
+            lectures <- filterOpen =<< loadAllSnapshots "lectures/*" "content"
             let allPosts = posts ++ lectures
             let sitemapCtx = constField "root" "https://yakagika.github.io" <>
                              listField "entries" (postCtx tags) (return allPosts)
@@ -344,12 +369,36 @@ buildTagsWithList patterns makeId = do
         return $ M.unionWith (++) tagMap tagMap'
 
 --------------------------------------------------------------------------------
+-- | An entry is open (published) unless its metadata says `open: false`.
+-- Missing `open` key defaults to true (backwards compatible).
+isOpen :: MonadMetadata m => Identifier -> m Bool
+isOpen ident = do
+    v <- getMetadataField ident "open"
+    return $ case v of
+        Just "false" -> False
+        Just "False" -> False
+        Just "no"    -> False
+        _            -> True
+
+--------------------------------------------------------------------------------
+filterOpen :: MonadMetadata m => [Item a] -> m [Item a]
+filterOpen = filterM (isOpen . itemIdentifier)
+
+--------------------------------------------------------------------------------
+-- | boolField wrapper: shows contents when predicate is true, else empty.
+openField :: String -> Context a
+openField name = field name $ \item -> do
+    o <- isOpen (itemIdentifier item)
+    if o then return "" else noResult "closed"
+
+--------------------------------------------------------------------------------
 postCtx :: Tags -> Context String
 postCtx tags = mconcat
     [ modificationTimeField "mtime" "%Y-%m-%d"
     , dateField "date" "%Y-%m-%d"
     , tagsField "tags" tags
     , urlField "url"
+    , openField "isOpen"
     , Context $ \key -> case key of
         "title" -> unContext (mapContext escapeHtml defaultContext) key
         _       -> unContext mempty key
@@ -467,7 +516,7 @@ findFirstChapter ident = do
 --------------------------------------------------------------------------------
 -- | Walk forward via nextChapter collecting (filename, title, identifier)
 -- Stops if the referenced chapter doesn't exist (no title found)
-collectForward :: Identifier -> Compiler [(String, String, Identifier)]
+collectForward :: Identifier -> Compiler [(String, String, Identifier, Bool)]
 collectForward ident = do
     title <- getMetadataField ident "title"
     case title of
@@ -475,33 +524,40 @@ collectForward ident = do
         Just t  -> do
             let file    = toFilePath ident
                 urlFile = replaceExtension (takeFileName file) "html"
+            open <- isOpen ident
             next <- getMetadataField ident "nextChapter"
             rest <- case next of
                 Nothing -> return []
                 Just n  -> collectForward (chapterFileToIdentifier n)
-            return $ (urlFile, t, ident) : rest
+            return $ (urlFile, t, ident, open) : rest
 
 --------------------------------------------------------------------------------
 -- | Build the full chapter series containing the given lecture
-buildSeries :: Identifier -> Compiler [(String, String, Identifier)]
+buildSeries :: Identifier -> Compiler [(String, String, Identifier, Bool)]
 buildSeries ident = do
     start <- findFirstChapter ident
     collectForward start
 
 --------------------------------------------------------------------------------
 -- | Render the chapter series as an HTML list with current chapter marked
-renderSeriesHtml :: Identifier -> [(String, String, Identifier)] -> String
+renderSeriesHtml :: Identifier -> [(String, String, Identifier, Bool)] -> String
 renderSeriesHtml curIdent chapters =
     "<ul class=\"toc-root\">" ++
     concatMap renderOne chapters ++
     "</ul>"
   where
-    renderOne (url, title, ident) =
+    renderOne (url, title, ident, open) =
         let currentClass = if ident == curIdent then " current" else ""
-        in "<li class=\"toc-item toc-series-item" ++ currentClass ++ "\">" ++
+            draftClass   = if open then "" else " draft"
+            label        = escapeHtmlChars title
+            link         = if open
+                             then "<a href=\"" ++ url ++ "\">" ++ label ++ "</a>"
+                             else "<span class=\"draft-title\">" ++ label ++
+                                  "</span> <span class=\"badge badge-draft\">準備中</span>"
+        in "<li class=\"toc-item toc-series-item" ++ currentClass ++ draftClass ++ "\">" ++
            "<div class=\"toc-row\">" ++
            "<span class=\"toc-toggle\">▾</span>" ++
-           "<a href=\"" ++ url ++ "\">" ++ escapeHtmlChars title ++ "</a>" ++
+           link ++
            "</div>" ++
            "<ul class=\"toc-sublist\"></ul>" ++
            "</li>"
