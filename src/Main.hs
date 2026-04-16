@@ -10,13 +10,13 @@ import           Control.Monad   ((>=>))
 import           Prelude
 import           Data.Functor.Identity (runIdentity)
 import           System.Exit     (ExitCode)
-import           System.FilePath (replaceExtension, takeDirectory, takeFileName)
+import           System.FilePath (replaceExtension, takeBaseName, takeDirectory, takeFileName)
 import qualified Data.Text as T
 import qualified System.Process  as Process
 import qualified Text.Pandoc     as Pandoc
 import qualified Data.Set as S
 import Control.Monad (foldM, mplus)
-import Data.List (elemIndex, sortBy)
+import Data.List (elemIndex, find, sortBy)
 import Data.Maybe (fromMaybe)
 import Data.Ord (Down(..))
 import           Data.Time.Clock (UTCTime)
@@ -82,7 +82,7 @@ main = do
     -- Static files
     match ("images/**.jpg" .||. "images/**.png" .||. "images/**.gif" .||.
             "images/**.mp4" .||.
-            "favicon.ico" .||. "files/**") $ do
+            "favicon.ico" .||. "files/**" .||. "slds_papers/**.pdf") $ do
         route   idRoute
         compile copyFileCompiler
 
@@ -112,7 +112,7 @@ main = do
         compile $ getResourceBody >>= relativizeUrls
 
     -- Build tags
-    tags <- buildTagsWithList ["posts/*","lectures/*"] (fromCapture "tags/*.html")
+    tags <- buildTagsWithList ["posts/*","lectures/**"] (fromCapture "tags/*.html")
 
 
     -- Render each and every post
@@ -195,8 +195,9 @@ main = do
 
     -- Render each and every lecture
     ------------------------------------------------------------------
-    match ("lectures/*.md" .||. "lectures/*.html" .||. "lectures/*.lhs") $ do
-        route   $ setExtension ".html"
+    match ("lectures/**.md" .||. "lectures/**.html" .||. "lectures/**.lhs") $ do
+        route   $ customRoute $ \ident ->
+            "lectures/" ++ replaceExtension (takeFileName (toFilePath ident)) "html"
         compile $ do
             underlying <- getUnderlying
             prev       <- getMetadataField underlying "previousChapter"
@@ -270,7 +271,7 @@ main = do
         route idRoute
         compile $ do
             posts <- recentByMtime =<< featured =<< filterOpen =<< loadAll "posts/*"
-            lectures <- fmap (take 5) (recentByMtime =<< featured =<< filterOpen =<< loadAll "lectures/*")
+            lectures <- fmap (take 5) (recentByMtime =<< featured =<< filterOpen =<< loadAll "lectures/**")
             let indexContext =
                     versionCtx <>
                     listField "posts" (postCtx tags) (return (posts)) <>
@@ -317,7 +318,7 @@ main = do
         route idRoute
         compile $ do
             posts <- filterOpen =<< loadAllSnapshots "posts/*" "content"
-            lectures <- filterOpen =<< loadAllSnapshots "lectures/*" "content"
+            lectures <- filterOpen =<< loadAllSnapshots "lectures/**" "content"
             let allPosts = posts ++ lectures
             let sitemapCtx = constField "root" "https://yakagika.github.io" <>
                              listField "entries" (postCtx tags) (return allPosts)
@@ -346,6 +347,7 @@ main = do
         , "research.markdown"
         , "links.markdown"
         , "lectures.markdown"
+        , "slds_papers.markdown"
         ]
 
     writeXeTex :: Item Pandoc.Pandoc -> Compiler (Item String)
@@ -488,15 +490,19 @@ filterM p = mapM (\x -> (,) x <$> p x) >=> pure . map fst . filter snd
 getChapterTitle :: Maybe String -> Compiler String
 getChapterTitle Nothing     = return ""
 getChapterTitle (Just file) = do
-    titleMaybe <- getMetadataField (chapterFileToIdentifier file) "title"
-    return $ fromMaybe "" titleMaybe
+    mIdent <- chapterFileToIdentifier file
+    case mIdent of
+        Nothing    -> return ""
+        Just ident -> fromMaybe "" <$> getMetadataField ident "title"
 
 --------------------------------------------------------------------------------
--- | Convert a chapter filename (e.g. "iap1.html") to a lecture Identifier
-chapterFileToIdentifier :: String -> Identifier
-chapterFileToIdentifier file =
-    let baseName = takeWhile (/= '.') file
-    in fromFilePath ("lectures/" ++ baseName ++ ".md")
+-- | Resolve a chapter filename (e.g. "iap1.html") to the lecture source
+-- Identifier, searching all subfolders under lectures/ by basename.
+chapterFileToIdentifier :: String -> Compiler (Maybe Identifier)
+chapterFileToIdentifier file = do
+    let baseName = takeBaseName file
+    matches <- getMatches "lectures/**.md"
+    return $ find (\i -> takeBaseName (toFilePath i) == baseName) matches
 
 --------------------------------------------------------------------------------
 -- | Walk backward via previousChapter to find the first chapter of a series
@@ -507,11 +513,14 @@ findFirstChapter ident = do
     case prev of
         Nothing -> return ident
         Just p  -> do
-            let prevIdent = chapterFileToIdentifier p
-            prevTitle <- getMetadataField prevIdent "title"
-            case prevTitle of
-                Nothing -> return ident  -- broken link
-                Just _  -> findFirstChapter prevIdent
+            mPrevIdent <- chapterFileToIdentifier p
+            case mPrevIdent of
+                Nothing        -> return ident
+                Just prevIdent -> do
+                    prevTitle <- getMetadataField prevIdent "title"
+                    case prevTitle of
+                        Nothing -> return ident  -- broken link
+                        Just _  -> findFirstChapter prevIdent
 
 --------------------------------------------------------------------------------
 -- | Walk forward via nextChapter collecting (filename, title, identifier)
@@ -528,7 +537,11 @@ collectForward ident = do
             next <- getMetadataField ident "nextChapter"
             rest <- case next of
                 Nothing -> return []
-                Just n  -> collectForward (chapterFileToIdentifier n)
+                Just n  -> do
+                    mNextIdent <- chapterFileToIdentifier n
+                    case mNextIdent of
+                        Nothing        -> return []
+                        Just nextIdent -> collectForward nextIdent
             return $ (urlFile, t, ident, open) : rest
 
 --------------------------------------------------------------------------------
