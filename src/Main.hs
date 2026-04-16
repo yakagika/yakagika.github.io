@@ -82,7 +82,8 @@ main = do
     -- Static files
     match ("images/**.jpg" .||. "images/**.png" .||. "images/**.gif" .||.
             "images/**.mp4" .||.
-            "favicon.ico" .||. "files/**" .||. "slds_papers/**.pdf") $ do
+            "favicon.ico" .||. "files/**" .||. "slds_papers/**.pdf" .||.
+            "slds_data/**" .||. "slds_code/**") $ do
         route   idRoute
         compile copyFileCompiler
 
