@@ -487,7 +487,7 @@ filterM :: Monad m => (a -> m Bool) -> [a] -> m [a]
 filterM p = mapM (\x -> (,) x <$> p x) >=> pure . map fst . filter snd
 
 --------------------------------------------------------------------------------
--- | Look up the title of a chapter by its filename (e.g. "iap1.html" -> "Ch1 ...")
+-- | Look up the title of a chapter by its filename (e.g. "fp1.html" -> "Ch1 ...")
 getChapterTitle :: Maybe String -> Compiler String
 getChapterTitle Nothing     = return ""
 getChapterTitle (Just file) = do
@@ -497,7 +497,7 @@ getChapterTitle (Just file) = do
         Just ident -> fromMaybe "" <$> getMetadataField ident "title"
 
 --------------------------------------------------------------------------------
--- | Resolve a chapter filename (e.g. "iap1.html") to the lecture source
+-- | Resolve a chapter filename (e.g. "fp1.html") to the lecture source
 -- Identifier, searching all subfolders under lectures/ by basename.
 chapterFileToIdentifier :: String -> Compiler (Maybe Identifier)
 chapterFileToIdentifier file = do

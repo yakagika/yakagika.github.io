@@ -10,8 +10,8 @@ featured: true
 katex: true
 date: 2025-03-24
 tableOfContents: true
-previousChapter: iap2.html
-nextChapter: iap4.html
+previousChapter: fp2.html
+nextChapter: fp4.html
 ---
 
 # Haskellを使ってみよう

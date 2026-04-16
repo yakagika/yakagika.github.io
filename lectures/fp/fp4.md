@@ -9,8 +9,8 @@ featured: true
 katex: true
 date: 2024-10-18
 tableOfContents: true
-previousChapter: iap3.html
-nextChapter: iap5.html
+previousChapter: fp3.html
+nextChapter: fp5.html
 ---
 
 # 関数
