@@ -21,7 +21,7 @@ nextChapter: slds15.html
 
 **ニューラルネットワーク（Neural Network）**は, 人間の脳の神経回路を模倣した数学モデルです. 脳は1000億個のニューロン(神経細胞)が軸索を通じて結合したネットワークであり,特定のニューロンが発した電気信号が一定の閾値を超えるとつながっているニューロンも電気信号を発します. このような仕組みを数学的に模倣したものに**パーセプトロン**があります.
 
-![](/images/ch14-NN.png)
+![](/images/slds/ch14/nn.png)
 
 上図のパーセプトロンでは,2つのニューロンから発せられた信号($x_1,x_2 = 0,1$)がそれぞれ特定の重み付け($w_1,w_2$)をされて,yに伝達されている様子が示されています. ここで重みは,それぞれのニューロンからの信号の重要性を表していると考えましょう. 例えば,$y$を以下のように定めると,$y$は重み付けされた$x_1,x_2$が特定の閾値$\theta$を超えると$1$,超えなかった場合は$0$を発するという意味になります.
 
@@ -93,7 +93,7 @@ $$
 
 基本的なニューラルネットワークではネットワークを入力層,隠れ層,出力層の3層に分類します.
 
-![](/images/ch14-NN1.png)
+![](/images/slds/ch14/nn1.png)
 
 ここで中間層においてn個の入力ニューロン$(x_1,x_2,...,x_n)$からm個の出力ニューロン$(y_1,y_2,...,y_m)$に入力がある場合,各出力ニューロンの発火条件は以下のように行列形式で表現されます.
 
@@ -189,7 +189,7 @@ $$
 
 ReLUは計算が効率的で, 学習を早める効果があるため, 現在最も広く利用されている活性化関数です.
 
-![](/images/ch14-NN2.png)
+![](/images/slds/ch14/nn2.png)
 
 
 出力層では, 解きたい問題の性質に応じて適切な活性化関数が選択されます.
@@ -220,7 +220,7 @@ Softmax関数は, 手書き文字認識や画像分類タスクのように, 複
 
 これらのレイヤによって一般的なニューラルネットワークは以下のようなレイヤとして表せます.
 
-![](/images/ch14-NN-normal.png)
+![](/images/slds/ch14/nn-normal.png)
 
 ## ニューラルネットワークの学習
 
@@ -289,7 +289,7 @@ $$w_{new} = 0 - 0.1 \cdot (-4) = 0.4 $$
 
 この処理を繰り返していくと重みは理論的な最小値の2に近づいていきます.
 
-![](/images/ch14-WeightUpdates.png)
+![](/images/slds/ch14/weightupdates.png)
 
 :::
 
@@ -318,7 +318,7 @@ $$w_{new} = 0 - 0.1 \cdot (-4) = 0.4 $$
 
 基本的なニューラルネットワークは,入力層,AffineレイヤとReLUなどの活性化関数による隠れ層,Softmax関数などによる出力層から構成されていました.
 
-![](/images/ch14-NN-normal.png)
+![](/images/slds/ch14/nn-normal.png)
 
 全結合層（Affine Layer）は, 入力データ内の全てのニューロンが次の層の全てのニューロンと結合する構造を持っています. これは言い換えれば,全ての入力を1次元ベクトルに変換することを意味しています.しかし,例えば画像データは,縦・横・チャンネル方向(RGBなら3チャンネル)の三次元の構造を持ちます.
 例えば, 28ピクセル×28ピクセルのグレースケール画像(1チャンネル)の場合は, $28 \times 28 \times 1$という構造になります.
@@ -329,7 +329,7 @@ $$w_{new} = 0 - 0.1 \cdot (-4) = 0.4 $$
 そこでCNNでは**畳み込み層(Convolution Layer)**と**プーリング層(Pooling Layer)**を加えることでデータの空間的構造を適切に取り込みます.
 
 
-![](/images/ch14-CNN.png)
+![](/images/slds/ch14/cnn.png)
 
 ::: note
 
@@ -435,7 +435,7 @@ F(1, 1) =
 = 1 + 0 - 3 + 0 + 0 - 2 + 1 + 0 - 1 = -4
 $$
 
-![](/images/ch14-kernel1.png)
+![](/images/slds/ch14/kernel1.png)
 
     ステップ2: フィルタを右に1つ移動
 
@@ -468,7 +468,7 @@ F(1, 2) =
 = -2
 $$
 
-![](/images/ch14-kernel2.png)
+![](/images/slds/ch14/kernel2.png)
 
 ステップ3: フィルタを下に移動
 
@@ -501,7 +501,7 @@ F(2, 1) =
 = 0
 $$
 
-![](/images/ch14-kernel3.png)
+![](/images/slds/ch14/kernel3.png)
 
 ステップ4: フィルタを右下に移動
 
@@ -534,7 +534,7 @@ F(2, 1) =
 = -4
 $$
 
-![](/images/ch14-kernel4.png)
+![](/images/slds/ch14/kernel4.png)
 
 特徴マップの結果
 
@@ -548,18 +548,18 @@ F =
 \end{bmatrix}
 $$
 
-![](/images/ch14-kernel5.png)
+![](/images/slds/ch14/kernel5.png)
 
 実際にこの事例の画像にカーネルを適用すると以下のようになりますが,単純すぎて良くわからないので,我が家の犬の画像をグレースケールにしたものをにこのカーネルを適用したものが次の画像になります. 物体の垂直方向のエッジ(輪郭)のみが強調されていることが分かります.
 
-![](/images/ch14-After-Applying-Kernel.png)
+![](/images/slds/ch14/after-applying-kernel.png)
 
 
-![](/images/ch14-Vertical-Edge-Detection.png)
+![](/images/slds/ch14/vertical-edge-detection.png)
 
 ここでは,取り上げませんが,他の代表的なカーネルとして以下のようなものがあります.
 
-![](/images/ch14-Other-Kernels.png)
+![](/images/slds/ch14/other-kernels.png)
 
 
 水平エッジ検出カーネル (Horizontal Edge Detection Kernel)
@@ -764,7 +764,7 @@ $$
 `GELU`は, 入力が小さい(特に0より負側)場合には出力を小さく抑え, 入力が大きくなるにつれて徐々に出力を増やしていく, なめらかな活性化関数です. `ReLU`と比較すると, 入力が0付近で緩やかに変化するため, 勾配が急に0になることがなく, 学習を安定させる効果が期待できます. つまり, 「入力値がある程度以上大きい場合は強く反応し, 入力値が小さい場合はあまり反応しない」ことをなめらかに表現する非線形関数です.
 
 
-![GELU](/images/ch14-GELU.png)
+![GELU](/images/slds/ch14/gelu.png)
 
 
 PythonのCNNのライブラリはいくつか存在しますが,ConvNeXtは,Metaによって開発された`PyTorch`上で実装されています.
@@ -1383,20 +1383,20 @@ information and possible workarounds, please see
 
 出力されている`convnext_loss.png`と`convnext_acc.png`は`epoch`ごとの`loss`と`acc`の推移を表しています. `acc`は,モデルが予測したラベルの実際のラベルに対する正答率であり,`1`であれば予測が完全にラベルと一致していることを示しています. 今回は10代から60代までの6ラベルなので,完全にランダムにラベルを予測しても`0.16`程度はラベルと予測が一致します.
 
-![lossの推移](/images/convnext_loss_epoch20.png)
+![lossの推移](/images/slds/ch14/convnext-loss-epoch20.png)
 
-![accの推移](/images/convnext_acc_epoch20.png)
+![accの推移](/images/slds/ch14/convnext-acc-epoch20.png)
 
 グラフを確認してみると`epoch`が`5`をピークとして`loss`も`acc`も低下していることがわかります. そこで, もう一度,`num_epochs`を`5`に変更して,学習してみましょう. `random_seed`が固定されているので,基本的には同じ値が出力されるはずです.
 
-![accの推移(epoch 5)](/images/convnext_acc_epoch5.png)
+![accの推移(epoch 5)](/images/slds/ch14/convnext-acc-epoch5.png)
 
 最終的に今回は, テストデータでの正答率が,`0.4`程度になりました. それほど高い値ではありませんが,ランダムに選択するよりはかなり良い値になったので,今回はこのくらいで良しとします. 実際の研究などでは,データ数を増やす,ハイパーパラメータやアルゴリズムを変更するなどして,もう少し良い値を目指したほうが良いでしょう.
 
 出力されている`pred_acctual_heatmap.png`は, テストデータにおける実際のラベルに対する予測値を予測値のラベル毎にカウントしたものを相対度数として表現したヒートマップです.すべて正確に予測されていた場合,度数は対角線上に集中します.
 このように可視化することで,モデルが何をどのように予測しているのかを確認できます.
 
-![accの推移(epoch 5)](/images/pred_acctual_heatmap.png)
+![accの推移(epoch 5)](/images/slds/ch14/pred-acctual-heatmap.png)
 
 ヒートマップを確認すると概ね対角線上に度数が集中していることがわかります. 特に10,20代(y軸の0,1)を50,60代と予測した数は0であり,年齢が離れるほど正確に識別されていることがわかります.
 
@@ -1404,9 +1404,9 @@ information and possible workarounds, please see
 
 続いて,`PCA`と`t-sne`の結果を確認してみましょう.
 
-![PCA](/images/convnext_pca.png)
+![PCA](/images/slds/ch14/convnext-pca.png)
 
-![t-sne](/images/convnext_tsne.png)
+![t-sne](/images/slds/ch14/convnext-tsne.png)
 
 いずれも左から右に行くにつれて,年齢が高くなっており,ある程度識別できていることがわかります.一方で,30代の緑色が広い範囲に分布しているために識別が困難であること,50代と60代が左右とは別の特徴量で識別されていることなどがわかります.
 
@@ -1597,19 +1597,19 @@ print('特徴マップ描画完了')
 
 生成した画像のうち,10代(10s)と60代(60s)の特徴マップを確認してみましょう.
 
-![10s 0層](/images/ch14_10s_0_6.png)
-![60s 0層](/images/ch14_60s_0_8.png)
+![10s 0層](/images/slds/ch14/10s-0-6.png)
+![60s 0層](/images/slds/ch14/60s-0-8.png)
 
 初期段階の特徴マップでは,抽象化が進んでおらず入力画像に近い計上や明暗が捉えられています.この段階ではまだ「顔」や「目」「鼻」などの明確な概念は捉えられておらず, 画素レベルでの色・輝度・エッジなど, 低レベルな特徴(輪郭や縞模様, 明るい部分や暗い部分など)を抽出している段階に見えます.
 
 
-![10s 5層](/images/ch14_10s_5_6.png)
-![60s 5層](/images/ch14_60s_5_8.png)
+![10s 5層](/images/slds/ch14/10s-5-6.png)
+![60s 5層](/images/slds/ch14/60s-5-8.png)
 
 第5層では,人物の顔そのものが明示的に分かるわけではありませんが,明暗や模様の分布がより粗い粒度(低い解像度)で表現され,モザイク状に見える特徴マップが示唆するように,特定の領域に強く反応するフィルタも存在しています.
 
-![10s 最終層](/images/ch14_10s_last_6.png)
-![60s 5層](/images/ch14_60s_last_8.png)
+![10s 最終層](/images/slds/ch14/10s-last-6.png)
+![60s 5層](/images/slds/ch14/60s-last-8.png)
 
 最終層になると,抽象化が進み人間の目が見ても元の画像との直接的な対応は難しくなりますが, ネットワークにとって意味のある特徴(特定の配置や模様, 対象物の概形など)がチャネルごとに表現されていると考えられます. このレベルでは,すでに「顔」のような意味的な概念へのマッピングが進み,分類タスクで役立つ特徴が凝縮されている段階です.
 
@@ -1789,9 +1789,9 @@ print("Grad-CAM, Guided Backprop, Guided Grad-CAM 完了")
 
 10代の写真と,60代の写真を適当に選んで,手法を適用した画像が以下になります.左から元画像,`Grad-CAM`,`Guided Backpropagation`,`Guided Grad CAM`の順に結合されています.
 
-![](/images/ch14-gradcam_10s.png)
+![](/images/slds/ch14/gradcam-10s.png)
 
-![](/images/ch14-gradcam_60s.png)
+![](/images/slds/ch14/gradcam-60s.png)
 
 ::: warn
 `Guided Backpropagation`が上手くできていませんが,これは学習が上手くいっていない(6割程度の正答率であること)によるか,コードのミスによるか判断できていません.後ほど確認します.

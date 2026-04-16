@@ -21,7 +21,7 @@ nextChapter: slds10.html
 
 例えば,以下のヒストグラム([データ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/histogram_A_B_data.csv))を見てみましょう.
 
-![ヒストグラムの比較](/images/histogram_compare.png)
+![ヒストグラムの比較](/images/slds/ch9/histogram-compare.png)
 
 ヒストグラムAと比較して,Bはデータの**中心が右**にあり,データの**散らばりが大きい**ように見えます. しかし,それらが具体的にどの程度右にあり,どの程度散らばりが大きいのでしょうか.
 このように,グラフによる比較では,抽象的な印象しか語ることができないため,データの中心や,散らばりを数値で表すことが必要です.
@@ -234,7 +234,7 @@ print(df['x'].median()) #8.0
 四分位範囲 = 第一四分位数から第三四分位数の範囲
 
 
-![四分位数](/images/quartiles.png)
+![四分位数](/images/slds/ch9/quartiles.png)
 
 
 `pandas`で四分位数を用いるには, `.quantile(q=%点の数値,interpolation='nearest')`で求めることができます.
@@ -352,7 +352,7 @@ Name: count, dtype: int64
 
 一方で,分布が歪んでいる場合には,それぞれの統計量の値が変わります. 中心を表す統計量として,何も考えずに算術平均を利用する人がいますが,分布が歪んでいる場合には目的に応じて最頻値や中央値の方が適当である場合があります.
 
-![分布の歪みと中心](/images/mean_median_mode.png)
+![分布の歪みと中心](/images/slds/ch9/mean-median-mode.png)
 
 例えば,以下の図は,日本人の平均所得を表したヒストグラムです.
 
@@ -384,7 +384,7 @@ Name: count, dtype: int64
 
 分布の中心がどこかという点の他に,データがどのように広がっているかもデータの特徴を記述するうえでは重要です.
 
-![ヒストグラムの比較](/images/histogram_compare.png)
+![ヒストグラムの比較](/images/slds/ch9/histogram-compare.png)
 
 データの広がり具合を**散布度**といいますが,散布度を表す統計量として代表的なものに**分散**と**標準偏差**があります.
 
@@ -392,7 +392,7 @@ Name: count, dtype: int64
 データがどの程度散らばっているかを考える際の基準の一つが算術平均 $\bar{x}$ です.
 各データ $x_i$ が,データの算術平均からどの程度離れているのかを考えてみましょう.
 
-![偏差](/images/deviation.png)
+![偏差](/images/slds/ch9/deviation.png)
 
 ::: note
 - **偏差(deviation)**
@@ -588,7 +588,7 @@ plt.xlabel(x_column)
 plt.show()
 ~~~
 
-![散布図](/images/scatter.png)
+![散布図](/images/slds/ch9/scatter.png)
 
 Google Trendの `AI`と`Python`の検索数から散布図を作成すると, AIの検索数が増えるにつれて`Python`の検索数が増えていることが分かります.
 
@@ -609,7 +609,7 @@ Google Trendの `AI`と`Python`の検索数から散布図を作成すると, AI
 
 このような相関関係があるかないかは,散布図を見ただけである程度判断が可能ですが, 相関が**ある/ない**,**強い/弱い**というのは抽象的な表現なので, 厳密に判断する場合にはそれらを数値として表す必要があります.
 
-![相関関係](/images/corre1.png)
+![相関関係](/images/slds/ch9/corre1.png)
 
 
 相関関係を数値化したものを**相関係数(correlation coefficient)**といい,データの尺度に応じて,以下のような種類が存在します.
@@ -642,9 +642,9 @@ $$
 $$
 を $x$ と $y$ の共分散といい,相関係数は $\frac{xとyの共分散}{xの標準偏差 \times yの標準偏差}$の形で表されます.
 
-![ピアソンの積率相関係数のイメージ](/images/corre2.png)
-![ピアソンの積率相関係数のイメージ](/images/corre3.png)
-![ピアソンの積率相関係数のイメージ](/images/corre4.png)
+![ピアソンの積率相関係数のイメージ](/images/slds/ch9/corre2.png)
+![ピアソンの積率相関係数のイメージ](/images/slds/ch9/corre3.png)
+![ピアソンの積率相関係数のイメージ](/images/slds/ch9/corre4.png)
 
 
 $x_i, y_i$ を標準化し $z_i = \frac{x_i - \bar{x}}{s_x}, w_i = \frac{y_i - \bar{y}}{s_y}$ とすると,
@@ -768,7 +768,7 @@ print(r) #0.8328129378961621
 
 スピアマンの順位相関係数は, 順序尺度データを順位に変換して,順位の間の相関係数を求めたものになります.
 
-![ピアソンの積率相関係数のイメージ](/images/corre5.png)
+![ピアソンの積率相関係数のイメージ](/images/slds/ch9/corre5.png)
 
 データを小さい順に並べ替えた順位 $x_i, ..., x_n$ がある時,
 
@@ -945,16 +945,16 @@ python coeff.py
 e-statで県別の身長,体重,睡眠時間等のデータを集めます.
 地域別のデータは｢地域｣から選択できます.
 
-![e-stat 地域](/images/coeff_multi1.png)
+![e-stat 地域](/images/slds/ch9/coeff-multi1.png)
 
 ｢都道府県データ｣を選択し,｢データ表示｣をクリックします.
 
-![e-stat 地域](/images/coeff_multi2.png)
+![e-stat 地域](/images/slds/ch9/coeff-multi2.png)
 
 データを集める,地域,表示項目,表示方法の順に選択します.
 今回はすべての県を利用するので,｢全て選択｣をクリックしたあと｢確定｣をクリックします.
 
-![e-stat 地域](/images/coeff_multi3.png)
+![e-stat 地域](/images/slds/ch9/coeff-multi3.png)
 
 次に項目をきめます.
 分野をクリックして｢I健康･医療｣を選ぶと,項目候補に健康・医療に関わる項目が表示されます.
@@ -965,7 +965,7 @@ e-statで県別の身長,体重,睡眠時間等のデータを集めます.
 
 を順番に選んで,｢項目を選択｣をクリックします.
 
-![e-stat 地域](/images/coeff_multi4.png)
+![e-stat 地域](/images/slds/ch9/coeff-multi4.png)
 
 同様に
 ｢L 家計｣から
@@ -979,7 +979,7 @@ e-statで県別の身長,体重,睡眠時間等のデータを集めます.
 
 を順番に選んで,｢項目を選択｣をクリックします.
 
-![e-stat 地域](/images/coeff_multi5.png)
+![e-stat 地域](/images/slds/ch9/coeff-multi5.png)
 
 最後にどのデータを表示するかレイアウトを決めます.
 
@@ -987,12 +987,12 @@ e-statで県別の身長,体重,睡眠時間等のデータを集めます.
     - 表示年度を2000から2010まで
     - 設定して表示を更新
 
-![e-stat 地域](/images/coeff_multi6.png)
+![e-stat 地域](/images/slds/ch9/coeff-multi6.png)
 
 データをダウンロードします.
 
 
-![e-stat 地域](/images/coeff_multi7.png)
+![e-stat 地域](/images/slds/ch9/coeff-multi7.png)
 
 ダウンロードしたデータを読み込めるcsvに編集します.
 
@@ -1009,7 +1009,7 @@ e-statで県別の身長,体重,睡眠時間等のデータを集めます.
     - ファイル名: coeff_multi.csv
     - 作業ディレクトリのDataフォルダに保存
 
-![e-stat 地域](/images/coeff_multi8.png)
+![e-stat 地域](/images/slds/ch9/coeff-multi8.png)
 
 :::
 </details>
@@ -1050,10 +1050,10 @@ sns.heatmap(X.corr()
 plt.show()
 ~~~
 
-![散布図のペアプロット](/images/pair_plot.png)
+![散布図のペアプロット](/images/slds/ch9/pair-plot.png)
 各項目の組み合わせごとに,散布図が作成されています. 自交点にはヒストグラムが作成されます.
 
-![相関係数のヒートマップ](/images/coeff_multi9.png)
+![相関係数のヒートマップ](/images/slds/ch9/coeff-multi9.png)
 
 食費と体重,体重と身長などに正の相関があることが分かります.
 このように複数の観測項目から関係があるデータを探したい場合には,ペアプロットや,相関係数のヒートマップを作成することで,関係性がわかりやすくなります.
@@ -1065,7 +1065,7 @@ plt.show()
 
 名義尺度を含めた質的変数の関係性を可視化するには,同時度数分布表が利用できました. 数値化においても,同時度数分布表を用いることができます.
 
-![同時度数分布表](/images/cross_table2.png)
+![同時度数分布表](/images/slds/ch9/cross-table2.png)
 
 
 質的変数間の関連度合いは,同時度数分布表の数値を利用した **ピアソンの$\Chi^2$統計量(かいじじょうとうけいりょう)**で表すことができます. 可視化の節では, 同時度数分布表から列相対度数を求めましたが,ここでは相対度数ではなく,度数なので注意してください.
@@ -1122,7 +1122,7 @@ $\Chi_o^2$は `scipy.stats`の`chi2_contingency(度数分布表,correction=False
 199       4     C
 ~~~
 
-![ヒートマップ](/images/heatmap.png)
+![ヒートマップ](/images/slds/ch9/heatmap.png)
 
 
 ~~~ py
@@ -1208,7 +1208,7 @@ print(v) #0.2381487030743849
 
 また,反対に$ y = (x-8)^2 $ という関係においては, yの値は完全にxによって決まるため,xとyの間に因果関係は認められますが,相関係数は0となります.
 
-![因果があっても相関がない例](/images/y_x_8.png)
+![因果があっても相関がない例](/images/slds/ch9/y-x-8.png)
 
 ### 発展:偏相関係数
 
@@ -1259,9 +1259,9 @@ print('y-z:',ryz) #y-z: -0.4740072261555343
 print('ryzx:',ryzx)
 ~~~
 
-![partial_coeff_scatter_matrix.png](/images/partial_coeff_scatter_matrix.png)
+![partial_coeff_scatter_matrix.png](/images/slds/ch9/partial-coeff-scatter-matrix.png)
 
-![partial_coeff_heatmap.png](/images/partial_coeff_heatmap.png)
+![partial_coeff_heatmap.png](/images/slds/ch9/partial-coeff-heatmap.png)
 
 相関係数を見ると,
 
@@ -1290,7 +1290,7 @@ plt.savefig('partial_coeff1.png')
 plt.close()
 ~~~
 
-![$r_{yz}$に対するxの影響](/images/partial_coeff1.png)
+![$r_{yz}$に対するxの影響](/images/slds/ch9/partial-coeff1.png)
 
 左上に行くほど,xの値を表す色が明るくなっており, xの影響で$r_{yz}$が負の相関となっていることが分かります.
 
@@ -1336,7 +1336,7 @@ plt.savefig('partial_coeff2.png')
 plt.close()
 ~~~
 
-![partial_coeff2.png](/images/partial_coeff2.png)
+![partial_coeff2.png](/images/slds/ch9/partial-coeff2.png)
 
 もとのyとzの散布図における,xの広がりの影響が打ち消されて,ほとんど相関がなくなっていることが分かります.
 

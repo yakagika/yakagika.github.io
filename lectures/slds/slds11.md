@@ -122,7 +122,7 @@ $$
 
 なので,モデル全体で,$\epsilon_i$を最小化することを考えてみます.
 
-![least squares method](/images/least-squares-method1.png)
+![least squares method](/images/slds/ch11/least-squares-method1.png)
 
 誤差の正負を打ち消すために,モデル全体の誤差項の二乗の和
 
@@ -785,11 +785,11 @@ Prob (F-statistic):             0.0159
 
 どんな散布図になっても回帰式自体は作成可能ですが,以下の左右どちらの予測値の方が信頼できそうでしょうか.
 
-![R2](/images/regression14.png)
+![R2](/images/slds/ch11/regression14.png)
 
 直感的には左の方が**回帰直線が実際の値にフィットしており**信頼できそうな気がしますね. $R^2$ はその感覚を数値化したものになります.
 
-![R2](/images/regression15.png)
+![R2](/images/slds/ch11/regression15.png)
 
 $R^2$ は,式から作られた直線と,実際のデータの点の距離の和を変更したものです.
 $R^2$ が1に近いほど, 式が点によく当てはまっていることを表します.

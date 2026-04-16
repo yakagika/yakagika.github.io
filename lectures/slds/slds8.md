@@ -129,7 +129,7 @@ import seaborn as sns
 
 ポップアップウィンドウの保存ボタンを押すことで画像に名前をつけて保存することが可能です.
 
-![画像の表示](/images/graph_size_setting.png)
+![画像の表示](/images/slds/ch8/graph-size-setting.png)
 
 
 :::
@@ -156,7 +156,7 @@ plt.legend()
 plt.show()
 ~~~
 
-![グラフの要素](/images/python_graph_elem.png)
+![グラフの要素](/images/slds/ch8/python-graph-elem.png)
 
 
 ::: warn
@@ -265,7 +265,7 @@ plt.title("kind")
 plt.show()
 ~~~
 
-![棒グラフの表示](/images/bar_graph.png)
+![棒グラフの表示](/images/slds/ch8/bar-graph.png)
 
 表示されたグラフは, 保存ボタンで画像として保存できます.
 
@@ -279,7 +279,7 @@ plt.show()
 matplotlibではグラフの各部に以下の色を指定できます.
 これ以外の指定の仕方もあります.色の変え方は,それぞれのグラフで異なります.
 
-![グラフの色](/images/graph_color.png)
+![グラフの色](/images/slds/ch8/graph-color.png)
 
 棒グラフは`plt.bar(color=棒毎の色のリスト)`の形で棒ごとに色を指定することができます.
 
@@ -301,7 +301,7 @@ plt.title("kind")
 plt.show()
 ~~~
 
-![棒グラフの色の変更](/images/bar_graph_color.png)
+![棒グラフの色の変更](/images/slds/ch8/bar-graph-color.png)
 
 ### スタイルの変更
 
@@ -337,7 +337,7 @@ plt.title("kind")
 plt.show()
 ~~~
 
-![スタイルの適用](/images/bar_graph_style.png)
+![スタイルの適用](/images/slds/ch8/bar-graph-style.png)
 
 ### 要素の追加
 
@@ -369,7 +369,7 @@ plt.title("kind")
 plt.show()
 ~~~
 
-![凡例の追加](/images/bar_graph_style2.png)
+![凡例の追加](/images/slds/ch8/bar-graph-style2.png)
 
 デザインのすべてのパターンをここで扱うことは出来ないので,
 やりたいことに応じて,
@@ -412,7 +412,7 @@ plt.show()
 グラフに数字を表示するには,`autopct=`に`フォーマット文字列`で表示内容を指定します.
 上記の例では`'%1.1f%%'`と書くことで,小数点1桁まで数値を表示しています.
 
-![円グラフ](/images/pie_graph1.png)
+![円グラフ](/images/slds/ch8/pie-graph1.png)
 
 ::: note
 
@@ -477,7 +477,7 @@ plt.show()
 
 ~~~
 
-![10本の折れ線グラフ](/images/temperature_10location.png)
+![10本の折れ線グラフ](/images/slds/ch8/temperature-10location.png)
 
 10本程度であれば,まだ書けなくもありませんが,それでも手間がかかります.こういった繰り返しの作業は`for文`を利用しましょう.
 
@@ -509,7 +509,7 @@ for x in df.columns[1:]:
     plt.close()
 ~~~
 
-![保存された10個のグラフ](/images/temperature_10location2.png)
+![保存された10個のグラフ](/images/slds/ch8/temperature-10location2.png)
 
 しかし,レポートなどに10枚の画像を貼り付けるのは手間がかかりますし,余白など無駄も多いです.
 
@@ -522,7 +522,7 @@ for x in df.columns[1:]:
 各領域は `axes`などと呼ばれ,画像全体を`figure`などと呼びます.
 利用するためには,まず `fig, axes = plt.subplot()`の形で宣言します. 引数として,行数は`nrows=`,列数は`ncols=`にそれぞれ`int`で指定します.
 
-![FigureとAxes](/images/figure_axes.png)
+![FigureとAxes](/images/slds/ch8/figure-axes.png)
 
 ~~~ py
 
@@ -549,7 +549,7 @@ plt.show()
 
 以下のようなグラフが作成されます. しかし, 少し見にくいですね.
 
-![subplots](/images/subplot1.png)
+![subplots](/images/slds/ch8/subplot1.png)
 
 `.subplots(sharex=True)`とすると,x軸を共有することができます.今回のグラフはx軸がすべて同じなので,共有してみましょう.
 また,それぞれのグラフにタイトルを付けてみます.
@@ -576,7 +576,7 @@ for i in range(5):
 plt.show()
 ~~~
 
-![subplots](/images/subplot2.png)
+![subplots](/images/slds/ch8/subplot2.png)
 
 グラフ全体の要素は`fig.`の形で指定します.
 タイトルを付ける場合は`fig.suptitle('title')`となります.
@@ -598,7 +598,7 @@ fig.suptitle('subplots title')
 plt.show()
 ~~~
 
-![subplots](/images/subplot3.png)
+![subplots](/images/slds/ch8/subplot3.png)
 
 ::: note
 
@@ -606,7 +606,7 @@ plt.show()
 
 `for文`を二重ループで記述するのは大変なので,しばしば`axes.flatten()`を利用して,連番に変換すると便利です.
 
-![flatten](/images/figure_axes_flatten.png)
+![flatten](/images/slds/ch8/figure-axes-flatten.png)
 
 ~~~ py
 fig, axes = plt.subplots(nrows= 5 #行数の指定
@@ -779,7 +779,7 @@ dist.to_csv('frequency_table.csv',)
 
 以下の度数分布表は,ある情報クラスの成績(0-100点)を10点毎に区分したものです. それぞれの点数に当てはまる人数を数えて度数とします.
 
-![度数分布表の例](/images/histogram1.png)
+![度数分布表の例](/images/slds/ch8/histogram1.png)
 
 
 量的データの階級数や階級幅は,100万円ごとなどある程度人間の判断によって作成しても構いませんが,数理的に決定する方法もあります.
@@ -794,7 +794,7 @@ $$ k = 1 + log_2 n = \frac{log_{10} n}{log_{10} 2}$$
 
 計算結果はおおよそ以下のようになります.
 
-![スタージェス数](/images/sturges_number.png)
+![スタージェス数](/images/slds/ch8/sturges-number.png)
 :::
 
 Pythonではスタージェス数は対数計算をするためのモジュール`math`を利用して以下のように求めることができます.
@@ -910,7 +910,7 @@ dist.to_csv('frequency_table_qualitative.csv'
 
 峰からの左右のデータのばらつきは集団の個体差を表しています. 異なる,質を持つ集団が混じっている場合は峰が複数になることが多いです.
 
-![単峰で左右対称なヒストグラム](/images/histogram_unimodal.png)
+![単峰で左右対称なヒストグラム](/images/slds/ch8/histogram-unimodal.png)
 
 - 多峰型(bimodal)なヒストグラム
 ---
@@ -926,7 +926,7 @@ dist.to_csv('frequency_table_qualitative.csv'
 
 ヒストグラムを作成し,多峰性が現れたらデータを集団別・要因別に分割して分析するのが良いとされています.データを特定の属性で分割することを**層別**といいます.
 
-![多峰なヒスグラム](/images/histogram_bimodal.png)
+![多峰なヒスグラム](/images/slds/ch8/histogram-bimodal.png)
 
 - 左右非対称なヒストグラム
 ---
@@ -943,7 +943,7 @@ dist.to_csv('frequency_table_qualitative.csv'
 
 といいます.
 
-![左右に歪んだヒストグラム](/images/histogram_right_left.png)
+![左右に歪んだヒストグラム](/images/slds/ch8/histogram-right-left.png)
 
 左右に歪んだ分布では,後に扱う**中心を表す代表値**(平均値や中央値)が適切に集団を代表しない場合があるので,代表値の使い分けが必要になります.
 
@@ -966,7 +966,7 @@ dist.to_csv('frequency_table_qualitative.csv'
 
 また,代表値の計算においては歪みが生じる可能性があるので,外れ値を除外する必要があります.
 
-![外れ値のあるヒストグラム](/images/histogram_outlier.png)
+![外れ値のあるヒストグラム](/images/slds/ch8/histogram-outlier.png)
 
 :::
 
@@ -1019,7 +1019,7 @@ plt.show()
 
 以下のように,単峰で右に歪んだグラフが作成されるはずです.
 
-![質的データのヒストグラム](/images/histogram_qualitative.png)
+![質的データのヒストグラム](/images/slds/ch8/histogram-qualitative.png)
 
 同様に[量的データ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/histogram_quantitative.csv)についても作成してみます.
 
@@ -1101,7 +1101,7 @@ plt.show()
 
 以下のように単峰で左に歪んだヒストグラムが作成されます.
 
-![量的データのヒストグラム](/images/histogram_quantitative.png)
+![量的データのヒストグラム](/images/slds/ch8/histogram-quantitative.png)
 
 一方で,量的データに関しては,度数分布表を作成せずとも`matplotlib`の`plt.hist()`を利用して直接作成することも可能です.
 
@@ -1116,7 +1116,7 @@ plt.hist(values, bins=stnum)
 plt.show()
 ~~~
 
-![量的データのヒストグラム](/images/histogram_quantitative2.png)
+![量的データのヒストグラム](/images/slds/ch8/histogram-quantitative2.png)
 
 階級幅の設定によって,見た目が変わることが分かります. 作成手法や階級の設定は目的に応じて,使い分けるようにしましょう.
 
@@ -1161,7 +1161,7 @@ for i in range(len(types)):
 plt.show()
 ~~~
 
-![馬鈴薯の重さのヒストグラム](/images/box_plot1.png)
+![馬鈴薯の重さのヒストグラム](/images/slds/ch8/box-plot1.png)
 
 これでも比較はできますが1枚の画像にまとめる手段として,箱ひげ図が利用できます.
 箱ひげ図は`plt.boxplot(データのリスト,labels=ラベルのリスト)`で生成できます.
@@ -1179,7 +1179,7 @@ plt.boxplot(data,labels=types)
 plt.show()
 ~~~
 
-![馬鈴薯の重さの箱ひげ図](/images/box_plot2.png)
+![馬鈴薯の重さの箱ひげ図](/images/slds/ch8/box-plot2.png)
 
 箱ひげ図は,線がそれぞれ四分位数を表しており,それぞれ上から**最大値**,**75%点**,**中央値**,**25%点**,**最小値**となります.また,外れ値は丸で表されます.
 
@@ -1235,7 +1235,7 @@ plt.xlabel(x_column)
 plt.show()
 ~~~
 
-![散布図](/images/scatter.png)
+![散布図](/images/slds/ch8/scatter.png)
 
 散布図を見ると,`AI`に関する検索量が増えるにつれて,`Python`の検索量が増えるという関係が見えてきます.
 
@@ -1257,7 +1257,7 @@ plt.show()
 plt.close()
 ~~~
 
-![3次元の散布図](/images/3dscatter.png)
+![3次元の散布図](/images/slds/ch8/3dscatter.png)
 
 
 観測項目が4つ以上ある場合に散布図のように関係を表す手法としては,複数の観測項目の値を合成して3次元以下にする**次元削減**が良く利用されます. **次元削減**に関しては後ほど扱うとして,ここではいくつかの観測項目を**色**や**大きさ**などの要素の変換して関係を見る方法を紹介します.
@@ -1279,7 +1279,7 @@ plt.colorbar() #カラーバーの表示
 plt.show()
 ~~~
 
-![色とサイズによる表現](/images/scatter_color_size.png)
+![色とサイズによる表現](/images/slds/ch8/scatter-color-size.png)
 
 ### クラスタリングにおける散布図
 
@@ -1318,7 +1318,7 @@ plt.show()
 
 ~~~
 
-![クラスタリング](/images/scatter_class.png)
+![クラスタリング](/images/slds/ch8/scatter-class.png)
 
 
 ## 同時度数分布表
@@ -1365,7 +1365,7 @@ plt.ylabel('Grade')
 plt.show()
 ~~~
 
-![質的データの散布図](/images/cross_table1.png)
+![質的データの散布図](/images/slds/ch8/cross-table1.png)
 
 質的データを数値に変換したとしても,離散値となるため,散布図はこのように基本的にはすべての交点に点があるだけのなんの情報も得られないグラフとなります.
 
@@ -1375,7 +1375,7 @@ plt.show()
 講義の時限ごとの成績の分布がわかり,それぞれに違いがあれば時限によって成績に偏りが出ていると言えそうです.
 そこで,以下のように講義の時限毎の成績の度数分布表を作ってみましょう.
 
-![同時度数分布表](/images/cross_table2.png)
+![同時度数分布表](/images/slds/ch8/cross-table2.png)
 
 この度数分布表では,時限毎にその成績を取った学生の度数が数えられています($n_{11}$は1時限にSを取った学生の度数,$n_{ij}$は`j時限`に上から`i番目`の成績をとった学生の度数.)
 
@@ -1447,7 +1447,7 @@ sns.heatmap( cross  #ヒートマップを作成したいテーブル
 plt.show()
 ~~~
 
-![ヒートマップ](/images/heatmap.png)
+![ヒートマップ](/images/slds/ch8/heatmap.png)
 
 このヒートマップでは,数値が大きいほど,色が濃くなっており2,3時限においてB以上の成績を取る学生の割合が大きいこと,4,5時限においてCやFなどの成績を取る人の割合が大きいことが視覚的に分かります.
 
