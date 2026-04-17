@@ -20,6 +20,80 @@ nextChapter: fp3.html
 
 ## テキストエディタのインストール
 
+テキストエディタとは,プログラムを書くためのソフトウェアです.
+プログラムを書くことをコーディング(Coding)といいます.
+
+テキストエディタには沢山の種類があり,それぞれ独自の機能を持っています.
+Windwosに最初から入っている｢メモ帳｣もテキストエディタですが,プログラムを書くために様々な機能が追加された高機能なテキストエディタも沢山あります.
+
+例えば,シンタックスハイライト機能は,以下のプログラムのように,プログラムの記述を役割や意味に応じて色付けして見やすくしてくれます.
+
+~~~ python
+## シンタックスハイライト
+from datetime import datetime
+
+def greet_based_on_time():
+    now = datetime.now()
+    current_hour = now.hour
+
+    if 5 <= current_hour < 12:
+        greeting = "Good morning, world!"
+    elif 12 <= current_hour < 18:
+        greeting = "Good afternoon, world!"
+    else:
+        greeting = "Good night, world!"
+
+    return greeting
+
+# 関数を呼び出して結果を表示
+print(greet_based_on_time())
+~~~
+
+また,スペースをタブに変換するなどの機能も非常に便利です.  
+
+この講義では世界的に人気のあるMicrosoftの開発したテキストエディタである **VSCode (Visual Studio Code)**を利用します. 最近では生成AIを利用した自動補完機能がついた**Cursor(有料)**などもあります. AI利用法に関しては後ほど扱いますが,ほぼ同様の機能が利用可能なので,Cursorを既に利用している方はそちらでも問題ありません. そのた,既に何かしらのテキストエディタを利用している方は,現在使用しているエディタをそのまま利用して頂いても構いませんが必要な設定等は自分で行って下さい.
+
+[VSCode](https://code.visualstudio.com/) をクリックして,ページ上部にあるDownloadをクリックします. 自分のPCに合わせたインストール方法を選択しましょう.
+
+![Screenshot VSCode](/images/fp/ch2/vscode-install.png)
+
+インストーラーをダウンロードしたら,クリックして開いて,｢同意｣等を進めて下さい. 基本的に設定はデフォルトのままで問題ありません.
+
+インストールが終了したら,VSCodeが立ち上がります. サインインを求められますが,ここでは｢Continue without Sigining In｣を選択してサインイン無しで進めます.
+
+![VSCode Sign In](/images/fp/ch2/vscode-sign-in.png)
+
+表示モードは好きなものを選択して下さい.
+![VSCode Mode](/images/fp/ch2/vscode-mode.png)
+
+拡張機能はこのあと入れるのでSkipして下さい.
+![VSCode Extensions](/images/fp/ch2/vscode-extensions.png)
+
+
+VSCodeは様々な拡張機能があり,利用しやすいようにカスタマイズすることが可能です. 本講義では最低限Haskellのシンタックスハイライトの導入方法のみ扱います.
+
+::: warn
+その他の便利な拡張機能等に関しては自己責任で調べて導入して下さい.
+:::
+
+左側にある四角が4つ並んだアイコンを選択します.
+
+![VSCode Install Extensions](/images/fp/ch2/vscode-install-extensions.png)
+
+検索窓に`Haskell`と入力して `Haslell Syntax Highlite` の `install`を押します.
+![VSCode Install Haskell Syntax](/images/fp/ch2/vscode-install-haskell-syntax.png)
+
+
+これで基本的な設定は完了です. 
+
+ファイルを編集する際には, 左側のファイルアイコンをクリックして,プログラムの保存されているフォルダを選択します.
+
+![VSCode Files](/images/fp/ch2/vscode-files.png)
+
+ディレクトリが表示されるので,編集したいファイルをクリックすることで編集が可能となります.
+![VSCode Edit](/images/fp/ch2/vscode-edit.png)
+
+その他細かな利用法に関しては,今後実際に利用する際に説明します. また,基本的な操作やショートカット等に関しては, 各自で調べてみて下さい.
 
 ## IMEの設定
 

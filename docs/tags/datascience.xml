@@ -1,0 +1,744 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"
+    xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <channel>
+        <title>yakagika - Posts tagged datascience</title>
+        <link></link>
+        <description><![CDATA[Personal blog of yakagika]]></description>
+        <atom:link href="/tags/datascience.xml" rel="self"
+                   type="application/rss+xml" />
+        <lastBuildDate>Tue, 04 Nov 2025 00:00:00 UT</lastBuildDate>
+        <item>
+    <title>特別講義DS Ch12 一般化線形モデル</title>
+    <link>/lectures/slds12.html</link>
+    <description><![CDATA[<h1 id="統計モデリング">統計モデリング</h1>
+<p>前回(Ch11)では線形の重回帰を利用して,ある程度正確な説明/予測が可能となりました.
+しかし,これが最善のモデルであるとは限りません.
+また, 線形回帰でうまく表せないからと言って,関係がないと断定することもできません.
+より正確に説明できるより良いモデルが存在する可能性があります.</p>
+<p>前回の事例に即して考えると例えば,</p>
+<div class="note">
+<ul>
+<li>Scholarshipの有無によって,それぞれの傾きが異なるのでは?</li>
+</ul>
+<p>奨学金をもらっている人のほうがそもそも勉強時間あたりのGPAの伸び率が高いなど,層ごとに異なるパラメータを持つ可能性があります.</p>
+<ul>
+<li>残差の分布が正規分布ではないのでは?</li>
+</ul>
+<p>重回帰分析では残差が正規分布であるという仮定のもと分析を行っていますが,そのような検証は行われていません.</p>
+</div>
+<p>基本的にはデータを特定のモデルで表現する場合には,グラフや特徴量などから考えられる幾つかの可能性を考慮・比較検討し,最善のモデルを選択することが必要になります.
+このような行為をモデル選択/統計モデリングといいます.</p>
+<p>Ch 12ではこのような,重回帰分析では扱えないモデリング技法として,ベイズ統計学に基づいた一般化線形モデルに関して学習してみましょう.</p>
+<h1 id="基礎知識-ベイズ統計学概要">基礎知識 ベイズ統計学概要</h1>
+<p>前章までに扱ってきた,統計的仮説検定や回帰分析は無限回試行を行った際に収束する相対度数(<strong>客観確率</strong>)を確率の定義とする<strong>頻度主義</strong>に基づいた統計的手法です(詳細は｢統計学入門(データ活用の統計学)｣などに譲ります.) そのような前提にたった統計学を<strong>伝統的統計学</strong>とも呼びます.</p>
+<p>一方で,2000年代初頭から,計算機の性能向上と,MCMCなどのアルゴリズムの開発によって,分析者の情報,知識,経験などによる主観によって定めらる<strong>主観確率</strong>に基づく確率的定義(<strong>ベイズ主義</strong>)を前提とした手法が用いられるようになりました.</p>
+<h2 id="ベイズの定理">ベイズの定理</h2>
+<p>まずは,ベイズ統計学の中核となる<strong>ベイズ確率(逆確率)</strong>,<strong>ベイズの定理</strong>などの基礎概念の概要を把握しましょう.</p>
+<div class="warn">
+<p>ここでは,最低限の記法の意味などについて概要を解説します.
+これ以前の基本的な確率計算や定義に関しては｢統計学入門｣, ｢データ活用の統計学｣などを,
+ベイズやアルゴリズムの詳細に関しては｢データサイエンス実践｣｢データ活用の統計学実践｣などの講義を受講して下さい.</p>
+</div>
+<p>ベイズ確率やベイズの定理は,1740年代に数学好きの牧師であったトーマス･ベイズによってまとめられました. ベイズは,神学への興味から,｢世界が原初神によって作られたこと｣を｢現在の事象｣によって証明できるか,という問題に関心を寄せていました. ベイズはこのような問題を解くために, 仮の確率を今現在の情報によって更新し,過去の出来事を推測するというアイデア(逆確率)をまとめました.</p>
+<p>しかし,ベイズ自身はこれを発表せず, 1763年にリチャード・プライスによってベイズの遺稿が発表されたことで再注目されました(このことによって近年では,ベイズの定理が<strong>ベイズ・プライスの定理</strong>と呼ばれることもあります.)</p>
+<p>古典的確率の定立に貢献したラプラスも同様の観点に注目した時期があり,ベイズの定理から確率的な推論を実施する方法などがまとめられましたが,当時の計算・データ環境などからそれ以上深められることはなく,古典的確率に則った頻度主義や伝統的統計学が発展していきます.</p>
+<p>(cf. シャロン・バーチュ マグレイン (著), 異端の統計学 ベイズ, 草思社, 2013)</p>
+<p>それでは,逆確率やベイズの定理がどのようなものかを見ていきましょう.</p>
+<h3 id="条件付き確率">条件付き確率</h3>
+<p>事象Aの下での事象Bの条件付き確率</p>
+<p><span class="math display">P(B|A) = \frac{P(B \cap A)}{P(A)}</span></p>
+<p>を変形した</p>
+<p><span class="math display">P(B \cap A) = P(A) P(B | A) </span></p>
+<p>を乗法定理と呼びます.</p>
+<p>このとき AとBは対称なので,</p>
+<p><span class="math display">P(B \cap A) = P(A \cap B) = P(B) P(A | B)  </span></p>
+<p>も成り立ちます.</p>
+<h3 id="ベイズの定理-1">ベイズの定理</h3>
+<p><span class="math inline">A</span> を得られた結果, <span class="math inline">H_1,H_2,...,H_k</span> を原因としたとき,事象Aの下での事象<span class="math inline">H_i</span>の条件付き確率は,</p>
+<p><span class="math display"> P(H_i | A) = \frac{P(H_i \cap A)}{P(A)}</span></p>
+<p>となります.</p>
+<p>ただし, ここで <span class="math inline">H_i</span> は互いに排反で, <span class="math display"> \bigcup_{i=1} H_i = \Omega </span> かつ <span class="math display"> \sum_{i=1} P(H_i) =1 </span></p>
+<p>このとき,乗法定理から</p>
+<p><span class="math display"> P(H_i \cap A) = P(H_i)P(A | H_i)</span></p>
+<p>が求まります. これを代入して,</p>
+<p><span class="math display"> P(H_i | A) = \frac{P(H_i)P(A | H_i)}{P(A)} </span></p>
+<p>となり,これをベイズの定理といいます.</p>
+<p>また,</p>
+<p><span class="math display"> P(A) = \sum_{i=1}^{k} P(A \cap H_i) = \sum_{i=1}^{k} P(H_i)P(A|H_i) </span></p>
+<p>であるから,</p>
+<p><span class="math display"> P(H_i |A) = \frac{P(H_i)P(A|H_i)}{\sum_{i=1}^{k} P(H_i)P(A|H_i) }</span></p>
+<p>と表す場合もあります.</p>
+<p>このとき, <span class="math inline">P(H_i)</span>を(Aが起こる)<strong>事前確率</strong>,<span class="math inline">P(H_i|A)</span>を(Aが起こる)<strong>事後確率</strong>といいます. ベイズ統計学ではしばしば事前確率に<strong>主観確率</strong>が用いられ,これを基礎とする統計的方法を<strong>ベイズ統計学</strong>といいます.</p>
+<div class="note">
+<ul>
+<li>客観確率</li>
+</ul>
+<p>頻度説では、事象<span class="math inline">A</span>の起こる確率<span class="math inline">P(A)</span>を生起回数の相対頻度で求めています.これは誰が計算しても同一の客観的な値といえます.</p>
+<ul>
+<li>主観確率</li>
+</ul>
+<p>研究者が主観的にある確率を与えて分析を行います. この場合確率は,研究者の経験,情報,知識によって異なる値が用いられます.
+当然,主観確率によって結果は異なります. ただし,後に見るように多量のデータによって主観性を減らせる.</p>
+<ul>
+<li>事前確率と事後確率の意味</li>
+</ul>
+<p><strong>事前確率<span class="math inline">P(H_i)</span></strong>は,データ<span class="math inline">A</span>が観測される<strong>前</strong>の,仮説<span class="math inline">H_i</span>に対する(主観的な)確信度を表します. つまり,データを観測する前に,どの仮説が真である可能性が高いかを表す確率です.</p>
+<p><strong>事後確率<span class="math inline">P(H_i|A)</span></strong>は,データ<span class="math inline">A</span>が観測された<strong>後</strong>の,仮説<span class="math inline">H_i</span>に対する確信度を表します. つまり,データ<span class="math inline">A</span>が得られたという情報を踏まえた上で,どの仮説が真である可能性が高いかを表す確率です.</p>
+</div>
+<p>ベイズの定理は,事前確率とデータから事後確率を計算する方法を提供します. この過程では,データが得られることで,仮説に対する確信度が更新されます. 例えば,事前確率が低かった仮説でも,データがその仮説を支持するものであれば,事後確率は高くなります. 逆に,事前確率が高かった仮説でも,データがその仮説と矛盾するものであれば,事後確率は低くなります.</p>
+<p>条件付き確率の範囲では, ｢原因から結果の確率を計算｣しますが,ベイズの定理では結果から原因を考えています.</p>
+<h3 id="条件付き確率-1">条件付き確率</h3>
+<p>事象Aが起こったと分かっている場合に事象Bの起こる確率</p>
+<p><span class="math display"> P(B|A) = \frac{P(A \cap B)}{P(A)}</span></p>
+<p>例:選ばれた壺から出るたまの確率を計算</p>
+<p>壺に白,赤それぞれ3つの玉が入っている.白玉には1,1,2と数字,赤玉には1,2,2と数字が書かれている.
+次に出る玉が白であることがわかっている場合に1の玉がでる確率は?</p>
+<p><img src="/images/slds/ch12/conditional_probability.png" /></p>
+<p><span class="math display">
+P(1 | 白) = \frac{白 \cap 1}{P(白)} = \frac{2 / 6}{ 1/ 2} = \frac{2}{3}
+</span></p>
+<p>𝑃(玉の色|選んだ壺)であり, 𝑃(結果|原因)の計算</p>
+<h3 id="ベイズ確率">ベイズ確率</h3>
+<p>事象Bが起こったと分かっている場合に,事象Aが起きている確率</p>
+<p><span class="math display"> P(H_i | A) = \frac{P(H_i)P(A | H_i)}{P(A)} </span></p>
+<p>例. 出た玉から壺が選ばれている確率を計算</p>
+<p>2つの壺があり,</p>
+<ul>
+<li><p>第1の壺には白玉が3個,黒玉が1個</p></li>
+<li><p>第2の壺には白玉が1個,黒玉が２個</p></li>
+<li><p><span class="math inline">𝐻_1</span>:第1の壺から取り出す</p></li>
+<li><p><span class="math inline">𝐻_2</span>:第2の壺から取り出す</p></li>
+<li><p><span class="math inline">A</span>:白玉が出たという事象</p></li>
+</ul>
+<p>とすると,いずれかの壺から玉を1個取り出したところ白玉であった,どちらの壺から取り出した確率が高いか.</p>
+<p><img src="/images/slds/ch12/beys_example.png" /></p>
+<p>まず,どちらの壺から取り出すかは<strong>五分五分</strong>であると仮定する. ここでこの仮定が完全に分析者の主観に基づくのであれば<strong>主観確率</strong>であり,何らかの実験等によって確率0.5であると確かめられている場合には<strong>客観確率</strong>とみなされる.</p>
+<p><span class="math display">P(H_1) = P(H_2) = \frac{1}{2}</span></p>
+<p><span class="math display">P(A|H_1) = \frac{3}{4}, \quad P(A|H_2) = \frac{1}{3}</span></p>
+<p>であるから,</p>
+<p><span class="math display">P(H_1|A) = \frac{\frac{1}{2} \cdot \frac{3}{4}}{\frac{1}{2} \cdot \frac{3}{4} + \frac{1}{2} \cdot \frac{1}{3}} = \frac{9}{13}</span></p>
+<p><span class="math display">P(H_2|A) = \frac{\frac{1}{2} \cdot \frac{1}{3}}{\frac{1}{2} \cdot \frac{3}{4} + \frac{1}{2} \cdot \frac{1}{3}} = \frac{4}{13}</span></p>
+<p>この｢<span class="math inline">H_1</span>の壺が選ばれている｣という結果は,壺が選ばれる確率が等しいという主観確率が正しければ正しいと言えます.</p>
+<p>この事例で計算されているのは 𝑃(選んだ壺|玉の色) であり, 𝑃(原因|結果)という計算をしていることになります.</p>
+<p>このように事例を見てみると, 主観確率を利用した計算は,主観確率の正しさに依存しているためあまり実用性があるようには思えません.
+そこで重要になってくるのが,<strong>ベイズ更新</strong>という概念です.</p>
+<h2 id="ベイズ更新">ベイズ更新</h2>
+<h3 id="独立性">独立性</h3>
+<p>事象<span class="math inline">A</span>の起こる確率が他の事象<span class="math inline">B</span>に影響されない場合,事象<span class="math inline">A</span>と事象<span class="math inline">B</span>は<strong>独立である</strong>という.</p>
+<p>このとき</p>
+<p><span class="math display">P(A) = P(A|B)</span></p>
+<p>が成り立ちます. 乗法定理 <span class="math inline">P(A \cap B) = P(B)P(A|B)</span> より,</p>
+<p><span class="math display">P(A \cap B) = P(A)P(B)</span></p>
+<p>が成り立つ.</p>
+<p><strong>例:</strong> サイコロを2回投げて連続で1の目が出る確率を考える.</p>
+<ul>
+<li>事象<span class="math inline">A</span>: 1回目1が出る</li>
+<li>事象<span class="math inline">B</span>: 2回目1が出る</li>
+</ul>
+<p><span class="math display">P(A \cap B) = \frac{1}{36}, \quad P(A) \cdot P(B) = \frac{1}{6} \cdot \frac{1}{6} = \frac{1}{36}</span></p>
+<p>なので,事象<span class="math inline">A</span>と<span class="math inline">B</span>は独立といえる.</p>
+<p>ベイズの目的は,複数のデータを利用して事後確率の推定を更新していくことにあります.</p>
+<h3 id="複数の事象からなる条件付き確率">複数の事象からなる条件付き確率</h3>
+<p>複数の事象<span class="math inline">A, B, C</span>がある場合の条件付き確率は以下のように表されます.</p>
+<p><span class="math display">P(B \cap C | A) = \frac{P(A \cap B \cap C)}{P(A)}</span></p>
+<p>この式は,乗法定理(積の法則)により以下のように書き換えられます.</p>
+<p><span class="math display">\Leftrightarrow P(A \cap B \cap C) = P(B \cap C | A)P(A)</span></p>
+<p>同様に,<span class="math inline">A</span>が<span class="math inline">B \cap C</span>の条件下で起こる確率は以下の通りです.</p>
+<p><span class="math display">P(A | B \cap C) = \frac{P(A \cap B \cap C)}{P(B \cap C)}</span></p>
+<p>これも積の法則として以下のように書き換えられます.</p>
+<p><span class="math display">\Leftrightarrow P(A \cap B \cap C) = P(A | B \cap C)P(B \cap C)</span></p>
+<p>これらの式を代入して整理すると,以下の関係が得られます.</p>
+<p><span class="math display">P(A | B \cap C) = \frac{P(B \cap C | A)P(A)}{P(B \cap C)}</span></p>
+<h3 id="ベイズ更新の適用">ベイズ更新の適用</h3>
+<p>原因<span class="math inline">H</span>と,現在の状況<span class="math inline">B, C</span>があるとき,事後確率<span class="math inline">P(H | B \cap C)</span>はベイズの定理により以下のように計算されます.</p>
+<p><span class="math display">P(H | B \cap C) = \frac{P(B \cap C | H)P(H)}{P(B \cap C)}</span></p>
+<p>もし事象<span class="math inline">B</span>と<span class="math inline">C</span>が独立であれば,条件付き確率<span class="math inline">P(B \cap C | H)</span>は<span class="math inline">P(B | H)P(C | H)</span>となり,分母の<span class="math inline">P(B \cap C)</span>は<span class="math inline">P(B)P(C)</span>となります. さらに,<span class="math inline">P(H | C) = \frac{P(C | H)P(H)}{P(C)}</span>の関係を利用すると,上記の式は以下のように変形できます.</p>
+<p><span class="math display">P(H | B \cap C) = \frac{P(B | H)P(C | H)P(H)}{P(B)P(C)} = \frac{P(B | H)P(H | C)}{P(B)}</span></p>
+<p>ここで,情報<span class="math inline">C</span>によって既に求められた事後確率<span class="math inline">P(H | C)</span>を新しい事前確率<span class="math inline">P(H)^*</span>とすると,ベイズ更新の式はより簡潔に表現できます.</p>
+<p><span class="math display">P(H | B \cap C) = \frac{P(B | H)P(H)^*}{P(B)}</span></p>
+<p>この方法により,情報が与えられるたびに事後確率を計算し,それを次のデータに対する事前分布として利用することで,分布の推定を逐次的に更新していくことができます.</p>
+<h3 id="ベイズ統計学の性質">ベイズ統計学の性質</h3>
+<p>事前確率に関する情報がなく,<span class="math inline">P(H)</span>が完全に主観的に決められたとしても,データ (<span class="math inline">A,B,C, \dots</span>)が大量にある場合は,</p>
+<p><span class="math display">P(H|A \cap B \cap C \cap D \dots) = \frac{P(A \cap B \cap C \cap D \dots|H) P(H)}{P(A \cap B \cap C \cap D \dots)}</span></p>
+<p>以下のように段階的に更新を実施することができます.</p>
+<p>まず,データ<span class="math inline">A</span>が得られたとき:</p>
+<p><span class="math display">P(H|A) = \frac{P(A|H)P(H)}{P(A)}</span></p>
+<p>次に,データ<span class="math inline">B</span>が得られたとき,前の事後確率<span class="math inline">P(H|A) = \frac{P(A|H)P(H)}{P(A)} = P(H)^*</span> を新しい事前確率として利用:</p>
+<p><span class="math display">P(H|A \cap B) = \frac{P(B|H)P(H|A)}{P(B)} = \frac{P(B|H)P(H)^*}{P(B)} </span></p>
+<p>さらに,データ<span class="math inline">C</span>が得られたとき,前の事後確率<span class="math inline">P(H|A \cap B) = P(H)^{**}</span>を新しい事前確率として利用:</p>
+<p><span class="math display">P(H|A \cap B \cap C) = \frac{P(C|H)P(H)^{**}}{P(C)} </span></p>
+<p>このように,データ<span class="math inline">D, E, \dots</span>が得られるたびに,前の事後確率を事前確率として利用して更新を続けていきます. データ( <span class="math inline">A,B,C,D, \dots</span> )を大量に集めれば,最初に設定した事前確率<span class="math inline">P(H)</span>の影響が少なくなり,事後確率 <span class="math inline">P(H|A \cap B \cap C \cap D \dots)</span>が安定することが知られています.</p>
+<div class="note">
+<p>この性質は,<strong>ベイズ的一致性(Bayesian consistency)</strong>と呼ばれます. 具体的には以下のような性質が成り立ちます:</p>
+<ul>
+<li><p><strong>一致性</strong>: データが増えるにつれて,事後確率分布は真のパラメータ値に収束します. つまり,サンプルサイズが無限大に近づくと,事後確率は真の値に集中していきます.</p></li>
+<li><p><strong>事後確率の安定性</strong>: 異なる事前分布から出発しても,データが十分に多ければ,最終的な事後分布はほぼ同じ結果になります. これは,データが増えるにつれて,尤度関数<span class="math inline">P(A \cap B \cap C \cap D \dots|H)</span>の影響が事前確率<span class="math inline">P(H)</span>の影響を上回るためです.</p></li>
+<li><p><strong>事前確率の影響の減少</strong>: データが少ないときは事前確率<span class="math inline">P(H)</span>の選択が結果に大きく影響しますが,データが増えるにつれて,その影響は相対的に小さくなります. 最終的には,データの情報が支配的になり,事前確率の選択が結果に与える影響は限定的になります.</p></li>
+</ul>
+</div>
+<p>しかし,このような更新には大量のデータが必要であることに加えて,データごとに分布を推定し直すには膨大な計算が必要となるため, ラプラスらの時代には現実的ではありませんでした.</p>
+<p>現代では, 情報通信技術の発展によって大量のデータと,大量の計算が可能になりました.また,計算のためのアルゴリズム(マルコフ連鎖モンテカルロ法など)が発明されたことで,ベイズ更新に基づく推定が現実的な選択肢となりベイズ統計学が利用されるようになっています.</p>
+<h2 id="マルコフ連鎖モンテカルロ法">マルコフ連鎖モンテカルロ法</h2>
+<h3 id="尤度likelihood">尤度(Likelihood)</h3>
+<p>尤度とは,モデルのデータへの当てはまりの良さを表す統計量です.</p>
+<ul>
+<li><span class="math inline">\theta</span>を母数とする確率分布から観測データ<span class="math inline">y_i</span>が発生した場合,その確率は<span class="math inline">P(y_i|\theta)</span>と表されます.</li>
+<li>尤度<span class="math inline">L(\theta|Y)</span>は,観測されたデータ<span class="math inline">Y = \{y_1, y_2, \dots, y_n\}</span>が与えられたときの,特定のパラメータ<span class="math inline">\theta</span>の「もっともらしさ」を示す関数で,以下のように定義されます.</li>
+</ul>
+<p><span class="math display">L(\theta|Y) = \prod_{i} P(y_i|\theta)</span></p>
+<p>尤度はそのままでは計算しにくい場合が多いため,対数化した対数尤度を用いることが一般的です.</p>
+<p><span class="math display">\log L(\theta|Y) = \sum_{i} \log P(y_i|\theta)</span></p>
+<p>前段で説明したベイズ更新と尤度には密接な関係があります.</p>
+<p>ベイズの定理は以下のように表されました:</p>
+<p><span class="math display">P(H|A) = \frac{P(A|H)P(H)}{P(A)}</span></p>
+<p>この式において,<span class="math inline">P(A|H)</span>は「仮説<span class="math inline">H</span>が真であるときにデータ<span class="math inline">A</span>が観測される確率」であり,これは<strong>尤度関数</strong>に対応します.</p>
+<p>一般的な尤度の説明ではパラメータを<span class="math inline">\theta</span>で表しましたが,ベイズ統計学では仮説<span class="math inline">H</span>をパラメータとみなすことができます. 複数のデータ<span class="math inline">Y = \{y_1, y_2, \dots, y_n\}</span>が得られた場合,ベイズの定理は以下のようになります:</p>
+<p><span class="math display">P(H|Y) = \frac{P(Y|H)P(H)}{P(Y)} = \frac{L(H|Y)P(H)}{P(Y)}</span></p>
+<p>ここで,<span class="math inline">P(Y|H) = \prod_{i} P(y_i|H)</span>は尤度関数<span class="math inline">L(H|Y) = \prod_{i} P(y_i|H)</span>と一致します. したがって,ベイズの定理は尤度関数を用いて以下のように表現できます:</p>
+<p><span class="math display">P(H|Y) \propto L(H|Y)P(H)</span></p>
+<p>つまり,事後確率は「尤度×事前確率」に比例します. この関係から以下のことがわかります:</p>
+<ul>
+<li>尤度<span class="math inline">L(H|Y)</span>が大きいほど,その仮説<span class="math inline">H</span>の事後確率<span class="math inline">P(H|Y)</span>も大きくなります.</li>
+<li>データが増えるにつれて,尤度関数の影響が事前確率の影響を上回り,事後確率が安定していきます.</li>
+<li>ベイズ更新では,新しいデータが得られるたびに尤度関数を計算し,それと事前確率を組み合わせて事後確率を更新していきます.</li>
+</ul>
+<h3 id="最尤推定-maximum-likelihood-estimation">最尤推定 (Maximum Likelihood Estimation)</h3>
+<p>この対数尤度を最大にするようなパラメータの推定量<span class="math inline">\hat{\theta}</span>を推定することを<strong>最尤推定</strong>といいます.</p>
+<p><span class="math inline">\hat{\theta}</span>は数理的に求めることが可能な場合もありますが,モデルが複雑な場合は困難なので機械的に求めることが多く,その手法の代表的なものがマルコフ連鎖モンテカルロ法(MCMC)です.</p>
+<h3 id="マルコフ連鎖モンテカルロ法-mcmcmarkov-chain-monte-carlo-method">マルコフ連鎖モンテカルロ法 MCMC(Markov chain Monte Carlo Method)</h3>
+<p>前段で説明したベイズ統計学において,事後確率<span class="math inline">P(H|Y) \propto L(H|Y)P(H)</span>を計算するには,分母の正規化定数<span class="math inline">P(Y)</span>を求める必要があります. しかし,モデルが複雑な場合やパラメータが多変数の場合,この正規化定数の計算は解析的に困難です. また,最尤推定においても,解析的に最尤推定量<span class="math inline">\hat{\theta}</span>が求められない(難しい)場合があります.</p>
+<p>このような場合に用いられるのが,計算機による繰り返し計算で少しずつパラメータの値を変化させ,最適な値を探し出す方法である<strong>マルコフ連鎖モンテカルロ法(MCMC)</strong>です.</p>
+<div class="note">
+<ul>
+<li>MCMCの基本的な仕組み</li>
+</ul>
+<p>MCMCは以下のような手順で動作します:</p>
+<ol type="1">
+<li><p><strong>初期値の設定</strong>: 複数の初期値<span class="math inline">\theta</span>を適当に決めます.</p></li>
+<li><p><strong>ランダムな探索</strong>: ランダムに<span class="math inline">\theta</span>を少し増減させます.</p></li>
+<li><p><strong>尤度の評価</strong>: 新しい<span class="math inline">\theta</span>の値での尤度を計算し,前の値と比較します.</p></li>
+<li><p><strong>移動の決定</strong>: 尤度が改善したら,<span class="math inline">\theta</span>をその方向にして次のステップに進みます. ただし,<strong>メトロポリス法</strong>などの手法では,たまに尤度が悪くなっても一定の確率でそちらに進むことで,局所最適解に陥ることを防ぎます.</p></li>
+<li><p><strong>繰り返し</strong>: この過程を繰り返すことで,パラメータ空間を探索し,最尤推定量や事後分布のサンプルを生成します.</p></li>
+</ol>
+<p><img src="/images/slds/ch12/mcmc.png" /></p>
+</div>
+<p>MCMCにより,ベイズ統計学における複雑な事後分布の推定や,最尤推定における困難な最適化問題を,計算機上で効率的に解決できるようになりました.</p>
+<h1 id="ベイズ統計学による統計モデリング実践">ベイズ統計学による統計モデリング実践</h1>
+<p>それでは,実際にベイズ統計学に基づいた統計モデリングを実施してみましょう.
+前章で重回帰で実施したものと良く似た<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch12/hierarchical_regression.csv">こちらのデータ</a>を事例として利用します.</p>
+<table>
+<thead>
+<tr class="header">
+<th>GPA</th>
+<th>Scholarship</th>
+<th>Study_Hours</th>
+<th>Sports_hours</th>
+<th>Part_time_Work</th>
+<th>StudentID</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1.348928</td>
+<td>True</td>
+<td>10.348188</td>
+<td>5.398119</td>
+<td>14.944201</td>
+<td>0</td>
+</tr>
+<tr class="even">
+<td>1.968662</td>
+<td>False</td>
+<td>8.803971</td>
+<td>3.799566</td>
+<td>15.340118</td>
+<td>1</td>
+</tr>
+<tr class="odd">
+<td>2.246881</td>
+<td>True</td>
+<td>10.367043</td>
+<td>5.139604</td>
+<td>19.937536</td>
+<td>2</td>
+</tr>
+<tr class="even">
+<td>1.167275</td>
+<td>True</td>
+<td>2.049724</td>
+<td>4.229373</td>
+<td>21.009315</td>
+<td>3</td>
+</tr>
+<tr class="odd">
+<td>3.295929</td>
+<td>True</td>
+<td>9.121312</td>
+<td>5.227035</td>
+<td>14.271377</td>
+<td>4</td>
+</tr>
+<tr class="even">
+<td>…</td>
+<td>…</td>
+<td>…</td>
+<td>…</td>
+<td>…</td>
+<td>…</td>
+</tr>
+<tr class="odd">
+<td>0.974230</td>
+<td>False</td>
+<td>4.256551</td>
+<td>0.396158</td>
+<td>13.299289</td>
+<td>185</td>
+</tr>
+<tr class="even">
+<td>2.208293</td>
+<td>False</td>
+<td>14.652655</td>
+<td>1.969618</td>
+<td>10.523032</td>
+<td>186</td>
+</tr>
+<tr class="odd">
+<td>0.786660</td>
+<td>False</td>
+<td>10.040932</td>
+<td>7.733749</td>
+<td>13.232559</td>
+<td>187</td>
+</tr>
+<tr class="even">
+<td>2.068987</td>
+<td>True</td>
+<td>6.073965</td>
+<td>8.289935</td>
+<td>13.540597</td>
+<td>188</td>
+</tr>
+<tr class="odd">
+<td>2.531604</td>
+<td>True</td>
+<td>11.848414</td>
+<td>4.501928</td>
+<td>11.335318</td>
+<td>189</td>
+</tr>
+</tbody>
+</table>
+<p>各自でダウンロードして利用して下さい.</p>
+<h2 id="重回帰での結果確認">重回帰での結果確認</h2>
+<p>まずは,データの読み込みを行います. 必要なライブラリは各自で <code>pip install</code>してください.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> statsmodels.api <span class="im">as</span> sm</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> mean_squared_error, r2_score, mean_absolute_error</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">&#39;hierarchical_regression.csv&#39;</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>                ,dtype<span class="op">=</span>{<span class="st">&#39;GPA&#39;</span>: <span class="bu">float</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>                       ,<span class="st">&#39;Scholarship&#39;</span>: <span class="bu">bool</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>                       ,<span class="st">&#39;Study_Hours&#39;</span>: <span class="bu">float</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>                       ,<span class="st">&#39;Sports_hours&#39;</span>: <span class="bu">float</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>                       ,<span class="st">&#39;Part_time_Work&#39;</span>: <span class="bu">float</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>                       ,<span class="st">&#39;StudentID&#39;</span>:<span class="bu">int</span>})</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="co">          GPA  Scholarship  Study_Hours  Sports_hours  Part_time_Work  StudentID</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="co">0    1.348928         True    10.348188      5.398119       14.944201          0</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="co">1    1.968662        False     8.803971      3.799566       15.340118          1</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="co">2    2.246881         True    10.367043      5.139604       19.937536          2</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="co">3    1.167275         True     2.049724      4.229373       21.009315          3</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a><span class="co">4    3.295929         True     9.121312      5.227035       14.271377          4</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="co">..        ...          ...          ...           ...             ...        ...</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a><span class="co">185  0.974230        False     4.256551      0.396158       13.299289        185</span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a><span class="co">186  2.208293        False    14.652655      1.969618       10.523032        186</span></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a><span class="co">187  0.786660        False    10.040932      7.733749       13.232559        187</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a><span class="co">188  2.068987         True     6.073965      8.289935       13.540597        188</span></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a><span class="co">189  2.531604         True    11.848414      4.501928       11.335318        189</span></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>まずはデータを可視化してみます.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co"># ペアプロット</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>sns.pairplot(df</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>            ,<span class="bu">vars</span><span class="op">=</span>[<span class="st">&quot;GPA&quot;</span>, <span class="st">&quot;Study_Hours&quot;</span>, <span class="st">&quot;Sports_hours&quot;</span>, <span class="st">&quot;Part_time_Work&quot;</span>]</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>            ,hue<span class="op">=</span><span class="st">&quot;Scholarship&quot;</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>            ,diag_kind<span class="op">=</span><span class="st">&quot;hist&quot;</span>)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="st">&quot;Pairplot with Scholarship&quot;</span>, y<span class="op">=</span><span class="fl">1.02</span>)</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>plt.savefig(<span class="st">&#39;PairplotwithScholarship.png&#39;</span>)</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>plt.close()</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="co">#joinplotで男女別に密度プロットを表示</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>fig <span class="op">=</span> sns.jointplot(df</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>               ,x <span class="op">=</span><span class="st">&quot;Study_Hours&quot;</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>               ,y <span class="op">=</span><span class="st">&quot;GPA&quot;</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>               ,hue<span class="op">=</span><span class="st">&#39;Scholarship&#39;</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>               ,joint_kws <span class="op">=</span> <span class="bu">dict</span>(alpha<span class="op">=</span><span class="fl">0.5</span>))</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>plt.savefig(<span class="st">&#39;kde.png&#39;</span>)</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>plt.close()</span></code></pre></div>
+<p><img src="/images/slds/ch12/PairplotwithScholarship.png" /></p>
+<p>以前のデータと概ね似た傾向(奨学金ありが少し高い,勉強時間とGPAに相関,勉強時間とバイト時間に負の相関など,)が確認できます.
+ただし,前回のデータと比べるとデータ全体のばらつきが大きいことが分かります.</p>
+<p><img src="/images/slds/ch12/kde-compare.png" /></p>
+<p>前回と同様の手法で,線形重回帰の実施と結果の確認を行います.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co"># 数量化</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.get_dummies(df, columns<span class="op">=</span>[<span class="st">&#39;Scholarship&#39;</span>], dtype<span class="op">=</span><span class="st">&#39;int&#39;</span>)</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co">#標準化</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.preprocessing <span class="im">import</span> StandardScaler</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>scaler <span class="op">=</span> StandardScaler()</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>df[[<span class="st">&#39;Scholarship_True&#39;</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>   ,<span class="st">&#39;Study_Hours&#39;</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>   ,<span class="st">&#39;Part_time_Work&#39;</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>   ,<span class="st">&#39;Sports_hours&#39;</span>]] <span class="op">=</span> scaler.fit_transform(df[[<span class="st">&#39;Scholarship_True&#39;</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>                                               ,<span class="st">&#39;Study_Hours&#39;</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>                                               ,<span class="st">&#39;Part_time_Work&#39;</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>                                               ,<span class="st">&#39;Sports_hours&#39;</span>]])</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="co">#線形回帰</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a><span class="co"># 説明変数(X)と目的変数(y)に分割</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> df[[<span class="st">&#39;Scholarship_True&#39;</span>, <span class="st">&#39;Study_Hours&#39;</span>]]</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> df[<span class="st">&#39;GPA&#39;</span>]</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a><span class="co"># 切片(定数項)を追加</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> sm.add_constant(X)</span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>lm <span class="op">=</span> sm.OLS(y, X).fit()</span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">&quot;</span><span class="ch">\n</span><span class="st">[通常の線形回帰の結果]</span><span class="ch">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(lm.summary())</span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>lm_preds <span class="op">=</span> lm.predict(X)</span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>plt.figure(figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">6</span>))</span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>plt.scatter(df[<span class="st">&#39;GPA&#39;</span>], lm_preds, alpha<span class="op">=</span><span class="fl">0.7</span>, edgecolors<span class="op">=</span><span class="st">&quot;k&quot;</span>)</span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">&quot;Predicted&quot;</span>)</span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">&quot;Actual&quot;</span>)</span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">&quot;Actual vs. Predicted&quot;</span>)</span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>plt.plot([df[<span class="st">&#39;GPA&#39;</span>].<span class="bu">min</span>(), df[<span class="st">&#39;GPA&#39;</span>].<span class="bu">max</span>()], [df[<span class="st">&#39;GPA&#39;</span>].<span class="bu">min</span>(), df[<span class="st">&#39;GPA&#39;</span>].<span class="bu">max</span>()], color<span class="op">=</span><span class="st">&quot;red&quot;</span>, linestyle<span class="op">=</span><span class="st">&quot;--&quot;</span>)  <span class="co"># 完全一致のライン</span></span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a>plt.grid()</span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a>plt.savefig(<span class="st">&#39;lm.png&#39;</span>)</span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a>plt.close()</span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a>plt.figure(figsize<span class="op">=</span>(<span class="dv">16</span>,<span class="dv">8</span>))</span>
+<span id="cb3-40"><a href="#cb3-40" aria-hidden="true" tabindex="-1"></a>sns.kdeplot(lm_preds, label <span class="op">=</span> <span class="st">&#39;Predicted&#39;</span>)</span>
+<span id="cb3-41"><a href="#cb3-41" aria-hidden="true" tabindex="-1"></a>sns.kdeplot(df[<span class="st">&#39;GPA&#39;</span>], label <span class="op">=</span> <span class="st">&#39;Actual&#39;</span>)</span>
+<span id="cb3-42"><a href="#cb3-42" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">&#39;Actual/Predicted&#39;</span>)</span>
+<span id="cb3-43"><a href="#cb3-43" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">&#39;GPA&#39;</span>)</span>
+<span id="cb3-44"><a href="#cb3-44" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">&#39;Density&#39;</span>)</span>
+<span id="cb3-45"><a href="#cb3-45" aria-hidden="true" tabindex="-1"></a>plt.legend()</span>
+<span id="cb3-46"><a href="#cb3-46" aria-hidden="true" tabindex="-1"></a>plt.savefig(<span class="st">&#39;lm_kde.png&#39;</span>)</span>
+<span id="cb3-47"><a href="#cb3-47" aria-hidden="true" tabindex="-1"></a>plt.close()</span>
+<span id="cb3-48"><a href="#cb3-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-49"><a href="#cb3-49" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb3-50"><a href="#cb3-50" aria-hidden="true" tabindex="-1"></a><span class="co">                            OLS Regression Results                            </span></span>
+<span id="cb3-51"><a href="#cb3-51" aria-hidden="true" tabindex="-1"></a><span class="co">==============================================================================</span></span>
+<span id="cb3-52"><a href="#cb3-52" aria-hidden="true" tabindex="-1"></a><span class="co">Dep. Variable:                    GPA   R-squared:                       0.444</span></span>
+<span id="cb3-53"><a href="#cb3-53" aria-hidden="true" tabindex="-1"></a><span class="co">Model:                            OLS   Adj. R-squared:                  0.438</span></span>
+<span id="cb3-54"><a href="#cb3-54" aria-hidden="true" tabindex="-1"></a><span class="co">Method:                 Least Squares   F-statistic:                     74.76</span></span>
+<span id="cb3-55"><a href="#cb3-55" aria-hidden="true" tabindex="-1"></a><span class="co">Date:                Tue, 04 Nov 2025   Prob (F-statistic):           1.38e-24</span></span>
+<span id="cb3-56"><a href="#cb3-56" aria-hidden="true" tabindex="-1"></a><span class="co">Time:                        16:50:17   Log-Likelihood:                -187.55</span></span>
+<span id="cb3-57"><a href="#cb3-57" aria-hidden="true" tabindex="-1"></a><span class="co">No. Observations:                 190   AIC:                             381.1</span></span>
+<span id="cb3-58"><a href="#cb3-58" aria-hidden="true" tabindex="-1"></a><span class="co">Df Residuals:                     187   BIC:                             390.8</span></span>
+<span id="cb3-59"><a href="#cb3-59" aria-hidden="true" tabindex="-1"></a><span class="co">Df Model:                           2                                         </span></span>
+<span id="cb3-60"><a href="#cb3-60" aria-hidden="true" tabindex="-1"></a><span class="co">Covariance Type:            nonrobust                                         </span></span>
+<span id="cb3-61"><a href="#cb3-61" aria-hidden="true" tabindex="-1"></a><span class="co">====================================================================================</span></span>
+<span id="cb3-62"><a href="#cb3-62" aria-hidden="true" tabindex="-1"></a><span class="co">                       coef    std err          t      P&gt;|t|      [0.025      0.975]</span></span>
+<span id="cb3-63"><a href="#cb3-63" aria-hidden="true" tabindex="-1"></a><span class="co">------------------------------------------------------------------------------------</span></span>
+<span id="cb3-64"><a href="#cb3-64" aria-hidden="true" tabindex="-1"></a><span class="co">const                2.0000      0.047     42.122      0.000       1.906       2.094</span></span>
+<span id="cb3-65"><a href="#cb3-65" aria-hidden="true" tabindex="-1"></a><span class="co">Scholarship_True     0.1385      0.047      2.917      0.004       0.045       0.232</span></span>
+<span id="cb3-66"><a href="#cb3-66" aria-hidden="true" tabindex="-1"></a><span class="co">Study_Hours          0.5620      0.047     11.835      0.000       0.468       0.656</span></span>
+<span id="cb3-67"><a href="#cb3-67" aria-hidden="true" tabindex="-1"></a><span class="co">==============================================================================</span></span>
+<span id="cb3-68"><a href="#cb3-68" aria-hidden="true" tabindex="-1"></a><span class="co">Omnibus:                       11.718   Durbin-Watson:                   1.974</span></span>
+<span id="cb3-69"><a href="#cb3-69" aria-hidden="true" tabindex="-1"></a><span class="co">Prob(Omnibus):                  0.003   Jarque-Bera (JB):               14.133</span></span>
+<span id="cb3-70"><a href="#cb3-70" aria-hidden="true" tabindex="-1"></a><span class="co">Skew:                          -0.457   Prob(JB):                     0.000853</span></span>
+<span id="cb3-71"><a href="#cb3-71" aria-hidden="true" tabindex="-1"></a><span class="co">Kurtosis:                       3.975   Cond. No.                         1.01</span></span>
+<span id="cb3-72"><a href="#cb3-72" aria-hidden="true" tabindex="-1"></a><span class="co">==============================================================================</span></span>
+<span id="cb3-73"><a href="#cb3-73" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>全般的に有意ではあるものの,精度がそれほど高くありません.
+<img src="/images/slds/ch12/lm.png" />
+<img src="/images/slds/ch12/lm_kde.png" /></p>
+<p>グラフを見てみると, 元のデータは予測値に対して分散が大きくデータの分散を予測モデルが説明しきれていないことが分かります.
+R2を確認しても,データに含まれている変数では全体の変動のうち44%ほどしか説明できていません.</p>
+<h2 id="過分散と個別差">過分散と個別差</h2>
+<p>このように,観察データの分散が,モデルの予測から逸脱しており,モデルではデータの分散が説明できていない状態を<strong>過分散</strong>といいます.</p>
+<p>モデルの説明力を上げるためには,このようなモデルによって説明できていないばらつきを説明する拡張が必要となります.</p>
+<p>ここでは,｢データ(の観測対象)=学生｣なので,｢ばらつき=学生差｣と仮定してみます.
+例えば,そもそも過去の学習経験,勉強環境などにより,ベースとなる学力が学生それぞれで異なるなど,学生差によるばらつきを表現するために線形モデルを拡張した<strong>一般化線形モデル</strong>を構築してみましょう.</p>
+<h2 id="一般化線形モデルglm">一般化線形モデル(GLM)</h2>
+<p><strong>一般化線形モデル(Generalized Linear Model, GLM)</strong>は,線形回帰分析を一般化した統計モデルです. 線形回帰分析では以下の式における</p>
+<p><span class="math display">
+Y_i = \beta_0 + \beta_1 X_i + \epsilon_i \quad (i=1,2,\dots,n)
+</span></p>
+<p><strong>誤差項</strong> <span class="math inline">\epsilon_i</span> のみが<strong>正規分布</strong>に従うと仮定して分析を実施していました.</p>
+<p><span class="math display">
+\epsilon_i \sim N(0, \sigma^2)
+</span></p>
+<p>これに対し,一般化線形モデルは以下の3つの要素から構成されます:</p>
+<ol type="1">
+<li><strong>確率分布</strong>: 目的変数<span class="math inline">y_i</span>が従う確率分布(正規分布,ポアソン分布,二項分布など)</li>
+<li><strong>線形予測子</strong>: 説明変数の線形結合<span class="math inline">\eta_i = \beta_0 + \beta_1 X_{1i} + \beta_2 X_{2i} + \cdots</span></li>
+<li><strong>リンク関数</strong>: 目的変数の期待値<span class="math inline">E[y_i]</span>と線形予測子<span class="math inline">\eta_i</span>を結び付ける関数<span class="math inline">g(E[y_i]) = \eta_i</span></li>
+</ol>
+<p>線形回帰は,一般化線形モデルの特殊ケース(正規分布 + 恒等リンク関数)として捉えることができます. 一般化線形モデルにより,正規分布以外の分布や,非線形な関係もモデル化できるようになります.</p>
+<p>ベイズ統計学のモデルにおいて最尤推定する対象は, モデルの母数 <span class="math inline">\theta</span>であり,
+データがどのような分布であるかを観察し,それを再現するモデルを構築します.</p>
+<p>そこで,今回の目的変数であるGPAの分布を確認してみましょう.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>plt.figure(figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">5</span>))</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>sns.kdeplot(df[<span class="st">&quot;GPA&quot;</span>], fill<span class="op">=</span><span class="va">True</span>, bw_adjust<span class="op">=</span><span class="fl">0.5</span>)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">&quot;Kernel Density Estimate of GPA&quot;</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">&quot;GPA&quot;</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">&quot;Density&quot;</span>)</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>plt.grid(<span class="va">True</span>)</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>plt.savefig(<span class="st">&#39;kde-gpa.png&#39;</span>)</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>plt.close()</span></code></pre></div>
+<p><img src="/images/slds/ch12/gpa-kde.png" /></p>
+<p>カーネル密度プロットの結果から,今回のデータは正規分布していると仮定して問題なさそうです.</p>
+<p><span class="math display"> y_i \sim N(\mu_i, \sigma^2) </span></p>
+<p>ここで,今回は正規分布の母数である平均 <span class="math inline">\mu</span> を推定する目的としてみます.</p>
+<div class="warn">
+<p>モデルの設計では分散 <span class="math inline">\sigma</span> を推定の目的とすることも可能ですが,単純化のために固定とします.
+今回は説明用の単純なモデルですが,必要に応じてより複雑なモデルを資料に追加していきます.</p>
+</div>
+<p>このとき,説明変数としてgpaに影響するもの配下のように仮定します.</p>
+<ul>
+<li><span class="math inline">S_t</span> (Study Hours): 勉強時間</li>
+<li><span class="math inline">S_s</span> (Scholarship): 奨学金</li>
+<li><span class="math inline">\alpha_i</span>: 学生個別のもともとの学力（ランダム切片）</li>
+</ul>
+<p>これらの変数を用いて, <span class="math inline">\mu</span> を表す式を以下のように立てます.</p>
+<p><span class="math display">\mu_i = \alpha_i + \beta_{st} \cdot S_t + \beta_{ss} \cdot S_s</span></p>
+<p>このような式を,<strong>線形予測子(linear predictor)</strong>といいます.</p>
+<div class="note">
+<p>線形予測子は,説明変数とパラメータの線形結合で構成される式です.</p>
+<p>一般化線形モデル(GLM)では,線形予測子<span class="math inline">\eta_i</span>と目的変数の期待値<span class="math inline">E[y_i]</span>をリンク関数<span class="math inline">g(\cdot)</span>で結び付けます:</p>
+<p><span class="math display">g(E[y_i]) = \eta_i = \alpha_i + \beta_{st} \cdot S_t + \beta_{ss} \cdot S_s</span></p>
+<p>今回は正規分布を仮定しているため,恒等リンク関数(identity link function) <span class="math inline">g(x) = x</span> を使用します. 恒等リンク関数では,</p>
+<p><span class="math display">g(E[y_i]) = E[y_i] = \mu_i = \eta_i</span></p>
+<p>となり,<span class="math inline">\mu_i = E[y_i] = \eta_i</span>という関係が成り立ちます. これにより,線形回帰と同じ形式になります.</p>
+<p>他の分布では,例えば:</p>
+<ul>
+<li>ポアソン分布: 対数リンク関数 <span class="math inline">g(E[y_i]) = \log(E[y_i]) = \eta_i</span></li>
+<li>二項分布: ロジットリンク関数 <span class="math inline">g(E[y_i]) = \log\left(\frac{E[y_i]}{1-E[y_i]}\right) = \eta_i</span></li>
+</ul>
+<p>などが用いられます.</p>
+<p>今回は線形モデルとの接続のために,正規分布を仮定していますが,そもそもデータが正規分布では説明できないことが明らかな場合には,適した分布を選択することでモデルの精度が格段に上がります.</p>
+</div>
+<p>ここで,解くべき問題は,</p>
+<p><span class="math display">E[y_i] = \mu_i = \alpha_i + \beta_{st} \cdot S_t + \beta_{ss} \cdot S_s</span></p>
+<p>となるような<span class="math inline">\alpha_i, \beta_{st}, \beta_{ss}</span>を推定することです.</p>
+<h2 id="個体差のモデリング">個体差のモデリング</h2>
+<p>恒等リンク関数を用いたモデリングでは,線形回帰と同じ形式の式となりますが,
+一般化線形モデルでは全体の分布を仮定しているため個体差をモデルに取り組むことが可能となります.</p>
+<h3 id="線形回帰での問題">線形回帰での問題</h3>
+<p>個体差をモデルに取り込もうとする場合,線形回帰では以下のような問題が発生します:</p>
+<ul>
+<li><p><strong>ダミー変数の導入</strong>: 各学生の個別の学力を推定するために,学生ごとにダミー変数を導入する方法が考えられます.</p></li>
+<li><p><strong>データ数が少ない場合の問題</strong>: 各学生毎にデータ数が少ない場合(今回は1人1データ),各ダミー変数は誤差と等しくなってしまいます.</p></li>
+<li><p><strong>過学習の問題</strong>: 結果として,データ = 予測値 (<span class="math inline">\hat{y}_i = y_i</span>) としているのと変わらなくなります. これは推定の意味がなく,<strong>過学習</strong>を起こしている状態です.</p></li>
+</ul>
+<h3 id="ベイズ推論による解決">ベイズ推論による解決</h3>
+<p>ベイズ統計学では,この問題を以下のように解決します:</p>
+<ul>
+<li><p><strong>階層構造の導入</strong>: 各学生の学力<span class="math inline">\alpha_i</span>に対して,事前分布として正規分布<span class="math inline">\alpha_i \sim N(\mu_{\alpha}, \sigma_{\alpha}^2)</span>を設定します. これにより,<strong>階層ベイズモデル(hierarchical Bayesian model)</strong>または<strong>ランダム効果モデル(random effects model)</strong>を構築します.</p></li>
+<li><p><strong>分布の母数を推定</strong>: 推定するのは個別の学力<span class="math inline">\alpha_i</span>ではなく,その分布の母数<span class="math inline">(\mu_{\alpha}, \sigma_{\alpha})</span>です. これにより,データ数が少なくても,全体の分布から情報を借用(<strong>borrowing strength</strong>, 情報の共有)して推定を行うことができます. 各学生のデータが少なくても,他の学生のデータと組み合わせることで,より安定した推定が可能になります.</p></li>
+<li><p><strong>新しいデータへの対応</strong>: 分布の母数<span class="math inline">(\mu_{\alpha}, \sigma_{\alpha})</span>が推定されているため,新しい学生のデータが得られた場合でも,推定された分布<span class="math inline">N(\mu_{\alpha}, \sigma_{\alpha}^2)</span>に基づいて学力を推定することが可能になります. これにより,汎化性能の高いモデルを構築できます.</p></li>
+</ul>
+<p><img src="/images/slds/ch12/random_image.png" /></p>
+<p>それでは実際に,モデルを構築してみましょう.</p>
+<h3 id="モデルの仮定">モデルの仮定</h3>
+<p>階層ベイズモデルでは,仮説に従って以下のように分布を設定します.</p>
+<ul>
+<li><strong>仮説: 基礎学力は学生によって異なる</strong>
+<ul>
+<li>個別に異なる<span class="math inline">\alpha_i</span></li>
+</ul></li>
+<li><strong>仮定: 基礎学力は正規分布に従う</strong>
+<ul>
+<li><span class="math inline">\alpha_i \sim N(\mu_{\alpha}, \sigma_{\alpha}^2)</span></li>
+<li>これを<strong>事前分布(prior distribution)</strong>といいます.</li>
+</ul></li>
+<li><strong>更にそれぞれの母数の分布を仮定する</strong>
+<ul>
+<li><span class="math inline">\mu_{\alpha} \sim N(0, 1)</span></li>
+<li><span class="math inline">\sigma_{\alpha} \sim HN(1)</span></li>
+<li>ここで,<span class="math inline">HN</span>は<strong>半正規分布(Half-Normal distribution)</strong>を表します.</li>
+</ul></li>
+</ul>
+<p><img src="/images/slds/ch12/dist_setting.png" /></p>
+<p>このように,パラメータの分布のパラメータ(超パラメータ)についても分布を仮定することで,階層的な構造を持つベイズモデルを構築します. これは<strong>階層事前分布(hierarchical prior)</strong>と呼ばれます.</p>
+<h3 id="ランダム傾きとランダム切片">ランダム傾きとランダム切片</h3>
+<p>これまで,学生の基礎学力の違い(ランダム切片<span class="math inline">\alpha_i</span>)について考えてきましたが,他にも個体差として考慮できる要素があります.</p>
+<ul>
+<li><strong>仮説: 勉強時間による効果は人によって違う</strong></li>
+</ul>
+<p>ただし,学生個別の個体差<span class="math inline">\alpha_i</span>(ランダム切片)のように,学生個別の勉強時間あたりのGPAの上昇率<span class="math inline">\beta_{st,i} \cdot S_t</span>という推定は,今回のデータではモデル化<strong>できません</strong>.</p>
+<p>このような個別の傾きを<strong>ランダム傾き(random slope)</strong>といいます.</p>
+<h4 id="なぜモデル化できないのか">なぜモデル化できないのか?</h4>
+<ul>
+<li><p><strong>学生1人につき1つしかデータがない</strong>: 今回のデータでは,各学生について1つの観測値しかありません.</p></li>
+<li><p><strong>切片はそれぞれの値から推定できる</strong>: 切片<span class="math inline">\alpha_i</span>は,以下のように各学生のデータから直接推定できます:
+<span class="math display">\alpha_i = y_i - \beta_{st} \cdot S_t - \beta_{ss} \cdot S_s</span></p></li>
+<li><p><strong>傾きは複数の観測点が必要</strong>: 傾きは「変化の傾向(勾配)」なので,推定には複数の観測点が必要です. 傾き<span class="math inline">\beta_{st,i}</span>を推定するには,少なくとも2点以上のデータが必要で,以下のように計算されます:
+<span class="math display">\beta_{st,i} = \frac{y_i - y_j}{S_{t,i} - S_{t,j}}</span></p></li>
+</ul>
+<p>そのため,1人1データしかない今回のケースでは,学生ごとのランダム傾きを推定することはできません. ランダム傾きをモデル化するには,各学生について複数の時点でのデータ(縦断データ)が必要になります.</p>
+<p><img src="/images/slds/ch12/random_slope.png" /></p>
+<p>したがって今回は,学生個別の学習能力は全体で同一(固定効果)として扱います. また,奨学金についても同様に学生ごとの差は無いものとして扱います(ランダム傾きモデルに関しては,今後学生の需要があれば資料に追加します.)</p>
+<h2 id="モデル全体像">モデル全体像</h2>
+<p>これまで説明してきた内容を整理すると,以下のような階層ベイズモデルになります:</p>
+<h3 id="推定する分布">推定する分布</h3>
+<p><span class="math display">y_i \sim N(\mu_i, \sigma^2)</span></p>
+<p>ここで,<span class="math inline">y_i</span>は学生<span class="math inline">i</span>のGPAです. 誤差の標準偏差<span class="math inline">\sigma</span>は,今回は固定値<span class="math inline">\sigma = 0.3</span>として扱います.</p>
+<h3 id="線形予測子">線形予測子</h3>
+<p><span class="math display">\mu_i = \alpha_i + \beta_{st} \cdot S_t + \beta_{ss} \cdot S_s</span></p>
+<p>ここで:</p>
+<ul>
+<li><span class="math inline">S_t</span>は勉強時間(Study Hours)</li>
+<li><span class="math inline">S_s</span>は奨学金受給の有無(Scholarship, 0または1)</li>
+<li><span class="math inline">\alpha_i</span>は学生<span class="math inline">i</span>の基礎学力(ランダム切片)</li>
+<li><span class="math inline">\beta_{st}</span>は勉強時間の効果(固定効果)</li>
+<li><span class="math inline">\beta_{ss}</span>は奨学金の効果(固定効果)</li>
+</ul>
+<h3 id="尤度関数">尤度関数</h3>
+<p><span class="math display">p(y | \alpha, \beta_{st}, \beta_{ss}, \sigma) = \prod_{i=1}^{N} N(y_i | \mu_i, \sigma^2)</span></p>
+<p>ここで,<span class="math inline">\mu_i = \alpha_i + \beta_{st} \cdot S_t + \beta_{ss} \cdot S_s</span>です.</p>
+<h3 id="事前分布">事前分布</h3>
+<h4 id="ランダム切片階層構造">ランダム切片(階層構造)</h4>
+<ul>
+<li><p><span class="math inline">\alpha_i \sim N(\mu_{\alpha}, \sigma_{\alpha}^2)</span>: 学生個別の基礎学力(ランダム切片)</p>
+<p>これは非中心パラメータ化により以下のように表現されます:</p>
+<p><span class="math display">z_{\alpha,i} \sim N(0, 1)</span>
+<span class="math display">\alpha_i = \mu_{\alpha} + \sigma_{\alpha} \cdot z_{\alpha,i}</span></p></li>
+</ul>
+<div class="note">
+<ul>
+<li>非中心パラメータ化(non-centered parameterization)</li>
+</ul>
+<p>階層ベイズモデルにおいて,ランダム切片<span class="math inline">\alpha_i</span>を表現する方法には2通りあります:</p>
+<ol type="1">
+<li><p><strong>中心パラメータ化(centered parameterization)</strong>:
+<span class="math display">\alpha_i \sim N(\mu_{\alpha}, \sigma_{\alpha}^2)</span>
+これは,直接<span class="math inline">\alpha_i</span>を平均<span class="math inline">\mu_{\alpha}</span>と標準偏差<span class="math inline">\sigma_{\alpha}</span>を持つ正規分布から生成する方法です.</p></li>
+<li><p><strong>非中心パラメータ化(non-centered parameterization)</strong>:
+<span class="math display">z_{\alpha,i} \sim N(0, 1)</span>
+<span class="math display">\alpha_i = \mu_{\alpha} + \sigma_{\alpha} \cdot z_{\alpha,i}</span>
+これは,標準正規分布<span class="math inline">N(0, 1)</span>から<span class="math inline">z_{\alpha,i}</span>を生成し,それを線形変換して<span class="math inline">\alpha_i</span>を生成する方法です.</p></li>
+</ol>
+<p>数学的には,両者は同じ分布<span class="math inline">\alpha_i \sim N(\mu_{\alpha}, \sigma_{\alpha}^2)</span>を生成しますが,MCMCサンプリングにおける挙動が大きく異なります.</p>
+<p><strong>MCMCサンプリングにおける効果:</strong></p>
+<p>非中心パラメータ化は,以下の理由からMCMCサンプリングの効率を大幅に向上させます:</p>
+<ol type="1">
+<li><p><strong>パラメータ間の相関の低減</strong>: 中心パラメータ化では,<span class="math inline">\alpha_i</span>と<span class="math inline">(\mu_{\alpha}, \sigma_{\alpha})</span>の間に強い相関が生じます. 特に,<span class="math inline">\sigma_{\alpha}</span>が小さい場合,<span class="math inline">\alpha_i</span>の値は<span class="math inline">\mu_{\alpha}</span>に近くなり,パラメータ空間の探索が困難になります. 非中心パラメータ化では,<span class="math inline">z_{\alpha,i}</span>は標準正規分布から独立に生成されるため,パラメータ間の相関が低減され,効率的な探索が可能になります.</p></li>
+<li><p><strong>ファネル形状の問題の回避</strong>: 階層モデルでは,パラメータ空間が「ファネル(funnel)」形状になることがあります. <span class="math inline">\sigma_{\alpha}</span>が小さい領域では,許容される<span class="math inline">\alpha_i</span>の範囲が狭くなり,サンプリングが困難になります. 非中心パラメータ化により,この問題を回避できます.</p></li>
+<li><p><strong>収束の改善</strong>: パラメータ間の相関が低減されることで,マルコフ連鎖がより速く混合し,収束が改善されます. 特に,階層モデルでは,非中心パラメータ化を使用することで,発散(divergence)の発生を大幅に減らすことができます.</p></li>
+<li><p><strong>ESS(Effective Sample Size)の向上</strong>: パラメータ間の相関が低減されることで,サンプル間の自己相関が減少し,実質的なサンプルサイズ(ESS)が向上します. これにより,より少ないサンプル数で,より信頼性の高い推定が可能になります.</p></li>
+</ol>
+<p>ただし,すべての場合に非中心パラメータ化が最適というわけではありません. データが十分に多い場合や,<span class="math inline">\sigma_{\alpha}</span>が大きい場合には,中心パラメータ化でも問題なく動作することがあります. しかし,一般的には,階層モデルでは非中心パラメータ化を使用することが推奨されます.</p>
+</div>
+<h4 id="固定効果">固定効果</h4>
+<ul>
+<li><span class="math inline">\beta_{st} \sim N(0, 1)</span>: 勉強時間の効果(固定効果, 学生間で同じ値)</li>
+<li><span class="math inline">\beta_{ss} \sim N(0, 1)</span>: 奨学金の効果(固定効果, 学生間で同じ値)</li>
+</ul>
+<h3 id="超事前分布">超事前分布</h3>
+<ul>
+<li><span class="math inline">\mu_{\alpha} \sim N(0, 1)</span>: ランダム切片の平均</li>
+<li><span class="math inline">\sigma_{\alpha} \sim HN(1)</span>: ランダム切片の標準偏差(半正規分布)</li>
+</ul>
+<p>以下は後述のコードから生成されるモデル全体像を表す図です.</p>
+<p><img src="/images/slds/ch12/hierarchical_bayes_model.png" /></p>
+<p>このモデルにより,学生間の基礎学力の個体差を考慮しながら(ランダム切片),勉強時間と奨学金がGPAに与える影響を固定効果として推定することができます.</p>
+<h1 id="環境構築">環境構築</h1>
+<p>それでは,実際にプログラム上でこのモデルを構築,推定してみましょう.</p>
+<p><code>Python</code>においてベイズ統計学に基づいた統計モデリングを実施するためのライブラリとして<code>PyMC5</code>があります(古いVersionとして<code>PyMC3</code>があり全く異なる記法などを用いているので注意して下さい). こちらのライブラリは,Pythonのパッケージマネージャーである<code>anaconda</code>を利用します.
+通常これまでに利用してきた<code>pip</code>による環境と<code>anaconda</code>環境の併用は困難です. ただし,この講義では,<code>pyenv</code>を環境構築に利用していますので, <code>PyMC</code>を利用するためのディレクトリのlocal環境にのみ<code>anaconda</code>用の環境を構築することが可能です.</p>
+<p>まずは,ターミナルで<code>PyMC</code>を実行する用のディレクトリを作成し,そこに移動して下さい.</p>
+<p>以下, 移動したディレクトリ内に<code>anaconda</code>環境を構築していきます.</p>
+<h2 id="anacondaのインストール"><code>anaconda</code>のインストール</h2>
+<div class="warn">
+<p><code>MacOS</code>の方は <code>pyenv install -l</code> で<code>anaconda</code>系統の環境が表示されるので <code>pyenv install anacondaXXX</code> でインストール可能です.</p>
+<p>執筆時点の最新版 <code>anaconda3-2024.10-1</code>は<code>PyMC5</code>が対応していないため,<code>anaconda3-2024.02-1</code>が推奨されます.</p>
+</div>
+<p><code>Windows</code>の場合は <code>pyenv</code> でのインストールが提供されていないので,手動でインストールする必要があります.</p>
+<p><code>anaconda</code>の<a href="https://www.anaconda.com/download#Downloads">公式ページ</a>に行き,<code>Get Started</code>から指示に従ってアカウント等を作成して下さい.</p>
+<p><img src="/images/slds/ch12/anaconda/anaconda-HP.png" /></p>
+<p>続いて, Windows版の<code>anaconda</code>のインストーラーをダウンロードします.</p>
+<p><img src="/images/slds/ch12/anaconda/anaconda-DW.png" /></p>
+<p>ダウンロードが完了したら,インストーラーをダブルクリックして起動します.
+設定は変更せず<code>Next</code>をクリックしていきます.</p>
+<p><img src="/images/slds/ch12/anaconda/anaconda-Explorer.png" /></p>
+<p><img src="/images/slds/ch12/anaconda/anaconda-installer.png" /></p>
+<p><img src="/images/slds/ch12/anaconda/anaconda-just-me.png" /></p>
+<p>インストール先の設定画面が出たら, <code>pyenv</code>の<code>versions</code>フォルダに保存します.
+パスを以下のように指定して次に進みましょう</p>
+<p><code>C:\Users\xxx\.pyenv\pyenv-win\versions\anaconda</code>
+(XXXの部分を自分のユーザー名にしましょう.)</p>
+<p><img src="/images/slds/ch12/anaconda/anaconda-pass.png" /></p>
+<p>その後は基本的にデフォルトの設定のまま,<code>Next</code>,<code>Finish</code>を押しましょう.</p>
+<p><img src="/images/slds/ch12/anaconda/anaconda-installer-end.png" /></p>
+<p><img src="/images/slds/ch12/anaconda/anaconda-installer-end2.png" /></p>
+<p><img src="/images/slds/ch12/anaconda/anaconda-installer-end3.png" /></p>
+<p>インストールが完了したら,ターミナルを開き作業用フォルダに移動して,<code>pyenv versions</code> コマンドで<code>anaconda</code>がインストールされているか確認しましょう.</p>
+<p><img src="/images/slds/ch12/anaconda/anaconda-pyenv.png" /></p>
+<p>ローカル環境に<code>anaconda</code>を指定します.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pyenv</span> local anaconda</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="ex">pyenv</span> rehash</span></code></pre></div>
+<p><code>anaconda</code>では<code>pip</code>ではなく<code>conda</code>を利用してライブラリをインストールします. まずは,<code>anaconda</code>自体を<code>update</code>しましょう.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">conda</span> update <span class="at">-n</span> base <span class="at">-c</span> defaults conda</span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">Proceed</span> <span class="er">(</span><span class="ex">[y]/n</span><span class="kw">)</span><span class="ex">?</span> y</span></code></pre></div>
+<p>が表示されたら, <code>y</code> を押して<code>Enter</code>します.</p>
+<p>続いて<code>PyMC5</code>の公式サイトに従い,<code>anaconda</code>上で<code>PyMC5</code>をインストールします.
+<code>pyenv</code>が既に仮想環境ですが,<code>conda create</code>コマンドによって <code>pymc</code>などがインストールされた<code>python</code>の仮想環境を更に構築します.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">conda</span> create <span class="at">-c</span> conda-forge <span class="at">-n</span> pymc_env <span class="st">&quot;pymc&gt;=5&quot;</span></span></code></pre></div>
+<p>入力後完了したら,仮想環境を有効化するためにterminalを一度初期化します.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">conda</span> init powershell</span></code></pre></div>
+<div class="warn">
+<p><code>MacOS</code>の場合は, <code>conda init zsh</code> コマンドです.</p>
+</div>
+<p>を入力し, <strong><code>Terminal</code>を閉じて再度作業ディレクトリに移動したあと</strong>に仮想環境を有効化する以下のコマンドを入力して下さい.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">conda</span> activate pymc_env</span></code></pre></div>
+<div class="warn">
+<p>Macの場合は, このあと仮想環境をlocalに指定します.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pyenv</span> versions</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="ex">system</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="ex">3.12.3</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="ex">*</span> anaconda3-2024.02-1</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>  <span class="ex">anaconda3-2024.02-1/envs/pymc_env</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="ex">❯</span> pyenv local anaconda3-2024.02-1/envs/pymc_env</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="ex">❯</span> pyenv local</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="ex">anaconda3-2024.02-1/envs/pymc_env</span></span></code></pre></div>
+</div>
+<p>環境の確認をします.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="ex">Get-Command</span> python</span></code></pre></div>
+<div class="warn">
+<p><code>MacOS</code>の場合は, <code>witch python</code> コマンドです.</p>
+</div>
+<p>以下のように<code>pymc_env</code>内のpythonが表示されれば利用可能な状況になっています.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="ex">CommandType</span>     Name                                               Version    Source</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="ex">-----------</span>     <span class="at">----</span>                                               <span class="at">-------</span>    <span class="at">------</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="ex">Application</span>     python.exe                                         3.11.14... C:<span class="dt">\U</span>sers<span class="dt">\a</span>kagi<span class="dt">\.</span>pyenv<span class="dt">\p</span>yenv-win<span class="dt">\v</span>ersions<span class="dt">\a</span>naconda<span class="dt">\e</span>nvs<span class="dt">\p</span>ymc_env<span class="dt">\p</span>ython.exe</span></code></pre></div>
+<p>必要なライブラリをインストールします.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="ex">conda</span> install seaborn scikit-learn statsmodels</span></code></pre></div>
+<p>途中で,<code>Proceed ([y]/n)?</code> と表示されたら<code>y</code>と入力してENTERを押します.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="ex">Preparing</span> transaction: done</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="ex">Verifying</span> transaction: done</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="ex">Executing</span> transaction: done</span></code></pre></div>
+<p>などが表示されれば,環境構築完了です.</p>
+<p>以降,Terminalで作業ディレクトリに移動した後<code>conda activate pymc_env</code> でこの環境が利用できるようになります.</p>
+<h1 id="pymc-実装">PyMC 実装</h1>
+<p>コードが複雑になるため,先にコードの全体像を示した後, 個別に意味を解説します.
+まずは,以下のコードを作業ディレクトリに配置した後,実行してみましょう.</p>
+<div class="warn">
+<p>最初の画像の保存先やデータの参照先は,環境に応じて変えて下さい.</p>
+<p><code>save_dir = '/images/slds/ch12/'</code></p>
+</div>
+<div class="sourceCod
