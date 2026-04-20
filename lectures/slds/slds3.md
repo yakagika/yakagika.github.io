@@ -194,7 +194,23 @@ Pythonが教育用に良く使われるのは, インタプリタ方式の動的
 Pythonの環境構築に関して説明します.Pythonを動かす方法は沢山あります.一つのソフトの中でプログラムの編集から実行まで全て完結するIDE(統合開発環境)やブラウザ上でSaaSを通じて実行する方法もありますが,ここではCLIを利用して実行する方法を準備します.Windowsを所有している学生が多いと思われるので,Windowsを前提に説明します. それ以外のOSの方は分からなければ教員に聞いて下さい.
 
 
-Pythonの環境構築には,[公式のインストーラー](https://www.python.org),[`pyenv`](https://github.com/pyenv/pyenv),[`poetory`](https://python-poetry.org)等いくつかの手法がありますが,現在は [`uv`](https://docs.astral.sh/uv/)を利用してpythonのversionやライブラリ,仮想環境をアプリケーションごとに分ける方法が主流です.
+Pythonの環境構築には,[公式のインストーラー](https://www.python.org),[`pyenv`](https://github.com/pyenv/pyenv),[`poetry`](https://python-poetry.org)等いくつかの手法がありますが,現在は [`uv`](https://docs.astral.sh/uv/)を利用してpythonのversionやライブラリ,仮想環境をアプリケーションごとに分ける方法が主流です.
+
+::: note
+**uvとは**
+
+[`uv`](https://docs.astral.sh/uv/) は Astral 社が開発した Python のパッケージマネージャ・プロジェクト管理ツールです. Rust で実装されており,従来の `pip` や `pyenv` と比べて非常に高速に動作します.
+
+従来の Python 環境構築では,バージョン管理に `pyenv`,パッケージ管理に `pip`,仮想環境に `venv`,依存関係の固定に `pip freeze` と,複数のツールを組み合わせる必要がありました. `uv` はこれらを **1つのツールに統合** しており,
+
+- Pythonバージョンの管理 (`uv python install`)
+- プロジェクトの作成 (`uv init`)
+- パッケージの追加 (`uv add`)
+- 仮想環境の自動作成・同期 (`uv run`)
+- 依存関係のロック (`uv.lock`)
+
+をすべて `uv` コマンドだけで完結できます. 特に `uv run` は仮想環境の作成からパッケージの同期,スクリプトの実行までを一度に行うため,仮想環境を手動で有効化(activate)する手間がありません.
+:::
 
 本講義では, `uv`を利用するため,以下`uv`環境の構築を行います. 既にuvがインストールされている人は,この以下のステップは飛ばして下さい.
 
@@ -345,24 +361,28 @@ info: Checking for updates...
 success: You're already on version v0.11.7 of uv (the latest version).
 ~~~
 
-`uv`はプロジェクト(フォルダ)毎に異なるpythonのversion,ライブラリなどを導入し,依存関係を自動で解消してくれます. しかし,特定のプロジェクトではなくシステム全体で利用するpythonを`uv`を通じてインストールすることも可能です.
+`uv`はプロジェクト(フォルダ)毎に異なるpythonのversion,ライブラリなどを導入し,依存関係を自動で解消してくれます. また,`uv`が管理するPythonをシステムにインストールすることも可能です.
 
-`uv python install [version]` を実行すると,特定のプロジェクト以外で使用されるpythonがインストールされます. ここでは `uv python install 3.11.9`で `python 3.11.9`をinstallしてみます. 
+`uv python install [version]` を実行すると,指定したバージョンのPythonがuv管理下にインストールされます. `--default` オプションを付けると,`python` や `python3` コマンドでも呼び出せるようにシンボリックリンクが作成されます.
 
 ~~~sh
-> uv python install 3.11.9
-note: uv selected a Python distribution with an emulated architecture (x86_64) for your platform because support for the native architecture (aarch64) is not yet mature; to override this behaviour, request the native architecture explicitly with: cpython-3.11.9-windows-aarch64-none
-Installed Python 3.11.9 in 5.86s
- + cpython-3.11.9-windows-x86_64-none (python3.11.exe)
+> uv python install 3.11.9 --default
+warning: The `--default` option is experimental and may change without warning. Pass `--preview-features python-install-default` to disable this warning
+Installed Python 3.11.9 in 137ms
+ + cpython-3.11.9-windows-x86_64-none (python.exe, python3.exe)
 ~~~
 
-installされたpythonは`python3.11`で呼び出せます. `>>>`が表示されたら `exit()`と入力して閉じましょう.
+::: warn
+`--default` オプションは現時点では実験的機能(experimental)であり,将来のバージョンで変更される可能性があります. `--default` を付けない場合でも `python3.11` というバージョン付きコマンドでは呼び出せます.
+:::
+
+installされたpythonは`python`で呼び出せます. `>>>`が表示されたら `exit()`と入力して閉じましょう.
 
 ~~~sh
-> python3.11
+> python
 Python 3.11.9 (main, Aug 14 2024, 04:18:20) [MSC v.1929 64 bit (AMD64)] on win32
 Type "help", "copyright", "credits" or "license" for more information.
->>> exit()
+>>>
 ~~~
 
 ## Hello World
@@ -393,7 +413,14 @@ Initialized project `hello-world` at `C:\Users\akagi\Documents\Programs\slds\hel
 >
 ~~~
 
-`init`によりプロジェクトに必要ないくつかのファイルが生成されています.
+`uv init`によりプロジェクトに必要ないくつかのファイルが生成されています.
+
+- `.python-version`: このプロジェクトで使用するPythonのバージョン
+- `main.py`: サンプルのPythonスクリプト
+- `pyproject.toml`: プロジェクトの設定ファイル. `uv add` で追加したパッケージの情報などが記録される
+- `README.md`: プロジェクトの説明ファイル
+
+この他, `uv run` を初めて実行すると `.venv/` (仮想環境) と `uv.lock` (依存関係のロックファイル) が自動で作成されます.
 
 ~~~ sh
 > ls
@@ -437,16 +464,16 @@ Mode                 LastWriteTime         Length Name
 確認できたらhello.pyに以下の2行を書き足して上書き保存します.
 
 ~~~ python
-print("Hello world!")
+print("Hello World!")
 ~~~
 
-保存できたら`uv run hello.py`コマンドでプログラムを実行します.
+保存できたら`uv run hello.py`コマンドでプログラムを実行します. `uv run` は仮想環境の作成・パッケージの同期を自動で行ったうえでスクリプトを実行するため,仮想環境を手動で有効化(activate)する必要はありません.
 
 標準出力に`Hello World!`と表示されれば成功です.
 
 ~~~ sh
 > uv run .\hello.py
-hello world
+Hello World!
 ~~~
 
 ここまでで，皆さんはPCでプログラムを書く準備が整いました．

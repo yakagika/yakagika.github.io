@@ -33,15 +33,32 @@ nextChapter: slds5.html
 
 Pythonには複数のREPLがあり,iPython, jupyternotebook, Google Colaboratoryなどがあります.ここではとりあえず,iPythonを利用します. 他のものについても,後ほど出てきます.
 
-`uv add --dev ipython`コマンドで特定のプロジェクトに`ipython`をinstallしましょう.
-install後 `uv run ipython` でPythonのREPLが立ち上がります.
+プロジェクトのディレクトリ内で `uv run python` と入力することで,Python の REPL が立ち上がります. `uv run` はプロジェクトの仮想環境を自動で同期してから実行するため, `uv add` で追加したパッケージもそのまま利用できます.
 
 ~~~ sh
-PS C:\Users\akagi\Documents\Programs\slds\hello-world> uv run ipython
+> uv run python
+Python 3.11.9 (main, Aug 14 2024, 04:18:20) [MSC v.1929 64 bit (AMD64)] on win32
+Type "help", "copyright", "credits" or "license" for more information.
+>>>
+~~~
+
+::: warn
+`uv python install 3.11.9 --default` によってグローバルに `python` コマンドが使えるようになっている場合は,`python` だけでもREPLが立ち上がります. ただしこの場合, `uv add` で追加したプロジェクトのパッケージは読み込めません. プロジェクト内のパッケージを使いたい場合は必ず `uv run python` を使いましょう.
+:::
+
+また, `uvx ipython` でIPythonという高機能なREPLを利用することも可能です.
+
+~~~ sh
+> uvx ipython
 
 In [1]:
-
 ~~~
+
+::: note
+`uvx` は `uv tool run` のエイリアスで,一時的な隔離環境にパッケージをインストールして実行するコマンドです. プロジェクトには追加されないため,ちょっとした電卓的な利用に便利です. プロジェクトの依存パッケージ(`uv add` したもの)を使いたい場合は `uv run python` を使ってください.
+:::
+
+
 
 プログラムを書いてEnter Keyを押すとその行のプログラムが実行されます.
 
@@ -1084,7 +1101,7 @@ echo "import pandas as pd\ndf = pd.read_csv('data/error_sample.csv') \nprint(df[
 - Macの人
 
 ~~~ sh
-pip3 install pandas
+uv add pandas
 echo "name,salary\ntaro,100" > data/error_sample.csv
 echo "import pandas as pd\ndf = pd.read_csv('data/error_sample.csv') \nprint(df['salary'])" > error_sample.py
 ~~~
