@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"
+    xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <channel>
+        <title>yakagika - Posts tagged pyenv</title>
+        <link></link>
+        <description><![CDATA[Personal blog of yakagika]]></description>
+        <atom:link href="/tags/pyenv.xml" rel="self"
+                   type="application/rss+xml" />
+        <lastBuildDate>Sun, 20 Apr 2025 00:00:00 UT</lastBuildDate>
+        <item>
+    <title>pyenv+anacondaによるPyMC環境構築(旧版・備忘録)</title>
+    <link>/posts/2025-04-20-pymc-pyenv-setup-archive.html</link>
+    <description><![CDATA[<h1 id="pyenvanacondaによるpymc環境構築旧版">pyenv+anacondaによるPyMC環境構築(旧版)</h1>
+<div class="warn">
+<p>本記事は,授業資料(統計学特殊講義DS等)で使用していた <code>pyenv</code> + <code>anaconda</code> によるPyMC環境構築の手順を記録したものです.</p>
+<p>授業では <code>pyenv</code>+<code>anaconda</code> から <code>uv</code> / Google Colab への移行を進めており,<strong>この手順は今後の授業では使用しません</strong>. 過去にこの手順で環境構築を行った学生が,conda環境をアンインストールする際の備忘録として残しています.</p>
+<p>新しい環境構築手順については,最新の授業資料を参照してください.</p>
+</div>
+<h2 id="conda環境のアンインストール">conda環境のアンインストール</h2>
+<p>過去にこの手順でPyMC環境を構築した場合,以下の手順でconda環境を削除できます.</p>
+<p>まず,conda環境を無効化します.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">conda</span> deactivate</span></code></pre></div>
+<p>続いて,作成した仮想環境を削除します.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">conda</span> remove <span class="at">--name</span> pymc_env <span class="at">--all</span></span></code></pre></div>
+<p>その後,pyenv自体のアンインストールについては <a href="/posts/2025-04-20-pyenv-setup-archive">pyenvによるPython環境構築(旧版・備忘録)</a> の手順に従ってください.</p>
+<hr />
+<p>以下は旧版の環境構築手順です.</p>
+<h1 id="環境構築">環境構築</h1>
+<p>それでは,実際にプログラム上でこのモデルを構築,推定してみましょう.</p>
+<p><code>Python</code>においてベイズ統計学に基づいた統計モデリングを実施するためのライブラリとして<code>PyMC5</code>があります(古いVersionとして<code>PyMC3</code>があり全く異なる記法などを用いているので注意して下さい). こちらのライブラリは,Pythonのパッケージマネージャーである<code>anaconda</code>を利用します.
+通常これまでに利用してきた<code>pip</code>による環境と<code>anaconda</code>環境の併用は困難です. ただし,この講義では,<code>pyenv</code>を環境構築に利用していますので, <code>PyMC</code>を利用するためのディレクトリのlocal環境にのみ<code>anaconda</code>用の環境を構築することが可能です.</p>
+<p>まずは,ターミナルで<code>PyMC</code>を実行する用のディレクトリを作成し,そこに移動して下さい.</p>
+<p>以下, 移動したディレクトリ内に<code>anaconda</code>環境を構築していきます.</p>
+<h2 id="anacondaのインストール"><code>anaconda</code>のインストール</h2>
+<div class="warn">
+<p><code>MacOS</code>の方は <code>pyenv install -l</code> で<code>anaconda</code>系統の環境が表示されるので <code>pyenv install anacondaXXX</code> でインストール可能です.</p>
+<p>執筆時点の最新版 <code>anaconda3-2024.10-1</code>は<code>PyMC5</code>が対応していないため,<code>anaconda3-2024.02-1</code>が推奨されます.</p>
+</div>
+<p><code>Windows</code>の場合は <code>pyenv</code> でのインストールが提供されていないので,手動でインストールする必要があります.</p>
+<p><code>anaconda</code>の<a href="https://www.anaconda.com/download#Downloads">公式ページ</a>に行き,<code>Get Started</code>から指示に従ってアカウント等を作成して下さい.</p>
+<p><img src="/images/posts/pymc-setup/anaconda-HP.png" /></p>
+<p>続いて, Windows版の<code>anaconda</code>のインストーラーをダウンロードします.</p>
+<p><img src="/images/posts/pymc-setup/anaconda-DW.png" /></p>
+<p>ダウンロードが完了したら,インストーラーをダブルクリックして起動します.
+設定は変更せず<code>Next</code>をクリックしていきます.</p>
+<p><img src="/images/posts/pymc-setup/anaconda-Explorer.png" /></p>
+<p><img src="/images/posts/pymc-setup/anaconda-installer.png" /></p>
+<p><img src="/images/posts/pymc-setup/anaconda-just-me.png" /></p>
+<p>インストール先の設定画面が出たら, <code>pyenv</code>の<code>versions</code>フォルダに保存します.
+パスを以下のように指定して次に進みましょう</p>
+<p><code>C:\Users\xxx\.pyenv\pyenv-win\versions\anaconda</code>
+(XXXの部分を自分のユーザー名にしましょう.)</p>
+<p><img src="/images/posts/pymc-setup/anaconda-pass.png" /></p>
+<p>その後は基本的にデフォルトの設定のまま,<code>Next</code>,<code>Finish</code>を押しましょう.</p>
+<p><img src="/images/posts/pymc-setup/anaconda-installer-end.png" /></p>
+<p><img src="/images/posts/pymc-setup/anaconda-installer-end2.png" /></p>
+<p><img src="/images/posts/pymc-setup/anaconda-installer-end3.png" /></p>
+<p>インストールが完了したら,ターミナルを開き作業用フォルダに移動して,<code>pyenv versions</code> コマンドで<code>anaconda</code>がインストールされているか確認しましょう.</p>
+<p><img src="/images/posts/pymc-setup/anaconda-pyenv.png" /></p>
+<p>ローカル環境に<code>anaconda</code>を指定します.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pyenv</span> local anaconda</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">pyenv</span> rehash</span></code></pre></div>
+<p><code>anaconda</code>では<code>pip</code>ではなく<code>conda</code>を利用してライブラリをインストールします. まずは,<code>anaconda</code>自体を<code>update</code>しましょう.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">conda</span> update <span class="at">-n</span> base <span class="at">-c</span> defaults conda</span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">Proceed</span> <span class="er">(</span><span class="ex">[y]/n</span><span class="kw">)</span><span class="ex">?</span> y</span></code></pre></div>
+<p>が表示されたら, <code>y</code> を押して<code>Enter</code>します.</p>
+<p>続いて<code>PyMC5</code>の公式サイトに従い,<code>anaconda</code>上で<code>PyMC5</code>をインストールします.
+<code>pyenv</code>が既に仮想環境ですが,<code>conda create</code>コマンドによって <code>pymc</code>などがインストールされた<code>python</code>の仮想環境を更に構築します.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">conda</span> create <span class="at">-c</span> conda-forge <span class="at">-n</span> pymc_env <span class="st">&quot;pymc&gt;=5&quot;</span></span></code></pre></div>
+<p>入力後完了したら,仮想環境を有効化するためにterminalを一度初期化します.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">conda</span> init powershell</span></code></pre></div>
+<div class="warn">
+<p><code>MacOS</code>の場合は, <code>conda init zsh</code> コマンドです.</p>
+</div>
+<p>を入力し, <strong><code>Terminal</code>を閉じて再度作業ディレクトリに移動したあと</strong>に仮想環境を有効化する以下のコマンドを入力して下さい.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">conda</span> activate pymc_env</span></code></pre></div>
+<div class="warn">
+<p>Macの場合は, このあと仮想環境をlocalに指定します.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">pyenv</span> versions</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="ex">system</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="ex">3.12.3</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="ex">*</span> anaconda3-2024.02-1</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="ex">anaconda3-2024.02-1/envs/pymc_env</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="ex">❯</span> pyenv local anaconda3-2024.02-1/envs/pymc_env</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="ex">❯</span> pyenv local</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="ex">anaconda3-2024.02-1/envs/pymc_env</span></span></code></pre></div>
+</div>
+<p>環境の確認をします.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">Get-Command</span> python</span></code></pre></div>
+<div class="warn">
+<p><code>MacOS</code>の場合は, <code>witch python</code> コマンドです.</p>
+</div>
+<p>以下のように<code>pymc_env</code>内のpythonが表示されれば利用可能な状況になっています.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ex">CommandType</span>     Name                                               Version    Source</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="ex">-----------</span>     <span class="at">----</span>                                               <span class="at">-------</span>    <span class="at">------</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="ex">Application</span>     python.exe                                         3.11.14... C:<span class="dt">\U</span>sers<span class="dt">\a</span>kagi<span class="dt">\.</span>pyenv<span class="dt">\p</span>yenv-win<span class="dt">\v</span>ersions<span class="dt">\a</span>naconda<span class="dt">\e</span>nvs<span class="dt">\p</span>ymc_env<span class="dt">\p</span>ython.exe</span></code></pre></div>
+<p>必要なライブラリをインストールします.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="ex">conda</span> install seaborn scikit-learn statsmodels</span></code></pre></div>
+<p>途中で,<code>Proceed ([y]/n)?</code> と表示されたら<code>y</code>と入力してENTERを押します.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="ex">Preparing</span> transaction: done</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="ex">Verifying</span> transaction: done</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="ex">Executing</span> transaction: done</span></code></pre></div>
+<p>などが表示されれば,環境構築完了です.</p>
+<p>以降,Terminalで作業ディレクトリに移動した後<code>conda activate pymc_env</code> でこの環境が利用できるようになります.</p>]]></description>
+    <pubDate>Sun, 20 Apr 2025 00:00:00 UT</pubDate>
+    <guid>/posts/2025-04-20-pymc-pyenv-setup-archive.html</guid>
+    <dc:creator>yakagika</dc:creator>
+</item>
+<item>
+    <title>pyenvによるPython環境構築(旧版・備忘録)</title>
+    <link>/posts/2025-04-20-pyenv-setup-archive.html</link>
+    <description><![CDATA[<h1 id="pyenvによるpython環境構築旧版">pyenvによるPython環境構築(旧版)</h1>
+<div class="warn">
+<p>本記事は,授業資料(特別講義DS等)で使用していた <code>pyenv</code> によるPython環境構築の手順を記録したものです.</p>
+<p>授業では <code>pyenv</code> から <a href="https://docs.astral.sh/uv/"><code>uv</code></a> への移行を進めており,<strong>この手順は今後の授業では使用しません</strong>. 過去にこの手順で環境構築を行った学生が,pyenv環境を削除して新しい環境に移行する際の備忘録として残しています.</p>
+<p>新しい環境構築手順については,最新の授業資料を参照してください.</p>
+</div>
+<h2 id="前提">前提</h2>
+<p>Windowsを所有している学生を想定し,Windowsを前提に説明しています. それ以外のOSの方は分からなければ教員に聞いて下さい.</p>
+<p>Pythonの環境構築にはいくつかの手法がありますが,ここでは <a href="https://github.com/pyenv/pyenv"><code>pyenv</code></a> を利用した方法を説明します. <code>pyenv</code> はPythonのバージョンをディレクトリごとに管理できるツールです.</p>
+<h2 id="現状の開発環境の削除">現状の開発環境の削除</h2>
+<p>Terminalを開いて, <code>python --version</code>と入力しましょう. すでに<code>python</code> が入っている場合は,Pythonのversion情報が表示されます.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> python <span class="ex">--version</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">Python</span> 3.11.9</span></code></pre></div>
+<p>Pythonがインストールされていない場合は以下のような表示になります.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> python <span class="ex">--version</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">fha</span> : The term <span class="st">&#39;python&#39;</span> is not recognized as the name of a cmdlet, function, script file, or operable program. Check the s</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="ex">pelling</span> of the name, or if a path was included, verify that the path is correct and try again.</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="ex">At</span> line:1 char:1</span></code></pre></div>
+<p>Python の version情報が表示された場合は, <code>pyenv --version</code> と入力してすでに<code>pyenv</code>が入っていないか確認してください.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> pyenv <span class="ex">--version</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">pyenv</span> 3.1.1</span></code></pre></div>
+<p>pyenv の version情報が表示されている場合はすでに環境構築が済んでいるので飛ばしてください. pyenvのversion情報が表示されない人はまず現行のPythonを削除しましょう.</p>
+<p><code>設定 &gt; アプリ &gt; インストールされているアプリ</code>から <code>python</code>を検索して, <code>Python X.X</code> の形式のアプリと,<code>Python Luncher</code>などを<code>アンインストール</code>してください.</p>
+<p>その他, <code>anaconda</code>などが入っていたらアンインストールしておいてください.</p>
+<p><img src="/images/posts/pyenv-setup/python-delete1.png" /></p>
+<p><img src="/images/posts/pyenv-setup/python-delete2.png" /></p>
+<p><img src="/images/posts/pyenv-setup/python-delete3.png" /></p>
+<p>アンインストールが終わったら,terminal を一度開き直して, <code>python --version</code> コマンドで確認してみましょう.
+(VSCodeなどTerminalにアクセスするアプリを開いている場合は,閉じておきましょう.)</p>
+<h2 id="pyenvのインストール">pyenvのインストール</h2>
+<p>続いて <a href="https://github.com/pyenv-win/pyenv-win/tree/master">pyenv for windows</a>を参考に<code>pyenv</code>環境を構築します.</p>
+<p>Terminal を再度開き以下のコマンドをコピー,貼り付けしてEnterを押してください.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a> <span class="ex">Set-ExecutionPolicy</span> <span class="at">-ExecutionPolicy</span> RemoteSigned <span class="at">-Scope</span> CurrentUser</span></code></pre></div>
+<p>Quick start 内のコマンドをコピーしてTerminalに貼り付け,Enterを押してください.</p>
+<figure>
+<img src="/images/posts/pyenv-setup/pyenv-win1.png" alt="インストールコマンド" />
+<figcaption aria-hidden="true">インストールコマンド</figcaption>
+</figure>
+<p>Terminalを再起動して,<code>pyenv --version</code>を入力し,version情報が表示されれば成功です.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> pyenv <span class="ex">--version</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="ex">pyenv</span> 3.1.1</span></code></pre></div>
+<h2 id="pythonのインストール">Pythonのインストール</h2>
+<p>Pythonにはいくつかのversionがあり,必要に応じて切り替えて利用します.
+まずはインストール可能なversionを <code>pyenv install --list</code>コマンドで確認してみましょう.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> pyenv <span class="fu">install</span> <span class="at">--list</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">::</span> <span class="pp">[</span><span class="ss">Info</span><span class="pp">]</span> ::  Mirror: https://www.python.org/ftp/python</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="ex">::</span> <span class="pp">[</span><span class="ss">Info</span><span class="pp">]</span> ::  Mirror: https://downloads.python.org/pypy/versions.json</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="ex">::</span> <span class="pp">[</span><span class="ss">Info</span><span class="pp">]</span> ::  Mirror: https://api.github.com/repos/oracle/graalpython/releases</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="ex">2.4-win32</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="ex">2.4.1-win32</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="ex">2.4.2-win32</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="bu">.</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="bu">.</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="bu">.</span></span></code></pre></div>
+<p>この中から一つを選んでインストールします.
+最新のものをインストールするとライブラリなどが対応していない場合があるので,<code>3.11.9</code>あたりをインストールしておきましょう.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> pyenv <span class="fu">install</span> 3.11.9</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="ex">::</span> <span class="pp">[</span><span class="ss">Info</span><span class="pp">]</span> ::  Mirror: https://www.python.org/ftp/python</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="ex">::</span> <span class="pp">[</span><span class="ss">Info</span><span class="pp">]</span> ::  Mirror: https://downloads.python.org/pypy/versions.json</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="ex">::</span> <span class="pp">[</span><span class="ss">Info</span><span class="pp">]</span> ::  Mirror: https://api.github.com/repos/oracle/graalpython/releases</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="ex">::</span> <span class="pp">[</span><span class="ss">Downloading</span><span class="pp">]</span> ::  3.11.9 ...</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="ex">::</span> <span class="pp">[</span><span class="ss">Downloading</span><span class="pp">]</span> ::  From https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="ex">::</span> <span class="pp">[</span><span class="ss">Downloading</span><span class="pp">]</span> ::  To   C:<span class="dt">\U</span>sers<span class="dt">\a</span>kagi<span class="dt">\.</span>pyenv<span class="dt">\p</span>yenv-win<span class="dt">\i</span>nstall_cache<span class="dt">\p</span>ython-3.11.9-amd64.exe</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="ex">::</span> <span class="pp">[</span><span class="ss">Installing</span><span class="pp">]</span> ::  3.11.9 ...</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="ex">::</span> <span class="pp">[</span><span class="ss">Info</span><span class="pp">]</span> :: completed! 3.11.9</span></code></pre></div>
+<p><code>pyenv</code>はディレクトリごとに使用するPythonのバージョンなどを管理できます.
+現行のディレクトリのみで,特定のversionのPythonを利用したい場合は</p>
+<p><code>pyenv local &lt;使いたいPython&gt;</code>で設定します.</p>
+<p><code>local</code>で設定されているディレクトリ以外全てで共通のPythonを使用したい場合は</p>
+<p><code>pyenv global &lt;使いたいPython&gt;</code> で設定します.</p>
+<p>今は,</p>
+<p><code>pyenv global 3.11.9</code> で全体に<code>3.11.9</code>を設定しましょう.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> pyenv <span class="ex">global</span> 3.11.9</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> python <span class="ex">--version</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="ex">Python</span> 3.11.9</span></code></pre></div>
+<p><code>python --version</code>で指定したversionのpythonが表示されればPythonの環境構築完了です.</p>]]></description>
+    <pubDate>Sun, 20 Apr 2025 00:00:00 UT</pubDate>
+    <guid>/posts/2025-04-20-pyenv-setup-archive.html</guid>
+    <dc:creator>yakagika</dc:creator>
+</item>
+
+    </channel>
+</rss>

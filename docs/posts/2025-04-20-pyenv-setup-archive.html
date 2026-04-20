@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>yakagika - pyenvによるPython環境構築(旧版・備忘録)</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../style.css?v=1776659487">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+      <meta property="og:description" content="授業資料をuvに移行するにあたり,旧版のpyenv導入手順をアンインストール用の備忘録として記録したものです." />
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../">
+          <img src="../favicon.ico" alt="Home" style="width: 32px; height: 32px;">
+        </a>
+      </div>
+      <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../">Home</a>
+      <a href="../posts.html">Blog</a>
+      <a href="../lectures.html">Lecture</a>
+      <a href="../research.html">Research</a>
+      <a href="../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      
+      <div id="lecture-toc" data-mode="single">
+        <h2>Index</h2>
+        <!-- The TOC will be generated here by JavaScript -->
+      </div>
+      
+    </nav>
+
+    <div id="content">
+    <article>
+<header class="article-header">
+    <span class="category-badge">Blog</span>
+    <h1 class="article-title">pyenvによるPython環境構築(旧版・備忘録)</h1>
+    <p class="article-description">授業資料をuvに移行するにあたり,旧版のpyenv導入手順をアンインストール用の備忘録として記録したものです.</p>
+    <div class="article-meta">
+        <span class="meta-item">公開: 2025-04-20</span>
+        <span class="meta-item">更新: 2026-04-20</span>
+    </div>
+    <div class="tag-chips"><a title="All pages tagged 'python'." href="../tags/python.html">python</a>, <a title="All pages tagged 'pyenv'." href="../tags/pyenv.html">pyenv</a>, <a title="All pages tagged 'setup'." href="../tags/setup.html">setup</a></div>
+</header>
+
+<h2 id="pyenvによるpython環境構築旧版">pyenvによるPython環境構築(旧版)</h2>
+<div class="warn">
+<p>本記事は,授業資料(特別講義DS等)で使用していた <code>pyenv</code> によるPython環境構築の手順を記録したものです.</p>
+<p>授業では <code>pyenv</code> から <a href="https://docs.astral.sh/uv/"><code>uv</code></a> への移行を進めており,<strong>この手順は今後の授業では使用しません</strong>. 過去にこの手順で環境構築を行った学生が,pyenv環境を削除して新しい環境に移行する際の備忘録として残しています.</p>
+<p>新しい環境構築手順については,最新の授業資料を参照してください.</p>
+</div>
+<h3 id="前提">前提</h3>
+<p>Windowsを所有している学生を想定し,Windowsを前提に説明しています. それ以外のOSの方は分からなければ教員に聞いて下さい.</p>
+<p>Pythonの環境構築にはいくつかの手法がありますが,ここでは <a href="https://github.com/pyenv/pyenv"><code>pyenv</code></a> を利用した方法を説明します. <code>pyenv</code> はPythonのバージョンをディレクトリごとに管理できるツールです.</p>
+<h3 id="現状の開発環境の削除">現状の開発環境の削除</h3>
+<p>Terminalを開いて, <code>python --version</code>と入力しましょう. すでに<code>python</code> が入っている場合は,Pythonのversion情報が表示されます.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> python <span class="ex">--version</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">Python</span> 3.11.9</span></code></pre></div>
+<p>Pythonがインストールされていない場合は以下のような表示になります.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> python <span class="ex">--version</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">fha</span> : The term <span class="st">'python'</span> is not recognized as the name of a cmdlet, function, script file, or operable program. Check the s</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="ex">pelling</span> of the name, or if a path was included, verify that the path is correct and try again.</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="ex">At</span> line:1 char:1</span></code></pre></div>
+<p>Python の version情報が表示された場合は, <code>pyenv --version</code> と入力してすでに<code>pyenv</code>が入っていないか確認してください.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> pyenv <span class="ex">--version</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">pyenv</span> 3.1.1</span></code></pre></div>
+<p>pyenv の version情報が表示されている場合はすでに環境構築が済んでいるので飛ばしてください. pyenvのversion情報が表示されない人はまず現行のPythonを削除しましょう.</p>
+<p><code>設定 &gt; アプリ &gt; インストールされているアプリ</code>から <code>python</code>を検索して, <code>Python X.X</code> の形式のアプリと,<code>Python Luncher</code>などを<code>アンインストール</code>してください.</p>
+<p>その他, <code>anaconda</code>などが入っていたらアンインストールしておいてください.</p>
+<p><img src="../images/posts/pyenv-setup/python-delete1.png" /></p>
+<p><img src="../images/posts/pyenv-setup/python-delete2.png" /></p>
+<p><img src="../images/posts/pyenv-setup/python-delete3.png" /></p>
+<p>アンインストールが終わったら,terminal を一度開き直して, <code>python --version</code> コマンドで確認してみましょう.
+(VSCodeなどTerminalにアクセスするアプリを開いている場合は,閉じておきましょう.)</p>
+<h3 id="pyenvのインストール">pyenvのインストール</h3>
+<p>続いて <a href="https://github.com/pyenv-win/pyenv-win/tree/master">pyenv for windows</a>を参考に<code>pyenv</code>環境を構築します.</p>
+<p>Terminal を再度開き以下のコマンドをコピー,貼り付けしてEnterを押してください.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a> <span class="ex">Set-ExecutionPolicy</span> <span class="at">-ExecutionPolicy</span> RemoteSigned <span class="at">-Scope</span> CurrentUser</span></code></pre></div>
+<p>Quick start 内のコマンドをコピーしてTerminalに貼り付け,Enterを押してください.</p>
+<figure>
+<img src="../images/posts/pyenv-setup/pyenv-win1.png" alt="インストールコマンド" />
+<figcaption aria-hidden="true">インストールコマンド</figcaption>
+</figure>
+<p>Terminalを再起動して,<code>pyenv --version</code>を入力し,version情報が表示されれば成功です.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> pyenv <span class="ex">--version</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="ex">pyenv</span> 3.1.1</span></code></pre></div>
+<h3 id="pythonのインストール">Pythonのインストール</h3>
+<p>Pythonにはいくつかのversionがあり,必要に応じて切り替えて利用します.
+まずはインストール可能なversionを <code>pyenv install --list</code>コマンドで確認してみましょう.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> pyenv <span class="fu">install</span> <span class="at">--list</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">::</span> <span class="pp">[</span><span class="ss">Info</span><span class="pp">]</span> ::  Mirror: https://www.python.org/ftp/python</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="ex">::</span> <span class="pp">[</span><span class="ss">Info</span><span class="pp">]</span> ::  Mirror: https://downloads.python.org/pypy/versions.json</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="ex">::</span> <span class="pp">[</span><span class="ss">Info</span><span class="pp">]</span> ::  Mirror: https://api.github.com/repos/oracle/graalpython/releases</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="ex">2.4-win32</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="ex">2.4.1-win32</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="ex">2.4.2-win32</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="bu">.</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="bu">.</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="bu">.</span></span></code></pre></div>
+<p>この中から一つを選んでインストールします.
+最新のものをインストールするとライブラリなどが対応していない場合があるので,<code>3.11.9</code>あたりをインストールしておきましょう.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> pyenv <span class="fu">install</span> 3.11.9</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="ex">::</span> <span class="pp">[</span><span class="ss">Info</span><span class="pp">]</span> ::  Mirror: https://www.python.org/ftp/python</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="ex">::</span> <span class="pp">[</span><span class="ss">Info</span><span class="pp">]</span> ::  Mirror: https://downloads.python.org/pypy/versions.json</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="ex">::</span> <span class="pp">[</span><span class="ss">Info</span><span class="pp">]</span> ::  Mirror: https://api.github.com/repos/oracle/graalpython/releases</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="ex">::</span> <span class="pp">[</span><span class="ss">Downloading</span><span class="pp">]</span> ::  3.11.9 ...</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="ex">::</span> <span class="pp">[</span><span class="ss">Downloading</span><span class="pp">]</span> ::  From https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="ex">::</span> <span class="pp">[</span><span class="ss">Downloading</span><span class="pp">]</span> ::  To   C:<span class="dt">\U</span>sers<span class="dt">\a</span>kagi<span class="dt">\.</span>pyenv<span class="dt">\p</span>yenv-win<span class="dt">\i</span>nstall_cache<span class="dt">\p</span>ython-3.11.9-amd64.exe</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="ex">::</span> <span class="pp">[</span><span class="ss">Installing</span><span class="pp">]</span> ::  3.11.9 ...</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="ex">::</span> <span class="pp">[</span><span class="ss">Info</span><span class="pp">]</span> :: completed! 3.11.9</span></code></pre></div>
+<p><code>pyenv</code>はディレクトリごとに使用するPythonのバージョンなどを管理できます.
+現行のディレクトリのみで,特定のversionのPythonを利用したい場合は</p>
+<p><code>pyenv local &lt;使いたいPython&gt;</code>で設定します.</p>
+<p><code>local</code>で設定されているディレクトリ以外全てで共通のPythonを使用したい場合は</p>
+<p><code>pyenv global &lt;使いたいPython&gt;</code> で設定します.</p>
+<p>今は,</p>
+<p><code>pyenv global 3.11.9</code> で全体に<code>3.11.9</code>を設定しましょう.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> pyenv <span class="ex">global</span> 3.11.9</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> python <span class="ex">--version</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="ex">Python</span> 3.11.9</span></code></pre></div>
+<p><code>python --version</code>で指定したversionのpythonが表示されればPythonの環境構築完了です.</p>
+</article>
+
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        &copy; yakagika. Site generated by
+        <a href="http://jaspervdj.be/hakyll">Hakyll</a>.
+    </div>
+</div>
+
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level;
+          switch (heading.tagName.toLowerCase()) {
+            case 'h2': level = 0; break;
+            case 'h3': level = 1; break;
+            case 'h4': level = 2; break;
+            default: return;
+          }
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          anchor.href = '#' + heading.id;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得
+      const pre = codeBlock.parentNode;
+
+      // <pre> を相対配置にし、子要素を絶対配置できるようにする
+      pre.style.position = 'relative';
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.textContent = 'Copy';
+      // ボタンのデザインはCSSで指定するのが望ましいが、簡易的にスタイルを直接指定する例:
+      copyButton.style.position = 'absolute';
+      copyButton.style.top = '8px';
+      copyButton.style.right = '8px';
+      copyButton.style.backgroundColor = '#add8e6'; // 水色
+      copyButton.style.color = '#fff';             // 白文字
+      copyButton.style.border = 'none';
+      copyButton.style.padding = '6px 10px';
+      copyButton.style.borderRadius = '4px';
+      copyButton.style.cursor = 'pointer';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            katex.render( texText.data
+                        , mathElements[i]
+                        , { displayMode: mathElements[i].classList.contains("display")
+                          , throwOnError: true
+                         }
+                        );
+          }
+      }
+    });
+  </script>
+
+  </body>
+</html>

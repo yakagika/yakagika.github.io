@@ -26,7 +26,7 @@ nextChapter: slds9.html
 ---
 
 Pythonにおけるグラフ作成の,代表的なライブラリには,[`matplotlib`](https://matplotlib.org)や[`seaborn`](https://seaborn.pydata.org)があります.
-それぞれ, `pip install`しておきましょう.
+それぞれ, `uv add`しておきましょう.
 
 `matplotlib`,`seaborn`はそれぞれ以下のようにインポートするのが一般的です.
 
@@ -45,7 +45,7 @@ Pythonにおけるグラフ作成の,代表的なライブラリには,[`matplot
  例: ｢Hello こんにちは｣ → ｢Hello □ □ □ □ □ ｣
 
 `matplotlib`で日本語を利用する方法として一番簡単なものに, `japanize-matplotlib`の利用があります.
-`pip install` したあとに, `import japanize_matplotlib` をしましょう(`pip` では `'-'`(ハイフン)ですが,`import`文では,`'_'`(アンダーバー)なので注意してください.)
+`uv add japanize-matplotlib` したあとに, `import japanize_matplotlib` をしましょう(`uv add` では `'-'`(ハイフン)ですが,`import`文では,`'_'`(アンダーバー)なので注意してください.)
 
 :::
 
@@ -55,7 +55,7 @@ Pythonにおけるグラフ作成の,代表的なライブラリには,[`matplot
 
 Python3.12では,`japanize_matplotlib`を読み込もうとすると,`ModuleNotFoundError: No module named 'distutils'` と表示されます.
 
-これは,`japanize_matplotlib`内で利用されている`distutils`というモジュールが廃止されたことによります. こちらのエラーは, `distutils`の代替である`setuptools`を `pip install`することで消えます.
+これは,`japanize_matplotlib`内で利用されている`distutils`というモジュールが廃止されたことによります. こちらのエラーは, `distutils`の代替である`setuptools`を `uv add setuptools`することで消えます.
 
 参考: [【inshellisense】ModuleNotFoundError: No module named 'distutils'の対処法](
 https://qiita.com/pitao/items/1740a62ddee797aed807)

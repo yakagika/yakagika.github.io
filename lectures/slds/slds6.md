@@ -1171,7 +1171,7 @@ print(df)
 
 行のリストよりも列のリストを渡すほうがデータ型が統一されており簡単です.
 そのような場合には,数値計算用ライブラリ`numpy`の`.T`を利用して,転置行列を渡します.
-Shell上で`pip install numpy`を実行して, `numpy`をinstallしたのち,`import numpy as np`と記述して
+Shell上で`uv add numpy`を実行して, `numpy`をinstallしたのち,`import numpy as np`と記述して
 `numpy`をプログラムで利用しましょう.
 
 `numpy`では,ndarray配列というデータ型を利用します.そのため,`np.array()`メソッドで一度`ndarray`に変換し,

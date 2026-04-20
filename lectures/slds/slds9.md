@@ -717,7 +717,7 @@ $$
 | 0.9～1.0 ,-0.9～-1.0 | きわめて強い相関がある   |
 
 
-Pythonで積率相関係数を求めるには `numpy`の`np.corrcoef(xのデータ,yのデータ)`あるいは,`scipy.stats.pearsonr(xのデータ,yのデータ)`を利用します. `scipy`がインストールされていない人は `pip install scipy`をしておきましょう.
+Pythonで積率相関係数を求めるには `numpy`の`np.corrcoef(xのデータ,yのデータ)`あるいは,`scipy.stats.pearsonr(xのデータ,yのデータ)`を利用します. `scipy`がインストールされていない人は `uv add scipy`をしておきましょう.
 
 ~~~ py
 import pandas               as pd

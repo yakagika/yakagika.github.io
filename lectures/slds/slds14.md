@@ -812,7 +812,7 @@ celebrity2000_meta.mat
 まずは,`h5py`を利用して`celebrity2000_meta.mat`を読み込み,中身を確認してみましょう.
 
 ::: warn
-以下のライブラリが必要になるので `pip install`しておいてください.
+以下のライブラリが必要になるので `uv add`しておいてください.
 
 - `pytorch`
     - CNN用ライブラリ(PyTorch)
@@ -934,6 +934,7 @@ Traceback (most recent call last):
     MR, _ = mat_reader_factory(f, **kwargs)
             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   File "/Users/akagi/.pyenv/versions/3.12.3/lib/python3.12/site-packages/scipy/io/matlab/_mio.py", line 80, in mat_reader_factory
+# 注: 上記パスは pyenv 環境での例です. uv 環境ではパスが異なりますが,エラーの内容と対処法は同じです.
     raise NotImplementedError('Please use HDF reader for matlab v7.3 '
 NotImplementedError: Please use HDF reader for matlab v7.3 files, e.g. h5py
 

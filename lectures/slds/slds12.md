@@ -854,154 +854,96 @@ $$p(y | \alpha, \beta_{st}, \beta_{ss}, \sigma) = \prod_{i=1}^{N} N(y_i | \mu_i,
 
 それでは,実際にプログラム上でこのモデルを構築,推定してみましょう.
 
-`Python`においてベイズ統計学に基づいた統計モデリングを実施するためのライブラリとして`PyMC5`があります(古いVersionとして`PyMC3`があり全く異なる記法などを用いているので注意して下さい). こちらのライブラリは,Pythonのパッケージマネージャーである`anaconda`を利用します.
-通常これまでに利用してきた`pip`による環境と`anaconda`環境の併用は困難です. ただし,この講義では,`pyenv`を環境構築に利用していますので, `PyMC`を利用するためのディレクトリのlocal環境にのみ`anaconda`用の環境を構築することが可能です.
+`Python`においてベイズ統計学に基づいた統計モデリングを実施するためのライブラリとして`PyMC5`があります(古いVersionとして`PyMC3`があり全く異なる記法などを用いているので注意して下さい).
 
-まずは,ターミナルで`PyMC`を実行する用のディレクトリを作成し,そこに移動して下さい.
+## ローカル環境（uv）での実行
 
-以下, 移動したディレクトリ内に`anaconda`環境を構築していきます.
-
-## `anaconda`のインストール
-
-::: warn
-`MacOS`の方は `pyenv install -l` で`anaconda`系統の環境が表示されるので `pyenv install anacondaXXX` でインストール可能です.
-
-執筆時点の最新版 `anaconda3-2024.10-1`は`PyMC5`が対応していないため,`anaconda3-2024.02-1`が推奨されます.
-:::
-
-`Windows`の場合は `pyenv` でのインストールが提供されていないので,手動でインストールする必要があります.
-
-`anaconda`の[公式ページ](https://www.anaconda.com/download#Downloads)に行き,`Get Started`から指示に従ってアカウント等を作成して下さい.
-
-![](/images/slds/ch12/anaconda/anaconda-HP.png)
-
-続いて, Windows版の`anaconda`のインストーラーをダウンロードします.
-
-![](/images/slds/ch12/anaconda/anaconda-DW.png)
-
-ダウンロードが完了したら,インストーラーをダブルクリックして起動します.
-設定は変更せず`Next`をクリックしていきます.
-
-![](/images/slds/ch12/anaconda/anaconda-Explorer.png)
-
-![](/images/slds/ch12/anaconda/anaconda-installer.png)
-
-![](/images/slds/ch12/anaconda/anaconda-just-me.png)
-
-インストール先の設定画面が出たら, `pyenv`の`versions`フォルダに保存します.
-パスを以下のように指定して次に進みましょう
-
-`C:\Users\xxx\.pyenv\pyenv-win\versions\anaconda`
-(XXXの部分を自分のユーザー名にしましょう.)
-
-![](/images/slds/ch12/anaconda/anaconda-pass.png)
-
-その後は基本的にデフォルトの設定のまま,`Next`,`Finish`を押しましょう.
-
-![](/images/slds/ch12/anaconda/anaconda-installer-end.png)
-
-![](/images/slds/ch12/anaconda/anaconda-installer-end2.png)
-
-![](/images/slds/ch12/anaconda/anaconda-installer-end3.png)
-
-インストールが完了したら,ターミナルを開き作業用フォルダに移動して,`pyenv versions` コマンドで`anaconda`がインストールされているか確認しましょう.
-
-![](/images/slds/ch12/anaconda/anaconda-pyenv.png)
-
-ローカル環境に`anaconda`を指定します.
+これまでの章と同様に `uv` を使ってローカルに PyMC をインストールすることは可能です. 以下の手順で環境構築ができます.
 
 ~~~ sh
-pyenv local anaconda
-pyenv rehash
-~~~
-
-`anaconda`では`pip`ではなく`conda`を利用してライブラリをインストールします. まずは,`anaconda`自体を`update`しましょう.
-
-~~~ sh
-conda update -n base -c defaults conda
-~~~
-
-~~~ sh
-Proceed ([y]/n)? y
-~~~
-が表示されたら, `y` を押して`Enter`します.
-
-続いて`PyMC5`の公式サイトに従い,`anaconda`上で`PyMC5`をインストールします.
-`pyenv`が既に仮想環境ですが,`conda create`コマンドによって `pymc`などがインストールされた`python`の仮想環境を更に構築します.
-
-~~~ sh
-conda create -c conda-forge -n pymc_env "pymc>=5"
-~~~
-
-入力後完了したら,仮想環境を有効化するためにterminalを一度初期化します.
-
-~~~ sh
-conda init powershell
+uv init -p 3.11.9 pymc-project
+cd pymc-project
+uv add "pymc>=5" "arviz>=0.15,<1.0" numpy scipy seaborn scikit-learn statsmodels graphviz
 ~~~
 
 ::: warn
-`MacOS`の場合は, `conda init zsh` コマンドです.
+
+- **Python のバージョンに注意**: Python 3.14 では `arviz` の依存関係が壊れるため, **必ず `-p 3.11.9` などで 3.11 系を指定** してください.
+- **`arviz` のバージョンに注意**: `arviz 1.0` 以降は API が変更されており PyMC 5.28 と非互換です. `"arviz>=0.15,<1.0"` を指定してください.
+
 :::
 
+インストール後, `uv run python -c "import pymc as pm; print(pm.__version__)"` で動作確認ができます.
 
-を入力し, **`Terminal`を閉じて再度作業ディレクトリに移動したあと**に仮想環境を有効化する以下のコマンドを入力して下さい.
+::: warn
+**Windowsでの速度問題**
 
+Windows では C コンパイラ (`g++`) が検出されず,pytensor が Python fallback モードで動作するため, **MCMC サンプリングが極端に低速** になります（1 draw あたり約3秒,4チェーン×2000 draws で数時間程度）.
 
-~~~ sh
-conda activate pymc_env
+これは MinGW 等の C コンパイラを導入することで解消できますが, Windows 上での MinGW + pytensor の設定は非常に複雑であり,講義の環境として全員に求めるのは現実的ではありません.
+
+**Mac (Apple Silicon / Intel) ではこの問題は発生しにくく**,ローカル環境でも実用的な速度で実行できる場合があります. Mac ユーザーは上記手順でローカル実行を試みても構いません.
+:::
+
+## Google Colab での実行（本講義で利用）
+
+上記の速度問題を回避するため,**本講義では Google Colab を利用して PyMC を実行します**. Colab は Google が提供するブラウザ上の Python 実行環境で, 環境構築が不要かつ高速に MCMC サンプリングを実行できます.
+
+### Colab の準備
+
+1. [Google Colab](https://colab.research.google.com) にアクセスします（Google アカウントが必要です）.
+
+2. 「ノートブックを新規作成」をクリックします.
+
+3. 最初のセルに以下を入力して実行し,PyMC と必要なライブラリをインストールします.
+
+~~~ python
+!pip install "pymc>=5" seaborn statsmodels scikit-learn graphviz
+~~~
+
+4. インストール完了後,次のセルで動作確認をします.
+
+~~~ python
+import pymc as pm
+print(pm.__version__)
+~~~
+
+バージョン番号（例: `5.28.4`）が表示されれば準備完了です.
+
+### データファイルのアップロード
+
+本章で使用するデータファイル `hierarchical_regression.csv` を Colab にアップロードする必要があります.
+
+~~~ python
+from google.colab import files
+uploaded = files.upload()
+~~~
+
+上記を実行するとファイル選択ダイアログが表示されるので,`hierarchical_regression.csv` を選択してアップロードしてください.
+
+### 画像の保存について
+
+Colab ではローカルのファイルシステムへの保存ではなく, ノートブック内に直接グラフを表示します. 以下のコードではローカル実行時の `plt.savefig()` の代わりに `plt.show()` を使用するか, 必要に応じて Google Drive にマウントして保存してください.
+
+~~~ python
+# Google Drive にマウントする場合
+from google.colab import drive
+drive.mount('/content/drive')
+save_dir = '/content/drive/MyDrive/slds/ch12/'
 ~~~
 
 ::: warn
-Macの場合は, このあと仮想環境をlocalに指定します.
+以降のコードでは `save_dir` と `plt.savefig()` が登場しますが, Colab で実行する場合は以下のいずれかで対応してください.
 
-~~~ sh
-pyenv versions
-  system
-  3.12.3
-* anaconda3-2024.02-1
-  anaconda3-2024.02-1/envs/pymc_env
-❯ pyenv local anaconda3-2024.02-1/envs/pymc_env
-❯ pyenv local
-anaconda3-2024.02-1/envs/pymc_env
-~~~
-
+- `plt.savefig(...)` の行を `plt.show()` に置き換える（画像をノートブック内に表示）
+- Google Drive をマウントして `save_dir` を上記のように設定する（画像をDriveに保存）
 :::
-
-
-環境の確認をします.
-
-~~~ sh
-Get-Command python
-~~~
 
 ::: warn
-`MacOS`の場合は, `witch python` コマンドです.
+**過去の環境構築方法について**
+
+この講義では以前 `pyenv` + `anaconda` を利用した環境構築を行っていました. 過去にその方法で環境を構築した方は, [旧版の環境構築手順（備忘録）](/posts/2025-04-20-pymc-pyenv-setup-archive.html) を参照してアンインストールしてください.
 :::
-
-以下のように`pymc_env`内のpythonが表示されれば利用可能な状況になっています.
-
-~~~ sh
-CommandType     Name                                               Version    Source
------------     ----                                               -------    ------
-Application     python.exe                                         3.11.14... C:\Users\akagi\.pyenv\pyenv-win\versions\anaconda\envs\pymc_env\python.exe
-~~~
-
-必要なライブラリをインストールします.
-
-~~~ sh
-conda install seaborn scikit-learn statsmodels
-~~~
-
-途中で,`Proceed ([y]/n)?` と表示されたら`y`と入力してENTERを押します.
-
-~~~sh
-Preparing transaction: done
-Verifying transaction: done
-Executing transaction: done
-~~~
-などが表示されれば,環境構築完了です.
-
-以降,Terminalで作業ディレクトリに移動した後`conda activate pymc_env` でこの環境が利用できるようになります.
 
 
 # PyMC 実装
@@ -1467,9 +1409,11 @@ if __name__ == "__main__":
 
 - **Windowsでの実行保証**: 特にWindows環境では,`multiprocessing`を使用する際に`if __name__ == "__main__":`が必須です. これがないとエラーが発生します.
 
-そのため,ベイズ統計モデリングを行う際は,必ずメイン処理を`if __name__ == "__main__":`の下に記述するようにしてください.
+そのため,ローカル環境でベイズ統計モデリングを行う際は,必ずメイン処理を`if __name__ == "__main__":`の下に記述するようにしてください.
 
 以降のコードは全て`if __name__ == "__main__":`の下でインデントされている前提となりますので注意して下さい.
+
+**Google Colab を利用する場合**: Colab のノートブックでは `if __name__ == "__main__":` は不要です. 各セルに直接コードを記述してください. 以降のコード例のインデントを外して,セルごとに実行する形に読み替えてください.
 
 :::
 

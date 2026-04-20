@@ -194,12 +194,12 @@ Pythonが教育用に良く使われるのは, インタプリタ方式の動的
 Pythonの環境構築に関して説明します.Pythonを動かす方法は沢山あります.一つのソフトの中でプログラムの編集から実行まで全て完結するIDE(統合開発環境)やブラウザ上でSaaSを通じて実行する方法もありますが,ここではCLIを利用して実行する方法を準備します.Windowsを所有している学生が多いと思われるので,Windowsを前提に説明します. それ以外のOSの方は分からなければ教員に聞いて下さい.
 
 
-Pythonの環境構築にもいくつかの手法がありますが,現在は [`pyenv`](https://github.com/pyenv/pyenv)や[`Docker`](https://www.docker.com)を利用した仮想環境でpythonのversionやライブラリをアプリケーションごとに分ける方法が主流です.
+Pythonの環境構築には,[公式のインストーラー](https://www.python.org),[`pyenv`](https://github.com/pyenv/pyenv),[`poetory`](https://python-poetry.org)等いくつかの手法がありますが,現在は [`uv`](https://docs.astral.sh/uv/)を利用してpythonのversionやライブラリ,仮想環境をアプリケーションごとに分ける方法が主流です.
 
-本講義では, `pyenv`を利用するため,以下`pyenv`環境の構築を行います.
+本講義では, `uv`を利用するため,以下`uv`環境の構築を行います. 既にuvがインストールされている人は,この以下のステップは飛ばして下さい.
 
 ### 現状の開発環境の削除
-
+`uv`はpyenvはその他のpython環境と併用可能ですが,混乱のもととなるので異なる環境は一度整理しておきましょう.
 Terminalを開いて, `python --version`と入力しましょう. すでに`python` が入っている場合は,Pythonのversion情報が表示されます.
 
 ~~~ sh
@@ -216,14 +216,90 @@ pelling of the name, or if a path was included, verify that the path is correct 
 At line:1 char:1
 ~~~
 
-Python の version情報が表示された場合は, `pyenv --version` と入力してすでに`pyenv`が入っていないか確認してください.
+この講義では,昨年まで`pyenv`を利用していました. Python の version情報が表示された場合は, `pyenv --version` と入力してすでに`pyenv`が入っていないか確認してください.
 
 ~~~ sh
 > pyenv --version
 pyenv 3.1.1
 ~~~
 
-pyenv の version情報が表示されている場合はすでに環境構築が済んでいるので飛ばしてください. pyenvのversion情報が表示されない人はまず現行のPythonを削除しましょう.
+**pyenvのversion情報が表示された人** は, 以下の手順で`pyenv`をアンインストールして下さい.
+
+::: note
+
+1. pyenv でインストールした Python を削除
+
+`pyenv versions`でインストール済みの `Python`を確認 
+
+~~~ sh
+> pyenv versions
+* 3.11.9 (set by C:\Users\akagi\.pyenv\pyenv-win\version)
+  anaconda
+~~~
+
+インストールされている全ての`python`を `pyenv uninstall`で順に`uninstall`して下さい.
+
+~~~ sh 
+> pyenv uninstall 3.11.9
+pyenv: Successfully uninstalled 3.11.9
+> pyenv uninstall anaconda
+pyenv: Successfully uninstalled anaconda
+> pyenv versions
+>
+~~~
+
+2. pyenv-win 本体を削除
+
+`Remove-Item -Recurse -Force "$env:USERPROFILE\.pyenv"`コマンドで`pyenv`を`uninstall`しましょう.
+
+~~~ sh
+Remove-Item -Recurse -Force "$env:USERPROFILE\.pyenv"
+> pyenv
+pyenv : The term 'pyenv' is not recognized as the name of a cmdlet, function, script file, or operable program. Check t
+he spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:1
++ pyenv
++ ~~~~~
+    + CategoryInfo          : ObjectNotFound: (pyenv:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+~~~
+
+3. 環境変数を削除
+
+設定 > 検索窓に`環境変数`と入力 > ｢システム環境変数の編集｣ > 環境変数、ユーザー環境変数から以下を削除します。
+
+**PYENV**
+**PYENV_HOME**
+**PYENV_ROOT**
+
+![環境変数の編集](/images/slds/ch3/system-path.png)
+
+
+![環境変数](/images/slds/ch3/path-delete.png)
+
+4. Terminal を再起動して確認
+
+`pyenv --version`で｢認識されていない」旨のエラーが出れば削除完了です.
+
+~~~ sh
+> pyenv --version
+pyenv : The term 'pyenv' is not recognized as the name of a cmdlet, function, script file, or operable program. Check t
+he spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:1
++ pyenv --version
++ ~~~~~
+    + CategoryInfo          : ObjectNotFound: (pyenv:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+python --version
+~~~
+
+:::
+
+pyenvのversion情報が表示されないが **公式インストーラーによって** pythonがインストールされている人は以下の手順でPythonを削除しましょう.
+
+
+::: note
 
 `設定 > アプリ > インストールされているアプリ`から `python`を検索して, `Python X.X` の形式のアプリと,`Python Luncher`などを`アンインストール`してください.
 
@@ -239,80 +315,55 @@ pyenv の version情報が表示されている場合はすでに環境構築が
 アンインストールが終わったら,terminal を一度開き直して, `python --version` コマンドで確認してみましょう.
 (VSCodeなどTerminalにアクセスするアプリを開いている場合は,閉じておきましょう.)
 
-### pyenvのインストール
+:::
 
-続いて [pyenv for windows](https://github.com/pyenv-win/pyenv-win/tree/master)を参考に`pyenv`環境を構築します.
+### uvのインストール
 
-Terminal を再度開き以下のコマンドをコピー,貼り付けしてEnterを押してください.
-
-~~~ sh
- Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-~~~
-
-Quick start 内のコマンドをコピーしてTerminalに貼り付け,Enterを押してください.
-
-![インストールコマンド](/images/slds/ch3/pyenv-win1.png)
-
-Terminalを再起動して,`pyenv --version`を入力し,version情報が表示されれば成功です.
+[`uv`](https://docs.astral.sh/uv/getting-started/installation/#__tabbed_1_2)のinstallationページに従ってuvをinstallします.
+`windows`の人は`windows`を選択して,Powershellで
+`powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`
+を実行しましょう.
+以下のように表示されればinstall終了です.
 
 ~~~ sh
-> pyenv --version
-pyenv 3.1.1
+> powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+downloading uv 0.11.7 (aarch64-pc-windows-msvc)
+installing to C:\Users\akagi\.local\bin
+  uv.exe
+  uvx.exe
+  uvw.exe
+everything's installed!
 ~~~
 
-### Pythonのインストール
+`uv --version` で `uv`の現行のversion情報を確認し, `uv self update`で最新版にupdateしておきましょう.
 
-Pythonにはいくつかのversionがあり,必要に応じて切り替えて利用します.
-まずはインストール可能なversionを `pyenv install --list`コマンドで確認してみましょう.
-
-~~~ sh
-> pyenv install --list
-:: [Info] ::  Mirror: https://www.python.org/ftp/python
-:: [Info] ::  Mirror: https://downloads.python.org/pypy/versions.json
-:: [Info] ::  Mirror: https://api.github.com/repos/oracle/graalpython/releases
-2.4-win32
-2.4.1-win32
-2.4.2-win32
-.
-.
-.
+~~~sh
+> uv --version
+uv 0.11.7 (9d177269e 2026-04-15 aarch64-pc-windows-msvc)
+> uv self update
+info: Checking for updates...
+success: You're already on version v0.11.7 of uv (the latest version).
 ~~~
 
-この中から一つを選んでインストールします.
-最新のものをインストールするとライブラリなどが対応していない場合があるので,`3.11.9`あたりをインストールしておきましょう.
+`uv`はプロジェクト(フォルダ)毎に異なるpythonのversion,ライブラリなどを導入し,依存関係を自動で解消してくれます. しかし,特定のプロジェクトではなくシステム全体で利用するpythonを`uv`を通じてインストールすることも可能です.
 
-~~~ sh
-> pyenv install 3.11.9
-:: [Info] ::  Mirror: https://www.python.org/ftp/python
-:: [Info] ::  Mirror: https://downloads.python.org/pypy/versions.json
-:: [Info] ::  Mirror: https://api.github.com/repos/oracle/graalpython/releases
-:: [Downloading] ::  3.11.9 ...
-:: [Downloading] ::  From https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe
-:: [Downloading] ::  To   C:\Users\akagi\.pyenv\pyenv-win\install_cache\python-3.11.9-amd64.exe
-:: [Installing] ::  3.11.9 ...
-:: [Info] :: completed! 3.11.9
+`uv python install [version]` を実行すると,特定のプロジェクト以外で使用されるpythonがインストールされます. ここでは `uv python install 3.11.9`で `python 3.11.9`をinstallしてみます. 
+
+~~~sh
+> uv python install 3.11.9
+note: uv selected a Python distribution with an emulated architecture (x86_64) for your platform because support for the native architecture (aarch64) is not yet mature; to override this behaviour, request the native architecture explicitly with: cpython-3.11.9-windows-aarch64-none
+Installed Python 3.11.9 in 5.86s
+ + cpython-3.11.9-windows-x86_64-none (python3.11.exe)
 ~~~
 
-`pyenv`はディレクトリごとに使用するPythonのバージョンなどを管理できます.
-現行のディレクトリのみで,特定のversionのPythonを利用したい場合は
+installされたpythonは`python3.11`で呼び出せます. `>>>`が表示されたら `exit()`と入力して閉じましょう.
 
-`pyenv local <使いたいPython>`で設定します.
-
-`local`で設定されているディレクトリ以外全てで共通のPythonを使用したい場合は
-
-`pyenv global <使いたいPython>` で設定します.
-
-今は,
-
-`pyenv global 3.11.9` で全体に`3.11.9`を設定しましょう.
-
-~~~ sh
-> pyenv global 3.11.9
-> python --version
-Python 3.11.9
+~~~sh
+> python3.11
+Python 3.11.9 (main, Aug 14 2024, 04:18:20) [MSC v.1929 64 bit (AMD64)] on win32
+Type "help", "copyright", "credits" or "license" for more information.
+>>> exit()
 ~~~
-
-`python --version`で指定したversionのpythonが表示されればPythonの環境構築完了です.
 
 ## Hello World
 
@@ -325,41 +376,83 @@ Python 3.11.9
 > cd Documents/Programs/Python/slds
 ~~~
 
+`uv init [新規フォルダ名]` でプロジェクトを作成することが出来ます.
+`uv init -p [python version] [新規フォルダ名]`で使用するpythonを指定できます.
 
-テキストエディタで新しいファイルを開き,**作業用ディレクトリ**に`hello.py`という名前で保存しましょう.
+ここでは 3.11.9を使用し `hello-world`というプロジェクトを作成してみましょう.
 
-`.py`はPythonプログラムの拡張子です.
+~~~ sh
+=> uv init -p 3.11.9 hello-world
+Initialized project `hello-world` at `C:\Users\akagi\Documents\Programs\slds\hello-world`
+~~~
 
-保存は,タブから`File > save with encoding > UTF-8`の順にクリックし`UTF-8`で保存しましょう.
-それ以降は `Ctrl + s`などで上書き保存しても構いません.
+作成したプロジェクトのディレクトリに移動します.
 
+~~~ sh
+> cd .\hello-world\
+>
+~~~
 
-作成したディレクトリに移動し, lsコマンドでファイルがあるか確認しましょう.
-ょう.
+`init`によりプロジェクトに必要ないくつかのファイルが生成されています.
 
 ~~~ sh
 > ls
-hello.py
+
+
+    Directory: C:\Users\akagi\Documents\Programs\slds\hello-world
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2026/04/20     14:10              7 .python-version
+-a----        2026/04/20     14:10             89 main.py
+-a----        2026/04/20     14:10            159 pyproject.toml
+-a----        2026/04/20     14:10              0 README.md
+~~~
+
+テキストエディタで新しいファイルを開き,タブから`File > save as`の順にクリックし**作業するプロジェクト(hello-world)**に`hello.py`という名前で保存しましょう.
+
+`.py`はPythonプログラムの拡張子です.
+
+それ以降は `Ctrl + s`などで上書き保存可能です.
+
+lsコマンドでファイルがあるか確認しましょう.
+
+~~~ sh
+> ls
+
+
+    Directory: C:\Users\akagi\Documents\Programs\slds\hello-world
+
+
+Mode                 LastWriteTime         Length Name
+----                 -------------         ------ ----
+-a----        2026/04/20     14:10              7 .python-version
+-a----        2026/04/20     14:11             20 hello.py
+-a----        2026/04/20     14:10             89 main.py
+-a----        2026/04/20     14:10            159 pyproject.toml
+-a----        2026/04/20     14:10              0 README.md
 ~~~
 
 確認できたらhello.pyに以下の2行を書き足して上書き保存します.
 
 ~~~ python
-# -*- coding:utf-8 -*-
 print("Hello world!")
 ~~~
 
-保存できたら`python hello.py`コマンドでプログラムを実行します.
+保存できたら`uv run hello.py`コマンドでプログラムを実行します.
 
 標準出力に`Hello World!`と表示されれば成功です.
 
 ~~~ sh
-> python hello.py
-Hello World!
+> uv run .\hello.py
+hello world
 ~~~
 
 ここまでで，皆さんはPCでプログラムを書く準備が整いました．
 あとはプログラムの書き方を学習すれば自身の環境で開発が行なえます．
+以降特定のプログラムを作成する場合は研究単位,演習単位(章毎など)でプロジェクトを作成して,実行するようにして下さい.
+
 
 ## プログラミングの勉強の仕方
 
