@@ -178,7 +178,7 @@ add :: Int -> (Int -> Int)
 として機能しています. 関数の呼び出しは左結合なので,
 
 
-`add 5 10 = (add 5) 10` であり, ここで`(add 5) :: Int -> Int`という新たな関数に2が適用されています.
+`add 5 10 = (add 5) 10` であり, ここで`(add 5) :: Int -> Int`という新たな関数に2が適用されています(以下は型の確認のためにghciを利用しています.)
 
 ~~~ sh
 ghci> :{
@@ -364,6 +364,88 @@ fib :: Int -> Int
 fib n = if n == 0 then 1 else if n == 1 then 1 else fib (n-1) + fib (n-2)
 ~~~
 
+::: note
+
+**練習問題**
+
+引数の整数 `n` に応じて以下のような文字列を返す関数 `describe :: Int -> String` を, **パターンマッチ**, **ガード**, **case式**, **if式** の4通りの方法でそれぞれ実装してください. 同じ関数が異なる分岐の記法でどのように表現されるかを確かめることが目的です.
+
+- `n` が `0` のとき → `"zero"`
+- `n` が `1` のとき → `"one"`
+- `n` が `2` のとき → `"two"`
+- それ以外のとき → `"many"`
+
+~~~ haskell
+describe 0   -- "zero"
+describe 1   -- "one"
+describe 2   -- "two"
+describe 3   -- "many"
+describe 10  -- "many"
+~~~
+
+<details class="protected" data-pass="yakagika">
+    <summary> 回答例 </summary>
+
+- **パターンマッチ**による実装
+
+~~~ haskell
+describe :: Int -> String
+describe 0 = "zero"
+describe 1 = "one"
+describe 2 = "two"
+describe _ = "many"
+~~~
+
+- **ガード**による実装
+
+~~~ haskell
+describe :: Int -> String
+describe n
+  | n == 0    = "zero"
+  | n == 1    = "one"
+  | n == 2    = "two"
+  | otherwise = "many"
+~~~
+
+- **case式**による実装
+
+~~~ haskell
+describe :: Int -> String
+describe n = case n of
+    0 -> "zero"
+    1 -> "one"
+    2 -> "two"
+    _ -> "many"
+~~~
+
+- **if式**による実装
+
+~~~ haskell
+describe :: Int -> String
+describe n = if n == 0 then "zero"
+             else if n == 1 then "one"
+             else if n == 2 then "two"
+             else "many"
+~~~
+
+- 実行例
+
+~~~ haskell
+main :: IO ()
+main = do
+    putStrLn $ describe 0   -- "zero"
+    putStrLn $ describe 1   -- "one"
+    putStrLn $ describe 2   -- "two"
+    putStrLn $ describe 3   -- "many"
+    putStrLn $ describe 10  -- "many"
+~~~
+
+いずれの記法でも,最後の「それ以外」を表す部分(パターンマッチとcase式では `_`,ガードでは `otherwise`,if式では最後の `else`)を忘れると,該当しない入力に対して実行時エラーとなるので注意してください.
+
+</details>
+
+:::
+
 
 ## 再帰
 
@@ -419,6 +501,53 @@ total [1,2,3]
 
 2. 与えられた整数のリストを引数にとり,要素毎にFizzBuzzを実行した結果を文字列のリストで返す関数
 `fizzBuzz :: [Int] -> [String]`実装してください.
+
+FizzBuzzは,プログラミング学習で題材としてよく用いられる問題で,整数 `n` を以下のルールに従って文字列に変換します.
+
+- `n` が **3と5の両方の倍数(=15の倍数)** のときは `"FizzBuzz"`
+- `n` が **3の倍数** のときは `"Fizz"`
+- `n` が **5の倍数** のときは `"Buzz"`
+- それ以外のときは `n` をそのまま文字列化したもの(`show n`)
+
+例えば `[1..15]` を入力すると,以下の結果が得られます.
+
+~~~ haskell
+fizzBuzz [1..15]
+-- ["1","2","Fizz","4","Buzz","Fizz","7","8","Fizz","Buzz","11","Fizz","13","14","FizzBuzz"]
+~~~
+
+なお,3と5の両方の倍数のケースを先に判定しないと `"Fizz"` や `"Buzz"` にマッチしてしまうため,条件の順序に注意が必要です.
+
+<details class="protected" data-pass="yakagika">
+    <summary> 回答例 </summary>
+
+~~~ haskell
+-- 1. リストの長さを再帰で求める
+length2 :: [a] -> Int
+length2 []     = 0
+length2 (_:xs) = 1 + length2 xs
+
+-- 2. 各要素を FizzBuzz 文字列へ変換
+fizzBuzz :: [Int] -> [String]
+fizzBuzz []     = []
+fizzBuzz (x:xs) = fb x : fizzBuzz xs
+  where
+    fb n
+      | n `mod` 15 == 0 = "FizzBuzz"
+      | n `mod`  3 == 0 = "Fizz"
+      | n `mod`  5 == 0 = "Buzz"
+      | otherwise       = show n
+
+-- 実行例
+main :: IO ()
+main = do
+  print $ length2 [1,2,3,4,5]           -- 5
+  print $ length2 "hello"               -- 5
+  print $ fizzBuzz [1..15]
+  -- ["1","2","Fizz","4","Buzz","Fizz","7","8","Fizz","Buzz","11","Fizz","13","14","FizzBuzz"]
+~~~
+
+</details>
 
 :::
 
@@ -605,6 +734,32 @@ maxList [1,4,3] [2,2,5] -- [2,4,5]
 ~~~
 
 
+<details class="protected" data-pass="yakagika">
+    <summary> 回答例 </summary>
+
+~~~ haskell
+-- map で各要素を 2 乗
+squareList :: [Int] -> [Int]
+squareList xs = map (^2) xs
+
+-- foldl で積を畳み込み (初期値 1)
+productList :: [Int] -> Int
+productList xs = foldl (*) 1 xs
+
+-- zipWith で 2 要素ごとに大きい方を取る
+maxList :: [Int] -> [Int] -> [Int]
+maxList xs ys = zipWith (\x y -> if x > y then x else y) xs ys
+
+-- 実行例
+main :: IO ()
+main = do
+  print $ squareList  [1,2,3,4]         -- [1,4,9,16]
+  print $ productList [1,2,3,4]         -- 24
+  print $ maxList     [1,4,3] [2,2,5]   -- [2,4,5]
+~~~
+
+</details>
+
 :::
 
 ## 無名関数(ラムダ式)
@@ -694,7 +849,33 @@ onlyEven [1,2,3,4,5,6] -- [2,4,6]
 sumAbs [-3,4,-1,2] -- 10
 ~~~
 
-::::
+<details class="protected" data-pass="yakagika">
+    <summary> 回答例 </summary>
+
+~~~ haskell
+-- map とラムダ式で各要素に 3 を足す
+addThree :: [Int] -> [Int]
+addThree xs = map (\x -> x + 3) xs
+
+-- filter とラムダ式で偶数のみを取り出す
+onlyEven :: [Int] -> [Int]
+onlyEven xs = filter (\x -> x `mod` 2 == 0) xs
+
+-- map で絶対値へ変換してから sum で合計
+sumAbs :: [Int] -> Int
+sumAbs xs = sum (map (\x -> abs x) xs)
+
+-- 実行例
+main :: IO ()
+main = do
+  print $ addThree [1,2,3]         -- [4,5,6]
+  print $ onlyEven [1,2,3,4,5,6]   -- [2,4,6]
+  print $ sumAbs   [-3,4,-1,2]     -- 10
+~~~
+
+</details>
+
+:::
 
 
 ## 関数合成
@@ -728,8 +909,6 @@ main = do
     print $ h 2 -- 10
 ~~~
 
-
-:::
 
 # 変数(値の束縛)
 
@@ -911,7 +1090,7 @@ main = do
 ~~~
 
 
-<details>
+<details class="protected" data-pass="yakagika">
     <summary> 回答例 </summary>
 
 ~~~ haskell
@@ -973,7 +1152,7 @@ main = do
    print $ perceptronOR True True   -- True
 ~~~
 
-<details>
+<details class="protected" data-pass="yakagika">
     <summary> 回答例 </summary>
 
 ~~~ haskell
