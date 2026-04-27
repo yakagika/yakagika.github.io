@@ -12,7 +12,7 @@ date: 2024-10-18
 tableOfContents: true
 previousChapter: fp4.html
 nextChapter: fp6.html
-open: false
+open: true
 ---
 
 # 代数的データ型(集合論的解釈)
@@ -55,7 +55,7 @@ MyDogs = & \{ GoldenRetriever \\
          &, BlackRetriever    \\
          &, ShetlandSheepdog \\
          &, StandardPoodle \\
-         &, StandardPoodle \}
+         &, Beagle \}
 \end{align*}
 
 
@@ -63,18 +63,7 @@ MyDogs = & \{ GoldenRetriever \\
 
 $$ GoldenRetriever \in MyDogs $$ の様に書きます. 要素に属さないことは $Chihuahua \notin MyDogs$と書きます.
 
-集合には順番は関係ないため,$\{x,y\}=\{y,z\}$ となります. また, 一つの集合に同じ要素は2つ以上属することができず, $\{x,x\}$ のような集合は定義できません.
-
-集合には集合が属することも可能で, 集合 $S$ が $T$ に属するとき $S \in T$ が成り立ちます. また, 集合 $S$ の要素を幾つか取り出した集合 $T$ を $S$ の **部分集合** といい, $T \subset S$ と表記します.
-
-$S = \{x, y, z\}$ のとき, $S$ の部分集合は
-
-$$\{x\},\ \{y\},\ \{z\},\ \{x, y\},\ \{x, z\},\ \{y, z\},\ \{x, y, z\},\ \phi$$
-
-となります. 任意の集合 $S$ に対して $\phi \subset S$ は成り立ちます.
-
-
-
+集合には順番は関係ないため,$\{x,y\}=\{y,x\}$ となります. また, 一つの集合に同じ要素は2つ以上属することができず, $\{x,x\}$ のような集合は定義できません.
 
 Haskellにおいて,集合に属する要素をすべて書き出す(列挙する)データ型を`列挙型`として定義できます. 
 データ型の宣言は, `data`のあとに続いて,`データ型の名前(型構築子)`を書き,`=`の後ろにその`中身(コンストラクタ/データ構築子)`を書きます.
@@ -85,7 +74,7 @@ data MyDogs = GoldenRetriever
             | BlackRetriever
             | ShetlandSheepdog
             | StandardPoodle
-            | StandardPoodle
+            | Beagle
             deriving Show
 ~~~
 
@@ -143,13 +132,13 @@ print x = putStrLn (show x)
 となっています.
 
 
-要素が一つも属さない集合を`空集合`といい,記号$\phi$ または$｛｝$によって表されます.
+要素が一つも属さない集合を`空集合`といい,記号 $\phi$ または $\{\}$ によって表されます.
 Haskellでは空集合を表すデータ型として`Data.Void`に定義された`Void`が存在します. データ型として`ボトム型`,記号では`⊥`で表される場合もあります.
 
-`Void`と同じ値を持たないデータ型は,コンストラクタを記述しないことで自分で実装することもできます. 例えば私が犬を今までに一匹もかったことがなければ, $$ MyPet = \phi $$ となり,データ型としては以下のように定義されます. 値が存在しない空集合と対応していることが分かります.
+`Void`と同じ値を持たないデータ型は,コンストラクタを記述しないことで自分で実装することもできます. 例えばある人が犬を今までに一匹もかったことがない場合を想定し, その人の飼った犬の集合を `EmptyDogs` と呼ぶことにすると, $$ \mathrm{EmptyDogs} = \phi $$ となり, データ型としては以下のように定義されます. 値が存在しない空集合と対応していることが分かります.
 
 ~~~ haskell
-data Mypet
+data EmptyDogs
 ~~~
 
 `Void`型は値が存在しないため実行することはできませんが,コンパイルを通すことはできます. ただし,あまり実用する機会はないので,以下の部分は興味がある人は読んでください.
@@ -205,20 +194,83 @@ main = print $ head'' ([]::[Int]) -- practice: Empty List error, called at
 
 単一の要素だけが存在するデータ型として`Unit`型も準備されており,`()`のような空のタプルとして表されます.
 
+::: note
+
+**練習問題**
+
+1. 曜日を表す列挙型 `Weekday` を日曜日から土曜日までの7つのコンストラクタで定義してください. `deriving Show` を付けて `print` できるようにしてください.
+
+2. `Weekday` 型の値を受け取り, その日が週末(土日)であれば `True`, 平日であれば `False` を返す関数 `isWeekend :: Weekday -> Bool` をパターンマッチで実装してください.
+
+3. `Weekday` 型の値を受け取り, 翌日の曜日を返す関数 `nextDay :: Weekday -> Weekday` を実装してください. 土曜日の次は日曜日に戻るように循環させます.
+
+~~~ haskell
+-- 実行例
+main :: IO ()
+main = do
+    print $ isWeekend Sunday    -- True
+    print $ isWeekend Monday    -- False
+    print $ isWeekend Saturday  -- True
+    print $ nextDay Friday      -- Saturday
+    print $ nextDay Saturday    -- Sunday
+~~~
+
+<details class="protected" data-pass="yakagika">
+    <summary> 回答例 </summary>
+
+~~~ haskell
+data Weekday = Sunday
+             | Monday
+             | Tuesday
+             | Wednesday
+             | Thursday
+             | Friday
+             | Saturday
+             deriving Show
+
+isWeekend :: Weekday -> Bool
+isWeekend Saturday = True
+isWeekend Sunday   = True
+isWeekend _        = False
+
+nextDay :: Weekday -> Weekday
+nextDay Sunday    = Monday
+nextDay Monday    = Tuesday
+nextDay Tuesday   = Wednesday
+nextDay Wednesday = Thursday
+nextDay Thursday  = Friday
+nextDay Friday    = Saturday
+nextDay Saturday  = Sunday
+
+main :: IO ()
+main = do
+    print $ isWeekend Sunday    -- True
+    print $ isWeekend Monday    -- False
+    print $ isWeekend Saturday  -- True
+    print $ nextDay Friday      -- Saturday
+    print $ nextDay Saturday    -- Sunday
+~~~
+
+列挙型では各コンストラクタを直接パターンマッチで場合分けでき, `_`(ワイルドカード)を使うと残り全てをまとめて扱えます.
+
+</details>
+
+:::
+
 
 ## 集合の内包表記と代数的データ型
 
 列挙型において見た**外延表記**に対して,**内包表記**とは,$x \in S$を述語論理によって表記する方法です.
 
-$x$の属する集合を$X$,条件式$p(x)$とすると,内包表記では
+$x$ の属する集合を $X$, 条件式を $p(x)$ とすると, 内包表記では
 
-$S=\{x│x \in  X,p(x)\}$
+$$S = \{x \mid x \in X, p(x)\}$$
 
-という記法で, ｢**Xの要素のうちp(x)を満たす要素のみからなる集合S**｣を定義します.
+という記法で, ｢**$X$ の要素のうち $p(x)$ を満たす要素のみからなる集合 $S$**｣を定義します.
 
-例として,$R^+$ を非負の実数としたとき,$５$ 以下の非負の実数は
+例として, $\mathbb{R}^+$ を非負の実数としたとき, $5$ 以下の非負の実数は
 
-$\{x|x \in R^+, x \leqq 5 \}$
+$$\{x \mid x \in \mathbb{R}^+, x \leq 5\}$$
 
 と書けます.
 
@@ -240,7 +292,7 @@ s = [ x | x <- xs, p x ]
 
 例として,集合論における「1 以上 10 以下の整数のうち偶数のみ」
 
-$$E = \{x \mid x \in \mathbb{Z}, 1 \leqq x \leqq 10, x \bmod 2 = 0\}$$
+$$E = \{x \mid x \in \mathbb{Z}, 1 \leq x \leq 10, x \bmod 2 = 0\}$$
 
 は,リスト内包表記では以下のように記述できます.
 
@@ -282,6 +334,54 @@ main = do
 ~~~
 
 リスト内包表記は「集合の内包表記と構文が似ていて直感的に書ける」という**記法の便利さ**のために使うもので,集合演算そのものを扱いたい場合は `Set` を用いるのがHaskellにおける一般的な流儀です.
+:::
+
+::: note
+
+**練習問題**
+
+1. 正の整数 `n` を受け取り, `n` の正の約数をすべて昇順に並べたリストを返す関数 `divisors :: Int -> [Int]` をリスト内包表記を用いて実装してください.
+
+2. 正の整数 `n` を受け取り, $a^2 + b^2 = c^2$ を満たす $1 \leq a \leq b \leq c \leq n$ のピタゴラス数 $(a, b, c)$ の組をすべて返す関数 `pythagoreans :: Int -> [(Int, Int, Int)]` をリスト内包表記で実装してください.
+
+~~~ haskell
+-- 実行例
+main :: IO ()
+main = do
+    print $ divisors 12       -- [1,2,3,4,6,12]
+    print $ divisors 13       -- [1,13]
+    print $ pythagoreans 20   -- [(3,4,5),(5,12,13),(6,8,10),(8,15,17),(9,12,15),(12,16,20)]
+~~~
+
+<details class="protected" data-pass="yakagika">
+    <summary> 回答例 </summary>
+
+~~~ haskell
+-- 1. n の正の約数: 1 から n までの整数のうち n を割り切るもの
+divisors :: Int -> [Int]
+divisors n = [ x | x <- [1..n], n `mod` x == 0 ]
+
+-- 2. ピタゴラス数: a <= b <= c かつ a^2 + b^2 = c^2
+pythagoreans :: Int -> [(Int, Int, Int)]
+pythagoreans n =
+    [ (a, b, c)
+    | a <- [1..n]
+    , b <- [a..n]
+    , c <- [b..n]
+    , a*a + b*b == c*c
+    ]
+
+main :: IO ()
+main = do
+    print $ divisors 12
+    print $ divisors 13
+    print $ pythagoreans 20
+~~~
+
+ジェネレータ `b <- [a..n]`, `c <- [b..n]` のように **前のジェネレータで束縛された変数を後続のジェネレータで使える** 点がポイントです. これにより $a \leq b \leq c$ という順序関係の下で候補を生成でき, 重複を避けられます.
+
+</details>
+
 :::
 
 ### スマートコンストラクタ (発展)
@@ -345,52 +445,302 @@ $$A \cap B = \{x \mid x \in A \land x \in B\}$$
 
 $A \cap B = \phi$ のとき, $A \cup B$ を $A$ と $B$ の **直和(Direct sum)** といいます.
 
-事例として A \subset MyPet
+集合には集合が属することも可能で, 集合 $S$ が $T$ に属するとき $S \in T$ が成り立ちます. また, 集合 $S$ の要素を幾つか取り出した集合 $T$ を $S$ の **部分集合** といい, $T \subset S$ と表記します.
 
-Haskellでは以下のように直和型を定義できます.
+$S = \{x, y, z\}$ のとき, $S$ の部分集合は
 
-~~~ haskell
-data S = A a1 a2 | B b
-data T = A { f :: a1, g :: a2 } | B { h :: b }
-~~~
-
-これを集合論的に解釈すると,
-
-$$S = (A_1 \times A_2) \cup B$$
-
-$$T = (A_1 \times A_2) \cup B$$
-
-$$f((a_1, a_2) \in A_1 \times A_2 \subset T) = a_1$$
-
-$$g((a_1, a_2) \in A_1 \times A_2 \subset T) = a_2$$
-
-$$h(b \in B \subset T) = b$$
+$$\{x\},\ \{y\},\ \{z\},\ \{x, y\},\ \{x, z\},\ \{y, z\},\ \{x, y, z\},\ \phi$$
 
 となります.
 
-直和にすることで擬似的なダックタイピングが可能になります.
+事例として $A, B \subset \mathrm{MyDogs}$, $A = \{\mathrm{GoldenRetriever}, \mathrm{BlackRetriever}, \mathrm{ShetlandSheepdog}\}$, $B = \{\mathrm{BlackRetriever}, \mathrm{StandardPoodle}\}$ のとき, 和集合 $A \cup B$ と積集合 $A \cap B$ はそれぞれ
+
+$$A \cup B = \{\mathrm{GoldenRetriever}, \mathrm{BlackRetriever}, \mathrm{ShetlandSheepdog}, \mathrm{StandardPoodle}\}$$
+
+$$A \cap B = \{\mathrm{BlackRetriever}\}$$
+
+となります. 和集合は「$A$ または $B$ のいずれかに属する要素」を集めた集合, 積集合は「$A$ と $B$ の両方に属する要素」のみを集めた集合です. このとき $A \cap B = \{\mathrm{BlackRetriever}\} \neq \phi$ なので, $A$ と $B$ は直和にはなりません. 一方, $A = \{\mathrm{GoldenRetriever}, \mathrm{ShetlandSheepdog}\}$, $B = \{\mathrm{BlackRetriever}, \mathrm{StandardPoodle}\}$ のように共通要素がない場合は $A \cap B = \phi$ となり, $A \cup B$ は $A$ と $B$ の直和となります.
+
+Haskellでは既に定義した `Int` と `MyDogs` の直和に相当する型を, 次のように定義できます. ここでは「整数または `MyDogs` のいずれかの値を持てるデータ型 `IntOrDog`」を定義します.
+
+~~~ haskell
+data IntOrDog = MkInt Int
+              | MkDog MyDogs
+              deriving Show
+~~~
+
+**記法の解説:**
+
+- 左辺の `IntOrDog` は **型構築子(type constructor)**, 右辺の `MkInt`, `MkDog` は **データ構築子(data constructor)** と呼ばれます. どちらも大文字で始める必要があります.
+- `|` は「または」を意味し, `IntOrDog` の値は `MkInt <整数>` または `MkDog <犬>` のいずれかの形をとる, という **直和** を宣言します.
+- データ構築子の後ろに書かれた `Int`, `MyDogs` は包み込む値の型です. 具体的には `MkInt :: Int -> IntOrDog`, `MkDog :: MyDogs -> IntOrDog` という関数として扱えます.
+
+値を作ったり, パターンマッチで取り出したりできます.
+
+~~~ haskell
+describe :: IntOrDog -> String
+describe (MkInt n) = "整数 " ++ show n
+describe (MkDog d) = "犬 "   ++ show d
+
+main :: IO ()
+main = do
+    putStrLn $ describe (MkInt 42)               -- 整数 42
+    putStrLn $ describe (MkDog GoldenRetriever)  -- 犬 GoldenRetriever
+~~~
+
+集合論的に解釈すると, `MkInt` と `MkDog` という互いに異なるタグでくるむことで `Int` と `MyDogs` が **互いに素** な形で一つの型に合流するため,
+
+$$\mathrm{IntOrDog} = \mathrm{Int} \cup \mathrm{MyDogs} \quad (\mathrm{Int} \cap \mathrm{MyDogs} = \phi)$$
+
+という **直和** になります. 一般に, 代数的データ型の `|` で分けたコンストラクタは必ずタグで区別されるため, Haskellの直和型は常に直和の構造を持ちます.
+
+なお, データ構築子は任意個の引数を取ることができ, `MkPair Int MyDogs` のように複数の型を並べると, その部分は **直積** になります. つまり直和型の各コンストラクタは「いくつかの直積をタグ付きで合流させたもの」として解釈できます.
+
+### レコード構文
+
+記法のバリエーションとして, **レコード構文(record syntax)** を使うと各データ構築子にラベル(フィールド名)を付けられます.
+
+~~~ haskell
+data PetEntry = ByNumber { petNumber :: Int }
+              | ByBreed  { petBreed  :: MyDogs }
+              deriving Show
+~~~
+
+- `ByNumber { petNumber = 7 }` のように **フィールド名による値の生成** ができます. 従来の構文 `ByNumber 7` も併用可能です.
+- フィールド名 `petNumber`, `petBreed` は **自動的にアクセサ関数**として定義されます.
+    - `petNumber :: PetEntry -> Int`
+    - `petBreed  :: PetEntry -> MyDogs`
+
+集合論的には, これらのフィールド名は直和型の各部分集合から元の値を取り出す **射影** に対応します.
+
+$$\mathrm{petNumber}(\mathrm{ByNumber}(n) \in \mathrm{Int} \subset \mathrm{PetEntry}) = n$$
+
+$$\mathrm{petBreed}(\mathrm{ByBreed}(d) \in \mathrm{MyDogs} \subset \mathrm{PetEntry}) = d$$
+
+~~~ haskell
+ghci> petNumber (ByNumber 7)
+7
+ghci> petBreed (ByBreed GoldenRetriever)
+GoldenRetriever
+~~~
+
+::: warn
+レコード構文のアクセサ関数は, そのフィールドを持たない別のコンストラクタに適用すると **実行時エラー** になります. たとえば `petNumber (ByBreed GoldenRetriever)` は実行時にエラーを発生させます. 直和型に対するレコード構文のアクセサは部分関数である点に注意してください. 安全に取り出すにはパターンマッチを利用するか, 後の章で扱う `Maybe` を返す関数として包み直すのが一般的です.
+:::
+
+このように, 直和にすることで互いに異なる型の値を一つの型に集約でき, 型安全性を保ったまま「複数の型のいずれかをとる値」を表現できるようになります. 動的型付け言語におけるダックタイピングに似た柔軟さを, 型システムの保証を壊さずに実現する手段と考えることができます.
+
+::: note
+
+**練習問題**
+
+1. 図形を表す直和型 `Shape` を以下の3つのコンストラクタで定義してください.
+    - `Circle` : 半径(`Double`)を1つ持つ
+    - `Rectangle` : 幅と高さ(`Double` 2つ)を持つ
+    - `Triangle` : 3辺の長さ(`Double` 3つ)を持つ
+
+2. `Shape` の値を受け取り, その図形の面積を返す関数 `area :: Shape -> Double` をパターンマッチで実装してください. 三角形の面積はヘロンの公式
+
+    $$s = \frac{a + b + c}{2}, \quad S = \sqrt{s(s-a)(s-b)(s-c)}$$
+
+    を用います.
+
+~~~ haskell
+-- 実行例
+main :: IO ()
+main = do
+    print $ area (Circle 1)            -- 3.141592653589793
+    print $ area (Rectangle 3 4)       -- 12.0
+    print $ area (Triangle 3 4 5)      -- 6.0
+~~~
+
+<details class="protected" data-pass="yakagika">
+    <summary> 回答例 </summary>
+
+~~~ haskell
+data Shape = Circle Double
+           | Rectangle Double Double
+           | Triangle Double Double Double
+           deriving Show
+
+area :: Shape -> Double
+area (Circle r)       = pi * r * r
+area (Rectangle w h)  = w * h
+area (Triangle a b c) = sqrt (s * (s - a) * (s - b) * (s - c))
+  where
+    s = (a + b + c) / 2
+
+main :: IO ()
+main = do
+    print $ area (Circle 1)       -- 3.141592653589793
+    print $ area (Rectangle 3 4)  -- 12.0
+    print $ area (Triangle 3 4 5) -- 6.0
+~~~
+
+直和型の各コンストラクタが異なる数・種類の引数を持ってよいため, 図形ごとに必要な情報を自然に表現できます. 面積計算のような処理はパターンマッチで場合分けして書くのが定石です.
+
+</details>
+
+:::
 
 
 ## 直積型
 
-$A \times B = \{(a, b) \mid a \in A, b \in B\}$ を $A$ と $B$ の **直積(Cartesian Product)** といいます. 日本語では**積集合(intersection)**と似ていますが異なる概念なので注意しましょう.
+$A \times B = \{(a, b) \mid a \in A, b \in B\}$ を $A$ と $B$ の **直積(Cartesian Product)** といいます. 直積は $A$ と $B$ から要素を一つずつ選んで並べた組 $(a, b)$ 全体からなる集合です. 日本語では**積集合(intersection)**と字面が似ていますが異なる概念なので注意しましょう.
 
-Haskellでは以下のように直積型を定義できます.
+事例として $\mathrm{MyDogs}$ と整数の集合 $\mathbb{Z}$ の直積を考えると,
+
+$$\mathrm{MyDogs} \times \mathbb{Z} = \{(d, n) \mid d \in \mathrm{MyDogs}, n \in \mathbb{Z}\}$$
+
+となり, 「犬種と整数(たとえば年齢)のペア」全体の集合を表します. たとえば $(\mathrm{GoldenRetriever}, 3), (\mathrm{Beagle}, 7) \in \mathrm{MyDogs} \times \mathbb{Z}$ です.
+
+Haskellでは既に定義した `MyDogs` と `Int` の直積に相当する型を, 次のように定義できます. ここでは「犬種と年齢のペアを持つデータ型 `DogAge`」を定義します.
 
 ~~~ haskell
-data S = S x y
-data T = T { f :: x, g :: y }
+data DogAge = MkDogAge MyDogs Int
+            deriving Show
 ~~~
 
-これを集合論的に解釈すると,
+**記法の解説:**
 
-$$S = X \times Y$$
+- 左辺の `DogAge` は **型構築子(type constructor)**, 右辺の `MkDogAge` は **データ構築子(data constructor)** です. 直和型と違い, ここでは構築子は一つしかありません(`|` が無い).
+- データ構築子の後ろに **複数の型を空白区切りで並べる** ことで, その構築子が包む値が直積になります. `MkDogAge MyDogs Int` は「`MyDogs` と `Int` を並べた組」を構成するコンストラクタです.
+- 関数としての型は `MkDogAge :: MyDogs -> Int -> DogAge` となり, カリー化された2引数関数のように扱えます.
 
-$$T = X \times Y, \quad f((x, y) \in T) = x, \quad g((x, y) \in T) = y$$
+値の生成とパターンマッチは以下のようになります.
 
-となります.
+~~~ haskell
+goldenAge :: DogAge
+goldenAge = MkDogAge GoldenRetriever 3
 
-## new type
+breedOf :: DogAge -> MyDogs
+breedOf (MkDogAge d _) = d
+
+ageOf :: DogAge -> Int
+ageOf (MkDogAge _ n) = n
+
+main :: IO ()
+main = do
+    print $ breedOf goldenAge  -- GoldenRetriever
+    print $ ageOf   goldenAge  -- 3
+~~~
+
+集合論的に解釈すると,
+
+$$\mathrm{DogAge} = \mathrm{MyDogs} \times \mathrm{Int}$$
+
+となります. `MkDogAge` は2つの集合の要素を一組にまとめる対応
+
+$$\mathrm{MkDogAge} : \mathrm{MyDogs} \times \mathrm{Int} \to \mathrm{DogAge}, \quad (d, n) \mapsto \mathrm{MkDogAge}\,d\,n$$
+
+に対応します.
+
+### レコード構文
+
+直和型と同様に, 直積型でも **レコード構文(record syntax)** を用いて各フィールドに名前を付けることができます. 直積型ではコンストラクタが一つのため, レコード構文の恩恵(アクセサ関数の自動生成やフィールド名による値の生成)が特に活きます.
+
+~~~ haskell
+data DogAge = MkDogAge { breed :: MyDogs
+                       , age   :: Int
+                       }
+            deriving Show
+~~~
+
+この定義により, 以下のアクセサ関数が **自動的に** 定義されます.
+
+- `breed :: DogAge -> MyDogs`
+- `age   :: DogAge -> Int`
+
+集合論的には, これらのフィールド名は直積からそれぞれの成分を取り出す **射影(projection)** $\pi_1, \pi_2$ に対応します.
+
+$$\mathrm{breed}((d, n) \in \mathrm{DogAge}) = d$$
+
+$$\mathrm{age}((d, n) \in \mathrm{DogAge}) = n$$
+
+値の生成はフィールド名を明示する形でも, 従来の位置引数の形でも可能です.
+
+~~~ haskell
+goldenAge :: DogAge
+goldenAge = MkDogAge { breed = GoldenRetriever, age = 3 }
+
+-- もしくは位置引数で
+goldenAge' :: DogAge
+goldenAge' = MkDogAge GoldenRetriever 3
+
+main :: IO ()
+main = do
+    print $ breed goldenAge  -- GoldenRetriever
+    print $ age   goldenAge  -- 3
+~~~
+
+また, レコード構文では **一部のフィールドのみを更新した新しい値** を作る記法も利用できます. Haskellでは値は不変(再代入できない)なので,「更新」とは元の値を変更するのではなく, 一部を書き換えた **新しい値を返す** ことを意味します.
+
+~~~ haskell
+olderGolden :: DogAge
+olderGolden = goldenAge { age = 10 }
+-- MkDogAge { breed = GoldenRetriever, age = 10 }
+~~~
+
+直和型の場合と異なり, 直積型のレコードフィールドは単一のコンストラクタに属しているため **アクセサは全域関数** であり, 実行時エラーの心配はありません.
+
+::: note
+
+**練習問題**
+
+1. 人物を表す直積型 `Person` を, 以下のフィールドを持つレコード構文で定義してください.
+    - `personName :: String` (氏名)
+    - `personAge :: Int` (年齢)
+    - `personEmail :: String` (メールアドレス)
+
+2. `Person` 型の値を受け取り, 年齢を1歳加えた新しい `Person` を返す関数 `birthday :: Person -> Person` を **レコード更新構文** を用いて実装してください.
+
+3. 2人の `Person` の年齢の合計を返す関数 `totalAge :: Person -> Person -> Int` を, レコード構文のアクセサ関数を用いて実装してください.
+
+~~~ haskell
+-- 実行例
+main :: IO ()
+main = do
+    let alice = Person { personName = "Alice", personAge = 30, personEmail = "alice@example.com" }
+        bob   = Person { personName = "Bob"  , personAge = 25, personEmail = "bob@example.com"   }
+    print $ birthday alice           -- Alice の年齢が 31 に
+    print $ totalAge alice bob       -- 55
+~~~
+
+<details class="protected" data-pass="yakagika">
+    <summary> 回答例 </summary>
+
+~~~ haskell
+data Person = Person
+    { personName  :: String
+    , personAge   :: Int
+    , personEmail :: String
+    } deriving Show
+
+-- レコード更新構文で年齢のみを更新した新しい値を返す
+birthday :: Person -> Person
+birthday p = p { personAge = personAge p + 1 }
+
+-- アクセサ関数 personAge を利用して合計を計算
+totalAge :: Person -> Person -> Int
+totalAge p1 p2 = personAge p1 + personAge p2
+
+main :: IO ()
+main = do
+    let alice = Person { personName = "Alice", personAge = 30, personEmail = "alice@example.com" }
+        bob   = Person { personName = "Bob"  , personAge = 25, personEmail = "bob@example.com"   }
+    print $ birthday alice      -- Person {personName = "Alice", personAge = 31, personEmail = "alice@example.com"}
+    print $ totalAge alice bob  -- 55
+~~~
+
+レコード更新構文 `p { personAge = ... }` は `p` を破壊的に書き換えるのではなく, `personAge` のみを変えた新しい `Person` 値を作って返します. 他のフィールドは `p` のものがそのままコピーされるため, フィールド数が多いレコードの部分更新を簡潔に書けます.
+
+</details>
+
+:::
+
+## newtype
+
+(後ほど実装)
 
 
 
