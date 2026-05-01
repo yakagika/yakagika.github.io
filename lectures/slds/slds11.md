@@ -1073,7 +1073,7 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
-import japanize_matplotlib
+import matplotlib_fontja
 import seaborn as sns
 from sklearn.preprocessing import StandardScaler
 

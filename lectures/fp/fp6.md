@@ -15,6 +15,8 @@ nextChapter: fp7.html
 open: false
 ---
 
+PDFのブール代数の例を何処かに入れる
+
 # 代数とクラス
 
 ## マグマ

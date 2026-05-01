@@ -1129,7 +1129,7 @@ for i in df['西暦'].unique():
 
 import pandas as pd
 import matplotlib.pyplot as plt
-import japanize_matplotlib
+import matplotlib_fontja
 
 # 円グラフ
 df = pd.read_csv('data/pie_chart_practice.csv')
@@ -1193,7 +1193,7 @@ plt.show()
 import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
-import japanize_matplotlib
+import matplotlib_fontja
 
 #データの読み込み
 df = pd.read_csv('data/qualitative_histogram_practice.csv')
@@ -1240,7 +1240,7 @@ plt.show()
 import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
-import japanize_matplotlib
+import matplotlib_fontja
 import math
 
 #ヒストグラムを作りたいデータの列名を指定
@@ -1366,7 +1366,7 @@ plt.show()
 
 import pandas as pd
 import matplotlib.pyplot as plt
-import japanize_matplotlib
+import matplotlib_fontja
 
 # 1つのグラフに表示 for文を利用して1つのグラフに4つの折れ線グラフを色を変えて表示する. 凡例も表示する.
 df = pd.read_csv('data/sports.csv')
@@ -1413,7 +1413,7 @@ plt.show()
 
 import pandas as pd
 import matplotlib.pyplot as plt
-import japanize_matplotlib
+import matplotlib_fontja
 import seaborn as sns
 
 df = pd.read_csv('data/beetle_datal.csv')
@@ -1429,7 +1429,7 @@ plt.show()
 
 import pandas as pd
 import matplotlib.pyplot as plt
-import japanize_matplotlib
+import matplotlib_fontja
 import seaborn as sns
 
 df = pd.read_csv('data/forest_beetle_data.csv')

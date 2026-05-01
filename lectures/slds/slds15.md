@@ -1381,7 +1381,7 @@ drive.mount('/content/drive')
 %cd /content/drive/My Drive/slds
 
 !pip install transformers==4.18.0 fugashi==1.1.0 ipadic==1.0.0
-!pip install japanize_matplotlib
+!pip install matplotlib-fontja
 !pip install adjustText
 ~~~
 
@@ -1395,7 +1395,7 @@ import numpy as np
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
-import japanize_matplotlib
+import matplotlib_fontja
 import pandas as pd
 import torch
 from torch.utils.data import DataLoader
