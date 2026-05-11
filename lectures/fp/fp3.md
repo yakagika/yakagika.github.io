@@ -747,8 +747,8 @@ True
     <summary> 回答例 </summary>
 
 ~~~ sh
-ghci> let x = 101
-ghci> let y = 202
+ghci> x = 101
+ghci> y = 202
 
 -- xが偶数 (x を 2 で割った余りが 0)
 ghci> x `mod` 2 == 0
