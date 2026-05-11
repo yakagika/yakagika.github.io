@@ -33,6 +33,48 @@ Stackは現在のHaskellの標準的なコンパイラである,`Glasgow Haskell
 
 Stackにはそのようなpackage間の依存関係を満たすバージョンの組み合わせ(`resolver`)を利用して,自動で解決してくれる機能があり,Haskellでのブロジェクトの開発を容易にしてくれます. resolverの集まりを[`Stackage`](https://www.stackage.org)といい, resolverで扱われるpackageをまとめて管理するレポジトリのことを[`Hackage`](https://hackage.haskell.org)といいます.
 
+::: note
+**Stackの役割**
+
+Haskellの各packageは, 動作可能なGHCのバージョンや依存packageのバージョンに制約を持っています. プロジェクトで使う複数のpackageを同時に動かすには, **すべてのpackageの制約を満たすGHCと依存packageの組合せ**, すなわち各制約集合の **積集合** に属する組合せを選ばなければなりません. この組合せを人手で探そうとして泥沼にはまるのが `cabal hell` です.
+
+<svg viewBox="0 0 360 300" width="100%" style="max-width: 440px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="package毎の対応GHC・依存バージョンの積集合">
+  <circle cx="135" cy="130" r="80" fill="rgba(13,148,136,0.18)" stroke="currentColor" stroke-width="1.5"/>
+  <circle cx="225" cy="130" r="80" fill="rgba(13,148,136,0.18)" stroke="currentColor" stroke-width="1.5"/>
+  <circle cx="180" cy="200" r="80" fill="rgba(13,148,136,0.18)" stroke="currentColor" stroke-width="1.5"/>
+  <text x="55" y="38" fill="currentColor" font-size="14" text-anchor="middle" font-weight="600">package A</text>
+  <text x="55" y="55" fill="currentColor" font-size="11" text-anchor="middle" opacity="0.7">対応 GHC・依存</text>
+  <text x="305" y="38" fill="currentColor" font-size="14" text-anchor="middle" font-weight="600">package B</text>
+  <text x="305" y="55" fill="currentColor" font-size="11" text-anchor="middle" opacity="0.7">対応 GHC・依存</text>
+  <text x="180" y="290" fill="currentColor" font-size="14" text-anchor="middle" font-weight="600">package C (対応 GHC・依存)</text>
+  <text x="180" y="158" fill="currentColor" font-size="12" text-anchor="middle" font-weight="700">使用可能な</text>
+  <text x="180" y="175" fill="currentColor" font-size="12" text-anchor="middle" font-weight="700">組合せ</text>
+</svg>
+
+Stackでは, この積集合の代表点を予め選んで固定したものが **resolver (Stackage が提供する組合せの snapshot)** です. プロジェクトはこのresolverに従い, **選ばれたGHCとpackage群がプロジェクト固有のもの (`.stack-work/` ディレクトリ以下) として配置** され, 他のプロジェクトと干渉しません.
+
+<svg viewBox="0 0 360 220" width="100%" style="max-width: 440px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Stackプロジェクトの概念図">
+  <rect x="20" y="20" width="320" height="190" rx="10" fill="rgba(13,148,136,0.05)" stroke="currentColor" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <text x="40" y="42" fill="currentColor" font-size="13" font-weight="600">Stackプロジェクト (resolver で固定)</text>
+  <rect x="50" y="60" width="260" height="48" rx="8" fill="rgba(13,148,136,0.22)" stroke="currentColor" stroke-width="1.2"/>
+  <text x="180" y="90" fill="currentColor" font-size="15" text-anchor="middle" font-weight="600">選択された GHC</text>
+  <rect x="50" y="130" width="80" height="38" rx="19" fill="rgba(13,148,136,0.12)" stroke="currentColor" stroke-width="1"/>
+  <text x="90" y="154" fill="currentColor" font-size="13" text-anchor="middle">package A</text>
+  <rect x="140" y="130" width="80" height="38" rx="19" fill="rgba(13,148,136,0.12)" stroke="currentColor" stroke-width="1"/>
+  <text x="180" y="154" fill="currentColor" font-size="13" text-anchor="middle">package B</text>
+  <rect x="230" y="130" width="80" height="38" rx="19" fill="rgba(13,148,136,0.12)" stroke="currentColor" stroke-width="1"/>
+  <text x="270" y="154" fill="currentColor" font-size="13" text-anchor="middle">package C</text>
+  <text x="180" y="200" fill="currentColor" font-size="11" text-anchor="middle" opacity="0.7">.stack-work/ ディレクトリ以下にプロジェクト固有として配置</text>
+</svg>
+
+従来 `Cabal + GHCup` の構成では, GHCバージョン管理・package管理・依存解決をそれぞれ別の役割で分担していましたが, `Stack` はこれらをまとめて扱えます.
+
+|               | GHCバージョン管理 | パッケージ管理   | 依存解決            | プロジェクト分離 |
+| :---          | :---              | :---             | :---                | :---             |
+| Cabal + GHCup | GHCup             | Cabal (Hackage)  | Cabal solver        | Cabal store      |
+| Stack         | Stack             | Stack (Hackage)  | resolver (Stackage) | .stack-work      |
+:::
+
 ## 環境構築
 
 Stackの環境構築の方法は基本的には,[公式サイト](https://docs.haskellstack.org/en/stable/)に従ってください. 使用しているOS毎にインストール方法が異なるので注意しましょう特にMacユーザーはIntel Mac と Apple silliconでインストール方法が異なるので正しい方を選択するようにしてください.

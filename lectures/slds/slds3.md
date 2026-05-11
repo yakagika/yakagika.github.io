@@ -201,7 +201,40 @@ Pythonの環境構築には,[公式のインストーラー](https://www.python.
 
 [`uv`](https://docs.astral.sh/uv/) は Astral 社が開発した Python のパッケージマネージャ・プロジェクト管理ツールです. Rust で実装されており,従来の `pip` や `pyenv` と比べて非常に高速に動作します.
 
-従来の Python 環境構築では,バージョン管理に `pyenv`,パッケージ管理に `pip`,仮想環境に `venv`,依存関係の固定に `pip freeze` と,複数のツールを組み合わせる必要がありました. `uv` はこれらを **1つのツールに統合** しており,
+
+プロジェクトで使う複数のライブラリは,それぞれが対応するPythonのバージョン集合を持っています. プロジェクトで実際に使えるPythonは, **すべてのライブラリが対応するバージョンの積集合** に限られます.
+
+<svg viewBox="0 0 360 300" width="100%" style="max-width: 440px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ライブラリ毎の対応Pythonバージョンの積集合">
+  <circle cx="135" cy="130" r="80" fill="rgba(13,148,136,0.18)" stroke="currentColor" stroke-width="1.5"/>
+  <circle cx="225" cy="130" r="80" fill="rgba(13,148,136,0.18)" stroke="currentColor" stroke-width="1.5"/>
+  <circle cx="180" cy="200" r="80" fill="rgba(13,148,136,0.18)" stroke="currentColor" stroke-width="1.5"/>
+  <text x="55" y="38" fill="currentColor" font-size="14" text-anchor="middle" font-weight="600">ライブラリ A</text>
+  <text x="55" y="55" fill="currentColor" font-size="11" text-anchor="middle" opacity="0.7">対応Python集合</text>
+  <text x="305" y="38" fill="currentColor" font-size="14" text-anchor="middle" font-weight="600">ライブラリ B</text>
+  <text x="305" y="55" fill="currentColor" font-size="11" text-anchor="middle" opacity="0.7">対応Python集合</text>
+  <text x="180" y="290" fill="currentColor" font-size="14" text-anchor="middle" font-weight="600">ライブラリ C (対応Python集合)</text>
+  <text x="180" y="158" fill="currentColor" font-size="12" text-anchor="middle" font-weight="700">使用可能な</text>
+  <text x="180" y="175" fill="currentColor" font-size="12" text-anchor="middle" font-weight="700">Python</text>
+</svg>
+
+そして, **選ばれたPythonと, プロジェクトで使うライブラリ群を1つのディレクトリ内にまとめて閉じ込めたもの** が仮想環境 (venv) です. プロジェクトごとに別の仮想環境を持つことで, 他のプロジェクトのPythonやライブラリのバージョンと干渉しません.
+
+<svg viewBox="0 0 360 200" width="100%" style="max-width: 440px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="仮想環境の概念図">
+  <rect x="20" y="20" width="320" height="170" rx="10" fill="rgba(13,148,136,0.05)" stroke="currentColor" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <text x="40" y="42" fill="currentColor" font-size="13" font-weight="600">仮想環境 (.venv ディレクトリ)</text>
+  <rect x="50" y="60" width="260" height="48" rx="8" fill="rgba(13,148,136,0.22)" stroke="currentColor" stroke-width="1.2"/>
+  <text x="180" y="90" fill="currentColor" font-size="15" text-anchor="middle" font-weight="600">選択された Python</text>
+  <rect x="50" y="130" width="80" height="38" rx="19" fill="rgba(13,148,136,0.12)" stroke="currentColor" stroke-width="1"/>
+  <text x="90" y="154" fill="currentColor" font-size="13" text-anchor="middle">ライブラリA</text>
+  <rect x="140" y="130" width="80" height="38" rx="19" fill="rgba(13,148,136,0.12)" stroke="currentColor" stroke-width="1"/>
+  <text x="180" y="154" fill="currentColor" font-size="13" text-anchor="middle">ライブラリB</text>
+  <rect x="230" y="130" width="80" height="38" rx="19" fill="rgba(13,148,136,0.12)" stroke="currentColor" stroke-width="1"/>
+  <text x="270" y="154" fill="currentColor" font-size="13" text-anchor="middle">ライブラリC</text>
+</svg>
+
+従来の Python 環境構築では,バージョン管理に `pyenv`,パッケージ管理に `pip`,仮想環境に `venv`,依存関係の固定に `pip freeze` と,複数のツールを組み合わせる必要がありました. 
+
+`uv` はこれらを **1つのツールに統合** しており,
 
 - Pythonバージョンの管理 (`uv python install`)
 - プロジェクトの作成 (`uv init`)
@@ -210,6 +243,14 @@ Pythonの環境構築には,[公式のインストーラー](https://www.python.
 - 依存関係のロック (`uv.lock`)
 
 をすべて `uv` コマンドだけで完結できます. 特に `uv run` は仮想環境の作成からパッケージの同期,スクリプトの実行までを一度に行うため,仮想環境を手動で有効化(activate)する手間がありません.
+
+従来はPythonバージョン管理・パッケージ管理・仮想環境管理をそれぞれ別のツールで分担していましたが, `uv` はこれら3つの役割を1つでまとめて扱えます.
+
+|              | Pythonバージョン管理 | パッケージ管理 | 仮想環境 |
+| :---         | :---                 | :---           | :---     |
+| pyenv + venv | pyenv                | pip            | venv     |
+| poetry       | (別途 pyenv 等)      | poetry         | poetry   |
+| uv           | uv                   | uv             | uv       |
 :::
 
 本講義では, `uv`を利用するため,以下`uv`環境の構築を行います. 既にuvがインストールされている人は,この以下のステップは飛ばして下さい.

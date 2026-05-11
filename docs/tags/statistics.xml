@@ -3650,7 +3650,34 @@ Sports_Hours あり/なしを比較すると,AIC(22.81→21.15),BIC(33.23→28.9
 <div class="note">
 <p><strong>uvとは</strong></p>
 <p><a href="https://docs.astral.sh/uv/"><code>uv</code></a> は Astral 社が開発した Python のパッケージマネージャ・プロジェクト管理ツールです. Rust で実装されており,従来の <code>pip</code> や <code>pyenv</code> と比べて非常に高速に動作します.</p>
-<p>従来の Python 環境構築では,バージョン管理に <code>pyenv</code>,パッケージ管理に <code>pip</code>,仮想環境に <code>venv</code>,依存関係の固定に <code>pip freeze</code> と,複数のツールを組み合わせる必要がありました. <code>uv</code> はこれらを <strong>1つのツールに統合</strong> しており,</p>
+<p>プロジェクトで使う複数のライブラリは,それぞれが対応するPythonのバージョン集合を持っています. プロジェクトで実際に使えるPythonは, <strong>すべてのライブラリが対応するバージョンの積集合</strong> に限られます.</p>
+<svg viewBox="0 0 360 300" width="100%" style="max-width: 440px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="ライブラリ毎の対応Pythonバージョンの積集合">
+<circle cx="135" cy="130" r="80" fill="rgba(13,148,136,0.18)" stroke="currentColor" stroke-width="1.5"/>
+<circle cx="225" cy="130" r="80" fill="rgba(13,148,136,0.18)" stroke="currentColor" stroke-width="1.5"/>
+<circle cx="180" cy="200" r="80" fill="rgba(13,148,136,0.18)" stroke="currentColor" stroke-width="1.5"/>
+<text x="55" y="38" fill="currentColor" font-size="14" text-anchor="middle" font-weight="600">ライブラリ A</text>
+<text x="55" y="55" fill="currentColor" font-size="11" text-anchor="middle" opacity="0.7">対応Python集合</text>
+<text x="305" y="38" fill="currentColor" font-size="14" text-anchor="middle" font-weight="600">ライブラリ B</text>
+<text x="305" y="55" fill="currentColor" font-size="11" text-anchor="middle" opacity="0.7">対応Python集合</text>
+<text x="180" y="290" fill="currentColor" font-size="14" text-anchor="middle" font-weight="600">ライブラリ C (対応Python集合)</text>
+<text x="180" y="158" fill="currentColor" font-size="12" text-anchor="middle" font-weight="700">使用可能な</text>
+<text x="180" y="175" fill="currentColor" font-size="12" text-anchor="middle" font-weight="700">Python</text>
+</svg>
+<p>そして, <strong>選ばれたPythonと, プロジェクトで使うライブラリ群を1つのディレクトリ内にまとめて閉じ込めたもの</strong> が仮想環境 (venv) です. プロジェクトごとに別の仮想環境を持つことで, 他のプロジェクトのPythonやライブラリのバージョンと干渉しません.</p>
+<svg viewBox="0 0 360 200" width="100%" style="max-width: 440px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="仮想環境の概念図">
+<rect x="20" y="20" width="320" height="170" rx="10" fill="rgba(13,148,136,0.05)" stroke="currentColor" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="40" y="42" fill="currentColor" font-size="13" font-weight="600">仮想環境 (.venv ディレクトリ)</text>
+<rect x="50" y="60" width="260" height="48" rx="8" fill="rgba(13,148,136,0.22)" stroke="currentColor" stroke-width="1.2"/>
+<text x="180" y="90" fill="currentColor" font-size="15" text-anchor="middle" font-weight="600">選択された Python</text>
+<rect x="50" y="130" width="80" height="38" rx="19" fill="rgba(13,148,136,0.12)" stroke="currentColor" stroke-width="1"/>
+<text x="90" y="154" fill="currentColor" font-size="13" text-anchor="middle">ライブラリA</text>
+<rect x="140" y="130" width="80" height="38" rx="19" fill="rgba(13,148,136,0.12)" stroke="currentColor" stroke-width="1"/>
+<text x="180" y="154" fill="currentColor" font-size="13" text-anchor="middle">ライブラリB</text>
+<rect x="230" y="130" width="80" height="38" rx="19" fill="rgba(13,148,136,0.12)" stroke="currentColor" stroke-width="1"/>
+<text x="270" y="154" fill="currentColor" font-size="13" text-anchor="middle">ライブラリC</text>
+</svg>
+<p>従来の Python 環境構築では,バージョン管理に <code>pyenv</code>,パッケージ管理に <code>pip</code>,仮想環境に <code>venv</code>,依存関係の固定に <code>pip freeze</code> と,複数のツールを組み合わせる必要がありました.</p>
+<p><code>uv</code> はこれらを <strong>1つのツールに統合</strong> しており,</p>
 <ul>
 <li>Pythonバージョンの管理 (<code>uv python install</code>)</li>
 <li>プロジェクトの作成 (<code>uv init</code>)</li>
@@ -3659,6 +3686,37 @@ Sports_Hours あり/なしを比較すると,AIC(22.81→21.15),BIC(33.23→28.9
 <li>依存関係のロック (<code>uv.lock</code>)</li>
 </ul>
 <p>をすべて <code>uv</code> コマンドだけで完結できます. 特に <code>uv run</code> は仮想環境の作成からパッケージの同期,スクリプトの実行までを一度に行うため,仮想環境を手動で有効化(activate)する手間がありません.</p>
+<p>従来はPythonバージョン管理・パッケージ管理・仮想環境管理をそれぞれ別のツールで分担していましたが, <code>uv</code> はこれら3つの役割を1つでまとめて扱えます.</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;"></th>
+<th style="text-align: left;">Pythonバージョン管理</th>
+<th style="text-align: left;">パッケージ管理</th>
+<th style="text-align: left;">仮想環境</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">pyenv + venv</td>
+<td style="text-align: left;">pyenv</td>
+<td style="text-align: left;">pip</td>
+<td style="text-align: left;">venv</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">poetry</td>
+<td style="text-align: left;">(別途 pyenv 等)</td>
+<td style="text-align: left;">poetry</td>
+<td style="text-align: left;">poetry</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">uv</td>
+<td style="text-align: left;">uv</td>
+<td style="text-align: left;">uv</td>
+<td style="text-align: left;">uv</td>
+</tr>
+</tbody>
+</table>
 </div>
 <p>本講義では, <code>uv</code>を利用するため,以下<code>uv</code>環境の構築を行います. 既にuvがインストールされている人は,この以下のステップは飛ばして下さい.</p>
 <h3 id="現状の開発環境の削除">現状の開発環境の削除</h3>
@@ -8853,6 +8911,71 @@ Haskellでは空集合を表すデータ型として<code>Data.Void</code>に定
 <p>言語の特徴や意味を色々と説明してきましたが,習うより慣れろということで,そろそろHaskellを利用してみましょう.Haskellの開発環境には様々なものがありますが,現在良く使われているものとして<a href="https://www.haskell.org/cabal/"><code>Cabal</code></a> + <a href="https://www.haskell.org/ghcup/"><code>GHCup</code></a>あるいは<a href="https://docs.haskellstack.org/en/stable/"><code>Stack</code></a>の2つがあります. CabalとStackはプロジェクトのビルドを行うためのアーキテクチャであり,GHCupは周辺環境のインストーラーです. どちらで開発を行ってもいいのですが,本稿では<code>Stack</code>を用います.</p>
 <p>Stackは現在のHaskellの標準的なコンパイラである,<code>Glasgow Haskell Compiler（GHC）</code>に基づいたビルド環境です(cabalもGHCですが). 他の言語と同様にHaskellでも様々なpackage(ライブラリ)を利用するのですが,package毎に他のpackageや,GHC(Haskellのコンパイラ)との依存関係があります.それらを使用するpackage事に調整することが人間には至難の業であり, 特定のpackageの依存関係を満たせば他のpackageの依存関係が満たされなくなるという試行錯誤を永遠と繰り返すことを<code>cabal hell</code>などと呼びます.</p>
 <p>Stackにはそのようなpackage間の依存関係を満たすバージョンの組み合わせ(<code>resolver</code>)を利用して,自動で解決してくれる機能があり,Haskellでのブロジェクトの開発を容易にしてくれます. resolverの集まりを<a href="https://www.stackage.org"><code>Stackage</code></a>といい, resolverで扱われるpackageをまとめて管理するレポジトリのことを<a href="https://hackage.haskell.org"><code>Hackage</code></a>といいます.</p>
+<div class="note">
+<p><strong>Stackの役割</strong></p>
+<p>Haskellの各packageは, 動作可能なGHCのバージョンや依存packageのバージョンに制約を持っています. プロジェクトで使う複数のpackageを同時に動かすには, <strong>すべてのpackageの制約を満たすGHCと依存packageの組合せ</strong>, すなわち各制約集合の <strong>積集合</strong> に属する組合せを選ばなければなりません. この組合せを人手で探そうとして泥沼にはまるのが <code>cabal hell</code> です.</p>
+<svg viewBox="0 0 360 300" width="100%" style="max-width: 440px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="package毎の対応GHC・依存バージョンの積集合">
+<circle cx="135" cy="130" r="80" fill="rgba(13,148,136,0.18)" stroke="currentColor" stroke-width="1.5"/>
+<circle cx="225" cy="130" r="80" fill="rgba(13,148,136,0.18)" stroke="currentColor" stroke-width="1.5"/>
+<circle cx="180" cy="200" r="80" fill="rgba(13,148,136,0.18)" stroke="currentColor" stroke-width="1.5"/>
+<text x="55" y="38" fill="currentColor" font-size="14" text-anchor="middle" font-weight="600">package A</text>
+<text x="55" y="55" fill="currentColor" font-size="11" text-anchor="middle" opacity="0.7">対応 GHC・依存</text>
+<text x="305" y="38" fill="currentColor" font-size="14" text-anchor="middle" font-weight="600">package B</text>
+<text x="305" y="55" fill="currentColor" font-size="11" text-anchor="middle" opacity="0.7">対応 GHC・依存</text>
+<text x="180" y="290" fill="currentColor" font-size="14" text-anchor="middle" font-weight="600">package C (対応 GHC・依存)</text>
+<text x="180" y="158" fill="currentColor" font-size="12" text-anchor="middle" font-weight="700">使用可能な</text>
+<text x="180" y="175" fill="currentColor" font-size="12" text-anchor="middle" font-weight="700">組合せ</text>
+</svg>
+<p>Stackでは, この積集合の代表点を予め選んで固定したものが <strong>resolver (Stackage が提供する組合せの snapshot)</strong> です. プロジェクトはこのresolverに従い, <strong>選ばれたGHCとpackage群がプロジェクト固有のもの (<code>.stack-work/</code> ディレクトリ以下) として配置</strong> され, 他のプロジェクトと干渉しません.</p>
+<svg viewBox="0 0 360 220" width="100%" style="max-width: 440px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Stackプロジェクトの概念図">
+<rect x="20" y="20" width="320" height="190" rx="10" fill="rgba(13,148,136,0.05)" stroke="currentColor" stroke-width="1.5" stroke-dasharray="6 4"/>
+<text x="40" y="42" fill="currentColor" font-size="13" font-weight="600">Stackプロジェクト (resolver で固定)</text>
+<rect x="50" y="60" width="260" height="48" rx="8" fill="rgba(13,148,136,0.22)" stroke="currentColor" stroke-width="1.2"/>
+<text x="180" y="90" fill="currentColor" font-size="15" text-anchor="middle" font-weight="600">選択された GHC</text>
+<rect x="50" y="130" width="80" height="38" rx="19" fill="rgba(13,148,136,0.12)" stroke="currentColor" stroke-width="1"/>
+<text x="90" y="154" fill="currentColor" font-size="13" text-anchor="middle">package A</text>
+<rect x="140" y="130" width="80" height="38" rx="19" fill="rgba(13,148,136,0.12)" stroke="currentColor" stroke-width="1"/>
+<text x="180" y="154" fill="currentColor" font-size="13" text-anchor="middle">package B</text>
+<rect x="230" y="130" width="80" height="38" rx="19" fill="rgba(13,148,136,0.12)" stroke="currentColor" stroke-width="1"/>
+<text x="270" y="154" fill="currentColor" font-size="13" text-anchor="middle">package C</text>
+<text x="180" y="200" fill="currentColor" font-size="11" text-anchor="middle" opacity="0.7">.stack-work/ ディレクトリ以下にプロジェクト固有として配置</text>
+</svg>
+<p>従来 <code>Cabal + GHCup</code> の構成では, GHCバージョン管理・package管理・依存解決をそれぞれ別の役割で分担していましたが, <code>Stack</code> はこれらをまとめて扱えます.</p>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;"></th>
+<th style="text-align: left;">GHCバージョン管理</th>
+<th style="text-align: left;">パッケージ管理</th>
+<th style="text-align: left;">依存解決</th>
+<th style="text-align: left;">プロジェクト分離</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Cabal + GHCup</td>
+<td style="text-align: left;">GHCup</td>
+<td style="text-align: left;">Cabal (Hackage)</td>
+<td style="text-align: left;">Cabal solver</td>
+<td style="text-align: left;">Cabal store</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Stack</td>
+<td style="text-align: left;">Stack</td>
+<td style="text-align: left;">Stack (Hackage)</td>
+<td style="text-align: left;">resolver (Stackage)</td>
+<td style="text-align: left;">.stack-work</td>
+</tr>
+</tbody>
+</table>
+</div>
 <h2 id="環境構築">環境構築</h2>
 <p>Stackの環境構築の方法は基本的には,<a href="https://docs.haskellstack.org/en/stable/">公式サイト</a>に従ってください. 使用しているOS毎にインストール方法が異なるので注意しましょう特にMacユーザーはIntel Mac と Apple silliconでインストール方法が異なるので正しい方を選択するようにしてください.</p>
 <p>インストールが終わったら,以下のコマンドでstackを最新版にupgradeします.</p>
