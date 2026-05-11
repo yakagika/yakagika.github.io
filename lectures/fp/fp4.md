@@ -58,7 +58,6 @@ $$ multiple(x,y) = x * y $$
 ~~~ haskell
 multiple :: Double -> Double -> Double
 multiple x y = x * y
-multiple 3 4
 
 main = do
     print $ multiple 3 4 --  12.0
@@ -106,7 +105,7 @@ main = do
 x `multiple` y = x * y
 
 main = do
-    print $ 3 `multiple ` 4 --  12
+    print $ 3 `multiple` 4 --  12
 ~~~
 
 ### 結合性
@@ -136,7 +135,7 @@ main = do
 
 - **右結合(Right-associative)**
 
-右結合演算子の場合,演算子は右から左へと評価されます.例えば、`^`は右結合です。式 `a ^ b ^ c` は `a ^ (b ^ c)` として評価されます
+右結合演算子の場合,演算子は右から左へと評価されます. 例えば, `^`は右結合です. 式 `a ^ b ^ c` は `a ^ (b ^ c)` として評価されます
 
 - **非結合(Non-associative)**
 
@@ -157,8 +156,7 @@ infixr 7 .*
 
 ## カリー化,部分適用
 
-Haskellでは多引数関数を実装できることは先程確認しました. しかし,Haskellは**すべての関数が,引数を一つだけとる**という原則があります. これは,矛盾するようですが,この矛盾を解消する概念が**`カリー化(Currying)
-`**です.
+Haskellでは多引数関数を実装できることは先程確認しました. しかし,Haskellは**すべての関数が,引数を一つだけとる**という原則があります. これは,矛盾するようですが,この矛盾を解消する概念が **カリー化(Currying)** です.
 
 カリー化とは複数引数関数に対して,｢一つの引数を取り,次に残りの引数を取る関数を返すようにする変換｣です.
 
@@ -178,7 +176,7 @@ add :: Int -> (Int -> Int)
 として機能しています. 関数の呼び出しは左結合なので,
 
 
-`add 5 10 = (add 5) 10` であり, ここで`(add 5) :: Int -> Int`という新たな関数に2が適用されています(以下は型の確認のためにghciを利用しています.)
+`add 5 10 = (add 5) 10` であり, ここで`(add 5) :: Int -> Int`という新たな関数に10が適用されています(以下は型の確認のためにghciを利用しています.)
 
 ~~~ sh
 ghci> :{
@@ -228,7 +226,7 @@ def fib(x):
     elif x == 1:
         return 1
     else:
-        return fib(x-1) + f(x-2)
+        return fib(x-1) + fib(x-2)
 
 ~~~
 これをHaskellでパターンマッチを利用して以下のように定義することができます.
@@ -263,9 +261,9 @@ fib n = fib (n - 1) + fib (n - 2)
 
 ~~~ haskell
 strHead :: Show a => [a] -> String
-strHead []     = "Empty"
-strHead [x]    = show x
-strHead (x:xs) = show x
+strHead []    = "Empty"
+strHead [x]   = show x
+strHead (x:_) = show x
 
 main = do
     print $ strHead [] --  "Empty"
@@ -307,15 +305,16 @@ Haskellにおいて指示関数の記法に相当するのが**ガード**です
 
 ~~~ haskell
 fib :: Int -> Int
-fib n | n == 0 = 1
-      | n == 1 = 1
-      | n >= 2 = fib (n-1) + fib (n-2)
+fib n | n == 0    = 1
+      | n == 1    = 1
+      | n >= 2    = fib (n-1) + fib (n-2)
+      | otherwise = error "fib: negative input"
 
 main = do
     print $ fib 5 --  8
 ~~~
 
-特徴関数におけるifの位置が先に来ている以外は,基本的に対応関係にあるのがわかるかと思います.
+特徴関数におけるifの位置が先に来ている以外は,基本的に対応関係にあるのがわかるかと思います. なお, 上のガードでは負の整数が来た場合に備えて `otherwise` で `error` を投げています. これは次節でも扱う通り「どのガードにも該当しない値」が来た場合に `Non-exhaustive guards` で落ちるのを防ぐためのフォールバックです.
 
 #### otherwise
 
@@ -494,15 +493,14 @@ def total(xs):
 
 ~~~ haskell
 total :: [Int] -> Int
-total []  = 0
-total [x] = x
-total (x:xs) = x + (total xs)
+total []     = 0
+total (x:xs) = x + total xs
 
-main = print $ tatal [1..10] --  55
+main = print $ total [1..10] --  55
 ~~~
 
-このtotal関数は,与えられたリストが空の場合0を返し,要素が一つの場合その要素を返します.
-要素が複数あるリストの場合には,先頭の要素`x`をそれ以降の要素`xs`の合計に足すという処理を行います.
+このtotal関数は,与えられたリストが空の場合0を返します.
+要素が一つ以上あるリストの場合には,先頭の要素`x`をそれ以降の要素`xs`の合計に足すという処理を再帰的に行います.
 
 `total [1,2,3]`における処理の流れを追っていくと以下のようになります.
 
@@ -522,7 +520,7 @@ total [1,2,3]
 
 ::: note
 
-練習問題
+**練習問題**
 
 1. リストの長さを返す`length2 :: [a] -> Int` 関数を新しく実装してください.
 
@@ -587,9 +585,8 @@ main = do
 
 ~~~ haskell
 applyFToList :: (a -> b) -> [a] -> [b]
-applyFToList f []     = []
-applyFToList f [x]    = [f x]
-applyFToList f (x:xs) =  (f x): (applyFToList f xs)
+applyFToList _ []     = []
+applyFToList f (x:xs) = f x : applyFToList f xs
 
 main = do
     print $ applyFToList (2*) [4,5,6]  -- [8,10,12]
@@ -670,8 +667,11 @@ main = do
 
 `foldr :: (a -> b -> b) -> b -> [a] -> b`
 
-は畳み込み関数です.`foldl`はリストの左端,`foldr`はリストの右端から値を一つずつ抜き出して,2引数関数によって一つの値に畳み込んでいきます.
-リストのデータ構造的に基本的には`foldl`のほうが効率が良いので`foldl`が用いられます.
+は畳み込み関数です. `foldl` はリストの左端, `foldr` はリストの右端から値を一つずつ抜き出して, 2引数関数によって一つの値に畳み込んでいきます.
+
+::: warn
+合計や積のように **アキュムレータに値を蓄積していく** 用途では, `Prelude` の `foldl` は遅延評価のため未評価のサンクが積み上がりスペースリークを起こすことがあります. 実用上は `Data.List` の **`foldl'`** (正格版)を使うのが定石です. 一方で `foldr` は遅延評価の恩恵で無限リストや短絡評価と相性が良く, 用途によって使い分けるのが一般的です.
+:::
 
 例として,
 
@@ -738,8 +738,7 @@ main = do
 
 ::: note
 
-- 練習問題
----
+**練習問題**
 
 - 与えられた整数のリストの各要素を二乗する関数squareListを,mapを使って定義してください.
 
@@ -855,8 +854,7 @@ main = do
 
 ::: note
 
-- 練習問題
----
+**練習問題**
 
 - ラムダ式と高階関数を利用して,リストの各要素に3を加える関数addThreeを定義してください.
 
@@ -929,7 +927,7 @@ main :: IO ()
 main = do
     -- f(g(x))
     print $ f $ g 2 -- 10
-    -- \[f \circ  g \]
+    -- (f . g) x, すなわち合成関数
     print $ (f . g) 2 -- 10
     -- 定義
     let h = f . g
@@ -937,7 +935,7 @@ main = do
 ~~~
 
 
-# 変数(値の束縛)
+## 変数(値の束縛)
 
 Pythonなどの言語では,特定の変数に値を代入することができます.例えば,以下の最大値を求めるプログラムでは,変数`m`に最初の中身はリストの最初の要素が代入された後,次々とより大きな変数が代入されていきます. `変数`は名前の通り,次々とその値を変更していきます.
 
@@ -951,7 +949,7 @@ for x in xs[1:]:
 print('max value:',m)
 ~~~
 
-一方でHaskellでは,変数に一度値を割り当てると,その変数の値を後から変更することができません. 変数に値を再代入するという操作が許されていないのです. この性質を`普遍性` （immutability）といいます. したがって,Haskellでは代入という言葉を使わず`束縛`といいます.
+一方でHaskellでは,変数に一度値を割り当てると,その変数の値を後から変更することができません. 変数に値を再代入するという操作が許されていないのです. この性質を`不変性` (immutability) といいます. したがって,Haskellでは代入という言葉を使わず`束縛`といいます.
 これは,通常の手続き型言語との大きな違いになります.
 
 ::: warn
@@ -986,11 +984,11 @@ def count_plus(x):
     counter += x
     return counter
 
-print(count(1))  # 出力: 1
-print(count(1))  # 出力: 2
+print(count_plus(1))  # 出力: 1
+print(count_plus(1))  # 出力: 2
 ~~~
 
-このプログラムでは,`count()`関数に対して同じ引数1を与えているにもかかわらず,関数を呼び出すたびに,グローバル変数`counter`が変更されて,結果が変わります. 同じ関数を呼び出しても,結果が変わるために関数のみから,関数の挙動を把握することができません.
+このプログラムでは,`count_plus()`関数に対して同じ引数1を与えているにもかかわらず,関数を呼び出すたびに,グローバル変数`counter`が変更されて,結果が変わります. 同じ関数を呼び出しても,結果が変わるために関数のみから,関数の挙動を把握することができません.
 
 一方でHaskellでは,常に同じ関数は,同じ入力に対して,同じ返り値を返します. このような特性を**参照透過性(Referential Transparency)**と呼び,これによってプログラムの挙動を把握しやすくしています.
 
@@ -1003,9 +1001,9 @@ Haskellにおいて,変数への再代入が禁止されていることのメリ
 
 Haskellにおける変数は主に,**トップレベル変数**及び**ローカル変数**に大別されます.
 
-## トップレベル変数
+### トップレベル変数
 
-先程の `x=1`のように,独立して宣言される変数を`トップレベル変数`と呼びます. トップレベル変数は,Pythonなどの言語における`グローバル変数`と同様に,スクリプト内のどこ場所からでも利用することができます.
+先程の `x=1`のように,独立して宣言される変数を`トップレベル変数`と呼びます. トップレベル変数は,Pythonなどの言語における`グローバル変数`と同様に,スクリプト内のどの場所からでも利用することができます.
 
 
 ~~~ haskell
@@ -1018,10 +1016,10 @@ main = do
     print $ someFunc 1 --  2
 ~~~
 
-## ローカル変数
+### ローカル変数
 手続き型言語においてスコープが制限された変数のように,特定の関数内でのみ参照可能な局所変数として,**ローカル変数**が存在します. Haskellにおけるローカル変数は, `let式`,`where節`の2つのパターンが用意されています(ラムダ式内の引数も見方によってはローカル変数かもしれません.)
 
-### let式
+#### let式
 関数内で `let 宣言 in 式`の形式で局所変数を定義できます.
 
 ~~~ haskell
@@ -1058,20 +1056,7 @@ main = do
     print $ someFunc 1 --  4
 ~~~
 
-`Do`記法を利用すると`in`を省略することができます.
-
-~~~ haskell
-someFunc :: Int -> Int
-someFunc z = do
-    let x = 1
-        y = 2
-    x + y + z
-
-main = do
-    print $ someFunc 1 --  4
-~~~
-
-### where節
+#### where節
 数式の直後にインデントをつけて`where 宣言`と書くことでも局所変数や局所関数を定義できます.
 
 ~~~ haskell
@@ -1086,12 +1071,11 @@ main = do
     print $ someFunc 1 --  4
 ~~~
 
-# 練習問題(関数総合)
+## 練習問題(関数総合)
 
 ::: note
 
-1. 統計量
----
+### 1. 統計量
 
 - 与えられたリストの標本標準偏差`s`を計算する関数を実装してください.
 
@@ -1112,8 +1096,8 @@ main :: IO ()
 main = do
   let xs = [1, 2 .. 5]
       ys = [5, 4 .. 1]
-  putStrLn $ "標準偏差: " ++ show (stddev xs) ---  1.4142135623730951
-  putStrLn $ "相関係数: " ++ show (correlation xs ys) --- -0.9999999999999998
+  putStrLn $ "標準偏差: " ++ show (stddev xs) --  1.4142135623730951
+  putStrLn $ "相関係数: " ++ show (correlation xs ys) -- -0.9999999999999998
 ~~~
 
 
@@ -1121,7 +1105,8 @@ main = do
     <summary> 回答例 </summary>
 
 ~~~ haskell
--- 平均値を求める関数\mean :: [Double] -> Double
+-- 平均値を求める関数
+mean :: [Double] -> Double
 mean xs = sum xs / fromIntegral (length xs)
 
 -- 標本標準偏差を求める関数
@@ -1146,15 +1131,14 @@ main :: IO ()
 main = do
   let xs = [1, 2 .. 5]
       ys = [5, 4 .. 1]
-  putStrLn $ "標準偏差: " ++ show (stddev xs) ---  1.4142135623730951
-  putStrLn $ "相関係数: " ++ show (correlation xs ys) --- -0.9999999999999998
+  putStrLn $ "標準偏差: " ++ show (stddev xs) --  1.4142135623730951
+  putStrLn $ "相関係数: " ++ show (correlation xs ys) -- -0.9999999999999998
 ~~~
 
 </details>
 
 
-2. パーセプトロン
----
+### 2. パーセプトロン
 
 - or 回路を表すパーセプトロンの発火関数 `f x1 x2` を以下のように定める.
 (パーセプトロンの意味などがわからない場合は, [特別講義資料](slds14.html)を参照のこと)
@@ -1185,12 +1169,12 @@ main = do
 ~~~ haskell
 perceptronOR :: Bool -> Bool -> Bool
 perceptronOR x1 x2
-  | sum >= 0  = True
-  | otherwise = False
+  | threshold >= 0 = True
+  | otherwise      = False
   where
-    g True = 1
+    g True  = 1
     g False = 0
-    sum = 0.5 * g x1 + 0.5 * g x2 - 0.2
+    threshold = 0.5 * g x1 + 0.5 * g x2 - 0.2
 
 -- 実行例
 main :: IO ()
