@@ -8698,7 +8698,7 @@ Haskellでは空集合を表すデータ型として<code>Data.Void</code>に定
 <div class="note">
 <p><strong>練習問題</strong></p>
 <ol type="1">
-<li><p>正の整数 <code>n</code> を受け取り, <code>n</code> の正の約数をすべて昇順に並べたリストを返す関数 <code>divisors :: Int -&gt; [Int]</code> をリスト内包表記を用いて実装してください.</p></li>
+<li><p>正の整数 <code>n</code> を受け取り, <code>n</code> の正の約数(nを割って余りのでない数)をすべて昇順に並べたリストを返す関数 <code>divisors :: Int -&gt; [Int]</code> をリスト内包表記を用いて実装してください.</p></li>
 <li><p>正の整数 <code>n</code> を受け取り, <span class="math inline">a^2 + b^2 = c^2</span> を満たす <span class="math inline">1 \leq a \leq b \leq c \leq n</span> のピタゴラス数 <span class="math inline">(a, b, c)</span> の組をすべて返す関数 <code>pythagoreans :: Int -&gt; [(Int, Int, Int)]</code> をリスト内包表記で実装してください.</p></li>
 </ol>
 <div class="sourceCode" id="cb16"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 実行例</span></span>
@@ -8715,7 +8715,7 @@ Haskellでは空集合を表すデータ型として<code>Data.Void</code>に定
 <span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="ot">divisors ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> [<span class="dt">Int</span>]</span>
 <span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>divisors n <span class="ot">=</span> [ x <span class="op">|</span> x <span class="ot">&lt;-</span> [<span class="dv">1</span><span class="op">..</span>n], n <span class="ot">`mod`</span> x <span class="op">==</span> <span class="dv">0</span> ]</span>
 <span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="co">-- 2. ピタゴラス数: a &lt;= b &lt;= c かつ a^2 + b^2 = c^2</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="co">-- 2. ピタゴラス数: a &lt;= b &lt;= c &lt;= n かつ a^2 + b^2 = c^2</span></span>
 <span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="ot">pythagoreans ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> [(<span class="dt">Int</span>, <span class="dt">Int</span>, <span class="dt">Int</span>)]</span>
 <span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>pythagoreans n <span class="ot">=</span></span>
 <span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>    [ (a, b, c)</span>
@@ -8768,6 +8768,159 @@ Haskellでは空集合を表すデータ型として<code>Data.Void</code>に定
 <div class="warn">
 <p>スマートコンストラクタは,代数的データ型そのものの機能ではなく,<strong>代数的データ型とモジュールシステムの組み合わせ</strong>によって間接的に内包表記的な絞り込みを実現する実用的なイディオムです. 型システムそのものにもっと踏み込んだ絞り込みを型レベルで与えたい場合は,GADTs や Refinement Types (Liquid Haskell) などの拡張機能がありますが,本講義の範囲では扱いません.</p>
 </div>
+<h2 id="直積型">直積型</h2>
+<p><span class="math inline">A \times B = \{(a, b) \mid a \in A, b \in B\}</span> を <span class="math inline">A</span> と <span class="math inline">B</span> の <strong>直積(Cartesian Product)</strong> といいます. 直積は <span class="math inline">A</span> と <span class="math inline">B</span> から要素を一つずつ選んで並べた組 <span class="math inline">(a, b)</span> 全体からなる集合です. 日本語では<strong>積集合(intersection)</strong>と字面が似ていますが異なる概念なので注意しましょう.</p>
+<p>事例として <span class="math inline">\mathrm{MyDogs}</span> と整数の集合 <span class="math inline">\mathbb{Z}</span> の直積を考えると,</p>
+<p><span class="math display">\mathrm{MyDogs} \times \mathbb{Z} = \{(d, n) \mid d \in \mathrm{MyDogs}, n \in \mathbb{Z}\}</span></p>
+<p>となり, 「犬種と整数(たとえば年齢)のペア」全体の集合を表します. たとえば <span class="math inline">(\mathrm{GoldenRetriever}, 3), (\mathrm{Beagle}, 7) \in \mathrm{MyDogs} \times \mathbb{Z}</span> です.</p>
+<p>Haskellでは既に定義した <code>MyDogs</code> と <code>Int</code> の直積に相当する型を, 次のように定義できます. ここでは「犬種と年齢のペアを持つデータ型 <code>DogAge</code>」を定義します.</p>
+<div class="sourceCode" id="cb20"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">DogAge</span> <span class="ot">=</span> <span class="dt">MkDogAge</span> <span class="dt">MyDogs</span> <span class="dt">Int</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>            <span class="kw">deriving</span> <span class="dt">Show</span></span></code></pre></div>
+<p><strong>記法の解説:</strong></p>
+<ul>
+<li>左辺の <code>DogAge</code> は <strong>型構築子(type constructor)</strong>, 右辺の <code>MkDogAge</code> は <strong>データ構築子(data constructor)</strong> です. 直和型と違い, ここでは構築子は一つしかありません(<code>|</code> が無い).</li>
+<li>データ構築子の後ろに <strong>複数の型を空白区切りで並べる</strong> ことで, その構築子が包む値が直積になります. <code>MkDogAge MyDogs Int</code> は「<code>MyDogs</code> と <code>Int</code> を並べた組」を構成するコンストラクタです.</li>
+<li>関数としての型は <code>MkDogAge :: MyDogs -&gt; Int -&gt; DogAge</code> となり, カリー化された2引数関数のように扱えます.</li>
+</ul>
+<p>値の生成とパターンマッチは以下のようになります.</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="ot">goldenAge ::</span> <span class="dt">DogAge</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>goldenAge <span class="ot">=</span> <span class="dt">MkDogAge</span> <span class="dt">GoldenRetriever</span> <span class="dv">3</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="ot">breedOf ::</span> <span class="dt">DogAge</span> <span class="ot">-&gt;</span> <span class="dt">MyDogs</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>breedOf (<span class="dt">MkDogAge</span> d _) <span class="ot">=</span> d</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a><span class="ot">ageOf ::</span> <span class="dt">DogAge</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>ageOf (<span class="dt">MkDogAge</span> _ n) <span class="ot">=</span> n</span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> breedOf goldenAge  <span class="co">-- GoldenRetriever</span></span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> ageOf   goldenAge  <span class="co">-- 3</span></span></code></pre></div>
+<p>集合論的に解釈すると,</p>
+<p><span class="math display">\mathrm{DogAge} = \mathrm{MyDogs} \times \mathrm{Int}</span></p>
+<p>となります. <code>MkDogAge</code> は2つの集合の要素を一組にまとめる対応</p>
+<p><span class="math display">\mathrm{MkDogAge} : \mathrm{MyDogs} \times \mathrm{Int} \to \mathrm{DogAge}, \quad (d, n) \mapsto \mathrm{MkDogAge}\,d\,n</span></p>
+<p>に対応します.</p>
+<h3 id="レコード構文">レコード構文</h3>
+<p>直和型と同様に, 直積型でも <strong>レコード構文(record syntax)</strong> を用いて各フィールドに名前を付けることができます. 直積型ではコンストラクタが一つのため, レコード構文の恩恵(アクセサ関数の自動生成やフィールド名による値の生成)が特に活きます.</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">DogAge</span> <span class="ot">=</span> <span class="dt">MkDogAge</span> {<span class="ot"> breed ::</span> <span class="dt">MyDogs</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>                       ,<span class="ot"> age   ::</span> <span class="dt">Int</span></span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>                       }</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>            <span class="kw">deriving</span> <span class="dt">Show</span></span></code></pre></div>
+<p>この定義により, 以下のアクセサ関数が <strong>自動的に</strong> 定義されます.</p>
+<ul>
+<li><code>breed :: DogAge -&gt; MyDogs</code></li>
+<li><code>age   :: DogAge -&gt; Int</code></li>
+</ul>
+<p>これらの <strong>アクセサ関数(accessor function)</strong> は, レコード構文の定義から <strong>GHCが自動生成するトップレベル関数</strong> で, レコード値からフィールドの値を取り出す役割を持ちます. たとえば <code>breed</code> は手書きすれば</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="ot">breed ::</span> <span class="dt">DogAge</span> <span class="ot">-&gt;</span> <span class="dt">MyDogs</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>breed (<span class="dt">MkDogAge</span> b _) <span class="ot">=</span> b</span></code></pre></div>
+<p>と書いたものと等価で, パターンマッチによる取り出しを関数として包んだものに過ぎません. レコード構文の利点は, このような取り出し関数を <strong>フィールドごとに自前で書く手間が省ける</strong> ことにあります.</p>
+<p>アクセサ関数は他の関数と全く同様に <strong>第一級の値(first-class value)</strong> として扱えるため, 高階関数に渡したり, 関数合成 <code>(.)</code> で他の関数と繋げたり, 部分適用したりできます. パターンマッチによる取り出しを関数の中に書く場合と比べ, 簡潔に「フィールドを取り出してから何かする」という処理を組み立てられるのが大きな利点です.</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="ot">dogs ::</span> [<span class="dt">DogAge</span>]</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>dogs <span class="ot">=</span> [ <span class="dt">MkDogAge</span> <span class="dt">GoldenRetriever</span> <span class="dv">3</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>       , <span class="dt">MkDogAge</span> <span class="dt">Beagle</span>           <span class="dv">7</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>       , <span class="dt">MkDogAge</span> <span class="dt">StandardPoodle</span>   <span class="dv">5</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>       ]</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a><span class="co">-- 高階関数に渡す: 全ての犬の犬種だけを取り出したリスト</span></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a><span class="ot">allBreeds ::</span> [<span class="dt">MyDogs</span>]</span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a>allBreeds <span class="ot">=</span> <span class="fu">map</span> breed dogs</span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a><span class="co">-- [GoldenRetriever, Beagle, StandardPoodle]</span></span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a><span class="co">-- 高階関数に渡す: 年齢が 5 歳以上の犬を絞り込む</span></span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a><span class="ot">matureDogs ::</span> [<span class="dt">DogAge</span>]</span>
+<span id="cb24-14"><a href="#cb24-14" aria-hidden="true" tabindex="-1"></a>matureDogs <span class="ot">=</span> <span class="fu">filter</span> ((<span class="op">&gt;=</span> <span class="dv">5</span>) <span class="op">.</span> age) dogs</span>
+<span id="cb24-15"><a href="#cb24-15" aria-hidden="true" tabindex="-1"></a><span class="co">-- [MkDogAge Beagle 7, MkDogAge StandardPoodle 5]</span></span>
+<span id="cb24-16"><a href="#cb24-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-17"><a href="#cb24-17" aria-hidden="true" tabindex="-1"></a><span class="co">-- 関数合成: 「犬種を取り出して show する」を一つの関数として定義</span></span>
+<span id="cb24-18"><a href="#cb24-18" aria-hidden="true" tabindex="-1"></a><span class="ot">showBreed ::</span> <span class="dt">DogAge</span> <span class="ot">-&gt;</span> <span class="dt">String</span></span>
+<span id="cb24-19"><a href="#cb24-19" aria-hidden="true" tabindex="-1"></a>showBreed <span class="ot">=</span> <span class="fu">show</span> <span class="op">.</span> breed</span></code></pre></div>
+<p><code>filter ((&gt;= 5) . age) dogs</code> のように, アクセサ関数 <code>age</code> と比較 <code>(&gt;= 5)</code> を <code>(.)</code> で合成すれば「年齢を取り出して 5 以上か判定する」という関数を一行で表現できます. もしレコード構文を使わずにパターンマッチで毎回書いていたら, この箇所は <code>filter (\d -&gt; case d of MkDogAge _ n -&gt; n &gt;= 5) dogs</code> のように冗長になります.</p>
+<p>なお, アクセサ関数名はモジュール内のトップレベルにそのまま展開されるため, 同じモジュールで別のレコード型に同名のフィールドを定義すると衝突します(回避には <code>DuplicateRecordFields</code> 言語拡張や, <code>dogAge</code> / <code>personAge</code> のような接頭辞付きの命名規約などが用いられます).</p>
+<div class="note">
+<p>集合論では, 直積集合 <span class="math inline">A \times B</span> から各成分を取り出す関数を <strong>射影(projection)</strong> といい, <span class="math inline">\pi_1, \pi_2</span> で表します. 形式的には</p>
+<p><span class="math display">\pi_1 : A \times B \to A, \quad \pi_1((a, b)) = a</span></p>
+<p><span class="math display">\pi_2 : A \times B \to B, \quad \pi_2((a, b)) = b</span></p>
+<p>と定義され, 順序対 <span class="math inline">(a, b) \in A \times B</span> から第1成分・第2成分をそれぞれ取り出す操作を表します. これは <span class="math inline">n</span> 個の集合の直積 <span class="math inline">A_1 \times A_2 \times \dots \times A_n</span> に対しても自然に一般化され, 第 <span class="math inline">i</span> 成分を取り出す射影 <span class="math inline">\pi_i : A_1 \times \dots \times A_n \to A_i</span> が同様に定義されます.</p>
+</div>
+<p>レコード構文によって自動生成されるアクセサ関数は, この射影に対応します. すなわち <span class="math inline">\mathrm{DogAge} = \mathrm{MyDogs} \times \mathrm{Int}</span> と見なせば, <code>breed</code> は第1成分への射影 <span class="math inline">\pi_1</span>, <code>age</code> は第2成分への射影 <span class="math inline">\pi_2</span> にあたり,</p>
+<p><span class="math display">\mathrm{breed}((d, n) \in \mathrm{DogAge}) = d</span></p>
+<p><span class="math display">\mathrm{age}((d, n) \in \mathrm{DogAge}) = n</span></p>
+<p>と書けます. このように, 直積型のレコード構文は集合論における直積と射影の構造を, そのままHaskellの構文として写したものになっています.</p>
+<p>値の生成はフィールド名を明示する形でも, 従来の位置引数の形でも可能です.</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="ot">goldenAge ::</span> <span class="dt">DogAge</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>goldenAge <span class="ot">=</span> <span class="dt">MkDogAge</span> { breed <span class="ot">=</span> <span class="dt">GoldenRetriever</span>, age <span class="ot">=</span> <span class="dv">3</span> }</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="co">-- もしくは位置引数で</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="ot">goldenAge&#39; ::</span> <span class="dt">DogAge</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>goldenAge&#39; <span class="ot">=</span> <span class="dt">MkDogAge</span> <span class="dt">GoldenRetriever</span> <span class="dv">3</span></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> breed goldenAge  <span class="co">-- GoldenRetriever</span></span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> age   goldenAge  <span class="co">-- 3</span></span></code></pre></div>
+<p>また, レコード構文では <strong>一部のフィールドのみを更新した新しい値</strong> を作る記法も利用できます. Haskellでは値は不変(再代入できない)なので,「更新」とは元の値を変更するのではなく, 一部を書き換えた <strong>新しい値を返す</strong> ことを意味します.</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="ot">olderGolden ::</span> <span class="dt">DogAge</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>olderGolden <span class="ot">=</span> goldenAge { age <span class="ot">=</span> <span class="dv">10</span> }</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="co">-- MkDogAge { breed = GoldenRetriever, age = 10 }</span></span></code></pre></div>
+<p>直和型の場合と異なり, 直積型のレコードフィールドは単一のコンストラクタに属しているため <strong>アクセサは全域関数</strong> であり, 実行時エラーの心配はありません.</p>
+<div class="warn">
+<p>直和型(複数のコンストラクタを持つ型)でレコード構文を使うと, <strong>一部のコンストラクタにしか存在しないフィールドのアクセサは部分関数になる</strong> 点に注意が必要です. たとえば <code>MyDogs</code> を使って, 犬種だけを持つコンストラクタと, 犬種と年齢の両方を持つコンストラクタを併せ持つ型を考えると以下のようになります.</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">DogInfo</span> <span class="ot">=</span> <span class="dt">JustBreed</span> {<span class="ot"> dogBreed ::</span> <span class="dt">MyDogs</span> }</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>             <span class="op">|</span> <span class="dt">WithAge</span>   {<span class="ot"> dogBreed ::</span> <span class="dt">MyDogs</span>,<span class="ot"> dogAge ::</span> <span class="dt">Int</span> }</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>             <span class="kw">deriving</span> <span class="dt">Show</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>ghci<span class="op">&gt;</span> dogAge (<span class="dt">JustBreed</span> <span class="dt">GoldenRetriever</span>)</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a><span class="op">***</span> <span class="dt">Exception</span><span class="op">:</span> <span class="dt">No</span> match <span class="kw">in</span> record selector dogAge</span></code></pre></div>
+<p><code>dogAge</code> は <code>WithAge</code> のコンストラクタにしか定義されていないため, <code>JustBreed</code> の値に適用すると実行時エラーになります. 直和型でレコード構文を使う場合は, アクセサで直接取り出すのではなく <strong>パターンマッチで取り出す</strong> か, 後の章で扱う <code>Maybe</code> を返す形に包み直すのが安全です.</p>
+</div>
+<div class="note">
+<p><strong>練習問題</strong></p>
+<ol type="1">
+<li><p>人物を表す直積型 <code>Person</code> を, 以下のフィールドを持つレコード構文で定義してください.</p>
+<ul>
+<li><code>personName :: String</code> (氏名)</li>
+<li><code>personAge :: Int</code> (年齢)</li>
+<li><code>personEmail :: String</code> (メールアドレス)</li>
+</ul></li>
+<li><p><code>Person</code> 型の値を受け取り, 年齢を1歳加えた新しい <code>Person</code> を返す関数 <code>birthday :: Person -&gt; Person</code> を <strong>レコード更新構文</strong> を用いて実装してください.</p></li>
+<li><p>2人の <code>Person</code> の年齢の合計を返す関数 <code>totalAge :: Person -&gt; Person -&gt; Int</code> を, レコード構文のアクセサ関数を用いて実装してください.</p></li>
+</ol>
+<div class="sourceCode" id="cb28"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 実行例</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> alice <span class="ot">=</span> <span class="dt">Person</span> { personName <span class="ot">=</span> <span class="st">&quot;Alice&quot;</span>, personAge <span class="ot">=</span> <span class="dv">30</span>, personEmail <span class="ot">=</span> <span class="st">&quot;alice@example.com&quot;</span> }</span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>        bob   <span class="ot">=</span> <span class="dt">Person</span> { personName <span class="ot">=</span> <span class="st">&quot;Bob&quot;</span>  , personAge <span class="ot">=</span> <span class="dv">25</span>, personEmail <span class="ot">=</span> <span class="st">&quot;bob@example.com&quot;</span>   }</span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> birthday alice           <span class="co">-- Alice の年齢が 31 に</span></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> totalAge alice bob       <span class="co">-- 55</span></span></code></pre></div>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答例
+</summary>
+<div class="sourceCode" id="cb29"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Person</span> <span class="ot">=</span> <span class="dt">Person</span></span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>    {<span class="ot"> personName  ::</span> <span class="dt">String</span></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>    ,<span class="ot"> personAge   ::</span> <span class="dt">Int</span></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>    ,<span class="ot"> personEmail ::</span> <span class="dt">String</span></span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>    } <span class="kw">deriving</span> <span class="dt">Show</span></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a><span class="co">-- レコード更新構文で年齢のみを更新した新しい値を返す</span></span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a><span class="ot">birthday ::</span> <span class="dt">Person</span> <span class="ot">-&gt;</span> <span class="dt">Person</span></span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a>birthday p <span class="ot">=</span> p { personAge <span class="ot">=</span> personAge p <span class="op">+</span> <span class="dv">1</span> }</span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a><span class="co">-- アクセサ関数 personAge を利用して合計を計算</span></span>
+<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a><span class="ot">totalAge ::</span> <span class="dt">Person</span> <span class="ot">-&gt;</span> <span class="dt">Person</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
+<span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a>totalAge p1 p2 <span class="ot">=</span> personAge p1 <span class="op">+</span> personAge p2</span>
+<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-15"><a href="#cb29-15" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb29-16"><a href="#cb29-16" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb29-17"><a href="#cb29-17" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> alice <span class="ot">=</span> <span class="dt">Person</span> { personName <span class="ot">=</span> <span class="st">&quot;Alice&quot;</span>, personAge <span class="ot">=</span> <span class="dv">30</span>, personEmail <span class="ot">=</span> <span class="st">&quot;alice@example.com&quot;</span> }</span>
+<span id="cb29-18"><a href="#cb29-18" aria-hidden="true" tabindex="-1"></a>        bob   <span class="ot">=</span> <span class="dt">Person</span> { personName <span class="ot">=</span> <span class="st">&quot;Bob&quot;</span>  , personAge <span class="ot">=</span> <span class="dv">25</span>, personEmail <span class="ot">=</span> <span class="st">&quot;bob@example.com&quot;</span>   }</span>
+<span id="cb29-19"><a href="#cb29-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> birthday alice      <span class="co">-- Person {personName = &quot;Alice&quot;, personAge = 31, personEmail = &quot;alice@example.com&quot;}</span></span>
+<span id="cb29-20"><a href="#cb29-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> totalAge alice bob  <span class="co">-- 55</span></span></code></pre></div>
+<p>レコード更新構文 <code>p { personAge = ... }</code> は <code>p</code> を破壊的に書き換えるのではなく, <code>personAge</code> のみを変えた新しい <code>Person</code> 値を作って返します. 他のフィールドは <code>p</code> のものがそのままコピーされるため, フィールド数が多いレコードの部分更新を簡潔に書けます.</p>
+</details>
+</div>
 <h2 id="直和型">直和型</h2>
 <p>集合 <span class="math inline">A</span>, <span class="math inline">B</span> の<strong>和集合(union)</strong>を <span class="math inline">A \cup B</span>, <strong>積集合(intersection)</strong>を <span class="math inline">A \cap B</span> と表し, それぞれ以下で定義されます.</p>
 <p><span class="math display">A \cup B = \{x \mid x \in A \lor x \in B\}</span></p>
@@ -8782,9 +8935,9 @@ Haskellでは空集合を表すデータ型として<code>Data.Void</code>に定
 <p><span class="math display">A \cap B = \{\mathrm{BlackRetriever}\}</span></p>
 <p>となります. 和集合は「<span class="math inline">A</span> または <span class="math inline">B</span> のいずれかに属する要素」を集めた集合, 積集合は「<span class="math inline">A</span> と <span class="math inline">B</span> の両方に属する要素」のみを集めた集合です. このとき <span class="math inline">A \cap B = \{\mathrm{BlackRetriever}\} \neq \phi</span> なので, <span class="math inline">A</span> と <span class="math inline">B</span> は直和にはなりません. 一方, <span class="math inline">A = \{\mathrm{GoldenRetriever}, \mathrm{ShetlandSheepdog}\}</span>, <span class="math inline">B = \{\mathrm{BlackRetriever}, \mathrm{StandardPoodle}\}</span> のように共通要素がない場合は <span class="math inline">A \cap B = \phi</span> となり, <span class="math inline">A \cup B</span> は <span class="math inline">A</span> と <span class="math inline">B</span> の直和となります.</p>
 <p>Haskellでは既に定義した <code>Int</code> と <code>MyDogs</code> の直和に相当する型を, 次のように定義できます. ここでは「整数または <code>MyDogs</code> のいずれかの値を持てるデータ型 <code>IntOrDog</code>」を定義します.</p>
-<div class="sourceCode" id="cb20"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">IntOrDog</span> <span class="ot">=</span> <span class="dt">MkInt</span> <span class="dt">Int</span></span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>              <span class="op">|</span> <span class="dt">MkDog</span> <span class="dt">MyDogs</span></span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>              <span class="kw">deriving</span> <span class="dt">Show</span></span></code></pre></div>
+<div class="sourceCode" id="cb30"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">IntOrDog</span> <span class="ot">=</span> <span class="dt">MkInt</span> <span class="dt">Int</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>              <span class="op">|</span> <span class="dt">MkDog</span> <span class="dt">MyDogs</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>              <span class="kw">deriving</span> <span class="dt">Show</span></span></code></pre></div>
 <p><strong>記法の解説:</strong></p>
 <ul>
 <li>左辺の <code>IntOrDog</code> は <strong>型構築子(type constructor)</strong>, 右辺の <code>MkInt</code>, <code>MkDog</code> は <strong>データ構築子(data constructor)</strong> と呼ばれます. どちらも大文字で始める必要があります.</li>
@@ -8792,41 +8945,18 @@ Haskellでは空集合を表すデータ型として<code>Data.Void</code>に定
 <li>データ構築子の後ろに書かれた <code>Int</code>, <code>MyDogs</code> は包み込む値の型です. 具体的には <code>MkInt :: Int -&gt; IntOrDog</code>, <code>MkDog :: MyDogs -&gt; IntOrDog</code> という関数として扱えます.</li>
 </ul>
 <p>値を作ったり, パターンマッチで取り出したりできます.</p>
-<div class="sourceCode" id="cb21"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="ot">describe ::</span> <span class="dt">IntOrDog</span> <span class="ot">-&gt;</span> <span class="dt">String</span></span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>describe (<span class="dt">MkInt</span> n) <span class="ot">=</span> <span class="st">&quot;整数 &quot;</span> <span class="op">++</span> <span class="fu">show</span> n</span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>describe (<span class="dt">MkDog</span> d) <span class="ot">=</span> <span class="st">&quot;犬 &quot;</span>   <span class="op">++</span> <span class="fu">show</span> d</span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> <span class="op">$</span> describe (<span class="dt">MkInt</span> <span class="dv">42</span>)               <span class="co">-- 整数 42</span></span>
-<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> <span class="op">$</span> describe (<span class="dt">MkDog</span> <span class="dt">GoldenRetriever</span>)  <span class="co">-- 犬 GoldenRetriever</span></span></code></pre></div>
+<div class="sourceCode" id="cb31"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="ot">describe ::</span> <span class="dt">IntOrDog</span> <span class="ot">-&gt;</span> <span class="dt">String</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>describe (<span class="dt">MkInt</span> n) <span class="ot">=</span> <span class="st">&quot;整数 &quot;</span> <span class="op">++</span> <span class="fu">show</span> n</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>describe (<span class="dt">MkDog</span> d) <span class="ot">=</span> <span class="st">&quot;犬 &quot;</span>   <span class="op">++</span> <span class="fu">show</span> d</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> <span class="op">$</span> describe (<span class="dt">MkInt</span> <span class="dv">42</span>)               <span class="co">-- 整数 42</span></span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> <span class="op">$</span> describe (<span class="dt">MkDog</span> <span class="dt">GoldenRetriever</span>)  <span class="co">-- 犬 GoldenRetriever</span></span></code></pre></div>
 <p>集合論的に解釈すると, <code>MkInt</code> と <code>MkDog</code> という互いに異なるタグでくるむことで <code>Int</code> と <code>MyDogs</code> が <strong>互いに素</strong> な形で一つの型に合流するため,</p>
 <p><span class="math display">\mathrm{IntOrDog} = \mathrm{Int} \cup \mathrm{MyDogs} \quad (\mathrm{Int} \cap \mathrm{MyDogs} = \phi)</span></p>
 <p>という <strong>直和</strong> になります. 一般に, 代数的データ型の <code>|</code> で分けたコンストラクタは必ずタグで区別されるため, Haskellの直和型は常に直和の構造を持ちます.</p>
 <p>なお, データ構築子は任意個の引数を取ることができ, <code>MkPair Int MyDogs</code> のように複数の型を並べると, その部分は <strong>直積</strong> になります. つまり直和型の各コンストラクタは「いくつかの直積をタグ付きで合流させたもの」として解釈できます.</p>
-<h3 id="レコード構文">レコード構文</h3>
-<p>記法のバリエーションとして, <strong>レコード構文(record syntax)</strong> を使うと各データ構築子にラベル(フィールド名)を付けられます.</p>
-<div class="sourceCode" id="cb22"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">PetEntry</span> <span class="ot">=</span> <span class="dt">ByNumber</span> {<span class="ot"> petNumber ::</span> <span class="dt">Int</span> }</span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>              <span class="op">|</span> <span class="dt">ByBreed</span>  {<span class="ot"> petBreed  ::</span> <span class="dt">MyDogs</span> }</span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>              <span class="kw">deriving</span> <span class="dt">Show</span></span></code></pre></div>
-<ul>
-<li><code>ByNumber { petNumber = 7 }</code> のように <strong>フィールド名による値の生成</strong> ができます. 従来の構文 <code>ByNumber 7</code> も併用可能です.</li>
-<li>フィールド名 <code>petNumber</code>, <code>petBreed</code> は <strong>自動的にアクセサ関数</strong>として定義されます.
-<ul>
-<li><code>petNumber :: PetEntry -&gt; Int</code></li>
-<li><code>petBreed  :: PetEntry -&gt; MyDogs</code></li>
-</ul></li>
-</ul>
-<p>集合論的には, これらのフィールド名は直和型の各部分集合から元の値を取り出す <strong>射影</strong> に対応します.</p>
-<p><span class="math display">\mathrm{petNumber}(\mathrm{ByNumber}(n) \in \mathrm{Int} \subset \mathrm{PetEntry}) = n</span></p>
-<p><span class="math display">\mathrm{petBreed}(\mathrm{ByBreed}(d) \in \mathrm{MyDogs} \subset \mathrm{PetEntry}) = d</span></p>
-<div class="sourceCode" id="cb23"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>ghci<span class="op">&gt;</span> petNumber (<span class="dt">ByNumber</span> <span class="dv">7</span>)</span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="dv">7</span></span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>ghci<span class="op">&gt;</span> petBreed (<span class="dt">ByBreed</span> <span class="dt">GoldenRetriever</span>)</span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="dt">GoldenRetriever</span></span></code></pre></div>
-<div class="warn">
-<p>レコード構文のアクセサ関数は, そのフィールドを持たない別のコンストラクタに適用すると <strong>実行時エラー</strong> になります. たとえば <code>petNumber (ByBreed GoldenRetriever)</code> は実行時にエラーを発生させます. 直和型に対するレコード構文のアクセサは部分関数である点に注意してください. 安全に取り出すにはパターンマッチを利用するか, 後の章で扱う <code>Maybe</code> を返す関数として包み直すのが一般的です.</p>
-</div>
 <p>このように, 直和にすることで互いに異なる型の値を一つの型に集約でき, 型安全性を保ったまま「複数の型のいずれかをとる値」を表現できるようになります. 動的型付け言語におけるダックタイピングに似た柔軟さを, 型システムの保証を壊さずに実現する手段と考えることができます.</p>
 <div class="note">
 <p><strong>練習問題</strong></p>
@@ -8841,144 +8971,34 @@ Haskellでは空集合を表すデータ型として<code>Data.Void</code>に定
 <p><span class="math display">s = \frac{a + b + c}{2}, \quad S = \sqrt{s(s-a)(s-b)(s-c)}</span></p>
 <p>を用います.</p></li>
 </ol>
-<div class="sourceCode" id="cb24"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 実行例</span></span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> area (<span class="dt">Circle</span> <span class="dv">1</span>)            <span class="co">-- 3.141592653589793</span></span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> area (<span class="dt">Rectangle</span> <span class="dv">3</span> <span class="dv">4</span>)       <span class="co">-- 12.0</span></span>
-<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> area (<span class="dt">Triangle</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>)      <span class="co">-- 6.0</span></span></code></pre></div>
+<div class="sourceCode" id="cb32"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 実行例</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> area (<span class="dt">Circle</span> <span class="dv">1</span>)            <span class="co">-- 3.141592653589793</span></span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> area (<span class="dt">Rectangle</span> <span class="dv">3</span> <span class="dv">4</span>)       <span class="co">-- 12.0</span></span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> area (<span class="dt">Triangle</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>)      <span class="co">-- 6.0</span></span></code></pre></div>
 <details class="protected" data-pass="yakagika">
 <summary>
 回答例
 </summary>
-<div class="sourceCode" id="cb25"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Shape</span> <span class="ot">=</span> <span class="dt">Circle</span> <span class="dt">Double</span></span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>           <span class="op">|</span> <span class="dt">Rectangle</span> <span class="dt">Double</span> <span class="dt">Double</span></span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>           <span class="op">|</span> <span class="dt">Triangle</span> <span class="dt">Double</span> <span class="dt">Double</span> <span class="dt">Double</span></span>
-<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>           <span class="kw">deriving</span> <span class="dt">Show</span></span>
-<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a><span class="ot">area ::</span> <span class="dt">Shape</span> <span class="ot">-&gt;</span> <span class="dt">Double</span></span>
-<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>area (<span class="dt">Circle</span> r)       <span class="ot">=</span> <span class="fu">pi</span> <span class="op">*</span> r <span class="op">*</span> r</span>
-<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>area (<span class="dt">Rectangle</span> w h)  <span class="ot">=</span> w <span class="op">*</span> h</span>
-<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>area (<span class="dt">Triangle</span> a b c) <span class="ot">=</span> <span class="fu">sqrt</span> (s <span class="op">*</span> (s <span class="op">-</span> a) <span class="op">*</span> (s <span class="op">-</span> b) <span class="op">*</span> (s <span class="op">-</span> c))</span>
-<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>  <span class="kw">where</span></span>
-<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>    s <span class="ot">=</span> (a <span class="op">+</span> b <span class="op">+</span> c) <span class="op">/</span> <span class="dv">2</span></span>
-<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> area (<span class="dt">Circle</span> <span class="dv">1</span>)       <span class="co">-- 3.141592653589793</span></span>
-<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> area (<span class="dt">Rectangle</span> <span class="dv">3</span> <span class="dv">4</span>)  <span class="co">-- 12.0</span></span>
-<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> area (<span class="dt">Triangle</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>) <span class="co">-- 6.0</span></span></code></pre></div>
+<div class="sourceCode" id="cb33"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Shape</span> <span class="ot">=</span> <span class="dt">Circle</span> <span class="dt">Double</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>           <span class="op">|</span> <span class="dt">Rectangle</span> <span class="dt">Double</span> <span class="dt">Double</span></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>           <span class="op">|</span> <span class="dt">Triangle</span> <span class="dt">Double</span> <span class="dt">Double</span> <span class="dt">Double</span></span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>           <span class="kw">deriving</span> <span class="dt">Show</span></span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a><span class="ot">area ::</span> <span class="dt">Shape</span> <span class="ot">-&gt;</span> <span class="dt">Double</span></span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>area (<span class="dt">Circle</span> r)       <span class="ot">=</span> <span class="fu">pi</span> <span class="op">*</span> r <span class="op">*</span> r</span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>area (<span class="dt">Rectangle</span> w h)  <span class="ot">=</span> w <span class="op">*</span> h</span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>area (<span class="dt">Triangle</span> a b c) <span class="ot">=</span> <span class="fu">sqrt</span> (s <span class="op">*</span> (s <span class="op">-</span> a) <span class="op">*</span> (s <span class="op">-</span> b) <span class="op">*</span> (s <span class="op">-</span> c))</span>
+<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>  <span class="kw">where</span></span>
+<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>    s <span class="ot">=</span> (a <span class="op">+</span> b <span class="op">+</span> c) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> area (<span class="dt">Circle</span> <span class="dv">1</span>)       <span class="co">-- 3.141592653589793</span></span>
+<span id="cb33-16"><a href="#cb33-16" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> area (<span class="dt">Rectangle</span> <span class="dv">3</span> <span class="dv">4</span>)  <span class="co">-- 12.0</span></span>
+<span id="cb33-17"><a href="#cb33-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> area (<span class="dt">Triangle</span> <span class="dv">3</span> <span class="dv">4</span> <span class="dv">5</span>) <span class="co">-- 6.0</span></span></code></pre></div>
 <p>直和型の各コンストラクタが異なる数・種類の引数を持ってよいため, 図形ごとに必要な情報を自然に表現できます. 面積計算のような処理はパターンマッチで場合分けして書くのが定石です.</p>
-</details>
-</div>
-<h2 id="直積型">直積型</h2>
-<p><span class="math inline">A \times B = \{(a, b) \mid a \in A, b \in B\}</span> を <span class="math inline">A</span> と <span class="math inline">B</span> の <strong>直積(Cartesian Product)</strong> といいます. 直積は <span class="math inline">A</span> と <span class="math inline">B</span> から要素を一つずつ選んで並べた組 <span class="math inline">(a, b)</span> 全体からなる集合です. 日本語では<strong>積集合(intersection)</strong>と字面が似ていますが異なる概念なので注意しましょう.</p>
-<p>事例として <span class="math inline">\mathrm{MyDogs}</span> と整数の集合 <span class="math inline">\mathbb{Z}</span> の直積を考えると,</p>
-<p><span class="math display">\mathrm{MyDogs} \times \mathbb{Z} = \{(d, n) \mid d \in \mathrm{MyDogs}, n \in \mathbb{Z}\}</span></p>
-<p>となり, 「犬種と整数(たとえば年齢)のペア」全体の集合を表します. たとえば <span class="math inline">(\mathrm{GoldenRetriever}, 3), (\mathrm{Beagle}, 7) \in \mathrm{MyDogs} \times \mathbb{Z}</span> です.</p>
-<p>Haskellでは既に定義した <code>MyDogs</code> と <code>Int</code> の直積に相当する型を, 次のように定義できます. ここでは「犬種と年齢のペアを持つデータ型 <code>DogAge</code>」を定義します.</p>
-<div class="sourceCode" id="cb26"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">DogAge</span> <span class="ot">=</span> <span class="dt">MkDogAge</span> <span class="dt">MyDogs</span> <span class="dt">Int</span></span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>            <span class="kw">deriving</span> <span class="dt">Show</span></span></code></pre></div>
-<p><strong>記法の解説:</strong></p>
-<ul>
-<li>左辺の <code>DogAge</code> は <strong>型構築子(type constructor)</strong>, 右辺の <code>MkDogAge</code> は <strong>データ構築子(data constructor)</strong> です. 直和型と違い, ここでは構築子は一つしかありません(<code>|</code> が無い).</li>
-<li>データ構築子の後ろに <strong>複数の型を空白区切りで並べる</strong> ことで, その構築子が包む値が直積になります. <code>MkDogAge MyDogs Int</code> は「<code>MyDogs</code> と <code>Int</code> を並べた組」を構成するコンストラクタです.</li>
-<li>関数としての型は <code>MkDogAge :: MyDogs -&gt; Int -&gt; DogAge</code> となり, カリー化された2引数関数のように扱えます.</li>
-</ul>
-<p>値の生成とパターンマッチは以下のようになります.</p>
-<div class="sourceCode" id="cb27"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="ot">goldenAge ::</span> <span class="dt">DogAge</span></span>
-<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>goldenAge <span class="ot">=</span> <span class="dt">MkDogAge</span> <span class="dt">GoldenRetriever</span> <span class="dv">3</span></span>
-<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="ot">breedOf ::</span> <span class="dt">DogAge</span> <span class="ot">-&gt;</span> <span class="dt">MyDogs</span></span>
-<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>breedOf (<span class="dt">MkDogAge</span> d _) <span class="ot">=</span> d</span>
-<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a><span class="ot">ageOf ::</span> <span class="dt">DogAge</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
-<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>ageOf (<span class="dt">MkDogAge</span> _ n) <span class="ot">=</span> n</span>
-<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> breedOf goldenAge  <span class="co">-- GoldenRetriever</span></span>
-<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> ageOf   goldenAge  <span class="co">-- 3</span></span></code></pre></div>
-<p>集合論的に解釈すると,</p>
-<p><span class="math display">\mathrm{DogAge} = \mathrm{MyDogs} \times \mathrm{Int}</span></p>
-<p>となります. <code>MkDogAge</code> は2つの集合の要素を一組にまとめる対応</p>
-<p><span class="math display">\mathrm{MkDogAge} : \mathrm{MyDogs} \times \mathrm{Int} \to \mathrm{DogAge}, \quad (d, n) \mapsto \mathrm{MkDogAge}\,d\,n</span></p>
-<p>に対応します.</p>
-<h3 id="レコード構文-1">レコード構文</h3>
-<p>直和型と同様に, 直積型でも <strong>レコード構文(record syntax)</strong> を用いて各フィールドに名前を付けることができます. 直積型ではコンストラクタが一つのため, レコード構文の恩恵(アクセサ関数の自動生成やフィールド名による値の生成)が特に活きます.</p>
-<div class="sourceCode" id="cb28"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">DogAge</span> <span class="ot">=</span> <span class="dt">MkDogAge</span> {<span class="ot"> breed ::</span> <span class="dt">MyDogs</span></span>
-<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>                       ,<span class="ot"> age   ::</span> <span class="dt">Int</span></span>
-<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>                       }</span>
-<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>            <span class="kw">deriving</span> <span class="dt">Show</span></span></code></pre></div>
-<p>この定義により, 以下のアクセサ関数が <strong>自動的に</strong> 定義されます.</p>
-<ul>
-<li><code>breed :: DogAge -&gt; MyDogs</code></li>
-<li><code>age   :: DogAge -&gt; Int</code></li>
-</ul>
-<p>集合論的には, これらのフィールド名は直積からそれぞれの成分を取り出す <strong>射影(projection)</strong> <span class="math inline">\pi_1, \pi_2</span> に対応します.</p>
-<p><span class="math display">\mathrm{breed}((d, n) \in \mathrm{DogAge}) = d</span></p>
-<p><span class="math display">\mathrm{age}((d, n) \in \mathrm{DogAge}) = n</span></p>
-<p>値の生成はフィールド名を明示する形でも, 従来の位置引数の形でも可能です.</p>
-<div class="sourceCode" id="cb29"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="ot">goldenAge ::</span> <span class="dt">DogAge</span></span>
-<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>goldenAge <span class="ot">=</span> <span class="dt">MkDogAge</span> { breed <span class="ot">=</span> <span class="dt">GoldenRetriever</span>, age <span class="ot">=</span> <span class="dv">3</span> }</span>
-<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a><span class="co">-- もしくは位置引数で</span></span>
-<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a><span class="ot">goldenAge&#39; ::</span> <span class="dt">DogAge</span></span>
-<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>goldenAge&#39; <span class="ot">=</span> <span class="dt">MkDogAge</span> <span class="dt">GoldenRetriever</span> <span class="dv">3</span></span>
-<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> breed goldenAge  <span class="co">-- GoldenRetriever</span></span>
-<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> age   goldenAge  <span class="co">-- 3</span></span></code></pre></div>
-<p>また, レコード構文では <strong>一部のフィールドのみを更新した新しい値</strong> を作る記法も利用できます. Haskellでは値は不変(再代入できない)なので,「更新」とは元の値を変更するのではなく, 一部を書き換えた <strong>新しい値を返す</strong> ことを意味します.</p>
-<div class="sourceCode" id="cb30"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="ot">olderGolden ::</span> <span class="dt">DogAge</span></span>
-<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>olderGolden <span class="ot">=</span> goldenAge { age <span class="ot">=</span> <span class="dv">10</span> }</span>
-<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a><span class="co">-- MkDogAge { breed = GoldenRetriever, age = 10 }</span></span></code></pre></div>
-<p>直和型の場合と異なり, 直積型のレコードフィールドは単一のコンストラクタに属しているため <strong>アクセサは全域関数</strong> であり, 実行時エラーの心配はありません.</p>
-<div class="note">
-<p><strong>練習問題</strong></p>
-<ol type="1">
-<li><p>人物を表す直積型 <code>Person</code> を, 以下のフィールドを持つレコード構文で定義してください.</p>
-<ul>
-<li><code>personName :: String</code> (氏名)</li>
-<li><code>personAge :: Int</code> (年齢)</li>
-<li><code>personEmail :: String</code> (メールアドレス)</li>
-</ul></li>
-<li><p><code>Person</code> 型の値を受け取り, 年齢を1歳加えた新しい <code>Person</code> を返す関数 <code>birthday :: Person -&gt; Person</code> を <strong>レコード更新構文</strong> を用いて実装してください.</p></li>
-<li><p>2人の <code>Person</code> の年齢の合計を返す関数 <code>totalAge :: Person -&gt; Person -&gt; Int</code> を, レコード構文のアクセサ関数を用いて実装してください.</p></li>
-</ol>
-<div class="sourceCode" id="cb31"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 実行例</span></span>
-<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> alice <span class="ot">=</span> <span class="dt">Person</span> { personName <span class="ot">=</span> <span class="st">&quot;Alice&quot;</span>, personAge <span class="ot">=</span> <span class="dv">30</span>, personEmail <span class="ot">=</span> <span class="st">&quot;alice@example.com&quot;</span> }</span>
-<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>        bob   <span class="ot">=</span> <span class="dt">Person</span> { personName <span class="ot">=</span> <span class="st">&quot;Bob&quot;</span>  , personAge <span class="ot">=</span> <span class="dv">25</span>, personEmail <span class="ot">=</span> <span class="st">&quot;bob@example.com&quot;</span>   }</span>
-<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> birthday alice           <span class="co">-- Alice の年齢が 31 に</span></span>
-<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> totalAge alice bob       <span class="co">-- 55</span></span></code></pre></div>
-<details class="protected" data-pass="yakagika">
-<summary>
-回答例
-</summary>
-<div class="sourceCode" id="cb32"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Person</span> <span class="ot">=</span> <span class="dt">Person</span></span>
-<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>    {<span class="ot"> personName  ::</span> <span class="dt">String</span></span>
-<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>    ,<span class="ot"> personAge   ::</span> <span class="dt">Int</span></span>
-<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>    ,<span class="ot"> personEmail ::</span> <span class="dt">String</span></span>
-<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>    } <span class="kw">deriving</span> <span class="dt">Show</span></span>
-<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a><span class="co">-- レコード更新構文で年齢のみを更新した新しい値を返す</span></span>
-<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a><span class="ot">birthday ::</span> <span class="dt">Person</span> <span class="ot">-&gt;</span> <span class="dt">Person</span></span>
-<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a>birthday p <span class="ot">=</span> p { personAge <span class="ot">=</span> personAge p <span class="op">+</span> <span class="dv">1</span> }</span>
-<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a><span class="co">-- アクセサ関数 personAge を利用して合計を計算</span></span>
-<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a><span class="ot">totalAge ::</span> <span class="dt">Person</span> <span class="ot">-&gt;</span> <span class="dt">Person</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
-<span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a>totalAge p1 p2 <span class="ot">=</span> personAge p1 <span class="op">+</span> personAge p2</span>
-<span id="cb32-14"><a href="#cb32-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-15"><a href="#cb32-15" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb32-16"><a href="#cb32-16" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb32-17"><a href="#cb32-17" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> alice <span class="ot">=</span> <span class="dt">Person</span> { personName <span class="ot">=</span> <span class="st">&quot;Alice&quot;</span>, personAge <span class="ot">=</span> <span class="dv">30</span>, personEmail <span class="ot">=</span> <span class="st">&quot;alice@example.com&quot;</span> }</span>
-<span id="cb32-18"><a href="#cb32-18" aria-hidden="true" tabindex="-1"></a>        bob   <span class="ot">=</span> <span class="dt">Person</span> { personName <span class="ot">=</span> <span class="st">&quot;Bob&quot;</span>  , personAge <span class="ot">=</span> <span class="dv">25</span>, personEmail <span class="ot">=</span> <span class="st">&quot;bob@example.com&quot;</span>   }</span>
-<span id="cb32-19"><a href="#cb32-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> birthday alice      <span class="co">-- Person {personName = &quot;Alice&quot;, personAge = 31, personEmail = &quot;alice@example.com&quot;}</span></span>
-<span id="cb32-20"><a href="#cb32-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> totalAge alice bob  <span class="co">-- 55</span></span></code></pre></div>
-<p>レコード更新構文 <code>p { personAge = ... }</code> は <code>p</code> を破壊的に書き換えるのではなく, <code>personAge</code> のみを変えた新しい <code>Person</code> 値を作って返します. 他のフィールドは <code>p</code> のものがそのままコピーされるため, フィールド数が多いレコードの部分更新を簡潔に書けます.</p>
 </details>
 </div>
 <h2 id="newtype">newtype</h2>

@@ -340,7 +340,7 @@ main = do
 
 **練習問題**
 
-1. 正の整数 `n` を受け取り, `n` の正の約数をすべて昇順に並べたリストを返す関数 `divisors :: Int -> [Int]` をリスト内包表記を用いて実装してください.
+1. 正の整数 `n` を受け取り, `n` の正の約数(nを割って余りのでない数)をすべて昇順に並べたリストを返す関数 `divisors :: Int -> [Int]` をリスト内包表記を用いて実装してください.
 
 2. 正の整数 `n` を受け取り, $a^2 + b^2 = c^2$ を満たす $1 \leq a \leq b \leq c \leq n$ のピタゴラス数 $(a, b, c)$ の組をすべて返す関数 `pythagoreans :: Int -> [(Int, Int, Int)]` をリスト内包表記で実装してください.
 
@@ -361,7 +361,7 @@ main = do
 divisors :: Int -> [Int]
 divisors n = [ x | x <- [1..n], n `mod` x == 0 ]
 
--- 2. ピタゴラス数: a <= b <= c かつ a^2 + b^2 = c^2
+-- 2. ピタゴラス数: a <= b <= c <= n かつ a^2 + b^2 = c^2
 pythagoreans :: Int -> [(Int, Int, Int)]
 pythagoreans n =
     [ (a, b, c)
@@ -433,157 +433,6 @@ main = do
 スマートコンストラクタは,代数的データ型そのものの機能ではなく,**代数的データ型とモジュールシステムの組み合わせ**によって間接的に内包表記的な絞り込みを実現する実用的なイディオムです. 型システムそのものにもっと踏み込んだ絞り込みを型レベルで与えたい場合は,GADTs や Refinement Types (Liquid Haskell) などの拡張機能がありますが,本講義の範囲では扱いません.
 :::
 
-
-
-## 直和型
-
-集合 $A$, $B$ の**和集合(union)**を $A \cup B$, **積集合(intersection)**を $A \cap B$ と表し, それぞれ以下で定義されます.
-
-$$A \cup B = \{x \mid x \in A \lor x \in B\}$$
-
-$$A \cap B = \{x \mid x \in A \land x \in B\}$$
-
-$A \cap B = \phi$ のとき, $A \cup B$ を $A$ と $B$ の **直和(Direct sum)** といいます.
-
-集合には集合が属することも可能で, 集合 $S$ が $T$ に属するとき $S \in T$ が成り立ちます. また, 集合 $S$ の要素を幾つか取り出した集合 $T$ を $S$ の **部分集合** といい, $T \subset S$ と表記します.
-
-$S = \{x, y, z\}$ のとき, $S$ の部分集合は
-
-$$\{x\},\ \{y\},\ \{z\},\ \{x, y\},\ \{x, z\},\ \{y, z\},\ \{x, y, z\},\ \phi$$
-
-となります.
-
-事例として $A, B \subset \mathrm{MyDogs}$, $A = \{\mathrm{GoldenRetriever}, \mathrm{BlackRetriever}, \mathrm{ShetlandSheepdog}\}$, $B = \{\mathrm{BlackRetriever}, \mathrm{StandardPoodle}\}$ のとき, 和集合 $A \cup B$ と積集合 $A \cap B$ はそれぞれ
-
-$$A \cup B = \{\mathrm{GoldenRetriever}, \mathrm{BlackRetriever}, \mathrm{ShetlandSheepdog}, \mathrm{StandardPoodle}\}$$
-
-$$A \cap B = \{\mathrm{BlackRetriever}\}$$
-
-となります. 和集合は「$A$ または $B$ のいずれかに属する要素」を集めた集合, 積集合は「$A$ と $B$ の両方に属する要素」のみを集めた集合です. このとき $A \cap B = \{\mathrm{BlackRetriever}\} \neq \phi$ なので, $A$ と $B$ は直和にはなりません. 一方, $A = \{\mathrm{GoldenRetriever}, \mathrm{ShetlandSheepdog}\}$, $B = \{\mathrm{BlackRetriever}, \mathrm{StandardPoodle}\}$ のように共通要素がない場合は $A \cap B = \phi$ となり, $A \cup B$ は $A$ と $B$ の直和となります.
-
-Haskellでは既に定義した `Int` と `MyDogs` の直和に相当する型を, 次のように定義できます. ここでは「整数または `MyDogs` のいずれかの値を持てるデータ型 `IntOrDog`」を定義します.
-
-~~~ haskell
-data IntOrDog = MkInt Int
-              | MkDog MyDogs
-              deriving Show
-~~~
-
-**記法の解説:**
-
-- 左辺の `IntOrDog` は **型構築子(type constructor)**, 右辺の `MkInt`, `MkDog` は **データ構築子(data constructor)** と呼ばれます. どちらも大文字で始める必要があります.
-- `|` は「または」を意味し, `IntOrDog` の値は `MkInt <整数>` または `MkDog <犬>` のいずれかの形をとる, という **直和** を宣言します.
-- データ構築子の後ろに書かれた `Int`, `MyDogs` は包み込む値の型です. 具体的には `MkInt :: Int -> IntOrDog`, `MkDog :: MyDogs -> IntOrDog` という関数として扱えます.
-
-値を作ったり, パターンマッチで取り出したりできます.
-
-~~~ haskell
-describe :: IntOrDog -> String
-describe (MkInt n) = "整数 " ++ show n
-describe (MkDog d) = "犬 "   ++ show d
-
-main :: IO ()
-main = do
-    putStrLn $ describe (MkInt 42)               -- 整数 42
-    putStrLn $ describe (MkDog GoldenRetriever)  -- 犬 GoldenRetriever
-~~~
-
-集合論的に解釈すると, `MkInt` と `MkDog` という互いに異なるタグでくるむことで `Int` と `MyDogs` が **互いに素** な形で一つの型に合流するため,
-
-$$\mathrm{IntOrDog} = \mathrm{Int} \cup \mathrm{MyDogs} \quad (\mathrm{Int} \cap \mathrm{MyDogs} = \phi)$$
-
-という **直和** になります. 一般に, 代数的データ型の `|` で分けたコンストラクタは必ずタグで区別されるため, Haskellの直和型は常に直和の構造を持ちます.
-
-なお, データ構築子は任意個の引数を取ることができ, `MkPair Int MyDogs` のように複数の型を並べると, その部分は **直積** になります. つまり直和型の各コンストラクタは「いくつかの直積をタグ付きで合流させたもの」として解釈できます.
-
-### レコード構文
-
-記法のバリエーションとして, **レコード構文(record syntax)** を使うと各データ構築子にラベル(フィールド名)を付けられます.
-
-~~~ haskell
-data PetEntry = ByNumber { petNumber :: Int }
-              | ByBreed  { petBreed  :: MyDogs }
-              deriving Show
-~~~
-
-- `ByNumber { petNumber = 7 }` のように **フィールド名による値の生成** ができます. 従来の構文 `ByNumber 7` も併用可能です.
-- フィールド名 `petNumber`, `petBreed` は **自動的にアクセサ関数**として定義されます.
-    - `petNumber :: PetEntry -> Int`
-    - `petBreed  :: PetEntry -> MyDogs`
-
-集合論的には, これらのフィールド名は直和型の各部分集合から元の値を取り出す **射影** に対応します.
-
-$$\mathrm{petNumber}(\mathrm{ByNumber}(n) \in \mathrm{Int} \subset \mathrm{PetEntry}) = n$$
-
-$$\mathrm{petBreed}(\mathrm{ByBreed}(d) \in \mathrm{MyDogs} \subset \mathrm{PetEntry}) = d$$
-
-~~~ haskell
-ghci> petNumber (ByNumber 7)
-7
-ghci> petBreed (ByBreed GoldenRetriever)
-GoldenRetriever
-~~~
-
-::: warn
-レコード構文のアクセサ関数は, そのフィールドを持たない別のコンストラクタに適用すると **実行時エラー** になります. たとえば `petNumber (ByBreed GoldenRetriever)` は実行時にエラーを発生させます. 直和型に対するレコード構文のアクセサは部分関数である点に注意してください. 安全に取り出すにはパターンマッチを利用するか, 後の章で扱う `Maybe` を返す関数として包み直すのが一般的です.
-:::
-
-このように, 直和にすることで互いに異なる型の値を一つの型に集約でき, 型安全性を保ったまま「複数の型のいずれかをとる値」を表現できるようになります. 動的型付け言語におけるダックタイピングに似た柔軟さを, 型システムの保証を壊さずに実現する手段と考えることができます.
-
-::: note
-
-**練習問題**
-
-1. 図形を表す直和型 `Shape` を以下の3つのコンストラクタで定義してください.
-    - `Circle` : 半径(`Double`)を1つ持つ
-    - `Rectangle` : 幅と高さ(`Double` 2つ)を持つ
-    - `Triangle` : 3辺の長さ(`Double` 3つ)を持つ
-
-2. `Shape` の値を受け取り, その図形の面積を返す関数 `area :: Shape -> Double` をパターンマッチで実装してください. 三角形の面積はヘロンの公式
-
-    $$s = \frac{a + b + c}{2}, \quad S = \sqrt{s(s-a)(s-b)(s-c)}$$
-
-    を用います.
-
-~~~ haskell
--- 実行例
-main :: IO ()
-main = do
-    print $ area (Circle 1)            -- 3.141592653589793
-    print $ area (Rectangle 3 4)       -- 12.0
-    print $ area (Triangle 3 4 5)      -- 6.0
-~~~
-
-<details class="protected" data-pass="yakagika">
-    <summary> 回答例 </summary>
-
-~~~ haskell
-data Shape = Circle Double
-           | Rectangle Double Double
-           | Triangle Double Double Double
-           deriving Show
-
-area :: Shape -> Double
-area (Circle r)       = pi * r * r
-area (Rectangle w h)  = w * h
-area (Triangle a b c) = sqrt (s * (s - a) * (s - b) * (s - c))
-  where
-    s = (a + b + c) / 2
-
-main :: IO ()
-main = do
-    print $ area (Circle 1)       -- 3.141592653589793
-    print $ area (Rectangle 3 4)  -- 12.0
-    print $ area (Triangle 3 4 5) -- 6.0
-~~~
-
-直和型の各コンストラクタが異なる数・種類の引数を持ってよいため, 図形ごとに必要な情報を自然に表現できます. 面積計算のような処理はパターンマッチで場合分けして書くのが定石です.
-
-</details>
-
-:::
-
-
 ## 直積型
 
 $A \times B = \{(a, b) \mid a \in A, b \in B\}$ を $A$ と $B$ の **直積(Cartesian Product)** といいます. 直積は $A$ と $B$ から要素を一つずつ選んで並べた組 $(a, b)$ 全体からなる集合です. 日本語では**積集合(intersection)**と字面が似ていますが異なる概念なので注意しましょう.
@@ -651,11 +500,62 @@ data DogAge = MkDogAge { breed :: MyDogs
 - `breed :: DogAge -> MyDogs`
 - `age   :: DogAge -> Int`
 
-集合論的には, これらのフィールド名は直積からそれぞれの成分を取り出す **射影(projection)** $\pi_1, \pi_2$ に対応します.
+これらの **アクセサ関数(accessor function)** は, レコード構文の定義から **GHCが自動生成するトップレベル関数** で, レコード値からフィールドの値を取り出す役割を持ちます. たとえば `breed` は手書きすれば
+
+~~~ haskell
+breed :: DogAge -> MyDogs
+breed (MkDogAge b _) = b
+~~~
+
+と書いたものと等価で, パターンマッチによる取り出しを関数として包んだものに過ぎません. レコード構文の利点は, このような取り出し関数を **フィールドごとに自前で書く手間が省ける** ことにあります.
+
+アクセサ関数は他の関数と全く同様に **第一級の値(first-class value)** として扱えるため, 高階関数に渡したり, 関数合成 `(.)` で他の関数と繋げたり, 部分適用したりできます. パターンマッチによる取り出しを関数の中に書く場合と比べ, 簡潔に「フィールドを取り出してから何かする」という処理を組み立てられるのが大きな利点です.
+
+~~~ haskell
+dogs :: [DogAge]
+dogs = [ MkDogAge GoldenRetriever 3
+       , MkDogAge Beagle           7
+       , MkDogAge StandardPoodle   5
+       ]
+
+-- 高階関数に渡す: 全ての犬の犬種だけを取り出したリスト
+allBreeds :: [MyDogs]
+allBreeds = map breed dogs
+-- [GoldenRetriever, Beagle, StandardPoodle]
+
+-- 高階関数に渡す: 年齢が 5 歳以上の犬を絞り込む
+matureDogs :: [DogAge]
+matureDogs = filter ((>= 5) . age) dogs
+-- [MkDogAge Beagle 7, MkDogAge StandardPoodle 5]
+
+-- 関数合成: 「犬種を取り出して show する」を一つの関数として定義
+showBreed :: DogAge -> String
+showBreed = show . breed
+~~~
+
+`filter ((>= 5) . age) dogs` のように, アクセサ関数 `age` と比較 `(>= 5)` を `(.)` で合成すれば「年齢を取り出して 5 以上か判定する」という関数を一行で表現できます. もしレコード構文を使わずにパターンマッチで毎回書いていたら, この箇所は `filter (\d -> case d of MkDogAge _ n -> n >= 5) dogs` のように冗長になります.
+
+なお, アクセサ関数名はモジュール内のトップレベルにそのまま展開されるため, 同じモジュールで別のレコード型に同名のフィールドを定義すると衝突します(回避には `DuplicateRecordFields` 言語拡張や, `dogAge` / `personAge` のような接頭辞付きの命名規約などが用いられます).
+
+::: note
+
+集合論では, 直積集合 $A \times B$ から各成分を取り出す関数を **射影(projection)** といい, $\pi_1, \pi_2$ で表します. 形式的には
+
+$$\pi_1 : A \times B \to A, \quad \pi_1((a, b)) = a$$
+
+$$\pi_2 : A \times B \to B, \quad \pi_2((a, b)) = b$$
+
+と定義され, 順序対 $(a, b) \in A \times B$ から第1成分・第2成分をそれぞれ取り出す操作を表します. これは $n$ 個の集合の直積 $A_1 \times A_2 \times \dots \times A_n$ に対しても自然に一般化され, 第 $i$ 成分を取り出す射影 $\pi_i : A_1 \times \dots \times A_n \to A_i$ が同様に定義されます.
+
+:::
+
+レコード構文によって自動生成されるアクセサ関数は, この射影に対応します. すなわち $\mathrm{DogAge} = \mathrm{MyDogs} \times \mathrm{Int}$ と見なせば, `breed` は第1成分への射影 $\pi_1$, `age` は第2成分への射影 $\pi_2$ にあたり,
 
 $$\mathrm{breed}((d, n) \in \mathrm{DogAge}) = d$$
 
 $$\mathrm{age}((d, n) \in \mathrm{DogAge}) = n$$
+
+と書けます. このように, 直積型のレコード構文は集合論における直積と射影の構造を, そのままHaskellの構文として写したものになっています.
 
 値の生成はフィールド名を明示する形でも, 従来の位置引数の形でも可能です.
 
@@ -682,6 +582,21 @@ olderGolden = goldenAge { age = 10 }
 ~~~
 
 直和型の場合と異なり, 直積型のレコードフィールドは単一のコンストラクタに属しているため **アクセサは全域関数** であり, 実行時エラーの心配はありません.
+
+::: warn
+直和型(複数のコンストラクタを持つ型)でレコード構文を使うと, **一部のコンストラクタにしか存在しないフィールドのアクセサは部分関数になる** 点に注意が必要です. たとえば `MyDogs` を使って, 犬種だけを持つコンストラクタと, 犬種と年齢の両方を持つコンストラクタを併せ持つ型を考えると以下のようになります.
+
+~~~ haskell
+data DogInfo = JustBreed { dogBreed :: MyDogs }
+             | WithAge   { dogBreed :: MyDogs, dogAge :: Int }
+             deriving Show
+
+ghci> dogAge (JustBreed GoldenRetriever)
+*** Exception: No match in record selector dogAge
+~~~
+
+`dogAge` は `WithAge` のコンストラクタにしか定義されていないため, `JustBreed` の値に適用すると実行時エラーになります. 直和型でレコード構文を使う場合は, アクセサで直接取り出すのではなく **パターンマッチで取り出す** か, 後の章で扱う `Maybe` を返す形に包み直すのが安全です.
+:::
 
 ::: note
 
@@ -737,6 +652,125 @@ main = do
 </details>
 
 :::
+
+## 直和型
+
+集合 $A$, $B$ の**和集合(union)**を $A \cup B$, **積集合(intersection)**を $A \cap B$ と表し, それぞれ以下で定義されます.
+
+$$A \cup B = \{x \mid x \in A \lor x \in B\}$$
+
+$$A \cap B = \{x \mid x \in A \land x \in B\}$$
+
+$A \cap B = \phi$ のとき, $A \cup B$ を $A$ と $B$ の **直和(Direct sum)** といいます.
+
+集合には集合が属することも可能で, 集合 $S$ が $T$ に属するとき $S \in T$ が成り立ちます. また, 集合 $S$ の要素を幾つか取り出した集合 $T$ を $S$ の **部分集合** といい, $T \subset S$ と表記します.
+
+$S = \{x, y, z\}$ のとき, $S$ の部分集合は
+
+$$\{x\},\ \{y\},\ \{z\},\ \{x, y\},\ \{x, z\},\ \{y, z\},\ \{x, y, z\},\ \phi$$
+
+となります.
+
+事例として $A, B \subset \mathrm{MyDogs}$, $A = \{\mathrm{GoldenRetriever}, \mathrm{BlackRetriever}, \mathrm{ShetlandSheepdog}\}$, $B = \{\mathrm{BlackRetriever}, \mathrm{StandardPoodle}\}$ のとき, 和集合 $A \cup B$ と積集合 $A \cap B$ はそれぞれ
+
+$$A \cup B = \{\mathrm{GoldenRetriever}, \mathrm{BlackRetriever}, \mathrm{ShetlandSheepdog}, \mathrm{StandardPoodle}\}$$
+
+$$A \cap B = \{\mathrm{BlackRetriever}\}$$
+
+となります. 和集合は「$A$ または $B$ のいずれかに属する要素」を集めた集合, 積集合は「$A$ と $B$ の両方に属する要素」のみを集めた集合です. このとき $A \cap B = \{\mathrm{BlackRetriever}\} \neq \phi$ なので, $A$ と $B$ は直和にはなりません. 一方, $A = \{\mathrm{GoldenRetriever}, \mathrm{ShetlandSheepdog}\}$, $B = \{\mathrm{BlackRetriever}, \mathrm{StandardPoodle}\}$ のように共通要素がない場合は $A \cap B = \phi$ となり, $A \cup B$ は $A$ と $B$ の直和となります.
+
+Haskellでは既に定義した `Int` と `MyDogs` の直和に相当する型を, 次のように定義できます. ここでは「整数または `MyDogs` のいずれかの値を持てるデータ型 `IntOrDog`」を定義します.
+
+~~~ haskell
+data IntOrDog = MkInt Int
+              | MkDog MyDogs
+              deriving Show
+~~~
+
+**記法の解説:**
+
+- 左辺の `IntOrDog` は **型構築子(type constructor)**, 右辺の `MkInt`, `MkDog` は **データ構築子(data constructor)** と呼ばれます. どちらも大文字で始める必要があります.
+- `|` は「または」を意味し, `IntOrDog` の値は `MkInt <整数>` または `MkDog <犬>` のいずれかの形をとる, という **直和** を宣言します.
+- データ構築子の後ろに書かれた `Int`, `MyDogs` は包み込む値の型です. 具体的には `MkInt :: Int -> IntOrDog`, `MkDog :: MyDogs -> IntOrDog` という関数として扱えます.
+
+値を作ったり, パターンマッチで取り出したりできます.
+
+~~~ haskell
+describe :: IntOrDog -> String
+describe (MkInt n) = "整数 " ++ show n
+describe (MkDog d) = "犬 "   ++ show d
+
+main :: IO ()
+main = do
+    putStrLn $ describe (MkInt 42)               -- 整数 42
+    putStrLn $ describe (MkDog GoldenRetriever)  -- 犬 GoldenRetriever
+~~~
+
+集合論的に解釈すると, `MkInt` と `MkDog` という互いに異なるタグでくるむことで `Int` と `MyDogs` が **互いに素** な形で一つの型に合流するため,
+
+$$\mathrm{IntOrDog} = \mathrm{Int} \cup \mathrm{MyDogs} \quad (\mathrm{Int} \cap \mathrm{MyDogs} = \phi)$$
+
+という **直和** になります. 一般に, 代数的データ型の `|` で分けたコンストラクタは必ずタグで区別されるため, Haskellの直和型は常に直和の構造を持ちます.
+
+なお, データ構築子は任意個の引数を取ることができ, `MkPair Int MyDogs` のように複数の型を並べると, その部分は **直積** になります. つまり直和型の各コンストラクタは「いくつかの直積をタグ付きで合流させたもの」として解釈できます.
+
+
+このように, 直和にすることで互いに異なる型の値を一つの型に集約でき, 型安全性を保ったまま「複数の型のいずれかをとる値」を表現できるようになります. 動的型付け言語におけるダックタイピングに似た柔軟さを, 型システムの保証を壊さずに実現する手段と考えることができます.
+
+::: note
+
+**練習問題**
+
+1. 図形を表す直和型 `Shape` を以下の3つのコンストラクタで定義してください.
+    - `Circle` : 半径(`Double`)を1つ持つ
+    - `Rectangle` : 幅と高さ(`Double` 2つ)を持つ
+    - `Triangle` : 3辺の長さ(`Double` 3つ)を持つ
+
+2. `Shape` の値を受け取り, その図形の面積を返す関数 `area :: Shape -> Double` をパターンマッチで実装してください. 三角形の面積はヘロンの公式
+
+    $$s = \frac{a + b + c}{2}, \quad S = \sqrt{s(s-a)(s-b)(s-c)}$$
+
+    を用います.
+
+~~~ haskell
+-- 実行例
+main :: IO ()
+main = do
+    print $ area (Circle 1)            -- 3.141592653589793
+    print $ area (Rectangle 3 4)       -- 12.0
+    print $ area (Triangle 3 4 5)      -- 6.0
+~~~
+
+<details class="protected" data-pass="yakagika">
+    <summary> 回答例 </summary>
+
+~~~ haskell
+data Shape = Circle Double
+           | Rectangle Double Double
+           | Triangle Double Double Double
+           deriving Show
+
+area :: Shape -> Double
+area (Circle r)       = pi * r * r
+area (Rectangle w h)  = w * h
+area (Triangle a b c) = sqrt (s * (s - a) * (s - b) * (s - c))
+  where
+    s = (a + b + c) / 2
+
+main :: IO ()
+main = do
+    print $ area (Circle 1)       -- 3.141592653589793
+    print $ area (Rectangle 3 4)  -- 12.0
+    print $ area (Triangle 3 4 5) -- 6.0
+~~~
+
+直和型の各コンストラクタが異なる数・種類の引数を持ってよいため, 図形ごとに必要な情報を自然に表現できます. 面積計算のような処理はパターンマッチで場合分けして書くのが定石です.
+
+</details>
+
+:::
+
+
 
 ## newtype
 
