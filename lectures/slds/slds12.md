@@ -856,93 +856,165 @@ $$p(y | \alpha, \beta_{st}, \beta_{ss}, \sigma) = \prod_{i=1}^{N} N(y_i | \mu_i,
 
 `Python`においてベイズ統計学に基づいた統計モデリングを実施するためのライブラリとして`PyMC5`があります(古いVersionとして`PyMC3`があり全く異なる記法などを用いているので注意して下さい).
 
-## ローカル環境（uv）での実行
+## 概要 (OS別の使い分け)
 
-これまでの章と同様に `uv` を使ってローカルに PyMC をインストールすることは可能です. 以下の手順で環境構築ができます.
+PyMC の計算バックエンド `PyTensor` は **実行時に C コードをコンパイル** する設計で, Python の wheel だけでは完結せず, `g++`・`MKL` (BLAS/LAPACK)・`libpython` 等の非 Python 依存を必要とします. このため Windows では `pip` (および pip ベースの `uv`) 経由のインストールでは pytensor が Python fallback モードに陥り, **MCMC サンプリングが極端に低速** になります(1 draw あたり約3秒, 4チェーン×2000 draws で数時間程度).
+
+そこで本講義では OS ごとにツールを使い分けます.
+
+| OS | ツール |
+|---|---|
+| **Mac / Linux** | これまで通り `uv` |
+| **Windows** | `pixi` |
+
+`pixi` は `uv` と同じく Rust 製・lockfile ベース・プロジェクト単位管理の高速ツールですが, **conda-forge エコシステムをバックエンドとする** 点が `uv` と異なります. conda-forge には `pytensor` 用の C コンパイラ (`m2w64-toolchain`/g++) や `MKL` などが pre-compiled binary として揃っているため, Windows でも追加のビルド環境構築なしに PyMC を高速に動作させられます. 操作感は `uv` とほぼ同じ (`pixi add`, `pixi run`, `pixi.lock`) で, PyMC 公式も現在は pixi を最も推奨しています.
+
+## Mac / Linux: uv での環境構築
+
+これまでの章と同様に `uv` を使ってローカルに PyMC をインストールします.
 
 ~~~ sh
 uv init -p 3.11.9 pymc-project
 cd pymc-project
-uv add "pymc>=5" "arviz>=0.15,<1.0" numpy scipy seaborn scikit-learn statsmodels graphviz
+uv add "pymc>=5" arviz numpy pandas matplotlib scipy seaborn graphviz statsmodels scikit-learn nutpie
 ~~~
 
 ::: warn
-
-- **Python のバージョンに注意**: Python 3.14 では `arviz` の依存関係が壊れるため, **必ず `-p 3.11.9` などで 3.11 系を指定** してください.
-- **`arviz` のバージョンに注意**: `arviz 1.0` 以降は API が変更されており PyMC 5.28 と非互換です. `"arviz>=0.15,<1.0"` を指定してください.
-
+- **Python のバージョン**: PyMC 5 系の wheel が安定して提供されているため `-p 3.11.9` などで 3.11 系を指定してください. Python 3.14 では一部依存パッケージのビルドが通らないことがあります.
+- **arviz の trace プロットについて**: `arviz 1.0` 以降では `plot_trace` の subplot 数に上限 (40) があるため, `alpha` のような高次元変数を含める場合は `coords` で代表数名分にサブセットする必要があります (後述のコードでは対応済).
 :::
 
-インストール後, `uv run python -c "import pymc as pm; print(pm.__version__)"` で動作確認ができます.
+**画像保存用ディレクトリの作成** (PyMC コードが `save_dir = 'images/'` に書き出すため, **先に作成しておく必要があります**):
+
+~~~ sh
+mkdir -p images
+~~~
+
+最終的なプロジェクト構成は以下のようになります.
+
+~~~ sh
+pymc-project/
+├── images/                          # ← 作成しておく
+├── hierarchical_regression.csv      # データファイル (講義配布)
+├── main.py                          # PyMC コード
+├── pyproject.toml
+└── uv.lock
+~~~
+
+インストール後, 以下で動作確認します.
+
+~~~ sh
+uv run python -c "import pymc as pm; print(pm.__version__)"
+~~~
+
+バージョン番号(例: `5.x.x`)が表示されれば準備完了です. スクリプトの実行は以下で行います.
+
+~~~ sh
+uv run python main.py
+~~~
+
+## Windows: pixi での環境構築
+
+### pixi のインストール
+
+PowerShell を開いて以下を実行します.
+
+~~~ powershell
+iwr -useb https://pixi.sh/install.ps1 | iex
+~~~
 
 ::: warn
-**Windowsでの速度問題**
+インストール後 **PowerShell を一度閉じて開き直し** , 以下で動作確認してください.
 
-Windows では C コンパイラ (`g++`) が検出されず,pytensor が Python fallback モードで動作するため, **MCMC サンプリングが極端に低速** になります（1 draw あたり約3秒,4チェーン×2000 draws で数時間程度）.
-
-これは MinGW 等の C コンパイラを導入することで解消できますが, Windows 上での MinGW + pytensor の設定は非常に複雑であり,講義の環境として全員に求めるのは現実的ではありません.
-
-**Mac (Apple Silicon / Intel) ではこの問題は発生しにくく**,ローカル環境でも実用的な速度で実行できる場合があります. Mac ユーザーは上記手順でローカル実行を試みても構いません.
+~~~ powershell
+pixi --version
+~~~
 :::
 
-## Google Colab での実行（本講義で利用）
+### プロジェクト作成
 
-上記の速度問題を回避するため,**本講義では Google Colab を利用して PyMC を実行します**. Colab は Google が提供するブラウザ上の Python 実行環境で, 環境構築が不要かつ高速に MCMC サンプリングを実行できます.
-
-### Colab の準備
-
-1. [Google Colab](https://colab.research.google.com) にアクセスします（Google アカウントが必要です）.
-
-2. 「ノートブックを新規作成」をクリックします.
-
-3. 最初のセルに以下を入力して実行し,PyMC と必要なライブラリをインストールします.
-
-~~~ python
-!pip install "pymc>=5" seaborn statsmodels scikit-learn graphviz
+~~~ powershell
+cd $HOME\Desktop   # 任意の作業場所
+pixi init pymc-project --platform win-64
+cd pymc-project
 ~~~
 
-4. インストール完了後,次のセルで動作確認をします.
+::: note
+**`--platform win-64` を付ける理由**
 
-~~~ python
-import pymc as pm
-print(pm.__version__)
+Windows on ARM (Snapdragon X 系) では conda-forge が `win-arm64` を実質サポートしていないため, 明示的に `win-64` を指定します. ARM 機でも Prism エミュレーションで x86_64 バイナリが透過実行されるので問題ありません. x86_64 Windows の方も同じコマンドで構いません (no-op).
+
+既に `pixi init` を引数なしで実行してしまった場合は, 生成された `pixi.toml` を開き次のように修正してください.
+
+~~~ toml
+[workspace]
+channels = ["conda-forge"]
+platforms = ["win-64"]
+~~~
+:::
+
+### ライブラリのインストール
+
+~~~ powershell
+pixi add pymc numpy pandas matplotlib seaborn arviz graphviz statsmodels scikit-learn scipy nutpie
 ~~~
 
-バージョン番号（例: `5.28.4`）が表示されれば準備完了です.
+::: note
+このコマンドで PyMC 5 と PyTensor, **C/C++ コンパイラ** (`m2w64-toolchain`/g++), **MKL/BLAS/LAPACK**, **libpython** 等が一括で導入されます. これが pip/uv にはできない pixi の利点です.
 
-### データファイルのアップロード
+ARM 機では以下の警告が出ますが, 正常動作の証なので無視して構いません.
 
-本章で使用するデータファイル `hierarchical_regression.csv` を Colab にアップロードする必要があります.
-
-~~~ python
-from google.colab import files
-uploaded = files.upload()
 ~~~
-
-上記を実行するとファイル選択ダイアログが表示されるので,`hierarchical_regression.csv` を選択してアップロードしてください.
-
-### 画像の保存について
-
-Colab ではローカルのファイルシステムへの保存ではなく, ノートブック内に直接グラフを表示します. 以下のコードではローカル実行時の `plt.savefig()` の代わりに `plt.show()` を使用するか, 必要に応じて Google Drive にマウントして保存してください.
-
-~~~ python
-# Google Drive にマウントする場合
-from google.colab import drive
-drive.mount('/content/drive')
-save_dir = '/content/drive/MyDrive/slds/ch12/'
+WARN win-arm64 is not supported by the current environment,
+     falling back to win-64 (emulation)
 ~~~
-
-::: warn
-以降のコードでは `save_dir` と `plt.savefig()` が登場しますが, Colab で実行する場合は以下のいずれかで対応してください.
-
-- `plt.savefig(...)` の行を `plt.show()` に置き換える（画像をノートブック内に表示）
-- Google Drive をマウントして `save_dir` を上記のように設定する（画像をDriveに保存）
 :::
 
 ::: warn
-**過去の環境構築方法について**
+**arviz の trace プロットについて**: `arviz 1.0` 以降では `plot_trace` の subplot 数に上限 (40) があるため, `alpha` のような高次元変数を含める場合は `coords` で代表数名分にサブセットする必要があります (後述のコードでは対応済).
+:::
 
-この講義では以前 `pyenv` + `anaconda` を利用した環境構築を行っていました. 過去にその方法で環境を構築した方は, [旧版の環境構築手順（備忘録）](/posts/2025-04-20-pymc-pyenv-setup-archive.html) を参照してアンインストールしてください.
+### 画像保存用ディレクトリの作成
+
+PyMC コードが `save_dir = 'images/'` に書き出すため, **先に作成しておく必要があります**.
+
+~~~ powershell
+New-Item -ItemType Directory -Path images
+~~~
+
+最終的なプロジェクト構成は以下のようになります.
+
+~~~ powershell
+pymc-project\
+├── images\                          # ← 作成しておく
+├── hierarchical_regression.csv      # データファイル (講義配布)
+├── main.py                          # PyMC コード
+├── pixi.toml
+└── pixi.lock
+~~~
+
+### 動作確認とスクリプトの実行
+
+~~~ powershell
+pixi run python -c "import pymc as pm; print(pm.__version__)"
+~~~
+
+バージョン番号 (例: `5.x.x`) が表示され, **`g++ not available` 等の警告が出なければ** C バックエンドが有効です. スクリプトの実行は以下で行います.
+
+~~~ powershell
+pixi run python .\main.py
+~~~
+
+::: warn
+**`pixi shell` は使わない**
+
+`pixi shell` は Windows on ARM 環境で `program not found` エラーとなる既知の不具合があります. 本講義では一貫して `pixi run <コマンド>` の形で実行してください. 日常使いには `pixi run` で十分です.
+:::
+
+## (参考) 過去の環境構築方法について
+
+::: warn
+この講義では以前 `pyenv` + `anaconda` を利用した環境構築を行っていました. 過去にその方法で環境を構築した方は, [旧版の環境構築手順 (備忘録)](/posts/2025-04-20-pymc-pyenv-setup-archive.html) を参照してアンインストールしてください.
 :::
 
 
@@ -953,9 +1025,7 @@ save_dir = '/content/drive/MyDrive/slds/ch12/'
 
 ::: warn
 
-最初の画像の保存先やデータの参照先は,環境に応じて変えて下さい.
-
-`save_dir = '/images/slds/ch12/'`
+コードは `save_dir = 'images/'` (プロジェクト直下の `images/` ディレクトリ) を前提としています. 前節で作成した `images/` ディレクトリと, 講義配布の `hierarchical_regression.csv` がプロジェクト直下に置かれた状態で実行してください. 別の場所に保存したい場合は `save_dir` を書き換えてください.
 
 :::
 
@@ -973,7 +1043,7 @@ from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 from scipy.stats import norm, rankdata
 
 
-save_dir = '../../images/slds/ch12/'
+save_dir = 'images/'
 
 if __name__ == "__main__":
 
@@ -1085,11 +1155,16 @@ if __name__ == "__main__":
     graph = model_to_graphviz(model)
     graph.render(filename= save_dir + "hierarchical_bayes_model", format="pdf")
 
+    # alpha は学生数分の次元を持つため,
+    # trace プロットでは代表 10 名分にサブセットして可視化する
+    sample_students = list(trace.posterior.coords["student"].values[:10])
+
     az.plot_trace(trace
                  ,var_names=["sigma_alpha"
                             ,"alpha"
                             ,"beta_st"
-                            ,"beta_ss"])
+                            ,"beta_ss"]
+                 ,coords={"student": sample_students})
     plt.tight_layout()
     plt.savefig(save_dir + 'trace.png')
     plt.close()
@@ -1351,7 +1426,7 @@ from sklearn.metrics import mean_squared_error, r2_score, mean_absolute_error
 from scipy.stats import norm, rankdata
 
 
-save_dir = '../../images/slds/ch12/'
+save_dir = 'images/'
 
 if __name__ == "__main__":
 
@@ -1653,11 +1728,16 @@ NUTS: [z_alpha, mu_alpha, sigma_alpha, beta_st, beta_ss]
 続いて,モデルの診断結果を確認します. `az.plot_trace()`を用いることで,指定した変数のサンプリング過程を可視化することができます.
 
 ~~~ py
+    # alpha は学生数分の次元を持つため,
+    # trace プロットでは代表 10 名分にサブセットして可視化する
+    sample_students = list(trace.posterior.coords["student"].values[:10])
+
     az.plot_trace(trace
                  ,var_names=["sigma_alpha"
                             ,"alpha"
                             ,"beta_st"
-                            ,"beta_ss"])
+                            ,"beta_ss"]
+                 ,coords={"student": sample_students})
     plt.tight_layout()
     plt.savefig(save_dir + 'trace.png')
     plt.close()
@@ -1676,8 +1756,10 @@ NUTS: [z_alpha, mu_alpha, sigma_alpha, beta_st, beta_ss]
 
 ことから,概ね良好に推定できていることが分かります.
 
-ただし,alphaに関しては学生別の分布が異なる色で表示されている点に注意して下さい.
+ただし,alphaに関しては学生数が多いため(`coords` で **代表 10 名分のみを表示** している), 学生別の分布が異なる色で表示されている点に注意して下さい.
 学生それぞれの基礎学力の分布が異なっている様が表現されています.
+
+(全学生分のトレースを確認したい場合は `coords` を省略すれば良いが, `arviz>=1.0` では `az.rcParams['plot.max_subplots']` をデフォルトの 40 より大きな値に引き上げる必要がある.)
 
 グラフでは大まかな印象しかわからないので更に,`az.summary()`を利用してサンプリング結果を数値で確認してみます.
 

@@ -427,11 +427,6 @@ postCtx tags = mconcat
     </url>
 
     <url>
-        <loc>/lectures/2024-03-29-special-lecture-datascience-answer.html</loc>
-        <lastmod>2024-06-12</lastmod>
-    </url>
-
-    <url>
         <loc>/lectures/2024-03-29-special-lecture-datascience.html</loc>
         <lastmod>2024-06-12</lastmod>
     </url>

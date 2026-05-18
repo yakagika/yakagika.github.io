@@ -59,6 +59,16 @@ customWriterOptions = defaultHakyllWriterOptions
   , Pandoc.writerTOCDepth        = 3
   , Pandoc.writerTemplate        = Nothing
   , Pandoc.writerHTMLMathMethod  = Pandoc.KaTeX ""
+  -- writerSectionDivs を OFF にする理由:
+  --   この機能が有効だと, `::: note` (fenced div) 内に見出しを入れたとき
+  --   pandoc が <div class="note"> ではなく <section class="note"> を生成し,
+  --   id を <section> 側に付ける.
+  --   結果として
+  --     (1) CSS の `div.note { ... }` が当たらず色が付かない
+  --     (2) TOC JS が `heading.id` を参照するため id が空になりリンクが #
+  --   の 2 重の不具合が発生する. OFF にすると <div class="note"> と
+  --   <hN id="..."> が別要素として出力され, 両方解決する.
+  , Pandoc.writerSectionDivs     = False
   , Pandoc.writerExtensions      = Pandoc.enableExtension Pandoc.Ext_fenced_divs
                                  $ Pandoc.enableExtension Pandoc.Ext_tex_math_dollars
                                  $ Pandoc.enableExtension Pandoc.Ext_tex_math_double_backslash

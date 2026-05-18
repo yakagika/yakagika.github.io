@@ -548,7 +548,9 @@ Hello World!
 
 ::: note
 
-**演習**
+### Exercise SLDS3-1
+
+**Shell コマンドとチートシート, `print()` の利用**
 
 - <u>演習1 Shellコマンドの調査</u>
 
@@ -574,6 +576,29 @@ Hello World!
 今回作成した`hello.py`における
 `print()` という関数は()内の文字(`""`で囲われている部分)を標準出力する関数です.
 `print()`の括弧内の `Hello World!` 部分を好きな文字に書き換えて実行してみましょう.
+
+<details class="protected" data-pass="yakagika">
+    <summary> 回答例 </summary>
+
+演習 1, 2 は受講者ごとに調査対象 / 整理形式が異なるため標準解答は省略.
+
+演習 3 (`print()` の利用) の解答例:
+
+~~~ python
+# hello.py を以下のように書き換え, 実行する
+print("Hello Python!")
+print("こんにちは, Python の世界へ")
+~~~
+
+実行 (Shell):
+
+~~~ sh
+$ python hello.py
+Hello Python!
+こんにちは, Python の世界へ
+~~~
+
+</details>
 
 :::
 

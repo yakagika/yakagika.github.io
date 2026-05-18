@@ -33,5 +33,4 @@ spec = describe "Fp5.Weekday" $ do
     it "Friday → Saturday"   $ nextDay Friday `shouldBe` Saturday
     it "Saturday → Sunday"   $ nextDay Saturday `shouldBe` Sunday
     it "Sunday → Monday"     $ nextDay Sunday `shouldBe` Monday
-    it "週を循環すれば元に戻る" $
-      iterate nextDay Sunday !! 7 `shouldBe` Sunday
+    it "週を循環すれば元に戻る"  $ iterate nextDay Sunday !! 7 `shouldBe` Sunday

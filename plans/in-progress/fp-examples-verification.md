@@ -281,3 +281,9 @@ dist-newstyle/
     - fp5.md: 列挙型 / リスト内包表記 / 直積型 (レコード) / 直和型 / 部分アクセサの各例を `test/Fp5/` 配下に追加 (7 ファイル, 33 ケース).
     - 部分アクセサの実行時例外は `RecSelError` であるため `anyException` で捕捉.
     - 累計 **26 ファイル 152 テストケース, 0 failures**.
+- 2026-05-12 (演習見出し規約):
+    - fp 講義の全 15 演習を **`### Exercise CHN-K`** 形式に統一. 直下に `**タイトル**` で日本語の説明を残す.
+    - 自動生成アンカーが ASCII で安定 (`fp4.html#exercise-ch4-3`).
+    - ToC (`writerTOCDepth = 3`) に演習が一覧で並ぶようになった.
+    - 学生課題ファイル名 `chN-K.hs` との 1:1 対応が `Exercise CHN-K` ↔ `chN-K.hs` で明示化.
+    - CLAUDE.md に「練習問題の見出し規約」セクションを追加.

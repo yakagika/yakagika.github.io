@@ -196,7 +196,9 @@ main = print $ head'' ([]::[Int]) -- practice: Empty List error, called at
 
 ::: note
 
-**練習問題**
+### Exercise CH5-1
+
+**曜日列挙型 `Weekday` と `isWeekend` / `nextDay`**
 
 1. 曜日を表す列挙型 `Weekday` を日曜日から土曜日までの7つのコンストラクタで定義してください. `deriving Show` を付けて `print` できるようにしてください.
 
@@ -338,7 +340,9 @@ main = do
 
 ::: note
 
-**練習問題**
+### Exercise CH5-2
+
+**約数とピタゴラス数(リスト内包表記)**
 
 1. 正の整数 `n` を受け取り, `n` の正の約数(nを割って余りのでない数)をすべて昇順に並べたリストを返す関数 `divisors :: Int -> [Int]` をリスト内包表記を用いて実装してください.
 
@@ -600,7 +604,9 @@ ghci> dogAge (JustBreed GoldenRetriever)
 
 ::: note
 
-**練習問題**
+### Exercise CH5-3
+
+**人物型 `Person` のレコード操作(更新構文・アクセサ)**
 
 1. 人物を表す直積型 `Person` を, 以下のフィールドを持つレコード構文で定義してください.
     - `personName :: String` (氏名)
@@ -719,7 +725,9 @@ $$\mathrm{IntOrDog} = \mathrm{Int} \cup \mathrm{MyDogs} \quad (\mathrm{Int} \cap
 
 ::: note
 
-**練習問題**
+### Exercise CH5-4
+
+**図形型 `Shape` と面積計算(ヘロンの公式)**
 
 1. 図形を表す直和型 `Shape` を以下の3つのコンストラクタで定義してください.
     - `Circle` : 半径(`Double`)を1つ持つ
@@ -730,7 +738,11 @@ $$\mathrm{IntOrDog} = \mathrm{Int} \cup \mathrm{MyDogs} \quad (\mathrm{Int} \cap
 
     $$s = \frac{a + b + c}{2}, \quad S = \sqrt{s(s-a)(s-b)(s-c)}$$
 
-    を用います.
+    を用います. 各変数の意味は以下の通りです.
+
+    - $a, b, c$: 三角形の **3 辺の長さ** (`Triangle` コンストラクタの 3 つの `Double` に対応)
+    - $s$: **半周長 (semi-perimeter)**. すなわち 3 辺の長さの和の半分 $\frac{a+b+c}{2}$
+    - $S$: 求める **三角形の面積**
 
 ~~~ haskell
 -- 実行例
@@ -771,12 +783,58 @@ main = do
 :::
 
 
+## type
+
+これまで新しいデータを作成するためには `data` を利用してきました. しかし, 新しい型を作るほどではないものの, **同じ表現型 (たとえば `Double`) に文脈上の意味を持つ名前を与えて, 可読性を高めたい** 場合があります.
+既存のデータ型に別名を与える最も簡単な方法が, `type` を用いて **型シノニム (type synonym)** と呼ばれる別名を導入する方法です.
+
+例えば, 
+
+~~~ haskell 
+data Rectangle = Rectangle Double Double
+    deriving Show
+
+mkRectangle :: Double -> Double -> Rectangle
+mkRectangle b h = Rectangle b h
+~~~
+
+としたとき, 最初の引数と2つ目の引数のどちらが底辺で, どちらが高さなのかが判別できません.
+
+~~~ haskell 
+data Rectangle = Rectangle {bottom :: Double
+                           ,height :: Double}
+    deriving Show
+
+mkRectangle :: Double -> Double -> Rectangle
+mkRectangle b h = Rectangle {bottom = b, height = h}
+~~~
+
+のようにレコード構文を用いることでフィールド名による区別は可能ですが, 型注釈側にも意味のある名前が現れる方が, さらに可読性と解釈可能性が上がります.
+
+`type 新しい型名 = 既存のデータ型`
+
+の形式で記述することで, 以下のように同じ `Double` に別名を付けることができます.
+
+~~~ haskell
+type Bottom = Double
+type Height = Double
+
+data Rectangle = Rectangle {bottom :: Bottom
+                           ,height :: Height}
+    deriving Show
+
+mkRectangle :: Bottom -> Height -> Rectangle
+mkRectangle b h = Rectangle {bottom = b, height = h}
+~~~
+
+これは集合論的には, **既知の集合 $\mathbb{R}$ に対して別名 $\text{Bottom}, \text{Height}$ を与えたもの** に等しく, 集合としては $\text{Bottom} = \text{Height} = \mathbb{R}$ で完全に同一です. つまり `type` は **新しい集合 (型) を構成しているわけではなく, 既存の型に別名 (alias) を導入しているだけ** であり, 役割は **可読性のための注釈** に限られます.
+
+::: warn
+そのため, 型レベルで $\text{Bottom}$ と $\text{Height}$ を区別したい (例えば底辺と高さを取り違えるとコンパイルエラーになるようにしたい) 場合には, `type` では不十分です. その場合には次節で扱う `newtype` や, 専用のコンストラクタを持つ `data` を用いる必要があります.
+:::
+
 
 ## newtype
-
-(後ほど実装)
-
-
 
 
 
