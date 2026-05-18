@@ -60,7 +60,7 @@ nextChapter: slds18.html
 以下,時系列回帰などの練習用データを準備します.
 
 今回は,実データとして千葉商科大学の電力データを利用し,電力消費量から曜日や祝日を予測/判別してみましょう. 千葉商科大学では, 自然エネルギー100%大学の取り組みに関連して使用したエネルギーを電力の種別ごとに計測しています.
-今回は2021年5月の1号館の[データ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/energy_may_1.csv)を利用してみます.
+今回は2021年5月の1号館の[データ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch17/energy_may_1.csv)を利用してみます.
 
 ダウンロードしたデータを作業ディレクトリのデータフォルダに配置したら,いくつかの前処理を施します.
 まず, 元のデータを確認してみましょう.
@@ -448,7 +448,7 @@ Day
 df.to_csv('data/energy_may_day.csv',encoding='utf-8-sig')
 ~~~
 
-作成したデータは,それぞれ[時間ごと](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/energy_may_hour.csv),[日ごと](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/energy_may_day.csv)となります.
+作成したデータは,それぞれ[時間ごと](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch17/energy_may_hour.csv),[日ごと](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch17/energy_may_day.csv)となります.
 以下,これらのデータを利用して,時系列解析を実施していきます.
 
 ## 古典的時系列解析

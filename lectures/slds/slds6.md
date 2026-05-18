@@ -306,7 +306,7 @@ Excel表上でスペースが混じっているセルの値などがデータベ
 では,e-statからダウンロードしたデータを編集して, **機械判読可能なBOM付きUTF-8のCSV**に変換してみましょう. ここでは, Execelを用いて行います.
 
 ::: warn
-作業を飛ばすと教員が言い始めた場合は[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/salary.csv)
+作業を飛ばすと教員が言い始めた場合は[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch6/salary.csv)
 からダウンロードして下さい.
 :::
 

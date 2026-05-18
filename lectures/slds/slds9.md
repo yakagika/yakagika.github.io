@@ -19,7 +19,7 @@ nextChapter: slds10.html
 データを可視化することで,データの大まかな傾向はつかめます. しかし,グラフではデータの特徴を大まかにしか捉えることが出来ません.
 実際に,データの特徴に関して言及するためにはそれを数値にする必要があります.
 
-例えば,以下のヒストグラム([データ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/histogram_A_B_data.csv))を見てみましょう.
+例えば,以下のヒストグラム([データ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch9/histogram_A_B_data.csv))を見てみましょう.
 
 ![ヒストグラムの比較](/images/slds/ch9/histogram-compare.png)
 
@@ -547,7 +547,7 @@ Name: data, dtype: float64
 
 - 算術平均,幾何平均, 調和平均,標本標準偏差を計算する関数をそれぞれ作成してください.
 
-- [こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/histogram_A_B_data.csv)のデータの列ごとの算術平均,中央値,最頻値,標本分散,標本標準偏差を求めよ
+- [こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch9/histogram_A_B_data.csv)のデータの列ごとの算術平均,中央値,最頻値,標本分散,標本標準偏差を求めよ
 
 :::
 
@@ -556,7 +556,7 @@ Name: data, dtype: float64
 
 基本統計量は,一つの観測項目に対する数値化の手法でしたが,可視化における散布図のように,2つの観測項目間の関係を数値で表すことが可能です.
 
-散布図の節で扱った[事例](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/scatter.csv)についてもう一度考えてみましょう.
+散布図の節で扱った[事例](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/scatter.csv)についてもう一度考えてみましょう.
 
 ~~~ sh
      AI  Python
@@ -851,7 +851,7 @@ $$
 
 スピアマンの順位相関係数は,Pythonでは, `scipy.stats.spearmanr(xのデータ,yのデータ)`で求めることができます.
 
-[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/spearman.csv)のデータは,国別(A~J)のサッカー(FIFA)と野球(WBSC)のランキングのダミーデータです.
+[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch9/spearman.csv)のデータは,国別(A~J)のサッカー(FIFA)と野球(WBSC)のランキングのダミーデータです.
 
 ~~~ sh
     rank FIFA WBSC
@@ -882,7 +882,7 @@ print("相関係数:",correlation) #0.4545
 
 相関係数はデータの関係を探るために非常に便利な数値であり, 複数の観測項目からなるデータを扱う場合には,最初に相関係数をとってそれぞれにどのような関係があるのかを確認するようにしましょう.
 
-[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/coeff_multi.csv)のデータは,e-statから取得した,県別の身長,体重,食費,睡眠の平均時間,スポーツの平均時間に関するデータです.
+[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch9/coeff_multi.csv)のデータは,e-statから取得した,県別の身長,体重,食費,睡眠の平均時間,スポーツの平均時間に関するデータです.
 
 ~~~ sh
 python coeff.py
@@ -1104,7 +1104,7 @@ $$
 $\Chi_o^2$は `scipy.stats`の`chi2_contingency(度数分布表,correction=False)`で求めることが出来ます.
 返り値が, $\Chi_o^2$,p値,自由度,期待度数の4つあるので,注意しましょう.
 
-同時度数分布表の節で扱った時限と成績の関係を記録した[データ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/cross_table_data.csv)を利用して,クラメールの連関係数Vを求めてみましょう.
+同時度数分布表の節で扱った時限と成績の関係を記録した[データ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/cross_table_data.csv)を利用して,クラメールの連関係数Vを求めてみましょう.
 
 
 ~~~ sh
@@ -1224,7 +1224,7 @@ $$
 
 式を見てみると,分子では, xとyの相関係数から,zに関する相関係数を引いていることが分かります.
 
-偏相関係数の具体例を見てみましょう. [こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/partial_coeff.csv)のデータは米国における`x:小麦の1日あたりの消費量`,`y:米の一日あたりの消費量`,`z:肥満度`を表しています.なお, いずれの列も最大を1,最小を0に変換してあります.
+偏相関係数の具体例を見てみましょう. [こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch9/partial_coeff.csv)のデータは米国における`x:小麦の1日あたりの消費量`,`y:米の一日あたりの消費量`,`z:肥満度`を表しています.なお, いずれの列も最大を1,最小を0に変換してあります.
 
 
 

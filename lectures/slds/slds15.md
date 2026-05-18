@@ -427,7 +427,7 @@ pip install requests
 
 ![](/images/slds/ch15/xapiv2products.png)
 
-研究で利用する人以外は完成した[こちらのデータ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/tweets.csv)をダウンロードして利用しましょう.
+研究で利用する人以外は完成した[こちらのデータ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch15/tweets.csv)をダウンロードして利用しましょう.
 
 
 XのAPIを利用するには,認証トークン(`Bearer Token`)を発行する必要があります.認証トークンとは`X.API`にアクセスするための認証情報です.
@@ -596,7 +596,7 @@ if __name__ == "__main__":
     main()
 ~~~
 
-このコードで取得した50件の呟きをまとめたデータが[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/tweets.csv)になります.
+このコードで取得した50件の呟きをまとめたデータが[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch15/tweets.csv)になります.
 
 以下,このデータを利用して分析を行ってみましょう.
 
@@ -1366,9 +1366,9 @@ for text, label in zip(text_list, labels_predicted):
 続いて,BERTを利用して文章をベクトルに変換しクラスタリングや類似度の評価を行ってみます.
 事例として,異なる言語(アラビア語,中国語,英語,フランス語,ドイツ度,ヒンディー語,インドネシア語,イタリア語,日本語,韓国語,ポルトガル語,ロシア語,スペイン語,トルコ語,)でのWikipediaにおけるLGBTQに関する記事の類似度を評価してみます.
 
-[`こちら`](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/LGBTWiki.csv)の各言語の記事を日本語に翻訳したデータをダウンロードして,Google Driveの作業用ディレクトリの`Data`フォルダ内に配置しましょう. 本来は, 英語に翻訳したほうが翻訳精度の関係から望ましいですが,ここでは分かりやすいように日本語に翻訳してあります.
+[`こちら`](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch15/LGBTWiki.csv)の各言語の記事を日本語に翻訳したデータをダウンロードして,Google Driveの作業用ディレクトリの`Data`フォルダ内に配置しましょう. 本来は, 英語に翻訳したほうが翻訳精度の関係から望ましいですが,ここでは分かりやすいように日本語に翻訳してあります.
 
-また,`Colaboratory`上で日本語のワードクラウドなどを作成するために,日本語のフォントをGoogle Driveにアップロードしておく必要があります. [`こちら`](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/fonts-japanese-gothic.ttf)の日本語フォントをダウンロードして,`Data`フォルダ内に配置してきましょう.
+また,`Colaboratory`上で日本語のワードクラウドなどを作成するために,日本語のフォントをGoogle Driveにアップロードしておく必要があります. [`こちら`](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch15/fonts-japanese-gothic.ttf)の日本語フォントをダウンロードして,`Data`フォルダ内に配置してきましょう.
 
 まずは,Google Driveのマウントと必要なライブラリのインストールを行います.
 

@@ -6,7 +6,7 @@
     <title>yakagika - 特別講義DS Ch12 一般化線形モデル</title>
 
     <!-- Stylesheets. -->
-    <link rel="stylesheet" type="text/css" href="../style.css?v=1779074969">
+    <link rel="stylesheet" type="text/css" href="../style.css?v=1779076286">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -969,7 +969,7 @@ Y_i = \beta_0 + \beta_1 X_i + \epsilon_i \quad (i=1,2,\dots,n)
 <span id="cb20-115"><a href="#cb20-115" aria-hidden="true" tabindex="-1"></a>                            dims<span class="op">=</span><span class="st">&quot;obs_id&quot;</span></span>
 <span id="cb20-116"><a href="#cb20-116" aria-hidden="true" tabindex="-1"></a>                        )</span>
 <span id="cb20-117"><a href="#cb20-117" aria-hidden="true" tabindex="-1"></a>        trace <span class="op">=</span> pm.sample(draws <span class="op">=</span><span class="dv">2000</span>, tune<span class="op">=</span><span class="dv">2000</span>, chains<span class="op">=</span><span class="dv">4</span>, target_accept<span class="op">=</span><span class="fl">0.95</span>, return_inferencedata<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb20-118"><a href="#cb20-118" aria-hidden="true" tabindex="-1"></a>        posterior_predictive <span class="op">=</span> pm.sample_posterior_predictive(trace)</span>
+<span id="cb20-118"><a href="#cb20-118" aria-hidden="true" tabindex="-1"></a>        pm.sample_posterior_predictive(trace, extend_inferencedata<span class="op">=</span><span class="va">True</span>)</span>
 <span id="cb20-119"><a href="#cb20-119" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb20-120"><a href="#cb20-120" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ---------------------------</span></span>
 <span id="cb20-121"><a href="#cb20-121" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 4. モデル診断と可視化</span></span>
@@ -1008,222 +1008,242 @@ Y_i = \beta_0 + \beta_1 X_i + \epsilon_i \quad (i=1,2,\dots,n)
 <span id="cb20-154"><a href="#cb20-154" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ---------------------------</span></span>
 <span id="cb20-155"><a href="#cb20-155" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 6. 階層ベイズモデルによる予測精度評価</span></span>
 <span id="cb20-156"><a href="#cb20-156" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ---------------------------</span></span>
-<span id="cb20-157"><a href="#cb20-157" aria-hidden="true" tabindex="-1"></a>    idata <span class="op">=</span> trace.copy()</span>
-<span id="cb20-158"><a href="#cb20-158" aria-hidden="true" tabindex="-1"></a>    idata.extend(posterior_predictive)</span>
-<span id="cb20-159"><a href="#cb20-159" aria-hidden="true" tabindex="-1"></a>    az.plot_ppc(idata, data_pairs<span class="op">=</span>{<span class="st">&quot;GPA&quot;</span>: <span class="st">&quot;GPA&quot;</span>})</span>
-<span id="cb20-160"><a href="#cb20-160" aria-hidden="true" tabindex="-1"></a>    plt.savefig(save_dir <span class="op">+</span> <span class="st">'ppc.png'</span>)</span>
-<span id="cb20-161"><a href="#cb20-161" aria-hidden="true" tabindex="-1"></a>    plt.close()</span>
-<span id="cb20-162"><a href="#cb20-162" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-163"><a href="#cb20-163" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-164"><a href="#cb20-164" aria-hidden="true" tabindex="-1"></a>    <span class="co">#------------------------------------------------------------------</span></span>
-<span id="cb20-165"><a href="#cb20-165" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 予測値の可視化</span></span>
-<span id="cb20-166"><a href="#cb20-166" aria-hidden="true" tabindex="-1"></a>    <span class="co">#------------------------------------------------------------------</span></span>
+<span id="cb20-157"><a href="#cb20-157" aria-hidden="true" tabindex="-1"></a>    idata <span class="op">=</span> trace</span>
+<span id="cb20-158"><a href="#cb20-158" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-159"><a href="#cb20-159" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 事後予測チェック (PPC) を手動で描画</span></span>
+<span id="cb20-160"><a href="#cb20-160" aria-hidden="true" tabindex="-1"></a>    <span class="co"># arviz&gt;=1.0 では plot_ppc が arviz-plots に切り出され,</span></span>
+<span id="cb20-161"><a href="#cb20-161" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 標準の `import arviz as az` から `az.plot_ppc` が消えるバージョンがあるため,</span></span>
+<span id="cb20-162"><a href="#cb20-162" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ここでは matplotlib/seaborn で同等のプロットを構築する.</span></span>
+<span id="cb20-163"><a href="#cb20-163" aria-hidden="true" tabindex="-1"></a>    ppc_samples <span class="op">=</span> idata.posterior_predictive[<span class="st">&quot;GPA&quot;</span>].stack(sample<span class="op">=</span>(<span class="st">&quot;chain&quot;</span>, <span class="st">&quot;draw&quot;</span>))</span>
+<span id="cb20-164"><a href="#cb20-164" aria-hidden="true" tabindex="-1"></a>    n_show <span class="op">=</span> <span class="bu">min</span>(<span class="dv">100</span>, ppc_samples.sizes[<span class="st">&quot;sample&quot;</span>])</span>
+<span id="cb20-165"><a href="#cb20-165" aria-hidden="true" tabindex="-1"></a>    rng <span class="op">=</span> np.random.default_rng(<span class="dv">0</span>)</span>
+<span id="cb20-166"><a href="#cb20-166" aria-hidden="true" tabindex="-1"></a>    sample_idx <span class="op">=</span> rng.choice(ppc_samples.sizes[<span class="st">&quot;sample&quot;</span>], size<span class="op">=</span>n_show, replace<span class="op">=</span><span class="va">False</span>)</span>
 <span id="cb20-167"><a href="#cb20-167" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-168"><a href="#cb20-168" aria-hidden="true" tabindex="-1"></a>    posterior_mean <span class="op">=</span> idata.posterior_predictive[<span class="st">&quot;GPA&quot;</span>].mean(dim<span class="op">=</span>(<span class="st">&quot;chain&quot;</span>, <span class="st">&quot;draw&quot;</span>)).values</span>
-<span id="cb20-169"><a href="#cb20-169" aria-hidden="true" tabindex="-1"></a>    bayes_rmse <span class="op">=</span> mean_squared_error(df[<span class="st">&quot;GPA&quot;</span>], posterior_mean)</span>
-<span id="cb20-170"><a href="#cb20-170" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;[階層ベイズモデルのRMSE] </span><span class="sc">{</span>bayes_rmse<span class="sc">:.4f}</span><span class="ch">\n</span><span class="ss">&quot;</span>)</span>
-<span id="cb20-171"><a href="#cb20-171" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 事後予測の平均（予測値）を取り出す</span></span>
-<span id="cb20-172"><a href="#cb20-172" aria-hidden="true" tabindex="-1"></a>    posterior_mean <span class="op">=</span> idata.posterior_predictive[<span class="st">&quot;GPA&quot;</span>].mean(dim<span class="op">=</span>(<span class="st">&quot;chain&quot;</span>, <span class="st">&quot;draw&quot;</span>)).values</span>
-<span id="cb20-173"><a href="#cb20-173" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-174"><a href="#cb20-174" aria-hidden="true" tabindex="-1"></a>    <span class="co"># プロット</span></span>
-<span id="cb20-175"><a href="#cb20-175" aria-hidden="true" tabindex="-1"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">6</span>))</span>
-<span id="cb20-176"><a href="#cb20-176" aria-hidden="true" tabindex="-1"></a>    plt.scatter(df[<span class="st">'GPA'</span>], posterior_mean, alpha<span class="op">=</span><span class="fl">0.7</span>, edgecolors<span class="op">=</span><span class="st">&quot;k&quot;</span>)</span>
-<span id="cb20-177"><a href="#cb20-177" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">&quot;Predicted (Bayesian)&quot;</span>)</span>
-<span id="cb20-178"><a href="#cb20-178" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">&quot;Actual GPA&quot;</span>)</span>
-<span id="cb20-179"><a href="#cb20-179" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">&quot;Bayesian Actual vs. Predicted&quot;</span>)</span>
-<span id="cb20-180"><a href="#cb20-180" aria-hidden="true" tabindex="-1"></a>    plt.plot([df[<span class="st">'GPA'</span>].<span class="bu">min</span>(), df[<span class="st">'GPA'</span>].<span class="bu">max</span>()],</span>
-<span id="cb20-181"><a href="#cb20-181" aria-hidden="true" tabindex="-1"></a>             [df[<span class="st">'GPA'</span>].<span class="bu">min</span>(), df[<span class="st">'GPA'</span>].<span class="bu">max</span>()],</span>
-<span id="cb20-182"><a href="#cb20-182" aria-hidden="true" tabindex="-1"></a>             color<span class="op">=</span><span class="st">&quot;red&quot;</span>, linestyle<span class="op">=</span><span class="st">&quot;--&quot;</span>, label<span class="op">=</span><span class="st">&quot;Perfect prediction&quot;</span>)</span>
-<span id="cb20-183"><a href="#cb20-183" aria-hidden="true" tabindex="-1"></a>    plt.grid()</span>
-<span id="cb20-184"><a href="#cb20-184" aria-hidden="true" tabindex="-1"></a>    plt.legend()</span>
-<span id="cb20-185"><a href="#cb20-185" aria-hidden="true" tabindex="-1"></a>    plt.savefig(save_dir <span class="op">+</span> <span class="st">'bayes.png'</span>)</span>
-<span id="cb20-186"><a href="#cb20-186" aria-hidden="true" tabindex="-1"></a>    plt.close()</span>
+<span id="cb20-168"><a href="#cb20-168" aria-hidden="true" tabindex="-1"></a>    fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">6</span>))</span>
+<span id="cb20-169"><a href="#cb20-169" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> sample_idx:</span>
+<span id="cb20-170"><a href="#cb20-170" aria-hidden="true" tabindex="-1"></a>        sns.kdeplot(ppc_samples.isel(sample<span class="op">=</span><span class="bu">int</span>(i)).values,</span>
+<span id="cb20-171"><a href="#cb20-171" aria-hidden="true" tabindex="-1"></a>                    color<span class="op">=</span><span class="st">&quot;C0&quot;</span>, alpha<span class="op">=</span><span class="fl">0.1</span>, lw<span class="op">=</span><span class="dv">1</span>, ax<span class="op">=</span>ax)</span>
+<span id="cb20-172"><a href="#cb20-172" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 凡例用のダミー線</span></span>
+<span id="cb20-173"><a href="#cb20-173" aria-hidden="true" tabindex="-1"></a>    ax.plot([], [], color<span class="op">=</span><span class="st">&quot;C0&quot;</span>, alpha<span class="op">=</span><span class="fl">0.6</span>, label<span class="op">=</span><span class="st">&quot;Posterior predictive draws&quot;</span>)</span>
+<span id="cb20-174"><a href="#cb20-174" aria-hidden="true" tabindex="-1"></a>    ppc_mean <span class="op">=</span> idata.posterior_predictive[<span class="st">&quot;GPA&quot;</span>].mean(dim<span class="op">=</span>(<span class="st">&quot;chain&quot;</span>, <span class="st">&quot;draw&quot;</span>)).values</span>
+<span id="cb20-175"><a href="#cb20-175" aria-hidden="true" tabindex="-1"></a>    sns.kdeplot(ppc_mean, color<span class="op">=</span><span class="st">&quot;C1&quot;</span>, label<span class="op">=</span><span class="st">&quot;Posterior predictive mean&quot;</span>, lw<span class="op">=</span><span class="dv">2</span>, ax<span class="op">=</span>ax)</span>
+<span id="cb20-176"><a href="#cb20-176" aria-hidden="true" tabindex="-1"></a>    sns.kdeplot(df[<span class="st">&quot;GPA&quot;</span>], color<span class="op">=</span><span class="st">&quot;black&quot;</span>, label<span class="op">=</span><span class="st">&quot;Observed&quot;</span>, lw<span class="op">=</span><span class="dv">2</span>, ax<span class="op">=</span>ax)</span>
+<span id="cb20-177"><a href="#cb20-177" aria-hidden="true" tabindex="-1"></a>    ax.set_title(<span class="st">&quot;Posterior Predictive Check&quot;</span>)</span>
+<span id="cb20-178"><a href="#cb20-178" aria-hidden="true" tabindex="-1"></a>    ax.set_xlabel(<span class="st">&quot;GPA&quot;</span>)</span>
+<span id="cb20-179"><a href="#cb20-179" aria-hidden="true" tabindex="-1"></a>    ax.legend()</span>
+<span id="cb20-180"><a href="#cb20-180" aria-hidden="true" tabindex="-1"></a>    plt.savefig(save_dir <span class="op">+</span> <span class="st">'ppc.png'</span>)</span>
+<span id="cb20-181"><a href="#cb20-181" aria-hidden="true" tabindex="-1"></a>    plt.close()</span>
+<span id="cb20-182"><a href="#cb20-182" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-183"><a href="#cb20-183" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-184"><a href="#cb20-184" aria-hidden="true" tabindex="-1"></a>    <span class="co">#------------------------------------------------------------------</span></span>
+<span id="cb20-185"><a href="#cb20-185" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 予測値の可視化</span></span>
+<span id="cb20-186"><a href="#cb20-186" aria-hidden="true" tabindex="-1"></a>    <span class="co">#------------------------------------------------------------------</span></span>
 <span id="cb20-187"><a href="#cb20-187" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-188"><a href="#cb20-188" aria-hidden="true" tabindex="-1"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">16</span>,<span class="dv">8</span>))</span>
-<span id="cb20-189"><a href="#cb20-189" aria-hidden="true" tabindex="-1"></a>    sns.kdeplot(posterior_mean, label <span class="op">=</span> <span class="st">'Predicted'</span>)</span>
-<span id="cb20-190"><a href="#cb20-190" aria-hidden="true" tabindex="-1"></a>    sns.kdeplot(df[<span class="st">'GPA'</span>], label <span class="op">=</span> <span class="st">'Actual'</span>)</span>
-<span id="cb20-191"><a href="#cb20-191" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">'Actual/Predicted'</span>)</span>
-<span id="cb20-192"><a href="#cb20-192" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">'GPA'</span>)</span>
-<span id="cb20-193"><a href="#cb20-193" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">'Density'</span>)</span>
-<span id="cb20-194"><a href="#cb20-194" aria-hidden="true" tabindex="-1"></a>    plt.legend()</span>
-<span id="cb20-195"><a href="#cb20-195" aria-hidden="true" tabindex="-1"></a>    plt.savefig(save_dir <span class="op">+</span> <span class="st">'bayes_kde.png'</span>)</span>
-<span id="cb20-196"><a href="#cb20-196" aria-hidden="true" tabindex="-1"></a>    plt.close()</span>
-<span id="cb20-197"><a href="#cb20-197" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-198"><a href="#cb20-198" aria-hidden="true" tabindex="-1"></a>    <span class="co">#------------------------------------------------------------------</span></span>
-<span id="cb20-199"><a href="#cb20-199" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 予測範囲の可視化</span></span>
-<span id="cb20-200"><a href="#cb20-200" aria-hidden="true" tabindex="-1"></a>    <span class="co">#------------------------------------------------------------------</span></span>
-<span id="cb20-201"><a href="#cb20-201" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-202"><a href="#cb20-202" aria-hidden="true" tabindex="-1"></a>    <span class="co"># x軸用の study_hours の範囲（100点）</span></span>
-<span id="cb20-203"><a href="#cb20-203" aria-hidden="true" tabindex="-1"></a>    study_grid <span class="op">=</span> np.linspace(df[<span class="st">&quot;Study_Hours&quot;</span>].<span class="bu">min</span>(), df[<span class="st">&quot;Study_Hours&quot;</span>].<span class="bu">max</span>(), <span class="dv">100</span>)</span>
-<span id="cb20-204"><a href="#cb20-204" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-205"><a href="#cb20-205" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 奨学金なしの予測</span></span>
-<span id="cb20-206"><a href="#cb20-206" aria-hidden="true" tabindex="-1"></a>    predict_df_0 <span class="op">=</span> pd.DataFrame({</span>
-<span id="cb20-207"><a href="#cb20-207" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Study_Hours&quot;</span>: study_grid,</span>
-<span id="cb20-208"><a href="#cb20-208" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Scholarship_True&quot;</span>: <span class="dv">0</span>,</span>
-<span id="cb20-209"><a href="#cb20-209" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;StudentID&quot;</span>: <span class="dv">0</span></span>
-<span id="cb20-210"><a href="#cb20-210" aria-hidden="true" tabindex="-1"></a>    })</span>
-<span id="cb20-211"><a href="#cb20-211" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-212"><a href="#cb20-212" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 奨学金ありの予測</span></span>
-<span id="cb20-213"><a href="#cb20-213" aria-hidden="true" tabindex="-1"></a>    predict_df_1 <span class="op">=</span> pd.DataFrame({</span>
-<span id="cb20-214"><a href="#cb20-214" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Study_Hours&quot;</span>: study_grid,</span>
-<span id="cb20-215"><a href="#cb20-215" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Scholarship_True&quot;</span>: <span class="dv">1</span>,</span>
-<span id="cb20-216"><a href="#cb20-216" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;StudentID&quot;</span>: <span class="dv">0</span></span>
-<span id="cb20-217"><a href="#cb20-217" aria-hidden="true" tabindex="-1"></a>    })</span>
-<span id="cb20-218"><a href="#cb20-218" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-219"><a href="#cb20-219" aria-hidden="true" tabindex="-1"></a>    <span class="co"># より簡単な方法：事後分布から直接予測</span></span>
-<span id="cb20-220"><a href="#cb20-220" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 事後分布のサンプルを取得（新しいAPIを使用）</span></span>
-<span id="cb20-221"><a href="#cb20-221" aria-hidden="true" tabindex="-1"></a>    posterior_samples <span class="op">=</span> az.extract(trace)</span>
-<span id="cb20-222"><a href="#cb20-222" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb20-223"><a href="#cb20-223" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 予測計算</span></span>
-<span id="cb20-224"><a href="#cb20-224" aria-hidden="true" tabindex="-1"></a>    n_samples <span class="op">=</span> <span class="bu">len</span>(posterior_samples.draw)</span>
-<span id="cb20-225"><a href="#cb20-225" aria-hidden="true" tabindex="-1"></a>    n_grid <span class="op">=</span> <span class="bu">len</span>(study_grid)</span>
-<span id="cb20-226"><a href="#cb20-226" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb20-227"><a href="#cb20-227" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 予測値を格納する配列（奨学金なし・あり）</span></span>
-<span id="cb20-228"><a href="#cb20-228" aria-hidden="true" tabindex="-1"></a>    predictions_0 <span class="op">=</span> np.zeros((n_samples, n_grid))</span>
-<span id="cb20-229"><a href="#cb20-229" aria-hidden="true" tabindex="-1"></a>    predictions_1 <span class="op">=</span> np.zeros((n_samples, n_grid))</span>
-<span id="cb20-230"><a href="#cb20-230" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb20-231"><a href="#cb20-231" aria-hidden="true" tabindex="-1"></a>    <span class="co"># パラメータを一度に取得</span></span>
-<span id="cb20-232"><a href="#cb20-232" aria-hidden="true" tabindex="-1"></a>    mu_alpha_vals <span class="op">=</span> posterior_samples.mu_alpha.values</span>
-<span id="cb20-233"><a href="#cb20-233" aria-hidden="true" tabindex="-1"></a>    sigma_alpha_vals <span class="op">=</span> posterior_samples.sigma_alpha.values</span>
-<span id="cb20-234"><a href="#cb20-234" aria-hidden="true" tabindex="-1"></a>    z_alpha_vals <span class="op">=</span> posterior_samples.z_alpha.values  <span class="co"># 全学生のz_alpha    </span></span>
-<span id="cb20-235"><a href="#cb20-235" aria-hidden="true" tabindex="-1"></a>    beta_st_vals <span class="op">=</span> posterior_samples.beta_st.values    </span>
-<span id="cb20-236"><a href="#cb20-236" aria-hidden="true" tabindex="-1"></a>    beta_ss_vals <span class="op">=</span> posterior_samples.beta_ss.values</span>
-<span id="cb20-237"><a href="#cb20-237" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb20-238"><a href="#cb20-238" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(n_samples):</span>
-<span id="cb20-239"><a href="#cb20-239" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 各サンプルでのパラメータ（学生0の切片を計算）</span></span>
-<span id="cb20-240"><a href="#cb20-240" aria-hidden="true" tabindex="-1"></a>        alpha_0 <span class="op">=</span> mu_alpha_vals[i] <span class="op">+</span> sigma_alpha_vals[i] <span class="op">*</span> z_alpha_vals[<span class="dv">0</span>, i]  <span class="co"># 学生0の切片</span></span>
-<span id="cb20-241"><a href="#cb20-241" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb20-242"><a href="#cb20-242" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 奨学金なしの予測値の計算</span></span>
-<span id="cb20-243"><a href="#cb20-243" aria-hidden="true" tabindex="-1"></a>        mu_pred_0 <span class="op">=</span> alpha_0 <span class="op">+</span> beta_st_vals[i] <span class="op">*</span> study_grid <span class="op">+</span> beta_ss_vals[i] <span class="op">*</span> predict_df_0[<span class="st">&quot;Scholarship_True&quot;</span>]</span>
-<span id="cb20-244"><a href="#cb20-244" aria-hidden="true" tabindex="-1"></a>        predictions_0[i, :] <span class="op">=</span> np.random.normal(mu_pred_0, <span class="fl">0.3</span>)</span>
-<span id="cb20-245"><a href="#cb20-245" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb20-246"><a href="#cb20-246" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 奨学金ありの予測値の計算</span></span>
-<span id="cb20-247"><a href="#cb20-247" aria-hidden="true" tabindex="-1"></a>        mu_pred_1 <span class="op">=</span> alpha_0 <span class="op">+</span> beta_st_vals[i] <span class="op">*</span> study_grid <span class="op">+</span> beta_ss_vals[i] <span class="op">*</span> predict_df_1[<span class="st">&quot;Scholarship_True&quot;</span>]</span>
-<span id="cb20-248"><a href="#cb20-248" aria-hidden="true" tabindex="-1"></a>        predictions_1[i, :] <span class="op">=</span> np.random.normal(mu_pred_1, <span class="fl">0.3</span>)</span>
-<span id="cb20-249"><a href="#cb20-249" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-250"><a href="#cb20-250" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 平均と予測区間（94%）</span></span>
-<span id="cb20-251"><a href="#cb20-251" aria-hidden="true" tabindex="-1"></a>    mean_pred_0 <span class="op">=</span> np.mean(predictions_0, axis<span class="op">=</span><span class="dv">0</span>)</span>
-<span id="cb20-252"><a href="#cb20-252" aria-hidden="true" tabindex="-1"></a>    lower_pred_0 <span class="op">=</span> np.percentile(predictions_0, <span class="dv">3</span>, axis<span class="op">=</span><span class="dv">0</span>)</span>
-<span id="cb20-253"><a href="#cb20-253" aria-hidden="true" tabindex="-1"></a>    upper_pred_0 <span class="op">=</span> np.percentile(predictions_0, <span class="dv">97</span>, axis<span class="op">=</span><span class="dv">0</span>)</span>
-<span id="cb20-254"><a href="#cb20-254" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb20-255"><a href="#cb20-255" aria-hidden="true" tabindex="-1"></a>    mean_pred_1 <span class="op">=</span> np.mean(predictions_1, axis<span class="op">=</span><span class="dv">0</span>)</span>
-<span id="cb20-256"><a href="#cb20-256" aria-hidden="true" tabindex="-1"></a>    lower_pred_1 <span class="op">=</span> np.percentile(predictions_1, <span class="dv">3</span>, axis<span class="op">=</span><span class="dv">0</span>)</span>
-<span id="cb20-257"><a href="#cb20-257" aria-hidden="true" tabindex="-1"></a>    upper_pred_1 <span class="op">=</span> np.percentile(predictions_1, <span class="dv">97</span>, axis<span class="op">=</span><span class="dv">0</span>)</span>
-<span id="cb20-258"><a href="#cb20-258" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-259"><a href="#cb20-259" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 実データも合わせて表示（奨学金の有無で色分け）</span></span>
-<span id="cb20-260"><a href="#cb20-260" aria-hidden="true" tabindex="-1"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">8</span>))</span>
-<span id="cb20-261"><a href="#cb20-261" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb20-262"><a href="#cb20-262" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 奨学金なしの予測線</span></span>
-<span id="cb20-263"><a href="#cb20-263" aria-hidden="true" tabindex="-1"></a>    plt.plot(study_grid, mean_pred_0, color<span class="op">=</span><span class="st">&quot;blue&quot;</span>, label<span class="op">=</span><span class="st">&quot;Bayesian prediction (Scholarship=0)&quot;</span>)</span>
-<span id="cb20-264"><a href="#cb20-264" aria-hidden="true" tabindex="-1"></a>    plt.fill_between(study_grid, lower_pred_0, upper_pred_0, color<span class="op">=</span><span class="st">&quot;blue&quot;</span>, alpha<span class="op">=</span><span class="fl">0.2</span>, label<span class="op">=</span><span class="st">&quot;94% CI (Scholarship=0)&quot;</span>)</span>
-<span id="cb20-265"><a href="#cb20-265" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb20-266"><a href="#cb20-266" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 奨学金ありの予測線</span></span>
-<span id="cb20-267"><a href="#cb20-267" aria-hidden="true" tabindex="-1"></a>    plt.plot(study_grid, mean_pred_1, color<span class="op">=</span><span class="st">&quot;green&quot;</span>, label<span class="op">=</span><span class="st">&quot;Bayesian prediction (Scholarship=1)&quot;</span>)</span>
-<span id="cb20-268"><a href="#cb20-268" aria-hidden="true" tabindex="-1"></a>    plt.fill_between(study_grid, lower_pred_1, upper_pred_1, color<span class="op">=</span><span class="st">&quot;green&quot;</span>, alpha<span class="op">=</span><span class="fl">0.2</span>, label<span class="op">=</span><span class="st">&quot;94% CI (Scholarship=1)&quot;</span>)</span>
-<span id="cb20-269"><a href="#cb20-269" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb20-270"><a href="#cb20-270" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 奨学金の有無で実測値を色分け</span></span>
-<span id="cb20-271"><a href="#cb20-271" aria-hidden="true" tabindex="-1"></a>    scholarship_0 <span class="op">=</span> df[df[<span class="st">&quot;Scholarship_True&quot;</span>] <span class="op">==</span> <span class="dv">0</span>]</span>
-<span id="cb20-272"><a href="#cb20-272" aria-hidden="true" tabindex="-1"></a>    scholarship_1 <span class="op">=</span> df[df[<span class="st">&quot;Scholarship_True&quot;</span>] <span class="op">==</span> <span class="dv">1</span>]</span>
-<span id="cb20-273"><a href="#cb20-273" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb20-274"><a href="#cb20-274" aria-hidden="true" tabindex="-1"></a>    plt.scatter(scholarship_0[<span class="st">&quot;Study_Hours&quot;</span>], scholarship_0[<span class="st">&quot;GPA&quot;</span>], </span>
-<span id="cb20-275"><a href="#cb20-275" aria-hidden="true" tabindex="-1"></a>                color<span class="op">=</span><span class="st">&quot;red&quot;</span>, alpha<span class="op">=</span><span class="fl">0.6</span>, label<span class="op">=</span><span class="st">&quot;Observed GPA (Scholarship=0)&quot;</span>, s<span class="op">=</span><span class="dv">30</span>)</span>
-<span id="cb20-276"><a href="#cb20-276" aria-hidden="true" tabindex="-1"></a>    plt.scatter(scholarship_1[<span class="st">&quot;Study_Hours&quot;</span>], scholarship_1[<span class="st">&quot;GPA&quot;</span>], </span>
-<span id="cb20-277"><a href="#cb20-277" aria-hidden="true" tabindex="-1"></a>                color<span class="op">=</span><span class="st">&quot;orange&quot;</span>, alpha<span class="op">=</span><span class="fl">0.6</span>, label<span class="op">=</span><span class="st">&quot;Observed GPA (Scholarship=1)&quot;</span>, s<span class="op">=</span><span class="dv">30</span>)</span>
-<span id="cb20-278"><a href="#cb20-278" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb20-279"><a href="#cb20-279" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">&quot;Study Hours&quot;</span>)</span>
-<span id="cb20-280"><a href="#cb20-280" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">&quot;GPA&quot;</span>)</span>
-<span id="cb20-281"><a href="#cb20-281" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">&quot;Bayesian Regression Lines with 94% Prediction Intervals&quot;</span>)</span>
-<span id="cb20-282"><a href="#cb20-282" aria-hidden="true" tabindex="-1"></a>    plt.legend()</span>
-<span id="cb20-283"><a href="#cb20-283" aria-hidden="true" tabindex="-1"></a>    plt.grid(<span class="va">True</span>)</span>
-<span id="cb20-284"><a href="#cb20-284" aria-hidden="true" tabindex="-1"></a>    plt.tight_layout()</span>
-<span id="cb20-285"><a href="#cb20-285" aria-hidden="true" tabindex="-1"></a>    plt.savefig(save_dir <span class="op">+</span> <span class="st">&quot;bayes_prediction_band.png&quot;</span>)</span>
-<span id="cb20-286"><a href="#cb20-286" aria-hidden="true" tabindex="-1"></a>    plt.close()</span>
-<span id="cb20-287"><a href="#cb20-287" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-288"><a href="#cb20-288" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-289"><a href="#cb20-289" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ---------------------------</span></span>
-<span id="cb20-290"><a href="#cb20-290" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 7. 包括的な結果表示</span></span>
-<span id="cb20-291"><a href="#cb20-291" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ---------------------------</span></span>
-<span id="cb20-292"><a href="#cb20-292" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb20-293"><a href="#cb20-293" aria-hidden="true" tabindex="-1"></a>    <span class="co"># パラメータの解釈可能性を向上</span></span>
-<span id="cb20-294"><a href="#cb20-294" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">&quot;</span><span class="ch">\n</span><span class="st">=== モデル結果の解釈 ===&quot;</span>)</span>
-<span id="cb20-295"><a href="#cb20-295" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;勉強時間の効果 (beta_st): </span><span class="sc">{</span>np<span class="sc">.</span>mean(beta_st_vals)<span class="sc">:.3f}</span><span class="ss"> ± </span><span class="sc">{</span>np<span class="sc">.</span>std(beta_st_vals)<span class="sc">:.3f}</span><span class="ss">&quot;</span>)</span>
-<span id="cb20-296"><a href="#cb20-296" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;奨学金の効果 (beta_ss): </span><span class="sc">{</span>np<span class="sc">.</span>mean(beta_ss_vals)<span class="sc">:.3f}</span><span class="ss"> ± </span><span class="sc">{</span>np<span class="sc">.</span>std(beta_ss_vals)<span class="sc">:.3f}</span><span class="ss">&quot;</span>)</span>
-<span id="cb20-297"><a href="#cb20-297" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;学生間のばらつき (sigma_alpha): </span><span class="sc">{</span>np<span class="sc">.</span>mean(sigma_alpha_vals)<span class="sc">:.3f}</span><span class="ss"> ± </span><span class="sc">{</span>np<span class="sc">.</span>std(sigma_alpha_vals)<span class="sc">:.3f}</span><span class="ss">&quot;</span>)</span>
-<span id="cb20-298"><a href="#cb20-298" aria-hidden="true" tabindex="-1"></a>    <span class="co">#</span></span>
-<span id="cb20-299"><a href="#cb20-299" aria-hidden="true" tabindex="-1"></a>    <span class="co">## 効果量の計算</span></span>
-<span id="cb20-300"><a href="#cb20-300" aria-hidden="true" tabindex="-1"></a>    effect_size_study <span class="op">=</span> np.mean(beta_st_vals) <span class="op">/</span> np.mean(sigma_alpha_vals)</span>
-<span id="cb20-301"><a href="#cb20-301" aria-hidden="true" tabindex="-1"></a>    effect_size_scholarship <span class="op">=</span> np.mean(beta_ss_vals) <span class="op">/</span> np.mean(sigma_alpha_vals)</span>
-<span id="cb20-302"><a href="#cb20-302" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;勉強時間の標準化効果量: </span><span class="sc">{</span>effect_size_study<span class="sc">:.3f}</span><span class="ss">&quot;</span>)</span>
-<span id="cb20-303"><a href="#cb20-303" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;奨学金の標準化効果量: </span><span class="sc">{</span>effect_size_scholarship<span class="sc">:.3f}</span><span class="ss">&quot;</span>)</span>
-<span id="cb20-304"><a href="#cb20-304" aria-hidden="true" tabindex="-1"></a>    <span class="co">#</span></span>
-<span id="cb20-305"><a href="#cb20-305" aria-hidden="true" tabindex="-1"></a>    <span class="co">## 予測精度の詳細評価</span></span>
-<span id="cb20-306"><a href="#cb20-306" aria-hidden="true" tabindex="-1"></a>    r2 <span class="op">=</span> r2_score(df[<span class="st">&quot;GPA&quot;</span>], posterior_mean)</span>
-<span id="cb20-307"><a href="#cb20-307" aria-hidden="true" tabindex="-1"></a>    mae <span class="op">=</span> mean_absolute_error(df[<span class="st">&quot;GPA&quot;</span>], posterior_mean)</span>
-<span id="cb20-308"><a href="#cb20-308" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;</span><span class="ch">\n</span><span class="ss">=== 予測精度 ===&quot;</span>)</span>
-<span id="cb20-309"><a href="#cb20-309" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;R²: </span><span class="sc">{</span>r2<span class="sc">:.4f}</span><span class="ss">&quot;</span>)</span>
-<span id="cb20-310"><a href="#cb20-310" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;MAE: </span><span class="sc">{</span>mae<span class="sc">:.4f}</span><span class="ss">&quot;</span>)</span>
-<span id="cb20-311"><a href="#cb20-311" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;RMSE: </span><span class="sc">{</span>bayes_rmse<span class="sc">:.4f}</span><span class="ss">&quot;</span>)</span>
+<span id="cb20-188"><a href="#cb20-188" aria-hidden="true" tabindex="-1"></a>    posterior_mean <span class="op">=</span> idata.posterior_predictive[<span class="st">&quot;GPA&quot;</span>].mean(dim<span class="op">=</span>(<span class="st">&quot;chain&quot;</span>, <span class="st">&quot;draw&quot;</span>)).values</span>
+<span id="cb20-189"><a href="#cb20-189" aria-hidden="true" tabindex="-1"></a>    bayes_rmse <span class="op">=</span> mean_squared_error(df[<span class="st">&quot;GPA&quot;</span>], posterior_mean)</span>
+<span id="cb20-190"><a href="#cb20-190" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;[階層ベイズモデルのRMSE] </span><span class="sc">{</span>bayes_rmse<span class="sc">:.4f}</span><span class="ch">\n</span><span class="ss">&quot;</span>)</span>
+<span id="cb20-191"><a href="#cb20-191" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 事後予測の平均（予測値）を取り出す</span></span>
+<span id="cb20-192"><a href="#cb20-192" aria-hidden="true" tabindex="-1"></a>    posterior_mean <span class="op">=</span> idata.posterior_predictive[<span class="st">&quot;GPA&quot;</span>].mean(dim<span class="op">=</span>(<span class="st">&quot;chain&quot;</span>, <span class="st">&quot;draw&quot;</span>)).values</span>
+<span id="cb20-193"><a href="#cb20-193" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-194"><a href="#cb20-194" aria-hidden="true" tabindex="-1"></a>    <span class="co"># プロット</span></span>
+<span id="cb20-195"><a href="#cb20-195" aria-hidden="true" tabindex="-1"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">6</span>))</span>
+<span id="cb20-196"><a href="#cb20-196" aria-hidden="true" tabindex="-1"></a>    plt.scatter(df[<span class="st">'GPA'</span>], posterior_mean, alpha<span class="op">=</span><span class="fl">0.7</span>, edgecolors<span class="op">=</span><span class="st">&quot;k&quot;</span>)</span>
+<span id="cb20-197"><a href="#cb20-197" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">&quot;Predicted (Bayesian)&quot;</span>)</span>
+<span id="cb20-198"><a href="#cb20-198" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">&quot;Actual GPA&quot;</span>)</span>
+<span id="cb20-199"><a href="#cb20-199" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">&quot;Bayesian Actual vs. Predicted&quot;</span>)</span>
+<span id="cb20-200"><a href="#cb20-200" aria-hidden="true" tabindex="-1"></a>    plt.plot([df[<span class="st">'GPA'</span>].<span class="bu">min</span>(), df[<span class="st">'GPA'</span>].<span class="bu">max</span>()],</span>
+<span id="cb20-201"><a href="#cb20-201" aria-hidden="true" tabindex="-1"></a>             [df[<span class="st">'GPA'</span>].<span class="bu">min</span>(), df[<span class="st">'GPA'</span>].<span class="bu">max</span>()],</span>
+<span id="cb20-202"><a href="#cb20-202" aria-hidden="true" tabindex="-1"></a>             color<span class="op">=</span><span class="st">&quot;red&quot;</span>, linestyle<span class="op">=</span><span class="st">&quot;--&quot;</span>, label<span class="op">=</span><span class="st">&quot;Perfect prediction&quot;</span>)</span>
+<span id="cb20-203"><a href="#cb20-203" aria-hidden="true" tabindex="-1"></a>    plt.grid()</span>
+<span id="cb20-204"><a href="#cb20-204" aria-hidden="true" tabindex="-1"></a>    plt.legend()</span>
+<span id="cb20-205"><a href="#cb20-205" aria-hidden="true" tabindex="-1"></a>    plt.savefig(save_dir <span class="op">+</span> <span class="st">'bayes.png'</span>)</span>
+<span id="cb20-206"><a href="#cb20-206" aria-hidden="true" tabindex="-1"></a>    plt.close()</span>
+<span id="cb20-207"><a href="#cb20-207" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-208"><a href="#cb20-208" aria-hidden="true" tabindex="-1"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">16</span>,<span class="dv">8</span>))</span>
+<span id="cb20-209"><a href="#cb20-209" aria-hidden="true" tabindex="-1"></a>    sns.kdeplot(posterior_mean, label <span class="op">=</span> <span class="st">'Predicted'</span>)</span>
+<span id="cb20-210"><a href="#cb20-210" aria-hidden="true" tabindex="-1"></a>    sns.kdeplot(df[<span class="st">'GPA'</span>], label <span class="op">=</span> <span class="st">'Actual'</span>)</span>
+<span id="cb20-211"><a href="#cb20-211" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">'Actual/Predicted'</span>)</span>
+<span id="cb20-212"><a href="#cb20-212" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">'GPA'</span>)</span>
+<span id="cb20-213"><a href="#cb20-213" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">'Density'</span>)</span>
+<span id="cb20-214"><a href="#cb20-214" aria-hidden="true" tabindex="-1"></a>    plt.legend()</span>
+<span id="cb20-215"><a href="#cb20-215" aria-hidden="true" tabindex="-1"></a>    plt.savefig(save_dir <span class="op">+</span> <span class="st">'bayes_kde.png'</span>)</span>
+<span id="cb20-216"><a href="#cb20-216" aria-hidden="true" tabindex="-1"></a>    plt.close()</span>
+<span id="cb20-217"><a href="#cb20-217" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-218"><a href="#cb20-218" aria-hidden="true" tabindex="-1"></a>    <span class="co">#------------------------------------------------------------------</span></span>
+<span id="cb20-219"><a href="#cb20-219" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 予測範囲の可視化</span></span>
+<span id="cb20-220"><a href="#cb20-220" aria-hidden="true" tabindex="-1"></a>    <span class="co">#------------------------------------------------------------------</span></span>
+<span id="cb20-221"><a href="#cb20-221" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-222"><a href="#cb20-222" aria-hidden="true" tabindex="-1"></a>    <span class="co"># x軸用の study_hours の範囲（100点）</span></span>
+<span id="cb20-223"><a href="#cb20-223" aria-hidden="true" tabindex="-1"></a>    study_grid <span class="op">=</span> np.linspace(df[<span class="st">&quot;Study_Hours&quot;</span>].<span class="bu">min</span>(), df[<span class="st">&quot;Study_Hours&quot;</span>].<span class="bu">max</span>(), <span class="dv">100</span>)</span>
+<span id="cb20-224"><a href="#cb20-224" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-225"><a href="#cb20-225" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 奨学金なしの予測</span></span>
+<span id="cb20-226"><a href="#cb20-226" aria-hidden="true" tabindex="-1"></a>    predict_df_0 <span class="op">=</span> pd.DataFrame({</span>
+<span id="cb20-227"><a href="#cb20-227" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Study_Hours&quot;</span>: study_grid,</span>
+<span id="cb20-228"><a href="#cb20-228" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Scholarship_True&quot;</span>: <span class="dv">0</span>,</span>
+<span id="cb20-229"><a href="#cb20-229" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;StudentID&quot;</span>: <span class="dv">0</span></span>
+<span id="cb20-230"><a href="#cb20-230" aria-hidden="true" tabindex="-1"></a>    })</span>
+<span id="cb20-231"><a href="#cb20-231" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-232"><a href="#cb20-232" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 奨学金ありの予測</span></span>
+<span id="cb20-233"><a href="#cb20-233" aria-hidden="true" tabindex="-1"></a>    predict_df_1 <span class="op">=</span> pd.DataFrame({</span>
+<span id="cb20-234"><a href="#cb20-234" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Study_Hours&quot;</span>: study_grid,</span>
+<span id="cb20-235"><a href="#cb20-235" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Scholarship_True&quot;</span>: <span class="dv">1</span>,</span>
+<span id="cb20-236"><a href="#cb20-236" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;StudentID&quot;</span>: <span class="dv">0</span></span>
+<span id="cb20-237"><a href="#cb20-237" aria-hidden="true" tabindex="-1"></a>    })</span>
+<span id="cb20-238"><a href="#cb20-238" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-239"><a href="#cb20-239" aria-hidden="true" tabindex="-1"></a>    <span class="co"># より簡単な方法：事後分布から直接予測</span></span>
+<span id="cb20-240"><a href="#cb20-240" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 事後分布のサンプルを取得（新しいAPIを使用）</span></span>
+<span id="cb20-241"><a href="#cb20-241" aria-hidden="true" tabindex="-1"></a>    posterior_samples <span class="op">=</span> az.extract(trace)</span>
+<span id="cb20-242"><a href="#cb20-242" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb20-243"><a href="#cb20-243" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 予測計算</span></span>
+<span id="cb20-244"><a href="#cb20-244" aria-hidden="true" tabindex="-1"></a>    n_samples <span class="op">=</span> <span class="bu">len</span>(posterior_samples.draw)</span>
+<span id="cb20-245"><a href="#cb20-245" aria-hidden="true" tabindex="-1"></a>    n_grid <span class="op">=</span> <span class="bu">len</span>(study_grid)</span>
+<span id="cb20-246"><a href="#cb20-246" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb20-247"><a href="#cb20-247" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 予測値を格納する配列（奨学金なし・あり）</span></span>
+<span id="cb20-248"><a href="#cb20-248" aria-hidden="true" tabindex="-1"></a>    predictions_0 <span class="op">=</span> np.zeros((n_samples, n_grid))</span>
+<span id="cb20-249"><a href="#cb20-249" aria-hidden="true" tabindex="-1"></a>    predictions_1 <span class="op">=</span> np.zeros((n_samples, n_grid))</span>
+<span id="cb20-250"><a href="#cb20-250" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb20-251"><a href="#cb20-251" aria-hidden="true" tabindex="-1"></a>    <span class="co"># パラメータを一度に取得</span></span>
+<span id="cb20-252"><a href="#cb20-252" aria-hidden="true" tabindex="-1"></a>    mu_alpha_vals <span class="op">=</span> posterior_samples.mu_alpha.values</span>
+<span id="cb20-253"><a href="#cb20-253" aria-hidden="true" tabindex="-1"></a>    sigma_alpha_vals <span class="op">=</span> posterior_samples.sigma_alpha.values</span>
+<span id="cb20-254"><a href="#cb20-254" aria-hidden="true" tabindex="-1"></a>    z_alpha_vals <span class="op">=</span> posterior_samples.z_alpha.values  <span class="co"># 全学生のz_alpha    </span></span>
+<span id="cb20-255"><a href="#cb20-255" aria-hidden="true" tabindex="-1"></a>    beta_st_vals <span class="op">=</span> posterior_samples.beta_st.values    </span>
+<span id="cb20-256"><a href="#cb20-256" aria-hidden="true" tabindex="-1"></a>    beta_ss_vals <span class="op">=</span> posterior_samples.beta_ss.values</span>
+<span id="cb20-257"><a href="#cb20-257" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb20-258"><a href="#cb20-258" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(n_samples):</span>
+<span id="cb20-259"><a href="#cb20-259" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 各サンプルでのパラメータ（学生0の切片を計算）</span></span>
+<span id="cb20-260"><a href="#cb20-260" aria-hidden="true" tabindex="-1"></a>        alpha_0 <span class="op">=</span> mu_alpha_vals[i] <span class="op">+</span> sigma_alpha_vals[i] <span class="op">*</span> z_alpha_vals[<span class="dv">0</span>, i]  <span class="co"># 学生0の切片</span></span>
+<span id="cb20-261"><a href="#cb20-261" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb20-262"><a href="#cb20-262" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 奨学金なしの予測値の計算</span></span>
+<span id="cb20-263"><a href="#cb20-263" aria-hidden="true" tabindex="-1"></a>        mu_pred_0 <span class="op">=</span> alpha_0 <span class="op">+</span> beta_st_vals[i] <span class="op">*</span> study_grid <span class="op">+</span> beta_ss_vals[i] <span class="op">*</span> predict_df_0[<span class="st">&quot;Scholarship_True&quot;</span>]</span>
+<span id="cb20-264"><a href="#cb20-264" aria-hidden="true" tabindex="-1"></a>        predictions_0[i, :] <span class="op">=</span> np.random.normal(mu_pred_0, <span class="fl">0.3</span>)</span>
+<span id="cb20-265"><a href="#cb20-265" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb20-266"><a href="#cb20-266" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 奨学金ありの予測値の計算</span></span>
+<span id="cb20-267"><a href="#cb20-267" aria-hidden="true" tabindex="-1"></a>        mu_pred_1 <span class="op">=</span> alpha_0 <span class="op">+</span> beta_st_vals[i] <span class="op">*</span> study_grid <span class="op">+</span> beta_ss_vals[i] <span class="op">*</span> predict_df_1[<span class="st">&quot;Scholarship_True&quot;</span>]</span>
+<span id="cb20-268"><a href="#cb20-268" aria-hidden="true" tabindex="-1"></a>        predictions_1[i, :] <span class="op">=</span> np.random.normal(mu_pred_1, <span class="fl">0.3</span>)</span>
+<span id="cb20-269"><a href="#cb20-269" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-270"><a href="#cb20-270" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 平均と予測区間（94%）</span></span>
+<span id="cb20-271"><a href="#cb20-271" aria-hidden="true" tabindex="-1"></a>    mean_pred_0 <span class="op">=</span> np.mean(predictions_0, axis<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb20-272"><a href="#cb20-272" aria-hidden="true" tabindex="-1"></a>    lower_pred_0 <span class="op">=</span> np.percentile(predictions_0, <span class="dv">3</span>, axis<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb20-273"><a href="#cb20-273" aria-hidden="true" tabindex="-1"></a>    upper_pred_0 <span class="op">=</span> np.percentile(predictions_0, <span class="dv">97</span>, axis<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb20-274"><a href="#cb20-274" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb20-275"><a href="#cb20-275" aria-hidden="true" tabindex="-1"></a>    mean_pred_1 <span class="op">=</span> np.mean(predictions_1, axis<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb20-276"><a href="#cb20-276" aria-hidden="true" tabindex="-1"></a>    lower_pred_1 <span class="op">=</span> np.percentile(predictions_1, <span class="dv">3</span>, axis<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb20-277"><a href="#cb20-277" aria-hidden="true" tabindex="-1"></a>    upper_pred_1 <span class="op">=</span> np.percentile(predictions_1, <span class="dv">97</span>, axis<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb20-278"><a href="#cb20-278" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-279"><a href="#cb20-279" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 実データも合わせて表示（奨学金の有無で色分け）</span></span>
+<span id="cb20-280"><a href="#cb20-280" aria-hidden="true" tabindex="-1"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">8</span>))</span>
+<span id="cb20-281"><a href="#cb20-281" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb20-282"><a href="#cb20-282" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 奨学金なしの予測線</span></span>
+<span id="cb20-283"><a href="#cb20-283" aria-hidden="true" tabindex="-1"></a>    plt.plot(study_grid, mean_pred_0, color<span class="op">=</span><span class="st">&quot;blue&quot;</span>, label<span class="op">=</span><span class="st">&quot;Bayesian prediction (Scholarship=0)&quot;</span>)</span>
+<span id="cb20-284"><a href="#cb20-284" aria-hidden="true" tabindex="-1"></a>    plt.fill_between(study_grid, lower_pred_0, upper_pred_0, color<span class="op">=</span><span class="st">&quot;blue&quot;</span>, alpha<span class="op">=</span><span class="fl">0.2</span>, label<span class="op">=</span><span class="st">&quot;94% CI (Scholarship=0)&quot;</span>)</span>
+<span id="cb20-285"><a href="#cb20-285" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb20-286"><a href="#cb20-286" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 奨学金ありの予測線</span></span>
+<span id="cb20-287"><a href="#cb20-287" aria-hidden="true" tabindex="-1"></a>    plt.plot(study_grid, mean_pred_1, color<span class="op">=</span><span class="st">&quot;green&quot;</span>, label<span class="op">=</span><span class="st">&quot;Bayesian prediction (Scholarship=1)&quot;</span>)</span>
+<span id="cb20-288"><a href="#cb20-288" aria-hidden="true" tabindex="-1"></a>    plt.fill_between(study_grid, lower_pred_1, upper_pred_1, color<span class="op">=</span><span class="st">&quot;green&quot;</span>, alpha<span class="op">=</span><span class="fl">0.2</span>, label<span class="op">=</span><span class="st">&quot;94% CI (Scholarship=1)&quot;</span>)</span>
+<span id="cb20-289"><a href="#cb20-289" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb20-290"><a href="#cb20-290" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 奨学金の有無で実測値を色分け</span></span>
+<span id="cb20-291"><a href="#cb20-291" aria-hidden="true" tabindex="-1"></a>    scholarship_0 <span class="op">=</span> df[df[<span class="st">&quot;Scholarship_True&quot;</span>] <span class="op">==</span> <span class="dv">0</span>]</span>
+<span id="cb20-292"><a href="#cb20-292" aria-hidden="true" tabindex="-1"></a>    scholarship_1 <span class="op">=</span> df[df[<span class="st">&quot;Scholarship_True&quot;</span>] <span class="op">==</span> <span class="dv">1</span>]</span>
+<span id="cb20-293"><a href="#cb20-293" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb20-294"><a href="#cb20-294" aria-hidden="true" tabindex="-1"></a>    plt.scatter(scholarship_0[<span class="st">&quot;Study_Hours&quot;</span>], scholarship_0[<span class="st">&quot;GPA&quot;</span>], </span>
+<span id="cb20-295"><a href="#cb20-295" aria-hidden="true" tabindex="-1"></a>                color<span class="op">=</span><span class="st">&quot;red&quot;</span>, alpha<span class="op">=</span><span class="fl">0.6</span>, label<span class="op">=</span><span class="st">&quot;Observed GPA (Scholarship=0)&quot;</span>, s<span class="op">=</span><span class="dv">30</span>)</span>
+<span id="cb20-296"><a href="#cb20-296" aria-hidden="true" tabindex="-1"></a>    plt.scatter(scholarship_1[<span class="st">&quot;Study_Hours&quot;</span>], scholarship_1[<span class="st">&quot;GPA&quot;</span>], </span>
+<span id="cb20-297"><a href="#cb20-297" aria-hidden="true" tabindex="-1"></a>                color<span class="op">=</span><span class="st">&quot;orange&quot;</span>, alpha<span class="op">=</span><span class="fl">0.6</span>, label<span class="op">=</span><span class="st">&quot;Observed GPA (Scholarship=1)&quot;</span>, s<span class="op">=</span><span class="dv">30</span>)</span>
+<span id="cb20-298"><a href="#cb20-298" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb20-299"><a href="#cb20-299" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">&quot;Study Hours&quot;</span>)</span>
+<span id="cb20-300"><a href="#cb20-300" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">&quot;GPA&quot;</span>)</span>
+<span id="cb20-301"><a href="#cb20-301" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">&quot;Bayesian Regression Lines with 94% Prediction Intervals&quot;</span>)</span>
+<span id="cb20-302"><a href="#cb20-302" aria-hidden="true" tabindex="-1"></a>    plt.legend()</span>
+<span id="cb20-303"><a href="#cb20-303" aria-hidden="true" tabindex="-1"></a>    plt.grid(<span class="va">True</span>)</span>
+<span id="cb20-304"><a href="#cb20-304" aria-hidden="true" tabindex="-1"></a>    plt.tight_layout()</span>
+<span id="cb20-305"><a href="#cb20-305" aria-hidden="true" tabindex="-1"></a>    plt.savefig(save_dir <span class="op">+</span> <span class="st">&quot;bayes_prediction_band.png&quot;</span>)</span>
+<span id="cb20-306"><a href="#cb20-306" aria-hidden="true" tabindex="-1"></a>    plt.close()</span>
+<span id="cb20-307"><a href="#cb20-307" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-308"><a href="#cb20-308" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-309"><a href="#cb20-309" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ---------------------------</span></span>
+<span id="cb20-310"><a href="#cb20-310" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 7. 包括的な結果表示</span></span>
+<span id="cb20-311"><a href="#cb20-311" aria-hidden="true" tabindex="-1"></a>    <span class="co"># ---------------------------</span></span>
 <span id="cb20-312"><a href="#cb20-312" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb20-313"><a href="#cb20-313" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 階層効果の可視化</span></span>
-<span id="cb20-314"><a href="#cb20-314" aria-hidden="true" tabindex="-1"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">8</span>))</span>
-<span id="cb20-315"><a href="#cb20-315" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb20-316"><a href="#cb20-316" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 学生別の切片分布</span></span>
-<span id="cb20-317"><a href="#cb20-317" aria-hidden="true" tabindex="-1"></a>    alpha_means <span class="op">=</span> np.mean(posterior_samples.alpha.values, axis<span class="op">=</span><span class="dv">1</span>)</span>
-<span id="cb20-318"><a href="#cb20-318" aria-hidden="true" tabindex="-1"></a>    alpha_stds <span class="op">=</span> np.std(posterior_samples.alpha.values, axis<span class="op">=</span><span class="dv">1</span>)</span>
-<span id="cb20-319"><a href="#cb20-319" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb20-320"><a href="#cb20-320" aria-hidden="true" tabindex="-1"></a>    plt.subplot(<span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">1</span>)</span>
-<span id="cb20-321"><a href="#cb20-321" aria-hidden="true" tabindex="-1"></a>    plt.errorbar(<span class="bu">range</span>(<span class="bu">len</span>(alpha_means)), alpha_means, yerr<span class="op">=</span>alpha_stds, fmt<span class="op">=</span><span class="st">'o'</span>, alpha<span class="op">=</span><span class="fl">0.6</span>)</span>
-<span id="cb20-322"><a href="#cb20-322" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">&quot;Student ID&quot;</span>)</span>
-<span id="cb20-323"><a href="#cb20-323" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">&quot;Random Intercept (α)&quot;</span>)</span>
-<span id="cb20-324"><a href="#cb20-324" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">&quot;Student-specific Random Intercepts&quot;</span>)</span>
-<span id="cb20-325"><a href="#cb20-325" aria-hidden="true" tabindex="-1"></a>    plt.grid(<span class="va">True</span>)</span>
-<span id="cb20-326"><a href="#cb20-326" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb20-327"><a href="#cb20-327" aria-hidden="true" tabindex="-1"></a>    <span class="co"># パラメータの事後分布</span></span>
-<span id="cb20-328"><a href="#cb20-328" aria-hidden="true" tabindex="-1"></a>    plt.subplot(<span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">2</span>)</span>
-<span id="cb20-329"><a href="#cb20-329" aria-hidden="true" tabindex="-1"></a>    plt.hist(beta_st_vals, bins<span class="op">=</span><span class="dv">50</span>, alpha<span class="op">=</span><span class="fl">0.7</span>, label<span class="op">=</span><span class="st">'Study Hours Effect'</span>)</span>
-<span id="cb20-330"><a href="#cb20-330" aria-hidden="true" tabindex="-1"></a>    plt.hist(beta_ss_vals, bins<span class="op">=</span><span class="dv">50</span>, alpha<span class="op">=</span><span class="fl">0.7</span>, label<span class="op">=</span><span class="st">'Scholarship Effect'</span>)</span>
-<span id="cb20-331"><a href="#cb20-331" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">&quot;Parameter Value&quot;</span>)</span>
-<span id="cb20-332"><a href="#cb20-332" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">&quot;Frequency&quot;</span>)</span>
-<span id="cb20-333"><a href="#cb20-333" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">&quot;Posterior Distributions of Effects&quot;</span>)</span>
-<span id="cb20-334"><a href="#cb20-334" aria-hidden="true" tabindex="-1"></a>    plt.legend()</span>
-<span id="cb20-335"><a href="#cb20-335" aria-hidden="true" tabindex="-1"></a>    plt.grid(<span class="va">True</span>)</span>
-<span id="cb20-336"><a href="#cb20-336" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb20-337"><a href="#cb20-337" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 予測精度の比較</span></span>
-<span id="cb20-338"><a href="#cb20-338" aria-hidden="true" tabindex="-1"></a>    plt.subplot(<span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">3</span>)</span>
-<span id="cb20-339"><a href="#cb20-339" aria-hidden="true" tabindex="-1"></a>    plt.scatter(df[<span class="st">&quot;GPA&quot;</span>], posterior_mean, alpha<span class="op">=</span><span class="fl">0.6</span>, label<span class="op">=</span><span class="st">'Bayesian'</span>)</span>
-<span id="cb20-340"><a href="#cb20-340" aria-hidden="true" tabindex="-1"></a>    plt.scatter(df[<span class="st">&quot;GPA&quot;</span>], lm_preds, alpha<span class="op">=</span><span class="fl">0.6</span>, label<span class="op">=</span><span class="st">'Linear Regression'</span>)</span>
-<span id="cb20-341"><a href="#cb20-341" aria-hidden="true" tabindex="-1"></a>    plt.plot([df[<span class="st">&quot;GPA&quot;</span>].<span class="bu">min</span>(), df[<span class="st">&quot;GPA&quot;</span>].<span class="bu">max</span>()], </span>
-<span id="cb20-342"><a href="#cb20-342" aria-hidden="true" tabindex="-1"></a>             [df[<span class="st">&quot;GPA&quot;</span>].<span class="bu">min</span>(), df[<span class="st">&quot;GPA&quot;</span>].<span class="bu">max</span>()], <span class="st">'r--'</span>, label<span class="op">=</span><span class="st">'Perfect'</span>)</span>
-<span id="cb20-343"><a href="#cb20-343" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">&quot;Actual GPA&quot;</span>)</span>
-<span id="cb20-344"><a href="#cb20-344" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">&quot;Predicted GPA&quot;</span>)</span>
-<span id="cb20-345"><a href="#cb20-345" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">&quot;Prediction Accuracy Comparison&quot;</span>)</span>
-<span id="cb20-346"><a href="#cb20-346" aria-hidden="true" tabindex="-1"></a>    plt.legend()</span>
-<span id="cb20-347"><a href="#cb20-347" aria-hidden="true" tabindex="-1"></a>    plt.grid(<span class="va">True</span>)</span>
-<span id="cb20-348"><a href="#cb20-348" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb20-349"><a href="#cb20-349" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 残差分析</span></span>
-<span id="cb20-350"><a href="#cb20-350" aria-hidden="true" tabindex="-1"></a>    plt.subplot(<span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">4</span>)</span>
-<span id="cb20-351"><a href="#cb20-351" aria-hidden="true" tabindex="-1"></a>    residuals <span class="op">=</span> df[<span class="st">&quot;GPA&quot;</span>] <span class="op">-</span> posterior_mean</span>
-<span id="cb20-352"><a href="#cb20-352" aria-hidden="true" tabindex="-1"></a>    plt.scatter(posterior_mean, residuals, alpha<span class="op">=</span><span class="fl">0.6</span>)</span>
-<span id="cb20-353"><a href="#cb20-353" aria-hidden="true" tabindex="-1"></a>    plt.axhline(y<span class="op">=</span><span class="dv">0</span>, color<span class="op">=</span><span class="st">'r'</span>, linestyle<span class="op">=</span><span class="st">'--'</span>)</span>
-<span id="cb20-354"><a href="#cb20-354" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">&quot;Predicted GPA&quot;</span>)</span>
-<span id="cb20-355"><a href="#cb20-355" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">&quot;Residuals&quot;</span>)</span>
-<span id="cb20-356"><a href="#cb20-356" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">&quot;Residual Plot&quot;</span>)</span>
-<span id="cb20-357"><a href="#cb20-357" aria-hidden="true" tabindex="-1"></a>    plt.grid(<span class="va">True</span>)</span>
-<span id="cb20-358"><a href="#cb20-358" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb20-359"><a href="#cb20-359" aria-hidden="true" tabindex="-1"></a>    plt.tight_layout()</span>
-<span id="cb20-360"><a href="#cb20-360" aria-hidden="true" tabindex="-1"></a>    plt.savefig(save_dir <span class="op">+</span> <span class="st">&quot;comprehensive_results.png&quot;</span>, dpi<span class="op">=</span><span class="dv">300</span>, bbox_inches<span class="op">=</span><span class="st">'tight'</span>)</span>
-<span id="cb20-361"><a href="#cb20-361" aria-hidden="true" tabindex="-1"></a>    plt.close()</span>
-<span id="cb20-362"><a href="#cb20-362" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb20-363"><a href="#cb20-363" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 結果の要約をCSVに保存</span></span>
-<span id="cb20-364"><a href="#cb20-364" aria-hidden="true" tabindex="-1"></a>    results_summary <span class="op">=</span> {</span>
-<span id="cb20-365"><a href="#cb20-365" aria-hidden="true" tabindex="-1"></a>        <span class="st">'Metric'</span>: [<span class="st">'R²'</span>, <span class="st">'MAE'</span>, <span class="st">'RMSE'</span>, <span class="st">'Study_Effect_Mean'</span>, <span class="st">'Study_Effect_Std'</span>, </span>
-<span id="cb20-366"><a href="#cb20-366" aria-hidden="true" tabindex="-1"></a>                  <span class="st">'Scholarship_Effect_Mean'</span>, <span class="st">'Scholarship_Effect_Std'</span>, <span class="st">'Student_Variability'</span>],</span>
-<span id="cb20-367"><a href="#cb20-367" aria-hidden="true" tabindex="-1"></a>        <span class="st">'Value'</span>: [r2, mae, bayes_rmse, np.mean(beta_st_vals), np.std(beta_st_vals),</span>
-<span id="cb20-368"><a href="#cb20-368" aria-hidden="true" tabindex="-1"></a>                 np.mean(beta_ss_vals), np.std(beta_ss_vals), np.mean(sigma_alpha_vals)]</span>
-<span id="cb20-369"><a href="#cb20-369" aria-hidden="true" tabindex="-1"></a>    }</span>
-<span id="cb20-370"><a href="#cb20-370" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb20-371"><a href="#cb20-371" aria-hidden="true" tabindex="-1"></a>    results_df <span class="op">=</span> pd.DataFrame(results_summary)</span>
-<span id="cb20-372"><a href="#cb20-372" aria-hidden="true" tabindex="-1"></a>    results_df.to_csv(<span class="st">&quot;model_results_summary.csv&quot;</span>, index<span class="op">=</span><span class="va">False</span>, encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>)</span></code></pre></div>
+<span id="cb20-313"><a href="#cb20-313" aria-hidden="true" tabindex="-1"></a>    <span class="co"># パラメータの解釈可能性を向上</span></span>
+<span id="cb20-314"><a href="#cb20-314" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">&quot;</span><span class="ch">\n</span><span class="st">=== モデル結果の解釈 ===&quot;</span>)</span>
+<span id="cb20-315"><a href="#cb20-315" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;勉強時間の効果 (beta_st): </span><span class="sc">{</span>np<span class="sc">.</span>mean(beta_st_vals)<span class="sc">:.3f}</span><span class="ss"> ± </span><span class="sc">{</span>np<span class="sc">.</span>std(beta_st_vals)<span class="sc">:.3f}</span><span class="ss">&quot;</span>)</span>
+<span id="cb20-316"><a href="#cb20-316" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;奨学金の効果 (beta_ss): </span><span class="sc">{</span>np<span class="sc">.</span>mean(beta_ss_vals)<span class="sc">:.3f}</span><span class="ss"> ± </span><span class="sc">{</span>np<span class="sc">.</span>std(beta_ss_vals)<span class="sc">:.3f}</span><span class="ss">&quot;</span>)</span>
+<span id="cb20-317"><a href="#cb20-317" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;学生間のばらつき (sigma_alpha): </span><span class="sc">{</span>np<span class="sc">.</span>mean(sigma_alpha_vals)<span class="sc">:.3f}</span><span class="ss"> ± </span><span class="sc">{</span>np<span class="sc">.</span>std(sigma_alpha_vals)<span class="sc">:.3f}</span><span class="ss">&quot;</span>)</span>
+<span id="cb20-318"><a href="#cb20-318" aria-hidden="true" tabindex="-1"></a>    <span class="co">#</span></span>
+<span id="cb20-319"><a href="#cb20-319" aria-hidden="true" tabindex="-1"></a>    <span class="co">## 効果量の計算</span></span>
+<span id="cb20-320"><a href="#cb20-320" aria-hidden="true" tabindex="-1"></a>    effect_size_study <span class="op">=</span> np.mean(beta_st_vals) <span class="op">/</span> np.mean(sigma_alpha_vals)</span>
+<span id="cb20-321"><a href="#cb20-321" aria-hidden="true" tabindex="-1"></a>    effect_size_scholarship <span class="op">=</span> np.mean(beta_ss_vals) <span class="op">/</span> np.mean(sigma_alpha_vals)</span>
+<span id="cb20-322"><a href="#cb20-322" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;勉強時間の標準化効果量: </span><span class="sc">{</span>effect_size_study<span class="sc">:.3f}</span><span class="ss">&quot;</span>)</span>
+<span id="cb20-323"><a href="#cb20-323" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;奨学金の標準化効果量: </span><span class="sc">{</span>effect_size_scholarship<span class="sc">:.3f}</span><span class="ss">&quot;</span>)</span>
+<span id="cb20-324"><a href="#cb20-324" aria-hidden="true" tabindex="-1"></a>    <span class="co">#</span></span>
+<span id="cb20-325"><a href="#cb20-325" aria-hidden="true" tabindex="-1"></a>    <span class="co">## 予測精度の詳細評価</span></span>
+<span id="cb20-326"><a href="#cb20-326" aria-hidden="true" tabindex="-1"></a>    r2 <span class="op">=</span> r2_score(df[<span class="st">&quot;GPA&quot;</span>], posterior_mean)</span>
+<span id="cb20-327"><a href="#cb20-327" aria-hidden="true" tabindex="-1"></a>    mae <span class="op">=</span> mean_absolute_error(df[<span class="st">&quot;GPA&quot;</span>], posterior_mean)</span>
+<span id="cb20-328"><a href="#cb20-328" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;</span><span class="ch">\n</span><span class="ss">=== 予測精度 ===&quot;</span>)</span>
+<span id="cb20-329"><a href="#cb20-329" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;R²: </span><span class="sc">{</span>r2<span class="sc">:.4f}</span><span class="ss">&quot;</span>)</span>
+<span id="cb20-330"><a href="#cb20-330" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;MAE: </span><span class="sc">{</span>mae<span class="sc">:.4f}</span><span class="ss">&quot;</span>)</span>
+<span id="cb20-331"><a href="#cb20-331" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;RMSE: </span><span class="sc">{</span>bayes_rmse<span class="sc">:.4f}</span><span class="ss">&quot;</span>)</span>
+<span id="cb20-332"><a href="#cb20-332" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb20-333"><a href="#cb20-333" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 階層効果の可視化</span></span>
+<span id="cb20-334"><a href="#cb20-334" aria-hidden="true" tabindex="-1"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">8</span>))</span>
+<span id="cb20-335"><a href="#cb20-335" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb20-336"><a href="#cb20-336" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 学生別の切片分布</span></span>
+<span id="cb20-337"><a href="#cb20-337" aria-hidden="true" tabindex="-1"></a>    alpha_means <span class="op">=</span> np.mean(posterior_samples.alpha.values, axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb20-338"><a href="#cb20-338" aria-hidden="true" tabindex="-1"></a>    alpha_stds <span class="op">=</span> np.std(posterior_samples.alpha.values, axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb20-339"><a href="#cb20-339" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb20-340"><a href="#cb20-340" aria-hidden="true" tabindex="-1"></a>    plt.subplot(<span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">1</span>)</span>
+<span id="cb20-341"><a href="#cb20-341" aria-hidden="true" tabindex="-1"></a>    plt.errorbar(<span class="bu">range</span>(<span class="bu">len</span>(alpha_means)), alpha_means, yerr<span class="op">=</span>alpha_stds, fmt<span class="op">=</span><span class="st">'o'</span>, alpha<span class="op">=</span><span class="fl">0.6</span>)</span>
+<span id="cb20-342"><a href="#cb20-342" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">&quot;Student ID&quot;</span>)</span>
+<span id="cb20-343"><a href="#cb20-343" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">&quot;Random Intercept (α)&quot;</span>)</span>
+<span id="cb20-344"><a href="#cb20-344" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">&quot;Student-specific Random Intercepts&quot;</span>)</span>
+<span id="cb20-345"><a href="#cb20-345" aria-hidden="true" tabindex="-1"></a>    plt.grid(<span class="va">True</span>)</span>
+<span id="cb20-346"><a href="#cb20-346" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb20-347"><a href="#cb20-347" aria-hidden="true" tabindex="-1"></a>    <span class="co"># パラメータの事後分布</span></span>
+<span id="cb20-348"><a href="#cb20-348" aria-hidden="true" tabindex="-1"></a>    plt.subplot(<span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">2</span>)</span>
+<span id="cb20-349"><a href="#cb20-349" aria-hidden="true" tabindex="-1"></a>    plt.hist(beta_st_vals, bins<span class="op">=</span><span class="dv">50</span>, alpha<span class="op">=</span><span class="fl">0.7</span>, label<span class="op">=</span><span class="st">'Study Hours Effect'</span>)</span>
+<span id="cb20-350"><a href="#cb20-350" aria-hidden="true" tabindex="-1"></a>    plt.hist(beta_ss_vals, bins<span class="op">=</span><span class="dv">50</span>, alpha<span class="op">=</span><span class="fl">0.7</span>, label<span class="op">=</span><span class="st">'Scholarship Effect'</span>)</span>
+<span id="cb20-351"><a href="#cb20-351" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">&quot;Parameter Value&quot;</span>)</span>
+<span id="cb20-352"><a href="#cb20-352" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">&quot;Frequency&quot;</span>)</span>
+<span id="cb20-353"><a href="#cb20-353" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">&quot;Posterior Distributions of Effects&quot;</span>)</span>
+<span id="cb20-354"><a href="#cb20-354" aria-hidden="true" tabindex="-1"></a>    plt.legend()</span>
+<span id="cb20-355"><a href="#cb20-355" aria-hidden="true" tabindex="-1"></a>    plt.grid(<span class="va">True</span>)</span>
+<span id="cb20-356"><a href="#cb20-356" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb20-357"><a href="#cb20-357" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 予測精度の比較</span></span>
+<span id="cb20-358"><a href="#cb20-358" aria-hidden="true" tabindex="-1"></a>    plt.subplot(<span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">3</span>)</span>
+<span id="cb20-359"><a href="#cb20-359" aria-hidden="true" tabindex="-1"></a>    plt.scatter(df[<span class="st">&quot;GPA&quot;</span>], posterior_mean, alpha<span class="op">=</span><span class="fl">0.6</span>, label<span class="op">=</span><span class="st">'Bayesian'</span>)</span>
+<span id="cb20-360"><a href="#cb20-360" aria-hidden="true" tabindex="-1"></a>    plt.scatter(df[<span class="st">&quot;GPA&quot;</span>], lm_preds, alpha<span class="op">=</span><span class="fl">0.6</span>, label<span class="op">=</span><span class="st">'Linear Regression'</span>)</span>
+<span id="cb20-361"><a href="#cb20-361" aria-hidden="true" tabindex="-1"></a>    plt.plot([df[<span class="st">&quot;GPA&quot;</span>].<span class="bu">min</span>(), df[<span class="st">&quot;GPA&quot;</span>].<span class="bu">max</span>()], </span>
+<span id="cb20-362"><a href="#cb20-362" aria-hidden="true" tabindex="-1"></a>             [df[<span class="st">&quot;GPA&quot;</span>].<span class="bu">min</span>(), df[<span class="st">&quot;GPA&quot;</span>].<span class="bu">max</span>()], <span class="st">'r--'</span>, label<span class="op">=</span><span class="st">'Perfect'</span>)</span>
+<span id="cb20-363"><a href="#cb20-363" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">&quot;Actual GPA&quot;</span>)</span>
+<span id="cb20-364"><a href="#cb20-364" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">&quot;Predicted GPA&quot;</span>)</span>
+<span id="cb20-365"><a href="#cb20-365" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">&quot;Prediction Accuracy Comparison&quot;</span>)</span>
+<span id="cb20-366"><a href="#cb20-366" aria-hidden="true" tabindex="-1"></a>    plt.legend()</span>
+<span id="cb20-367"><a href="#cb20-367" aria-hidden="true" tabindex="-1"></a>    plt.grid(<span class="va">True</span>)</span>
+<span id="cb20-368"><a href="#cb20-368" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb20-369"><a href="#cb20-369" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 残差分析</span></span>
+<span id="cb20-370"><a href="#cb20-370" aria-hidden="true" tabindex="-1"></a>    plt.subplot(<span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">4</span>)</span>
+<span id="cb20-371"><a href="#cb20-371" aria-hidden="true" tabindex="-1"></a>    residuals <span class="op">=</span> df[<span class="st">&quot;GPA&quot;</span>] <span class="op">-</span> posterior_mean</span>
+<span id="cb20-372"><a href="#cb20-372" aria-hidden="true" tabindex="-1"></a>    plt.scatter(posterior_mean, residuals, alpha<span class="op">=</span><span class="fl">0.6</span>)</span>
+<span id="cb20-373"><a href="#cb20-373" aria-hidden="true" tabindex="-1"></a>    plt.axhline(y<span class="op">=</span><span class="dv">0</span>, color<span class="op">=</span><span class="st">'r'</span>, linestyle<span class="op">=</span><span class="st">'--'</span>)</span>
+<span id="cb20-374"><a href="#cb20-374" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">&quot;Predicted GPA&quot;</span>)</span>
+<span id="cb20-375"><a href="#cb20-375" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">&quot;Residuals&quot;</span>)</span>
+<span id="cb20-376"><a href="#cb20-376" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">&quot;Residual Plot&quot;</span>)</span>
+<span id="cb20-377"><a href="#cb20-377" aria-hidden="true" tabindex="-1"></a>    plt.grid(<span class="va">True</span>)</span>
+<span id="cb20-378"><a href="#cb20-378" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb20-379"><a href="#cb20-379" aria-hidden="true" tabindex="-1"></a>    plt.tight_layout()</span>
+<span id="cb20-380"><a href="#cb20-380" aria-hidden="true" tabindex="-1"></a>    plt.savefig(save_dir <span class="op">+</span> <span class="st">&quot;comprehensive_results.png&quot;</span>, dpi<span class="op">=</span><span class="dv">300</span>, bbox_inches<span class="op">=</span><span class="st">'tight'</span>)</span>
+<span id="cb20-381"><a href="#cb20-381" aria-hidden="true" tabindex="-1"></a>    plt.close()</span>
+<span id="cb20-382"><a href="#cb20-382" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb20-383"><a href="#cb20-383" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 結果の要約をCSVに保存</span></span>
+<span id="cb20-384"><a href="#cb20-384" aria-hidden="true" tabindex="-1"></a>    results_summary <span class="op">=</span> {</span>
+<span id="cb20-385"><a href="#cb20-385" aria-hidden="true" tabindex="-1"></a>        <span class="st">'Metric'</span>: [<span class="st">'R²'</span>, <span class="st">'MAE'</span>, <span class="st">'RMSE'</span>, <span class="st">'Study_Effect_Mean'</span>, <span class="st">'Study_Effect_Std'</span>, </span>
+<span id="cb20-386"><a href="#cb20-386" aria-hidden="true" tabindex="-1"></a>                  <span class="st">'Scholarship_Effect_Mean'</span>, <span class="st">'Scholarship_Effect_Std'</span>, <span class="st">'Student_Variability'</span>],</span>
+<span id="cb20-387"><a href="#cb20-387" aria-hidden="true" tabindex="-1"></a>        <span class="st">'Value'</span>: [r2, mae, bayes_rmse, np.mean(beta_st_vals), np.std(beta_st_vals),</span>
+<span id="cb20-388"><a href="#cb20-388" aria-hidden="true" tabindex="-1"></a>                 np.mean(beta_ss_vals), np.std(beta_ss_vals), np.mean(sigma_alpha_vals)]</span>
+<span id="cb20-389"><a href="#cb20-389" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb20-390"><a href="#cb20-390" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb20-391"><a href="#cb20-391" aria-hidden="true" tabindex="-1"></a>    results_df <span class="op">=</span> pd.DataFrame(results_summary)</span>
+<span id="cb20-392"><a href="#cb20-392" aria-hidden="true" tabindex="-1"></a>    results_df.to_csv(<span class="st">&quot;model_results_summary.csv&quot;</span>, index<span class="op">=</span><span class="va">False</span>, encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>)</span></code></pre></div>
 <p>以下, 個別の部分に関して確認していきます.
 特にモデルの設定部分に関して,モデルの定義との対応関係を確認するようにしましょう.</p>
 <h3 id="事前準備">事前準備</h3>
@@ -1348,7 +1368,7 @@ Y_i = \beta_0 + \beta_1 X_i + \epsilon_i \quad (i=1,2,\dots,n)
 <span id="cb23-28"><a href="#cb23-28" aria-hidden="true" tabindex="-1"></a>                            dims<span class="op">=</span><span class="st">&quot;obs_id&quot;</span></span>
 <span id="cb23-29"><a href="#cb23-29" aria-hidden="true" tabindex="-1"></a>                        )</span>
 <span id="cb23-30"><a href="#cb23-30" aria-hidden="true" tabindex="-1"></a>        trace <span class="op">=</span> pm.sample(draws <span class="op">=</span><span class="dv">2000</span>, tune<span class="op">=</span><span class="dv">2000</span>, chains<span class="op">=</span><span class="dv">4</span>, target_accept<span class="op">=</span><span class="fl">0.95</span>, return_inferencedata<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb23-31"><a href="#cb23-31" aria-hidden="true" tabindex="-1"></a>        posterior_predictive <span class="op">=</span> pm.sample_posterior_predictive(trace)</span></code></pre></div>
+<span id="cb23-31"><a href="#cb23-31" aria-hidden="true" tabindex="-1"></a>        pm.sample_posterior_predictive(trace, extend_inferencedata<span class="op">=</span><span class="va">True</span>)</span></code></pre></div>
 <h4 id="モデル全体像との対応関係">モデル全体像との対応関係</h4>
 <table>
 <colgroup>
@@ -1410,8 +1430,8 @@ Y_i = \beta_0 + \beta_1 X_i + \epsilon_i \quad (i=1,2,\dots,n)
 <p>続いて,作成したモデルをMCMCによって,推定します.</p>
 <div class="sourceCode" id="cb24"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>        <span class="co"># MCMCサンプリングの実行</span></span>
 <span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>        trace <span class="op">=</span> pm.sample(draws <span class="op">=</span><span class="dv">2000</span>, tune<span class="op">=</span><span class="dv">2000</span>, chains<span class="op">=</span><span class="dv">4</span>, target_accept<span class="op">=</span><span class="fl">0.95</span>, return_inferencedata<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 事後予測分布のサンプリング</span></span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>        posterior_predictive <span class="op">=</span> pm.sample_posterior_predictive(trace)</span></code></pre></div>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 事後予測分布のサンプリング (trace に posterior_predictive グループを追加)</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>        pm.sample_posterior_predictive(trace, extend_inferencedata<span class="op">=</span><span class="va">True</span>)</span></code></pre></div>
 <div class="note">
 <ul>
 <li>MCMCサンプリングの仕組み</li>
@@ -1433,7 +1453,7 @@ Y_i = \beta_0 + \beta_1 X_i + \epsilon_i \quad (i=1,2,\dots,n)
 <li><p><strong><code>target_accept=0.95</code></strong>: サンプリングアルゴリズムの<strong>受容率(acceptance rate)</strong>の目標値です. NUTS(No-U-Turn Sampler)などの適応型MCMCアルゴリズムでは,この受容率を調整しながらサンプリングを行います. 0.95は高い受容率で,より効率的なサンプリングを目指します.</p></li>
 <li><p><strong><code>return_inferencedata=True</code></strong>: 結果を<code>arviz</code>の<code>InferenceData</code>形式で返します. これにより,可視化や診断が容易になります.</p></li>
 </ul>
-<p><strong><code>pm.sample_posterior_predictive(trace)</code></strong>は,推定された事後分布から新しいデータを生成します. これにより,モデルの予測性能を評価したり,予測区間を計算したりできます.</p>
+<p><strong><code>pm.sample_posterior_predictive(trace, extend_inferencedata=True)</code></strong>は,推定された事後分布から新しいデータを生成します. これにより,モデルの予測性能を評価したり,予測区間を計算したりできます. <code>extend_inferencedata=True</code>を指定すると,生成された事後予測サンプルが既存の<code>trace</code>(<code>InferenceData</code>)に<code>posterior_predictive</code>グループとして追加されます. なお,以前のバージョンの解説では<code>idata = trace.copy(); idata.extend(posterior_predictive)</code>という書き方を使っていましたが,新しい<code>arviz</code>/<code>xarray</code>では<code>trace.copy()</code>が<code>DataTree</code>を返すため<code>extend</code>メソッドが使えず<code>AttributeError</code>になります. そのため,本講義では<code>extend_inferencedata=True</code>を推奨します.</p>
 </div>
 <p>上記のサンプリングを実行することで,標準出力に以下のような表示がなされます.</p>
 <div class="sourceCode" id="cb25"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="ex">Initializing</span> NUTS using jitter+adapt_diag...</span>
@@ -1893,15 +1913,41 @@ Y_i = \beta_0 + \beta_1 X_i + \epsilon_i \quad (i=1,2,\dots,n)
 <p>続いて今回のモデルの説明能力について可視化していきます.</p>
 <h4 id="事後予測チェックposterior-predictive-check-ppc">事後予測チェック(Posterior Predictive Check, PPC)</h4>
 <p><strong>事後予測チェック</strong>は,推定されたモデルが実際のデータをどれだけよく説明できるかを確認するための手法です. 具体的には,推定された事後分布から新しいデータを生成し,その分布が実際の観測データとどの程度一致しているかを可視化します.</p>
-<div class="sourceCode" id="cb29"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>    idata <span class="op">=</span> trace.copy()</span>
-<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>    idata.extend(posterior_predictive)</span>
-<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>    az.plot_ppc(idata, data_pairs<span class="op">=</span>{<span class="st">&quot;GPA&quot;</span>: <span class="st">&quot;GPA&quot;</span>})</span>
-<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>    plt.savefig(save_dir <span class="op">+</span> <span class="st">'ppc.png'</span>)</span>
-<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>    plt.close()</span></code></pre></div>
+<div class="sourceCode" id="cb29"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>    idata <span class="op">=</span> trace</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 事後予測サンプルを (chain, draw) で平らに並べる</span></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>    ppc_samples <span class="op">=</span> idata.posterior_predictive[<span class="st">&quot;GPA&quot;</span>].stack(sample<span class="op">=</span>(<span class="st">&quot;chain&quot;</span>, <span class="st">&quot;draw&quot;</span>))</span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>    n_show <span class="op">=</span> <span class="bu">min</span>(<span class="dv">100</span>, ppc_samples.sizes[<span class="st">&quot;sample&quot;</span>])</span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>    rng <span class="op">=</span> np.random.default_rng(<span class="dv">0</span>)</span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>    sample_idx <span class="op">=</span> rng.choice(ppc_samples.sizes[<span class="st">&quot;sample&quot;</span>], size<span class="op">=</span>n_show, replace<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a>    fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">6</span>))</span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> sample_idx:</span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a>        sns.kdeplot(ppc_samples.isel(sample<span class="op">=</span><span class="bu">int</span>(i)).values,</span>
+<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a>                    color<span class="op">=</span><span class="st">&quot;C0&quot;</span>, alpha<span class="op">=</span><span class="fl">0.1</span>, lw<span class="op">=</span><span class="dv">1</span>, ax<span class="op">=</span>ax)</span>
+<span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a>    ax.plot([], [], color<span class="op">=</span><span class="st">&quot;C0&quot;</span>, alpha<span class="op">=</span><span class="fl">0.6</span>, label<span class="op">=</span><span class="st">&quot;Posterior predictive draws&quot;</span>)</span>
+<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-15"><a href="#cb29-15" aria-hidden="true" tabindex="-1"></a>    ppc_mean <span class="op">=</span> idata.posterior_predictive[<span class="st">&quot;GPA&quot;</span>].mean(dim<span class="op">=</span>(<span class="st">&quot;chain&quot;</span>, <span class="st">&quot;draw&quot;</span>)).values</span>
+<span id="cb29-16"><a href="#cb29-16" aria-hidden="true" tabindex="-1"></a>    sns.kdeplot(ppc_mean, color<span class="op">=</span><span class="st">&quot;C1&quot;</span>, label<span class="op">=</span><span class="st">&quot;Posterior predictive mean&quot;</span>, lw<span class="op">=</span><span class="dv">2</span>, ax<span class="op">=</span>ax)</span>
+<span id="cb29-17"><a href="#cb29-17" aria-hidden="true" tabindex="-1"></a>    sns.kdeplot(df[<span class="st">&quot;GPA&quot;</span>], color<span class="op">=</span><span class="st">&quot;black&quot;</span>, label<span class="op">=</span><span class="st">&quot;Observed&quot;</span>, lw<span class="op">=</span><span class="dv">2</span>, ax<span class="op">=</span>ax)</span>
+<span id="cb29-18"><a href="#cb29-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-19"><a href="#cb29-19" aria-hidden="true" tabindex="-1"></a>    ax.set_title(<span class="st">&quot;Posterior Predictive Check&quot;</span>)</span>
+<span id="cb29-20"><a href="#cb29-20" aria-hidden="true" tabindex="-1"></a>    ax.set_xlabel(<span class="st">&quot;GPA&quot;</span>)</span>
+<span id="cb29-21"><a href="#cb29-21" aria-hidden="true" tabindex="-1"></a>    ax.legend()</span>
+<span id="cb29-22"><a href="#cb29-22" aria-hidden="true" tabindex="-1"></a>    plt.savefig(save_dir <span class="op">+</span> <span class="st">'ppc.png'</span>)</span>
+<span id="cb29-23"><a href="#cb29-23" aria-hidden="true" tabindex="-1"></a>    plt.close()</span></code></pre></div>
 <ul>
-<li><code>idata.extend(posterior_predictive)</code>: 事後予測分布のサンプルを<code>InferenceData</code>オブジェクトに追加します.</li>
-<li><code>az.plot_ppc()</code>: 事後予測チェックの可視化を行います. 観測データと事後予測分布を比較します.</li>
+<li><code>idata = trace</code>: 直前の<code>pm.sample_posterior_predictive(trace, extend_inferencedata=True)</code>によって,<code>trace</code>(<code>InferenceData</code>)には既に<code>posterior_predictive</code>グループが含まれています. そのまま参照を別名で受けるだけで,事後予測分布にアクセスできます.</li>
+<li><code>idata.posterior_predictive["GPA"].stack(sample=("chain", "draw"))</code>: <code>(chain, draw)</code>という 2 つの軸を 1 本の<code>sample</code>軸にまとめて, 1 サンプル単位で取り出しやすい形に整えます.</li>
+<li><code>for i in sample_idx</code>: ランダムに選んだ 100 本の事後予測サンプルを KDE で薄く重ね描きします. これが「事後予測分布の範囲」を表す青い帯になります.</li>
+<li><code>ppc_mean = ... .mean(dim=("chain", "draw"))</code>: すべてのチェーン・ドローを平均した「事後予測平均」をオレンジで描き, 観測データを黒で重ねます.</li>
 </ul>
+<div class="note">
+<p><code>arviz&gt;=1.0</code>では<code>plot_ppc</code>が<code>arviz-plots</code>サブパッケージに切り出されたため, バージョンによっては<code>import arviz as az</code>した状態で<code>az.plot_ppc</code>が見つからず</p>
+<div class="sourceCode" id="cb30"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="ex">AttributeError:</span> module <span class="st">'arviz'</span> has no attribute <span class="st">'plot_ppc'</span></span></code></pre></div>
+<p>というエラーになります. 上記のコードでは, バージョン依存を避けるために<code>matplotlib</code>/<code>seaborn</code>で同等のプロットを直接構築しています.</p>
+<p>なお, 以前の解説で使っていた<code>idata = trace.copy(); idata.extend(posterior_predictive)</code>という書き方は, 新しい<code>arviz</code>/<code>xarray</code>では<code>trace.copy()</code>が<code>DataTree</code>を返すため<code>AttributeError: 'DataTree' object has no attribute 'extend'</code>が発生します. 本講義では<code>sample_posterior_predictive</code>に<code>extend_inferencedata=True</code>を渡して<code>trace</code>へ直接追加する書き方を採用しています.</p>
+</div>
 <p><img src="../images/slds/ch12/ppc.png" /></p>
 <p>この図は,観測データ(黒い実線)と事後予測分布(青い領域)を比較しています.</p>
 <ul>
@@ -1913,216 +1959,216 @@ Y_i = \beta_0 + \beta_1 X_i + \epsilon_i \quad (i=1,2,\dots,n)
 <p>この例では,観測データの分布が事後予測分布の範囲内に収まっており,モデルがデータを適切に説明していることが確認できます.</p>
 <h4 id="予測値の確認">予測値の確認</h4>
 <p>つぎに,線形回帰と同様に予測値と実測値の関係とkdeプロットを見てみましょう. まずは予測値を取り出します.</p>
-<div class="sourceCode" id="cb30"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 事後予測分布から予測値(平均)を取り出す</span></span>
-<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>    posterior_mean <span class="op">=</span> idata.posterior_predictive[<span class="st">&quot;GPA&quot;</span>].mean(dim<span class="op">=</span>(<span class="st">&quot;chain&quot;</span>, <span class="st">&quot;draw&quot;</span>)).values</span>
-<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># RMSEを計算</span></span>
-<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>    bayes_rmse <span class="op">=</span> mean_squared_error(df[<span class="st">&quot;GPA&quot;</span>], posterior_mean)</span>
-<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;[階層ベイズモデルのRMSE] </span><span class="sc">{</span>bayes_rmse<span class="sc">:.4f}</span><span class="ch">\n</span><span class="ss">&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb31"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 事後予測分布から予測値(平均)を取り出す</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>    posterior_mean <span class="op">=</span> idata.posterior_predictive[<span class="st">&quot;GPA&quot;</span>].mean(dim<span class="op">=</span>(<span class="st">&quot;chain&quot;</span>, <span class="st">&quot;draw&quot;</span>)).values</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>    <span class="co"># RMSEを計算</span></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>    bayes_rmse <span class="op">=</span> mean_squared_error(df[<span class="st">&quot;GPA&quot;</span>], posterior_mean)</span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;[階層ベイズモデルのRMSE] </span><span class="sc">{</span>bayes_rmse<span class="sc">:.4f}</span><span class="ch">\n</span><span class="ss">&quot;</span>)</span></code></pre></div>
 <ul>
 <li><p><strong><code>idata.posterior_predictive["GPA"]</code></strong>: 事後予測分布から生成されたGPAのサンプルです. このデータは,複数のチェーン(<code>chain</code>)と複数のドロー(<code>draw</code>)から構成される多次元配列です.</p></li>
 <li><p><strong><code>.mean(dim=("chain", "draw"))</code></strong>: すべてのチェーンとドローにわたって平均を計算します. これにより,各観測値について,事後予測分布の平均値(期待値)を取得できます. つまり,各学生のGPAについて,モデルが予測する平均的な値を計算しています.</p></li>
 <li><p><strong><code>.values</code></strong>: <code>xarray</code>のデータ配列をNumPy配列に変換します. これにより,後続の計算や可視化で使用しやすくなります.</p></li>
 <li><p><strong><code>mean_squared_error(df["GPA"], posterior_mean)</code></strong>: 実測値(<code>df["GPA"]</code>)と予測値(<code>posterior_mean</code>)の間の平均二乗誤差(RMSE)を計算します. この値が小さいほど,モデルの予測精度が高いことを示します.</p></li>
 </ul>
-<div class="sourceCode" id="cb31"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>    <span class="co"># プロット</span></span>
-<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">6</span>))</span>
-<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>    plt.scatter(df[<span class="st">'GPA'</span>], posterior_mean, alpha<span class="op">=</span><span class="fl">0.7</span>, edgecolors<span class="op">=</span><span class="st">&quot;k&quot;</span>)</span>
-<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">&quot;Predicted (Bayesian)&quot;</span>)</span>
-<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">&quot;Actual GPA&quot;</span>)</span>
-<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">&quot;Bayesian Actual vs. Predicted&quot;</span>)</span>
-<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>    plt.plot([df[<span class="st">'GPA'</span>].<span class="bu">min</span>(), df[<span class="st">'GPA'</span>].<span class="bu">max</span>()],</span>
-<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>             [df[<span class="st">'GPA'</span>].<span class="bu">min</span>(), df[<span class="st">'GPA'</span>].<span class="bu">max</span>()],</span>
-<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a>             color<span class="op">=</span><span class="st">&quot;red&quot;</span>, linestyle<span class="op">=</span><span class="st">&quot;--&quot;</span>, label<span class="op">=</span><span class="st">&quot;Perfect prediction&quot;</span>)</span>
-<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>    plt.grid()</span>
-<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a>    plt.legend()</span>
-<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a>    plt.savefig(save_dir <span class="op">+</span> <span class="st">'bayes.png'</span>)</span>
-<span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a>    plt.close()</span>
-<span id="cb31-14"><a href="#cb31-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb31-15"><a href="#cb31-15" aria-hidden="true" tabindex="-1"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">16</span>,<span class="dv">8</span>))</span>
-<span id="cb31-16"><a href="#cb31-16" aria-hidden="true" tabindex="-1"></a>    sns.kdeplot(posterior_mean, label <span class="op">=</span> <span class="st">'Predicted'</span>)</span>
-<span id="cb31-17"><a href="#cb31-17" aria-hidden="true" tabindex="-1"></a>    sns.kdeplot(df[<span class="st">'GPA'</span>], label <span class="op">=</span> <span class="st">'Actual'</span>)</span>
-<span id="cb31-18"><a href="#cb31-18" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">'Actual/Predicted'</span>)</span>
-<span id="cb31-19"><a href="#cb31-19" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">'GPA'</span>)</span>
-<span id="cb31-20"><a href="#cb31-20" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">'Density'</span>)</span>
-<span id="cb31-21"><a href="#cb31-21" aria-hidden="true" tabindex="-1"></a>    plt.legend()</span>
-<span id="cb31-22"><a href="#cb31-22" aria-hidden="true" tabindex="-1"></a>    plt.savefig(save_dir <span class="op">+</span> <span class="st">'bayes_kde.png'</span>)</span>
-<span id="cb31-23"><a href="#cb31-23" aria-hidden="true" tabindex="-1"></a>    plt.close()</span></code></pre></div>
+<div class="sourceCode" id="cb32"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>    <span class="co"># プロット</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">6</span>))</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>    plt.scatter(df[<span class="st">'GPA'</span>], posterior_mean, alpha<span class="op">=</span><span class="fl">0.7</span>, edgecolors<span class="op">=</span><span class="st">&quot;k&quot;</span>)</span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">&quot;Predicted (Bayesian)&quot;</span>)</span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">&quot;Actual GPA&quot;</span>)</span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">&quot;Bayesian Actual vs. Predicted&quot;</span>)</span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>    plt.plot([df[<span class="st">'GPA'</span>].<span class="bu">min</span>(), df[<span class="st">'GPA'</span>].<span class="bu">max</span>()],</span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a>             [df[<span class="st">'GPA'</span>].<span class="bu">min</span>(), df[<span class="st">'GPA'</span>].<span class="bu">max</span>()],</span>
+<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a>             color<span class="op">=</span><span class="st">&quot;red&quot;</span>, linestyle<span class="op">=</span><span class="st">&quot;--&quot;</span>, label<span class="op">=</span><span class="st">&quot;Perfect prediction&quot;</span>)</span>
+<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a>    plt.grid()</span>
+<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a>    plt.legend()</span>
+<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a>    plt.savefig(save_dir <span class="op">+</span> <span class="st">'bayes.png'</span>)</span>
+<span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a>    plt.close()</span>
+<span id="cb32-14"><a href="#cb32-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-15"><a href="#cb32-15" aria-hidden="true" tabindex="-1"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">16</span>,<span class="dv">8</span>))</span>
+<span id="cb32-16"><a href="#cb32-16" aria-hidden="true" tabindex="-1"></a>    sns.kdeplot(posterior_mean, label <span class="op">=</span> <span class="st">'Predicted'</span>)</span>
+<span id="cb32-17"><a href="#cb32-17" aria-hidden="true" tabindex="-1"></a>    sns.kdeplot(df[<span class="st">'GPA'</span>], label <span class="op">=</span> <span class="st">'Actual'</span>)</span>
+<span id="cb32-18"><a href="#cb32-18" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">'Actual/Predicted'</span>)</span>
+<span id="cb32-19"><a href="#cb32-19" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">'GPA'</span>)</span>
+<span id="cb32-20"><a href="#cb32-20" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">'Density'</span>)</span>
+<span id="cb32-21"><a href="#cb32-21" aria-hidden="true" tabindex="-1"></a>    plt.legend()</span>
+<span id="cb32-22"><a href="#cb32-22" aria-hidden="true" tabindex="-1"></a>    plt.savefig(save_dir <span class="op">+</span> <span class="st">'bayes_kde.png'</span>)</span>
+<span id="cb32-23"><a href="#cb32-23" aria-hidden="true" tabindex="-1"></a>    plt.close()</span></code></pre></div>
 <p><img src="../images/slds/ch12/bayes.png" />
 <img src="../images/slds/ch12/bayes_kde.png" /></p>
 <p>予測値,分布共に大幅に改善されていることが分かります.</p>
 <h4 id="予測範囲の可視化">予測範囲の可視化</h4>
 <p>線形モデルとは異なり,分布を推定しているため,勉強時間と奨学金の有無によるGPAの予測値と,その不確実性(94%予測区間)を可視化することが可能です.
 奨学金の有無で異なる予測線を描画し,モデルの説明能力を確認します.</p>
-<div class="sourceCode" id="cb32"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>    <span class="co"># x軸用の study_hours の範囲（100点）</span></span>
-<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>    study_grid <span class="op">=</span> np.linspace(df[<span class="st">&quot;Study_Hours&quot;</span>].<span class="bu">min</span>(), df[<span class="st">&quot;Study_Hours&quot;</span>].<span class="bu">max</span>(), <span class="dv">100</span>)</span>
-<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 奨学金なしの予測</span></span>
-<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>    predict_df_0 <span class="op">=</span> pd.DataFrame({</span>
-<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Study_Hours&quot;</span>: study_grid,</span>
-<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Scholarship_True&quot;</span>: <span class="dv">0</span>,</span>
-<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;StudentID&quot;</span>: <span class="dv">0</span></span>
-<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a>    })</span>
-<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 奨学金ありの予測</span></span>
-<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a>    predict_df_1 <span class="op">=</span> pd.DataFrame({</span>
-<span id="cb32-13"><a href="#cb32-13" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Study_Hours&quot;</span>: study_grid,</span>
-<span id="cb32-14"><a href="#cb32-14" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Scholarship_True&quot;</span>: <span class="dv">1</span>,</span>
-<span id="cb32-15"><a href="#cb32-15" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;StudentID&quot;</span>: <span class="dv">0</span></span>
-<span id="cb32-16"><a href="#cb32-16" aria-hidden="true" tabindex="-1"></a>    })</span>
-<span id="cb32-17"><a href="#cb32-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-18"><a href="#cb32-18" aria-hidden="true" tabindex="-1"></a>    <span class="co"># より簡単な方法：事後分布から直接予測</span></span>
-<span id="cb32-19"><a href="#cb32-19" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 事後分布のサンプルを取得（新しいAPIを使用）</span></span>
-<span id="cb32-20"><a href="#cb32-20" aria-hidden="true" tabindex="-1"></a>    posterior_samples <span class="op">=</span> az.extract(trace)</span>
-<span id="cb32-21"><a href="#cb32-21" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb32-22"><a href="#cb32-22" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 予測計算</span></span>
-<span id="cb32-23"><a href="#cb32-23" aria-hidden="true" tabindex="-1"></a>    n_samples <span class="op">=</span> <span class="bu">len</span>(posterior_samples.draw)</span>
-<span id="cb32-24"><a href="#cb32-24" aria-hidden="true" tabindex="-1"></a>    n_grid <span class="op">=</span> <span class="bu">len</span>(study_grid)</span>
-<span id="cb32-25"><a href="#cb32-25" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb32-26"><a href="#cb32-26" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 予測値を格納する配列（奨学金なし・あり）</span></span>
-<span id="cb32-27"><a href="#cb32-27" aria-hidden="true" tabindex="-1"></a>    predictions_0 <span class="op">=</span> np.zeros((n_samples, n_grid))</span>
-<span id="cb32-28"><a href="#cb32-28" aria-hidden="true" tabindex="-1"></a>    predictions_1 <span class="op">=</span> np.zeros((n_samples, n_grid))</span>
-<span id="cb32-29"><a href="#cb32-29" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb32-30"><a href="#cb32-30" aria-hidden="true" tabindex="-1"></a>    <span class="co"># パラメータを一度に取得</span></span>
-<span id="cb32-31"><a href="#cb32-31" aria-hidden="true" tabindex="-1"></a>    mu_alpha_vals <span class="op">=</span> posterior_samples.mu_alpha.values</span>
-<span id="cb32-32"><a href="#cb32-32" aria-hidden="true" tabindex="-1"></a>    sigma_alpha_vals <span class="op">=</span> posterior_samples.sigma_alpha.values</span>
-<span id="cb32-33"><a href="#cb32-33" aria-hidden="true" tabindex="-1"></a>    z_alpha_vals <span class="op">=</span> posterior_samples.z_alpha.values  <span class="co"># 全学生のz_alpha    </span></span>
-<span id="cb32-34"><a href="#cb32-34" aria-hidden="true" tabindex="-1"></a>    beta_st_vals <span class="op">=</span> posterior_samples.beta_st.values    </span>
-<span id="cb32-35"><a href="#cb32-35" aria-hidden="true" tabindex="-1"></a>    beta_ss_vals <span class="op">=</span> posterior_samples.beta_ss.values</span>
-<span id="cb32-36"><a href="#cb32-36" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb32-37"><a href="#cb32-37" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(n_samples):</span>
-<span id="cb32-38"><a href="#cb32-38" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 各サンプルでのパラメータ（学生0の切片を計算）</span></span>
-<span id="cb32-39"><a href="#cb32-39" aria-hidden="true" tabindex="-1"></a>        alpha_0 <span class="op">=</span> mu_alpha_vals[i] <span class="op">+</span> sigma_alpha_vals[i] <span class="op">*</span> z_alpha_vals[<span class="dv">0</span>, i]  <span class="co"># 学生0の切片</span></span>
-<span id="cb32-40"><a href="#cb32-40" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb32-41"><a href="#cb32-41" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 奨学金なしの予測値の計算</span></span>
-<span id="cb32-42"><a href="#cb32-42" aria-hidden="true" tabindex="-1"></a>        mu_pred_0 <span class="op">=</span> alpha_0 <span class="op">+</span> beta_st_vals[i] <span class="op">*</span> study_grid <span class="op">+</span> beta_ss_vals[i] <span class="op">*</span> predict_df_0[<span class="st">&quot;Scholarship_True&quot;</span>]</span>
-<span id="cb32-43"><a href="#cb32-43" aria-hidden="true" tabindex="-1"></a>        predictions_0[i, :] <span class="op">=</span> np.random.normal(mu_pred_0, <span class="fl">0.3</span>)</span>
-<span id="cb32-44"><a href="#cb32-44" aria-hidden="true" tabindex="-1"></a>        </span>
-<span id="cb32-45"><a href="#cb32-45" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 奨学金ありの予測値の計算</span></span>
-<span id="cb32-46"><a href="#cb32-46" aria-hidden="true" tabindex="-1"></a>        mu_pred_1 <span class="op">=</span> alpha_0 <span class="op">+</span> beta_st_vals[i] <span class="op">*</span> study_grid <span class="op">+</span> beta_ss_vals[i] <span class="op">*</span> predict_df_1[<span class="st">&quot;Scholarship_True&quot;</span>]</span>
-<span id="cb32-47"><a href="#cb32-47" aria-hidden="true" tabindex="-1"></a>        predictions_1[i, :] <span class="op">=</span> np.random.normal(mu_pred_1, <span class="fl">0.3</span>)</span>
-<span id="cb32-48"><a href="#cb32-48" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-49"><a href="#cb32-49" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 平均と予測区間（94%）</span></span>
-<span id="cb32-50"><a href="#cb32-50" aria-hidden="true" tabindex="-1"></a>    mean_pred_0 <span class="op">=</span> np.mean(predictions_0, axis<span class="op">=</span><span class="dv">0</span>)</span>
-<span id="cb32-51"><a href="#cb32-51" aria-hidden="true" tabindex="-1"></a>    lower_pred_0 <span class="op">=</span> np.percentile(predictions_0, <span class="dv">3</span>, axis<span class="op">=</span><span class="dv">0</span>)</span>
-<span id="cb32-52"><a href="#cb32-52" aria-hidden="true" tabindex="-1"></a>    upper_pred_0 <span class="op">=</span> np.percentile(predictions_0, <span class="dv">97</span>, axis<span class="op">=</span><span class="dv">0</span>)</span>
-<span id="cb32-53"><a href="#cb32-53" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb32-54"><a href="#cb32-54" aria-hidden="true" tabindex="-1"></a>    mean_pred_1 <span class="op">=</span> np.mean(predictions_1, axis<span class="op">=</span><span class="dv">0</span>)</span>
-<span id="cb32-55"><a href="#cb32-55" aria-hidden="true" tabindex="-1"></a>    lower_pred_1 <span class="op">=</span> np.percentile(predictions_1, <span class="dv">3</span>, axis<span class="op">=</span><span class="dv">0</span>)</span>
-<span id="cb32-56"><a href="#cb32-56" aria-hidden="true" tabindex="-1"></a>    upper_pred_1 <span class="op">=</span> np.percentile(predictions_1, <span class="dv">97</span>, axis<span class="op">=</span><span class="dv">0</span>)</span>
-<span id="cb32-57"><a href="#cb32-57" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-58"><a href="#cb32-58" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 実データも合わせて表示（奨学金の有無で色分け）</span></span>
-<span id="cb32-59"><a href="#cb32-59" aria-hidden="true" tabindex="-1"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">8</span>))</span>
-<span id="cb32-60"><a href="#cb32-60" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb32-61"><a href="#cb32-61" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 奨学金なしの予測線</span></span>
-<span id="cb32-62"><a href="#cb32-62" aria-hidden="true" tabindex="-1"></a>    plt.plot(study_grid, mean_pred_0, color<span class="op">=</span><span class="st">&quot;blue&quot;</span>, label<span class="op">=</span><span class="st">&quot;Bayesian prediction (Scholarship=0)&quot;</span>)</span>
-<span id="cb32-63"><a href="#cb32-63" aria-hidden="true" tabindex="-1"></a>    plt.fill_between(study_grid, lower_pred_0, upper_pred_0, color<span class="op">=</span><span class="st">&quot;blue&quot;</span>, alpha<span class="op">=</span><span class="fl">0.2</span>, label<span class="op">=</span><span class="st">&quot;94% CI (Scholarship=0)&quot;</span>)</span>
-<span id="cb32-64"><a href="#cb32-64" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb32-65"><a href="#cb32-65" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 奨学金ありの予測線</span></span>
-<span id="cb32-66"><a href="#cb32-66" aria-hidden="true" tabindex="-1"></a>    plt.plot(study_grid, mean_pred_1, color<span class="op">=</span><span class="st">&quot;green&quot;</span>, label<span class="op">=</span><span class="st">&quot;Bayesian prediction (Scholarship=1)&quot;</span>)</span>
-<span id="cb32-67"><a href="#cb32-67" aria-hidden="true" tabindex="-1"></a>    plt.fill_between(study_grid, lower_pred_1, upper_pred_1, color<span class="op">=</span><span class="st">&quot;green&quot;</span>, alpha<span class="op">=</span><span class="fl">0.2</span>, label<span class="op">=</span><span class="st">&quot;94% CI (Scholarship=1)&quot;</span>)</span>
-<span id="cb32-68"><a href="#cb32-68" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb32-69"><a href="#cb32-69" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 奨学金の有無で実測値を色分け</span></span>
-<span id="cb32-70"><a href="#cb32-70" aria-hidden="true" tabindex="-1"></a>    scholarship_0 <span class="op">=</span> df[df[<span class="st">&quot;Scholarship_True&quot;</span>] <span class="op">==</span> <span class="dv">0</span>]</span>
-<span id="cb32-71"><a href="#cb32-71" aria-hidden="true" tabindex="-1"></a>    scholarship_1 <span class="op">=</span> df[df[<span class="st">&quot;Scholarship_True&quot;</span>] <span class="op">==</span> <span class="dv">1</span>]</span>
-<span id="cb32-72"><a href="#cb32-72" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb32-73"><a href="#cb32-73" aria-hidden="true" tabindex="-1"></a>    plt.scatter(scholarship_0[<span class="st">&quot;Study_Hours&quot;</span>], scholarship_0[<span class="st">&quot;GPA&quot;</span>], </span>
-<span id="cb32-74"><a href="#cb32-74" aria-hidden="true" tabindex="-1"></a>                color<span class="op">=</span><span class="st">&quot;red&quot;</span>, alpha<span class="op">=</span><span class="fl">0.6</span>, label<span class="op">=</span><span class="st">&quot;Observed GPA (Scholarship=0)&quot;</span>, s<span class="op">=</span><span class="dv">30</span>)</span>
-<span id="cb32-75"><a href="#cb32-75" aria-hidden="true" tabindex="-1"></a>    plt.scatter(scholarship_1[<span class="st">&quot;Study_Hours&quot;</span>], scholarship_1[<span class="st">&quot;GPA&quot;</span>], </span>
-<span id="cb32-76"><a href="#cb32-76" aria-hidden="true" tabindex="-1"></a>                color<span class="op">=</span><span class="st">&quot;orange&quot;</span>, alpha<span class="op">=</span><span class="fl">0.6</span>, label<span class="op">=</span><span class="st">&quot;Observed GPA (Scholarship=1)&quot;</span>, s<span class="op">=</span><span class="dv">30</span>)</span>
-<span id="cb32-77"><a href="#cb32-77" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb32-78"><a href="#cb32-78" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">&quot;Study Hours&quot;</span>)</span>
-<span id="cb32-79"><a href="#cb32-79" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">&quot;GPA&quot;</span>)</span>
-<span id="cb32-80"><a href="#cb32-80" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">&quot;Bayesian Regression Lines with 94% Prediction Intervals&quot;</span>)</span>
-<span id="cb32-81"><a href="#cb32-81" aria-hidden="true" tabindex="-1"></a>    plt.legend()</span>
-<span id="cb32-82"><a href="#cb32-82" aria-hidden="true" tabindex="-1"></a>    plt.grid(<span class="va">True</span>)</span>
-<span id="cb32-83"><a href="#cb32-83" aria-hidden="true" tabindex="-1"></a>    plt.tight_layout()</span>
-<span id="cb32-84"><a href="#cb32-84" aria-hidden="true" tabindex="-1"></a>    plt.savefig(save_dir <span class="op">+</span> <span class="st">&quot;bayes_prediction_band.png&quot;</span>)</span>
-<span id="cb32-85"><a href="#cb32-85" aria-hidden="true" tabindex="-1"></a>    plt.close()</span></code></pre></div>
+<div class="sourceCode" id="cb33"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>    <span class="co"># x軸用の study_hours の範囲（100点）</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>    study_grid <span class="op">=</span> np.linspace(df[<span class="st">&quot;Study_Hours&quot;</span>].<span class="bu">min</span>(), df[<span class="st">&quot;Study_Hours&quot;</span>].<span class="bu">max</span>(), <span class="dv">100</span>)</span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 奨学金なしの予測</span></span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>    predict_df_0 <span class="op">=</span> pd.DataFrame({</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Study_Hours&quot;</span>: study_grid,</span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Scholarship_True&quot;</span>: <span class="dv">0</span>,</span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;StudentID&quot;</span>: <span class="dv">0</span></span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>    })</span>
+<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 奨学金ありの予測</span></span>
+<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>    predict_df_1 <span class="op">=</span> pd.DataFrame({</span>
+<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Study_Hours&quot;</span>: study_grid,</span>
+<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Scholarship_True&quot;</span>: <span class="dv">1</span>,</span>
+<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;StudentID&quot;</span>: <span class="dv">0</span></span>
+<span id="cb33-16"><a href="#cb33-16" aria-hidden="true" tabindex="-1"></a>    })</span>
+<span id="cb33-17"><a href="#cb33-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-18"><a href="#cb33-18" aria-hidden="true" tabindex="-1"></a>    <span class="co"># より簡単な方法：事後分布から直接予測</span></span>
+<span id="cb33-19"><a href="#cb33-19" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 事後分布のサンプルを取得（新しいAPIを使用）</span></span>
+<span id="cb33-20"><a href="#cb33-20" aria-hidden="true" tabindex="-1"></a>    posterior_samples <span class="op">=</span> az.extract(trace)</span>
+<span id="cb33-21"><a href="#cb33-21" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb33-22"><a href="#cb33-22" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 予測計算</span></span>
+<span id="cb33-23"><a href="#cb33-23" aria-hidden="true" tabindex="-1"></a>    n_samples <span class="op">=</span> <span class="bu">len</span>(posterior_samples.draw)</span>
+<span id="cb33-24"><a href="#cb33-24" aria-hidden="true" tabindex="-1"></a>    n_grid <span class="op">=</span> <span class="bu">len</span>(study_grid)</span>
+<span id="cb33-25"><a href="#cb33-25" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb33-26"><a href="#cb33-26" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 予測値を格納する配列（奨学金なし・あり）</span></span>
+<span id="cb33-27"><a href="#cb33-27" aria-hidden="true" tabindex="-1"></a>    predictions_0 <span class="op">=</span> np.zeros((n_samples, n_grid))</span>
+<span id="cb33-28"><a href="#cb33-28" aria-hidden="true" tabindex="-1"></a>    predictions_1 <span class="op">=</span> np.zeros((n_samples, n_grid))</span>
+<span id="cb33-29"><a href="#cb33-29" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb33-30"><a href="#cb33-30" aria-hidden="true" tabindex="-1"></a>    <span class="co"># パラメータを一度に取得</span></span>
+<span id="cb33-31"><a href="#cb33-31" aria-hidden="true" tabindex="-1"></a>    mu_alpha_vals <span class="op">=</span> posterior_samples.mu_alpha.values</span>
+<span id="cb33-32"><a href="#cb33-32" aria-hidden="true" tabindex="-1"></a>    sigma_alpha_vals <span class="op">=</span> posterior_samples.sigma_alpha.values</span>
+<span id="cb33-33"><a href="#cb33-33" aria-hidden="true" tabindex="-1"></a>    z_alpha_vals <span class="op">=</span> posterior_samples.z_alpha.values  <span class="co"># 全学生のz_alpha    </span></span>
+<span id="cb33-34"><a href="#cb33-34" aria-hidden="true" tabindex="-1"></a>    beta_st_vals <span class="op">=</span> posterior_samples.beta_st.values    </span>
+<span id="cb33-35"><a href="#cb33-35" aria-hidden="true" tabindex="-1"></a>    beta_ss_vals <span class="op">=</span> posterior_samples.beta_ss.values</span>
+<span id="cb33-36"><a href="#cb33-36" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb33-37"><a href="#cb33-37" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(n_samples):</span>
+<span id="cb33-38"><a href="#cb33-38" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 各サンプルでのパラメータ（学生0の切片を計算）</span></span>
+<span id="cb33-39"><a href="#cb33-39" aria-hidden="true" tabindex="-1"></a>        alpha_0 <span class="op">=</span> mu_alpha_vals[i] <span class="op">+</span> sigma_alpha_vals[i] <span class="op">*</span> z_alpha_vals[<span class="dv">0</span>, i]  <span class="co"># 学生0の切片</span></span>
+<span id="cb33-40"><a href="#cb33-40" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb33-41"><a href="#cb33-41" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 奨学金なしの予測値の計算</span></span>
+<span id="cb33-42"><a href="#cb33-42" aria-hidden="true" tabindex="-1"></a>        mu_pred_0 <span class="op">=</span> alpha_0 <span class="op">+</span> beta_st_vals[i] <span class="op">*</span> study_grid <span class="op">+</span> beta_ss_vals[i] <span class="op">*</span> predict_df_0[<span class="st">&quot;Scholarship_True&quot;</span>]</span>
+<span id="cb33-43"><a href="#cb33-43" aria-hidden="true" tabindex="-1"></a>        predictions_0[i, :] <span class="op">=</span> np.random.normal(mu_pred_0, <span class="fl">0.3</span>)</span>
+<span id="cb33-44"><a href="#cb33-44" aria-hidden="true" tabindex="-1"></a>        </span>
+<span id="cb33-45"><a href="#cb33-45" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 奨学金ありの予測値の計算</span></span>
+<span id="cb33-46"><a href="#cb33-46" aria-hidden="true" tabindex="-1"></a>        mu_pred_1 <span class="op">=</span> alpha_0 <span class="op">+</span> beta_st_vals[i] <span class="op">*</span> study_grid <span class="op">+</span> beta_ss_vals[i] <span class="op">*</span> predict_df_1[<span class="st">&quot;Scholarship_True&quot;</span>]</span>
+<span id="cb33-47"><a href="#cb33-47" aria-hidden="true" tabindex="-1"></a>        predictions_1[i, :] <span class="op">=</span> np.random.normal(mu_pred_1, <span class="fl">0.3</span>)</span>
+<span id="cb33-48"><a href="#cb33-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-49"><a href="#cb33-49" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 平均と予測区間（94%）</span></span>
+<span id="cb33-50"><a href="#cb33-50" aria-hidden="true" tabindex="-1"></a>    mean_pred_0 <span class="op">=</span> np.mean(predictions_0, axis<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb33-51"><a href="#cb33-51" aria-hidden="true" tabindex="-1"></a>    lower_pred_0 <span class="op">=</span> np.percentile(predictions_0, <span class="dv">3</span>, axis<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb33-52"><a href="#cb33-52" aria-hidden="true" tabindex="-1"></a>    upper_pred_0 <span class="op">=</span> np.percentile(predictions_0, <span class="dv">97</span>, axis<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb33-53"><a href="#cb33-53" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb33-54"><a href="#cb33-54" aria-hidden="true" tabindex="-1"></a>    mean_pred_1 <span class="op">=</span> np.mean(predictions_1, axis<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb33-55"><a href="#cb33-55" aria-hidden="true" tabindex="-1"></a>    lower_pred_1 <span class="op">=</span> np.percentile(predictions_1, <span class="dv">3</span>, axis<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb33-56"><a href="#cb33-56" aria-hidden="true" tabindex="-1"></a>    upper_pred_1 <span class="op">=</span> np.percentile(predictions_1, <span class="dv">97</span>, axis<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb33-57"><a href="#cb33-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-58"><a href="#cb33-58" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 実データも合わせて表示（奨学金の有無で色分け）</span></span>
+<span id="cb33-59"><a href="#cb33-59" aria-hidden="true" tabindex="-1"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">8</span>))</span>
+<span id="cb33-60"><a href="#cb33-60" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb33-61"><a href="#cb33-61" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 奨学金なしの予測線</span></span>
+<span id="cb33-62"><a href="#cb33-62" aria-hidden="true" tabindex="-1"></a>    plt.plot(study_grid, mean_pred_0, color<span class="op">=</span><span class="st">&quot;blue&quot;</span>, label<span class="op">=</span><span class="st">&quot;Bayesian prediction (Scholarship=0)&quot;</span>)</span>
+<span id="cb33-63"><a href="#cb33-63" aria-hidden="true" tabindex="-1"></a>    plt.fill_between(study_grid, lower_pred_0, upper_pred_0, color<span class="op">=</span><span class="st">&quot;blue&quot;</span>, alpha<span class="op">=</span><span class="fl">0.2</span>, label<span class="op">=</span><span class="st">&quot;94% CI (Scholarship=0)&quot;</span>)</span>
+<span id="cb33-64"><a href="#cb33-64" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb33-65"><a href="#cb33-65" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 奨学金ありの予測線</span></span>
+<span id="cb33-66"><a href="#cb33-66" aria-hidden="true" tabindex="-1"></a>    plt.plot(study_grid, mean_pred_1, color<span class="op">=</span><span class="st">&quot;green&quot;</span>, label<span class="op">=</span><span class="st">&quot;Bayesian prediction (Scholarship=1)&quot;</span>)</span>
+<span id="cb33-67"><a href="#cb33-67" aria-hidden="true" tabindex="-1"></a>    plt.fill_between(study_grid, lower_pred_1, upper_pred_1, color<span class="op">=</span><span class="st">&quot;green&quot;</span>, alpha<span class="op">=</span><span class="fl">0.2</span>, label<span class="op">=</span><span class="st">&quot;94% CI (Scholarship=1)&quot;</span>)</span>
+<span id="cb33-68"><a href="#cb33-68" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb33-69"><a href="#cb33-69" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 奨学金の有無で実測値を色分け</span></span>
+<span id="cb33-70"><a href="#cb33-70" aria-hidden="true" tabindex="-1"></a>    scholarship_0 <span class="op">=</span> df[df[<span class="st">&quot;Scholarship_True&quot;</span>] <span class="op">==</span> <span class="dv">0</span>]</span>
+<span id="cb33-71"><a href="#cb33-71" aria-hidden="true" tabindex="-1"></a>    scholarship_1 <span class="op">=</span> df[df[<span class="st">&quot;Scholarship_True&quot;</span>] <span class="op">==</span> <span class="dv">1</span>]</span>
+<span id="cb33-72"><a href="#cb33-72" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb33-73"><a href="#cb33-73" aria-hidden="true" tabindex="-1"></a>    plt.scatter(scholarship_0[<span class="st">&quot;Study_Hours&quot;</span>], scholarship_0[<span class="st">&quot;GPA&quot;</span>], </span>
+<span id="cb33-74"><a href="#cb33-74" aria-hidden="true" tabindex="-1"></a>                color<span class="op">=</span><span class="st">&quot;red&quot;</span>, alpha<span class="op">=</span><span class="fl">0.6</span>, label<span class="op">=</span><span class="st">&quot;Observed GPA (Scholarship=0)&quot;</span>, s<span class="op">=</span><span class="dv">30</span>)</span>
+<span id="cb33-75"><a href="#cb33-75" aria-hidden="true" tabindex="-1"></a>    plt.scatter(scholarship_1[<span class="st">&quot;Study_Hours&quot;</span>], scholarship_1[<span class="st">&quot;GPA&quot;</span>], </span>
+<span id="cb33-76"><a href="#cb33-76" aria-hidden="true" tabindex="-1"></a>                color<span class="op">=</span><span class="st">&quot;orange&quot;</span>, alpha<span class="op">=</span><span class="fl">0.6</span>, label<span class="op">=</span><span class="st">&quot;Observed GPA (Scholarship=1)&quot;</span>, s<span class="op">=</span><span class="dv">30</span>)</span>
+<span id="cb33-77"><a href="#cb33-77" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb33-78"><a href="#cb33-78" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">&quot;Study Hours&quot;</span>)</span>
+<span id="cb33-79"><a href="#cb33-79" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">&quot;GPA&quot;</span>)</span>
+<span id="cb33-80"><a href="#cb33-80" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">&quot;Bayesian Regression Lines with 94% Prediction Intervals&quot;</span>)</span>
+<span id="cb33-81"><a href="#cb33-81" aria-hidden="true" tabindex="-1"></a>    plt.legend()</span>
+<span id="cb33-82"><a href="#cb33-82" aria-hidden="true" tabindex="-1"></a>    plt.grid(<span class="va">True</span>)</span>
+<span id="cb33-83"><a href="#cb33-83" aria-hidden="true" tabindex="-1"></a>    plt.tight_layout()</span>
+<span id="cb33-84"><a href="#cb33-84" aria-hidden="true" tabindex="-1"></a>    plt.savefig(save_dir <span class="op">+</span> <span class="st">&quot;bayes_prediction_band.png&quot;</span>)</span>
+<span id="cb33-85"><a href="#cb33-85" aria-hidden="true" tabindex="-1"></a>    plt.close()</span></code></pre></div>
 <p><img src="../images/slds/ch12/bayes_prediction_band.png" /></p>
 <p>予測区間内に実測値が多く含まれており,モデルがデータを適切に説明していることが確認できます.
 また,奨学金ありのグループの予測線が上に位置しており,奨学金の正の効果が可視化されています.</p>
 <h4 id="その他の可視化手法">その他の可視化手法</h4>
 <p>最後にその他によく利用される手法として,ランダム切片の可視化手法として学生の個別の能力値の分布,推定された分布の可視化手法として各パラメータの推定された分布,Regidual Plotなどをまとめて掲載します. 論文執筆などの際には,必要なものをピックアップしてグラフ化しましょう.</p>
-<div class="sourceCode" id="cb33"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>    <span class="co"># パラメータの解釈可能性を向上</span></span>
-<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">&quot;</span><span class="ch">\n</span><span class="st">=== モデル結果の解釈 ===&quot;</span>)</span>
-<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;勉強時間の効果 (beta_st): </span><span class="sc">{</span>np<span class="sc">.</span>mean(beta_st_vals)<span class="sc">:.3f}</span><span class="ss"> ± </span><span class="sc">{</span>np<span class="sc">.</span>std(beta_st_vals)<span class="sc">:.3f}</span><span class="ss">&quot;</span>)</span>
-<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;奨学金の効果 (beta_ss): </span><span class="sc">{</span>np<span class="sc">.</span>mean(beta_ss_vals)<span class="sc">:.3f}</span><span class="ss"> ± </span><span class="sc">{</span>np<span class="sc">.</span>std(beta_ss_vals)<span class="sc">:.3f}</span><span class="ss">&quot;</span>)</span>
-<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;学生間のばらつき (sigma_alpha): </span><span class="sc">{</span>np<span class="sc">.</span>mean(sigma_alpha_vals)<span class="sc">:.3f}</span><span class="ss"> ± </span><span class="sc">{</span>np<span class="sc">.</span>std(sigma_alpha_vals)<span class="sc">:.3f}</span><span class="ss">&quot;</span>)</span>
-<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">#</span></span>
-<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">## 効果量の計算</span></span>
-<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>    effect_size_study <span class="op">=</span> np.mean(beta_st_vals) <span class="op">/</span> np.mean(sigma_alpha_vals)</span>
-<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>    effect_size_scholarship <span class="op">=</span> np.mean(beta_ss_vals) <span class="op">/</span> np.mean(sigma_alpha_vals)</span>
-<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;勉強時間の標準化効果量: </span><span class="sc">{</span>effect_size_study<span class="sc">:.3f}</span><span class="ss">&quot;</span>)</span>
-<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;奨学金の標準化効果量: </span><span class="sc">{</span>effect_size_scholarship<span class="sc">:.3f}</span><span class="ss">&quot;</span>)</span>
-<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">#</span></span>
-<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">## 予測精度の詳細評価</span></span>
-<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a>    r2 <span class="op">=</span> r2_score(df[<span class="st">&quot;GPA&quot;</span>], posterior_mean)</span>
-<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a>    mae <span class="op">=</span> mean_absolute_error(df[<span class="st">&quot;GPA&quot;</span>], posterior_mean)</span>
-<span id="cb33-16"><a href="#cb33-16" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;</span><span class="ch">\n</span><span class="ss">=== 予測精度 ===&quot;</span>)</span>
-<span id="cb33-17"><a href="#cb33-17" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;R²: </span><span class="sc">{</span>r2<span class="sc">:.4f}</span><span class="ss">&quot;</span>)</span>
-<span id="cb33-18"><a href="#cb33-18" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;MAE: </span><span class="sc">{</span>mae<span class="sc">:.4f}</span><span class="ss">&quot;</span>)</span>
-<span id="cb33-19"><a href="#cb33-19" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;RMSE: </span><span class="sc">{</span>bayes_rmse<span class="sc">:.4f}</span><span class="ss">&quot;</span>)</span>
-<span id="cb33-20"><a href="#cb33-20" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb33-21"><a href="#cb33-21" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 階層効果の可視化</span></span>
-<span id="cb33-22"><a href="#cb33-22" aria-hidden="true" tabindex="-1"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">8</span>))</span>
-<span id="cb33-23"><a href="#cb33-23" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb33-24"><a href="#cb33-24" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 学生別の切片分布</span></span>
-<span id="cb33-25"><a href="#cb33-25" aria-hidden="true" tabindex="-1"></a>    alpha_means <span class="op">=</span> np.mean(posterior_samples.alpha.values, axis<span class="op">=</span><span class="dv">1</span>)</span>
-<span id="cb33-26"><a href="#cb33-26" aria-hidden="true" tabindex="-1"></a>    alpha_stds <span class="op">=</span> np.std(posterior_samples.alpha.values, axis<span class="op">=</span><span class="dv">1</span>)</span>
-<span id="cb33-27"><a href="#cb33-27" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb33-28"><a href="#cb33-28" aria-hidden="true" tabindex="-1"></a>    plt.subplot(<span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">1</span>)</span>
-<span id="cb33-29"><a href="#cb33-29" aria-hidden="true" tabindex="-1"></a>    plt.errorbar(<span class="bu">range</span>(<span class="bu">len</span>(alpha_means)), alpha_means, yerr<span class="op">=</span>alpha_stds, fmt<span class="op">=</span><span class="st">'o'</span>, alpha<span class="op">=</span><span class="fl">0.6</span>)</span>
-<span id="cb33-30"><a href="#cb33-30" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">&quot;Student ID&quot;</span>)</span>
-<span id="cb33-31"><a href="#cb33-31" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">&quot;Random Intercept (α)&quot;</span>)</span>
-<span id="cb33-32"><a href="#cb33-32" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">&quot;Student-specific Random Intercepts&quot;</span>)</span>
-<span id="cb33-33"><a href="#cb33-33" aria-hidden="true" tabindex="-1"></a>    plt.grid(<span class="va">True</span>)</span>
-<span id="cb33-34"><a href="#cb33-34" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb33-35"><a href="#cb33-35" aria-hidden="true" tabindex="-1"></a>    <span class="co"># パラメータの事後分布</span></span>
-<span id="cb33-36"><a href="#cb33-36" aria-hidden="true" tabindex="-1"></a>    plt.subplot(<span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">2</span>)</span>
-<span id="cb33-37"><a href="#cb33-37" aria-hidden="true" tabindex="-1"></a>    plt.hist(beta_st_vals, bins<span class="op">=</span><span class="dv">50</span>, alpha<span class="op">=</span><span class="fl">0.7</span>, label<span class="op">=</span><span class="st">'Study Hours Effect'</span>)</span>
-<span id="cb33-38"><a href="#cb33-38" aria-hidden="true" tabindex="-1"></a>    plt.hist(beta_ss_vals, bins<span class="op">=</span><span class="dv">50</span>, alpha<span class="op">=</span><span class="fl">0.7</span>, label<span class="op">=</span><span class="st">'Scholarship Effect'</span>)</span>
-<span id="cb33-39"><a href="#cb33-39" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">&quot;Parameter Value&quot;</span>)</span>
-<span id="cb33-40"><a href="#cb33-40" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">&quot;Frequency&quot;</span>)</span>
-<span id="cb33-41"><a href="#cb33-41" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">&quot;Posterior Distributions of Effects&quot;</span>)</span>
-<span id="cb33-42"><a href="#cb33-42" aria-hidden="true" tabindex="-1"></a>    plt.legend()</span>
-<span id="cb33-43"><a href="#cb33-43" aria-hidden="true" tabindex="-1"></a>    plt.grid(<span class="va">True</span>)</span>
-<span id="cb33-44"><a href="#cb33-44" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb33-45"><a href="#cb33-45" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 予測精度の比較</span></span>
-<span id="cb33-46"><a href="#cb33-46" aria-hidden="true" tabindex="-1"></a>    plt.subplot(<span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">3</span>)</span>
-<span id="cb33-47"><a href="#cb33-47" aria-hidden="true" tabindex="-1"></a>    plt.scatter(df[<span class="st">&quot;GPA&quot;</span>], posterior_mean, alpha<span class="op">=</span><span class="fl">0.6</span>, label<span class="op">=</span><span class="st">'Bayesian'</span>)</span>
-<span id="cb33-48"><a href="#cb33-48" aria-hidden="true" tabindex="-1"></a>    plt.scatter(df[<span class="st">&quot;GPA&quot;</span>], lm_preds, alpha<span class="op">=</span><span class="fl">0.6</span>, label<span class="op">=</span><span class="st">'Linear Regression'</span>)</span>
-<span id="cb33-49"><a href="#cb33-49" aria-hidden="true" tabindex="-1"></a>    plt.plot([df[<span class="st">&quot;GPA&quot;</span>].<span class="bu">min</span>(), df[<span class="st">&quot;GPA&quot;</span>].<span class="bu">max</span>()], </span>
-<span id="cb33-50"><a href="#cb33-50" aria-hidden="true" tabindex="-1"></a>             [df[<span class="st">&quot;GPA&quot;</span>].<span class="bu">min</span>(), df[<span class="st">&quot;GPA&quot;</span>].<span class="bu">max</span>()], <span class="st">'r--'</span>, label<span class="op">=</span><span class="st">'Perfect'</span>)</span>
-<span id="cb33-51"><a href="#cb33-51" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">&quot;Actual GPA&quot;</span>)</span>
-<span id="cb33-52"><a href="#cb33-52" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">&quot;Predicted GPA&quot;</span>)</span>
-<span id="cb33-53"><a href="#cb33-53" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">&quot;Prediction Accuracy Comparison&quot;</span>)</span>
-<span id="cb33-54"><a href="#cb33-54" aria-hidden="true" tabindex="-1"></a>    plt.legend()</span>
-<span id="cb33-55"><a href="#cb33-55" aria-hidden="true" tabindex="-1"></a>    plt.grid(<span class="va">True</span>)</span>
-<span id="cb33-56"><a href="#cb33-56" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb33-57"><a href="#cb33-57" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 残差分析</span></span>
-<span id="cb33-58"><a href="#cb33-58" aria-hidden="true" tabindex="-1"></a>    plt.subplot(<span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">4</span>)</span>
-<span id="cb33-59"><a href="#cb33-59" aria-hidden="true" tabindex="-1"></a>    residuals <span class="op">=</span> df[<span class="st">&quot;GPA&quot;</span>] <span class="op">-</span> posterior_mean</span>
-<span id="cb33-60"><a href="#cb33-60" aria-hidden="true" tabindex="-1"></a>    plt.scatter(posterior_mean, residuals, alpha<span class="op">=</span><span class="fl">0.6</span>)</span>
-<span id="cb33-61"><a href="#cb33-61" aria-hidden="true" tabindex="-1"></a>    plt.axhline(y<span class="op">=</span><span class="dv">0</span>, color<span class="op">=</span><span class="st">'r'</span>, linestyle<span class="op">=</span><span class="st">'--'</span>)</span>
-<span id="cb33-62"><a href="#cb33-62" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">&quot;Predicted GPA&quot;</span>)</span>
-<span id="cb33-63"><a href="#cb33-63" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">&quot;Residuals&quot;</span>)</span>
-<span id="cb33-64"><a href="#cb33-64" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">&quot;Residual Plot&quot;</span>)</span>
-<span id="cb33-65"><a href="#cb33-65" aria-hidden="true" tabindex="-1"></a>    plt.grid(<span class="va">True</span>)</span>
-<span id="cb33-66"><a href="#cb33-66" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb33-67"><a href="#cb33-67" aria-hidden="true" tabindex="-1"></a>    plt.tight_layout()</span>
-<span id="cb33-68"><a href="#cb33-68" aria-hidden="true" tabindex="-1"></a>    plt.savefig(save_dir <span class="op">+</span> <span class="st">&quot;comprehensive_results.png&quot;</span>, dpi<span class="op">=</span><span class="dv">300</span>, bbox_inches<span class="op">=</span><span class="st">'tight'</span>)</span>
-<span id="cb33-69"><a href="#cb33-69" aria-hidden="true" tabindex="-1"></a>    plt.close()</span>
-<span id="cb33-70"><a href="#cb33-70" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb33-71"><a href="#cb33-71" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 結果の要約をCSVに保存</span></span>
-<span id="cb33-72"><a href="#cb33-72" aria-hidden="true" tabindex="-1"></a>    results_summary <span class="op">=</span> {</span>
-<span id="cb33-73"><a href="#cb33-73" aria-hidden="true" tabindex="-1"></a>        <span class="st">'Metric'</span>: [<span class="st">'R²'</span>, <span class="st">'MAE'</span>, <span class="st">'RMSE'</span>, <span class="st">'Study_Effect_Mean'</span>, <span class="st">'Study_Effect_Std'</span>, </span>
-<span id="cb33-74"><a href="#cb33-74" aria-hidden="true" tabindex="-1"></a>                  <span class="st">'Scholarship_Effect_Mean'</span>, <span class="st">'Scholarship_Effect_Std'</span>, <span class="st">'Student_Variability'</span>],</span>
-<span id="cb33-75"><a href="#cb33-75" aria-hidden="true" tabindex="-1"></a>        <span class="st">'Value'</span>: [r2, mae, bayes_rmse, np.mean(beta_st_vals), np.std(beta_st_vals),</span>
-<span id="cb33-76"><a href="#cb33-76" aria-hidden="true" tabindex="-1"></a>                 np.mean(beta_ss_vals), np.std(beta_ss_vals), np.mean(sigma_alpha_vals)]</span>
-<span id="cb33-77"><a href="#cb33-77" aria-hidden="true" tabindex="-1"></a>    }</span>
-<span id="cb33-78"><a href="#cb33-78" aria-hidden="true" tabindex="-1"></a>    </span>
-<span id="cb33-79"><a href="#cb33-79" aria-hidden="true" tabindex="-1"></a>    results_df <span class="op">=</span> pd.DataFrame(results_summary)</span>
-<span id="cb33-80"><a href="#cb33-80" aria-hidden="true" tabindex="-1"></a>    results_df.to_csv(<span class="st">&quot;model_results_summary.csv&quot;</span>, index<span class="op">=</span><span class="va">False</span>, encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb34"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>    <span class="co"># パラメータの解釈可能性を向上</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">&quot;</span><span class="ch">\n</span><span class="st">=== モデル結果の解釈 ===&quot;</span>)</span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;勉強時間の効果 (beta_st): </span><span class="sc">{</span>np<span class="sc">.</span>mean(beta_st_vals)<span class="sc">:.3f}</span><span class="ss"> ± </span><span class="sc">{</span>np<span class="sc">.</span>std(beta_st_vals)<span class="sc">:.3f}</span><span class="ss">&quot;</span>)</span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;奨学金の効果 (beta_ss): </span><span class="sc">{</span>np<span class="sc">.</span>mean(beta_ss_vals)<span class="sc">:.3f}</span><span class="ss"> ± </span><span class="sc">{</span>np<span class="sc">.</span>std(beta_ss_vals)<span class="sc">:.3f}</span><span class="ss">&quot;</span>)</span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;学生間のばらつき (sigma_alpha): </span><span class="sc">{</span>np<span class="sc">.</span>mean(sigma_alpha_vals)<span class="sc">:.3f}</span><span class="ss"> ± </span><span class="sc">{</span>np<span class="sc">.</span>std(sigma_alpha_vals)<span class="sc">:.3f}</span><span class="ss">&quot;</span>)</span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">#</span></span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">## 効果量の計算</span></span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a>    effect_size_study <span class="op">=</span> np.mean(beta_st_vals) <span class="op">/</span> np.mean(sigma_alpha_vals)</span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a>    effect_size_scholarship <span class="op">=</span> np.mean(beta_ss_vals) <span class="op">/</span> np.mean(sigma_alpha_vals)</span>
+<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;勉強時間の標準化効果量: </span><span class="sc">{</span>effect_size_study<span class="sc">:.3f}</span><span class="ss">&quot;</span>)</span>
+<span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;奨学金の標準化効果量: </span><span class="sc">{</span>effect_size_scholarship<span class="sc">:.3f}</span><span class="ss">&quot;</span>)</span>
+<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">#</span></span>
+<span id="cb34-13"><a href="#cb34-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">## 予測精度の詳細評価</span></span>
+<span id="cb34-14"><a href="#cb34-14" aria-hidden="true" tabindex="-1"></a>    r2 <span class="op">=</span> r2_score(df[<span class="st">&quot;GPA&quot;</span>], posterior_mean)</span>
+<span id="cb34-15"><a href="#cb34-15" aria-hidden="true" tabindex="-1"></a>    mae <span class="op">=</span> mean_absolute_error(df[<span class="st">&quot;GPA&quot;</span>], posterior_mean)</span>
+<span id="cb34-16"><a href="#cb34-16" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;</span><span class="ch">\n</span><span class="ss">=== 予測精度 ===&quot;</span>)</span>
+<span id="cb34-17"><a href="#cb34-17" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;R²: </span><span class="sc">{</span>r2<span class="sc">:.4f}</span><span class="ss">&quot;</span>)</span>
+<span id="cb34-18"><a href="#cb34-18" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;MAE: </span><span class="sc">{</span>mae<span class="sc">:.4f}</span><span class="ss">&quot;</span>)</span>
+<span id="cb34-19"><a href="#cb34-19" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;RMSE: </span><span class="sc">{</span>bayes_rmse<span class="sc">:.4f}</span><span class="ss">&quot;</span>)</span>
+<span id="cb34-20"><a href="#cb34-20" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb34-21"><a href="#cb34-21" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 階層効果の可視化</span></span>
+<span id="cb34-22"><a href="#cb34-22" aria-hidden="true" tabindex="-1"></a>    plt.figure(figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">8</span>))</span>
+<span id="cb34-23"><a href="#cb34-23" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb34-24"><a href="#cb34-24" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 学生別の切片分布</span></span>
+<span id="cb34-25"><a href="#cb34-25" aria-hidden="true" tabindex="-1"></a>    alpha_means <span class="op">=</span> np.mean(posterior_samples.alpha.values, axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb34-26"><a href="#cb34-26" aria-hidden="true" tabindex="-1"></a>    alpha_stds <span class="op">=</span> np.std(posterior_samples.alpha.values, axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb34-27"><a href="#cb34-27" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb34-28"><a href="#cb34-28" aria-hidden="true" tabindex="-1"></a>    plt.subplot(<span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">1</span>)</span>
+<span id="cb34-29"><a href="#cb34-29" aria-hidden="true" tabindex="-1"></a>    plt.errorbar(<span class="bu">range</span>(<span class="bu">len</span>(alpha_means)), alpha_means, yerr<span class="op">=</span>alpha_stds, fmt<span class="op">=</span><span class="st">'o'</span>, alpha<span class="op">=</span><span class="fl">0.6</span>)</span>
+<span id="cb34-30"><a href="#cb34-30" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">&quot;Student ID&quot;</span>)</span>
+<span id="cb34-31"><a href="#cb34-31" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">&quot;Random Intercept (α)&quot;</span>)</span>
+<span id="cb34-32"><a href="#cb34-32" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">&quot;Student-specific Random Intercepts&quot;</span>)</span>
+<span id="cb34-33"><a href="#cb34-33" aria-hidden="true" tabindex="-1"></a>    plt.grid(<span class="va">True</span>)</span>
+<span id="cb34-34"><a href="#cb34-34" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb34-35"><a href="#cb34-35" aria-hidden="true" tabindex="-1"></a>    <span class="co"># パラメータの事後分布</span></span>
+<span id="cb34-36"><a href="#cb34-36" aria-hidden="true" tabindex="-1"></a>    plt.subplot(<span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">2</span>)</span>
+<span id="cb34-37"><a href="#cb34-37" aria-hidden="true" tabindex="-1"></a>    plt.hist(beta_st_vals, bins<span class="op">=</span><span class="dv">50</span>, alpha<span class="op">=</span><span class="fl">0.7</span>, label<span class="op">=</span><span class="st">'Study Hours Effect'</span>)</span>
+<span id="cb34-38"><a href="#cb34-38" aria-hidden="true" tabindex="-1"></a>    plt.hist(beta_ss_vals, bins<span class="op">=</span><span class="dv">50</span>, alpha<span class="op">=</span><span class="fl">0.7</span>, label<span class="op">=</span><span class="st">'Scholarship Effect'</span>)</span>
+<span id="cb34-39"><a href="#cb34-39" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">&quot;Parameter Value&quot;</span>)</span>
+<span id="cb34-40"><a href="#cb34-40" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">&quot;Frequency&quot;</span>)</span>
+<span id="cb34-41"><a href="#cb34-41" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">&quot;Posterior Distributions of Effects&quot;</span>)</span>
+<span id="cb34-42"><a href="#cb34-42" aria-hidden="true" tabindex="-1"></a>    plt.legend()</span>
+<span id="cb34-43"><a href="#cb34-43" aria-hidden="true" tabindex="-1"></a>    plt.grid(<span class="va">True</span>)</span>
+<span id="cb34-44"><a href="#cb34-44" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb34-45"><a href="#cb34-45" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 予測精度の比較</span></span>
+<span id="cb34-46"><a href="#cb34-46" aria-hidden="true" tabindex="-1"></a>    plt.subplot(<span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">3</span>)</span>
+<span id="cb34-47"><a href="#cb34-47" aria-hidden="true" tabindex="-1"></a>    plt.scatter(df[<span class="st">&quot;GPA&quot;</span>], posterior_mean, alpha<span class="op">=</span><span class="fl">0.6</span>, label<span class="op">=</span><span class="st">'Bayesian'</span>)</span>
+<span id="cb34-48"><a href="#cb34-48" aria-hidden="true" tabindex="-1"></a>    plt.scatter(df[<span class="st">&quot;GPA&quot;</span>], lm_preds, alpha<span class="op">=</span><span class="fl">0.6</span>, label<span class="op">=</span><span class="st">'Linear Regression'</span>)</span>
+<span id="cb34-49"><a href="#cb34-49" aria-hidden="true" tabindex="-1"></a>    plt.plot([df[<span class="st">&quot;GPA&quot;</span>].<span class="bu">min</span>(), df[<span class="st">&quot;GPA&quot;</span>].<span class="bu">max</span>()], </span>
+<span id="cb34-50"><a href="#cb34-50" aria-hidden="true" tabindex="-1"></a>             [df[<span class="st">&quot;GPA&quot;</span>].<span class="bu">min</span>(), df[<span class="st">&quot;GPA&quot;</span>].<span class="bu">max</span>()], <span class="st">'r--'</span>, label<span class="op">=</span><span class="st">'Perfect'</span>)</span>
+<span id="cb34-51"><a href="#cb34-51" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">&quot;Actual GPA&quot;</span>)</span>
+<span id="cb34-52"><a href="#cb34-52" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">&quot;Predicted GPA&quot;</span>)</span>
+<span id="cb34-53"><a href="#cb34-53" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">&quot;Prediction Accuracy Comparison&quot;</span>)</span>
+<span id="cb34-54"><a href="#cb34-54" aria-hidden="true" tabindex="-1"></a>    plt.legend()</span>
+<span id="cb34-55"><a href="#cb34-55" aria-hidden="true" tabindex="-1"></a>    plt.grid(<span class="va">True</span>)</span>
+<span id="cb34-56"><a href="#cb34-56" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb34-57"><a href="#cb34-57" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 残差分析</span></span>
+<span id="cb34-58"><a href="#cb34-58" aria-hidden="true" tabindex="-1"></a>    plt.subplot(<span class="dv">2</span>, <span class="dv">2</span>, <span class="dv">4</span>)</span>
+<span id="cb34-59"><a href="#cb34-59" aria-hidden="true" tabindex="-1"></a>    residuals <span class="op">=</span> df[<span class="st">&quot;GPA&quot;</span>] <span class="op">-</span> posterior_mean</span>
+<span id="cb34-60"><a href="#cb34-60" aria-hidden="true" tabindex="-1"></a>    plt.scatter(posterior_mean, residuals, alpha<span class="op">=</span><span class="fl">0.6</span>)</span>
+<span id="cb34-61"><a href="#cb34-61" aria-hidden="true" tabindex="-1"></a>    plt.axhline(y<span class="op">=</span><span class="dv">0</span>, color<span class="op">=</span><span class="st">'r'</span>, linestyle<span class="op">=</span><span class="st">'--'</span>)</span>
+<span id="cb34-62"><a href="#cb34-62" aria-hidden="true" tabindex="-1"></a>    plt.xlabel(<span class="st">&quot;Predicted GPA&quot;</span>)</span>
+<span id="cb34-63"><a href="#cb34-63" aria-hidden="true" tabindex="-1"></a>    plt.ylabel(<span class="st">&quot;Residuals&quot;</span>)</span>
+<span id="cb34-64"><a href="#cb34-64" aria-hidden="true" tabindex="-1"></a>    plt.title(<span class="st">&quot;Residual Plot&quot;</span>)</span>
+<span id="cb34-65"><a href="#cb34-65" aria-hidden="true" tabindex="-1"></a>    plt.grid(<span class="va">True</span>)</span>
+<span id="cb34-66"><a href="#cb34-66" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb34-67"><a href="#cb34-67" aria-hidden="true" tabindex="-1"></a>    plt.tight_layout()</span>
+<span id="cb34-68"><a href="#cb34-68" aria-hidden="true" tabindex="-1"></a>    plt.savefig(save_dir <span class="op">+</span> <span class="st">&quot;comprehensive_results.png&quot;</span>, dpi<span class="op">=</span><span class="dv">300</span>, bbox_inches<span class="op">=</span><span class="st">'tight'</span>)</span>
+<span id="cb34-69"><a href="#cb34-69" aria-hidden="true" tabindex="-1"></a>    plt.close()</span>
+<span id="cb34-70"><a href="#cb34-70" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb34-71"><a href="#cb34-71" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 結果の要約をCSVに保存</span></span>
+<span id="cb34-72"><a href="#cb34-72" aria-hidden="true" tabindex="-1"></a>    results_summary <span class="op">=</span> {</span>
+<span id="cb34-73"><a href="#cb34-73" aria-hidden="true" tabindex="-1"></a>        <span class="st">'Metric'</span>: [<span class="st">'R²'</span>, <span class="st">'MAE'</span>, <span class="st">'RMSE'</span>, <span class="st">'Study_Effect_Mean'</span>, <span class="st">'Study_Effect_Std'</span>, </span>
+<span id="cb34-74"><a href="#cb34-74" aria-hidden="true" tabindex="-1"></a>                  <span class="st">'Scholarship_Effect_Mean'</span>, <span class="st">'Scholarship_Effect_Std'</span>, <span class="st">'Student_Variability'</span>],</span>
+<span id="cb34-75"><a href="#cb34-75" aria-hidden="true" tabindex="-1"></a>        <span class="st">'Value'</span>: [r2, mae, bayes_rmse, np.mean(beta_st_vals), np.std(beta_st_vals),</span>
+<span id="cb34-76"><a href="#cb34-76" aria-hidden="true" tabindex="-1"></a>                 np.mean(beta_ss_vals), np.std(beta_ss_vals), np.mean(sigma_alpha_vals)]</span>
+<span id="cb34-77"><a href="#cb34-77" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb34-78"><a href="#cb34-78" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb34-79"><a href="#cb34-79" aria-hidden="true" tabindex="-1"></a>    results_df <span class="op">=</span> pd.DataFrame(results_summary)</span>
+<span id="cb34-80"><a href="#cb34-80" aria-hidden="true" tabindex="-1"></a>    results_df.to_csv(<span class="st">&quot;model_results_summary.csv&quot;</span>, index<span class="op">=</span><span class="va">False</span>, encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>)</span></code></pre></div>
 <p><img src="../images/slds/ch12/comprehensive_results.png" /></p>
 <h2 id="まとめ-線形回帰-vs-ベイズモデリング">まとめ (線形回帰 VS ベイズモデリング)</h2>
 <p>この章では,線形回帰分析とベイズ統計モデリングの違い,および固定効果モデルとランダム効果モデル(階層ベイズ)の違いについて学びました. 以下に,これらの手法の比較と特徴をまとめます.</p>

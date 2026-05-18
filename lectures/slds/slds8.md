@@ -181,7 +181,7 @@ plt.close()
 
 ### 棒グラフの作成
 
-[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/bar_pie.csv)からデータをダウンロードし,棒グラフを作成してみましょう.
+[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/bar_pie.csv)からデータをダウンロードし,棒グラフを作成してみましょう.
 
 まずはデータを確認します.
 
@@ -415,7 +415,7 @@ plt.show()
 
 - 演習
 
-[円グラフデータ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/pie_chart_practice.csv),[折れ線グラフデータ2](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/line_chart_practice.csv),[棒グラフデータ3](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/bar_chart_practice.csv)を利用し,それぞれのグラフを作成してください.
+[円グラフデータ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/pie_chart_practice.csv),[折れ線グラフデータ2](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/line_chart_practice.csv),[棒グラフデータ3](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/bar_chart_practice.csv)を利用し,それぞれのグラフを作成してください.
 表示が必要だと思われるデザインを設定してください.
 
 :::
@@ -426,7 +426,7 @@ plt.show()
 これまでのように単純な一つのグラフを作成するだけであれば,恐らくExcelなどのほうが手軽ですが,多数のグラフを作成したり, 複数のデータを組み合わせた複雑なグラフを作成する場合にはプログラミングの方が便利になります.
 
 
-例えば[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/temperature_10location.csv)のデータを利用して棒グラフを作成することを考えてみましょう.このデータは10箇所の気温が記録された時系列データです.
+例えば[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/temperature_10location.csv)のデータを利用して棒グラフを作成することを考えてみましょう.このデータは10箇所の気温が記録された時系列データです.
 
 ~~~ sh
           Date  Location_1  Location_2  ...  Location_8  Location_9  Location_10
@@ -692,7 +692,7 @@ plt.show()
 
 Pythonで度数分布表を作成するにはどのようにしたら良いのでしょうか. 質的データの場合は,ただそれぞれの値を数えればいいので,`for文`などを利用することも可能ですが,`pandas`の`value_counts()`メソッドを利用することで簡単に作成できます.
 
-[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/diff_class.csv)のとある授業の難易度に関する質的データをダウンロードして度数分布表を作成してみましょう.
+[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/diff_class.csv)のとある授業の難易度に関する質的データをダウンロードして度数分布表を作成してみましょう.
 
 データは以下のように,｢難しすぎてついていけない｣,｢難しいが許容できる｣,｢ちょうどよい｣,｢簡単だが許容できる｣｢簡単すぎて退屈｣の5段階のカテゴリーが記述されています.
 
@@ -814,7 +814,7 @@ $$\frac{(データの最大値 - データの最小値)}{階級数}$$
 
 として決まります.
 
-それでは,[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/histogram_quantitative.csv)のデータを利用して,度数分布表を作成してみます. 量的データの度数分布表を作成するには,`value-counts()`の引数`bins=`に各階級の終点を表すリストを指定します.
+それでは,[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/histogram_quantitative.csv)のデータを利用して,度数分布表を作成してみます. 量的データの度数分布表を作成するには,`value-counts()`の引数`bins=`に各階級の終点を表すリストを指定します.
 
 ~~~ py
 #ヒストグラムを作りたいデータの列名を指定
@@ -971,7 +971,7 @@ dist.to_csv('frequency_table_qualitative.csv'
 
 `plt.bar()`では,引数`width=1`を与えることで,棒の太さを`1`(棒の間を0)にすることができます.
 
-まずは,以前扱った[質的データ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/diff_class.csv)の例におけるヒストグラムを作成してみましょう.
+まずは,以前扱った[質的データ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/diff_class.csv)の例におけるヒストグラムを作成してみましょう.
 
 ~~~ py
 #データの読み込み
@@ -1018,7 +1018,7 @@ plt.show()
 
 ![質的データのヒストグラム](/images/slds/ch8/histogram-qualitative.png)
 
-同様に[量的データ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/histogram_quantitative.csv)についても作成してみます.
+同様に[量的データ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/histogram_quantitative.csv)についても作成してみます.
 
 ~~~py
 #ヒストグラムを作りたいデータの列名を指定
@@ -1121,7 +1121,7 @@ plt.show()
 
 - 演習
 
-[データ1](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/qualitative_histogram_practice.csv),[データ2](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/quantitative_histogram_practice.csv)の度数分布表とヒストグラムを作成し,pptなどでグラフとその解釈をまとめてください.
+[データ1](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/qualitative_histogram_practice.csv),[データ2](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/quantitative_histogram_practice.csv)の度数分布表とヒストグラムを作成し,pptなどでグラフとその解釈をまとめてください.
 
 :::
 
@@ -1131,7 +1131,7 @@ plt.show()
 データの観測対象が複数のグループに層別可能な場合には, それぞれのヒストグラムを作成して比較することなどが必要です. グループの数が多い場合には, 何個もヒストグラムを作成することになりますし,比較には剥いていない場合があります.
 そのような複数のグループの分布を比較する際に良く用いられるグラフが,箱ひげ図です.
 
-[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/boxplot_data_300.csv)のデータは, 複数の種類の馬鈴薯のサイズがまとまっています.
+[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/boxplot_data_300.csv)のデータは, 複数の種類の馬鈴薯のサイズがまとまっています.
 
 試しに,ヒストグラム馬鈴薯の種類毎のヒストグラムを作成してみます.
 
@@ -1197,7 +1197,7 @@ plt.show()
 
 これまではデータの各観測項目を独立に可視化してきました. 複数の観測項目の関係性を可視化する代表的な手法に散布図があります.
 
-[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/scatter.csv)のデータはGoogle Trendにおける同時期の`AI`というワードのの検索量と,`Python`というワードの検索量を表しています.
+[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/scatter.csv)のデータはGoogle Trendにおける同時期の`AI`というワードのの検索量と,`Python`というワードの検索量を表しています.
 
 ~~~ sh
      AI  Python
@@ -1283,7 +1283,7 @@ plt.show()
 散布図は複数の観測項目間の関係性を可視化するための手法ですが,データから特定の観測対象の集まり(**クラスター**)を発見する**クラスタリング**とも深い関わりがあります.
 クラスタリングの手法は後ほど扱いますが,ここでは可視化手法としての散布図とクラスタ表現の関係に関して確認してみましょう.
 
-[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/scatter_class.csv)のデータはクラスタリングによって得られたクラスタ毎のラベルがなされています.
+[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/scatter_class.csv)のデータはクラスタリングによって得られたクラスタ毎のラベルがなされています.
 
 ~~~ sh
            x          y  Cluster
@@ -1323,7 +1323,7 @@ plt.show()
 2つの観測項目の関係を調べる手法として散布図を学びましたが,散布図は量的データにしか使えません. 質的変数同士の関係性を調べるにはどのようにしたらいいのでしょうか.
 
 質的変数同士の関係性を調べる手法として代表的なものに**同時度数分布表(クロス表)**があります.
-例えば[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/cross_table_data.csv)のデータはある講義の成績情報ですが,観測項目として成績以外に1時限から5時限までの時限が記録されています. 時限が早い講義と遅い講義で成績が変わるのかという関係性を調べてみます.
+例えば[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/cross_table_data.csv)のデータはある講義の成績情報ですが,観測項目として成績以外に1時限から5時限までの時限が記録されています. 時限が早い講義と遅い講義で成績が変わるのかという関係性を調べてみます.
 
 ~~~ sh
      Period Grade
@@ -1464,9 +1464,9 @@ plt.show()
         グラフを分割して,それぞれのワードに関して4象限の折れ線グラフを作成する.
 
 
-2. [こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/beetle_datal.csv)のカブトムシの種類別の体長と体重のデータを利用して散布図を作成してください.カブトムシの種類別に散布図の色や点の図形を変更してください.
+2. [こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/beetle_datal.csv)のカブトムシの種類別の体長と体重のデータを利用して散布図を作成してください.カブトムシの種類別に散布図の色や点の図形を変更してください.
 
-3. [こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/forest_beetle_data.csv)の森の地点別に採取できたカブトムシの種類を記録したデータを可視化しどの森でどのカブトムシが取れやすいのかを分析してください.
+3. [こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/forest_beetle_data.csv)の森の地点別に採取できたカブトムシの種類を記録したデータを可視化しどの森でどのカブトムシが取れやすいのかを分析してください.
 
 :::
 

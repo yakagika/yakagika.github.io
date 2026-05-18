@@ -315,7 +315,7 @@ $$
 ### データの準備
 
 まずはデータを準備する必要があります. [OECD Family Database](https://www.oecd.org/en/data/datasets/oecd-family-database.html)から,`SF2.1 Fertility rates`及び`LMF2.5 Time used for work, care and daily household chores`のExcelファイルをダウンロードしました.
-それぞれから[`fertility_rates.csv`](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/fertility_rates.csv)及び,[`time_used.csv`](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/time_used.csv)を作成しました.以下これらのデータをダウンロードして,作業を進めてください.
+それぞれから[`fertility_rates.csv`](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch11/fertility_rates.csv)及び,[`time_used.csv`](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch11/time_used.csv)を作成しました.以下これらのデータをダウンロードして,作業を進めてください.
 
 ::: warn
 可能であれば,練習として以下のコードは見ないで,元の内閣府の資料から何をする必要があるのか,自分でどのように計算するかを考えて実行してみましょう.
@@ -1034,7 +1034,7 @@ $$
 作業を再現しつつ,どのような処理を何故行っているのかを把握するようにしましょう.
 
 ### データ準備
-事例として**架空の大学生のGPAに関するデータ**を利用します.[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/multiple_regression.csv)からダウンロードして利用して下さい.
+事例として**架空の大学生のGPAに関するデータ**を利用します.[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch11/multiple_regression.csv)からダウンロードして利用して下さい.
 
 
 各変数とデータの形式は以下のとおりです.

@@ -1147,7 +1147,7 @@ if __name__ == "__main__":
                             dims="obs_id"
                         )
         trace = pm.sample(draws =2000, tune=2000, chains=4, target_accept=0.95, return_inferencedata=True)
-        posterior_predictive = pm.sample_posterior_predictive(trace)
+        pm.sample_posterior_predictive(trace, extend_inferencedata=True)
 
     # ---------------------------
     # 4. モデル診断と可視化
@@ -1186,9 +1186,29 @@ if __name__ == "__main__":
     # ---------------------------
     # 6. 階層ベイズモデルによる予測精度評価
     # ---------------------------
-    idata = trace.copy()
-    idata.extend(posterior_predictive)
-    az.plot_ppc(idata, data_pairs={"GPA": "GPA"})
+    idata = trace
+
+    # 事後予測チェック (PPC) を手動で描画
+    # arviz>=1.0 では plot_ppc が arviz-plots に切り出され,
+    # 標準の `import arviz as az` から `az.plot_ppc` が消えるバージョンがあるため,
+    # ここでは matplotlib/seaborn で同等のプロットを構築する.
+    ppc_samples = idata.posterior_predictive["GPA"].stack(sample=("chain", "draw"))
+    n_show = min(100, ppc_samples.sizes["sample"])
+    rng = np.random.default_rng(0)
+    sample_idx = rng.choice(ppc_samples.sizes["sample"], size=n_show, replace=False)
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    for i in sample_idx:
+        sns.kdeplot(ppc_samples.isel(sample=int(i)).values,
+                    color="C0", alpha=0.1, lw=1, ax=ax)
+    # 凡例用のダミー線
+    ax.plot([], [], color="C0", alpha=0.6, label="Posterior predictive draws")
+    ppc_mean = idata.posterior_predictive["GPA"].mean(dim=("chain", "draw")).values
+    sns.kdeplot(ppc_mean, color="C1", label="Posterior predictive mean", lw=2, ax=ax)
+    sns.kdeplot(df["GPA"], color="black", label="Observed", lw=2, ax=ax)
+    ax.set_title("Posterior Predictive Check")
+    ax.set_xlabel("GPA")
+    ax.legend()
     plt.savefig(save_dir + 'ppc.png')
     plt.close()
 
@@ -1553,7 +1573,7 @@ if __name__ == "__main__":
                             dims="obs_id"
                         )
         trace = pm.sample(draws =2000, tune=2000, chains=4, target_accept=0.95, return_inferencedata=True)
-        posterior_predictive = pm.sample_posterior_predictive(trace)
+        pm.sample_posterior_predictive(trace, extend_inferencedata=True)
 ~~~
 
 ### モデル全体像との対応関係
@@ -1591,8 +1611,8 @@ if __name__ == "__main__":
 ~~~py
         # MCMCサンプリングの実行
         trace = pm.sample(draws =2000, tune=2000, chains=4, target_accept=0.95, return_inferencedata=True)
-        # 事後予測分布のサンプリング
-        posterior_predictive = pm.sample_posterior_predictive(trace)
+        # 事後予測分布のサンプリング (trace に posterior_predictive グループを追加)
+        pm.sample_posterior_predictive(trace, extend_inferencedata=True)
 ~~~
 
 ::: note
@@ -1622,7 +1642,7 @@ if __name__ == "__main__":
 
 - **`return_inferencedata=True`**: 結果を`arviz`の`InferenceData`形式で返します. これにより,可視化や診断が容易になります.
 
-**`pm.sample_posterior_predictive(trace)`**は,推定された事後分布から新しいデータを生成します. これにより,モデルの予測性能を評価したり,予測区間を計算したりできます.
+**`pm.sample_posterior_predictive(trace, extend_inferencedata=True)`**は,推定された事後分布から新しいデータを生成します. これにより,モデルの予測性能を評価したり,予測区間を計算したりできます. `extend_inferencedata=True`を指定すると,生成された事後予測サンプルが既存の`trace`(`InferenceData`)に`posterior_predictive`グループとして追加されます. なお,以前のバージョンの解説では`idata = trace.copy(); idata.extend(posterior_predictive)`という書き方を使っていましたが,新しい`arviz`/`xarray`では`trace.copy()`が`DataTree`を返すため`extend`メソッドが使えず`AttributeError`になります. そのため,本講義では`extend_inferencedata=True`を推奨します.
 
 :::
 
@@ -1855,15 +1875,49 @@ NUTS: [z_alpha, mu_alpha, sigma_alpha, beta_st, beta_ss]
 **事後予測チェック**は,推定されたモデルが実際のデータをどれだけよく説明できるかを確認するための手法です. 具体的には,推定された事後分布から新しいデータを生成し,その分布が実際の観測データとどの程度一致しているかを可視化します.
 
 ~~~ py
-    idata = trace.copy()
-    idata.extend(posterior_predictive)
-    az.plot_ppc(idata, data_pairs={"GPA": "GPA"})
+    idata = trace
+
+    # 事後予測サンプルを (chain, draw) で平らに並べる
+    ppc_samples = idata.posterior_predictive["GPA"].stack(sample=("chain", "draw"))
+    n_show = min(100, ppc_samples.sizes["sample"])
+    rng = np.random.default_rng(0)
+    sample_idx = rng.choice(ppc_samples.sizes["sample"], size=n_show, replace=False)
+
+    fig, ax = plt.subplots(figsize=(10, 6))
+    for i in sample_idx:
+        sns.kdeplot(ppc_samples.isel(sample=int(i)).values,
+                    color="C0", alpha=0.1, lw=1, ax=ax)
+    ax.plot([], [], color="C0", alpha=0.6, label="Posterior predictive draws")
+
+    ppc_mean = idata.posterior_predictive["GPA"].mean(dim=("chain", "draw")).values
+    sns.kdeplot(ppc_mean, color="C1", label="Posterior predictive mean", lw=2, ax=ax)
+    sns.kdeplot(df["GPA"], color="black", label="Observed", lw=2, ax=ax)
+
+    ax.set_title("Posterior Predictive Check")
+    ax.set_xlabel("GPA")
+    ax.legend()
     plt.savefig(save_dir + 'ppc.png')
     plt.close()
 ~~~
 
-- `idata.extend(posterior_predictive)`: 事後予測分布のサンプルを`InferenceData`オブジェクトに追加します.
-- `az.plot_ppc()`: 事後予測チェックの可視化を行います. 観測データと事後予測分布を比較します.
+- `idata = trace`: 直前の`pm.sample_posterior_predictive(trace, extend_inferencedata=True)`によって,`trace`(`InferenceData`)には既に`posterior_predictive`グループが含まれています. そのまま参照を別名で受けるだけで,事後予測分布にアクセスできます.
+- `idata.posterior_predictive["GPA"].stack(sample=("chain", "draw"))`: `(chain, draw)`という 2 つの軸を 1 本の`sample`軸にまとめて, 1 サンプル単位で取り出しやすい形に整えます.
+- `for i in sample_idx`: ランダムに選んだ 100 本の事後予測サンプルを KDE で薄く重ね描きします. これが「事後予測分布の範囲」を表す青い帯になります.
+- `ppc_mean = ... .mean(dim=("chain", "draw"))`: すべてのチェーン・ドローを平均した「事後予測平均」をオレンジで描き, 観測データを黒で重ねます.
+
+::: note
+
+`arviz>=1.0`では`plot_ppc`が`arviz-plots`サブパッケージに切り出されたため, バージョンによっては`import arviz as az`した状態で`az.plot_ppc`が見つからず
+
+~~~ sh
+AttributeError: module 'arviz' has no attribute 'plot_ppc'
+~~~
+
+というエラーになります. 上記のコードでは, バージョン依存を避けるために`matplotlib`/`seaborn`で同等のプロットを直接構築しています.
+
+なお, 以前の解説で使っていた`idata = trace.copy(); idata.extend(posterior_predictive)`という書き方は, 新しい`arviz`/`xarray`では`trace.copy()`が`DataTree`を返すため`AttributeError: 'DataTree' object has no attribute 'extend'`が発生します. 本講義では`sample_posterior_predictive`に`extend_inferencedata=True`を渡して`trace`へ直接追加する書き方を採用しています.
+
+:::
 
 ![](/images/slds/ch12/ppc.png)
 
