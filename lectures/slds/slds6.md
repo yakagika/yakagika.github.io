@@ -514,8 +514,8 @@ print(len(df))
 ~~~ py
 #特徴量の把握
 print(df.describe())
-print('最大値:',df['Salaray'].max())
-print('平均値:',df['Salaray'].mean())
+print('最大値:',df['Salary'].max())
+print('平均値:',df['Salary'].mean())
 print('中央値:',df['Salary'].median())
 ~~~
 
