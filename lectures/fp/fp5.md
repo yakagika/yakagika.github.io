@@ -1,10 +1,9 @@
 ---
-title: 代数プログラミング入門 Ch5 代数的データ型1
+title: 代数プログラミング入門 Ch5 関数
 description: 資料
 tags:
     - algebra
     - lecture
-    - statistics
     - haskell
 featured: true
 katex: true
@@ -12,830 +11,1546 @@ date: 2024-10-18
 tableOfContents: true
 previousChapter: fp4.html
 nextChapter: fp6.html
-open: true
 ---
+# 関数
 
-# 代数的データ型(集合論的解釈)
+Haskellは関数型言語なので,関数の記述がプログラミングにおける花形です. この章ではHaskellの関数に関する記法を学びましょう.
 
-Haskellのデータ型はすべて**代数的データ型**です. 代数的データ型には, **列挙型**,**直積型**,**直和型**があり,構文として**レコード構文**などが存在します.
+## 関数と演算子
 
-代数的データ型は文字通り, 数学における代数の構造を参照にしたデータ型であり,代数的な定義と対応させることで様々なことが可能となります. 代数学を理解するためにはまず,集合論の基礎を理解している必要があります.ここでは,集合論と対応させる形で,代数的データ型とは何であるかを理解することを目指します.
+関数型言語では関数を組み合わせてプログラムを書きます. 関数の正確な定義は後に譲るとして,ここでは取り敢えず｢特定のデータ型の値を受け取って,特定のデータ型の値を返すもの｣という定義にしましょう.このとき受け取る値を**引数**,返す値を**返り値**といいます.
 
-::: warn
-Haskellは代数学の一部である**圏論**と強い結びつきがあり,プログラムのデータ構造は圏論的に解釈することも可能となります. 特にHaskellの高度な機能, 多相型(ポリモーフィズム),モナド,状態系などは集合論的な理解よりも圏論的な理解のほうが適しています.
-そこで,ここでは一旦集合論的に概要を把握し,後の章で圏論的な解釈を試みます.
-:::
+Haskellでは,数学の記法と非常に近い方法で関数を定義します.
+例えば,
 
+$$
+f : \mathbb{Z} \rightarrow \mathbb{Z} \\
+f(x) = x + 1
+$$
 
-## 集合と列挙型
+という,整数`x`を受け取って整数`x + 1`を返すだけの関数について考えましょう.
 
-Haskellではデータ型を集合と**みなすこと**ができます. Haskellの型はあくまで型であり,厳密には集合ではありません. また,後の節で出てくるリストを使った`内包表記`などの**集合論的な書き方**も数学における集合ではありません.
-あくまで類似したものです.
+Haskellでは上の関数は以下のように定義されます.
 
-しかし,Haskellを集合とみなすことで,関数型プログラミングや,代数的データ型の意味がより直感的に理解できるようになります. しばらく,集合論とHaskellの対応について考えてみましょう.
+~~~ haskell
+f :: Int -> Int
+f x = x + 1
+
+main = do
+    print $ f 4 --  5
+~~~
+
+`()`の代わりにスペースを使う点以外は全く同じ書き方で, `=`の左側に関数名と引数,右側に返り値を書きます.
+関数名は小文字の英字で始めるというルールがあります.
+
+`f :: Int -> Int`は型注釈であり,この`f`という関数が,引数に`Int`を取り,返り値として`Int`を返すということを指定しています.
+型注釈は高度な処理をしない限り省略しても自動的にGHCが推論してくれますが,可読性のためにもできるだけ書くようにしましょう.
+
+`do`以下の記述で, `f 4`の結果を確認しています. `print`は,文字列に変換可能な値を受け取り,標準出力する関数です. また `(f 4)`を省略して`$ f 4` としています.
+
+引数は何個でも利用できます. 例えば2引数関数
+
+$$ multiple(x,y) = x * y $$
+
+は以下のように定義できます.
+
+~~~ haskell
+multiple :: Double -> Double -> Double
+multiple x y = x * y
+
+main = do
+    print $ multiple 3 4 --  12.0
+~~~
+
+また,以下の記号を組み合わせて中置演算子名として利用することも可能です.
 
 ::: note
-特定のモノがそこに｢属するか判定可能なモノの集まり｣を｢集合｣という.
+~ !  #  $  %  &  *  +  = .  /  < >  ?  @  \  ^  |  -
 :::
 
-集合の細かな定義は置いておいて,この講義では取り敢えずこのくらいの認識で問題ありません. しかし,ただのモノの集まりではなく,特定のモノがそこに属するかどうかを判定できる必要があるので注意が必要です.
-
-例えば, ｢頭の良い人の集合｣のようなものは,｢頭が良い基準｣が人によって異なるので,集合とはみなせません.
-
-ノーベル賞受賞者の集合,フィールズ賞受賞者の集合,メンサ会員の集合,XX模試の偏差値が70以上の人の集合,特定の科目で85点以上取った人の集合,など,誰でも判別可能な定義が必要です.
-
-集合の表記法には,**外延(的)表記**及び**内包(的)表記**という2通りが存在します.
-
-外延表記とは, 特定の集合に含まれる要素を全て記述する方法です.
-私が過去に飼ったことのある犬の種類の集合を`MyDogs`という名前で呼ぶと,`MyDogs`に属するモノたちを記号`{ }`を使った外延表記によって以下のように書くことができます.
-
-
-\begin{align*}
-MyDogs = & \{ GoldenRetriever \\
-         &, BlackRetriever    \\
-         &, ShetlandSheepdog \\
-         &, StandardPoodle \\
-         &, Beagle \}
-\end{align*}
-
-
-このとき,`GoldenRetriever`や,`ShetlandSheepdog`は`MyDogs`の`要素`であるといい,要素が特定の集合に属するとき,
-
-$$ GoldenRetriever \in MyDogs $$ の様に書きます. 要素に属さないことは $Chihuahua \notin MyDogs$と書きます.
-
-集合には順番は関係ないため,$\{x,y\}=\{y,x\}$ となります. また, 一つの集合に同じ要素は2つ以上属することができず, $\{x,x\}$ のような集合は定義できません.
-
-Haskellにおいて,集合に属する要素をすべて書き出す(列挙する)データ型を`列挙型`として定義できます. 
-データ型の宣言は, `data`のあとに続いて,`データ型の名前(型構築子)`を書き,`=`の後ろにその`中身(コンストラクタ/データ構築子)`を書きます.
-型構築子やデータ構築子は,大文字の英字で始めるのが規則です.
 
 ~~~ haskell
-data MyDogs = GoldenRetriever
-            | BlackRetriever
-            | ShetlandSheepdog
-            | StandardPoodle
-            | Beagle
-            deriving Show
+(.*) :: Double -> Double -> Double
+x .* y = x * y
+
+main = do
+    print $ 3 .* 4 --  12.0
 ~~~
 
-::: warn
-
-ちなみに,大文字の英字で始まってさえいればUTF-8の文字や絵文字,記号は使用できるので,以下のような記述も可能ですが,あまりおすすめしません.
+絵文字などのUnicode記号も利用することができます.
 
 ~~~ haskell
-data My🐶   = Pゴールデンレトリーバー
-            | Pブラックレトリーバー
-            | Pシェットランドシープドッグ
-            | Pスタンダードプードル
-            | Pビーグル
-            deriving Show
+
+(✖) :: Double -> Double -> Double
+x ✖ y = x * y
+
+main = do
+    print $ 3 ✖ 4 --  12.0
 ~~~
-:::
 
-`deriving Show`はコンストラクタを文字列に変換する関する`show`を自動で導入するための記法です. 自分で定義することも可能ですが,詳細に関しては後ほど扱います.
-
-`deriving Show`を入れていない状態で
+記号を利用して関数を定義する場合には,定義時に`()` で囲うことで一般の関数のように定義することができます.
+例えば, 乗算を新たに定義するとして,以下のように書くことができます.
 
 ~~~ haskell
-print GoldenRetriever
+(.*) :: Int -> Int -> Int
+(.*) x y = x * y
+main = do
+    print $ 3 .* 4 --  12
 ~~~
 
-などを実行すると,以下のエラーがでますが,`deriving Show`を追加することで,表示することが可能となります.
+前置の2引数関数も` `` ` (バッククオート)で囲むことで中置演算子として定義することができます.
 
 ~~~ haskell
-ghci> :{
-ghci| data MyDogs = GoldenRetriever
-ghci|             | BlackRetriever
-ghci| :}
-ghci> print GoldenRetriever
+x `multiple` y = x * y
 
-<interactive>:17:1: error: [GHC-39999]
-    • No instance for ‘Show MyDogs’ arising from a use of ‘print’
-    • In the expression: print GoldenRetriever
-      In an equation for ‘it’: it = print GoldenRetriever
-ghci> :{
-ghci| data MyDogs = GoldenRetriever
-ghci|             | BlackRetriever
-ghci|             deriving Show
-ghci| :}
-ghci> print GoldenRetriever
-GoldenRetriever
+main = do
+    print $ 3 `multiple` 4 --  12
 ~~~
-
-なお, `print`の[実装](https://hackage.haskell.org/package/base-4.19.1.0/docs/src/System.IO.html#print)は
-
-~~~ haskell
-print :: Show a => a -> IO ()
-print x = putStrLn (show x)
-~~~
-
-となっています.
-
-
-要素が一つも属さない集合を`空集合`といい,記号 $\phi$ または $\{\}$ によって表されます.
-Haskellでは空集合を表すデータ型として`Data.Void`に定義された`Void`が存在します. データ型として`ボトム型`,記号では`⊥`で表される場合もあります.
-
-`Void`と同じ値を持たないデータ型は,コンストラクタを記述しないことで自分で実装することもできます. 例えばある人が犬を今までに一匹もかったことがない場合を想定し, その人の飼った犬の集合を `EmptyDogs` と呼ぶことにすると, $$ \mathrm{EmptyDogs} = \phi $$ となり, データ型としては以下のように定義されます. 値が存在しない空集合と対応していることが分かります.
-
-~~~ haskell
-data EmptyDogs
-~~~
-
-`Void`型は値が存在しないため実行することはできませんが,コンパイルを通すことはできます. ただし,あまり実用する機会はないので,以下の部分は興味がある人は読んでください.
 
 ::: note
 
-- Voidの利用例
+**なぜ中置演算子として定義するのか**
 
-`Void`型を利用したコードを記述する方法はいくつかありますが, `undefined`した実装などが良く用いられます.
-`undefined`は遅延評価を利用した値で,具体的な値や式の記述を省略することができます.
-未実装の部分を含めたコードを取り敢えず部分的にコンパイルしてみたい場合や, エラー処理などで利用されます.
+中置演算子を自前で定義するのは, Pythonなどの言語ではあまり行われないので｢なぜわざわざこんなことをするのだろう｣と感じる人がいるかも知れません.
+中置演算子の最大のメリットは, このあと扱う計算順序(優先順位・結合性)の設計とあわせて, 式の認知負荷を大幅に下げられることです.
 
-以下のコードはコンパイルは通りますが,実行時には`undefined, called`エラーが発生します.
+例えば `1 + 1 + 1 + 1` という計算を考えてみましょう.
 
-~~~ haskell
+これを **前置記法 (ポーランド記法)** で書くと,
 
-somFunc :: Int -> Int
-someFunc = undefined
+`((+) ((+) ((+) 1 1) 1) 1)` となります. Haskell では `(+)` のように記号演算子を括弧で囲むと普通の前置関数として扱えるので, これは Haskell の構文としても合法ですが, 実際に何が計算されているかを読み取るのは大変です.
 
-main = print $ someFunc 1
+更に複数の演算子が絡むと事態はより複雑になります.
 
-~~~
+`1 + 1 * 2 + 3 / 2` のような計算は, 中置演算子であれば非常にシンプルですが, 前置記法では
 
-`Void`型を利用するケースは非常に限定的ですが,値が無いことを明示的に示したい場合などに利用されます.
+`(+) ((+) 1 ((*) 1 2)) ((/) 3 2)` となります.
 
-~~~ haskell
-{-# LANGUAGE EmptyCase #-}
-{-# LANGUAGE EmptyDataDeriving #-}
-
-data Empty deriving Show
-
-head' :: Show a => [a] -> Empty ->  a
-head' []     e = case e of
-head' (x:[]) _ = x
-head' (x:xs) _ = x
-
-main = print $ head' ([]::[Int]) undefined -- >>> undefined, called at
-~~~
-このコードでは, 明示的に`先頭の値`が存在しないことを`Empty`で表し,`EmptyDataDeriving`拡張で`undefined`を評価することでエラーを発生させています.
-
-しかし,こういったパターンでは,以下の`error`による実装や,後に説明する`Maybe型`を利用するほうが一般的です.
-
-~~~ haskell
-head'' :: Show a => [a] ->  a
-head'' []     = error "Empty List"
-head'' (x:[]) = x
-head'' (x:xs) = x
-
-main = print $ head'' ([]::[Int]) -- practice: Empty List error, called at
-~~~
+このように, 適切な記号と優先順位で中置演算子を設計することで, 人間が読むときの理解負荷も実装上の括弧の量も大幅に下がります.
 
 :::
 
-単一の要素だけが存在するデータ型として`Unit`型も準備されており,`()`のような空のタプルとして表されます.
 
 ::: note
 
 ### Exercise CH5-1
 
-**曜日列挙型 `Weekday` と `isWeekend` / `nextDay`**
+**基本関数と中置演算子の定義**
 
-1. 曜日を表す列挙型 `Weekday` を日曜日から土曜日までの7つのコンストラクタで定義してください. `deriving Show` を付けて `print` できるようにしてください.
+1. 整数を受け取り, その値を 2 倍したものを返す関数 `double :: Int -> Int` を定義してください.
 
-2. `Weekday` 型の値を受け取り, その日が週末(土日)であれば `True`, 平日であれば `False` を返す関数 `isWeekend :: Weekday -> Bool` をパターンマッチで実装してください.
+2. 整数 `x`, `y` を受け取り, `x * y + x + y` を返す2引数関数 `f :: Int -> Int -> Int` を定義してください.
 
-3. `Weekday` 型の値を受け取り, 翌日の曜日を返す関数 `nextDay :: Weekday -> Weekday` を実装してください. 土曜日の次は日曜日に戻るように循環させます.
+3. 2引数の中置演算子 `(.+) :: Int -> Int -> Int` を, `x .+ y = x + y + 1` として定義してください.
+
+4. 2引数の前置関数 `divide :: Double -> Double -> Double` を `x / y` を返すように定義し, バッククオート で囲むことで中置演算子として呼び出してください.
 
 ~~~ haskell
 -- 実行例
 main :: IO ()
 main = do
-    print $ isWeekend Sunday    -- True
-    print $ isWeekend Monday    -- False
-    print $ isWeekend Saturday  -- True
-    print $ nextDay Friday      -- Saturday
-    print $ nextDay Saturday    -- Sunday
+    print $ double 7        -- 14
+    print $ f 2 3           -- 11
+    print $ 4 .+ 5          -- 10
+    print $ 10 `divide` 3   -- 3.3333333333333335
 ~~~
 
 <details class="protected" data-pass="yakagika">
     <summary> 回答例 </summary>
 
 ~~~ haskell
-data Weekday = Sunday
-             | Monday
-             | Tuesday
-             | Wednesday
-             | Thursday
-             | Friday
-             | Saturday
-             deriving Show
+double :: Int -> Int
+double x = 2 * x
 
-isWeekend :: Weekday -> Bool
-isWeekend Saturday = True
-isWeekend Sunday   = True
-isWeekend _        = False
+f :: Int -> Int -> Int
+f x y = x * y + x + y
 
-nextDay :: Weekday -> Weekday
-nextDay Sunday    = Monday
-nextDay Monday    = Tuesday
-nextDay Tuesday   = Wednesday
-nextDay Wednesday = Thursday
-nextDay Thursday  = Friday
-nextDay Friday    = Saturday
-nextDay Saturday  = Sunday
+(.+) :: Int -> Int -> Int
+x .+ y = x + y + 1
+
+divide :: Double -> Double -> Double
+divide x y = x / y
 
 main :: IO ()
 main = do
-    print $ isWeekend Sunday    -- True
-    print $ isWeekend Monday    -- False
-    print $ isWeekend Saturday  -- True
-    print $ nextDay Friday      -- Saturday
-    print $ nextDay Saturday    -- Sunday
+    print $ double 7        -- 14
+    print $ f 2 3           -- 11
+    print $ 4 .+ 5          -- 10
+    print $ 10 `divide` 3   -- 3.3333333333333335
 ~~~
 
-列挙型では各コンストラクタを直接パターンマッチで場合分けでき, `_`(ワイルドカード)を使うと残り全てをまとめて扱えます.
+- `f 2 3 = 2 * 3 + 2 + 3 = 11`. 関数の型注釈と本体は `=` の左右で対応付けて書きます.
+- 記号からなる中置演算子は `x .+ y = ...` のように直接定義してもよく, 型注釈側では `(.+)` のように括弧で囲って前置関数として宣言します.
+- 通常の前置2引数関数 (`divide` など) も, バッククオートで囲むだけで中置記法に切り替えられます.
 
 </details>
 
 :::
 
+### 結合性
 
-## 集合の内包表記と代数的データ型
+先に述べたように異なる複数の演算子が連なっている式は, 演算子の優先順位に従って計算される順位が変わります.
 
-列挙型において見た**外延表記**に対して,**内包表記**とは,$x \in S$を述語論理によって表記する方法です.
+例えば,`*` の優先順位は7で, `+` の優先順位は6なので,` 2 * 3 + 3` という式は,
 
-$x$ の属する集合を $X$, 条件式を $p(x)$ とすると, 内包表記では
-
-$$S = \{x \mid x \in X, p(x)\}$$
-
-という記法で, ｢**$X$ の要素のうち $p(x)$ を満たす要素のみからなる集合 $S$**｣を定義します.
-
-例として, $\mathbb{R}^+$ を非負の実数としたとき, $5$ 以下の非負の実数は
-
-$$\{x \mid x \in \mathbb{R}^+, x \leq 5\}$$
-
-と書けます.
-
-Haskellの代数的データ型では内包表記に基づくデータ型の定義そのものは提供されていません. しかし, **リスト内包表記**による擬似的な集合計算,及び**スマートコンストラクタ**による述語による絞り込みによって,類似した計算及びデータ型の構築が可能です. スマートコンストラクタは`module`など今後の学習内容を先取りしたかなり発展的な内容になるのでここでは記載はしますが対象は興味のある人のみとします. 
-
-### リスト内包表記による計算
-
-**リスト内包表記**はHaskellの標準構文で,集合論の内包表記と非常に似た形でリストを構成できます. 集合論では
-
-$$S = \{x \mid x \in X, p(x)\}$$
-
-と書くところを,Haskellでは
-
-~~~ haskell
-s = [ x | x <- xs, p x ]
+~~~
+   2 * 3  + 3
+= (2 * 3) + 3
+= 6 + 3
+= 9
 ~~~
 
-と書きます. `x <- xs` が $x \in X$ に対応する **ジェネレータ**, `p x` が述語 $p(x)$ に対応する **ガード** です.
+と言う風に`*`が優先して計算されます.
 
-例として,集合論における「1 以上 10 以下の整数のうち偶数のみ」
+では,同じ演算子が複数回連なっている場合にはどのような順序で計算されるのでしょうか? このルールを決めるのが **結合性(Associativity)** です.
 
-$$E = \{x \mid x \in \mathbb{Z}, 1 \leq x \leq 10, x \bmod 2 = 0\}$$
+::: note
 
-は,リスト内包表記では以下のように記述できます.
+結合性には, **左結合(Left-associative)**, **右結合(Right-associative)**, **非結合(Non-associative)** の3種類があり,ユーザーが定義することができます.
 
-~~~ haskell
-evens :: [Int]
-evens = [ x | x <- [1..10], x `mod` 2 == 0 ]
--- evens == [2,4,6,8,10]
-~~~
+- **左結合(Left-associative)**
 
-ジェネレータやガードは複数書くこともでき,集合論における直積(複数の変数の並行走査)や条件の連言(AND)に自然に対応します.
+左結合の場合, 演算子は左から右へと評価されます. 例えば, `+` は左結合であり,式 `a + b + c` は `(a + b) + c` として評価されます
 
-~~~ haskell
--- {(x,y) | x ∈ [1..3], y ∈ [1..3], x /= y}
-pairs :: [(Int,Int)]
-pairs = [ (x,y) | x <- [1..3], y <- [1..3], x /= y ]
--- [(1,2),(1,3),(2,1),(2,3),(3,1),(3,2)]
-~~~
+- **右結合(Right-associative)**
 
-ただし,リスト内包表記は**値のレベル**での構成であり,得られるのはあくまで `[Int]` などのリストです. 「型として偶数のみからなる新しいデータ型」を定義しているわけではない点に注意してください.
+右結合演算子の場合,演算子は右から左へと評価されます. 例えば, `^`は右結合です. 式 `a ^ b ^ c` は `a ^ (b ^ c)` として評価されます
 
-::: warn
-ここではリスト内包表記を集合の内包表記の**比喩**として紹介していますが, リストと集合は別物です. リストには**順序があり, 同じ要素を重複して含むことができ, 要素の等価性も個別に比較する必要があります**. 一方,数学における集合は順序を持たず,同じ要素を重複して含むこともありません. リストが代数的にどのように定義されるかに関してはのちの章で扱います.
+- **非結合(Non-associative)**
 
-したがって,実際に**集合としての操作**(要素の存在判定,和集合 $\cup$,積集合 $\cap$,差集合 $\setminus$,重複の自動排除など)が必要な場合は,リストではなく `containers` パッケージの提供する `Data.Set` の `Set` 型を利用するほうが適切であり,計算量の面でも有利です.
+非結合演算子は,同じ式内で連続して使用することは許されていません. 非結合演算子の例としては,比較演算子（`<`,`>` など）があります.
 
-~~~ haskell
-import qualified Data.Set as Set
+式 `a < b < c` は Haskell では文法的に不正です. 比較を連鎖させる場合は,`a < b && b < c`のように明確に分けて記述する必要があります.
 
-a, b :: Set.Set Int
-a = Set.fromList [1,2,3,4]
-b = Set.fromList [3,4,5,6]
-
-main :: IO ()
-main = do
-    print $ Set.union        a b  -- fromList [1,2,3,4,5,6]  (和集合)
-    print $ Set.intersection a b  -- fromList [3,4]          (積集合)
-    print $ Set.difference   a b  -- fromList [1,2]          (差集合)
-    print $ Set.member       3 a  -- True                    (要素判定)
-~~~
-
-リスト内包表記は「集合の内包表記と構文が似ていて直感的に書ける」という**記法の便利さ**のために使うもので,集合演算そのものを扱いたい場合は `Set` を用いるのがHaskellにおける一般的な流儀です.
 :::
+
+ユーザーが作成した演算子の結合性を指定するには,右,左,非の順に`infixr`,`infixl`,`infix`宣言を利用します. いずれも, `infix(r/l/なし) 優先順位 記号` の順に書きます.
+
+例えば先程作成した,`.*` を右結合の優先順位7で指定するには,以下のように書きます.
+
+~~~ haskell
+x .* y = x * y
+infixr 7 .*
+~~~
 
 ::: note
 
 ### Exercise CH5-2
 
-**約数とピタゴラス数(リスト内包表記)**
+**結合性と優先順位**
 
-1. 正の整数 `n` を受け取り, `n` の正の約数(nを割って余りのでない数)をすべて昇順に並べたリストを返す関数 `divisors :: Int -> [Int]` をリスト内包表記を用いて実装してください.
+1. 2引数の中置演算子 `(.+) :: Int -> Int -> Int` を `x .+ y = x + y` として定義し, **右結合・優先順位 5** を意味する `infixr 5 .+` 宣言を付けてください. このとき `1 .+ 2 .+ 3` がどのように括弧づけされて評価されるか答えてください.
 
-2. 正の整数 `n` を受け取り, $a^2 + b^2 = c^2$ を満たす $1 \leq a \leq b \leq c \leq n$ のピタゴラス数 $(a, b, c)$ の組をすべて返す関数 `pythagoreans :: Int -> [(Int, Int, Int)]` をリスト内包表記で実装してください.
+2. 以下の **4 つの演算子** を 1 つのスクリプトに定義します. 中身はどれも「加算」または「乗算に 1 を足す」だけで, **異なるのは `infix` 宣言で与えた優先順位だけ** です.
 
-~~~ haskell
--- 実行例
-main :: IO ()
-main = do
-    print $ divisors 12       -- [1,2,3,4,6,12]
-    print $ divisors 13       -- [1,13]
-    print $ pythagoreans 20   -- [(3,4,5),(5,12,13),(6,8,10),(8,15,17),(9,12,15),(12,16,20)]
-~~~
+    ~~~ haskell
+    -- セット A: 通常の + * と同じく, 乗算系の方が優先順位が高い
+    (.+) :: Int -> Int -> Int
+    x .+ y = x + y
+    infixl 6 .+
+
+    (.*) :: Int -> Int -> Int
+    x .* y = x * y + 1
+    infixl 7 .*
+
+    -- セット B: セット A と逆に, 加算系の方が優先順位が高い
+    (+.) :: Int -> Int -> Int
+    x +. y = x + y
+    infixl 7 +.
+
+    (*.) :: Int -> Int -> Int
+    x *. y = x * y + 1
+    infixl 6 *.
+    ~~~
+
+    a. `2 .+ 3 .* 4` (セット A) の括弧付けと値を答えてください.
+
+    b. `2 +. 3 *. 4` (セット B) の括弧付けと値を答えてください.
+
+    c. (a) と (b) で値が異なる理由を, 演算子の定義に基づいて簡潔に説明してください.
 
 <details class="protected" data-pass="yakagika">
     <summary> 回答例 </summary>
 
-~~~ haskell
--- 1. n の正の約数: 1 から n までの整数のうち n を割り切るもの
-divisors :: Int -> [Int]
-divisors n = [ x | x <- [1..n], n `mod` x == 0 ]
+1. `infixr 5 .+` で右結合となるため, `1 .+ 2 .+ 3 = 1 .+ (2 .+ 3) = 1 .+ 5 = 6`. もし `infixl 5 .+` であれば `(1 .+ 2) .+ 3 = 3 .+ 3 = 6` と左から評価され, 今回は結果が同じになりますが, 結合性によって計算順が変わる点に注目してください.
 
--- 2. ピタゴラス数: a <= b <= c <= n かつ a^2 + b^2 = c^2
-pythagoreans :: Int -> [(Int, Int, Int)]
-pythagoreans n =
-    [ (a, b, c)
-    | a <- [1..n]
-    , b <- [a..n]
-    , c <- [b..n]
-    , a*a + b*b == c*c
-    ]
+~~~ haskell
+(.+) :: Int -> Int -> Int
+x .+ y = x + y
+infixr 5 .+
 
 main :: IO ()
 main = do
-    print $ divisors 12
-    print $ divisors 13
-    print $ pythagoreans 20
+    print $ 1 .+ 2 .+ 3   -- 6
 ~~~
 
-ジェネレータ `b <- [a..n]`, `c <- [b..n]` のように **前のジェネレータで束縛された変数を後続のジェネレータで使える** 点がポイントです. これにより $a \leq b \leq c$ という順序関係の下で候補を生成でき, 重複を避けられます.
+2. 括弧付けと値
+
+    a. `.*` の優先順位 (7) が `.+` (6) より高いので, `.*` が先に評価され `2 .+ (3 .* 4) = 2 .+ (3*4 + 1) = 2 .+ 13 = 15`
+
+    b. 今度は `+.` の優先順位 (7) が `*.` (6) より高いので, `+.` が先に評価され `(2 +. 3) *. 4 = 5 *. 4 = 5*4 + 1 = 21`
+
+    c. `(.*)` / `(*.)` の定義 `x * y + 1` は通常の乗算と異なり **分配法則 $a(b+c) = ab + ac$ を満たさない** ため, `(2 .+ 3) .* 4` と `2 .+ (3 .* 4)` は数学的にも別の式となります. どちらを先に評価するかで値が変わるため, 演算子の中身が同じでも `infix` 宣言で与える優先順位次第で **式の意味そのもの** が変わってしまいます.
+
+~~~ haskell
+-- 4 つの演算子を一つのスクリプトに同居させ, 同じ実行で両方の挙動を確認できる
+(.+) :: Int -> Int -> Int
+x .+ y = x + y
+infixl 6 .+
+
+(.*) :: Int -> Int -> Int
+x .* y = x * y + 1
+infixl 7 .*
+
+(+.) :: Int -> Int -> Int
+x +. y = x + y
+infixl 7 +.
+
+(*.) :: Int -> Int -> Int
+x *. y = x * y + 1
+infixl 6 *.
+
+main :: IO ()
+main = do
+    print $ 2 .+ 3 .* 4   -- 15 (= 2 .+ (3 .* 4))
+    print $ 2 +. 3 *. 4   -- 21 (= (2 +. 3) *. 4)
+~~~
 
 </details>
 
 :::
 
-### スマートコンストラクタ (発展)
+## カリー化,部分適用
 
-**型のレベル**で「他のデータ型から述語で絞り込んだ新しいデータ型」を作るには, **スマートコンストラクタ**というイディオムを用います. 代数的データ型の `data` / `newtype` 宣言そのものには述語で絞り込む機能はないため, `newtype` とモジュールシステムを組み合わせて事実上の絞り込みを実現します.
+Haskellでは多引数関数を実装できることは先程確認しました. しかし,Haskellは**すべての関数が,引数を一つだけとる**という原則があります. これは,矛盾するようですが,この矛盾を解消する概念が **カリー化(Currying)** です.
 
-たとえば,`Int` のうち「3の倍数」のみを要素とするデータ型 `Mult3`
+カリー化とは複数引数関数に対して,｢一つの引数を取り,次に残りの引数を取る関数を返すようにする変換｣です.
 
-$$\mathrm{Mult3} = \{n \mid n \in \mathrm{Int}, n \bmod 3 = 0\}$$
-
-を作りたいとします. 以下のようにモジュールを定義します.
+例として,以下のxとyを受け取りその和を返す関数`add`は
 
 ~~~ haskell
-module Mult3
-  ( Mult3        -- 型名は公開
-  , mkMult3      -- スマートコンストラクタ
-  , unMult3      -- 値の取り出し
-  ) where
-
--- コンストラクタ Mult3 は公開しない (モジュール外から直接作れないようにする)
-newtype Mult3 = Mult3 Int
-
--- 検査付きのコンストラクタ: 3 の倍数のときのみ Just を返す
-mkMult3 :: Int -> Maybe Mult3
-mkMult3 n
-  | n `mod` 3 == 0 = Just (Mult3 n)
-  | otherwise      = Nothing
-
--- 値の取り出し
-unMult3 :: Mult3 -> Int
-unMult3 (Mult3 n) = n
+add :: Int -> Int -> Int
+add x y = x + y
 ~~~
 
-ポイントは,`module` 宣言の出力リストで **コンストラクタ `Mult3` をエクスポートしていない**ことです. これにより,`Mult3` 型の値はモジュール外からは必ず `mkMult3` を経由してしか作れず,かつ `mkMult3` は 3 の倍数のときしか値を返しません. したがって `Mult3` 型の要素は必然的に $\{n \in \mathrm{Int} \mid n \bmod 3 = 0\}$ という述語付きの集合に対応する,という保証が値の生成経路のレベルで得られます.
-
-利用側は以下のようになります.
+実際には
 
 ~~~ haskell
-import Mult3
-
-main :: IO ()
-main = do
-    print $ mkMult3 9   -- Just (Mult3 9)
-    print $ mkMult3 10  -- Nothing
-    -- Mult3 10         -- ← コンパイルエラー: コンストラクタが見えない
+add :: Int -> (Int -> Int)
 ~~~
 
-::: warn
-スマートコンストラクタは,代数的データ型そのものの機能ではなく,**代数的データ型とモジュールシステムの組み合わせ**によって間接的に内包表記的な絞り込みを実現する実用的なイディオムです. 型システムそのものにもっと踏み込んだ絞り込みを型レベルで与えたい場合は,GADTs や Refinement Types (Liquid Haskell) などの拡張機能がありますが,本講義の範囲では扱いません.
+として機能しています. 関数の呼び出しは左結合なので,
+
+
+`add 5 10 = (add 5) 10` であり, ここで`(add 5) :: Int -> Int`という新たな関数に10が適用されています(以下は型の確認のためにghciを利用しています.)
+
+~~~ sh
+ghci> :{
+ghci| add :: Int -> Int -> Int
+ghci| add x y = x + y
+ghci| :}
+ghci> :t add
+add :: Int -> Int -> Int
+ghci> :t (add 5)
+(add 5) :: Int -> Int
+~~~
+
+Haskellでは,標準で全ての関数がカリー化されており,これによって関数の複数の引数のうち一部だけを与えて,残りの引数を持つ関数を生成する**`部分適用(Partial Application)`**が可能となっています.
+
+~~~ haskell
+-- add関数を利用した部分適用
+add5 :: Int -> Int
+add5 = add 5
+
+-- 実際の利用例
+result = add5 10
+~~~
+
+
+## 分岐
+
+関数型言語において,手続き型言語におけるIF文に相当するのが**パターンマッチ**と**指示関数(特性関数)**です.
+
+### パターンマッチ
+
+パターンマッチに近い概念は既にフィボナッチ数の漸化式として出てきています.フィボナッチ数の漸化式は,以下のように表されます.
+
+::: note
+$$
+F_0 = 1 \\
+F_1 = 1 \\
+F_n = F_{n-1} + F_{n-2} (n >= 2)
+$$
 :::
 
-## 直積型
+この関数はPythonでは,以下のようにif文による分岐で記述されるのが一般的です.
 
-$A \times B = \{(a, b) \mid a \in A, b \in B\}$ を $A$ と $B$ の **直積(Cartesian Product)** といいます. 直積は $A$ と $B$ から要素を一つずつ選んで並べた組 $(a, b)$ 全体からなる集合です. 日本語では**積集合(intersection)**と字面が似ていますが異なる概念なので注意しましょう.
+~~~ python
+def fib(x):
+    if x == 0:
+        return 1
+    elif x == 1:
+        return 1
+    else:
+        return fib(x-1) + fib(x-2)
 
-事例として $\mathrm{MyDogs}$ と整数の集合 $\mathbb{Z}$ の直積を考えると,
-
-$$\mathrm{MyDogs} \times \mathbb{Z} = \{(d, n) \mid d \in \mathrm{MyDogs}, n \in \mathbb{Z}\}$$
-
-となり, 「犬種と整数(たとえば年齢)のペア」全体の集合を表します. たとえば $(\mathrm{GoldenRetriever}, 3), (\mathrm{Beagle}, 7) \in \mathrm{MyDogs} \times \mathbb{Z}$ です.
-
-Haskellでは既に定義した `MyDogs` と `Int` の直積に相当する型を, 次のように定義できます. ここでは「犬種と年齢のペアを持つデータ型 `DogAge`」を定義します.
+~~~
+これをHaskellでパターンマッチを利用して以下のように定義することができます.
 
 ~~~ haskell
-data DogAge = MkDogAge MyDogs Int
-            deriving Show
+fib :: Int -> Int
+fib 0 = 1
+fib 1 = 1
+fib n = fib (n - 1) + fib (n - 2)
 ~~~
 
-**記法の解説:**
+このHaskellのコードは,
 
-- 左辺の `DogAge` は **型構築子(type constructor)**, 右辺の `MkDogAge` は **データ構築子(data constructor)** です. 直和型と違い, ここでは構築子は一つしかありません(`|` が無い).
-- データ構築子の後ろに **複数の型を空白区切りで並べる** ことで, その構築子が包む値が直積になります. `MkDogAge MyDogs Int` は「`MyDogs` と `Int` を並べた組」を構成するコンストラクタです.
-- 関数としての型は `MkDogAge :: MyDogs -> Int -> DogAge` となり, カリー化された2引数関数のように扱えます.
+- 関数`fib`の引数が`0`のときには返り値として`1`を返し,
 
-値の生成とパターンマッチは以下のようになります.
+- 関数`fib`の引数が`1`のときには返り値として`1`を返し,
+
+- 関数`fib`の引数が`それ以外`のときには返り値として`fib (n - 1) + fib (n - 2)`を返します.
+
+この最後の`fib n = fib (n - 1) + fib (n - 2)`は再帰関数といって後ほど扱いますが,取り敢えず,特定の引数に対して特定の返り値を指定するこのような関数の記述方法を**パターンマッチ**といいます.
+
+パターンマッチは,数値以外の引数に関しても適用可能であり,リストではリストの要素数に応じて使い分けることが多いです.
+
+以下の,`strHead`関数は,リストの先頭の要素を文字列として表示する関数です.リストが空のときには`"Empty"`,要素が一つのときにはその要素,それ以外のときには先頭の要素を文字列にして返します.
+
+`show`の詳細は後ほど扱いますが,どの様に標準出力に表示するかを定めてあるデータ型を文字列に変換する関数です.
+
+::: warn
+`Show a =>`の部分は任意のデータ型`a`が`show`を利用できるという制約を意味しており, **型クラス制約**といいます.
+クラスの詳細に関しては後ほど扱います.
+:::
 
 ~~~ haskell
-goldenAge :: DogAge
-goldenAge = MkDogAge GoldenRetriever 3
+strHead :: Show a => [a] -> String
+strHead []    = "Empty"
+strHead [x]   = show x
+strHead (x:_) = show x
 
-breedOf :: DogAge -> MyDogs
-breedOf (MkDogAge d _) = d
-
-ageOf :: DogAge -> Int
-ageOf (MkDogAge _ n) = n
-
-main :: IO ()
 main = do
-    print $ breedOf goldenAge  -- GoldenRetriever
-    print $ ageOf   goldenAge  -- 3
+    print $ strHead [] --  "Empty"
+    print $ strHead [3,4] --  "3"
 ~~~
 
-集合論的に解釈すると,
+パターンマッチはこのようにリスト`x:xs`の先頭部分`x`を指定するなどの利用法が可能です. 値の特定の部分を取得する用法として頻出なのがタプルを引数に取るパターンマッチです.
 
-$$\mathrm{DogAge} = \mathrm{MyDogs} \times \mathrm{Int}$$
-
-となります. `MkDogAge` は2つの集合の要素を一組にまとめる対応
-
-$$\mathrm{MkDogAge} : \mathrm{MyDogs} \times \mathrm{Int} \to \mathrm{DogAge}, \quad (d, n) \mapsto \mathrm{MkDogAge}\,d\,n$$
-
-に対応します.
-
-### レコード構文
-
-直和型と同様に, 直積型でも **レコード構文(record syntax)** を用いて各フィールドに名前を付けることができます. 直積型ではコンストラクタが一つのため, レコード構文の恩恵(アクセサ関数の自動生成やフィールド名による値の生成)が特に活きます.
+以下のコードは,3つ組のタプル`(x,y,z)`から指定した位置の値を取り出す関数`getFromTuple`です.
 
 ~~~ haskell
-data DogAge = MkDogAge { breed :: MyDogs
-                       , age   :: Int
-                       }
-            deriving Show
+getFromTuple (x,y,z) 0 = x
+getFromTuple (x,y,z) 1 = y
+getFromTuple (x,y,z) 2 = z
 ~~~
 
-この定義により, 以下のアクセサ関数が **自動的に** 定義されます.
+このような用法は後に紹介する代数的データ型を扱う際にも頻出します.
 
-- `breed :: DogAge -> MyDogs`
-- `age   :: DogAge -> Int`
 
-これらの **アクセサ関数(accessor function)** は, レコード構文の定義から **GHCが自動生成するトップレベル関数** で, レコード値からフィールドの値を取り出す役割を持ちます. たとえば `breed` は手書きすれば
+### ガード
 
-~~~ haskell
-breed :: DogAge -> MyDogs
-breed (MkDogAge b _) = b
-~~~
-
-と書いたものと等価で, パターンマッチによる取り出しを関数として包んだものに過ぎません. レコード構文の利点は, このような取り出し関数を **フィールドごとに自前で書く手間が省ける** ことにあります.
-
-アクセサ関数は他の関数と全く同様に **第一級の値(first-class value)** として扱えるため, 高階関数に渡したり, 関数合成 `(.)` で他の関数と繋げたり, 部分適用したりできます. パターンマッチによる取り出しを関数の中に書く場合と比べ, 簡潔に「フィールドを取り出してから何かする」という処理を組み立てられるのが大きな利点です.
-
-~~~ haskell
-dogs :: [DogAge]
-dogs = [ MkDogAge GoldenRetriever 3
-       , MkDogAge Beagle           7
-       , MkDogAge StandardPoodle   5
-       ]
-
--- 高階関数に渡す: 全ての犬の犬種だけを取り出したリスト
-allBreeds :: [MyDogs]
-allBreeds = map breed dogs
--- [GoldenRetriever, Beagle, StandardPoodle]
-
--- 高階関数に渡す: 年齢が 5 歳以上の犬を絞り込む
-matureDogs :: [DogAge]
-matureDogs = filter ((>= 5) . age) dogs
--- [MkDogAge Beagle 7, MkDogAge StandardPoodle 5]
-
--- 関数合成: 「犬種を取り出して show する」を一つの関数として定義
-showBreed :: DogAge -> String
-showBreed = show . breed
-~~~
-
-`filter ((>= 5) . age) dogs` のように, アクセサ関数 `age` と比較 `(>= 5)` を `(.)` で合成すれば「年齢を取り出して 5 以上か判定する」という関数を一行で表現できます. もしレコード構文を使わずにパターンマッチで毎回書いていたら, この箇所は `filter (\d -> case d of MkDogAge _ n -> n >= 5) dogs` のように冗長になります.
-
-なお, アクセサ関数名はモジュール内のトップレベルにそのまま展開されるため, 同じモジュールで別のレコード型に同名のフィールドを定義すると衝突します(回避には `DuplicateRecordFields` 言語拡張や, `dogAge` / `personAge` のような接頭辞付きの命名規約などが用いられます).
+数式における分岐は,指示関数を用いて行うこともできます.
 
 ::: note
 
-集合論では, 直積集合 $A \times B$ から各成分を取り出す関数を **射影(projection)** といい, $\pi_1, \pi_2$ で表します. 形式的には
-
-$$\pi_1 : A \times B \to A, \quad \pi_1((a, b)) = a$$
-
-$$\pi_2 : A \times B \to B, \quad \pi_2((a, b)) = b$$
-
-と定義され, 順序対 $(a, b) \in A \times B$ から第1成分・第2成分をそれぞれ取り出す操作を表します. これは $n$ 個の集合の直積 $A_1 \times A_2 \times \dots \times A_n$ に対しても自然に一般化され, 第 $i$ 成分を取り出す射影 $\pi_i : A_1 \times \dots \times A_n \to A_i$ が同様に定義されます.
-
+$$
+fib(n) =
+\begin{cases}
+1, ~if~n = 0 \\
+1, ~if~n = 1 \\
+fib(n-1) + fib(n-2),~if~n >=2
+\end{cases}
+$$
 :::
 
-レコード構文によって自動生成されるアクセサ関数は, この射影に対応します. すなわち $\mathrm{DogAge} = \mathrm{MyDogs} \times \mathrm{Int}$ と見なせば, `breed` は第1成分への射影 $\pi_1$, `age` は第2成分への射影 $\pi_2$ にあたり,
 
-$$\mathrm{breed}((d, n) \in \mathrm{DogAge}) = d$$
 
-$$\mathrm{age}((d, n) \in \mathrm{DogAge}) = n$$
-
-と書けます. このように, 直積型のレコード構文は集合論における直積と射影の構造を, そのままHaskellの構文として写したものになっています.
-
-値の生成はフィールド名を明示する形でも, 従来の位置引数の形でも可能です.
+Haskellにおいて指示関数の記法に相当するのが**ガード**です.
 
 ~~~ haskell
-goldenAge :: DogAge
-goldenAge = MkDogAge { breed = GoldenRetriever, age = 3 }
+fib :: Int -> Int
+fib n | n == 0    = 1
+      | n == 1    = 1
+      | n >= 2    = fib (n-1) + fib (n-2)
+      | otherwise = error "fib: negative input"
 
--- もしくは位置引数で
-goldenAge' :: DogAge
-goldenAge' = MkDogAge GoldenRetriever 3
-
-main :: IO ()
 main = do
-    print $ breed goldenAge  -- GoldenRetriever
-    print $ age   goldenAge  -- 3
+    print $ fib 5 --  8
 ~~~
 
-また, レコード構文では **一部のフィールドのみを更新した新しい値** を作る記法も利用できます. Haskellでは値は不変(再代入できない)なので,「更新」とは元の値を変更するのではなく, 一部を書き換えた **新しい値を返す** ことを意味します.
+特徴関数におけるifの位置が先に来ている以外は,基本的に対応関係にあるのがわかるかと思います. なお, 上のガードでは負の整数が来た場合に備えて `otherwise` で `error` を投げています. これは次節でも扱う通り「どのガードにも該当しない値」が来た場合に `Non-exhaustive guards` で落ちるのを防ぐためのフォールバックです.
+
+#### otherwise
+
+ガードの最後の分岐には, 慣例的に **`otherwise`** を置きます. `otherwise` は `Prelude` で次のように定義されている単なる `True` の別名であり, 必ず真と評価されるため「それまでのどのガードにも当てはまらなかった場合」のフォールバックとして機能します.
 
 ~~~ haskell
-olderGolden :: DogAge
-olderGolden = goldenAge { age = 10 }
--- MkDogAge { breed = GoldenRetriever, age = 10 }
+otherwise :: Bool
+otherwise = True
 ~~~
 
-直和型の場合と異なり, 直積型のレコードフィールドは単一のコンストラクタに属しているため **アクセサは全域関数** であり, 実行時エラーの心配はありません.
-
-::: warn
-直和型(複数のコンストラクタを持つ型)でレコード構文を使うと, **一部のコンストラクタにしか存在しないフィールドのアクセサは部分関数になる** 点に注意が必要です. たとえば `MyDogs` を使って, 犬種だけを持つコンストラクタと, 犬種と年齢の両方を持つコンストラクタを併せ持つ型を考えると以下のようになります.
+簡単な事例として, 整数の符号を文字列で返す関数 `sign` を考えます.
 
 ~~~ haskell
-data DogInfo = JustBreed { dogBreed :: MyDogs }
-             | WithAge   { dogBreed :: MyDogs, dogAge :: Int }
-             deriving Show
+sign :: Int -> String
+sign n | n > 0     = "正"
+       | n < 0     = "負"
+       | otherwise = "零"
 
-ghci> dogAge (JustBreed GoldenRetriever)
-*** Exception: No match in record selector dogAge
+main = do
+    print $ sign 5     -- "正"
+    print $ sign (-3)  -- "負"
+    print $ sign 0     -- "零"
 ~~~
 
-`dogAge` は `WithAge` のコンストラクタにしか定義されていないため, `JustBreed` の値に適用すると実行時エラーになります. 直和型でレコード構文を使う場合は, アクセサで直接取り出すのではなく **パターンマッチで取り出す** か, 後の章で扱う `Maybe` を返す形に包み直すのが安全です.
-:::
+`n > 0` も `n < 0` も成立しない場合(つまり `n == 0` のとき)に `otherwise` の分岐が選ばれます. もちろん `| n == 0 = "零"` と書いても等価ですが, `otherwise` を用いることで「残り全て」を網羅していることが明示されます.
+
+最後の `otherwise` を書き忘れて, かつどのガードにも該当しない値が渡された場合は `Non-exhaustive guards in function ...` という実行時エラーが発生するので注意してください.
+
+### case式
+
+パターンマッチをインデントブロックで実現する手法として**case式**があります. パターンマッチで判定する変数を`case 変数 of` のあとに指定して, それぞれのパターンとその結果を`->`でつなげる記法です. 指定のパターンに当てはまらないものすべて(これを**ワイルドカード**といいます)を指定するために`_`を利用します.
+
+~~~ haskell
+fib :: Int -> Int
+fib n = case n of
+        0 -> 1
+        1 -> 1
+        _ -> fib (n-1) + fib (n-2)
+
+main = do
+    print $ fib 5 --  8
+~~~
+
+ワイルドカードはどのような値に対しても同じ値を返す関数を実装する場合などにも利用されます.
+
+~~~ haskell
+
+return10 :: a -> Int
+return10 _ = 10
+~~~
+
+
+### if式
+
+Haskellにはifも存在します. `if 条件`に当てはまる場合の返り値を`then`で指定します. `else if` で条件を追加し, `else`でそれ以外のパターンを指定します. Pythonなどのif文と異なり,式なので`else`の場合の返り値も必ず指定する必要があります.
+
+
+~~~ haskell
+fib :: Int -> Int
+fib n = if n == 0 then 1
+        else if n == 1 then 1
+        else fib (n-1) + fib (n-2)
+
+main = do
+    print $ fib 5 --  8
+~~~
+
+Haskellではあまりif式は利用されませんが,
+1行で書けるため,式の中で部分的に利用する場合に便利です.
+
+~~~ haskell
+fib :: Int -> Int
+fib n = if n == 0 then 1 else if n == 1 then 1 else fib (n-1) + fib (n-2)
+~~~
 
 ::: note
 
 ### Exercise CH5-3
 
-**人物型 `Person` のレコード操作(更新構文・アクセサ)**
+**4 つの記法による `describe` の実装**
 
-1. 人物を表す直積型 `Person` を, 以下のフィールドを持つレコード構文で定義してください.
-    - `personName :: String` (氏名)
-    - `personAge :: Int` (年齢)
-    - `personEmail :: String` (メールアドレス)
+引数の整数 `n` に応じて以下のような文字列を返す関数 `describe :: Int -> String` を, **パターンマッチ**, **ガード**, **case式**, **if式** の4通りの方法でそれぞれ実装してください. 同じ関数が異なる分岐の記法でどのように表現されるかを確かめることが目的です.
 
-2. `Person` 型の値を受け取り, 年齢を1歳加えた新しい `Person` を返す関数 `birthday :: Person -> Person` を **レコード更新構文** を用いて実装してください.
-
-3. 2人の `Person` の年齢の合計を返す関数 `totalAge :: Person -> Person -> Int` を, レコード構文のアクセサ関数を用いて実装してください.
+- `n` が `0` のとき → `"zero"`
+- `n` が `1` のとき → `"one"`
+- `n` が `2` のとき → `"two"`
+- それ以外のとき → `"many"`
 
 ~~~ haskell
--- 実行例
-main :: IO ()
-main = do
-    let alice = Person { personName = "Alice", personAge = 30, personEmail = "alice@example.com" }
-        bob   = Person { personName = "Bob"  , personAge = 25, personEmail = "bob@example.com"   }
-    print $ birthday alice           -- Alice の年齢が 31 に
-    print $ totalAge alice bob       -- 55
+describe 0   -- "zero"
+describe 1   -- "one"
+describe 2   -- "two"
+describe 3   -- "many"
+describe 10  -- "many"
 ~~~
 
 <details class="protected" data-pass="yakagika">
     <summary> 回答例 </summary>
 
+- **パターンマッチ**による実装
+
 ~~~ haskell
-data Person = Person
-    { personName  :: String
-    , personAge   :: Int
-    , personEmail :: String
-    } deriving Show
-
--- レコード更新構文で年齢のみを更新した新しい値を返す
-birthday :: Person -> Person
-birthday p = p { personAge = personAge p + 1 }
-
--- アクセサ関数 personAge を利用して合計を計算
-totalAge :: Person -> Person -> Int
-totalAge p1 p2 = personAge p1 + personAge p2
-
-main :: IO ()
-main = do
-    let alice = Person { personName = "Alice", personAge = 30, personEmail = "alice@example.com" }
-        bob   = Person { personName = "Bob"  , personAge = 25, personEmail = "bob@example.com"   }
-    print $ birthday alice      -- Person {personName = "Alice", personAge = 31, personEmail = "alice@example.com"}
-    print $ totalAge alice bob  -- 55
+describe :: Int -> String
+describe 0 = "zero"
+describe 1 = "one"
+describe 2 = "two"
+describe _ = "many"
 ~~~
 
-レコード更新構文 `p { personAge = ... }` は `p` を破壊的に書き換えるのではなく, `personAge` のみを変えた新しい `Person` 値を作って返します. 他のフィールドは `p` のものがそのままコピーされるため, フィールド数が多いレコードの部分更新を簡潔に書けます.
+- **ガード**による実装
+
+~~~ haskell
+describe :: Int -> String
+describe n
+  | n == 0    = "zero"
+  | n == 1    = "one"
+  | n == 2    = "two"
+  | otherwise = "many"
+~~~
+
+- **case式**による実装
+
+~~~ haskell
+describe :: Int -> String
+describe n = case n of
+    0 -> "zero"
+    1 -> "one"
+    2 -> "two"
+    _ -> "many"
+~~~
+
+- **if式**による実装
+
+~~~ haskell
+describe :: Int -> String
+describe n = if n == 0 then "zero"
+             else if n == 1 then "one"
+             else if n == 2 then "two"
+             else "many"
+~~~
+
+- 実行例
+
+~~~ haskell
+main :: IO ()
+main = do
+    putStrLn $ describe 0   -- "zero"
+    putStrLn $ describe 1   -- "one"
+    putStrLn $ describe 2   -- "two"
+    putStrLn $ describe 3   -- "many"
+    putStrLn $ describe 10  -- "many"
+~~~
+
+いずれの記法でも,最後の「それ以外」を表す部分(パターンマッチとcase式では `_`,ガードでは `otherwise`,if式では最後の `else`)を忘れると,該当しない入力に対して実行時エラーとなるので注意してください.
 
 </details>
 
 :::
 
-## 直和型
 
-集合 $A$, $B$ の**和集合(union)**を $A \cup B$, **積集合(intersection)**を $A \cap B$ と表し, それぞれ以下で定義されます.
+## 再帰
 
-$$A \cup B = \{x \mid x \in A \lor x \in B\}$$
+Haskellにおいても**for文に相当する記法は存在します**が,基本的にループは**再帰**によって実装されます.
+再帰とは関数内で自分自身を呼び出すことです. これまで何度も登場していた`fib`も再帰を利用していましたが,
+もう少し細かく見てみましょう.
 
-$$A \cap B = \{x \mid x \in A \land x \in B\}$$
+以下のPythonにおけるfor文を事例に考えてみましょう.
 
-$A \cap B = \phi$ のとき, $A \cup B$ を $A$ と $B$ の **直和(Direct sum)** といいます.
-
-集合には集合が属することも可能で, 集合 $S$ が $T$ に属するとき $S \in T$ が成り立ちます. また, 集合 $S$ の要素を幾つか取り出した集合 $T$ を $S$ の **部分集合** といい, $T \subset S$ と表記します.
-
-$S = \{x, y, z\}$ のとき, $S$ の部分集合は
-
-$$\{x\},\ \{y\},\ \{z\},\ \{x, y\},\ \{x, z\},\ \{y, z\},\ \{x, y, z\},\ \phi$$
-
-となります.
-
-事例として $A, B \subset \mathrm{MyDogs}$, $A = \{\mathrm{GoldenRetriever}, \mathrm{BlackRetriever}, \mathrm{ShetlandSheepdog}\}$, $B = \{\mathrm{BlackRetriever}, \mathrm{StandardPoodle}\}$ のとき, 和集合 $A \cup B$ と積集合 $A \cap B$ はそれぞれ
-
-$$A \cup B = \{\mathrm{GoldenRetriever}, \mathrm{BlackRetriever}, \mathrm{ShetlandSheepdog}, \mathrm{StandardPoodle}\}$$
-
-$$A \cap B = \{\mathrm{BlackRetriever}\}$$
-
-となります. 和集合は「$A$ または $B$ のいずれかに属する要素」を集めた集合, 積集合は「$A$ と $B$ の両方に属する要素」のみを集めた集合です. このとき $A \cap B = \{\mathrm{BlackRetriever}\} \neq \phi$ なので, $A$ と $B$ は直和にはなりません. 一方, $A = \{\mathrm{GoldenRetriever}, \mathrm{ShetlandSheepdog}\}$, $B = \{\mathrm{BlackRetriever}, \mathrm{StandardPoodle}\}$ のように共通要素がない場合は $A \cap B = \phi$ となり, $A \cup B$ は $A$ と $B$ の直和となります.
-
-Haskellでは既に定義した `Int` と `MyDogs` の直和に相当する型を, 次のように定義できます. ここでは「整数または `MyDogs` のいずれかの値を持てるデータ型 `IntOrDog`」を定義します.
-
-~~~ haskell
-data IntOrDog = MkInt Int
-              | MkDog MyDogs
-              deriving Show
+~~~ python
+def total(xs):
+    result = 0
+    for x in xs:
+        result += x
+    return result
 ~~~
 
-**記法の解説:**
-
-- 左辺の `IntOrDog` は **型構築子(type constructor)**, 右辺の `MkInt`, `MkDog` は **データ構築子(data constructor)** と呼ばれます. どちらも大文字で始める必要があります.
-- `|` は「または」を意味し, `IntOrDog` の値は `MkInt <整数>` または `MkDog <犬>` のいずれかの形をとる, という **直和** を宣言します.
-- データ構築子の後ろに書かれた `Int`, `MyDogs` は包み込む値の型です. 具体的には `MkInt :: Int -> IntOrDog`, `MkDog :: MyDogs -> IntOrDog` という関数として扱えます.
-
-値を作ったり, パターンマッチで取り出したりできます.
+これと同値なプログラムをHaskellで記述すると以下のようになります.
 
 ~~~ haskell
-describe :: IntOrDog -> String
-describe (MkInt n) = "整数 " ++ show n
-describe (MkDog d) = "犬 "   ++ show d
+total :: [Int] -> Int
+total []     = 0
+total (x:xs) = x + total xs
 
-main :: IO ()
-main = do
-    putStrLn $ describe (MkInt 42)               -- 整数 42
-    putStrLn $ describe (MkDog GoldenRetriever)  -- 犬 GoldenRetriever
+main = print $ total [1..10] --  55
 ~~~
 
-集合論的に解釈すると, `MkInt` と `MkDog` という互いに異なるタグでくるむことで `Int` と `MyDogs` が **互いに素** な形で一つの型に合流するため,
+このtotal関数は,与えられたリストが空の場合0を返します.
+要素が一つ以上あるリストの場合には,先頭の要素`x`をそれ以降の要素`xs`の合計に足すという処理を再帰的に行います.
 
-$$\mathrm{IntOrDog} = \mathrm{Int} \cup \mathrm{MyDogs} \quad (\mathrm{Int} \cap \mathrm{MyDogs} = \phi)$$
+`total [1,2,3]`における処理の流れを追っていくと以下のようになります.
 
-という **直和** になります. 一般に, 代数的データ型の `|` で分けたコンストラクタは必ずタグで区別されるため, Haskellの直和型は常に直和の構造を持ちます.
+~~~
+total [1,2,3]
+= 1 + (total [2,3])
+= 1 + (2 + (total [3]))
+= 1 + 2 + 3 + (total [])
+= 1 + 2 + 3 + 0
+= 6
+~~~
 
-なお, データ構築子は任意個の引数を取ることができ, `MkPair Int MyDogs` のように複数の型を並べると, その部分は **直積** になります. つまり直和型の各コンストラクタは「いくつかの直積をタグ付きで合流させたもの」として解釈できます.
+再帰の基本は,**ループの終了状態**をパターンマッチなどで指定して,そこに至るまでの状態の変化を再帰で記述することです.
+処理がどのような状態になったら終わるのかを意識して記述しないと永遠に終了しないプログラムになるので注意しましょう.
 
 
-このように, 直和にすることで互いに異なる型の値を一つの型に集約でき, 型安全性を保ったまま「複数の型のいずれかをとる値」を表現できるようになります. 動的型付け言語におけるダックタイピングに似た柔軟さを, 型システムの保証を壊さずに実現する手段と考えることができます.
 
 ::: note
 
 ### Exercise CH5-4
 
-**図形型 `Shape` と面積計算(ヘロンの公式)**
+**再帰による `length2` と FizzBuzz**
 
-1. 図形を表す直和型 `Shape` を以下の3つのコンストラクタで定義してください.
-    - `Circle` : 半径(`Double`)を1つ持つ
-    - `Rectangle` : 幅と高さ(`Double` 2つ)を持つ
-    - `Triangle` : 3辺の長さ(`Double` 3つ)を持つ
+1. リストの長さを返す`length2 :: [a] -> Int` 関数を新しく実装してください.
 
-2. `Shape` の値を受け取り, その図形の面積を返す関数 `area :: Shape -> Double` をパターンマッチで実装してください. 三角形の面積はヘロンの公式
+2. 与えられた整数のリストを引数にとり,要素毎にFizzBuzzを実行した結果を文字列のリストで返す関数
+`fizzBuzz :: [Int] -> [String]`実装してください.
 
-    $$s = \frac{a + b + c}{2}, \quad S = \sqrt{s(s-a)(s-b)(s-c)}$$
+FizzBuzzは,プログラミング学習で題材としてよく用いられる問題で,整数 `n` を以下のルールに従って文字列に変換します.
 
-    を用います. 各変数の意味は以下の通りです.
+- `n` が **3と5の両方の倍数(=15の倍数)** のときは `"FizzBuzz"`
+- `n` が **3の倍数** のときは `"Fizz"`
+- `n` が **5の倍数** のときは `"Buzz"`
+- それ以外のときは `n` をそのまま文字列化したもの(`show n`)
 
-    - $a, b, c$: 三角形の **3 辺の長さ** (`Triangle` コンストラクタの 3 つの `Double` に対応)
-    - $s$: **半周長 (semi-perimeter)**. すなわち 3 辺の長さの和の半分 $\frac{a+b+c}{2}$
-    - $S$: 求める **三角形の面積**
+例えば `[1..15]` を入力すると,以下の結果が得られます.
 
 ~~~ haskell
--- 実行例
-main :: IO ()
-main = do
-    print $ area (Circle 1)            -- 3.141592653589793
-    print $ area (Rectangle 3 4)       -- 12.0
-    print $ area (Triangle 3 4 5)      -- 6.0
+fizzBuzz [1..15]
+-- ["1","2","Fizz","4","Buzz","Fizz","7","8","Fizz","Buzz","11","Fizz","13","14","FizzBuzz"]
 ~~~
+
+なお,3と5の両方の倍数のケースを先に判定しないと `"Fizz"` や `"Buzz"` にマッチしてしまうため,条件の順序に注意が必要です.
 
 <details class="protected" data-pass="yakagika">
     <summary> 回答例 </summary>
 
 ~~~ haskell
-data Shape = Circle Double
-           | Rectangle Double Double
-           | Triangle Double Double Double
-           deriving Show
+-- 1. リストの長さを再帰で求める
+length2 :: [a] -> Int
+length2 []     = 0
+length2 (_:xs) = 1 + length2 xs
 
-area :: Shape -> Double
-area (Circle r)       = pi * r * r
-area (Rectangle w h)  = w * h
-area (Triangle a b c) = sqrt (s * (s - a) * (s - b) * (s - c))
+-- 2. 各要素を FizzBuzz 文字列へ変換
+fizzBuzz :: [Int] -> [String]
+fizzBuzz []     = []
+fizzBuzz (x:xs) = fb x : fizzBuzz xs
   where
-    s = (a + b + c) / 2
+    fb n
+      | n `mod` 15 == 0 = "FizzBuzz"
+      | n `mod`  3 == 0 = "Fizz"
+      | n `mod`  5 == 0 = "Buzz"
+      | otherwise       = show n
 
+-- 実行例
 main :: IO ()
 main = do
-    print $ area (Circle 1)       -- 3.141592653589793
-    print $ area (Rectangle 3 4)  -- 12.0
-    print $ area (Triangle 3 4 5) -- 6.0
+  print $ length2 [1,2,3,4,5]           -- 5
+  print $ length2 "hello"               -- 5
+  print $ fizzBuzz [1..15]
+  -- ["1","2","Fizz","4","Buzz","Fizz","7","8","Fizz","Buzz","11","Fizz","13","14","FizzBuzz"]
 ~~~
-
-直和型の各コンストラクタが異なる数・種類の引数を持ってよいため, 図形ごとに必要な情報を自然に表現できます. 面積計算のような処理はパターンマッチで場合分けして書くのが定石です.
 
 </details>
 
 :::
 
 
-## type
 
-これまで新しいデータを作成するためには `data` を利用してきました. しかし, 新しい型を作るほどではないものの, **同じ表現型 (たとえば `Double`) に文脈上の意味を持つ名前を与えて, 可読性を高めたい** 場合があります.
-既存のデータ型に別名を与える最も簡単な方法が, `type` を用いて **型シノニム (type synonym)** と呼ばれる別名を導入する方法です.
+## 高階関数
+これまで扱ってきた関数の引数はすべて,値でしたが値ではなく**関数**を引数として指定することが可能です. **関数を引数に取る関数を高階関数といいます**.
 
-例えば, 
-
-~~~ haskell 
-data Rectangle = Rectangle Double Double
-    deriving Show
-
-mkRectangle :: Double -> Double -> Rectangle
-mkRectangle b h = Rectangle b h
-~~~
-
-としたとき, 最初の引数と2つ目の引数のどちらが底辺で, どちらが高さなのかが判別できません.
-
-~~~ haskell 
-data Rectangle = Rectangle {bottom :: Double
-                           ,height :: Double}
-    deriving Show
-
-mkRectangle :: Double -> Double -> Rectangle
-mkRectangle b h = Rectangle {bottom = b, height = h}
-~~~
-
-のようにレコード構文を用いることでフィールド名による区別は可能ですが, 型注釈側にも意味のある名前が現れる方が, さらに可読性と解釈可能性が上がります.
-
-`type 新しい型名 = 既存のデータ型`
-
-の形式で記述することで, 以下のように同じ `Double` に別名を付けることができます.
+例えば関数`f`とリスト`[x,y,z]`を引数として受け取り,リストの各要素に`f`を適用したリスト`[f x, f y, f z]`を返す関数は以下のように実装できます.
 
 ~~~ haskell
-type Bottom = Double
-type Height = Double
+applyFToList :: (a -> b) -> [a] -> [b]
+applyFToList _ []     = []
+applyFToList f (x:xs) = f x : applyFToList f xs
 
-data Rectangle = Rectangle {bottom :: Bottom
-                           ,height :: Height}
-    deriving Show
-
-mkRectangle :: Bottom -> Height -> Rectangle
-mkRectangle b h = Rectangle {bottom = b, height = h}
+main = do
+    print $ applyFToList (2*) [4,5,6]  -- [8,10,12]
+    print $ applyFToList (1+) [4,5,6]  -- [5,6,7]
+    print $ applyFToList show [4,5,6]  -- ["4","5","6"]
+    print $ applyFToList fib  [4,5,6]  -- [5,8,13]
 ~~~
 
-これは集合論的には, **既知の集合 $\mathbb{R}$ に対して別名 $\text{Bottom}, \text{Height}$ を与えたもの** に等しく, 集合としては $\text{Bottom} = \text{Height} = \mathbb{R}$ で完全に同一です. つまり `type` は **新しい集合 (型) を構成しているわけではなく, 既存の型に別名 (alias) を導入しているだけ** であり, 役割は **可読性のための注釈** に限られます.
+関数部分は, `(a -> b)`のように,丸括弧で囲んでいます.
+
+### map
+
+この関数と同じものが組み込み関数(あらかじめ定義された関数)として提供されている代表的な高階関数`map :: (a -> b) -> [a] -> [b]`です.
+
+~~~ haskell
+main = do
+    print $ map (2*) [4,5,6]  -- [8,10,12]
+    print $ map (1+) [4,5,6]  -- [5,6,7]
+    print $ map show [4,5,6]  -- ["4","5","6"]
+    print $ map fib  [4,5,6]  -- [5,8,13]
+~~~
 
 ::: warn
-そのため, 型レベルで $\text{Bottom}$ と $\text{Height}$ を区別したい (例えば底辺と高さを取り違えるとコンパイルエラーになるようにしたい) 場合には, `type` では不十分です. その場合には次節で扱う `newtype` や, 専用のコンストラクタを持つ `data` を用いる必要があります.
+- Prelude
+---
+Haskellの組み込み関数はライブラリ`Prelude`として提供されています.
+`Prelude`はすべてのプロジェクトで自動で読み込まれています.
+
+`map`関数は他のライブラリでも同名のものが提供されているため,それらと名前が被っている場合はどちらの`map`を利用するのか判別できないというエラーが起きます.
+
+例として,`Data.Text`も`map`を提供しているために,`Data.Text`を`import`している場合には以下のようなエラーが出ます.
+
+~~~ sh
+Ambiguous occurrence ‘map’
+    It could refer to
+       either ‘Prelude.map’,
+              imported from ‘Prelude’ at app/practice.hs:1:1
+              (and originally defined in ‘GHC.Base’)
+           or ‘Data.Text.map’,
+              imported from ‘Data.Text’ at app/practice.hs:4:1-16
+~~~
+
+同名の関数が複数のライブラリで定義されている場合は,`Prelude.map`など,どのライブラリの`map`であるかを明示するか,
+`hiding`を利用して特定の関数のみを`import`対象から外します.
+
+~~~ haskell
+import Data.Text hiding (map)
+-- map 以外すべてをimport
+~~~
+
+あるいは,利用する関数のみを明示的に`import`することも可能です.
+
+~~~ haskell
+import Data.Text hiding (Text,empty)
+-- Text,emptyのみをimport
+~~~
+
+:::
+
+以下, よく用いられる代表的な高階関数に関して紹介します.
+
+### filter
+
+`filter :: (a -> Bool) -> [a] -> [a]`はリストの中から与えられた関数で判定される条件に合致するもののみを抽出する関数です.
+
+
+~~~ haskell
+{-# LANGUAGE OverloadedStrings #-}
+import Data.Text (elem)
+
+main = do
+    print $ filter (10 < ) [5,10,15,20] --  [15,20]
+    print $ filter (Data.Text.elem 'a') ["cat","dog","bird"] --  ["cat"]
+~~~
+
+### fold
+`foldl :: (a -> b -> a) -> a -> [b] -> a`,
+
+`foldr :: (a -> b -> b) -> b -> [a] -> b`
+
+は畳み込み関数です. `foldl` はリストの左端, `foldr` はリストの右端から値を一つずつ抜き出して, 2引数関数によって一つの値に畳み込んでいきます.
+
+::: warn
+合計や積のように **アキュムレータに値を蓄積していく** 用途では, `Prelude` の `foldl` は遅延評価のため未評価のサンクが積み上がりスペースリークを起こすことがあります. 実用上は `Data.List` の **`foldl'`** (正格版)を使うのが定石です. 一方で `foldr` は遅延評価の恩恵で無限リストや短絡評価と相性が良く, 用途によって使い分けるのが一般的です.
+:::
+
+例として,
+
+~~~ haskell
+main = do
+    print $ foldl (+) 0 [1,2,3] --  6
+~~~
+
+の挙動は,
+
+`foldl (+) 0 [1,2,3]`
+
+`foldl (+) (0+1) [2,3]`
+
+`foldl (+) (1+2) [3]`
+
+`foldl (+) (3+3) []`
+
+`6`
+
+となります.
+
+### zipWith, zip
+
+`zipWith :: (a -> b -> c) -> [a] -> [b] -> [c]`
+
+は2つのリストからそれぞれ値を順番に取り出して,関数を適用した結果をリストに格納する高階関数です.
+
+例として.
+
+~~~ haskell
+main = do
+    print $ zipWith (++) ["a","b","c"] ["x","y","z"] --  ["ax","by","cz"]
+~~~
+
+の挙動は,
+
+`zipWith (++) ["a","b","c"] ["x","y","z"] `
+
+`["a" ++ "x" ,"b" ++ "y","c" ++ "z"]`
+
+となります.
+
+`zip :: [a] -> [b] -> [(a,b)]`
+
+は2つのリストからそれぞれ値を順番に取り出して,`[(左のリスト値,右のリストの値)]`を返す関数です.
+タプルを返す2引数関数 `,` によって `zipWith (,)` として実装されます.
+
+~~~ haskell
+zip' :: [a] -> [b] -> [(a,b)]
+zip' = zipWith (,)
+
+tuple :: a -> b -> (a,b)
+tuple a b = (a,b)
+
+zip'' :: [a] -> [b] -> [(a,b)]
+zip'' = zipWith tuple
+
+main = do
+    print $ zip [1,2,3] [11,12,13] --  [(1,11),(2,12),(3,13)]
+    print $ zip' [1,2,3] [11,12,13] --  [(1,11),(2,12),(3,13)]
+    print $ zip'' [1,2,3] [11,12,13] --  [(1,11),(2,12),(3,13)]
+~~~
+
+::: note
+
+### Exercise CH5-5
+
+**`map` / `foldl` / `zipWith` の活用**
+
+- 与えられた整数のリストの各要素を二乗する関数squareListを,mapを使って定義してください.
+
+~~~ haskell
+squareList [1,2,3,4] -- [1,4,9,16]
+~~~
+
+- 整数のリストの総積を計算する関数productListを,foldlを使って定義してください.
+
+~~~ haskell
+productList [1,2,3,4] -- 24
+~~~
+
+
+- 2つのリストから,それぞれの要素の大きい方を選んで新しいリストを作る関数maxListを,zipWithを使って定義してください.
+
+~~~ haskell
+maxList [1,4,3] [2,2,5] -- [2,4,5]
+~~~
+
+
+<details class="protected" data-pass="yakagika">
+    <summary> 回答例 </summary>
+
+~~~ haskell
+-- map で各要素を 2 乗
+squareList :: [Int] -> [Int]
+squareList xs = map (^2) xs
+
+-- foldl で積を畳み込み (初期値 1)
+productList :: [Int] -> Int
+productList xs = foldl (*) 1 xs
+
+-- zipWith で 2 要素ごとに大きい方を取る
+maxList :: [Int] -> [Int] -> [Int]
+maxList xs ys = zipWith (\x y -> if x > y then x else y) xs ys
+
+-- 実行例
+main :: IO ()
+main = do
+  print $ squareList  [1,2,3,4]         -- [1,4,9,16]
+  print $ productList [1,2,3,4]         -- 24
+  print $ maxList     [1,4,3] [2,2,5]   -- [2,4,5]
+~~~
+
+</details>
+
+:::
+
+## 無名関数(ラムダ式)
+
+高階関数に与える関数はその場限りの利用となる場合が多いため,先程の`zipWith`と`tuple`によって`zip`を定義した例のように, いちいち別の関数名をつけることは手間が多くなり,コードも冗長になりがちです.
+そのような場合に, 使い捨ての関数を定義する手法が,**無名関数(ラムダ式) Lambda expression**です.
+
+ラムダ計算は$\lambda$を表す記号,`\`を用いて, `\ 引数 -> 返り値`の形で式を定義できます.
+
+例として,
+
+`f x y z = x + y + z` は
+
+`\ x y z -> x + y + z` となります.
+
+`zipWith` の例は以下のようにも定義できます.
+
+~~~ haskell
+main = do
+    print $ zip [1,2,3] [11,12,13] -- [(1,11),(2,12),(3,13)]
+    print $ zipWith (\ x y -> (x,y)) [1,2,3] [11,12,13] --  [(1,11),(2,12),(3,13)]
+~~~
+
+また,練習問題中の`maxList`は,以下のように定義できます.
+
+
+~~~ haskell
+main = do
+    print $ zipWith (\x y -> if x > y then x else y)
+                    [1,4,3]
+                    [2,2,5] -- [2,4,5]
+~~~
+
+::: note
+- `flip` と高階関数
+---
+
+`flip :: (a -> b -> c) -> b -> a -> c`は,**関数の引数の順番を入れ替える関数**であり,以下のような挙動を示します.
+
+~~~ haskell
+main = do
+   print $ (,) "a" "b" -- ("a","b")
+   print $ flip (,) "a" "b" -- ("b","a")
+   ---
+   print $ (>) 1 2 -- False
+   print $ flip (>) 1 2 -- True
+~~~
+
+高階関数にラムダ式を組み合わせたことで,記述が長くなった場合などには,`flip`で引数の関数とリストを入れ替え,**手続き型言語における`for文`に近い記法**を採用する場合があります.
+
+
+~~~ haskell
+main :: IO ()
+main = do
+   print $ flip map [-3 .. 3]
+         $ \ x -> case x >= 0 of
+                True  -> 1
+                False -> 0
+        -- [0,0,0,1,1,1,1]
+~~~
+
+このような`flip`,ラムダ式と`$`を組み合わせた記法は今後の**状態系**や**モナド**に関する議論などで頻出します.
+また,このような書き方を前提とした`forM`,`forM_`などの関数も登場するので,頭の片隅に入れておいてください.
+
+:::
+
+::: note
+
+### Exercise CH5-6
+
+**ラムダ式と高階関数の組合せ**
+
+- ラムダ式と高階関数を利用して,リストの各要素に3を加える関数addThreeを定義してください.
+
+~~~ haskell
+addThree [1,2,3] -- [4,5,6]
+~~~
+
+- ラムダ式と高階関数を利用して,整数のリストから偶数だけを取り出す関数onlyEvenを定義してください.
+
+~~~ haskell
+onlyEven [1,2,3,4,5,6] -- [2,4,6]
+~~~
+
+- ラムダ式と高階関数を利用して,整数のリストに含まれる要素の絶対値の合計を求める関数sumAbsを定義してください.
+
+~~~ haskell
+sumAbs [-3,4,-1,2] -- 10
+~~~
+
+<details class="protected" data-pass="yakagika">
+    <summary> 回答例 </summary>
+
+~~~ haskell
+-- map とラムダ式で各要素に 3 を足す
+addThree :: [Int] -> [Int]
+addThree xs = map (\x -> x + 3) xs
+
+-- filter とラムダ式で偶数のみを取り出す
+onlyEven :: [Int] -> [Int]
+onlyEven xs = filter (\x -> x `mod` 2 == 0) xs
+
+-- map で絶対値へ変換してから sum で合計
+sumAbs :: [Int] -> Int
+sumAbs xs = sum (map (\x -> abs x) xs)
+
+-- 実行例
+main :: IO ()
+main = do
+  print $ addThree [1,2,3]         -- [4,5,6]
+  print $ onlyEven [1,2,3,4,5,6]   -- [2,4,6]
+  print $ sumAbs   [-3,4,-1,2]     -- 10
+~~~
+
+</details>
+
 :::
 
 
-## newtype
+## 関数合成
+
+数学において,2つの関数 $f(x), g(x)$があるとき, $f(g(x))$を合成関数と呼び, $$f \circ g $$ とも書きます.
+通常Haskellでも関数を合成する場合には,
+
+`f (g x)` あるいは `f $ g x` と書きますが,関数 `(.)`によって `(f . g) x` と書くことができます.
+関数定義においては
+
+`h = f . g` のように定義することが可能です.
 
 
+~~~ haskell
+f :: Int -> Int
+f x = 2 * x
 
-yakagika
+g :: Int -> Int
+g x = 3 + x
+
+
+-- 実行例
+main :: IO ()
+main = do
+    -- f(g(x))
+    print $ f $ g 2 -- 10
+    -- (f . g) x, すなわち合成関数
+    print $ (f . g) 2 -- 10
+    -- 定義
+    let h = f . g
+    print $ h 2 -- 10
+~~~
+
+
+## 変数(値の束縛)
+
+Pythonなどの言語では,特定の変数に値を代入することができます.例えば,以下の最大値を求めるプログラムでは,変数`m`に最初の中身はリストの最初の要素が代入された後,次々とより大きな変数が代入されていきます. `変数`は名前の通り,次々とその値を変更していきます.
+
+~~~ python
+xs = [3,5,2,4,6,7,1]
+m  = xs[0]
+
+for x in xs[1:]:
+    if x > m:
+        m = x
+print('max value:',m)
+~~~
+
+一方でHaskellでは,変数に一度値を割り当てると,その変数の値を後から変更することができません. 変数に値を再代入するという操作が許されていないのです. この性質を`不変性` (immutability) といいます. したがって,Haskellでは代入という言葉を使わず`束縛`といいます.
+これは,通常の手続き型言語との大きな違いになります.
+
+::: warn
+※1 値を変えられないなら｢変数じゃない｣じゃないという意見もありますが,数学において変数と呼ばれているものに近い概念だと考えましょう.
+
+※2 実は後にでてくる`State`や`ST`などHaskellでも`再代入(破壊的代入)`を扱うことはできますが,特定の仕組みによって以下の純粋関数型言語の特徴を保っています.
+:::
+
+例えば,以下のように一度値を束縛した変数に新しく変数を代入しようとすると`xという変数に複数の宣言をしている`というエラーが出ます(ghciでやる場合には,`:{ :}`を入れる必要があり余計にややこしいですね.すみません).
+
+~~~ haskell
+ghci> :{
+ghci| x = 1
+ghci| x = 2
+ghci| :}
+
+<interactive>:5:1: error:
+    Multiple declarations of ‘x’
+    Declared at: <interactive>:4:1
+                 <interactive>:5:1
+~~~
+
+これは一見非常に不便なように感じられますが,これによって関数型プログラムでは,プログラムの安全性を高めています.
+
+例えばPythonにおける以下のプログラムについて考えてみましょう.
+
+~~~ python
+counter = 0
+
+def count_plus(x):
+    global counter
+    counter += x
+    return counter
+
+print(count_plus(1))  # 出力: 1
+print(count_plus(1))  # 出力: 2
+~~~
+
+このプログラムでは,`count_plus()`関数に対して同じ引数1を与えているにもかかわらず,関数を呼び出すたびに,グローバル変数`counter`が変更されて,結果が変わります. 同じ関数を呼び出しても,結果が変わるために関数のみから,関数の挙動を把握することができません.
+
+一方でHaskellでは,常に同じ関数は,同じ入力に対して,同じ返り値を返します. このような特性を**参照透過性(Referential Transparency)**と呼び,これによってプログラムの挙動を把握しやすくしています.
+
+また,上記のPythonのプログラムは,関数を実行するたびに,関数の外にある,`counter`という変数の状態が変化しています. このような,関数が実行されることで単に値を返す以外に何らかの｢外部の状態を変化させる｣ことを関数の**副作用(Side Effect)**といいます. これは言い換えれば,関数の実行によるプログラム全体への影響が,関数以外の外部の状態に依存していることを意味しており,プログラムの挙動を予測することを難しくします.
+
+参照透過性と副作用は相互に結びついた概念ですが,Haskellでは参照透過性を保ち,副作用を排除するようにプログラムが設計されています.
+このように, **｢参照透過性｣** と **｢副作用の排除｣** の両方を持った関数型言語を **純粋関数型言語** と呼びHaskellの大きな特徴の一つです.
+
+Haskellにおいて,変数への再代入が禁止されていることのメリットは理解していただけたかと思いますが,Haskellにも変数自体はあります.
+
+Haskellにおける変数は主に,**トップレベル変数**及び**ローカル変数**に大別されます.
+
+### トップレベル変数
+
+先程の `x=1`のように,独立して宣言される変数を`トップレベル変数`と呼びます. トップレベル変数は,Pythonなどの言語における`グローバル変数`と同様に,スクリプト内のどの場所からでも利用することができます.
+
+
+~~~ haskell
+x = 1
+
+someFunc :: Int -> Int
+someFunc y = x + y
+
+main = do
+    print $ someFunc 1 --  2
+~~~
+
+### ローカル変数
+手続き型言語においてスコープが制限された変数のように,特定の関数内でのみ参照可能な局所変数として,**ローカル変数**が存在します. Haskellにおけるローカル変数は, `let式`,`where節`の2つのパターンが用意されています(ラムダ式内の引数も見方によってはローカル変数かもしれません.)
+
+#### let式
+関数内で `let 宣言 in 式`の形式で局所変数を定義できます.
+
+~~~ haskell
+someFunc :: Int -> Int
+someFunc y = let x = 1
+           in x + y
+
+main = do
+    print $ someFunc 1 --  2
+~~~
+
+この変数`x`は別の関数内で参照することはできません.
+
+~~~ haskell
+someFunc :: Int -> Int
+someFunc y = let x = 1
+           in x + y
+
+someFunc2 :: Int -> Int
+someFunc2 y = x + y
+
+main = do
+    print $ someFunc2 1 --  Variable not in scope: x :: Int
+~~~
+複数の宣言をひとまとめにすることも可能です.
+
+~~~ haskell
+someFunc :: Int -> Int
+someFunc z = let x = 1
+                 y = 2
+           in x + y + z
+
+main = do
+    print $ someFunc 1 --  4
+~~~
+
+#### where節
+数式の直後にインデントをつけて`where 宣言`と書くことでも局所変数や局所関数を定義できます.
+
+~~~ haskell
+someFunc :: Int -> Int
+someFunc z = f z
+    where
+    x = 1
+    y = 2
+    f z = x + y + z
+
+main = do
+    print $ someFunc 1 --  4
+~~~
+
+## 練習問題(関数総合)
+
+::: note
+
+### Exercise CH5-7
+
+**統計量 (標本標準偏差・積率相関係数)**
+
+- 与えられたリストの標本標準偏差`s`を計算する関数を実装してください.
+
+- 与えられた2つのリストの積率相関係数`r`を計算する関数を実装してください.
+
+それぞれの定義は以下とします.
+
+$$
+s = \sqrt{\frac{\sum_{i=1}^{n}(x_i - \bar{x})^2}{n}}
+$$
+$$
+r = \frac{\sum_{i=1}^{n}(x_i - \bar{x})(y_i - \bar{y})}{\sqrt{\sum_{i=1}^{n}(x_i - \bar{x})^2 \sum_{i=1}^{n}(y_i - \bar{y})^2}}
+$$
+
+~~~ haskell
+-- 実行例
+main :: IO ()
+main = do
+  let xs = [1, 2 .. 5]
+      ys = [5, 4 .. 1]
+  putStrLn $ "標準偏差: " ++ show (stddev xs) --  1.4142135623730951
+  putStrLn $ "相関係数: " ++ show (correlation xs ys) -- -0.9999999999999998
+~~~
+
+
+<details class="protected" data-pass="yakagika">
+    <summary> 回答例 </summary>
+
+~~~ haskell
+-- 平均値を求める関数
+mean :: [Double] -> Double
+mean xs = sum xs / fromIntegral (length xs)
+
+-- 標本標準偏差を求める関数
+stddev :: [Double] -> Double
+stddev xs = sqrt variance
+  where
+    m = mean xs
+    n = fromIntegral (length xs)
+    variance = sum (map (\x -> (x - m)^2) xs) / n
+
+-- 積率相関係数を求める関数
+correlation :: [Double] -> [Double] -> Double
+correlation xs ys = covariance / (stddev xs * stddev ys)
+  where
+    mx = mean xs
+    my = mean ys
+    n  = fromIntegral (length xs)
+    covariance = sum (zipWith (\x y -> (x - mx)*(y - my)) xs ys) / n
+
+-- 実行例
+main :: IO ()
+main = do
+  let xs = [1, 2 .. 5]
+      ys = [5, 4 .. 1]
+  putStrLn $ "標準偏差: " ++ show (stddev xs) --  1.4142135623730951
+  putStrLn $ "相関係数: " ++ show (correlation xs ys) -- -0.9999999999999998
+~~~
+
+</details>
+
+
+### Exercise CH5-8
+
+**パーセプトロン (OR 回路の発火関数)**
+
+- or 回路を表すパーセプトロンの発火関数 `f x1 x2` を以下のように定める.
+(パーセプトロンの意味などがわからない場合は, [特別講義資料](slds14.html)を参照のこと)
+
+$$
+f(x1, x2) =
+\begin{cases}
+1 & (0.5 x_1 + 0.5 x_2 \geq 0.2)\\
+0 & (\text{otherwise})
+\end{cases}
+$$
+
+この回路を表す`perceptronOR :: Bool -> Bool -> Bool`を実装せよ.
+
+~~~ haskell
+-- 実行例
+main :: IO ()
+main = do
+   print $ perceptronOR False False -- False
+   print $ perceptronOR True False  -- True
+   print $ perceptronOR False True  -- True
+   print $ perceptronOR True True   -- True
+~~~
+
+<details class="protected" data-pass="yakagika">
+    <summary> 回答例 </summary>
+
+~~~ haskell
+perceptronOR :: Bool -> Bool -> Bool
+perceptronOR x1 x2
+  | threshold >= 0 = True
+  | otherwise      = False
+  where
+    g True  = 1
+    g False = 0
+    threshold = 0.5 * g x1 + 0.5 * g x2 - 0.2
+
+-- 実行例
+main :: IO ()
+main = do
+   print $ perceptronOR False False -- False
+   print $ perceptronOR True False  -- True
+   print $ perceptronOR False True  -- True
+   print $ perceptronOR True True   -- True
+~~~
+
+</details>
+
+:::
+
+
+## エラー修正演習
+
+ここからは本章で扱った **関数定義** に関わる典型エラーを解決する演習です. 関数を書き始めると, fp4 で学んだエラー以外に **関数特有のエラーパターン** も頻出します. 実エラーを読み, 原因を答えて修正してください.
+
+::: note
+
+### Exercise CH5-9
+
+**関数定義中の型不一致**
+
+以下の関数は `Int` を受け取って `Int` を返すと宣言されているが, コンパイルが通りません. 原因を答えて修正してください.
+
+~~~ haskell
+-- ch5-9.hs (誤りあり)
+f :: Int -> Int
+f x = x ++ "!"
+
+main :: IO ()
+main = print (f 1)
+~~~
+
+実エラー:
+
+~~~ sh
+app/Main.hs:2:7: error: [GHC-83865]
+    • Couldn't match expected type ‘Int’ with actual type ‘[Char]’
+    • In the expression: x ++ "!"
+      In an equation for ‘f’: f x = x ++ "!"
+  |
+2 | f x = x ++ "!"
+  |       ^^^^^^^^
+~~~
+
+<details class="protected" data-pass="yakagika">
+    <summary> 回答例 </summary>
+
+**原因**: 型注釈で `f :: Int -> Int` と宣言したのに, 本体の `x ++ "!"` は **`String` (= `[Char]`)** を返している. 期待型 `Int` と実際の型 `[Char]` が一致しない.
+
+修正方針は 2 通り.
+
+**修正 A**: 結果を文字列にする (型注釈を実装に合わせる).
+
+~~~ haskell
+f :: Int -> String
+f x = show x ++ "!"        -- "1!"
+
+main = putStrLn (f 1)
+~~~
+
+**修正 B**: 整数として返したい場合は, 結果型を変えずに数値演算で実装する.
+
+~~~ haskell
+f :: Int -> Int
+f x = x + 1                 -- 2
+
+main = print (f 1)
+~~~
+
+「型注釈」と「実装」のどちらが正しいかを意識しながら型を揃えるのがポイント.
+
+</details>
+
+:::
+
+::: note
+
+### Exercise CH5-10
+
+**関数の引数不足 (No instance for Show)**
+
+以下のコードは `add 5` の結果を表示しようとしていますが, コンパイルが通りません. 原因を答えて修正してください.
+
+~~~ haskell
+-- ch5-10.hs (誤りあり)
+add :: Int -> Int -> Int
+add x y = x + y
+
+main :: IO ()
+main = print (add 5)
+~~~
+
+実エラー:
+
+~~~ sh
+app/Main.hs:5:8: error: [GHC-39999]
+    • No instance for ‘Show (Int -> Int)’ arising from a use of ‘print’
+        (maybe you haven't applied a function to enough arguments?)
+    • In the expression: print (add 5)
+      In an equation for ‘main’: main = print (add 5)
+  |
+5 | main = print (add 5)
+  |        ^^^^^
+~~~
+
+<details class="protected" data-pass="yakagika">
+    <summary> 回答例 </summary>
+
+**原因**: `add :: Int -> Int -> Int` は **2 引数関数** だが, `add 5` は **1 引数しか与えていない** ので結果は `Int -> Int` (部分適用された関数). 関数自体は `Show` のインスタンスを持たないため `print` できない.
+
+GHC のヒント `(maybe you haven't applied a function to enough arguments?)` が決定的.
+
+修正: 引数を全部与える.
+
+~~~ haskell
+add :: Int -> Int -> Int
+add x y = x + y
+
+main :: IO ()
+main = print (add 5 10)   -- 15
+~~~
+
+部分適用を意図的に行いたい場合は, 別の関数に束縛してから利用する (本章 「部分適用」参照).
+
+~~~ haskell
+add5 :: Int -> Int
+add5 = add 5
+
+main = print (add5 10)    -- 15
+~~~
+
+</details>
+
+:::
+
+::: note
+
+### Exercise CH5-11
+
+**関数定義のパターン非網羅 (実行時エラー)**
+
+以下のコードはコンパイルは通りますが (警告は出る), 実行すると途中で停止します. 原因を答えて修正してください.
+
+~~~ haskell
+-- ch5-11.hs (誤りあり)
+describe :: Int -> String
+describe 0 = "zero"
+describe 1 = "one"
+
+main :: IO ()
+main = do
+    putStrLn (describe 0)
+    putStrLn (describe 2)
+~~~
+
+実行時出力:
+
+~~~ sh
+zero
+ch5-11: app/Main.hs:(2,1)-(3,18): Non-exhaustive patterns in function describe
+~~~
+
+<details class="protected" data-pass="yakagika">
+    <summary> 回答例 </summary>
+
+**原因**: `describe` のパターンは `0` と `1` の 2 つしか定義されていない. `describe 2` のように **どのパターンにも該当しない値** を渡すと `Non-exhaustive patterns in function describe` で停止する.
+
+エラーメッセージの `(2,1)-(3,18)` は **問題の関数定義の範囲** (ソース 2 行 1 列〜3 行 18 列). 修正は **網羅的にパターンを書く** か **ワイルドカード `_` で残りを受ける** .
+
+修正 A: ワイルドカードでフォールバック.
+
+~~~ haskell
+describe :: Int -> String
+describe 0 = "zero"
+describe 1 = "one"
+describe _ = "many"
+
+main = do
+    putStrLn (describe 0)   -- zero
+    putStrLn (describe 2)   -- many
+~~~
+
+修正 B: ガードで網羅性を担保.
+
+~~~ haskell
+describe :: Int -> String
+describe n
+  | n == 0    = "zero"
+  | n == 1    = "one"
+  | otherwise = "many"
+~~~
+
+`stack build` 時に **`Pattern match(es) are non-exhaustive` の警告** が出るので, 警告を放置せず常に網羅するクセを付けると安全.
+
+</details>
+
+:::

@@ -201,7 +201,7 @@ main = do
             compile $ loadAllSnapshots pattern "content"
                 >>= filterOpen
                 >>= fmap (take 10) . recentFirst
-                >>= renderRss (feedConfiguration title) feedCtx
+                >>= renderCustomRss (feedConfiguration title) feedCtx
 
 
     -- Render each and every lecture
@@ -274,7 +274,7 @@ main = do
             compile $ loadAllSnapshots pattern "content"
                 >>= filterOpen
                 >>= fmap (take 10) . recentFirst
-                >>= renderRss (feedConfiguration title) feedCtx
+                >>= renderCustomRss (feedConfiguration title) feedCtx
 
 
     -- Index
@@ -323,7 +323,7 @@ main = do
             loadAllSnapshots "posts/*" "content"
                 >>= filterOpen
                 >>= fmap (take 10) . recentFirst
-                >>= renderRss (feedConfiguration "All posts") feedCtx
+                >>= renderCustomRss (feedConfiguration "All posts") feedCtx
 
     create ["sitemap.xml"] $ do
         route idRoute
@@ -446,6 +446,19 @@ feedConfiguration title = FeedConfiguration
     , feedAuthorEmail = "kaya3728@gmail.com"
     , feedRoot        = ""
     }
+
+--------------------------------------------------------------------------------
+-- | renderRss with local templates (templates/rss.xml, templates/rss-item.xml)
+-- so the channel and item carry RSS 2.0 standard author elements
+-- (<managingEditor>, <webMaster>, <author>) in addition to <dc:creator>.
+renderCustomRss :: FeedConfiguration
+                -> Context String
+                -> [Item String]
+                -> Compiler (Item String)
+renderCustomRss feedConfig itemCtx items = do
+    feedTpl <- loadBody "templates/rss.xml"
+    itemTpl <- loadBody "templates/rss-item.xml"
+    renderRssWithTemplates feedTpl itemTpl feedConfig itemCtx items
 
 
 --------------------------------------------------------------------------------

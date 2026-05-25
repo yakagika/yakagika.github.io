@@ -1,6 +1,6 @@
 # fp-examples
 
-`lectures/fp/fp3.md` 〜 `fp7.md` 内に掲載されている Haskell コード例の **機械的検証用** テストスイートです.
+`lectures/fp/fp3.md` 〜 `fp8.md` 内に掲載されている Haskell コード例の **機械的検証用** テストスイートです.
 
 教材改訂で例を壊した場合に `stack test` でただちに検知することを目的としています.
 
@@ -23,7 +23,7 @@ fp-examples/
 ├── package.yaml
 ├── test/
 │   ├── Spec.hs         # hspec-discover で *Spec.hs を自動収集
-│   └── Fp4/
+│   └── Fp5/
 │       ├── TotalSpec.hs
 │       ├── FibSpec.hs
 │       ├── SignSpec.hs
@@ -39,10 +39,10 @@ fp-examples/
 4. `spec :: Spec` を定義し, `hspec` の `shouldBe` などで期待値を assert する.
 5. `stack test` がパスすることを確認.
 
-例: `test/Fp4/SignSpec.hs`
+例: `test/Fp5/SignSpec.hs`
 
 ```haskell
-module Fp4.SignSpec (spec) where
+module Fp5.SignSpec (spec) where
 
 import Test.Hspec
 
@@ -52,7 +52,7 @@ sign n | n > 0     = "正"
        | otherwise = "零"
 
 spec :: Spec
-spec = describe "Fp4.Sign" $ do
+spec = describe "Fp5.Sign" $ do
   it "sign 5 == 正"     $ sign 5     `shouldBe` "正"
   it "sign (-3) == 負"  $ sign (-3)  `shouldBe` "負"
   it "sign 0 == 零"     $ sign 0     `shouldBe` "零"

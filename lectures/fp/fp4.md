@@ -1,5 +1,5 @@
 ---
-title: 代数プログラミング入門 Ch4 関数
+title: 代数プログラミング入門 Ch4 スクリプトファイルとエラー対応
 description: 資料
 tags:
     - algebra
@@ -14,6 +14,47 @@ nextChapter: fp5.html
 ---
 
 # スクリプトファイルの実行 (復習)
+
+::: warn
+
+**コラム: Windows / VSCode 環境でよくある引っかかり**
+
+Haskell コード自体ではなく **開発環境** の設定が原因で `stack ghci` や `stack build` がうまく動かないケースが多発します. 「コードは合っているのに動かない」「エラーメッセージが文字化けして読めない」といった症状が出たら, **Haskell ではなく環境を疑って** 以下を確認してください.
+
+### 1. VSCode で **階層が一つ上のディレクトリ** を開いていないか
+
+VSCode の「Open Folder」で例えば `~/Projects` を開いてしまい, 実際のプロジェクト本体 `~/Projects/myproject` をターミナルから扱おうとすると, Stack が `stack.yaml` や `package.yaml` を見つけられず混乱します.
+
+→ **`stack.yaml` / `package.yaml` がある階層を VSCode のルートとして開き直す** こと. ターミナルの `pwd` で現在地と一致しているかを確認しましょう.
+
+参考 (VSCode 公式 — 英語): [Workspaces in Visual Studio Code](https://code.visualstudio.com/docs/editor/workspaces)
+
+### 2. VSCode で **複数のウィンドウから同じディレクトリを開いている** ことはないか
+
+同一プロジェクトを複数 VSCode ウィンドウで同時に開くと, Haskell Language Server や Stack の状態が二重に走り, ビルドキャッシュの食い違いやメモリ大量消費の原因になります.
+
+→ **使っていないウィンドウは閉じて 1 つに揃える** こと. 「Window メニュー」や Cmd/Ctrl+` で開いているウィンドウ一覧を確認できます.
+
+### 3. ターミナルの **コードページ (`chcp`) が UTF-8 になっているか** (Windows のみ)
+
+Windows の PowerShell / cmd は既定で **Shift_JIS (コードページ `932`)** を使います. Haskell の標準出力は **UTF-8** なので, 日本語を含む文字列を扱うと文字化けや出力エラーが発生することがあります.
+
+→ ターミナルで UTF-8 (`65001`) に切り替えると解消するケースが多いです:
+
+~~~ sh
+chcp 65001
+~~~
+
+恒久的に変えたい場合は, PowerShell プロファイルや起動スクリプトに `chcp 65001` を入れる, あるいは Windows の地域設定で「ベータ: ワールドワイド言語サポートで Unicode UTF-8 を使用」をオンにする方法もあります.
+
+参考 (Haskell-jp ブログ): [Windowsでのよくある落とし穴](https://haskell.jp/blog/posts/2017/windows-gotchas.html)
+
+---
+
+これらは本章後半で扱う **GHC のエラー** とは別軸の「環境起因の問題」です. エラーメッセージそのものに違和感が無く挙動だけが変な場合は, まず上記 3 点を疑ってみてください.
+
+:::
+
 
 ::: warn
 ここから先は,コードが複数行に渡ることが多くなるので,ghciの利用をやめてスクリプトを書きます.
@@ -142,1360 +183,560 @@ practice3
 提出先に関しては講義中に指定します.
 :::
 
+# エラー対応
 
-# 関数
+スクリプトを書き始めると, ほぼ確実にエラーに遭遇します. Haskellのエラーメッセージは慣れていないと長く感じられますが, **構造が固定化されている** ため, 読み方さえ覚えれば原因がほぼ自動的に分かります.
 
-Haskellは関数型言語なので,関数の記述がプログラミングにおける花形です. この章ではHaskellの関数に関する記法を学びましょう.
-
-## 関数と演算子
-
-関数型言語では関数を組み合わせてプログラムを書きます. 関数の正確な定義は後に譲るとして,ここでは取り敢えず｢特定のデータ型の値を受け取って,特定のデータ型の値を返すもの｣という定義にしましょう.このとき受け取る値を**引数**,返す値を**返り値**といいます.
-
-Haskellでは,数学の記法と非常に近い方法で関数を定義します.
-例えば,
-
-$$
-f : \mathbb{Z} \rightarrow \mathbb{Z} \\
-f(x) = x + 1
-$$
-
-という,整数`x`を受け取って整数`x + 1`を返すだけの関数について考えましょう.
-
-Haskellでは上の関数は以下のように定義されます.
-
-~~~ haskell
-f :: Int -> Int
-f x = x + 1
-
-main = do
-    print $ f 4 --  5
-~~~
-
-`()`の代わりにスペースを使う点以外は全く同じ書き方で, `=`の左側に関数名と引数,右側に返り値を書きます.
-関数名は小文字の英字で始めるというルールがあります.
-
-`f :: Int -> Int`は型注釈であり,この`f`という関数が,引数に`Int`を取り,返り値として`Int`を返すということを指定しています.
-型注釈は高度な処理をしない限り省略しても自動的にGHCが推論してくれますが,可読性のためにもできるだけ書くようにしましょう.
-
-`do`以下の記述で, `f 4`の結果を確認しています. `print`は,文字列に変換可能な値を受け取り,標準出力する関数です. また `(f 4)`を省略して`$ f 4` としています.
-
-引数は何個でも利用できます. 例えば2引数関数
-
-$$ multiple(x,y) = x * y $$
-
-は以下のように定義できます.
-
-~~~ haskell
-multiple :: Double -> Double -> Double
-multiple x y = x * y
-
-main = do
-    print $ multiple 3 4 --  12.0
-~~~
-
-また,以下の記号を組み合わせて中置演算子名として利用することも可能です.
+本章では (1) エラーメッセージの基本構造, (2) 典型的な 5 種類のエラーパターン, (3) fp3 までの内容を題材にしたエラー解決演習 を扱います.
 
 ::: note
-~ !  #  $  %  &  *  +  = .  /  < >  ?  @  \  ^  |  -
+本章のエラー例は fp3 までの語彙 (トップレベル束縛, `main`, `let`, ghci で見た組込関数) のみで構成しています. 関数定義に伴う典型エラー (関数版 Non-exhaustive patterns / 引数不足など) は **fp5 以降の演習** にも含めていますので, そちらでも実例を確認してください.
 :::
 
+## エラーメッセージの構造
 
-~~~ haskell
-(.*) :: Double -> Double -> Double
-x .* y = x * y
+GHC のエラーは概ね以下の **4 ブロック構造** で出力されます.
 
-main = do
-    print $ 3 .* 4 --  12.0
+~~~ sh
+<ファイルパス>:<行>:<列>: error: [<エラーコード>]
+    <人間向けメッセージ (`•` 記号で始まる箇条書き)>
+    <文脈情報 (`In an equation for...` など)>
+  |
+<行番号> | <該当ソース行>
+       | <該当箇所の ^ マーク>
 ~~~
 
-絵文字などのUnicode記号も利用することができます.
+たとえば:
 
-~~~ haskell
-
-(✖) :: Double -> Double -> Double
-x ✖ y = x * y
-
-main = do
-    print $ 3 ✖ 4 --  12.0
+~~~ sh
+/path/to/Main.hs:3:14: error: [GHC-88464]
+    Variable not in scope: greeting
+  |
+3 | main = print greeting
+  |              ^^^^^^^^
 ~~~
 
-記号を利用して関数を定義する場合には,定義時に`()` で囲うことで一般の関数のように定義することができます.
-例えば, 乗算を新たに定義するとして,以下のように書くことができます.
+各ブロックの読み方:
+
+| ブロック | 役割 | 着目点 |
+|---|---|---|
+| **ファイル + 行:列** | エラー位置 | まずここで「どこか」を特定 |
+| **error: [GHC-xxxxx]** | エラーコード | 検索キーワードとして使える |
+| **`•` の行** | 人間向け要約 | 何が間違っているか |
+| **`In ...` の行** | 文脈 | どの式・宣言の中で起きたか |
+| **`^^^^` マーク** | 該当箇所 | ソース内の正確な位置 |
+
+エラー読解の順序は: **「位置」→「タイプ(要約)」→「ソース上の該当箇所」** の順が最速です. エラーコード (`GHC-88464` 等) は Google 検索でも有効です.
+
+## 典型的なエラーパターン
+
+### 1. `Variable not in scope` (未定義変数)
+
+**スコープ(参照可能範囲)に変数が見つからない** ときのエラー. **タイポ** または **大文字小文字の取り違え** が最頻出原因です.
+
+ソース:
 
 ~~~ haskell
-(.*) :: Int -> Int -> Int
-(.*) x y = x * y
-main = do
-    print $ 3 .* 4 --  12
+main :: IO ()
+main = print greeting
 ~~~
 
-前置の2引数関数も` `` ` (バッククオート)で囲むことで中置演算子として定義することができます.
+実エラー出力:
+
+~~~ sh
+app/Main.hs:2:14: error: [GHC-88464]
+    Variable not in scope: greeting
+  |
+2 | main = print greeting
+  |              ^^^^^^^^
+~~~
+
+修正: 変数を事前に定義するか, 既存変数のタイポを直す.
 
 ~~~ haskell
-x `multiple` y = x * y
+greeting :: String
+greeting = "hello"
 
-main = do
-    print $ 3 `multiple` 4 --  12
+main :: IO ()
+main = print greeting
 ~~~
 
-::: note
+::: warn
+変数の最初の文字を **大文字で書いた場合** は別のエラーになります.
+Haskell は小文字始まり = 変数, 大文字始まり = 型 / コンストラクタ, と扱うため,
+`Greeting` と書くと「`Data constructor not in scope: Greeting`」になります.
 
-**なぜ中置演算子として定義するのか**
-
-中置演算子を自前で定義するのは, Pythonなどの言語ではあまり行われないので｢なぜわざわざこんなことをするのだろう｣と感じる人がいるかも知れません.
-中置演算子の最大のメリットは, このあと扱う計算順序(優先順位・結合性)の設計とあわせて, 式の認知負荷を大幅に下げられることです.
-
-例えば `1 + 1 + 1 + 1` という計算を考えてみましょう.
-
-これを **前置記法 (ポーランド記法)** で書くと,
-
-`((+) ((+) ((+) 1 1) 1) 1)` となります. Haskell では `(+)` のように記号演算子を括弧で囲むと普通の前置関数として扱えるので, これは Haskell の構文としても合法ですが, 実際に何が計算されているかを読み取るのは大変です.
-
-更に複数の演算子が絡むと事態はより複雑になります.
-
-`1 + 1 * 2 + 3 / 2` のような計算は, 中置演算子であれば非常にシンプルですが, 前置記法では
-
-`(+) ((+) 1 ((*) 1 2)) ((/) 3 2)` となります.
-
-このように, 適切な記号と優先順位で中置演算子を設計することで, 人間が読むときの理解負荷も実装上の括弧の量も大幅に下がります.
-
+~~~ sh
+app/Main.hs:3:14: error: [GHC-88464]
+    Data constructor not in scope: Greeting
+~~~
 :::
 
+### 2. `Couldn't match type` (型不一致)
+
+ある型を期待しているところに別の型が来たとき出るエラー. **`(expected type) と (actual type) が不一致`** という構造になっています.
+
+ソース:
+
+~~~ haskell
+main :: IO ()
+main = do
+    let n = 1 :: Int
+    print (n ++ "!")
+~~~
+
+実エラー出力:
+
+~~~ sh
+app/Main.hs:4:12: error: [GHC-83865]
+    • Couldn't match expected type ‘[Char]’ with actual type ‘Int’
+    • In the first argument of ‘(++)’, namely ‘n’
+      In the first argument of ‘print’, namely ‘(n ++ "!")’
+      In a stmt of a 'do' block: print (n ++ "!")
+  |
+4 |     print (n ++ "!")
+  |            ^
+~~~
+
+読み方:
+
+- `expected type ‘[Char]’`: 「`[Char]` (= `String`) が来るはずだった」(`(++)` は両側ともリストを要求)
+- `actual type ‘Int’`: 「実際には `Int` が来た」(`n` の型)
+
+修正方針: 文字列同士の連結にするなら `show` で `n` を文字列に変換.
+
+~~~ haskell
+main = do
+    let n = 1 :: Int
+    print (show n ++ "!")    -- "1!"
+~~~
+
+### 3. `No instance for` (型クラス制約の不満足)
+
+ある型に対して要求された機能(`Show`, `Num`, `Eq` など)が定義されていないときのエラー.
+
+ソース (型不適合: `putStrLn` に数値を渡す):
+
+~~~ haskell
+main :: IO ()
+main = putStrLn 42
+~~~
+
+実エラー出力:
+
+~~~ sh
+app/Main.hs:2:17: error: [GHC-39999]
+    • No instance for ‘Num String’ arising from the literal ‘42’
+    • In the first argument of ‘putStrLn’, namely ‘42’
+      In the expression: putStrLn 42
+      In an equation for ‘main’: main = putStrLn 42
+  |
+2 | main = putStrLn 42
+  |                 ^^
+~~~
+
+読み方:
+
+- `No instance for ‘Num String’`: 「`String` 型に `Num` (数値) のインスタンスがない」
+- `arising from the literal ‘42’`: 「リテラル `42` から要請されている」
+- → `putStrLn :: String -> IO ()` なので `42` が `String` だと思われ, でも `42` は `Num` 由来なので不適合
+
+修正: 文字列にしたいなら `show` で変換.
+
+~~~ haskell
+main = putStrLn (show 42)
+~~~
+
+別のケース (関数そのものを print してしまう):
+
+~~~ haskell
+main :: IO ()
+main = print head
+~~~
+
+実エラー出力:
+
+~~~ sh
+app/Main.hs:2:8: error: [GHC-39999]
+    • No instance for ‘Show ([a0] -> a0)’ arising from a use of ‘print’
+        (maybe you haven't applied a function to enough arguments?)
+    • In the expression: print head
+      In an equation for ‘main’: main = print head
+  |
+2 | main = print head
+  |        ^^^^^
+~~~
+
+`(maybe you haven't applied a function to enough arguments?)` という GHC のヒントが非常に重要. **関数本体ではなく, 結果を渡したかった** のではないか? と聞いてくれている.
+
+修正: `head` に引数 (リスト) を与える.
+
+~~~ haskell
+main = print (head [1, 2, 3])
+~~~
+
+### 4. `Parse error` (構文エラー)
+
+文法として認識できない. **インデント不足** や **括弧の不整合** が代表的.
+
+ソース (do 内のインデント忘れ):
+
+~~~ haskell
+main :: IO ()
+main = do
+putStrLn "hello"
+~~~
+
+実エラー出力:
+
+~~~ sh
+app/Main.hs:3:1: error:
+    Parse error: module header, import declaration
+    or top-level declaration expected.
+  |
+3 | putStrLn "hello"
+  | ^^^^^^^^^^^^^^^^
+~~~
+
+`do` の本体は **1 つ深くインデント** する必要があります.
+
+修正:
+
+~~~ haskell
+main :: IO ()
+main = do
+    putStrLn "hello"
+~~~
+
+### 5. `Non-exhaustive patterns` (網羅されていないパターン, 実行時)
+
+パターンマッチで **すべての場合がカバーされていない** とき, コンパイルは通っても (警告は出る) **実行時** に該当しない値が渡されると停止します. fp3 で見せた `(x, y) = (1, 2)` のような **let パターン束縛** でも同じ事が起きます.
+
+ソース:
+
+~~~ haskell
+main :: IO ()
+main = do
+    let (c:_) = "" :: String
+    putStrLn [c]
+~~~
+
+実行時メッセージ (`stack run` 等で):
+
+~~~ sh
+probe: app/Main.hs:3:9-28: Non-exhaustive patterns in c : _
+~~~
+
+`(c:_)` は「先頭の 1 文字 + 残り」というパターンだが, 右辺が **空文字列** だと該当する文字が無いため失敗する.
+
+修正 1: 空でないことが確実な値を与える.
+
+~~~ haskell
+main = do
+    let (c:_) = "hello" :: String
+    putStrLn [c]       -- "h"
+~~~
+
+修正 2: 事前に空判定する.
+
+~~~ haskell
+main = do
+    let xs = "" :: String
+    if null xs then putStrLn "empty"
+               else putStrLn [head xs]
+~~~
+
+::: warn
+類似に **`head []` などの空リスト操作** があります. これも実行時エラー:
+
+~~~ sh
+probe: Prelude.head: empty list
+CallStack (from HasCallStack):
+  ...
+  head, called at app/Main.hs:... in main:Main
+~~~
+
+リスト操作前に `null` で検査するのが安全です. 後の章では `Maybe` 型でこの種の失敗を **型で表現する** 手法を扱います.
+:::
+
+## エラー読解のコツ
+
+1. **最初の error: 行だけ見る**. Stack のビルドエラーは複数ブロック表示しますが, 修正すべきは **一番上の error:** がほとんどです.
+2. **エラーコード (`GHC-xxxxx`) を覚える**. 同じコードは同じ種類の原因.
+3. **`^^^^` の位置を必ず見る**. 行番号だけでなく列までヒントが出ています.
+4. **`expected` / `actual` の型は逆ではない**. 「期待していたのは expected, 来てしまったのが actual」.
+5. **ghci で `:t <式>`** で局所的に型を確認すると, 型不一致の原因が見えやすい.
+6. **小さく書いて頻繁にビルド**. 100 行書いてからビルドするのではなく, 数行書いたら `stack build`. エラーが出る場所がすぐ分かります.
+
+## 演習
+
+ここからは fp1〜fp3 の復習を兼ねた **エラー解決演習** です. 各問題で:
+
+1. 提示されたコードと **実際の GHC エラー出力** を読む
+2. エラーの原因を答える
+3. 動くコードに修正する
+
+提出は `ch4-K.hs` (修正後の動作するコード) に加え, **何が原因だったか** を 1 〜 2 行のコメントで書いてください.
 
 ::: note
 
 ### Exercise CH4-1
 
-**基本関数と中置演算子の定義**
+**未定義変数のエラー (fp3 数値型の復習)**
 
-1. 整数を受け取り, その値を 2 倍したものを返す関数 `double :: Int -> Int` を定義してください.
-
-2. 整数 `x`, `y` を受け取り, `x * y + x + y` を返す2引数関数 `f :: Int -> Int -> Int` を定義してください.
-
-3. 2引数の中置演算子 `(.+) :: Int -> Int -> Int` を, `x .+ y = x + y + 1` として定義してください.
-
-4. 2引数の前置関数 `divide :: Double -> Double -> Double` を `x / y` を返すように定義し, バッククオート で囲むことで中置演算子として呼び出してください.
+以下のコードは fp3 「数値型」節で扱った三角形面積の計算ですが, コンパイルが通りません. 出力されるエラーを読んで原因を答え, 動くように修正してください.
 
 ~~~ haskell
--- 実行例
+-- ch4-1.hs (誤りあり)
+trianglearea :: Double
+trianglearea = 5 * 4 / 2
+
 main :: IO ()
-main = do
-    print $ double 7        -- 14
-    print $ f 2 3           -- 11
-    print $ 4 .+ 5          -- 10
-    print $ 10 `divide` 3   -- 3.3333333333333335
+main = print triangleArea
+~~~
+
+実エラー (`stack build` の出力):
+
+~~~ sh
+app/Main.hs:5:15: error: [GHC-88464]
+    Variable not in scope: triangleArea :: Double
+    Suggested fix: Perhaps use ‘trianglearea’ (line 2)
+  |
+5 | main = print triangleArea
+  |              ^^^^^^^^^^^^
 ~~~
 
 <details class="protected" data-pass="yakagika">
     <summary> 回答例 </summary>
 
+**原因**: 変数名の **大文字小文字** が定義 (`trianglearea`) と呼び出し (`triangleArea`) で食い違っている. Haskell は大文字小文字を区別する.
+
+GHC が `Suggested fix: Perhaps use ‘trianglearea’` というヒントまで出してくれているので, それを参考に揃える.
+
+修正:
+
 ~~~ haskell
-double :: Int -> Int
-double x = 2 * x
-
-f :: Int -> Int -> Int
-f x y = x * y + x + y
-
-(.+) :: Int -> Int -> Int
-x .+ y = x + y + 1
-
-divide :: Double -> Double -> Double
-divide x y = x / y
+-- ch4-1.hs (修正版)
+triangleArea :: Double
+triangleArea = 5 * 4 / 2
 
 main :: IO ()
-main = do
-    print $ double 7        -- 14
-    print $ f 2 3           -- 11
-    print $ 4 .+ 5          -- 10
-    print $ 10 `divide` 3   -- 3.3333333333333335
+main = print triangleArea   -- 10.0
 ~~~
 
-- `f 2 3 = 2 * 3 + 2 + 3 = 11`. 関数の型注釈と本体は `=` の左右で対応付けて書きます.
-- 記号からなる中置演算子は `x .+ y = ...` のように直接定義してもよく, 型注釈側では `(.+)` のように括弧で囲って前置関数として宣言します.
-- 通常の前置2引数関数 (`divide` など) も, バッククオートで囲むだけで中置記法に切り替えられます.
+呼び出し側を揃えるか定義側を揃えるかどちらでも OK. **キャメルケース (`triangleArea`) が Haskell の慣習**.
 
 </details>
 
 :::
-
-### 結合性
-
-先に述べたように異なる複数の演算子が連なっている式は, 演算子の優先順位に従って計算される順位が変わります.
-
-例えば,`*` の優先順位は7で, `+` の優先順位は6なので,` 2 * 3 + 3` という式は,
-
-~~~
-   2 * 3  + 3
-= (2 * 3) + 3
-= 6 + 3
-= 9
-~~~
-
-と言う風に`*`が優先して計算されます.
-
-では,同じ演算子が複数回連なっている場合にはどのような順序で計算されるのでしょうか? このルールを決めるのが **結合性(Associativity)** です.
-
-::: note
-
-結合性には, **左結合(Left-associative)**, **右結合(Right-associative)**, **非結合(Non-associative)** の3種類があり,ユーザーが定義することができます.
-
-- **左結合(Left-associative)**
-
-左結合の場合, 演算子は左から右へと評価されます. 例えば, `+` は左結合であり,式 `a + b + c` は `(a + b) + c` として評価されます
-
-- **右結合(Right-associative)**
-
-右結合演算子の場合,演算子は右から左へと評価されます. 例えば, `^`は右結合です. 式 `a ^ b ^ c` は `a ^ (b ^ c)` として評価されます
-
-- **非結合(Non-associative)**
-
-非結合演算子は,同じ式内で連続して使用することは許されていません. 非結合演算子の例としては,比較演算子（`<`,`>` など）があります.
-
-式 `a < b < c` は Haskell では文法的に不正です. 比較を連鎖させる場合は,`a < b && b < c`のように明確に分けて記述する必要があります.
-
-:::
-
-ユーザーが作成した演算子の結合性を指定するには,右,左,非の順に`infixr`,`infixl`,`infix`宣言を利用します. いずれも, `infix(r/l/なし) 優先順位 記号` の順に書きます.
-
-例えば先程作成した,`.*` を右結合の優先順位7で指定するには,以下のように書きます.
-
-~~~ haskell
-x .* y = x * y
-infixr 7 .*
-~~~
 
 ::: note
 
 ### Exercise CH4-2
 
-**結合性と優先順位**
+**型不一致のエラー (fp3 リストと数値の復習)**
 
-1. 2引数の中置演算子 `(.+) :: Int -> Int -> Int` を `x .+ y = x + y` として定義し, **右結合・優先順位 5** を意味する `infixr 5 .+` 宣言を付けてください. このとき `1 .+ 2 .+ 3` がどのように括弧づけされて評価されるか答えてください.
+以下のコードは fp3 「リスト」節で扱ったリスト連結 (`++`) を使っていますが, 型エラーが出ます. 原因を答えて修正してください.
 
-2. 以下の **4 つの演算子** を 1 つのスクリプトに定義します. 中身はどれも「加算」または「乗算に 1 を足す」だけで, **異なるのは `infix` 宣言で与えた優先順位だけ** です.
+~~~ haskell
+-- ch4-2.hs (誤りあり)
+main :: IO ()
+main = print ([1, 2, 3 :: Int] ++ 5)
+~~~
 
-    ~~~ haskell
-    -- セット A: 通常の + * と同じく, 乗算系の方が優先順位が高い
-    (.+) :: Int -> Int -> Int
-    x .+ y = x + y
-    infixl 6 .+
+実エラー:
 
-    (.*) :: Int -> Int -> Int
-    x .* y = x * y + 1
-    infixl 7 .*
-
-    -- セット B: セット A と逆に, 加算系の方が優先順位が高い
-    (+.) :: Int -> Int -> Int
-    x +. y = x + y
-    infixl 7 +.
-
-    (*.) :: Int -> Int -> Int
-    x *. y = x * y + 1
-    infixl 6 *.
-    ~~~
-
-    a. `2 .+ 3 .* 4` (セット A) の括弧付けと値を答えてください.
-
-    b. `2 +. 3 *. 4` (セット B) の括弧付けと値を答えてください.
-
-    c. (a) と (b) で値が異なる理由を, 演算子の定義に基づいて簡潔に説明してください.
+~~~ sh
+app/Main.hs:2:35: error: [GHC-39999]
+    • No instance for ‘Num [Int]’ arising from the literal ‘5’
+    • In the second argument of ‘(++)’, namely ‘5’
+      In the first argument of ‘print’, namely ‘([1, 2, 3 :: Int] ++ 5)’
+      In the expression: print ([1, 2, 3 :: Int] ++ 5)
+  |
+2 | main = print ([1, 2, 3 :: Int] ++ 5)
+  |                                   ^
+~~~
 
 <details class="protected" data-pass="yakagika">
     <summary> 回答例 </summary>
 
-1. `infixr 5 .+` で右結合となるため, `1 .+ 2 .+ 3 = 1 .+ (2 .+ 3) = 1 .+ 5 = 6`. もし `infixl 5 .+` であれば `(1 .+ 2) .+ 3 = 3 .+ 3 = 6` と左から評価され, 今回は結果が同じになりますが, 結合性によって計算順が変わる点に注目してください.
+**原因**: `(++)` は **リスト同士** を連結する演算子 (`[a] -> [a] -> [a]`) なのに, 右辺の `5` は **`Num` 型 (`Int` などの数値)** で, リストではない. そのため GHC は「`5` も `[Int]` 型 (= `Num [Int]`) であってほしいが, `Num` のインスタンスは `[Int]` には無い」と訴えている.
+
+修正 1: 数値をリストに包んで連結する.
 
 ~~~ haskell
-(.+) :: Int -> Int -> Int
-x .+ y = x + y
-infixr 5 .+
-
 main :: IO ()
-main = do
-    print $ 1 .+ 2 .+ 3   -- 6
+main = print ([1, 2, 3 :: Int] ++ [5])   -- [1,2,3,5]
 ~~~
 
-2. 括弧付けと値
-
-    a. `.*` の優先順位 (7) が `.+` (6) より高いので, `.*` が先に評価され `2 .+ (3 .* 4) = 2 .+ (3*4 + 1) = 2 .+ 13 = 15`
-
-    b. 今度は `+.` の優先順位 (7) が `*.` (6) より高いので, `+.` が先に評価され `(2 +. 3) *. 4 = 5 *. 4 = 5*4 + 1 = 21`
-
-    c. `(.*)` / `(*.)` の定義 `x * y + 1` は通常の乗算と異なり **分配法則 $a(b+c) = ab + ac$ を満たさない** ため, `(2 .+ 3) .* 4` と `2 .+ (3 .* 4)` は数学的にも別の式となります. どちらを先に評価するかで値が変わるため, 演算子の中身が同じでも `infix` 宣言で与える優先順位次第で **式の意味そのもの** が変わってしまいます.
+修正 2: cons 構築子 `(:)` で先頭に足す.
 
 ~~~ haskell
--- 4 つの演算子を一つのスクリプトに同居させ, 同じ実行で両方の挙動を確認できる
-(.+) :: Int -> Int -> Int
-x .+ y = x + y
-infixl 6 .+
-
-(.*) :: Int -> Int -> Int
-x .* y = x * y + 1
-infixl 7 .*
-
-(+.) :: Int -> Int -> Int
-x +. y = x + y
-infixl 7 +.
-
-(*.) :: Int -> Int -> Int
-x *. y = x * y + 1
-infixl 6 *.
-
 main :: IO ()
-main = do
-    print $ 2 .+ 3 .* 4   -- 15 (= 2 .+ (3 .* 4))
-    print $ 2 +. 3 *. 4   -- 21 (= (2 +. 3) *. 4)
+main = print (5 : [1, 2, 3 :: Int])   -- [5,1,2,3]
 ~~~
 
 </details>
 
 :::
-
-## カリー化,部分適用
-
-Haskellでは多引数関数を実装できることは先程確認しました. しかし,Haskellは**すべての関数が,引数を一つだけとる**という原則があります. これは,矛盾するようですが,この矛盾を解消する概念が **カリー化(Currying)** です.
-
-カリー化とは複数引数関数に対して,｢一つの引数を取り,次に残りの引数を取る関数を返すようにする変換｣です.
-
-例として,以下のxとyを受け取りその和を返す関数`add`は
-
-~~~ haskell
-add :: Int -> Int -> Int
-add x y = x + y
-~~~
-
-実際には
-
-~~~ haskell
-add :: Int -> (Int -> Int)
-~~~
-
-として機能しています. 関数の呼び出しは左結合なので,
-
-
-`add 5 10 = (add 5) 10` であり, ここで`(add 5) :: Int -> Int`という新たな関数に10が適用されています(以下は型の確認のためにghciを利用しています.)
-
-~~~ sh
-ghci> :{
-ghci| add :: Int -> Int -> Int
-ghci| add x y = x + y
-ghci| :}
-ghci> :t add
-add :: Int -> Int -> Int
-ghci> :t (add 5)
-(add 5) :: Int -> Int
-~~~
-
-Haskellでは,標準で全ての関数がカリー化されており,これによって関数の複数の引数のうち一部だけを与えて,残りの引数を持つ関数を生成する**`部分適用(Partial Application)`**が可能となっています.
-
-~~~ haskell
--- add関数を利用した部分適用
-add5 :: Int -> Int
-add5 = add 5
-
--- 実際の利用例
-result = add5 10
-~~~
-
-
-## 分岐
-
-関数型言語において,手続き型言語におけるIF文に相当するのが**パターンマッチ**と**指示関数(特性関数)**です.
-
-### パターンマッチ
-
-パターンマッチに近い概念は既にフィボナッチ数の漸化式として出てきています.フィボナッチ数の漸化式は,以下のように表されます.
-
-::: note
-$$
-F_0 = 1 \\
-F_1 = 1 \\
-F_n = F_{n-1} + F_{n-2} (n >= 2)
-$$
-:::
-
-この関数はPythonでは,以下のようにif文による分岐で記述されるのが一般的です.
-
-~~~ python
-def fib(x):
-    if x == 0:
-        return 1
-    elif x == 1:
-        return 1
-    else:
-        return fib(x-1) + fib(x-2)
-
-~~~
-これをHaskellでパターンマッチを利用して以下のように定義することができます.
-
-~~~ haskell
-fib :: Int -> Int
-fib 0 = 1
-fib 1 = 1
-fib n = fib (n - 1) + fib (n - 2)
-~~~
-
-このHaskellのコードは,
-
-- 関数`fib`の引数が`0`のときには返り値として`1`を返し,
-
-- 関数`fib`の引数が`1`のときには返り値として`1`を返し,
-
-- 関数`fib`の引数が`それ以外`のときには返り値として`fib (n - 1) + fib (n - 2)`を返します.
-
-この最後の`fib n = fib (n - 1) + fib (n - 2)`は再帰関数といって後ほど扱いますが,取り敢えず,特定の引数に対して特定の返り値を指定するこのような関数の記述方法を**パターンマッチ**といいます.
-
-パターンマッチは,数値以外の引数に関しても適用可能であり,リストではリストの要素数に応じて使い分けることが多いです.
-
-以下の,`strHead`関数は,リストの先頭の要素を文字列として表示する関数です.リストが空のときには`"Empty"`,要素が一つのときにはその要素,それ以外のときには先頭の要素を文字列にして返します.
-
-`show`の詳細は後ほど扱いますが,どの様に標準出力に表示するかを定めてあるデータ型を文字列に変換する関数です.
-
-::: warn
-`Show a =>`の部分は任意のデータ型`a`が`show`を利用できるという制約を意味しており, **型クラス制約**といいます.
-クラスの詳細に関しては後ほど扱います.
-:::
-
-~~~ haskell
-strHead :: Show a => [a] -> String
-strHead []    = "Empty"
-strHead [x]   = show x
-strHead (x:_) = show x
-
-main = do
-    print $ strHead [] --  "Empty"
-    print $ strHead [3,4] --  "3"
-~~~
-
-パターンマッチはこのようにリスト`x:xs`の先頭部分`x`を指定するなどの利用法が可能です. 値の特定の部分を取得する用法として頻出なのがタプルを引数に取るパターンマッチです.
-
-以下のコードは,3つ組のタプル`(x,y,z)`から指定した位置の値を取り出す関数`getFromTuple`です.
-
-~~~ haskell
-getFromTuple (x,y,z) 0 = x
-getFromTuple (x,y,z) 1 = y
-getFromTuple (x,y,z) 2 = z
-~~~
-
-このような用法は後に紹介する代数的データ型を扱う際にも頻出します.
-
-
-### ガード
-
-数式における分岐は,指示関数を用いて行うこともできます.
-
-::: note
-
-$$
-fib(n) =
-\begin{cases}
-1, ~if~n = 0 \\
-1, ~if~n = 1 \\
-fib(n-1) + fib(n-2),~if~n >=2
-\end{cases}
-$$
-:::
-
-
-
-Haskellにおいて指示関数の記法に相当するのが**ガード**です.
-
-~~~ haskell
-fib :: Int -> Int
-fib n | n == 0    = 1
-      | n == 1    = 1
-      | n >= 2    = fib (n-1) + fib (n-2)
-      | otherwise = error "fib: negative input"
-
-main = do
-    print $ fib 5 --  8
-~~~
-
-特徴関数におけるifの位置が先に来ている以外は,基本的に対応関係にあるのがわかるかと思います. なお, 上のガードでは負の整数が来た場合に備えて `otherwise` で `error` を投げています. これは次節でも扱う通り「どのガードにも該当しない値」が来た場合に `Non-exhaustive guards` で落ちるのを防ぐためのフォールバックです.
-
-#### otherwise
-
-ガードの最後の分岐には, 慣例的に **`otherwise`** を置きます. `otherwise` は `Prelude` で次のように定義されている単なる `True` の別名であり, 必ず真と評価されるため「それまでのどのガードにも当てはまらなかった場合」のフォールバックとして機能します.
-
-~~~ haskell
-otherwise :: Bool
-otherwise = True
-~~~
-
-簡単な事例として, 整数の符号を文字列で返す関数 `sign` を考えます.
-
-~~~ haskell
-sign :: Int -> String
-sign n | n > 0     = "正"
-       | n < 0     = "負"
-       | otherwise = "零"
-
-main = do
-    print $ sign 5     -- "正"
-    print $ sign (-3)  -- "負"
-    print $ sign 0     -- "零"
-~~~
-
-`n > 0` も `n < 0` も成立しない場合(つまり `n == 0` のとき)に `otherwise` の分岐が選ばれます. もちろん `| n == 0 = "零"` と書いても等価ですが, `otherwise` を用いることで「残り全て」を網羅していることが明示されます.
-
-最後の `otherwise` を書き忘れて, かつどのガードにも該当しない値が渡された場合は `Non-exhaustive guards in function ...` という実行時エラーが発生するので注意してください.
-
-### case式
-
-パターンマッチをインデントブロックで実現する手法として**case式**があります. パターンマッチで判定する変数を`case 変数 of` のあとに指定して, それぞれのパターンとその結果を`->`でつなげる記法です. 指定のパターンに当てはまらないものすべて(これを**ワイルドカード**といいます)を指定するために`_`を利用します.
-
-~~~ haskell
-fib :: Int -> Int
-fib n = case n of
-        0 -> 1
-        1 -> 1
-        _ -> fib (n-1) + fib (n-2)
-
-main = do
-    print $ fib 5 --  8
-~~~
-
-ワイルドカードはどのような値に対しても同じ値を返す関数を実装する場合などにも利用されます.
-
-~~~ haskell
-
-return10 :: a -> Int
-return10 _ = 10
-~~~
-
-
-### if式
-
-Haskellにはifも存在します. `if 条件`に当てはまる場合の返り値を`then`で指定します. `else if` で条件を追加し, `else`でそれ以外のパターンを指定します. Pythonなどのif文と異なり,式なので`else`の場合の返り値も必ず指定する必要があります.
-
-
-~~~ haskell
-fib :: Int -> Int
-fib n = if n == 0 then 1
-        else if n == 1 then 1
-        else fib (n-1) + fib (n-2)
-
-main = do
-    print $ fib 5 --  8
-~~~
-
-Haskellではあまりif式は利用されませんが,
-1行で書けるため,式の中で部分的に利用する場合に便利です.
-
-~~~ haskell
-fib :: Int -> Int
-fib n = if n == 0 then 1 else if n == 1 then 1 else fib (n-1) + fib (n-2)
-~~~
 
 ::: note
 
 ### Exercise CH4-3
 
-**4 つの記法による `describe` の実装**
+**Parse error と論理演算 (fp3 論理型の復習)**
 
-引数の整数 `n` に応じて以下のような文字列を返す関数 `describe :: Int -> String` を, **パターンマッチ**, **ガード**, **case式**, **if式** の4通りの方法でそれぞれ実装してください. 同じ関数が異なる分岐の記法でどのように表現されるかを確かめることが目的です.
-
-- `n` が `0` のとき → `"zero"`
-- `n` が `1` のとき → `"one"`
-- `n` が `2` のとき → `"two"`
-- それ以外のとき → `"many"`
+以下は fp3 「論理型」節で見た偶数判定を `do` の中で実行しようとしたコードです. 構文エラーで止まります. 原因を答えて修正してください.
 
 ~~~ haskell
-describe 0   -- "zero"
-describe 1   -- "one"
-describe 2   -- "two"
-describe 3   -- "many"
-describe 10  -- "many"
+-- ch4-3.hs (誤りあり)
+main :: IO ()
+main = do
+print (101 `mod` 2 == 0)
+print (202 `mod` 2 == 0)
+~~~
+
+実エラー:
+
+~~~ sh
+app/Main.hs:4:1: error:
+    Parse error: module header, import declaration
+    or top-level declaration expected.
+  |
+4 | print (101 `mod` 2 == 0)
+  | ^^^^^^^^^^^^^^^^^^^^^^^^
 ~~~
 
 <details class="protected" data-pass="yakagika">
     <summary> 回答例 </summary>
 
-- **パターンマッチ**による実装
+**原因**: `do` ブロック内の文が **インデントされていない**. Haskell は **オフサイド規則 (offside rule)** によりインデントで構造を判定するため, `do` の本体は `do` より深い (= 右側に位置する) 必要がある.
+
+GHC は「トップレベル宣言が来るはずだった」と判断してしまい, `print` で始まる行を **新しい関数定義として読もうとして失敗** している. これが「`Parse error: ... top-level declaration expected`」の正体.
+
+修正:
 
 ~~~ haskell
-describe :: Int -> String
-describe 0 = "zero"
-describe 1 = "one"
-describe 2 = "two"
-describe _ = "many"
-~~~
-
-- **ガード**による実装
-
-~~~ haskell
-describe :: Int -> String
-describe n
-  | n == 0    = "zero"
-  | n == 1    = "one"
-  | n == 2    = "two"
-  | otherwise = "many"
-~~~
-
-- **case式**による実装
-
-~~~ haskell
-describe :: Int -> String
-describe n = case n of
-    0 -> "zero"
-    1 -> "one"
-    2 -> "two"
-    _ -> "many"
-~~~
-
-- **if式**による実装
-
-~~~ haskell
-describe :: Int -> String
-describe n = if n == 0 then "zero"
-             else if n == 1 then "one"
-             else if n == 2 then "two"
-             else "many"
-~~~
-
-- 実行例
-
-~~~ haskell
+-- ch4-3.hs (修正版)
 main :: IO ()
 main = do
-    putStrLn $ describe 0   -- "zero"
-    putStrLn $ describe 1   -- "one"
-    putStrLn $ describe 2   -- "two"
-    putStrLn $ describe 3   -- "many"
-    putStrLn $ describe 10  -- "many"
+    print (101 `mod` 2 == 0)   -- False (奇数)
+    print (202 `mod` 2 == 0)   -- True  (偶数)
 ~~~
 
-いずれの記法でも,最後の「それ以外」を表す部分(パターンマッチとcase式では `_`,ガードでは `otherwise`,if式では最後の `else`)を忘れると,該当しない入力に対して実行時エラーとなるので注意してください.
+`do` の本体は **同じ列に揃えて** インデントする. 4 スペースが慣習だが揃っていれば 2 でも 6 でも OK.
 
 </details>
 
 :::
-
-
-## 再帰
-
-Haskellにおいても**for文に相当する記法は存在します**が,基本的にループは**再帰**によって実装されます.
-再帰とは関数内で自分自身を呼び出すことです. これまで何度も登場していた`fib`も再帰を利用していましたが,
-もう少し細かく見てみましょう.
-
-以下のPythonにおけるfor文を事例に考えてみましょう.
-
-~~~ python
-def total(xs):
-    result = 0
-    for x in xs:
-        result += x
-    return result
-~~~
-
-これと同値なプログラムをHaskellで記述すると以下のようになります.
-
-~~~ haskell
-total :: [Int] -> Int
-total []     = 0
-total (x:xs) = x + total xs
-
-main = print $ total [1..10] --  55
-~~~
-
-このtotal関数は,与えられたリストが空の場合0を返します.
-要素が一つ以上あるリストの場合には,先頭の要素`x`をそれ以降の要素`xs`の合計に足すという処理を再帰的に行います.
-
-`total [1,2,3]`における処理の流れを追っていくと以下のようになります.
-
-~~~
-total [1,2,3]
-= 1 + (total [2,3])
-= 1 + (2 + (total [3]))
-= 1 + 2 + 3 + (total [])
-= 1 + 2 + 3 + 0
-= 6
-~~~
-
-再帰の基本は,**ループの終了状態**をパターンマッチなどで指定して,そこに至るまでの状態の変化を再帰で記述することです.
-処理がどのような状態になったら終わるのかを意識して記述しないと永遠に終了しないプログラムになるので注意しましょう.
-
-
 
 ::: note
 
 ### Exercise CH4-4
 
-**再帰による `length2` と FizzBuzz**
+**型クラス制約のエラー (fp3 数値型の混在)**
 
-1. リストの長さを返す`length2 :: [a] -> Int` 関数を新しく実装してください.
-
-2. 与えられた整数のリストを引数にとり,要素毎にFizzBuzzを実行した結果を文字列のリストで返す関数
-`fizzBuzz :: [Int] -> [String]`実装してください.
-
-FizzBuzzは,プログラミング学習で題材としてよく用いられる問題で,整数 `n` を以下のルールに従って文字列に変換します.
-
-- `n` が **3と5の両方の倍数(=15の倍数)** のときは `"FizzBuzz"`
-- `n` が **3の倍数** のときは `"Fizz"`
-- `n` が **5の倍数** のときは `"Buzz"`
-- それ以外のときは `n` をそのまま文字列化したもの(`show n`)
-
-例えば `[1..15]` を入力すると,以下の結果が得られます.
+以下のコードは整数と小数を混ぜて使っていますが, 型エラーが出ます. 原因を答えて修正してください.
 
 ~~~ haskell
-fizzBuzz [1..15]
--- ["1","2","Fizz","4","Buzz","Fizz","7","8","Fizz","Buzz","11","Fizz","13","14","FizzBuzz"]
+-- ch4-4.hs (誤りあり)
+main :: IO ()
+main = do
+    let bmi = 60 / (1.75 * 1.75) :: Int
+    print bmi
 ~~~
 
-なお,3と5の両方の倍数のケースを先に判定しないと `"Fizz"` や `"Buzz"` にマッチしてしまうため,条件の順序に注意が必要です.
+実エラー:
+
+~~~ sh
+app/Main.hs:4:25: error: [GHC-39999]
+    • No instance for ‘Fractional Int’ arising from the literal ‘1.75’
+    • In the first argument of ‘(*)’, namely ‘1.75’
+      In the second argument of ‘(/)’, namely ‘(1.75 * 1.75)’
+      In the expression: 60 / (1.75 * 1.75) :: Int
+  |
+4 |     let bmi = 60 / (1.75 * 1.75) :: Int
+  |                     ^^^^
+~~~
 
 <details class="protected" data-pass="yakagika">
     <summary> 回答例 </summary>
 
+**原因**: 結果を `:: Int` と型注釈で指定しているが, 式の中に小数リテラル `1.75` が混ざっている. GHC は「結果が `Int` ならすべての要素も `Int` のはず → `1.75` も `Int` であってほしい → でも `1.75` は `Fractional` 制約が要る → `Int` には `Fractional` のインスタンスが無い」と推論して `No instance for ‘Fractional Int’` を出している.
+
+修正: BMI は小数になるので **`Double` で扱う**.
+
 ~~~ haskell
--- 1. リストの長さを再帰で求める
-length2 :: [a] -> Int
-length2 []     = 0
-length2 (_:xs) = 1 + length2 xs
-
--- 2. 各要素を FizzBuzz 文字列へ変換
-fizzBuzz :: [Int] -> [String]
-fizzBuzz []     = []
-fizzBuzz (x:xs) = fb x : fizzBuzz xs
-  where
-    fb n
-      | n `mod` 15 == 0 = "FizzBuzz"
-      | n `mod`  3 == 0 = "Fizz"
-      | n `mod`  5 == 0 = "Buzz"
-      | otherwise       = show n
-
--- 実行例
+-- ch4-4.hs (修正版)
 main :: IO ()
 main = do
-  print $ length2 [1,2,3,4,5]           -- 5
-  print $ length2 "hello"               -- 5
-  print $ fizzBuzz [1..15]
-  -- ["1","2","Fizz","4","Buzz","Fizz","7","8","Fizz","Buzz","11","Fizz","13","14","FizzBuzz"]
+    let bmi = 60 / (1.75 * 1.75) :: Double
+    print bmi   -- 19.591836734693878
 ~~~
+
+もし整数結果が欲しい場合は `floor` などで切り捨てる: `print (floor bmi :: Int)`.
 
 </details>
 
 :::
-
-
-
-## 高階関数
-これまで扱ってきた関数の引数はすべて,値でしたが値ではなく**関数**を引数として指定することが可能です. **関数を引数に取る関数を高階関数といいます**.
-
-例えば関数`f`とリスト`[x,y,z]`を引数として受け取り,リストの各要素に`f`を適用したリスト`[f x, f y, f z]`を返す関数は以下のように実装できます.
-
-~~~ haskell
-applyFToList :: (a -> b) -> [a] -> [b]
-applyFToList _ []     = []
-applyFToList f (x:xs) = f x : applyFToList f xs
-
-main = do
-    print $ applyFToList (2*) [4,5,6]  -- [8,10,12]
-    print $ applyFToList (1+) [4,5,6]  -- [5,6,7]
-    print $ applyFToList show [4,5,6]  -- ["4","5","6"]
-    print $ applyFToList fib  [4,5,6]  -- [5,8,13]
-~~~
-
-関数部分は, `(a -> b)`のように,丸括弧で囲んでいます.
-
-### map
-
-この関数と同じものが組み込み関数(あらかじめ定義された関数)として提供されている代表的な高階関数`map :: (a -> b) -> [a] -> [b]`です.
-
-~~~ haskell
-main = do
-    print $ map (2*) [4,5,6]  -- [8,10,12]
-    print $ map (1+) [4,5,6]  -- [5,6,7]
-    print $ map show [4,5,6]  -- ["4","5","6"]
-    print $ map fib  [4,5,6]  -- [5,8,13]
-~~~
-
-::: warn
-- Prelude
----
-Haskellの組み込み関数はライブラリ`Prelude`として提供されています.
-`Prelude`はすべてのプロジェクトで自動で読み込まれています.
-
-`map`関数は他のライブラリでも同名のものが提供されているため,それらと名前が被っている場合はどちらの`map`を利用するのか判別できないというエラーが起きます.
-
-例として,`Data.Text`も`map`を提供しているために,`Data.Text`を`import`している場合には以下のようなエラーが出ます.
-
-~~~ sh
-Ambiguous occurrence ‘map’
-    It could refer to
-       either ‘Prelude.map’,
-              imported from ‘Prelude’ at app/practice.hs:1:1
-              (and originally defined in ‘GHC.Base’)
-           or ‘Data.Text.map’,
-              imported from ‘Data.Text’ at app/practice.hs:4:1-16
-~~~
-
-同名の関数が複数のライブラリで定義されている場合は,`Prelude.map`など,どのライブラリの`map`であるかを明示するか,
-`hiding`を利用して特定の関数のみを`import`対象から外します.
-
-~~~ haskell
-import Data.Text hiding (map)
--- map 以外すべてをimport
-~~~
-
-あるいは,利用する関数のみを明示的に`import`することも可能です.
-
-~~~ haskell
-import Data.Text hiding (Text,empty)
--- Text,emptyのみをimport
-~~~
-
-:::
-
-以下, よく用いられる代表的な高階関数に関して紹介します.
-
-### filter
-
-`filter :: (a -> Bool) -> [a] -> [a]`はリストの中から与えられた関数で判定される条件に合致するもののみを抽出する関数です.
-
-
-~~~ haskell
-{-# LANGUAGE OverloadedStrings #-}
-import Data.Text (elem)
-
-main = do
-    print $ filter (10 < ) [5,10,15,20] --  [15,20]
-    print $ filter (Data.Text.elem 'a') ["cat","dog","bird"] --  ["cat"]
-~~~
-
-### fold
-`foldl :: (a -> b -> a) -> a -> [b] -> a`,
-
-`foldr :: (a -> b -> b) -> b -> [a] -> b`
-
-は畳み込み関数です. `foldl` はリストの左端, `foldr` はリストの右端から値を一つずつ抜き出して, 2引数関数によって一つの値に畳み込んでいきます.
-
-::: warn
-合計や積のように **アキュムレータに値を蓄積していく** 用途では, `Prelude` の `foldl` は遅延評価のため未評価のサンクが積み上がりスペースリークを起こすことがあります. 実用上は `Data.List` の **`foldl'`** (正格版)を使うのが定石です. 一方で `foldr` は遅延評価の恩恵で無限リストや短絡評価と相性が良く, 用途によって使い分けるのが一般的です.
-:::
-
-例として,
-
-~~~ haskell
-main = do
-    print $ foldl (+) 0 [1,2,3] --  6
-~~~
-
-の挙動は,
-
-`foldl (+) 0 [1,2,3]`
-
-`foldl (+) (0+1) [2,3]`
-
-`foldl (+) (1+2) [3]`
-
-`foldl (+) (3+3) []`
-
-`6`
-
-となります.
-
-### zipWith, zip
-
-`zipWith :: (a -> b -> c) -> [a] -> [b] -> [c]`
-
-は2つのリストからそれぞれ値を順番に取り出して,関数を適用した結果をリストに格納する高階関数です.
-
-例として.
-
-~~~ haskell
-main = do
-    print $ zipWith (++) ["a","b","c"] ["x","y","z"] --  ["ax","by","cz"]
-~~~
-
-の挙動は,
-
-`zipWith (++) ["a","b","c"] ["x","y","z"] `
-
-`["a" ++ "x" ,"b" ++ "y","c" ++ "z"]`
-
-となります.
-
-`zip :: [a] -> [b] -> [(a,b)]`
-
-は2つのリストからそれぞれ値を順番に取り出して,`[(左のリスト値,右のリストの値)]`を返す関数です.
-タプルを返す2引数関数 `,` によって `zipWith (,)` として実装されます.
-
-~~~ haskell
-zip' :: [a] -> [b] -> [(a,b)]
-zip' = zipWith (,)
-
-tuple :: a -> b -> (a,b)
-tuple a b = (a,b)
-
-zip'' :: [a] -> [b] -> [(a,b)]
-zip'' = zipWith tuple
-
-main = do
-    print $ zip [1,2,3] [11,12,13] --  [(1,11),(2,12),(3,13)]
-    print $ zip' [1,2,3] [11,12,13] --  [(1,11),(2,12),(3,13)]
-    print $ zip'' [1,2,3] [11,12,13] --  [(1,11),(2,12),(3,13)]
-~~~
 
 ::: note
 
 ### Exercise CH4-5
 
-**`map` / `foldl` / `zipWith` の活用**
+**実行時エラー: 網羅されていないパターン (fp3 文字列とリストの復習)**
 
-- 与えられた整数のリストの各要素を二乗する関数squareListを,mapを使って定義してください.
-
-~~~ haskell
-squareList [1,2,3,4] -- [1,4,9,16]
-~~~
-
-- 整数のリストの総積を計算する関数productListを,foldlを使って定義してください.
+以下のコードはコンパイルは通りますが, 実行すると途中で止まります. 出力されるエラーを読んで原因を答え, 修正してください.
 
 ~~~ haskell
-productList [1,2,3,4] -- 24
-~~~
-
-
-- 2つのリストから,それぞれの要素の大きい方を選んで新しいリストを作る関数maxListを,zipWithを使って定義してください.
-
-~~~ haskell
-maxList [1,4,3] [2,2,5] -- [2,4,5]
-~~~
-
-
-<details class="protected" data-pass="yakagika">
-    <summary> 回答例 </summary>
-
-~~~ haskell
--- map で各要素を 2 乗
-squareList :: [Int] -> [Int]
-squareList xs = map (^2) xs
-
--- foldl で積を畳み込み (初期値 1)
-productList :: [Int] -> Int
-productList xs = foldl (*) 1 xs
-
--- zipWith で 2 要素ごとに大きい方を取る
-maxList :: [Int] -> [Int] -> [Int]
-maxList xs ys = zipWith (\x y -> if x > y then x else y) xs ys
-
--- 実行例
+-- ch4-5.hs (誤りあり)
 main :: IO ()
 main = do
-  print $ squareList  [1,2,3,4]         -- [1,4,9,16]
-  print $ productList [1,2,3,4]         -- 24
-  print $ maxList     [1,4,3] [2,2,5]   -- [2,4,5]
+    let (c:_) = "hello" :: String
+    putStrLn [c]               -- 'h'
+    let (d:_) = "" :: String
+    putStrLn [d]               -- 実行時に止まる
 ~~~
 
-</details>
+実行時出力 (`stack run` 等で):
 
-:::
-
-## 無名関数(ラムダ式)
-
-高階関数に与える関数はその場限りの利用となる場合が多いため,先程の`zipWith`と`tuple`によって`zip`を定義した例のように, いちいち別の関数名をつけることは手間が多くなり,コードも冗長になりがちです.
-そのような場合に, 使い捨ての関数を定義する手法が,**無名関数(ラムダ式) Lambda expression**です.
-
-ラムダ計算は$\lambda$を表す記号,`\`を用いて, `\ 引数 -> 返り値`の形で式を定義できます.
-
-例として,
-
-`f x y z = x + y + z` は
-
-`\ x y z -> x + y + z` となります.
-
-`zipWith` の例は以下のようにも定義できます.
-
-~~~ haskell
-main = do
-    print $ zip [1,2,3] [11,12,13] -- [(1,11),(2,12),(3,13)]
-    print $ zipWith (\ x y -> (x,y)) [1,2,3] [11,12,13] --  [(1,11),(2,12),(3,13)]
-~~~
-
-また,練習問題中の`maxList`は,以下のように定義できます.
-
-
-~~~ haskell
-main = do
-    print $ zipWith (\x y -> if x > y then x else y)
-                    [1,4,3]
-                    [2,2,5] -- [2,4,5]
-~~~
-
-::: note
-- `flip` と高階関数
----
-
-`flip :: (a -> b -> c) -> b -> a -> c`は,**関数の引数の順番を入れ替える関数**であり,以下のような挙動を示します.
-
-~~~ haskell
-main = do
-   print $ (,) "a" "b" -- ("a","b")
-   print $ flip (,) "a" "b" -- ("b","a")
-   ---
-   print $ (>) 1 2 -- False
-   print $ flip (>) 1 2 -- True
-~~~
-
-高階関数にラムダ式を組み合わせたことで,記述が長くなった場合などには,`flip`で引数の関数とリストを入れ替え,**手続き型言語における`for文`に近い記法**を採用する場合があります.
-
-
-~~~ haskell
-main :: IO ()
-main = do
-   print $ flip map [-3 .. 3]
-         $ \ x -> case x >= 0 of
-                True  -> 1
-                False -> 0
-        -- [0,0,0,1,1,1,1]
-~~~
-
-このような`flip`,ラムダ式と`$`を組み合わせた記法は今後の**状態系**や**モナド**に関する議論などで頻出します.
-また,このような書き方を前提とした`forM`,`forM_`などの関数も登場するので,頭の片隅に入れておいてください.
-
-:::
-
-::: note
-
-### Exercise CH4-6
-
-**ラムダ式と高階関数の組合せ**
-
-- ラムダ式と高階関数を利用して,リストの各要素に3を加える関数addThreeを定義してください.
-
-~~~ haskell
-addThree [1,2,3] -- [4,5,6]
-~~~
-
-- ラムダ式と高階関数を利用して,整数のリストから偶数だけを取り出す関数onlyEvenを定義してください.
-
-~~~ haskell
-onlyEven [1,2,3,4,5,6] -- [2,4,6]
-~~~
-
-- ラムダ式と高階関数を利用して,整数のリストに含まれる要素の絶対値の合計を求める関数sumAbsを定義してください.
-
-~~~ haskell
-sumAbs [-3,4,-1,2] -- 10
+~~~ sh
+h
+ch4-5: app/Main.hs:5:9-28: Non-exhaustive patterns in d : _
 ~~~
 
 <details class="protected" data-pass="yakagika">
     <summary> 回答例 </summary>
 
+**原因**: `let (d:_) = ""` は「先頭 1 文字 + 残り」というパターン束縛だが, 右辺が **空文字列** で先頭に該当する文字が無いため失敗する. パターン束縛も「網羅されていないパターン」の一種.
+
+実は **コンパイル時にも警告が出ている** はず (`Pattern match(es) are non-exhaustive` の warning). `stack build` のメッセージをよく見ると気づける.
+
+修正 1: 事前に **`null` で空判定** する.
+
 ~~~ haskell
--- map とラムダ式で各要素に 3 を足す
-addThree :: [Int] -> [Int]
-addThree xs = map (\x -> x + 3) xs
-
--- filter とラムダ式で偶数のみを取り出す
-onlyEven :: [Int] -> [Int]
-onlyEven xs = filter (\x -> x `mod` 2 == 0) xs
-
--- map で絶対値へ変換してから sum で合計
-sumAbs :: [Int] -> Int
-sumAbs xs = sum (map (\x -> abs x) xs)
-
--- 実行例
+-- ch4-5.hs (修正版 A)
 main :: IO ()
 main = do
-  print $ addThree [1,2,3]         -- [4,5,6]
-  print $ onlyEven [1,2,3,4,5,6]   -- [2,4,6]
-  print $ sumAbs   [-3,4,-1,2]     -- 10
+    let xs = "hello" :: String
+    if null xs then putStrLn "empty"
+               else putStrLn [head xs]
+
+    let ys = "" :: String
+    if null ys then putStrLn "empty"
+               else putStrLn [head ys]
 ~~~
+
+修正 2: パターン束縛ではなく `head` (こちらも空文字列だと実行時エラーだが, 検査と組み合わせる前提).
+
+~~~ haskell
+main = do
+    let xs = "hello" :: String
+    putStrLn (if null xs then "" else [head xs])
+~~~
+
+**安全な扱いとして** 後の章で `Maybe` 型を使い「失敗しうる」ことを **型で表現する** 手法を学びます (例: `listToMaybe`).
 
 </details>
 
 :::
-
-
-## 関数合成
-
-数学において,2つの関数 $f(x), g(x)$があるとき, $f(g(x))$を合成関数と呼び, $$f \circ g $$ とも書きます.
-通常Haskellでも関数を合成する場合には,
-
-`f (g x)` あるいは `f $ g x` と書きますが,関数 `(.)`によって `(f . g) x` と書くことができます.
-関数定義においては
-
-`h = f . g` のように定義することが可能です.
-
-
-~~~ haskell
-f :: Int -> Int
-f x = 2 * x
-
-g :: Int -> Int
-g x = 3 + x
-
-
--- 実行例
-main :: IO ()
-main = do
-    -- f(g(x))
-    print $ f $ g 2 -- 10
-    -- (f . g) x, すなわち合成関数
-    print $ (f . g) 2 -- 10
-    -- 定義
-    let h = f . g
-    print $ h 2 -- 10
-~~~
-
-
-## 変数(値の束縛)
-
-Pythonなどの言語では,特定の変数に値を代入することができます.例えば,以下の最大値を求めるプログラムでは,変数`m`に最初の中身はリストの最初の要素が代入された後,次々とより大きな変数が代入されていきます. `変数`は名前の通り,次々とその値を変更していきます.
-
-~~~ python
-xs = [3,5,2,4,6,7,1]
-m  = xs[0]
-
-for x in xs[1:]:
-    if x > m:
-        m = x
-print('max value:',m)
-~~~
-
-一方でHaskellでは,変数に一度値を割り当てると,その変数の値を後から変更することができません. 変数に値を再代入するという操作が許されていないのです. この性質を`不変性` (immutability) といいます. したがって,Haskellでは代入という言葉を使わず`束縛`といいます.
-これは,通常の手続き型言語との大きな違いになります.
-
-::: warn
-※1 値を変えられないなら｢変数じゃない｣じゃないという意見もありますが,数学において変数と呼ばれているものに近い概念だと考えましょう.
-
-※2 実は後にでてくる`State`や`ST`などHaskellでも`再代入(破壊的代入)`を扱うことはできますが,特定の仕組みによって以下の純粋関数型言語の特徴を保っています.
-:::
-
-例えば,以下のように一度値を束縛した変数に新しく変数を代入しようとすると`xという変数に複数の宣言をしている`というエラーが出ます(ghciでやる場合には,`:{ :}`を入れる必要があり余計にややこしいですね.すみません).
-
-~~~ haskell
-ghci> :{
-ghci| x = 1
-ghci| x = 2
-ghci| :}
-
-<interactive>:5:1: error:
-    Multiple declarations of ‘x’
-    Declared at: <interactive>:4:1
-                 <interactive>:5:1
-~~~
-
-これは一見非常に不便なように感じられますが,これによって関数型プログラムでは,プログラムの安全性を高めています.
-
-例えばPythonにおける以下のプログラムについて考えてみましょう.
-
-~~~ python
-counter = 0
-
-def count_plus(x):
-    global counter
-    counter += x
-    return counter
-
-print(count_plus(1))  # 出力: 1
-print(count_plus(1))  # 出力: 2
-~~~
-
-このプログラムでは,`count_plus()`関数に対して同じ引数1を与えているにもかかわらず,関数を呼び出すたびに,グローバル変数`counter`が変更されて,結果が変わります. 同じ関数を呼び出しても,結果が変わるために関数のみから,関数の挙動を把握することができません.
-
-一方でHaskellでは,常に同じ関数は,同じ入力に対して,同じ返り値を返します. このような特性を**参照透過性(Referential Transparency)**と呼び,これによってプログラムの挙動を把握しやすくしています.
-
-また,上記のPythonのプログラムは,関数を実行するたびに,関数の外にある,`counter`という変数の状態が変化しています. このような,関数が実行されることで単に値を返す以外に何らかの｢外部の状態を変化させる｣ことを関数の**副作用(Side Effect)**といいます. これは言い換えれば,関数の実行によるプログラム全体への影響が,関数以外の外部の状態に依存していることを意味しており,プログラムの挙動を予測することを難しくします.
-
-参照透過性と副作用は相互に結びついた概念ですが,Haskellでは参照透過性を保ち,副作用を排除するようにプログラムが設計されています.
-このように, **｢参照透過性｣** と **｢副作用の排除｣** の両方を持った関数型言語を **純粋関数型言語** と呼びHaskellの大きな特徴の一つです.
-
-Haskellにおいて,変数への再代入が禁止されていることのメリットは理解していただけたかと思いますが,Haskellにも変数自体はあります.
-
-Haskellにおける変数は主に,**トップレベル変数**及び**ローカル変数**に大別されます.
-
-### トップレベル変数
-
-先程の `x=1`のように,独立して宣言される変数を`トップレベル変数`と呼びます. トップレベル変数は,Pythonなどの言語における`グローバル変数`と同様に,スクリプト内のどの場所からでも利用することができます.
-
-
-~~~ haskell
-x = 1
-
-someFunc :: Int -> Int
-someFunc y = x + y
-
-main = do
-    print $ someFunc 1 --  2
-~~~
-
-### ローカル変数
-手続き型言語においてスコープが制限された変数のように,特定の関数内でのみ参照可能な局所変数として,**ローカル変数**が存在します. Haskellにおけるローカル変数は, `let式`,`where節`の2つのパターンが用意されています(ラムダ式内の引数も見方によってはローカル変数かもしれません.)
-
-#### let式
-関数内で `let 宣言 in 式`の形式で局所変数を定義できます.
-
-~~~ haskell
-someFunc :: Int -> Int
-someFunc y = let x = 1
-           in x + y
-
-main = do
-    print $ someFunc 1 --  2
-~~~
-
-この変数`x`は別の関数内で参照することはできません.
-
-~~~ haskell
-someFunc :: Int -> Int
-someFunc y = let x = 1
-           in x + y
-
-someFunc2 :: Int -> Int
-someFunc2 y = x + y
-
-main = do
-    print $ someFunc2 1 --  Variable not in scope: x :: Int
-~~~
-複数の宣言をひとまとめにすることも可能です.
-
-~~~ haskell
-someFunc :: Int -> Int
-someFunc z = let x = 1
-                 y = 2
-           in x + y + z
-
-main = do
-    print $ someFunc 1 --  4
-~~~
-
-#### where節
-数式の直後にインデントをつけて`where 宣言`と書くことでも局所変数や局所関数を定義できます.
-
-~~~ haskell
-someFunc :: Int -> Int
-someFunc z = f z
-    where
-    x = 1
-    y = 2
-    f z = x + y + z
-
-main = do
-    print $ someFunc 1 --  4
-~~~
-
-## 練習問題(関数総合)
-
-::: note
-
-### Exercise CH4-7
-
-**統計量 (標本標準偏差・積率相関係数)**
-
-- 与えられたリストの標本標準偏差`s`を計算する関数を実装してください.
-
-- 与えられた2つのリストの積率相関係数`r`を計算する関数を実装してください.
-
-それぞれの定義は以下とします.
-
-$$
-s = \sqrt{\frac{\sum_{i=1}^{n}(x_i - \bar{x})^2}{n}}
-$$
-$$
-r = \frac{\sum_{i=1}^{n}(x_i - \bar{x})(y_i - \bar{y})}{\sqrt{\sum_{i=1}^{n}(x_i - \bar{x})^2 \sum_{i=1}^{n}(y_i - \bar{y})^2}}
-$$
-
-~~~ haskell
--- 実行例
-main :: IO ()
-main = do
-  let xs = [1, 2 .. 5]
-      ys = [5, 4 .. 1]
-  putStrLn $ "標準偏差: " ++ show (stddev xs) --  1.4142135623730951
-  putStrLn $ "相関係数: " ++ show (correlation xs ys) -- -0.9999999999999998
-~~~
-
-
-<details class="protected" data-pass="yakagika">
-    <summary> 回答例 </summary>
-
-~~~ haskell
--- 平均値を求める関数
-mean :: [Double] -> Double
-mean xs = sum xs / fromIntegral (length xs)
-
--- 標本標準偏差を求める関数
-stddev :: [Double] -> Double
-stddev xs = sqrt variance
-  where
-    m = mean xs
-    n = fromIntegral (length xs)
-    variance = sum (map (\x -> (x - m)^2) xs) / n
-
--- 積率相関係数を求める関数
-correlation :: [Double] -> [Double] -> Double
-correlation xs ys = covariance / (stddev xs * stddev ys)
-  where
-    mx = mean xs
-    my = mean ys
-    n  = fromIntegral (length xs)
-    covariance = sum (zipWith (\x y -> (x - mx)*(y - my)) xs ys) / n
-
--- 実行例
-main :: IO ()
-main = do
-  let xs = [1, 2 .. 5]
-      ys = [5, 4 .. 1]
-  putStrLn $ "標準偏差: " ++ show (stddev xs) --  1.4142135623730951
-  putStrLn $ "相関係数: " ++ show (correlation xs ys) -- -0.9999999999999998
-~~~
-
-</details>
-
-
-### Exercise CH4-8
-
-**パーセプトロン (OR 回路の発火関数)**
-
-- or 回路を表すパーセプトロンの発火関数 `f x1 x2` を以下のように定める.
-(パーセプトロンの意味などがわからない場合は, [特別講義資料](slds14.html)を参照のこと)
-
-$$
-f(x1, x2) =
-\begin{cases}
-1 & (0.5 x_1 + 0.5 x_2 \geq 0.2)\\
-0 & (\text{otherwise})
-\end{cases}
-$$
-
-この回路を表す`perceptronOR :: Bool -> Bool -> Bool`を実装せよ.
-
-~~~ haskell
--- 実行例
-main :: IO ()
-main = do
-   print $ perceptronOR False False -- False
-   print $ perceptronOR True False  -- True
-   print $ perceptronOR False True  -- True
-   print $ perceptronOR True True   -- True
-~~~
-
-<details class="protected" data-pass="yakagika">
-    <summary> 回答例 </summary>
-
-~~~ haskell
-perceptronOR :: Bool -> Bool -> Bool
-perceptronOR x1 x2
-  | threshold >= 0 = True
-  | otherwise      = False
-  where
-    g True  = 1
-    g False = 0
-    threshold = 0.5 * g x1 + 0.5 * g x2 - 0.2
-
--- 実行例
-main :: IO ()
-main = do
-   print $ perceptronOR False False -- False
-   print $ perceptronOR True False  -- True
-   print $ perceptronOR False True  -- True
-   print $ perceptronOR True True   -- True
-~~~
-
-</details>
-
-:::
-
-
