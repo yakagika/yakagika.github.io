@@ -2601,10 +2601,94 @@ f(x1, x2) =
 <p>→ <strong>使っていないウィンドウは閉じて 1 つに揃える</strong> こと. 「Window メニュー」や Cmd/Ctrl+` で開いているウィンドウ一覧を確認できます.</p>
 <h3 id="ターミナルの-コードページ-chcp-が-utf-8-になっているか-windows-のみ">3. ターミナルの <strong>コードページ (<code>chcp</code>) が UTF-8 になっているか</strong> (Windows のみ)</h3>
 <p>Windows の PowerShell / cmd は既定で <strong>Shift_JIS (コードページ <code>932</code>)</strong> を使います. Haskell の標準出力は <strong>UTF-8</strong> なので, 日本語を含む文字列を扱うと文字化けや出力エラーが発生することがあります.</p>
-<p>→ ターミナルで UTF-8 (<code>65001</code>) に切り替えると解消するケースが多いです:</p>
+<p>応急処置としては, ターミナルで UTF-8 (<code>65001</code>) に切り替えるコマンドを打てば解消します:</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">chcp</span> 65001</span></code></pre></div>
-<p>恒久的に変えたい場合は, PowerShell プロファイルや起動スクリプトに <code>chcp 65001</code> を入れる, あるいは Windows の地域設定で「ベータ: ワールドワイド言語サポートで Unicode UTF-8 を使用」をオンにする方法もあります.</p>
-<p>参考 (Haskell-jp ブログ): <a href="https://haskell.jp/blog/posts/2017/windows-gotchas.html">Windowsでのよくある落とし穴</a></p>
+<p>ただし <code>chcp 65001</code> は <strong>そのターミナル 1 回限り</strong> の効果しか持たないため, ターミナルを開き直すたびに毎回打ち直す必要があります. <strong>VSCode で Haskell を学習するなら, 統合ターミナルが起動した瞬間に UTF-8 になるよう <code>settings.json</code> に書いておくのが圧倒的に楽</strong> です. 以下を推奨します.</p>
+<h4 id="推奨-vscode-の-settings.json-で起動時に自動で-utf-8-にする">推奨: VSCode の <code>settings.json</code> で起動時に自動で UTF-8 にする</h4>
+<ol type="1">
+<li>VSCode で <strong><code>Ctrl + Shift + P</code></strong> → 「<strong>Preferences: Open User Settings (JSON)</strong>」 を選んで <code>settings.json</code> を開く.</li>
+<li>次の内容を追記する (既にある設定とマージする形で OK):</li>
+</ol>
+<div class="sourceCode" id="cb2"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;terminal.integrated.defaultProfile.windows&quot;</span><span class="fu">:</span> <span class="st">&quot;PowerShell (UTF-8)&quot;</span><span class="fu">,</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;terminal.integrated.profiles.windows&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;PowerShell (UTF-8)&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;PowerShell&quot;</span><span class="fu">,</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;args&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;-NoExit&quot;</span><span class="ot">,</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;-Command&quot;</span><span class="ot">,</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;chcp 65001 | Out-Null&quot;</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>            <span class="ot">]</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>        <span class="fu">}</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<ol start="3" type="1">
+<li>VSCode の統合ターミナル (<code>Ctrl + `</code>) を一度閉じて開き直す.</li>
+</ol>
+<p>これで, <strong>新しくターミナルを開くたびに自動で UTF-8 に切り替わった状態で立ち上がる</strong> ようになります.</p>
+<p>各引数の役割:</p>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>引数</th>
+<th>役割</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>-NoExit</code></td>
+<td><code>chcp 65001</code> を実行した後も PowerShell を終了させずに対話モードを継続</td>
+</tr>
+<tr class="even">
+<td><code>-Command "chcp 65001 \| Out-Null"</code></td>
+<td>起動時に <code>chcp 65001</code> を実行. <code>Out-Null</code> で「Active code page: 65001」の出力を消す</td>
+</tr>
+<tr class="odd">
+<td><code>source: "PowerShell"</code></td>
+<td>VSCode が検出した PowerShell 実行ファイルを使う (Windows PowerShell 5.1 / PowerShell 7 のどちらでも OK)</td>
+</tr>
+</tbody>
+</table>
+<h4 id="補足-より恒久的な対処-任意">補足: より恒久的な対処 (任意)</h4>
+<ul>
+<li><strong>OS 全体で UTF-8 にする</strong>: Windows の「地域」設定 → 「管理」タブ → 「システム ロケールの変更」で <strong>「ベータ: ワールドワイド言語サポートで Unicode UTF-8 を使用」</strong> にチェック. これで PowerShell / cmd / 他のアプリすべてが UTF-8 で動作するようになりますが, 一部の旧 Windows アプリで文字化けする可能性があるため <strong>ベータ機能扱い</strong>.</li>
+<li><strong>PowerShell プロファイルに書く</strong>: VSCode 以外のターミナル (Windows Terminal など) でも自動 UTF-8 にしたい場合は, <code>notepad $PROFILE</code> でプロファイルを開いて <code>chcp 65001 | Out-Null</code> を追記する方法もあります.</li>
+</ul>
+<p>参考:</p>
+<ul>
+<li><a href="https://qiita.com/s4i/items/d6d19c24b9d8ff193f72">VSCodeの統合ターミナルでPowerShell起動時、文字コードをUTF-8に変える方法 (Qiita)</a></li>
+<li><a href="https://haskell.jp/blog/posts/2017/windows-gotchas.html">Windowsでのよくある落とし穴 (Haskell-jp ブログ)</a></li>
+</ul>
+<h3 id="smart-app-control-windows-11-が-stack-をブロック-している-windows-のみ">4. <strong>Smart App Control (Windows 11) が Stack をブロック</strong> している (Windows のみ)</h3>
+<p>Windows 11 の <strong>Smart App Control (スマートアプリコントロール, 略 SAC)</strong> が有効になっていると, Stack が GHC のビルドのために内部で起動する <strong><code>Cabal-simple_*.exe</code> (<code>C:\sr\setup-exe-cache\...</code>)</strong> が「未署名」と判定され, 起動自体が阻まれて <code>stack build</code> が以下のような cryptic なエラーで失敗します.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">PS</span> C:<span class="dt">\U</span>sers<span class="dt">\u</span>ser<span class="dt">\H</span>askell<span class="dt">\t</span>est2<span class="op">&gt;</span> stack build</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">test2</span><span class="op">&gt;</span> configure <span class="er">(</span><span class="ex">lib</span> + exe<span class="kw">)</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="ex">Error:</span> <span class="pp">[</span><span class="ss">S</span><span class="pp">-</span><span class="ss">7282</span><span class="pp">]</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>       <span class="ex">Stack</span> failed to execute the build plan.</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>       <span class="ex">While</span> executing the build plan, Stack encountered the error:</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>       <span class="ex">C:\sr\setup-exe-cache\x86_64-windows\Cabal-simple_O_vy6YIf_3.12.1.0_ghc-9.10.3.exe:</span> startProcess: invalid argument <span class="er">(</span><span class="ex">Invalid</span> argument<span class="kw">)</span></span></code></pre></div>
+<p>メッセージは <code>startProcess: invalid argument</code> という Haskell 由来の文言で <strong>原因が極めて分かりにくい</strong> のが特徴です. 実体は SAC によるブロックなので, 修正は Windows 側の設定で行います.</p>
+<p>→ <strong>対策: スマートアプリコントロールを OFF にする</strong></p>
+<p><code>設定</code> → <code>プライバシーとセキュリティ</code> → <code>Windows セキュリティ</code> → <code>アプリとブラウザーの制御</code> → <code>スマートアプリコントロールの設定</code> → <strong>オフ</strong></p>
+<div class="warn">
+<p>SAC は本来 Windows 全体のマルウェア防御の一部なので, OFF にすると保護レベルが下がります. それでも本講義では Stack / Haskell 開発を進めるためには現状この方法しか実用解がありません.</p>
+<p>サーベイ結果(2026 年 5 月時点):</p>
+<ul>
+<li><strong>SAC には個別アプリの除外リスト機能が無い</strong>. Microsoft 公式 FAQ で「<strong>There is currently no way to bypass Smart App Control protection for individual apps</strong>」と明記.</li>
+<li><code>Cabal-simple_*.exe</code> のような Stack 内部の補助実行ファイルは Microsoft 署名を持たないため一律ブロックされる.</li>
+<li>イベントログ (<code>Applications and Services Logs &gt; Microsoft &gt; Windows &gt; CodeIntegrity &gt; Operational</code>, Event ID 3076/3077) で具体的にどの exe がブロックされたかは確認できるが, ブロックを解除する手段は無い.</li>
+<li>当初 SAC は「<strong>一度 OFF にするとクリーンインストールしないと再有効化できない</strong>」仕様だったが, 最近の Windows update で <strong>Windows セキュリティアプリから再有効化可能</strong> に改善されている.</li>
+</ul>
+<p>そのため「開発が終わったら再度 ON に戻す」運用も実用可能です. 個別の Stack 関連 exe を whitelist する手段は <strong>2026 年現在も存在しません</strong>.</p>
+</div>
+<p>参考: <a href="https://support.microsoft.com/en-us/windows/smart-app-control-frequently-asked-questions-285ea03d-fa88-4d56-882e-6698afdb7003">Smart App Control Frequently Asked Questions (Microsoft Support)</a></p>
 <hr />
 <p>これらは本章後半で扱う <strong>GHC のエラー</strong> とは別軸の「環境起因の問題」です. エラーメッセージそのものに違和感が無く挙動だけが変な場合は, まず上記 3 点を疑ってみてください.</p>
 </div>
@@ -2613,11 +2697,11 @@ f(x1, x2) =
 <p><code>app</code> フォルダ内に <code>practice.hs</code>を作成しそこで事例の勉強をしましょう.</p>
 </div>
 <p><code>practice.hs</code> ファイルを作成したら,ファイルを以下のように記述しましょう.</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ot">{-# LANGUAGE OverloadedStrings #-}</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Data.Text</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">putStrLn</span> <span class="st">&quot;practice&quot;</span></span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ot">{-# LANGUAGE OverloadedStrings #-}</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Data.Text</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">putStrLn</span> <span class="st">&quot;practice&quot;</span></span></code></pre></div>
 <div class="warn">
 <p><code>module XXX () where</code></p>
 <p>という記述は,他のファイルからインポート可能なmodule化を行うための宣言です.
@@ -2628,62 +2712,62 @@ f(x1, x2) =
 <p>これは,<code>Hello World</code>のために編集した<code>Main.hs</code>も同様であるため,<code>Main.hs</code>を<code>hello.hs</code>に名前を変更し,ファイル内の <code>module Main (main) where</code>の記述も削除し,以下のように変更しましょう.</p>
 <p>cf. <a href="https://www.reddit.com/r/haskell/comments/capuz7/multiple_executable_in_project/">他にもいくつかの方法があるようです</a></p>
 </div>
-<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Lib</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> helloWorld</span></code></pre></div>
-<p><code>package.yaml</code>の<code>executables:</code>を以下のように編集して<code>hello.hs</code>と<code>practice.hs</code>を実行可能ファイルとして登録します. <code>Data.Text</code>を利用するために,<code>dependencies:</code>以下に<code>- text</code>を追加しておきましょう.</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dependencies</span><span class="kw">:</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> base &gt;= 4.7 &amp;&amp; &lt; 5</span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> text</span></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="co">#ghc-options:</span></span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span><span class="kw">:</span></span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">source-dirs</span><span class="kw">:</span><span class="at"> src</span></span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="fu">executables</span><span class="kw">:</span></span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">hello</span><span class="kw">:</span></span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">main</span><span class="kw">:</span><span class="at">                main.hs</span></span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">source-dirs</span><span class="kw">:</span><span class="at">         app</span></span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">ghc-options</span><span class="kw">:</span></span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -threaded</span></span>
-<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -rtsopts</span></span>
-<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -with-rtsopts=-N</span></span>
-<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">dependencies</span><span class="kw">:</span></span>
-<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> hello-world</span></span>
-<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">practice</span><span class="kw">:</span></span>
-<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">main</span><span class="kw">:</span><span class="at">                practice.hs</span></span>
-<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">source-dirs</span><span class="kw">:</span><span class="at">         app</span></span>
-<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">ghc-options</span><span class="kw">:</span></span>
-<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -threaded</span></span>
-<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -rtsopts</span></span>
-<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -with-rtsopts=-N</span></span>
-<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">dependencies</span><span class="kw">:</span></span>
-<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> hello-world</span></span></code></pre></div>
-<p><code>stack run practice</code> で<code>practice</code>と表示されれば成功です.</p>
-<p>これからスクリプトで実行していくにあたって,<code>practice.hs</code>の中身をもう少し詳しく見てみましょう.</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Lib</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">putStrLn</span> <span class="st">&quot;practice&quot;</span></span></code></pre></div>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> helloWorld</span></code></pre></div>
+<p><code>package.yaml</code>の<code>executables:</code>を以下のように編集して<code>hello.hs</code>と<code>practice.hs</code>を実行可能ファイルとして登録します. <code>Data.Text</code>を利用するために,<code>dependencies:</code>以下に<code>- text</code>を追加しておきましょう.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dependencies</span><span class="kw">:</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> base &gt;= 4.7 &amp;&amp; &lt; 5</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> text</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co">#ghc-options:</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span><span class="kw">:</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">source-dirs</span><span class="kw">:</span><span class="at"> src</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="fu">executables</span><span class="kw">:</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">hello</span><span class="kw">:</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">main</span><span class="kw">:</span><span class="at">                main.hs</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">source-dirs</span><span class="kw">:</span><span class="at">         app</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">ghc-options</span><span class="kw">:</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -threaded</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -rtsopts</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -with-rtsopts=-N</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">dependencies</span><span class="kw">:</span></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> hello-world</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">practice</span><span class="kw">:</span></span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">main</span><span class="kw">:</span><span class="at">                practice.hs</span></span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">source-dirs</span><span class="kw">:</span><span class="at">         app</span></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">ghc-options</span><span class="kw">:</span></span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -threaded</span></span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -rtsopts</span></span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -with-rtsopts=-N</span></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">dependencies</span><span class="kw">:</span></span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> hello-world</span></span></code></pre></div>
+<p><code>stack run practice</code> で<code>practice</code>と表示されれば成功です.</p>
+<p>これからスクリプトで実行していくにあたって,<code>practice.hs</code>の中身をもう少し詳しく見てみましょう.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Lib</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">putStrLn</span> <span class="st">&quot;practice&quot;</span></span></code></pre></div>
 <p>haskellのプログラムを実行すると, <code>main関数</code>のみが実行されます.</p>
 <p>Haskellは関数型言語なので,これから<code>import Lib</code>と<code>main</code>の間に関数を定義していき,<code>main</code>の中で実行していくことになります.</p>
 <p>main 関数で行うことは関数として実行することになりますが,これから学習する通常の関数の定義で記述するのは今は難しいので,<code>do</code>記法を紹介します. main 関数の=以下に<code>do</code>と書くことで,do以下のインデントブロックに記述された内容が手続き型的に1行ずつ実行されます.</p>
 <p>以下のプログラムでは, <code>"practice1"</code>,<code>"practice2"</code>,<code>"practice3"</code>の順に標準出力されます.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Lib</span></span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> <span class="st">&quot;practice1&quot;</span> <span class="co">-- &quot;practice1&quot;</span></span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> <span class="st">&quot;practice2&quot;</span> <span class="co">-- &quot;practice2&quot;</span></span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> <span class="st">&quot;practice3&quot;</span> <span class="co">-- &quot;practice3&quot;</span></span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Lib</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> <span class="st">&quot;practice1&quot;</span> <span class="co">-- &quot;practice1&quot;</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> <span class="st">&quot;practice2&quot;</span> <span class="co">-- &quot;practice2&quot;</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> <span class="st">&quot;practice3&quot;</span> <span class="co">-- &quot;practice3&quot;</span></span></code></pre></div>
 <p><code>stack run practice</code>の結果を確認すると以下のようになります.</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> stack <span class="ex">run</span> practice</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="ex">practice1</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="ex">practice2</span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="ex">practice3</span></span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> stack <span class="ex">run</span> practice</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="ex">practice1</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="ex">practice2</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="ex">practice3</span></span></code></pre></div>
 <p>また,ghciと異なって,出力結果が同じ画面に現れないので,
 以降のコード例では, その行の結果をコメントで書くこととします. コメント部分は,記述しなくても結果は変わらないので,省略しても構いません.</p>
 <div class="warn">
@@ -2707,18 +2791,18 @@ f(x1, x2) =
 </div>
 <h2 id="エラーメッセージの構造">エラーメッセージの構造</h2>
 <p>GHC のエラーは概ね以下の <strong>4 ブロック構造</strong> で出力されます.</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="op">&lt;</span>ファイルパス<span class="op">&gt;</span>:<span class="op">&lt;</span>行<span class="op">&gt;</span>:<span class="op">&lt;</span>列<span class="op">&gt;</span>: <span class="ex">error:</span> [<span class="op">&lt;</span>エラーコード<span class="op">&gt;</span>]</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="op">&lt;</span>人間向けメッセージ <span class="kw">(`</span><span class="ex">•</span><span class="kw">`</span> 記号で始まる箇条書き<span class="kw">)</span><span class="op">&gt;</span></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">&lt;</span>文脈情報 <span class="kw">(`</span><span class="ex">In</span> an equation for...<span class="kw">`</span> など<span class="kw">)</span><span class="op">&gt;</span></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="op">&lt;</span>行番号<span class="op">&gt;</span> <span class="kw">|</span> <span class="op">&lt;</span>該当ソース行<span class="op">&gt;</span></span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>       <span class="kw">|</span> <span class="op">&lt;</span>該当箇所の <span class="ex">^</span> マーク<span class="op">&gt;</span></span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="op">&lt;</span>ファイルパス<span class="op">&gt;</span>:<span class="op">&lt;</span>行<span class="op">&gt;</span>:<span class="op">&lt;</span>列<span class="op">&gt;</span>: <span class="ex">error:</span> [<span class="op">&lt;</span>エラーコード<span class="op">&gt;</span>]</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="op">&lt;</span>人間向けメッセージ <span class="kw">(`</span><span class="ex">•</span><span class="kw">`</span> 記号で始まる箇条書き<span class="kw">)</span><span class="op">&gt;</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">&lt;</span>文脈情報 <span class="kw">(`</span><span class="ex">In</span> an equation for...<span class="kw">`</span> など<span class="kw">)</span><span class="op">&gt;</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="op">&lt;</span>行番号<span class="op">&gt;</span> <span class="kw">|</span> <span class="op">&lt;</span>該当ソース行<span class="op">&gt;</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>       <span class="kw">|</span> <span class="op">&lt;</span>該当箇所の <span class="ex">^</span> マーク<span class="op">&gt;</span></span></code></pre></div>
 <p>たとえば:</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">/path/to/Main.hs:3:14:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">88464</span><span class="pp">]</span></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Variable</span> not in scope: greeting</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="ex">3</span> <span class="kw">|</span> <span class="ex">main</span> = print greeting</span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span>              <span class="ex">^^^^^^^^</span></span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ex">/path/to/Main.hs:3:14:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">88464</span><span class="pp">]</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Variable</span> not in scope: greeting</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="ex">3</span> <span class="kw">|</span> <span class="ex">main</span> = print greeting</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span>              <span class="ex">^^^^^^^^</span></span></code></pre></div>
 <p>各ブロックの読み方:</p>
 <table>
 <thead>
@@ -2761,66 +2845,66 @@ f(x1, x2) =
 <h3 id="variable-not-in-scope-未定義変数">1. <code>Variable not in scope</code> (未定義変数)</h3>
 <p><strong>スコープ(参照可能範囲)に変数が見つからない</strong> ときのエラー. <strong>タイポ</strong> または <strong>大文字小文字の取り違え</strong> が最頻出原因です.</p>
 <p>ソース:</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> greeting</span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> greeting</span></code></pre></div>
 <p>実エラー出力:</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:2:14:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">88464</span><span class="pp">]</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Variable</span> not in scope: greeting</span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="ex">2</span> <span class="kw">|</span> <span class="ex">main</span> = print greeting</span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span>              <span class="ex">^^^^^^^^</span></span></code></pre></div>
+<div class="sourceCode" id="cb13"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:2:14:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">88464</span><span class="pp">]</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Variable</span> not in scope: greeting</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="ex">2</span> <span class="kw">|</span> <span class="ex">main</span> = print greeting</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span>              <span class="ex">^^^^^^^^</span></span></code></pre></div>
 <p>修正: 変数を事前に定義するか, 既存変数のタイポを直す.</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="ot">greeting ::</span> <span class="dt">String</span></span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>greeting <span class="ot">=</span> <span class="st">&quot;hello&quot;</span></span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> greeting</span></code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="ot">greeting ::</span> <span class="dt">String</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>greeting <span class="ot">=</span> <span class="st">&quot;hello&quot;</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> greeting</span></code></pre></div>
 <div class="warn">
 <p>変数の最初の文字を <strong>大文字で書いた場合</strong> は別のエラーになります.
 Haskell は小文字始まり = 変数, 大文字始まり = 型 / コンストラクタ, と扱うため,
 <code>Greeting</code> と書くと「<code>Data constructor not in scope: Greeting</code>」になります.</p>
-<div class="sourceCode" id="cb13"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:3:14:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">88464</span><span class="pp">]</span></span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Data</span> constructor not in scope: Greeting</span></code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:3:14:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">88464</span><span class="pp">]</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Data</span> constructor not in scope: Greeting</span></code></pre></div>
 </div>
 <h3 id="couldnt-match-type-型不一致">2. <code>Couldn't match type</code> (型不一致)</h3>
 <p>ある型を期待しているところに別の型が来たとき出るエラー. <strong><code>(expected type) と (actual type) が不一致</code></strong> という構造になっています.</p>
 <p>ソース:</p>
-<div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> n <span class="ot">=</span> <span class="dv">1</span><span class="ot"> ::</span> <span class="dt">Int</span></span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> (n <span class="op">++</span> <span class="st">&quot;!&quot;</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb16"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> n <span class="ot">=</span> <span class="dv">1</span><span class="ot"> ::</span> <span class="dt">Int</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> (n <span class="op">++</span> <span class="st">&quot;!&quot;</span>)</span></code></pre></div>
 <p>実エラー出力:</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:4:12:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">83865</span><span class="pp">]</span></span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> Couldn<span class="st">&#39;t match expected type ‘[Char]’ with actual type ‘Int’</span></span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="st">    • In the first argument of ‘(++)’, namely ‘n’</span></span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="st">      In the first argument of ‘print’, namely ‘(n ++ &quot;!&quot;)’</span></span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="st">      In a stmt of a &#39;</span>do<span class="st">&#39; block: print (n ++ &quot;!&quot;)</span></span>
-<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="st">  |</span></span>
-<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="st">4 |     print (n ++ &quot;!&quot;)</span></span>
-<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a><span class="st">  |            ^</span></span></code></pre></div>
+<div class="sourceCode" id="cb17"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:4:12:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">83865</span><span class="pp">]</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> Couldn<span class="st">&#39;t match expected type ‘[Char]’ with actual type ‘Int’</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="st">    • In the first argument of ‘(++)’, namely ‘n’</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="st">      In the first argument of ‘print’, namely ‘(n ++ &quot;!&quot;)’</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="st">      In a stmt of a &#39;</span>do<span class="st">&#39; block: print (n ++ &quot;!&quot;)</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="st">  |</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="st">4 |     print (n ++ &quot;!&quot;)</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="st">  |            ^</span></span></code></pre></div>
 <p>読み方:</p>
 <ul>
 <li><code>expected type ‘[Char]’</code>: 「<code>[Char]</code> (= <code>String</code>) が来るはずだった」(<code>(++)</code> は両側ともリストを要求)</li>
 <li><code>actual type ‘Int’</code>: 「実際には <code>Int</code> が来た」(<code>n</code> の型)</li>
 </ul>
 <p>修正方針: 文字列同士の連結にするなら <code>show</code> で <code>n</code> を文字列に変換.</p>
-<div class="sourceCode" id="cb16"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> n <span class="ot">=</span> <span class="dv">1</span><span class="ot"> ::</span> <span class="dt">Int</span></span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> (<span class="fu">show</span> n <span class="op">++</span> <span class="st">&quot;!&quot;</span>)    <span class="co">-- &quot;1!&quot;</span></span></code></pre></div>
+<div class="sourceCode" id="cb18"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> n <span class="ot">=</span> <span class="dv">1</span><span class="ot"> ::</span> <span class="dt">Int</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> (<span class="fu">show</span> n <span class="op">++</span> <span class="st">&quot;!&quot;</span>)    <span class="co">-- &quot;1!&quot;</span></span></code></pre></div>
 <h3 id="no-instance-for-型クラス制約の不満足">3. <code>No instance for</code> (型クラス制約の不満足)</h3>
 <p>ある型に対して要求された機能(<code>Show</code>, <code>Num</code>, <code>Eq</code> など)が定義されていないときのエラー.</p>
 <p>ソース (型不適合: <code>putStrLn</code> に数値を渡す):</p>
-<div class="sourceCode" id="cb17"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">putStrLn</span> <span class="dv">42</span></span></code></pre></div>
+<div class="sourceCode" id="cb19"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">putStrLn</span> <span class="dv">42</span></span></code></pre></div>
 <p>実エラー出力:</p>
-<div class="sourceCode" id="cb18"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:2:17:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">39999</span><span class="pp">]</span></span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> No instance for ‘Num String’ arising from the literal ‘42’</span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> In the first argument of ‘putStrLn’, namely ‘42’</span>
-<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>      <span class="ex">In</span> the expression: putStrLn 42</span>
-<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>      <span class="ex">In</span> an equation for ‘main’: main = putStrLn 42</span>
-<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
-<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a><span class="ex">2</span> <span class="kw">|</span> <span class="ex">main</span> = putStrLn 42</span>
-<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span>                 <span class="ex">^^</span></span></code></pre></div>
+<div class="sourceCode" id="cb20"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:2:17:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">39999</span><span class="pp">]</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> No instance for ‘Num String’ arising from the literal ‘42’</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> In the first argument of ‘putStrLn’, namely ‘42’</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>      <span class="ex">In</span> the expression: putStrLn 42</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>      <span class="ex">In</span> an equation for ‘main’: main = putStrLn 42</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="ex">2</span> <span class="kw">|</span> <span class="ex">main</span> = putStrLn 42</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span>                 <span class="ex">^^</span></span></code></pre></div>
 <p>読み方:</p>
 <ul>
 <li><code>No instance for ‘Num String’</code>: 「<code>String</code> 型に <code>Num</code> (数値) のインスタンスがない」</li>
@@ -2828,65 +2912,65 @@ Haskell は小文字始まり = 変数, 大文字始まり = 型 / コンスト�
 <li>→ <code>putStrLn :: String -&gt; IO ()</code> なので <code>42</code> が <code>String</code> だと思われ, でも <code>42</code> は <code>Num</code> 由来なので不適合</li>
 </ul>
 <p>修正: 文字列にしたいなら <code>show</code> で変換.</p>
-<div class="sourceCode" id="cb19"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">putStrLn</span> (<span class="fu">show</span> <span class="dv">42</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb21"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">putStrLn</span> (<span class="fu">show</span> <span class="dv">42</span>)</span></code></pre></div>
 <p>別のケース (関数そのものを print してしまう):</p>
-<div class="sourceCode" id="cb20"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> <span class="fu">head</span></span></code></pre></div>
+<div class="sourceCode" id="cb22"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> <span class="fu">head</span></span></code></pre></div>
 <p>実エラー出力:</p>
-<div class="sourceCode" id="cb21"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:2:8:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">39999</span><span class="pp">]</span></span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> No instance for ‘Show <span class="er">(</span><span class="ex">[a0]</span> <span class="at">-</span><span class="op">&gt;</span> a0<span class="kw">)</span><span class="ex">’</span> arising from a use of ‘print’</span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>        <span class="kw">(</span><span class="ex">maybe</span> you haven<span class="st">&#39;t applied a function to enough arguments?)</span></span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="st">    • In the expression: print head</span></span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a><span class="st">      In an equation for ‘main’: main = print head</span></span>
-<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a><span class="st">  |</span></span>
-<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a><span class="st">2 | main = print head</span></span>
-<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a><span class="st">  |        ^^^^^</span></span></code></pre></div>
+<div class="sourceCode" id="cb23"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:2:8:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">39999</span><span class="pp">]</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> No instance for ‘Show <span class="er">(</span><span class="ex">[a0]</span> <span class="at">-</span><span class="op">&gt;</span> a0<span class="kw">)</span><span class="ex">’</span> arising from a use of ‘print’</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>        <span class="kw">(</span><span class="ex">maybe</span> you haven<span class="st">&#39;t applied a function to enough arguments?)</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="st">    • In the expression: print head</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="st">      In an equation for ‘main’: main = print head</span></span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a><span class="st">  |</span></span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a><span class="st">2 | main = print head</span></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a><span class="st">  |        ^^^^^</span></span></code></pre></div>
 <p><code>(maybe you haven't applied a function to enough arguments?)</code> という GHC のヒントが非常に重要. <strong>関数本体ではなく, 結果を渡したかった</strong> のではないか? と聞いてくれている.</p>
 <p>修正: <code>head</code> に引数 (リスト) を与える.</p>
-<div class="sourceCode" id="cb22"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> (<span class="fu">head</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>])</span></code></pre></div>
+<div class="sourceCode" id="cb24"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> (<span class="fu">head</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>])</span></code></pre></div>
 <h3 id="parse-error-構文エラー">4. <code>Parse error</code> (構文エラー)</h3>
 <p>文法として認識できない. <strong>インデント不足</strong> や <strong>括弧の不整合</strong> が代表的.</p>
 <p>ソース (do 内のインデント忘れ):</p>
-<div class="sourceCode" id="cb23"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="fu">putStrLn</span> <span class="st">&quot;hello&quot;</span></span></code></pre></div>
-<p>実エラー出力:</p>
-<div class="sourceCode" id="cb24"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:3:1:</span> error:</span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Parse</span> error: module header, import declaration</span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>    <span class="ex">or</span> top-level declaration expected.</span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="ex">3</span> <span class="kw">|</span> <span class="ex">putStrLn</span> <span class="st">&quot;hello&quot;</span></span>
-<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span> <span class="ex">^^^^^^^^^^^^^^^^</span></span></code></pre></div>
-<p><code>do</code> の本体は <strong>1 つ深くインデント</strong> する必要があります.</p>
-<p>修正:</p>
 <div class="sourceCode" id="cb25"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
 <span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> <span class="st">&quot;hello&quot;</span></span></code></pre></div>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="fu">putStrLn</span> <span class="st">&quot;hello&quot;</span></span></code></pre></div>
+<p>実エラー出力:</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:3:1:</span> error:</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Parse</span> error: module header, import declaration</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    <span class="ex">or</span> top-level declaration expected.</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="ex">3</span> <span class="kw">|</span> <span class="ex">putStrLn</span> <span class="st">&quot;hello&quot;</span></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span> <span class="ex">^^^^^^^^^^^^^^^^</span></span></code></pre></div>
+<p><code>do</code> の本体は <strong>1 つ深くインデント</strong> する必要があります.</p>
+<p>修正:</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> <span class="st">&quot;hello&quot;</span></span></code></pre></div>
 <h3 id="non-exhaustive-patterns-網羅されていないパターン-実行時">5. <code>Non-exhaustive patterns</code> (網羅されていないパターン, 実行時)</h3>
 <p>パターンマッチで <strong>すべての場合がカバーされていない</strong> とき, コンパイルは通っても (警告は出る) <strong>実行時</strong> に該当しない値が渡されると停止します. fp3 で見せた <code>(x, y) = (1, 2)</code> のような <strong>let パターン束縛</strong> でも同じ事が起きます.</p>
 <p>ソース:</p>
-<div class="sourceCode" id="cb26"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> (c<span class="op">:</span>_) <span class="ot">=</span> <span class="st">&quot;&quot;</span><span class="ot"> ::</span> <span class="dt">String</span></span>
-<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> [c]</span></code></pre></div>
+<div class="sourceCode" id="cb28"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> (c<span class="op">:</span>_) <span class="ot">=</span> <span class="st">&quot;&quot;</span><span class="ot"> ::</span> <span class="dt">String</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> [c]</span></code></pre></div>
 <p>実行時メッセージ (<code>stack run</code> 等で):</p>
-<div class="sourceCode" id="cb27"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="ex">probe:</span> app/Main.hs:3:9-28: Non-exhaustive patterns in c : _</span></code></pre></div>
+<div class="sourceCode" id="cb29"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="ex">probe:</span> app/Main.hs:3:9-28: Non-exhaustive patterns in c : _</span></code></pre></div>
 <p><code>(c:_)</code> は「先頭の 1 文字 + 残り」というパターンだが, 右辺が <strong>空文字列</strong> だと該当する文字が無いため失敗する.</p>
 <p>修正 1: 空でないことが確実な値を与える.</p>
-<div class="sourceCode" id="cb28"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> (c<span class="op">:</span>_) <span class="ot">=</span> <span class="st">&quot;hello&quot;</span><span class="ot"> ::</span> <span class="dt">String</span></span>
-<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> [c]       <span class="co">-- &quot;h&quot;</span></span></code></pre></div>
+<div class="sourceCode" id="cb30"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> (c<span class="op">:</span>_) <span class="ot">=</span> <span class="st">&quot;hello&quot;</span><span class="ot"> ::</span> <span class="dt">String</span></span>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> [c]       <span class="co">-- &quot;h&quot;</span></span></code></pre></div>
 <p>修正 2: 事前に空判定する.</p>
-<div class="sourceCode" id="cb29"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> xs <span class="ot">=</span> <span class="st">&quot;&quot;</span><span class="ot"> ::</span> <span class="dt">String</span></span>
-<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="fu">null</span> xs <span class="kw">then</span> <span class="fu">putStrLn</span> <span class="st">&quot;empty&quot;</span></span>
-<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>               <span class="kw">else</span> <span class="fu">putStrLn</span> [<span class="fu">head</span> xs]</span></code></pre></div>
+<div class="sourceCode" id="cb31"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> xs <span class="ot">=</span> <span class="st">&quot;&quot;</span><span class="ot"> ::</span> <span class="dt">String</span></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="fu">null</span> xs <span class="kw">then</span> <span class="fu">putStrLn</span> <span class="st">&quot;empty&quot;</span></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>               <span class="kw">else</span> <span class="fu">putStrLn</span> [<span class="fu">head</span> xs]</span></code></pre></div>
 <div class="warn">
 <p>類似に <strong><code>head []</code> などの空リスト操作</strong> があります. これも実行時エラー:</p>
-<div class="sourceCode" id="cb30"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="ex">probe:</span> Prelude.head: empty list</span>
-<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="ex">CallStack</span> <span class="er">(</span><span class="ex">from</span> HasCallStack<span class="kw">)</span><span class="bu">:</span></span>
-<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>  <span class="ex">...</span></span>
-<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">head</span>, called at app/Main.hs:... in main:Main</span></code></pre></div>
+<div class="sourceCode" id="cb32"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="ex">probe:</span> Prelude.head: empty list</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="ex">CallStack</span> <span class="er">(</span><span class="ex">from</span> HasCallStack<span class="kw">)</span><span class="bu">:</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>  <span class="ex">...</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">head</span>, called at app/Main.hs:... in main:Main</span></code></pre></div>
 <p>リスト操作前に <code>null</code> で検査するのが安全です. 後の章では <code>Maybe</code> 型でこの種の失敗を <strong>型で表現する</strong> 手法を扱います.</p>
 </div>
 <h2 id="エラー読解のコツ">エラー読解のコツ</h2>
@@ -2910,19 +2994,19 @@ Haskell は小文字始まり = 変数, 大文字始まり = 型 / コンスト�
 <h3>Exercise CH4-1</h3>
 <p><strong>未定義変数のエラー (fp3 数値型の復習)</strong></p>
 <p>以下のコードは fp3 「数値型」節で扱った三角形面積の計算ですが, コンパイルが通りません. 出力されるエラーを読んで原因を答え, 動くように修正してください.</p>
-<div class="sourceCode" id="cb31"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-1.hs (誤りあり)</span></span>
-<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a><span class="ot">trianglearea ::</span> <span class="dt">Double</span></span>
-<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>trianglearea <span class="ot">=</span> <span class="dv">5</span> <span class="op">*</span> <span class="dv">4</span> <span class="op">/</span> <span class="dv">2</span></span>
-<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> triangleArea</span></code></pre></div>
+<div class="sourceCode" id="cb33"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-1.hs (誤りあり)</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a><span class="ot">trianglearea ::</span> <span class="dt">Double</span></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>trianglearea <span class="ot">=</span> <span class="dv">5</span> <span class="op">*</span> <span class="dv">4</span> <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> triangleArea</span></code></pre></div>
 <p>実エラー (<code>stack build</code> の出力):</p>
-<div class="sourceCode" id="cb32"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:5:15:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">88464</span><span class="pp">]</span></span>
-<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Variable</span> not in scope: triangleArea :: Double</span>
-<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Suggested</span> fix: Perhaps use ‘trianglearea’ <span class="er">(</span><span class="ex">line</span> 2<span class="kw">)</span></span>
-<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
-<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a><span class="ex">5</span> <span class="kw">|</span> <span class="ex">main</span> = print triangleArea</span>
-<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span>              <span class="ex">^^^^^^^^^^^^</span></span></code></pre></div>
+<div class="sourceCode" id="cb34"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:5:15:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">88464</span><span class="pp">]</span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Variable</span> not in scope: triangleArea :: Double</span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Suggested</span> fix: Perhaps use ‘trianglearea’ <span class="er">(</span><span class="ex">line</span> 2<span class="kw">)</span></span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a><span class="ex">5</span> <span class="kw">|</span> <span class="ex">main</span> = print triangleArea</span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span>              <span class="ex">^^^^^^^^^^^^</span></span></code></pre></div>
 <details class="protected" data-pass="yakagika">
 <summary>
 回答例
@@ -2930,12 +3014,12 @@ Haskell は小文字始まり = 変数, 大文字始まり = 型 / コンスト�
 <p><strong>原因</strong>: 変数名の <strong>大文字小文字</strong> が定義 (<code>trianglearea</code>) と呼び出し (<code>triangleArea</code>) で食い違っている. Haskell は大文字小文字を区別する.</p>
 <p>GHC が <code>Suggested fix: Perhaps use ‘trianglearea’</code> というヒントまで出してくれているので, それを参考に揃える.</p>
 <p>修正:</p>
-<div class="sourceCode" id="cb33"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-1.hs (修正版)</span></span>
-<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a><span class="ot">triangleArea ::</span> <span class="dt">Double</span></span>
-<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>triangleArea <span class="ot">=</span> <span class="dv">5</span> <span class="op">*</span> <span class="dv">4</span> <span class="op">/</span> <span class="dv">2</span></span>
-<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> triangleArea   <span class="co">-- 10.0</span></span></code></pre></div>
+<div class="sourceCode" id="cb35"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-1.hs (修正版)</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a><span class="ot">triangleArea ::</span> <span class="dt">Double</span></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>triangleArea <span class="ot">=</span> <span class="dv">5</span> <span class="op">*</span> <span class="dv">4</span> <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> triangleArea   <span class="co">-- 10.0</span></span></code></pre></div>
 <p>呼び出し側を揃えるか定義側を揃えるかどちらでも OK. <strong>キャメルケース (<code>triangleArea</code>) が Haskell の慣習</strong>.</p>
 </details>
 </section>
@@ -2943,47 +3027,47 @@ Haskell は小文字始まり = 変数, 大文字始まり = 型 / コンスト�
 <h3>Exercise CH4-2</h3>
 <p><strong>型不一致のエラー (fp3 リストと数値の復習)</strong></p>
 <p>以下のコードは fp3 「リスト」節で扱ったリスト連結 (<code>++</code>) を使っていますが, 型エラーが出ます. 原因を答えて修正してください.</p>
-<div class="sourceCode" id="cb34"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-2.hs (誤りあり)</span></span>
-<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> ([<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span><span class="ot"> ::</span> <span class="dt">Int</span>] <span class="op">++</span> <span class="dv">5</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb36"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-2.hs (誤りあり)</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> ([<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span><span class="ot"> ::</span> <span class="dt">Int</span>] <span class="op">++</span> <span class="dv">5</span>)</span></code></pre></div>
 <p>実エラー:</p>
-<div class="sourceCode" id="cb35"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:2:35:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">39999</span><span class="pp">]</span></span>
-<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> No instance for ‘Num <span class="pp">[</span><span class="ss">Int</span><span class="pp">]</span>’ arising from the literal ‘5’</span>
-<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> In the second argument of ‘<span class="er">(</span><span class="ex">++</span><span class="kw">)</span><span class="ex">’,</span> namely ‘5’</span>
-<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>      <span class="ex">In</span> the first argument of ‘print’, namely ‘<span class="er">(</span><span class="ex">[1,</span> 2, 3 :: Int] ++ 5<span class="kw">)</span><span class="ex">’</span></span>
-<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a>      <span class="ex">In</span> the expression: print <span class="er">(</span><span class="ex">[1,</span> 2, 3 :: Int] ++ 5<span class="kw">)</span></span>
-<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
-<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a><span class="ex">2</span> <span class="kw">|</span> <span class="ex">main</span> = print <span class="er">(</span><span class="ex">[1,</span> 2, 3 :: Int] ++ 5<span class="kw">)</span></span>
-<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span>                                   <span class="ex">^</span></span></code></pre></div>
+<div class="sourceCode" id="cb37"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:2:35:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">39999</span><span class="pp">]</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> No instance for ‘Num <span class="pp">[</span><span class="ss">Int</span><span class="pp">]</span>’ arising from the literal ‘5’</span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> In the second argument of ‘<span class="er">(</span><span class="ex">++</span><span class="kw">)</span><span class="ex">’,</span> namely ‘5’</span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>      <span class="ex">In</span> the first argument of ‘print’, namely ‘<span class="er">(</span><span class="ex">[1,</span> 2, 3 :: Int] ++ 5<span class="kw">)</span><span class="ex">’</span></span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>      <span class="ex">In</span> the expression: print <span class="er">(</span><span class="ex">[1,</span> 2, 3 :: Int] ++ 5<span class="kw">)</span></span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
+<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a><span class="ex">2</span> <span class="kw">|</span> <span class="ex">main</span> = print <span class="er">(</span><span class="ex">[1,</span> 2, 3 :: Int] ++ 5<span class="kw">)</span></span>
+<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span>                                   <span class="ex">^</span></span></code></pre></div>
 <details class="protected" data-pass="yakagika">
 <summary>
 回答例
 </summary>
 <p><strong>原因</strong>: <code>(++)</code> は <strong>リスト同士</strong> を連結する演算子 (<code>[a] -&gt; [a] -&gt; [a]</code>) なのに, 右辺の <code>5</code> は <strong><code>Num</code> 型 (<code>Int</code> などの数値)</strong> で, リストではない. そのため GHC は「<code>5</code> も <code>[Int]</code> 型 (= <code>Num [Int]</code>) であってほしいが, <code>Num</code> のインスタンスは <code>[Int]</code> には無い」と訴えている.</p>
 <p>修正 1: 数値をリストに包んで連結する.</p>
-<div class="sourceCode" id="cb36"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> ([<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span><span class="ot"> ::</span> <span class="dt">Int</span>] <span class="op">++</span> [<span class="dv">5</span>])   <span class="co">-- [1,2,3,5]</span></span></code></pre></div>
+<div class="sourceCode" id="cb38"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> ([<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span><span class="ot"> ::</span> <span class="dt">Int</span>] <span class="op">++</span> [<span class="dv">5</span>])   <span class="co">-- [1,2,3,5]</span></span></code></pre></div>
 <p>修正 2: cons 構築子 <code>(:)</code> で先頭に足す.</p>
-<div class="sourceCode" id="cb37"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> (<span class="dv">5</span> <span class="op">:</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span><span class="ot"> ::</span> <span class="dt">Int</span>])   <span class="co">-- [5,1,2,3]</span></span></code></pre></div>
+<div class="sourceCode" id="cb39"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> (<span class="dv">5</span> <span class="op">:</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span><span class="ot"> ::</span> <span class="dt">Int</span>])   <span class="co">-- [5,1,2,3]</span></span></code></pre></div>
 </details>
 </section>
 <section id="exercise-ch4-3" class="note">
 <h3>Exercise CH4-3</h3>
 <p><strong>Parse error と論理演算 (fp3 論理型の復習)</strong></p>
 <p>以下は fp3 「論理型」節で見た偶数判定を <code>do</code> の中で実行しようとしたコードです. 構文エラーで止まります. 原因を答えて修正してください.</p>
-<div class="sourceCode" id="cb38"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-3.hs (誤りあり)</span></span>
-<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span> (<span class="dv">101</span> <span class="ot">`mod`</span> <span class="dv">2</span> <span class="op">==</span> <span class="dv">0</span>)</span>
-<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span> (<span class="dv">202</span> <span class="ot">`mod`</span> <span class="dv">2</span> <span class="op">==</span> <span class="dv">0</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb40"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-3.hs (誤りあり)</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span> (<span class="dv">101</span> <span class="ot">`mod`</span> <span class="dv">2</span> <span class="op">==</span> <span class="dv">0</span>)</span>
+<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span> (<span class="dv">202</span> <span class="ot">`mod`</span> <span class="dv">2</span> <span class="op">==</span> <span class="dv">0</span>)</span></code></pre></div>
 <p>実エラー:</p>
-<div class="sourceCode" id="cb39"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:4:1:</span> error:</span>
-<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Parse</span> error: module header, import declaration</span>
-<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>    <span class="ex">or</span> top-level declaration expected.</span>
-<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
-<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a><span class="ex">4</span> <span class="kw">|</span> <span class="ex">print</span> <span class="er">(</span><span class="ex">101</span> <span class="kw">`</span><span class="ex">mod</span><span class="kw">`</span> 2 == 0<span class="kw">)</span></span>
-<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span> <span class="ex">^^^^^^^^^^^^^^^^^^^^^^^^</span></span></code></pre></div>
+<div class="sourceCode" id="cb41"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:4:1:</span> error:</span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Parse</span> error: module header, import declaration</span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>    <span class="ex">or</span> top-level declaration expected.</span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a><span class="ex">4</span> <span class="kw">|</span> <span class="ex">print</span> <span class="er">(</span><span class="ex">101</span> <span class="kw">`</span><span class="ex">mod</span><span class="kw">`</span> 2 == 0<span class="kw">)</span></span>
+<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span> <span class="ex">^^^^^^^^^^^^^^^^^^^^^^^^</span></span></code></pre></div>
 <details class="protected" data-pass="yakagika">
 <summary>
 回答例
@@ -2991,11 +3075,11 @@ Haskell は小文字始まり = 変数, 大文字始まり = 型 / コンスト�
 <p><strong>原因</strong>: <code>do</code> ブロック内の文が <strong>インデントされていない</strong>. Haskell は <strong>オフサイド規則 (offside rule)</strong> によりインデントで構造を判定するため, <code>do</code> の本体は <code>do</code> より深い (= 右側に位置する) 必要がある.</p>
 <p>GHC は「トップレベル宣言が来るはずだった」と判断してしまい, <code>print</code> で始まる行を <strong>新しい関数定義として読もうとして失敗</strong> している. これが「<code>Parse error: ... top-level declaration expected</code>」の正体.</p>
 <p>修正:</p>
-<div class="sourceCode" id="cb40"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-3.hs (修正版)</span></span>
-<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> (<span class="dv">101</span> <span class="ot">`mod`</span> <span class="dv">2</span> <span class="op">==</span> <span class="dv">0</span>)   <span class="co">-- False (奇数)</span></span>
-<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> (<span class="dv">202</span> <span class="ot">`mod`</span> <span class="dv">2</span> <span class="op">==</span> <span class="dv">0</span>)   <span class="co">-- True  (偶数)</span></span></code></pre></div>
+<div class="sourceCode" id="cb42"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-3.hs (修正版)</span></span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> (<span class="dv">101</span> <span class="ot">`mod`</span> <span class="dv">2</span> <span class="op">==</span> <span class="dv">0</span>)   <span class="co">-- False (奇数)</span></span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> (<span class="dv">202</span> <span class="ot">`mod`</span> <span class="dv">2</span> <span class="op">==</span> <span class="dv">0</span>)   <span class="co">-- True  (偶数)</span></span></code></pre></div>
 <p><code>do</code> の本体は <strong>同じ列に揃えて</strong> インデントする. 4 スペースが慣習だが揃っていれば 2 でも 6 でも OK.</p>
 </details>
 </section>
@@ -3003,31 +3087,31 @@ Haskell は小文字始まり = 変数, 大文字始まり = 型 / コンスト�
 <h3>Exercise CH4-4</h3>
 <p><strong>型クラス制約のエラー (fp3 数値型の混在)</strong></p>
 <p>以下のコードは整数と小数を混ぜて使っていますが, 型エラーが出ます. 原因を答えて修正してください.</p>
-<div class="sourceCode" id="cb41"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-4.hs (誤りあり)</span></span>
-<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> bmi <span class="ot">=</span> <span class="dv">60</span> <span class="op">/</span> (<span class="fl">1.75</span> <span class="op">*</span> <span class="fl">1.75</span>)<span class="ot"> ::</span> <span class="dt">Int</span></span>
-<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> bmi</span></code></pre></div>
+<div class="sourceCode" id="cb43"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-4.hs (誤りあり)</span></span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> bmi <span class="ot">=</span> <span class="dv">60</span> <span class="op">/</span> (<span class="fl">1.75</span> <span class="op">*</span> <span class="fl">1.75</span>)<span class="ot"> ::</span> <span class="dt">Int</span></span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> bmi</span></code></pre></div>
 <p>実エラー:</p>
-<div class="sourceCode" id="cb42"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:4:25:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">39999</span><span class="pp">]</span></span>
-<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> No instance for ‘Fractional Int’ arising from the literal ‘1.75’</span>
-<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> In the first argument of ‘<span class="er">(</span><span class="ex">*</span><span class="kw">)</span><span class="ex">’,</span> namely ‘1.75’</span>
-<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>      <span class="ex">In</span> the second argument of ‘<span class="er">(</span><span class="ex">/</span><span class="kw">)</span><span class="ex">’,</span> namely ‘<span class="er">(</span><span class="ex">1.75</span> <span class="pp">*</span> 1.75<span class="kw">)</span><span class="ex">’</span></span>
-<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>      <span class="ex">In</span> the expression: 60 / <span class="er">(</span><span class="ex">1.75</span> <span class="pp">*</span> 1.75<span class="kw">)</span> <span class="ex">::</span> Int</span>
-<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
-<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a><span class="ex">4</span> <span class="kw">|</span>     <span class="bu">let</span> <span class="va">bmi</span> <span class="op">=</span> <span class="dv">60</span> <span class="op">/</span> <span class="er">(</span><span class="ex">1.75</span> <span class="pp">*</span> 1.75<span class="kw">)</span> <span class="ex">::</span> Int</span>
-<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span>                     <span class="ex">^^^^</span></span></code></pre></div>
+<div class="sourceCode" id="cb44"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:4:25:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">39999</span><span class="pp">]</span></span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> No instance for ‘Fractional Int’ arising from the literal ‘1.75’</span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> In the first argument of ‘<span class="er">(</span><span class="ex">*</span><span class="kw">)</span><span class="ex">’,</span> namely ‘1.75’</span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>      <span class="ex">In</span> the second argument of ‘<span class="er">(</span><span class="ex">/</span><span class="kw">)</span><span class="ex">’,</span> namely ‘<span class="er">(</span><span class="ex">1.75</span> <span class="pp">*</span> 1.75<span class="kw">)</span><span class="ex">’</span></span>
+<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>      <span class="ex">In</span> the expression: 60 / <span class="er">(</span><span class="ex">1.75</span> <span class="pp">*</span> 1.75<span class="kw">)</span> <span class="ex">::</span> Int</span>
+<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
+<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a><span class="ex">4</span> <span class="kw">|</span>     <span class="bu">let</span> <span class="va">bmi</span> <span class="op">=</span> <span class="dv">60</span> <span class="op">/</span> <span class="er">(</span><span class="ex">1.75</span> <span class="pp">*</span> 1.75<span class="kw">)</span> <span class="ex">::</span> Int</span>
+<span id="cb44-8"><a href="#cb44-8" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span>                     <span class="ex">^^^^</span></span></code></pre></div>
 <details class="protected" data-pass="yakagika">
 <summary>
 回答例
 </summary>
 <p><strong>原因</strong>: 結果を <code>:: Int</code> と型注釈で指定しているが, 式の中に小数リテラル <code>1.75</code> が混ざっている. GHC は「結果が <code>Int</code> ならすべての要素も <code>Int</code> のはず → <code>1.75</code> も <code>Int</code> であってほしい → でも <code>1.75</code> は <code>Fractional</code> 制約が要る → <code>Int</code> には <code>Fractional</code> のインスタンスが無い」と推論して <code>No instance for ‘Fractional Int’</code> を出している.</p>
 <p>修正: BMI は小数になるので <strong><code>Double</code> で扱う</strong>.</p>
-<div class="sourceCode" id="cb43"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-4.hs (修正版)</span></span>
-<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> bmi <span class="ot">=</span> <span class="dv">60</span> <span class="op">/</span> (<span class="fl">1.75</span> <span class="op">*</span> <span class="fl">1.75</span>)<span class="ot"> ::</span> <span class="dt">Double</span></span>
-<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> bmi   <span class="co">-- 19.591836734693878</span></span></code></pre></div>
+<div class="sourceCode" id="cb45"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-4.hs (修正版)</span></span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> bmi <span class="ot">=</span> <span class="dv">60</span> <span class="op">/</span> (<span class="fl">1.75</span> <span class="op">*</span> <span class="fl">1.75</span>)<span class="ot"> ::</span> <span class="dt">Double</span></span>
+<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> bmi   <span class="co">-- 19.591836734693878</span></span></code></pre></div>
 <p>もし整数結果が欲しい場合は <code>floor</code> などで切り捨てる: <code>print (floor bmi :: Int)</code>.</p>
 </details>
 </section>
@@ -3035,16 +3119,16 @@ Haskell は小文字始まり = 変数, 大文字始まり = 型 / コンスト�
 <h3>Exercise CH4-5</h3>
 <p><strong>実行時エラー: 網羅されていないパターン (fp3 文字列とリストの復習)</strong></p>
 <p>以下のコードはコンパイルは通りますが, 実行すると途中で止まります. 出力されるエラーを読んで原因を答え, 修正してください.</p>
-<div class="sourceCode" id="cb44"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-5.hs (誤りあり)</span></span>
-<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> (c<span class="op">:</span>_) <span class="ot">=</span> <span class="st">&quot;hello&quot;</span><span class="ot"> ::</span> <span class="dt">String</span></span>
-<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> [c]               <span class="co">-- &#39;h&#39;</span></span>
-<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> (d<span class="op">:</span>_) <span class="ot">=</span> <span class="st">&quot;&quot;</span><span class="ot"> ::</span> <span class="dt">String</span></span>
-<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> [d]               <span class="co">-- 実行時に止まる</span></span></code></pre></div>
+<div class="sourceCode" id="cb46"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-5.hs (誤りあり)</span></span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> (c<span class="op">:</span>_) <span class="ot">=</span> <span class="st">&quot;hello&quot;</span><span class="ot"> ::</span> <span class="dt">String</span></span>
+<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> [c]               <span class="co">-- &#39;h&#39;</span></span>
+<span id="cb46-6"><a href="#cb46-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> (d<span class="op">:</span>_) <span class="ot">=</span> <span class="st">&quot;&quot;</span><span class="ot"> ::</span> <span class="dt">String</span></span>
+<span id="cb46-7"><a href="#cb46-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> [d]               <span class="co">-- 実行時に止まる</span></span></code></pre></div>
 <p>実行時出力 (<code>stack run</code> 等で):</p>
-<div class="sourceCode" id="cb45"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="ex">h</span></span>
-<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a><span class="ex">ch4-5:</span> app/Main.hs:5:9-28: Non-exhaustive patterns in d : _</span></code></pre></div>
+<div class="sourceCode" id="cb47"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="ex">h</span></span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a><span class="ex">ch4-5:</span> app/Main.hs:5:9-28: Non-exhaustive patterns in d : _</span></code></pre></div>
 <details class="protected" data-pass="yakagika">
 <summary>
 回答例
@@ -3052,20 +3136,20 @@ Haskell は小文字始まり = 変数, 大文字始まり = 型 / コンスト�
 <p><strong>原因</strong>: <code>let (d:_) = ""</code> は「先頭 1 文字 + 残り」というパターン束縛だが, 右辺が <strong>空文字列</strong> で先頭に該当する文字が無いため失敗する. パターン束縛も「網羅されていないパターン」の一種.</p>
 <p>実は <strong>コンパイル時にも警告が出ている</strong> はず (<code>Pattern match(es) are non-exhaustive</code> の warning). <code>stack build</code> のメッセージをよく見ると気づける.</p>
 <p>修正 1: 事前に <strong><code>null</code> で空判定</strong> する.</p>
-<div class="sourceCode" id="cb46"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-5.hs (修正版 A)</span></span>
-<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> xs <span class="ot">=</span> <span class="st">&quot;hello&quot;</span><span class="ot"> ::</span> <span class="dt">String</span></span>
-<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="fu">null</span> xs <span class="kw">then</span> <span class="fu">putStrLn</span> <span class="st">&quot;empty&quot;</span></span>
-<span id="cb46-6"><a href="#cb46-6" aria-hidden="true" tabindex="-1"></a>               <span class="kw">else</span> <span class="fu">putStrLn</span> [<span class="fu">head</span> xs]</span>
-<span id="cb46-7"><a href="#cb46-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb46-8"><a href="#cb46-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> ys <span class="ot">=</span> <span class="st">&quot;&quot;</span><span class="ot"> ::</span> <span class="dt">String</span></span>
-<span id="cb46-9"><a href="#cb46-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="fu">null</span> ys <span class="kw">then</span> <span class="fu">putStrLn</span> <span class="st">&quot;empty&quot;</span></span>
-<span id="cb46-10"><a href="#cb46-10" aria-hidden="true" tabindex="-1"></a>               <span class="kw">else</span> <span class="fu">putStrLn</span> [<span class="fu">head</span> ys]</span></code></pre></div>
+<div class="sourceCode" id="cb48"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-5.hs (修正版 A)</span></span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> xs <span class="ot">=</span> <span class="st">&quot;hello&quot;</span><span class="ot"> ::</span> <span class="dt">String</span></span>
+<span id="cb48-5"><a href="#cb48-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="fu">null</span> xs <span class="kw">then</span> <span class="fu">putStrLn</span> <span class="st">&quot;empty&quot;</span></span>
+<span id="cb48-6"><a href="#cb48-6" aria-hidden="true" tabindex="-1"></a>               <span class="kw">else</span> <span class="fu">putStrLn</span> [<span class="fu">head</span> xs]</span>
+<span id="cb48-7"><a href="#cb48-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb48-8"><a href="#cb48-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> ys <span class="ot">=</span> <span class="st">&quot;&quot;</span><span class="ot"> ::</span> <span class="dt">String</span></span>
+<span id="cb48-9"><a href="#cb48-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="fu">null</span> ys <span class="kw">then</span> <span class="fu">putStrLn</span> <span class="st">&quot;empty&quot;</span></span>
+<span id="cb48-10"><a href="#cb48-10" aria-hidden="true" tabindex="-1"></a>               <span class="kw">else</span> <span class="fu">putStrLn</span> [<span class="fu">head</span> ys]</span></code></pre></div>
 <p>修正 2: パターン束縛ではなく <code>head</code> (こちらも空文字列だと実行時エラーだが, 検査と組み合わせる前提).</p>
-<div class="sourceCode" id="cb47"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> xs <span class="ot">=</span> <span class="st">&quot;hello&quot;</span><span class="ot"> ::</span> <span class="dt">String</span></span>
-<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> (<span class="kw">if</span> <span class="fu">null</span> xs <span class="kw">then</span> <span class="st">&quot;&quot;</span> <span class="kw">else</span> [<span class="fu">head</span> xs])</span></code></pre></div>
+<div class="sourceCode" id="cb49"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> xs <span class="ot">=</span> <span class="st">&quot;hello&quot;</span><span class="ot"> ::</span> <span class="dt">String</span></span>
+<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> (<span class="kw">if</span> <span class="fu">null</span> xs <span class="kw">then</span> <span class="st">&quot;&quot;</span> <span class="kw">else</span> [<span class="fu">head</span> xs])</span></code></pre></div>
 <p><strong>安全な扱いとして</strong> 後の章で <code>Maybe</code> 型を使い「失敗しうる」ことを <strong>型で表現する</strong> 手法を学びます (例: <code>listToMaybe</code>).</p>
 </details>
 </section>]]></description>
