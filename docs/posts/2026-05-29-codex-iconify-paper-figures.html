@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>yakagika - Claude Code から codex を呼んで論文の図を作る — アイコン調達に Iconify を足した話</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../style.css?v=1780017307">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+      <meta property="og:description" content="論文・スライド向けの構成図を Claude Code から codex CLI 経由で SVG 生成するワークフロー (figure-codex-svg skill) に, アイコンを Iconify から自動取得するステップを足した. codex 生成アイコンと Iconify 既製アイコンを同じ図で比較し, どちらを既定にするか決めるまでの経緯." />
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../">
+          <img src="../favicon.ico" alt="Home" style="width: 32px; height: 32px;">
+        </a>
+      </div>
+      <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../">Home</a>
+      <a href="../posts.html">Blog</a>
+      <a href="../lectures.html">Lecture</a>
+      <a href="../research.html">Research</a>
+      <a href="../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      
+      <div id="lecture-toc" data-mode="single">
+        <h2>Index</h2>
+        <!-- The TOC will be generated here by JavaScript -->
+      </div>
+      
+    </nav>
+
+    <div id="content">
+    <article>
+<header class="article-header">
+    <span class="category-badge">Blog</span>
+    <h1 class="article-title">Claude Code から codex を呼んで論文の図を作る — アイコン調達に Iconify を足した話</h1>
+    <p class="article-description">論文・スライド向けの構成図を Claude Code から codex CLI 経由で SVG 生成するワークフロー (figure-codex-svg skill) に, アイコンを Iconify から自動取得するステップを足した. codex 生成アイコンと Iconify 既製アイコンを同じ図で比較し, どちらを既定にするか決めるまでの経緯.</p>
+    <div class="article-meta">
+        <span class="meta-item">公開: 2026-05-29</span>
+        <span class="meta-item">更新: 2026-05-29</span>
+    </div>
+    <div class="tag-chips"><a title="All pages tagged 'claude-code'." href="../tags/claude-code.html" rel="tag">claude-code</a>, <a title="All pages tagged 'codex'." href="../tags/codex.html" rel="tag">codex</a>, <a title="All pages tagged 'svg'." href="../tags/svg.html" rel="tag">svg</a>, <a title="All pages tagged 'figure'." href="../tags/figure.html" rel="tag">figure</a>, <a title="All pages tagged 'iconify'." href="../tags/iconify.html" rel="tag">iconify</a>, <a title="All pages tagged 'workflow'." href="../tags/workflow.html" rel="tag">workflow</a></div>
+</header>
+
+<h2 id="きっかけ">きっかけ</h2>
+<p>論文やら申請書やらのポンチ絵は今までflaticon等の画像サイトからiconを取得→pptでお絵かき→PNG保存で行っていたが, 諸々の資料作成をAI Agentに任せる際にはこれの作成がネックになっていた,かつ,codexのimagegenで直接AI生成すると, あまりにもAIになるので, 研究っぽいポンチ絵を作成する機能を作りたかった.</p>
+<p>一発でAIが納得するポンチ絵を作ることはできないので, <strong>Claude Code から codex CLI を呼び出して iconをimagegenで生成 → それを組み合わせた SVG を生成 → SVGのHTMLをclaudeが指示に従って編集する</strong>, というワークフローを <code>figure-codex-svg</code> という skill にまとめて使っていた.</p>
+<p>最近はあまりcodexは使わずclaudeに統一しているので,「アイコン部分だけは既製の素材を自動で持ってきた方が速いし綺麗 &amp; claudeで完結する」という思いつきから, アイコン調達のステップを足してみた. その結果と, 最終的にどう落ち着いたかを記録しておく. 能力的には現時点ではcodexが良いっぽい(opus 4.7時点では確かにそう思う,4.8はさっき使い始めたから分からん.)けど,毎月状況が変わっていちいち移行するのが怠いので,claudeメインにしている.</p>
+<h2 id="既存のワークフロー-figure-codex-svg">既存のワークフロー: figure-codex-svg</h2>
+<ol type="1">
+<li><strong>構造とアイコンを生成</strong>: codex に「白背景・黒線の pictogram スタイルで, この行構造の図を SVG で作れ」と指示する. アイコンは同一 SVG 内に <code>&lt;defs&gt;&lt;symbol&gt;</code> として定義させるか, 数が多ければ個別 SVG ファイルに分けて <code>&lt;image&gt;</code> 参照させる.</li>
+<li><strong>レイアウト改善ループ</strong>: codex は自分が出力した PNG を <code>view_image</code> で見られるので, 「生成 → ラスタライズ → 目視 → 修正」を自律的に回せる. 矢印の重なりや文字とアイコンの衝突を, 人間が指摘する前に自己修正してくれる.</li>
+</ol>
+<p>codex を Claude Code の Bash 経由で叩くときの実務的な注意.</p>
+<ul>
+<li><strong>stdin を閉じる</strong> (<code>&lt;/dev/null</code>). codex はプロンプト引数を受け取った後も stdin の EOF を待つ.</li>
+<li><strong>画像は <code>--image=FILE</code> で渡す</strong>. <code>-i FILE</code> は greedy で後続のプロンプトまで画像扱いしてしまう.</li>
+<li><strong><code>--skip-git-repo-check</code> を付ける</strong>. 論文ディレクトリは git repo でないことが多く, trust check で即終了する.</li>
+<li>日本語ラベルを使うなら font-family に <code>"BIZ UDPGothic", "Hiragino Sans", ...</code> のフォールバック列を必ず指定する. 忘れると rsvg-convert で豆腐 (□) になる.</li>
+</ul>
+<p>SVG → PNG/PDF は <code>rsvg-convert</code> を使う. <code>-w</code> と <code>-h</code> を両方指定して aspect ratio を固定するのがコツ.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">rsvg-convert</span> <span class="at">-w</span> 1600 <span class="at">-h</span> 1200 fig/main.svg <span class="at">-o</span> fig/main.png   <span class="co"># PNG</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">rsvg-convert</span> <span class="at">-f</span> pdf <span class="at">-o</span> fig/main.pdf fig/main.svg            <span class="co"># PDF (ベクター維持)</span></span></code></pre></div>
+<h2 id="足したもの-iconify-からアイコンを自動取得">足したもの: Iconify からアイコンを自動取得</h2>
+<p>アイコンの調達先として <a href="https://iconify.design/">Iconify</a> を使うことにした. Iconfiは</p>
+<ul>
+<li><strong>API キー不要・無料</strong> (<code>api.iconify.design</code>)</li>
+<li><strong>20 万以上</strong>のアイコン (Material Symbols, Tabler, Lucide, Carbon など 150+ セット)</li>
+<li><strong>ライセンスがクリア</strong> (多くが MIT / Apache / ISC / CC-BY) で論文掲載が安全</li>
+</ul>
+<p>商用素材サイトのように API 契約や帰属表示の判断で悩まなくていいのが大きい.</p>
+<p>検索・取得・ライセンス確認をする小さなシェルスクリプト (<code>iconify.sh</code>) を skill に同梱した.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># キーワードで候補を探す (prefix:name 形式で返る)</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">./iconify.sh</span> search <span class="st">&quot;neural network&quot;</span> 12</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># コレクションのライセンスを確認 (論文掲載前に必須)</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="ex">./iconify.sh</span> license tabler        <span class="co"># -&gt; Tabler Icons | MIT (MIT)</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co"># 単体取得 (色=黒, サイズ=128 に正規化)</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="ex">./iconify.sh</span> fetch tabler:server fig/icons/server.svg 000000 128</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="co"># manifest で一括取得 (1 行 &quot;prefix:name [出力名]&quot;)</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span> <span class="op">&gt;</span> fig/icons.txt <span class="op">&lt;&lt;'EOF'</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="st">tabler:chart-line   econ</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="st">tabler:book         ledger</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="st">tabler:code         it</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="st">tabler:shield-check verify</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="op">EOF</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="ex">./iconify.sh</span> batch fig/icons.txt fig/icons 000000 128</span></code></pre></div>
+<p>Iconify のアイコンは <code>viewBox 0 0 24 24</code> で <code>fill="currentColor"</code> (または <code>stroke="currentColor"</code>) になっている. URL に <code>?color=000000</code> を付けると <code>currentColor</code> が置換されるので, 白背景・黒線の pictogram スタイルに揃えられる. 取得した個別 SVG を, codex が生成するメイン図から <code>&lt;image href="icons/server.svg"/&gt;</code> で参照する.</p>
+<p>スタイルを揃えるコツは, <strong>1 つの図の中ではアイコンのコレクション (prefix) を統一すること</strong>. 全部 <code>tabler:*</code> か全部 <code>lucide:*</code> にすると線幅と角丸が一貫する. 検索結果には同じモチーフが複数セットで並ぶので, prefix を固定して選ぶ.</p>
+<h2 id="比較-codex-生成アイコン-vs-iconify-既製アイコン">比較: codex 生成アイコン vs Iconify 既製アイコン</h2>
+<p>同じ「機械学習パイプライン」の構成図を, 全く同じレイアウト・同じ黒線スタイルで 2 通り作って並べた. 上が codex に図ごと描き起こさせた版 (アイコンも codex 生成), 下が同じレイアウトでアイコンだけ Iconify (tabler) の既製品に差し替えた版.</p>
+<figure>
+<img src="../images/posts/codex-iconify-figures/compare.png" alt="上: codex 生成アイコン / 下: Iconify 既製アイコン の比較" />
+<figcaption aria-hidden="true">上: codex 生成アイコン / 下: Iconify 既製アイコン の比較</figcaption>
+</figure>
+<p>率直な結論として, <strong>この図に関しては codex 生成アイコンの方が馴染みが良い</strong>.</p>
+<ul>
+<li>Iconify のアイコンは, 個人的にはあまりクオリティが高くない.</li>
+<li>codex が図と一体で描き起こしたアイコンの方が, 意図に最適化されているので良い.</li>
+</ul>
+<p>このあたりはIconfyのiconを選択する基準などを詰めれば改善するかもしれない.</p>
+<h2 id="落とし所-codex-生成を基本-iconify-は補助">落とし所: codex 生成を基本, Iconify は補助</h2>
+<table>
+<colgroup>
+<col style="width: 24%" />
+<col style="width: 32%" />
+<col style="width: 44%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>方式</th>
+<th>優先度</th>
+<th>使いどころ</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>codex 生成</strong></td>
+<td>基本 (デフォルト)</td>
+<td>ほぼ全ての図. 図全体との一体感, 独自モチーフ, ドメイン固有の概念図</td>
+</tr>
+<tr class="even">
+<td><strong>Iconify 取得</strong></td>
+<td>補助</td>
+<td>codex が安定しない汎用ピクトグラム (OS/ブランド/標準 UI) の下絵, 素早い叩き台, 特定セットの体裁に意図的に寄せたい場合, codex 解約したとき用</td>
+</tr>
+</tbody>
+</table>
+<p>判断フローは「まず codex 生成で進める → 特定のアイコンだけ codex が安定しない, または既製の体裁に寄せたい場合に限り, そのアイコンを Iconify で補う」. Iconify を混ぜる場合も白背景・黒線に揃え, 最後に codex の <code>view_image</code> レビューで図全体との整合を確認する.</p>
+</article>
+
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        &copy; yakagika. Site generated by
+        <a href="http://jaspervdj.be/hakyll">Hakyll</a>.
+    </div>
+</div>
+
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level;
+          switch (heading.tagName.toLowerCase()) {
+            case 'h2': level = 0; break;
+            case 'h3': level = 1; break;
+            case 'h4': level = 2; break;
+            default: return;
+          }
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          // Pandoc は `::: note` + 見出し の組み合わせを <section id="..." class="note">
+          // 内の <hN> として出力するため, 見出し自身に id が無い場合は
+          // 親 section の id を辿る.
+          var anchorId = heading.id;
+          if (!anchorId) {
+            var parentSection = heading.closest('section[id]');
+            if (parentSection) anchorId = parentSection.id;
+          }
+          anchor.href = '#' + anchorId;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+
+      // ----------------------------------------
+      // スクロールスパイ: 表示中の見出しを TOC でハイライト
+      // ----------------------------------------
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0 || typeof IntersectionObserver === 'undefined') return;
+
+      var idToTocItem = new Map();
+      headings.forEach(function(h) {
+        if (!h.id) return;
+        var link = tocContainer.querySelector('a[href="#' + CSS.escape(h.id) + '"]');
+        if (link) {
+          var li = link.closest('.toc-item') || link.closest('li');
+          if (li) idToTocItem.set(h.id, li);
+        }
+      });
+
+      var visible = new Set();
+      var lastActive = null;
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+
+        // ドキュメント順で最初に可視な見出しをアクティブに
+        var firstVisible = null;
+        for (var i = 0; i < headings.length; i++) {
+          if (visible.has(headings[i].id)) {
+            firstVisible = headings[i].id;
+            break;
+          }
+        }
+        if (!firstVisible) return;
+
+        var tocItem = idToTocItem.get(firstVisible);
+        if (!tocItem || tocItem === lastActive) return;
+
+        if (lastActive) lastActive.classList.remove('toc-active');
+        tocItem.classList.add('toc-active');
+        lastActive = tocItem;
+
+        // TOC を必要なときだけスクロール
+        tocItem.scrollIntoView({
+          block: 'nearest',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
+      }, {
+        // ヘッダー (60px) を除いた上部 〜 画面下から60% を判定領域とする
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0
+      });
+
+      headings.forEach(function(h) { if (h.id) observer.observe(h); });
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得
+      const pre = codeBlock.parentNode;
+
+      // <pre> を相対配置にし、子要素を絶対配置できるようにする
+      pre.style.position = 'relative';
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.textContent = 'Copy';
+      // ボタンのデザインはCSSで指定するのが望ましいが、簡易的にスタイルを直接指定する例:
+      copyButton.style.position = 'absolute';
+      copyButton.style.top = '8px';
+      copyButton.style.right = '8px';
+      copyButton.style.backgroundColor = '#add8e6'; // 水色
+      copyButton.style.color = '#fff';             // 白文字
+      copyButton.style.border = 'none';
+      copyButton.style.padding = '6px 10px';
+      copyButton.style.borderRadius = '4px';
+      copyButton.style.cursor = 'pointer';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    // パスワード保護付き details (回答例用)
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll('details.protected').forEach(function (det) {
+        var pass = det.getAttribute('data-pass') || '';
+        var summary = det.querySelector('summary');
+        if (!summary) return;
+
+        var gate = document.createElement('div');
+        gate.className = 'pass-gate';
+        gate.innerHTML =
+          '<label>合言葉: <input type="password" autocomplete="off" spellcheck="false"></label>' +
+          '<button type="button">解除</button>' +
+          '<span class="pass-error" hidden>合言葉が違います</span>';
+        summary.insertAdjacentElement('afterend', gate);
+
+        var input = gate.querySelector('input');
+        var button = gate.querySelector('button');
+        var errorMsg = gate.querySelector('.pass-error');
+
+        function tryUnlock() {
+          if (input.value === pass) {
+            det.classList.add('unlocked');
+            errorMsg.hidden = true;
+          } else {
+            errorMsg.hidden = false;
+            input.select();
+          }
+        }
+
+        button.addEventListener('click', tryUnlock);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
+        });
+
+        det.addEventListener('toggle', function () {
+          if (det.open && !det.classList.contains('unlocked')) {
+            input.focus();
+          }
+        });
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            katex.render( texText.data
+                        , mathElements[i]
+                        , { displayMode: mathElements[i].classList.contains("display")
+                          , throwOnError: true
+                         }
+                        );
+          }
+      }
+    });
+  </script>
+
+  </body>
+</html>
