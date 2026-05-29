@@ -87,7 +87,7 @@ $$P(B|A) = \frac{P(B \cap A)}{P(A)}$$
 
 を乗法定理と呼びます.
 
-このとき AとBは対称なので,
+このとき 積事象は対称（$A \cap B = B \cap A$）なので,
 
  $$P(B \cap A) = P(A \cap B) = P(B) P(A | B)  $$
 
