@@ -8,7 +8,7 @@ tags:
     - figure
     - iconify
     - workflow
-featured: false
+featured: true
 date: 2026-05-29
 tableOfContents: true
 ---
