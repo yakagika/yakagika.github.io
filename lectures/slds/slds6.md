@@ -847,11 +847,11 @@ Name: Sal, dtype: int64
 Salary.csvから以下の条件に従った抽出を行ってください.
 
 
-1. `Sal列`が偶数の`Sal列`の行
+1. `Sal列`が偶数の`Sal列`
 
-2. `Sal列`が奇数の`Ind列`の行
+2. `Sal列`が奇数の`Ind列`
 
-3. `Ind列`が`Info`,`Edu`のいずれかの`Sal列`
+3. `Ind列`が`Info`の`Sal列`
 
 :::
 
