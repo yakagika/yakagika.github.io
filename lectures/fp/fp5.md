@@ -1,5 +1,5 @@
 ---
-title: 代数プログラミング入門 Ch5 関数
+title: 関数型プログラミング Ch5 関数
 description: 資料
 tags:
     - algebra

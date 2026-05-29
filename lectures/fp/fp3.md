@@ -1,5 +1,5 @@
 ---
-title: 代数プログラミング入門 Ch3 Haskellを使ってみよう
+title: 関数型プログラミング Ch3 Haskellを使ってみよう
 description: 資料
 tags:
     - algebra

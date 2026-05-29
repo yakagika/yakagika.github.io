@@ -1,5 +1,5 @@
 ---
-title: 代数プログラミング入門 Ch4 スクリプトファイルとエラー対応
+title: 関数型プログラミング Ch4 スクリプトファイルとエラー対応
 description: 資料
 tags:
     - algebra

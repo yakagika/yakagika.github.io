@@ -1,5 +1,5 @@
 ---
-title: 代数プログラミング入門 Ch2 環境構築
+title: 関数型プログラミング Ch2 環境構築
 description: 資料
 tags:
     - algebra

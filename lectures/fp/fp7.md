@@ -1,5 +1,5 @@
 ---
-title: 代数プログラミング入門 Ch7 代数的データ型2
+title: 関数型プログラミング Ch7 代数的データ型2
 description: 資料
 tags:
     - algebra
