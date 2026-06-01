@@ -1,5 +1,5 @@
 -- | fp5.md 「無名関数 (ラムダ式)」節の練習問題.
-module Fp5.LambdaExerciseSpec (spec) where
+module Fp6.LambdaExerciseSpec (spec) where
 
 import Test.Hspec
 
@@ -13,7 +13,7 @@ sumAbs :: [Int] -> Int
 sumAbs xs = sum (map (\x -> abs x) xs)
 
 spec :: Spec
-spec = describe "Fp5.LambdaExercise" $ do
+spec = describe "Fp6.LambdaExercise" $ do
   it "addThree [1,2,3] == [4,5,6]" $
     addThree [1, 2, 3] `shouldBe` [4, 5, 6]
   it "onlyEven [1,2,3,4,5,6] == [2,4,6]" $

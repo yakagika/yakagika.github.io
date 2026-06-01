@@ -1,5 +1,5 @@
 -- | fp6.md 「直和型」節の練習問題 `Shape`.
-module Fp6.ShapeSpec (spec) where
+module Fp7.ShapeSpec (spec) where
 
 import Test.Hspec
 
@@ -19,7 +19,7 @@ approxEq :: Double -> Double -> Bool
 approxEq a b = abs (a - b) < 1e-9
 
 spec :: Spec
-spec = describe "Fp6.Shape" $ do
+spec = describe "Fp7.Shape" $ do
   it "area (Circle 1) == pi" $
     area (Circle 1) `shouldSatisfy` approxEq pi
   it "area (Rectangle 3 4) == 12.0" $

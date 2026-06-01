@@ -1,5 +1,5 @@
 -- | fp5.md 「練習問題 (関数総合)」の統計量 (標本標準偏差・積率相関係数).
-module Fp5.StatisticsSpec (spec) where
+module Fp6.StatisticsSpec (spec) where
 
 import Test.Hspec
 
@@ -26,7 +26,7 @@ approxEq :: Double -> Double -> Bool
 approxEq a b = abs (a - b) < 1e-9
 
 spec :: Spec
-spec = describe "Fp5.Statistics" $ do
+spec = describe "Fp6.Statistics" $ do
   let xs = [1.0 .. 5.0]
       ys = [5.0, 4.0, 3.0, 2.0, 1.0]
   it "mean [1..5] == 3.0" $

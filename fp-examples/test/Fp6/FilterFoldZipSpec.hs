@@ -1,5 +1,5 @@
 -- | fp5.md の filter / fold / zipWith / zip 使用例.
-module Fp5.FilterFoldZipSpec (spec) where
+module Fp6.FilterFoldZipSpec (spec) where
 
 import Test.Hspec
 
@@ -14,7 +14,7 @@ zip'' :: [a] -> [b] -> [(a, b)]
 zip'' = zipWith tuple
 
 spec :: Spec
-spec = describe "Fp5.FilterFoldZip" $ do
+spec = describe "Fp6.FilterFoldZip" $ do
   describe "filter" $
     it "filter (10 <) [5,10,15,20] == [15,20]" $
       filter (10 <) [5 :: Int, 10, 15, 20] `shouldBe` [15, 20]

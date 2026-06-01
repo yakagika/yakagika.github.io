@@ -1,5 +1,5 @@
 -- | fp5.md 「関数合成」節.
-module Fp5.CompositionSpec (spec) where
+module Fp6.CompositionSpec (spec) where
 
 import Test.Hspec
 
@@ -13,7 +13,7 @@ h :: Int -> Int
 h = f . g
 
 spec :: Spec
-spec = describe "Fp5.Composition" $ do
+spec = describe "Fp6.Composition" $ do
   it "f (g 2) == 10" $ f (g 2) `shouldBe` 10
   it "(f . g) 2 == 10" $ (f . g) 2 `shouldBe` 10
   it "h 2 == 10 (h = f . g)" $ h 2 `shouldBe` 10

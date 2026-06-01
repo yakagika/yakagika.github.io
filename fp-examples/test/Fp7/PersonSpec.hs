@@ -1,5 +1,5 @@
 -- | fp6.md 「直積型 レコード構文」節の練習問題 `Person`.
-module Fp6.PersonSpec (spec) where
+module Fp7.PersonSpec (spec) where
 
 import Test.Hspec
 
@@ -16,7 +16,7 @@ totalAge :: Person -> Person -> Int
 totalAge p1 p2 = personAge p1 + personAge p2
 
 spec :: Spec
-spec = describe "Fp6.Person" $ do
+spec = describe "Fp7.Person" $ do
   let alice = Person { personName = "Alice"
                      , personAge = 30
                      , personEmail = "alice@example.com"

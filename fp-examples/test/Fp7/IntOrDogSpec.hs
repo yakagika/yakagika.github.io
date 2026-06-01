@@ -1,5 +1,5 @@
 -- | fp6.md 「直和型」節の `IntOrDog`.
-module Fp6.IntOrDogSpec (spec) where
+module Fp7.IntOrDogSpec (spec) where
 
 import Test.Hspec
 
@@ -16,7 +16,7 @@ describe' (MkInt n) = "整数 " ++ show n
 describe' (MkDog d) = "犬 " ++ show d
 
 spec :: Spec
-spec = describe "Fp6.IntOrDog" $ do
+spec = describe "Fp7.IntOrDog" $ do
   it "describe (MkInt 42) == \"整数 42\"" $
     describe' (MkInt 42) `shouldBe` "整数 42"
   it "describe (MkDog GoldenRetriever) == \"犬 GoldenRetriever\"" $

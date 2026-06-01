@@ -1,4 +1,4 @@
-module Fp6.TypeSpec (spec) where
+module Fp7.TypeSpec (spec) where
 
 import Test.Hspec
 
@@ -14,7 +14,7 @@ mkRectangle b h = Rectangle {bottom = b, height = h}
 
 
 spec :: Spec
-spec = describe "Fp6.TypeSpeck" $ do
+spec = describe "Fp7.TypeSpeck" $ do
   describe "mkRectangle" $ do
     it "mkRectangle 3 4 == Rectangle 3 4" $
       mkRectangle 3 4 `shouldBe` Rectangle 3 4

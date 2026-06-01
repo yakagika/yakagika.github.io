@@ -1,5 +1,5 @@
 -- | fp6.md 「リスト内包表記」節の例と練習問題.
-module Fp6.ListComprehensionSpec (spec) where
+module Fp7.ListComprehensionSpec (spec) where
 
 import Test.Hspec
 
@@ -24,7 +24,7 @@ pythagoreans n =
   ]
 
 spec :: Spec
-spec = describe "Fp6.ListComprehension" $ do
+spec = describe "Fp7.ListComprehension" $ do
   it "evens == [2,4,6,8,10]" $
     evens `shouldBe` [2, 4, 6, 8, 10]
   it "pairs (3x3 で x/=y, 6要素)" $

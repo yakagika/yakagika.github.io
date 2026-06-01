@@ -1,5 +1,5 @@
 -- | fp6.md 「直積型」節 + レコード構文の `DogAge`.
-module Fp6.DogAgeSpec (spec) where
+module Fp7.DogAgeSpec (spec) where
 
 import Test.Hspec
 
@@ -36,7 +36,7 @@ showBreed :: DogAge -> String
 showBreed = show . breed
 
 spec :: Spec
-spec = describe "Fp6.DogAge" $ do
+spec = describe "Fp7.DogAge" $ do
   let golden = MkDogAge GoldenRetriever 3
 
   describe "基礎" $ do

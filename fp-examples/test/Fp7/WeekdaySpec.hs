@@ -1,5 +1,5 @@
 -- | fp6.md 「集合と列挙型」節の練習問題.
-module Fp6.WeekdaySpec (spec) where
+module Fp7.WeekdaySpec (spec) where
 
 import Test.Hspec
 
@@ -22,7 +22,7 @@ nextDay Friday    = Saturday
 nextDay Saturday  = Sunday
 
 spec :: Spec
-spec = describe "Fp6.Weekday" $ do
+spec = describe "Fp7.Weekday" $ do
   describe "isWeekend" $ do
     it "Sunday is weekend"    $ isWeekend Sunday `shouldBe` True
     it "Saturday is weekend"  $ isWeekend Saturday `shouldBe` True

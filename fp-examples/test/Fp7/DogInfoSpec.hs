@@ -1,6 +1,6 @@
 -- | fp6.md 「直積型 レコード構文」節の warn ブロック内 `DogInfo`.
 -- 直和型 + レコード構文でアクセサが部分関数になる例.
-module Fp6.DogInfoSpec (spec) where
+module Fp7.DogInfoSpec (spec) where
 
 import Test.Hspec
 import Control.Exception (evaluate)
@@ -14,7 +14,7 @@ data DogInfo = JustBreed { dogBreed :: MyDogs }
              deriving (Show, Eq)
 
 spec :: Spec
-spec = describe "Fp6.DogInfo (部分アクセサ)" $ do
+spec = describe "Fp7.DogInfo (部分アクセサ)" $ do
   it "dogBreed (JustBreed GoldenRetriever) は両コンストラクタにあるので OK" $
     dogBreed (JustBreed GoldenRetriever) `shouldBe` GoldenRetriever
   it "dogBreed (WithAge Beagle 7) も OK" $

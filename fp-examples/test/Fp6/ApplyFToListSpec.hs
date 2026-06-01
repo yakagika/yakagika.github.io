@@ -1,5 +1,5 @@
 -- | fp5.md 「高階関数」節の `applyFToList` と map の使用例.
-module Fp5.ApplyFToListSpec (spec) where
+module Fp6.ApplyFToListSpec (spec) where
 
 import Test.Hspec
 
@@ -13,7 +13,7 @@ fib 1 = 1
 fib n = fib (n - 1) + fib (n - 2)
 
 spec :: Spec
-spec = describe "Fp5.ApplyFToList" $ do
+spec = describe "Fp6.ApplyFToList" $ do
   it "applyFToList (2*) [4,5,6] == [8,10,12]" $
     applyFToList (2*) [4 :: Int, 5, 6] `shouldBe` [8, 10, 12]
   it "applyFToList (1+) [4,5,6] == [5,6,7]" $

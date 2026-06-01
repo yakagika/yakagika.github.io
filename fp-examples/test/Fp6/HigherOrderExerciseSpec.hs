@@ -1,5 +1,5 @@
 -- | fp5.md 「高階関数」節の練習問題.
-module Fp5.HigherOrderExerciseSpec (spec) where
+module Fp6.HigherOrderExerciseSpec (spec) where
 
 import Test.Hspec
 
@@ -13,7 +13,7 @@ maxList :: [Int] -> [Int] -> [Int]
 maxList xs ys = zipWith (\x y -> if x > y then x else y) xs ys
 
 spec :: Spec
-spec = describe "Fp5.HigherOrderExercise" $ do
+spec = describe "Fp6.HigherOrderExercise" $ do
   it "squareList [1,2,3,4] == [1,4,9,16]" $
     squareList [1, 2, 3, 4] `shouldBe` [1, 4, 9, 16]
   it "productList [1,2,3,4] == 24" $
