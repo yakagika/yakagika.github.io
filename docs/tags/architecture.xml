@@ -2,10 +2,10 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"
     xmlns:dc="http://purl.org/dc/elements/1.1/">
     <channel>
-        <title>yakagika - Posts tagged claude-code</title>
+        <title>yakagika - Posts tagged architecture</title>
         <link></link>
         <description><![CDATA[Personal blog of yakagika]]></description>
-        <atom:link href="/tags/claude-code.xml" rel="self"
+        <atom:link href="/tags/architecture.xml" rel="self"
                    type="application/rss+xml" />
         <lastBuildDate>Wed, 03 Jun 2026 00:00:00 UT</lastBuildDate>
         
@@ -390,103 +390,6 @@ vault (RAG 知識 + 規約 + タスク) を横断共有
 <p>という感じで色々やってみているが, なんとなく機能してきたのでまとめました記事でした. 毎日変わっているのであくまで暫定版ですが.</p>]]></description>
     <pubDate>Wed, 03 Jun 2026 00:00:00 UT</pubDate>
     <guid>/posts/2026-06-03-multi-repo-agent-orchestrator.html</guid>
-    
-    <author>kaya3728@gmail.com (yakagika)</author>
-    
-    <dc:creator>yakagika</dc:creator>
-</item>
-<item>
-    <title>Claude Code から codex を呼んで論文の図を作る — アイコン調達に Iconify を足した話</title>
-    <link>/posts/2026-05-29-codex-iconify-paper-figures.html</link>
-    <description><![CDATA[<h1 id="きっかけ">きっかけ</h1>
-<p>論文やら申請書やらのポンチ絵は今までflaticon等の画像サイトからiconを取得→pptでお絵かき→PNG保存で行っていたが, 諸々の資料作成をAI Agentに任せる際にはこれの作成がネックになっていた,かつ,codexのimagegenで直接AI生成すると, あまりにもAIになるので, 研究っぽいポンチ絵を作成する機能を作りたかった.</p>
-<p>一発でAIが納得するポンチ絵を作ることはできないので, <strong>Claude Code から codex CLI を呼び出して iconをimagegenで生成 → それを組み合わせた SVG を生成 → SVGのHTMLをclaudeが指示に従って編集する</strong>, というワークフローを <code>figure-codex-svg</code> という skill にまとめて使っていた.</p>
-<p>最近はあまりcodexは使わずclaudeに統一しているので,「アイコン部分だけは既製の素材を自動で持ってきた方が速いし綺麗 &amp; claudeで完結する」という思いつきから, アイコン調達のステップを足してみた. その結果と, 最終的にどう落ち着いたかを記録しておく. 能力的には現時点ではcodexが良いっぽい(opus 4.7時点では確かにそう思う,4.8はさっき使い始めたから分からん.)けど,毎月状況が変わっていちいち移行するのが怠いので,claudeメインにしている.</p>
-<h1 id="既存のワークフロー-figure-codex-svg">既存のワークフロー: figure-codex-svg</h1>
-<ol type="1">
-<li><strong>構造とアイコンを生成</strong>: codex に「白背景・黒線の pictogram スタイルで, この行構造の図を SVG で作れ」と指示する. アイコンは同一 SVG 内に <code>&lt;defs&gt;&lt;symbol&gt;</code> として定義させるか, 数が多ければ個別 SVG ファイルに分けて <code>&lt;image&gt;</code> 参照させる.</li>
-<li><strong>レイアウト改善ループ</strong>: codex は自分が出力した PNG を <code>view_image</code> で見られるので, 「生成 → ラスタライズ → 目視 → 修正」を自律的に回せる. 矢印の重なりや文字とアイコンの衝突を, 人間が指摘する前に自己修正してくれる.</li>
-</ol>
-<p>codex を Claude Code の Bash 経由で叩くときの実務的な注意.</p>
-<ul>
-<li><strong>stdin を閉じる</strong> (<code>&lt;/dev/null</code>). codex はプロンプト引数を受け取った後も stdin の EOF を待つ.</li>
-<li><strong>画像は <code>--image=FILE</code> で渡す</strong>. <code>-i FILE</code> は greedy で後続のプロンプトまで画像扱いしてしまう.</li>
-<li><strong><code>--skip-git-repo-check</code> を付ける</strong>. 論文ディレクトリは git repo でないことが多く, trust check で即終了する.</li>
-<li>日本語ラベルを使うなら font-family に <code>"BIZ UDPGothic", "Hiragino Sans", ...</code> のフォールバック列を必ず指定する. 忘れると rsvg-convert で豆腐 (□) になる.</li>
-</ul>
-<p>SVG → PNG/PDF は <code>rsvg-convert</code> を使う. <code>-w</code> と <code>-h</code> を両方指定して aspect ratio を固定するのがコツ.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">rsvg-convert</span> <span class="at">-w</span> 1600 <span class="at">-h</span> 1200 fig/main.svg <span class="at">-o</span> fig/main.png   <span class="co"># PNG</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">rsvg-convert</span> <span class="at">-f</span> pdf <span class="at">-o</span> fig/main.pdf fig/main.svg            <span class="co"># PDF (ベクター維持)</span></span></code></pre></div>
-<h1 id="足したもの-iconify-からアイコンを自動取得">足したもの: Iconify からアイコンを自動取得</h1>
-<p>アイコンの調達先として <a href="https://iconify.design/">Iconify</a> を使うことにした. Iconfiは</p>
-<ul>
-<li><strong>API キー不要・無料</strong> (<code>api.iconify.design</code>)</li>
-<li><strong>20 万以上</strong>のアイコン (Material Symbols, Tabler, Lucide, Carbon など 150+ セット)</li>
-<li><strong>ライセンスがクリア</strong> (多くが MIT / Apache / ISC / CC-BY) で論文掲載が安全</li>
-</ul>
-<p>商用素材サイトのように API 契約や帰属表示の判断で悩まなくていいのが大きい.</p>
-<p>検索・取得・ライセンス確認をする小さなシェルスクリプト (<code>iconify.sh</code>) を skill に同梱した.</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># キーワードで候補を探す (prefix:name 形式で返る)</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">./iconify.sh</span> search <span class="st">&quot;neural network&quot;</span> 12</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># コレクションのライセンスを確認 (論文掲載前に必須)</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="ex">./iconify.sh</span> license tabler        <span class="co"># -&gt; Tabler Icons | MIT (MIT)</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co"># 単体取得 (色=黒, サイズ=128 に正規化)</span></span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="ex">./iconify.sh</span> fetch tabler:server fig/icons/server.svg 000000 128</span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="co"># manifest で一括取得 (1 行 &quot;prefix:name [出力名]&quot;)</span></span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="fu">cat</span> <span class="op">&gt;</span> fig/icons.txt <span class="op">&lt;&lt;&#39;EOF&#39;</span></span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="st">tabler:chart-line   econ</span></span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="st">tabler:book         ledger</span></span>
-<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="st">tabler:code         it</span></span>
-<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="st">tabler:shield-check verify</span></span>
-<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="op">EOF</span></span>
-<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="ex">./iconify.sh</span> batch fig/icons.txt fig/icons 000000 128</span></code></pre></div>
-<p>Iconify のアイコンは <code>viewBox 0 0 24 24</code> で <code>fill="currentColor"</code> (または <code>stroke="currentColor"</code>) になっている. URL に <code>?color=000000</code> を付けると <code>currentColor</code> が置換されるので, 白背景・黒線の pictogram スタイルに揃えられる. 取得した個別 SVG を, codex が生成するメイン図から <code>&lt;image href="icons/server.svg"/&gt;</code> で参照する.</p>
-<p>スタイルを揃えるコツは, <strong>1 つの図の中ではアイコンのコレクション (prefix) を統一すること</strong>. 全部 <code>tabler:*</code> か全部 <code>lucide:*</code> にすると線幅と角丸が一貫する. 検索結果には同じモチーフが複数セットで並ぶので, prefix を固定して選ぶ.</p>
-<h1 id="比較-codex-生成アイコン-vs-iconify-既製アイコン">比較: codex 生成アイコン vs Iconify 既製アイコン</h1>
-<p>同じ「機械学習パイプライン」の構成図を, 全く同じレイアウト・同じ黒線スタイルで 2 通り作って並べた. 上が codex に図ごと描き起こさせた版 (アイコンも codex 生成), 下が同じレイアウトでアイコンだけ Iconify (tabler) の既製品に差し替えた版.</p>
-<figure>
-<img src="/images/posts/codex-iconify-figures/compare.png" alt="上: codex 生成アイコン / 下: Iconify 既製アイコン の比較" />
-<figcaption aria-hidden="true">上: codex 生成アイコン / 下: Iconify 既製アイコン の比較</figcaption>
-</figure>
-<p>率直な結論として, <strong>この図に関しては codex 生成アイコンの方が馴染みが良い</strong>.</p>
-<ul>
-<li>Iconify のアイコンは, 個人的にはあまりクオリティが高くない.</li>
-<li>codex が図と一体で描き起こしたアイコンの方が, 意図に最適化されているので良い.</li>
-</ul>
-<p>このあたりはIconfyのiconを選択する基準などを詰めれば改善するかもしれない.</p>
-<h1 id="落とし所-codex-生成を基本-iconify-は補助">落とし所: codex 生成を基本, Iconify は補助</h1>
-<table>
-<colgroup>
-<col style="width: 24%" />
-<col style="width: 32%" />
-<col style="width: 44%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th>方式</th>
-<th>優先度</th>
-<th>使いどころ</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><strong>codex 生成</strong></td>
-<td>基本 (デフォルト)</td>
-<td>ほぼ全ての図. 図全体との一体感, 独自モチーフ, ドメイン固有の概念図</td>
-</tr>
-<tr class="even">
-<td><strong>Iconify 取得</strong></td>
-<td>補助</td>
-<td>codex が安定しない汎用ピクトグラム (OS/ブランド/標準 UI) の下絵, 素早い叩き台, 特定セットの体裁に意図的に寄せたい場合, codex 解約したとき用</td>
-</tr>
-</tbody>
-</table>
-<p>判断フローは「まず codex 生成で進める → 特定のアイコンだけ codex が安定しない, または既製の体裁に寄せたい場合に限り, そのアイコンを Iconify で補う」. Iconify を混ぜる場合も白背景・黒線に揃え, 最後に codex の <code>view_image</code> レビューで図全体との整合を確認する.</p>]]></description>
-    <pubDate>Fri, 29 May 2026 00:00:00 UT</pubDate>
-    <guid>/posts/2026-05-29-codex-iconify-paper-figures.html</guid>
     
     <author>kaya3728@gmail.com (yakagika)</author>
     

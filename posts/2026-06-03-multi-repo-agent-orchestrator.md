@@ -1,0 +1,338 @@
+---
+title: Multi-Repo Agent Orchestrator
+description: 複数リポで別々に走る Claude/Codex セッションを横断で束ねる "上位 AI assistant (Orchestrator)" のアーキテクチャ解説. 5 層構成, repo-initiated 通信, 全 markdown 設計, 知識層の RAG 的運用, 耐障害ルーティングを構成図中心に説明し, Inflection Pi / Nous Hermes Agent と位置づけを比較する.
+tags:
+    - claude-code
+    - mcp
+    - orchestrator
+    - rag
+    - automation
+    - multi-repo
+    - architecture
+featured: true
+date: 2026-06-03
+tableOfContents: true
+---
+
+近頃皆さんやっていることだが, PC上のあらゆる作業にAI Agentを介入させるように仕事の再構築を進めている. 構築を進める中で, 複数のプロジェクトが同時進行する中で, CLAUDE.md/AGENT.md, skills の仕様判断, その他規約,コンテキストの設定を共有・自動化したいという欲求が出てきた.
+
+複数Agentの並行管理自体は, `Remote Control` や [cmux](https://cmux.com/) などの導入で軽くなってきたが, それぞれのrepoで独立していると初期設定,知識層の反映で手間がかかる. どのrepoで起動しても作業目標毎に知識,規約の引き継ぎの手間がボトルネックとなってきた.
+
+そのために, 複数リポで別々に走らせている十数個の Claude/Codex セッションを, 横断で監視, 記録, タスク配分, 知識集約する上位レイヤ(Agent Orchestrator)を自作した. 各リポの Agent は賢いが, それらを束ねる視点 (誰が何を進行中か, 知見の横断再利用, タスクの配分) は別レイヤの問題で, そこを担うのがこの Orchestrator である.
+
+このような用途としてはわざわざ車輪の再発明をしなくても既存 AI Assistant tool として有名なものに [Pi](https://pi.ai/) (Inflection) や [Hermes Agent](https://nousresearch.com/) (Nous Research) とがあり,わざわざこんなことをしなくても既存アーキテクチャを採用することで類似の効果は得られる.
+
+
+Pi は製品 / UX 層, Hermes Agent はモデル + 単一 agent 層に当たる. どちらも記憶や知識の集約・反映の仕組みを持ち (Hermes Agent は永続メモリ + skills, Pi は会話文脈), 私の理解では orchestrator 的な役割もある程度こなす一般ツールである.
+
+<table>
+  <thead>
+    <tr><th></th><th><a href="https://pi.ai/">Inflection Pi</a></th><th><a href="https://nousresearch.com/">Hermes Agent (Nous)</a></th><th>本 Orchestrator</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>位置づけ</td><td>個人向け会話コンパニオン</td><td>単一の自律エージェント基盤</td><td>複数 agent を束ねる上位レイヤ</td></tr>
+    <tr><td>モデル</td><td>自社 Inflection 2.5 (閉)</td><td>自社 Hermes (開 weights)</td><td>モデル非依存 (Claude/Codex を使う)</td></tr>
+    <tr><td>エージェント数</td><td>1 (話し相手)</td><td>1 (記憶 + skills + 自動化)</td><td>N (リポごとの coding agent を協調)</td></tr>
+    <tr><td>メモリ</td><td>会話文脈</td><td>永続メモリ</td><td>vault (RAG 知識 + 規約 + タスク) を横断共有</td></tr>
+    <tr><td>実行</td><td>クラウド</td><td>ローカル可 (Ollama 等)</td><td>ローカル (launchd), 他リポ FS は触らない</td></tr>
+    <tr><td>主眼</td><td>共感 / 対話</td><td>一個の強い agent</td><td>横断 routing / 知識 curation / 規約</td></tr>
+  </tbody>
+</table>
+
+それでも自作したのは,  次の二点を得たかったところによる.
+
+- **記憶層が小さい**: 既製ツールの記憶は基本的に単一 agent スコープで, 複数リポ・複数分野にまたがる横断知識ベース (本プロジェクトの vault) としては手狭. RAG として手入れする前提の corpus を, agent の外側に独立して持ちたい.
+- **作業ごとに分人的な役割分担がある**: 研究, 講義, 開発, 私生活で必要な人格・文脈・規約は異なる. すべてを単一 agent に集約するより, **agent ごとの個別コンテキストと, 横断の共通知識とを併存**させたい. 一個の強い agent を作る (Hermes Agent の方向) のではなく, 弱くてもよいので多数の agent をそれぞれの分人として保ちつつ, 共通の知識層で束ねる, という選択である.
+
+あと単純に自分で弄れる範囲が大きい方が楽しい. ので普通はHermes Agentを入れておけば殆ど事足りると思われる.
+
+なお,以下の構成は最終的には,ネットワーク上の常時稼働Agentに引き継ぐが現在は試験的に,全てローカルで完結させている.
+
+# 全体構成: 5 層
+
+Orchestrator は管理対象リポの上位に立ち, launchd で毎時巡回するバッチと対話セッションの二面で動く. 処理は 5 層に分かれ, 各リポの Agent とは共有キュー (inbox/outbox) だけで接続する.
+
+<svg viewBox="0 0 720 430" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="全体アーキテクチャ 5 層" font-family="sans-serif" font-size="13">
+  <defs>
+    <marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#555"/>
+    </marker>
+  </defs>
+  <!-- repos -->
+  <rect x="40" y="20" width="640" height="56" rx="6" fill="#eef4fb" stroke="#4a78b5"/>
+  <text x="360" y="42" text-anchor="middle" font-weight="bold">各リポの Agent (Claude / Codex)  -  十数 repos</text>
+  <text x="360" y="62" text-anchor="middle" fill="#555">research / grant / personal / lecture / tooling / chores  (作業レイヤ)</text>
+  <!-- push / pull arrows -->
+  <line x1="250" y1="76" x2="250" y2="118" stroke="#555" marker-end="url(#ah)"/>
+  <text x="200" y="100" text-anchor="end" fill="#333">push</text>
+  <text x="200" y="115" text-anchor="end" fill="#888" font-size="11">Stop hook + MCP</text>
+  <line x1="470" y1="118" x2="470" y2="76" stroke="#555" marker-end="url(#ah)"/>
+  <text x="520" y="100" fill="#333">pull</text>
+  <text x="520" y="115" fill="#888" font-size="11">context-pack</text>
+  <!-- orchestrator box -->
+  <rect x="40" y="120" width="640" height="190" rx="6" fill="#fbf7ee" stroke="#b58a4a"/>
+  <text x="360" y="142" text-anchor="middle" font-weight="bold">Orchestrator (launchd 毎時 + 対話セッション)</text>
+  <rect x="60" y="158" width="120" height="40" rx="4" fill="#fff" stroke="#999"/>
+  <text x="120" y="183" text-anchor="middle">1. inbox</text>
+  <rect x="200" y="158" width="120" height="40" rx="4" fill="#fff" stroke="#999"/>
+  <text x="260" y="183" text-anchor="middle">2. routing</text>
+  <rect x="340" y="158" width="140" height="40" rx="4" fill="#fff" stroke="#999"/>
+  <text x="410" y="183" text-anchor="middle">3. vault</text>
+  <rect x="500" y="158" width="80" height="40" rx="4" fill="#fff" stroke="#999"/>
+  <text x="540" y="183" text-anchor="middle">4. MCP</text>
+  <rect x="600" y="158" width="60" height="40" rx="4" fill="#fff" stroke="#999"/>
+  <text x="630" y="183" text-anchor="middle">5. 通知</text>
+  <line x1="180" y1="178" x2="200" y2="178" stroke="#555" marker-end="url(#ah)"/>
+  <line x1="320" y1="178" x2="340" y2="178" stroke="#555" marker-end="url(#ah)"/>
+  <line x1="480" y1="178" x2="500" y2="178" stroke="#555" marker-end="url(#ah)"/>
+  <line x1="580" y1="178" x2="600" y2="178" stroke="#555" marker-end="url(#ah)"/>
+  <rect x="60" y="220" width="600" height="74" rx="4" fill="#f5f5f5" stroke="#bbb"/>
+  <text x="360" y="240" text-anchor="middle" fill="#555">vault (全 markdown): projects / tasks / knowledge / agent_ops</text>
+  <text x="360" y="262" text-anchor="middle" fill="#888" font-size="12">司令塔兼書記. 判断と記録に徹し, 実作業は各リポの Agent が担う</text>
+  <text x="360" y="282" text-anchor="middle" fill="#888" font-size="12">他リポの FS は直接触らない (repo-initiated)</text>
+  <!-- external -->
+  <line x1="630" y1="310" x2="630" y2="350" stroke="#555" marker-end="url(#ah)"/>
+  <rect x="300" y="350" width="160" height="40" rx="6" fill="#eef4fb" stroke="#4a78b5"/>
+  <text x="380" y="375" text-anchor="middle">Discord (通知)</text>
+  <rect x="480" y="350" width="160" height="40" rx="6" fill="#eef4fb" stroke="#4a78b5"/>
+  <text x="560" y="375" text-anchor="middle">Todoist (タスク)</text>
+</svg>
+
+ポイントは, **Orchestrator 自身は判断と記録に徹し, 各リポでの実作業はそのリポの Agent が担う**こと. Orchestrator は司令塔兼書記であって, 現場では手を動かさない.
+
+# 管理対象: 複数レポをカテゴリで束ねる
+
+以下は匿名化したレポの構造を表している. 各レポは `runtime` (claude / codex), `cadence` (毎時 / 日次 / 週次), `category`, `techs` をメタデータに持ち, これが後段の routing と知識索引のキーになる. 設定は 1 枚の YAML に集約し, パーサも 1 本に統一している.
+
+構造は二段に分かれる. **Orchestrator が作業レイヤの頂点に立ち**, 十数リポを束ねる. そして **その Orchestrator を頂点とする系全体を, さらに外側から評価するのが existential (Vault)** である.
+
+<svg viewBox="0 0 720 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Orchestrator を頂点とする作業レイヤと existential のメタ評価" font-family="sans-serif" font-size="13">
+  <defs>
+    <marker id="ahm" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#555"/>
+    </marker>
+    <marker id="ahmv" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#5a9a5a"/>
+    </marker>
+  </defs>
+  <!-- existential meta frame (encloses the whole) -->
+  <rect x="14" y="14" width="692" height="572" rx="12" fill="#f6fbf6" stroke="#5a9a5a" stroke-width="1.5" stroke-dasharray="7 4"/>
+  <text x="360" y="36" text-anchor="middle" font-weight="bold" fill="#3f7a3f">existential (Vault) - 系全体をメタ評価</text>
+  <text x="360" y="54" text-anchor="middle" fill="#5a9a5a" font-size="11">now.md = 思想 / 現状 / 価値観の single source. 「そもそもこの方向で良いか」を外側から問う</text>
+  <!-- meta-eval arrow pointing inward -->
+  <line x1="40" y1="120" x2="40" y2="520" stroke="#5a9a5a" stroke-dasharray="4 3"/>
+  <line x1="40" y1="330" x2="74" y2="330" stroke="#5a9a5a" stroke-dasharray="4 3" marker-end="url(#ahmv)"/>
+  <text x="44" y="112" fill="#5a9a5a" font-size="11">メタ評価</text>
+  <!-- orchestrator (top of work hierarchy) -->
+  <rect x="180" y="70" width="400" height="64" rx="6" fill="#fbf7ee" stroke="#b58a4a"/>
+  <text x="380" y="96" text-anchor="middle" font-weight="bold">Orchestrator (assistant)</text>
+  <text x="380" y="118" text-anchor="middle" fill="#555" font-size="11">横断の監視 / routing / 知識 curation / タスク配分</text>
+  <!-- arrow down: manage -->
+  <line x1="380" y1="134" x2="380" y2="166" stroke="#555" marker-end="url(#ahm)"/>
+  <text x="392" y="154" fill="#333" font-size="11">管理 (routing / 知識配信 / タスク配分)</text>
+  <!-- work layer container -->
+  <rect x="74" y="168" width="572" height="400" rx="6" fill="#f5f5f5" stroke="#bbb"/>
+  <text x="360" y="190" text-anchor="middle" fill="#555">作業レイヤ  -  十数 repos (category / techs を持つ)</text>
+  <!-- row 1 -->
+  <rect x="90" y="204" width="172" height="64" rx="4" fill="#eef4fb" stroke="#4a78b5"/>
+  <text x="176" y="226" text-anchor="middle" font-weight="bold">research</text>
+  <text x="176" y="244" text-anchor="middle" fill="#555" font-size="11">Research A / B / C</text>
+  <text x="176" y="260" text-anchor="middle" fill="#888" font-size="11">論文 / ライブラリ / 原稿</text>
+  <rect x="274" y="204" width="172" height="64" rx="4" fill="#eef4fb" stroke="#4a78b5"/>
+  <text x="360" y="226" text-anchor="middle" font-weight="bold">grant</text>
+  <text x="360" y="244" text-anchor="middle" fill="#555" font-size="11">Grant A</text>
+  <text x="360" y="260" text-anchor="middle" fill="#888" font-size="11">申請書 (審査待ちが常態)</text>
+  <rect x="458" y="204" width="172" height="64" rx="4" fill="#eef4fb" stroke="#4a78b5"/>
+  <text x="544" y="226" text-anchor="middle" font-weight="bold">personal</text>
+  <text x="544" y="244" text-anchor="middle" fill="#555" font-size="11">Personal</text>
+  <text x="544" y="260" text-anchor="middle" fill="#888" font-size="11">私生活の意思決定 (非公開)</text>
+  <!-- row 2 -->
+  <rect x="90" y="280" width="172" height="64" rx="4" fill="#eef4fb" stroke="#4a78b5"/>
+  <text x="176" y="302" text-anchor="middle" font-weight="bold">lecture</text>
+  <text x="176" y="320" text-anchor="middle" fill="#555" font-size="11">Lecture A / B</text>
+  <text x="176" y="336" text-anchor="middle" fill="#888" font-size="11">講義資料</text>
+  <rect x="274" y="280" width="172" height="64" rx="4" fill="#eef4fb" stroke="#4a78b5"/>
+  <text x="360" y="302" text-anchor="middle" font-weight="bold">tooling</text>
+  <text x="360" y="320" text-anchor="middle" fill="#555" font-size="11">Tooling A / B</text>
+  <text x="360" y="336" text-anchor="middle" fill="#888" font-size="11">タスク運用基盤</text>
+  <rect x="458" y="280" width="172" height="64" rx="4" fill="#eef4fb" stroke="#4a78b5"/>
+  <text x="544" y="302" text-anchor="middle" font-weight="bold">chores</text>
+  <text x="544" y="320" text-anchor="middle" fill="#555" font-size="11">Chores</text>
+  <text x="544" y="336" text-anchor="middle" fill="#888" font-size="11">その他の雑用</text>
+  <!-- row 3: paper layer with PDF -> md -> bib pipeline -->
+  <rect x="90" y="356" width="540" height="86" rx="4" fill="#eef4fb" stroke="#4a78b5"/>
+  <text x="150" y="392" text-anchor="middle" font-weight="bold">paper</text>
+  <text x="150" y="412" text-anchor="middle" fill="#555" font-size="11">論文文献管理</text>
+  <rect x="246" y="376" width="84" height="46" rx="4" fill="#fff" stroke="#999"/>
+  <text x="288" y="400" text-anchor="middle" font-weight="bold">PDF</text>
+  <text x="288" y="415" text-anchor="middle" fill="#888" font-size="10">原典</text>
+  <line x1="330" y1="399" x2="360" y2="399" stroke="#555" marker-end="url(#ahm)"/>
+  <rect x="362" y="376" width="84" height="46" rx="4" fill="#fff" stroke="#999"/>
+  <text x="404" y="400" text-anchor="middle" font-weight="bold">md</text>
+  <text x="404" y="415" text-anchor="middle" fill="#888" font-size="10">抽出 / 要約</text>
+  <line x1="446" y1="399" x2="476" y2="399" stroke="#555" marker-end="url(#ahm)"/>
+  <rect x="478" y="376" width="100" height="46" rx="4" fill="#fff" stroke="#999"/>
+  <text x="528" y="400" text-anchor="middle" font-weight="bold">bib</text>
+  <text x="528" y="415" text-anchor="middle" fill="#888" font-size="10">引用 DB</text>
+  <text x="360" y="492" text-anchor="middle" fill="#888" font-size="11">各リポは runtime (claude / codex) / cadence (毎時 / 日次 / 週次) / category / techs をメタデータに持つ</text>
+  <text x="360" y="512" text-anchor="middle" fill="#888" font-size="11">設定は 1 枚の YAML に集約し, パーサも 1 本に統一. これが routing と知識索引のキーになる</text>
+</svg>
+
+二段構成のポイントは, **Orchestrator と existential (Vault) の役割が違う層にある**ことだ. Orchestrator は作業レイヤの頂点として, 十数リポの routing / 知識 / タスクを束ねる司令塔である. これに対し existential は, その Orchestrator を頂点とする系全体を**さらに外側からメタ的に評価する**. ここには `now.md` をはじめ思想 / 現状 / 価値観の single source があり, 個々の作業や routing が自分の価値観・現状と整合しているかを問う. **Orchestrator が "何を / どう進めるか" の司令塔なら, existential は "そもそもその方向で良いか" を問うメタ評価レイヤ**にあたる. now.md 自体は Orchestrator 経由で必要な agent にも配信されるが (思想 context の routing), existential の主たる役割は系全体のメタ評価である.
+
+各レポもOrchesratorを通じて連携できるようにしている. 例えば, 最近開発を進めている **paper 層**は, 文献管理に特化したパイプラインを持つ. 論文 PDF を原典として取り込み, それを **md** に抽出・要約 (図表や式の扱いも含む) してから, 引用情報を **bib** (引用データベース) に落とす. この **PDF → md → bib** の流れが research 層の執筆へ供給され, 「読んだ論文がそのまま引用可能な形で原稿に届く」状態が構築されている.
+
+# 通信モデル: repo-initiated
+
+一番大事な制約として, **Orchestrator は管理対象リポの FS を直接書き換えない**ことがある. 通信はすべて repo 側から共有キューへの push / pull に固定する.
+
+<svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="repo-initiated 通信" font-family="sans-serif" font-size="13">
+  <defs>
+    <marker id="ah2" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#555"/>
+    </marker>
+  </defs>
+  <rect x="30" y="90" width="180" height="70" rx="6" fill="#eef4fb" stroke="#4a78b5"/>
+  <text x="120" y="120" text-anchor="middle" font-weight="bold">各リポの Agent</text>
+  <text x="120" y="140" text-anchor="middle" fill="#555" font-size="12">Stop hook + MCP</text>
+  <rect x="300" y="40" width="160" height="50" rx="6" fill="#fff" stroke="#999"/>
+  <text x="380" y="60" text-anchor="middle">state/inbox/&lt;repo&gt;</text>
+  <text x="380" y="78" text-anchor="middle" fill="#888" font-size="11">append-only</text>
+  <rect x="300" y="160" width="160" height="50" rx="6" fill="#fff" stroke="#999"/>
+  <text x="380" y="180" text-anchor="middle">state/outbox/&lt;repo&gt;</text>
+  <text x="380" y="198" text-anchor="middle" fill="#888" font-size="11">最新状態 / タスク</text>
+  <rect x="540" y="90" width="150" height="70" rx="6" fill="#fbf7ee" stroke="#b58a4a"/>
+  <text x="615" y="125" text-anchor="middle" font-weight="bold">Orchestrator</text>
+  <text x="615" y="143" text-anchor="middle" fill="#555" font-size="12">読む / 書く</text>
+  <!-- push -->
+  <path d="M210,110 L300,70" stroke="#555" fill="none" marker-end="url(#ah2)"/>
+  <text x="248" y="80" fill="#333">push</text>
+  <line x1="460" y1="65" x2="540" y2="105" stroke="#555" marker-end="url(#ah2)"/>
+  <!-- pull -->
+  <line x1="540" y1="150" x2="460" y2="185" stroke="#555" marker-end="url(#ah2)"/>
+  <path d="M300,190 L210,145" stroke="#555" fill="none" marker-end="url(#ah2)"/>
+  <text x="248" y="185" fill="#333">pull</text>
+</svg>
+
+境界を push/pull のキューに固定すると, **どちらが何を書いたかが常に明確**になり, 片方が壊れてももう片方は動き続ける. 上位が下位のコードを勝手に上書きしない, という規律でもある.
+
+# データ表現: (今のところ)すべて markdown
+
+状態, タスク, 知識, 規約 - Orchestrator が扱うデータは全部 [Obsidian](https://obsidian.md/) による markdown + frontmatter で持つ. DB も独自フォーマットも使わない. 狙いは移行容易性で, 別マシン (常時起動の Mac mini を想定) へ移すとき, データ表現が markdown のままなら**差し替えるのは通信層だけ**で済む.
+
+$$
+\text{Phase 1 (file)} \;\longrightarrow\; \text{Phase 2 (MCP)} \;\longrightarrow\; \text{Phase 3 (LAN MCP)}
+$$
+
+通信は進化させても vault の中身は不変. でそのまま人間が読める利点も大きい.
+
+markdown / Obsidian を選んだ主な理由は, **もともと個人の知識管理を Obsidian で行っていた**ことにある. 設計として一から選んだというより, 既存資産 (過去の日記やメモ) をそのまま agent に読ませられる連続性が大きく, 実際 existential (Vault) では過去の日記・メモを文脈として読ませている. したがって **人間が文章を読む面は当面 Obsidian 固定**で行く予定だ. 一方, 人間が読まない orchestrator 層の内部表現 (state や中間データ) は markdown に縛る必然はなく, **より効率的な手段があれば置き換える予定**でいる. markdown は "人間も読む層" の共通項として残し, 機械専用の層は最適な表現へ寄せていきたい.
+
+# 知識層 = 自前 RAG
+
+このプロジェクトで一番効いている知識層は, 実質 RAG (Retrieval-Augmented Generation) の自前運用である. ただし主眼は "貯める" ことより "腐らせない" ことにある.
+
+<svg viewBox="0 0 720 270" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="知識 RAG ライフサイクル" font-family="sans-serif" font-size="13">
+  <defs>
+    <marker id="ah3" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#555"/>
+    </marker>
+  </defs>
+  <rect x="20" y="110" width="130" height="56" rx="6" fill="#eef4fb" stroke="#4a78b5"/>
+  <text x="85" y="135" text-anchor="middle" font-weight="bold">ingestion</text>
+  <text x="85" y="153" text-anchor="middle" fill="#555" font-size="11">Agent がタグ付き報告</text>
+  <rect x="200" y="110" width="130" height="56" rx="6" fill="#fff" stroke="#999"/>
+  <text x="265" y="135" text-anchor="middle" font-weight="bold">_staging</text>
+  <text x="265" y="153" text-anchor="middle" fill="#555" font-size="11">tag + メタデータ索引</text>
+  <rect x="380" y="110" width="150" height="56" rx="6" fill="#fbf7ee" stroke="#b58a4a"/>
+  <text x="455" y="135" text-anchor="middle" font-weight="bold">curation</text>
+  <text x="455" y="153" text-anchor="middle" fill="#555" font-size="11">promote / decay</text>
+  <rect x="580" y="110" width="120" height="56" rx="6" fill="#eef4fb" stroke="#4a78b5"/>
+  <text x="640" y="135" text-anchor="middle" font-weight="bold">retrieval</text>
+  <text x="640" y="153" text-anchor="middle" fill="#555" font-size="11">pull / search</text>
+  <line x1="150" y1="138" x2="200" y2="138" stroke="#555" marker-end="url(#ah3)"/>
+  <line x1="330" y1="138" x2="380" y2="138" stroke="#555" marker-end="url(#ah3)"/>
+  <line x1="530" y1="138" x2="580" y2="138" stroke="#555" marker-end="url(#ah3)"/>
+  <!-- promote up / decay down -->
+  <rect x="380" y="30" width="150" height="40" rx="6" fill="#eef7ee" stroke="#5a9a5a"/>
+  <text x="455" y="55" text-anchor="middle" font-size="12">本フォルダ (昇格)</text>
+  <line x1="455" y1="110" x2="455" y2="70" stroke="#5a9a5a" marker-end="url(#ah3)"/>
+  <rect x="380" y="206" width="150" height="40" rx="6" fill="#f7eeee" stroke="#a55a5a"/>
+  <text x="455" y="231" text-anchor="middle" font-size="12">_stale (減衰 / 撤回)</text>
+  <line x1="455" y1="166" x2="455" y2="206" stroke="#a55a5a" marker-end="url(#ah3)"/>
+  <!-- usage feedback loop -->
+  <path d="M640,166 C640,230 455,250 200,200 L160,180" stroke="#888" fill="none" stroke-dasharray="4 3" marker-end="url(#ah3)"/>
+  <text x="360" y="262" text-anchor="middle" fill="#888" font-size="11">usage signal が次の curation を駆動</text>
+</svg>
+
+- **ingestion**: Agent が知見を `[pattern]` `[gotcha]` `[howto]` `[reference]` `[domain]` のタグ付きで報告 → 1 件 1 markdown を `_staging/<tag>/` に保存. source repo, category, techs, confidence をメタデータに持つ.
+- **index**: 埋め込みベクトルではなく, タグ + メタデータ + 全文キーワードの軽量索引. `by-category/` `by-tech/` の逆引きで横断取得 (ベクトル化は移行後の検討).
+- **retrieval**: 必要時に `pull_relevant_knowledge` / `search_knowledge`. スコアは自リポとの親和度, 新しさ, 過去の使用回数の重み付き和:
+
+$$
+\mathrm{score}(n) \;=\; w_c\,[\,c_n = c_q\,] \;+\; w_t\,\lvert T_n \cap T_q \rvert \;+\; w_r\,\mathrm{recency}(n) \;+\; w_u\,\mathrm{usage}(n)
+$$
+
+- **curation (本題)**: corpus をただ増やすとノイズで検索精度が落ちる. 引かれた note は本フォルダへ**昇格**, 古い / 撤回された note は `_stale/` へ**隔離** (黙って消さないので追跡可). retrieval のログ (usage signal) が次の curation を駆動する. 一度踏んだ gotcha を別リポの Agent が二度踏まないのは, corpus が増えるからでなく手入れされているからだ.
+
+# タスク管理層: Todoist
+
+知識層と並ぶもう一つの管理層がタスクで, ここは [Todoist](https://todoist.com/) を hub にしている. **人間と agent が同じタスクを同じ場所で見る**ための層である.
+
+<svg viewBox="0 0 720 170" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="タスク管理層 Todoist" font-family="sans-serif" font-size="13">
+  <defs>
+    <marker id="ah5" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#555"/>
+    </marker>
+  </defs>
+  <rect x="20" y="60" width="150" height="56" rx="6" fill="#fbf7ee" stroke="#b58a4a"/>
+  <text x="95" y="84" text-anchor="middle" font-weight="bold">vault/tasks</text>
+  <text x="95" y="102" text-anchor="middle" fill="#555" font-size="11">git 追跡 (source of truth)</text>
+  <rect x="280" y="60" width="170" height="56" rx="6" fill="#eef4fb" stroke="#4a78b5"/>
+  <text x="365" y="84" text-anchor="middle" font-weight="bold">Todoist</text>
+  <text x="365" y="102" text-anchor="middle" fill="#555" font-size="11">repo ごとの project</text>
+  <rect x="560" y="60" width="140" height="56" rx="6" fill="#eef4fb" stroke="#4a78b5"/>
+  <text x="630" y="84" text-anchor="middle" font-weight="bold">各リポの Agent</text>
+  <text x="630" y="102" text-anchor="middle" fill="#555" font-size="11">pull_my_tasks</text>
+  <line x1="170" y1="78" x2="280" y2="78" stroke="#555" marker-end="url(#ah5)"/>
+  <text x="225" y="70" text-anchor="middle" fill="#333" font-size="11">sync (push)</text>
+  <line x1="450" y1="78" x2="560" y2="78" stroke="#555" marker-end="url(#ah5)"/>
+  <text x="505" y="70" text-anchor="middle" fill="#333" font-size="11">pull</text>
+  <path d="M560,104 L450,104" stroke="#5a9a5a" fill="none" marker-end="url(#ah5)"/>
+  <text x="505" y="124" text-anchor="middle" fill="#5a9a5a" font-size="11">完了状態</text>
+  <text x="365" y="148" text-anchor="middle" fill="#888" font-size="11">人間はここで全 repo のタスクを横断俯瞰 / 完了操作</text>
+</svg>
+
+設計は単純で, source of truth は git 追跡の `vault/tasks` 側に置く. `sync_tasks` がそれを各リポの Todoist project に push し, agent は `pull_my_tasks` で自分宛てを取得する. **どの project に置くかで担当 repo が決まる** (置き場所で routing するので, ラベル付けは最小限). フィールド単位で真の側を分けており, 本文 / 詳細 / リンクは vault が真, 完了状態 / 期限は Todoist が真 (モバイルで完了する運用が多いため). 人間から見ると, Todoist が**全リポのタスクを横断で俯瞰し操作する一枚の窓**になる.
+
+# 耐障害ルーティング
+
+Agent のセッションで MCP server が一時的に繋がらないと, Agent は submit 系ツールを呼べず共有 inbox に素のファイルでフォールバックしてくる. これを要約に溶かさず, 種別ごとに振り分ける.
+
+<svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="耐障害ルーティング" font-family="sans-serif" font-size="13">
+  <defs>
+    <marker id="ah4" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#555"/>
+    </marker>
+  </defs>
+  <rect x="20" y="80" width="150" height="50" rx="6" fill="#eef4fb" stroke="#4a78b5"/>
+  <text x="95" y="102" text-anchor="middle" font-weight="bold">inbox</text>
+  <text x="95" y="120" text-anchor="middle" fill="#555" font-size="11">fallback ファイル</text>
+  <rect x="240" y="80" width="150" height="50" rx="6" fill="#fbf7ee" stroke="#b58a4a"/>
+  <text x="315" y="102" text-anchor="middle" font-weight="bold">種別判定</text>
+  <text x="315" y="120" text-anchor="middle" fill="#555" font-size="11">event_type で分岐</text>
+  <line x1="170" y1="105" x2="240" y2="105" stroke="#555" marker-end="url(#ah4)"/>
+  <rect x="460" y="20" width="240" height="56" rx="6" fill="#fff" stroke="#999"/>
+  <text x="580" y="42" text-anchor="middle">ユーザ判断 → user_requests</text>
+  <text x="580" y="60" text-anchor="middle" fill="#555" font-size="11">対話で AskUserQuestion</text>
+  <rect x="460" y="124" width="240" height="56" rx="6" fill="#fff" stroke="#999"/>
+  <text x="580" y="146" text-anchor="middle">作業依頼 → vault/tasks</text>
+  <text x="580" y="164" text-anchor="middle" fill="#555" font-size="11">同期で Todoist へ</text>
+  <path d="M390,98 L460,55" stroke="#555" fill="none" marker-end="url(#ah4)"/>
+  <path d="M390,112 L460,150" stroke="#555" fill="none" marker-end="url(#ah4)"/>
+</svg>
+
+ツールが落ちても依頼の種別に応じて確実に拾われる. 賢いコンポーネントほど壊れ方に対する設計が効く, という一例である.
+
+
+という感じで色々やってみているが, なんとなく機能してきたのでまとめました記事でした. 毎日変わっているのであくまで暫定版ですが.
