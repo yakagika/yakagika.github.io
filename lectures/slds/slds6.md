@@ -1571,6 +1571,12 @@ NaN != NaN: True
 df = pd.read_csv('data/salary_nan.csv')
 print(df.isna())
 print(pd.isna(df.at[8,'Salary']))
+
+# 条件抽出が使えない
+print(df[df['salary'] == float('NaN')])
+
+# isnaを使って抽出する
+print(df[df['salary'].isna()])
 ~~~
 
 ~~~ sh
@@ -1590,6 +1596,13 @@ print(pd.isna(df.at[8,'Salary']))
 12     False   False
 13     False   False
 True
+
+Columns: [Industry, Salary]
+Index: []
+    Industry  Salary
+3    Accommodation       NaN
+8      Info     NaN
+11    Others     NaN
 ~~~
 
 
@@ -1602,7 +1615,7 @@ True
 `df.dropna(subset=除外したい列名のリスト,how=‘any’,inplace=True)`と記述することで
 指定された列においてNaNの含まれる行の削除ができます.
 `subset`を指定しないと,すべての列が対象となります.
-`how ='any'`と指定すると, subsetに含まれる列のどれか, `how='all'`にすると, subsetに含まれる列の全てがNaNの場合にその行が削除されます.
+`how ='any'`と指定すると, subsetに含まれる列のどれか, `how='all'`にすると, subsetに含まれる列の全てがNaNの場合にその列が削除されます.
 
 ~~~ py
 #欠損値の削除
@@ -1680,8 +1693,8 @@ df = pd.DataFrame(data=values
                  ,columns=['animal_kind'
                           ,'weight'
                           ,'size'])
-#csvとして保存
-df.to_csv('data/animal.csv'
+#resultフォルダにcsvとして保存
+df.to_csv('result/animal.csv'
          ,encoding='utf-8-sig')
 ~~~
 
