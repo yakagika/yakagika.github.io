@@ -1336,7 +1336,7 @@ print(df)
 また,列名を`key`その列のリストを`value`とした辞書型によって`DataFrame`を作成することも可能です.
 
 ~~~ py
-df = pd.DataFrame({'animal_kind':['dog','cat','fisg']
+df = pd.DataFrame({'animal_kind':['dog','cat','fish']
                   ,'weight':[5.0,6.0,0.15]
                   ,'size':[60.0,30.0,0.5]})
 print(df)
@@ -1546,7 +1546,7 @@ print('-----\n',df)
 13           AFFC  2190.0
 ~~~
 
-`NaN`はすべての値に対して,`==`で`True`,`!=`で`False`を返すため,欠損値か否かの判定には,`==`や`!=`を使うことはできません. なお,`float('NaN')`で`float`型の`NaN`を生成できます.
+`NaN`はすべての値に対して,`==`で`False`,`!=`で`True`を返すため,欠損値か否かの判定には,`==`や`!=`を使うことはできません. なお,`float('NaN')`で`float`型の`NaN`を生成できます.
 
 ~~~ py
 df = pd.read_csv('data/salary_nan.csv')
@@ -1554,7 +1554,7 @@ print(df.at[8,'Salary'])
 print('NaN == 1:',df.at[8,'Salary'] == 1)
 print('NaN == NaN:',df.at[8,'Salary'] == float('NaN'))
 print('NaN != 1:',df.at[8,'Salary'] != 1)
-print('NaN != NaN:',df.at[8,'Salary'] == float('NaN'))
+print('NaN != NaN:',df.at[8,'Salary'] != float('NaN'))
 ~~~
 
 ~~~ sh
@@ -1562,7 +1562,7 @@ nan
 NaN == 1: False
 NaN == NaN: False
 NaN != 1: True
-NaN != NaN: False
+NaN != NaN: True
 ~~~
 
 欠損値の判定には`isna()`メソッドを利用します.DataFrameに利用することで`NaN`のあるセルにはTrue,`NaN`以外のセルに`False`を返します.また,`pd.isna(値)`の形で,値の判定も可能です.

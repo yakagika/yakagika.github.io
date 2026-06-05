@@ -6,7 +6,7 @@
     <title>yakagika - 関数型プログラミング Ch5 関数</title>
 
     <!-- Stylesheets. -->
-    <link rel="stylesheet" type="text/css" href="../style.css?v=1780453500">
+    <link rel="stylesheet" type="text/css" href="../style.css?v=1780636893">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -77,7 +77,7 @@
     <p class="article-description">資料</p>
     <div class="article-meta">
         <span class="meta-item">公開: 2024-10-18</span>
-        <span class="meta-item">更新: 2026-06-01</span>
+        <span class="meta-item">更新: 2026-06-03</span>
     </div>
     <div class="tag-chips"><a title="All pages tagged 'algebra'." href="../tags/algebra.html" rel="tag">algebra</a>, <a title="All pages tagged 'lecture'." href="../tags/lecture.html" rel="tag">lecture</a>, <a title="All pages tagged 'haskell'." href="../tags/haskell.html" rel="tag">haskell</a></div>
 </header>
@@ -394,6 +394,17 @@ F_n = F_{n-1} + F_{n-2} (n &gt;= 2)
 <span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>getFromTuple (x,y,z) <span class="dv">1</span> <span class="ot">=</span> y</span>
 <span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>getFromTuple (x,y,z) <span class="dv">2</span> <span class="ot">=</span> z</span></code></pre></div>
 <p>このような用法は後に紹介する代数的データ型を扱う際にも頻出します.</p>
+<div class="note">
+<p><strong>場合分けで考える ― 複雑な関数を「入力の形」ごとに分ける</strong></p>
+<p>パターンマッチは単なる構文ではなく <strong>考え方の道具</strong> でもあります. 複雑そうな関数も, 「引数がどんな形のときに何を返すか」を <strong>場合に分けて</strong> 並べれば, 一つ一つは単純な式になります.</p>
+<p>頭の中でやっていること:</p>
+<ol type="1">
+<li>引数が取りうる <strong>形</strong> を数え上げる (リストなら「空 <code>[]</code>」「先頭+残り <code>x:xs</code>」など).</li>
+<li><strong>いちばん単純な場合</strong> から先に書く (多くは空・ゼロ・1 要素).</li>
+<li>残りの, より複雑な場合を順に埋める.</li>
+</ol>
+<p><code>strHead</code> では「空 <code>[]</code>」「1 要素 <code>[x]</code>」「それ以外 <code>x:_</code>」の 3 つに分けました. <strong>単純な場合から並べて抜けがないか確かめる</strong> この習慣は, この後のガードや case 式, そして再帰関数を組み立てるときの土台になります.</p>
+</div>
 <h4 id="ガード">ガード</h4>
 <p>数式における分岐は,指示関数を用いて行うこともできます.</p>
 <div class="note">
@@ -662,15 +673,55 @@ fib(n-1) + fib(n-2),~if~n &gt;=2
 = 1 + 2 + 3 + (total [])
 = 1 + 2 + 3 + 0
 = 6</code></pre>
+<div class="note">
+<p><strong>具体例で手を動かす ― 困ったら小さな値を入れて手で評価する</strong></p>
+<p><code>total (x:xs) = x + total xs</code> を見て「何をしているか分からない」と感じたら, 私はいつも <strong>いちばん小さい具体的な入力を 1 つ選んで, 紙の上で一段ずつ書き換えて</strong> みます. 上の <code>total [1,2,3]</code> の展開がまさにそれです.</p>
+<p>頭の中でやっていること:</p>
+<ol type="1">
+<li>小さな具体例を選ぶ (要素 2〜3 個の <code>[1,2,3]</code> など).</li>
+<li>定義の左辺と一致するパターンを探し, 右辺で <strong>置き換える</strong>.</li>
+<li>もう書き換えられなくなるまで 1 行ずつ繰り返す.</li>
+</ol>
+<p>抽象的なまま手が止まったら, 具体例に <strong>降りて</strong> 計算し, 戻って一般化する. この往復が, <code>xs</code> や <code>total xs</code> を「正体不明の何か」ではなく「具体的に動かせるモノ」として掴む近道になります.</p>
+</div>
+<div class="note">
+<p><strong>再帰関数を実装するコツ</strong></p>
 <p>再帰の基本は,<strong>ループの終了状態</strong>をパターンマッチなどで指定して,そこに至るまでの状態の変化を再帰で記述することです.
 処理がどのような状態になったら終わるのかを意識して記述しないと永遠に終了しないプログラムになるので注意しましょう.</p>
-<p><code>total</code> では終了状態が ｢空リスト <code>[]</code>｣ の1つだけでしたが, 終了状態は複数あっても構いません. 本章で何度も登場している <code>fib</code> も再帰関数の一例です.</p>
-<div class="sourceCode" id="cb43"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="ot">fib ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
-<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>fib <span class="dv">0</span> <span class="ot">=</span> <span class="dv">1</span></span>
-<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>fib <span class="dv">1</span> <span class="ot">=</span> <span class="dv">1</span></span>
-<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>fib n <span class="ot">=</span> fib (n <span class="op">-</span> <span class="dv">1</span>) <span class="op">+</span> fib (n <span class="op">-</span> <span class="dv">2</span>)</span>
-<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> <span class="op">$</span> fib <span class="dv">4</span> <span class="co">--  5</span></span></code></pre></div>
+<p><code>total</code>では,終了状態として, <strong>空のリストが引数となったとき</strong>を先に作ります. 終了状態の右辺は, 決まった値を取るようにして関数を再帰させないようにしましょう.</p>
+<div class="sourceCode" id="cb43"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="ot">total ::</span> [<span class="dt">Int</span>] <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>total []     <span class="ot">=</span> <span class="dv">0</span></span></code></pre></div>
+<p>コツとしては,関数の状態としてできるだけ単純な状況を最初に考えて取り敢えず実装して見るようにしましょう.
+<strong>空のリスト<code>[]</code></strong> を受け取ったら0となる,それ以外のパターンではどのようになるかを次に考えてみます.</p>
+<p>一つだけ要素を持つリスト <code>[x]</code>の場合は, その和は <code>x</code> となるので,</p>
+<div class="sourceCode" id="cb44"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a>total [x] <span class="ot">=</span> x</span></code></pre></div>
+<p>とかけるでしょう.</p>
+<p>複数要素を持つリスト <code>x:xs</code>の場合は, <code>x</code> と ｢<code>xs</code>の和｣ の和 となるので</p>
+<pre class="total"><code>total (x:xs) = x + ｢`xs`の和｣</code></pre>
+<p>となります. このとき<code>xs</code>は<code>[Int]</code>なので <strong><code>[Int]</code> を受け取ってその要素の和(<code>Int</code>)を返す</strong>処理はどのようなものかを考えてみます.
+すると, 今作成している <code>total :: [Int] -&gt; Int</code> がまさに <strong><code>[Int]</code> を受け取ってその要素の和(<code>Int</code>)を返す</strong>関数であることが分かります.
+そこで, ｢<code>xs</code>の和｣ は <code>total xs</code> と書けることが分かります.</p>
+<div class="sourceCode" id="cb46"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>total (x<span class="op">:</span>xs) <span class="ot">=</span> x <span class="op">+</span> total xs</span></code></pre></div>
+<p>このように, 再帰関数を作成する上で難しい考え方として <strong>まだ完成していないが今作っている関数が既に機能していると想定して利用すること</strong>が挙げられます.
+今 <strong><code>[Int]</code> を受け取ってその要素の和(<code>Int</code>)を返す関数</strong> を作る中で,その関数が既に完成しているとみなして利用することで, 再帰関数が完成します.</p>
+<p>このように再帰関数を作成する場合には,</p>
+<ol type="1">
+<li><p>まず,欲しい関数の型を明確にする</p></li>
+<li><p>できるだけ単純なパターンがどの様になるかを考える</p></li>
+<li><p>終了状態のパターンを実装する</p></li>
+<li><p>複雑なパターンを順次考えていく, その中でその関数自体が既に完成しているとみなして,利用する</p></li>
+</ol>
+<p>といった考え方をすると,上手く作成できる場合が多いです.
+また, これは静的型付け言語一般のコツですが, それぞれのパターンや,計算の中で <strong>この部分のデータ型は何か</strong> を常に意識することも非常に重要です.</p>
+</div>
+<p><code>total</code> では終了状態が ｢空リスト <code>[]</code>｣ の1つだけでしたが, 終了状態は複数あっても構いません.
+本章で何度も登場している <code>fib</code> も再帰関数の一例です.</p>
+<div class="sourceCode" id="cb47"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="ot">fib ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>fib <span class="dv">0</span> <span class="ot">=</span> <span class="dv">1</span></span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>fib <span class="dv">1</span> <span class="ot">=</span> <span class="dv">1</span></span>
+<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a>fib n <span class="ot">=</span> fib (n <span class="op">-</span> <span class="dv">1</span>) <span class="op">+</span> fib (n <span class="op">-</span> <span class="dv">2</span>)</span>
+<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-6"><a href="#cb47-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> <span class="op">$</span> fib <span class="dv">4</span> <span class="co">--  5</span></span></code></pre></div>
 <p>この <code>fib</code> 関数では, 引数が <code>0</code> または <code>1</code> のとき <code>1</code> を返すという <strong>2つの終了状態</strong> をパターンマッチで指定しています. それ以外のとき (<code>n &gt;= 2</code>) には, <code>fib (n - 1)</code> と <code>fib (n - 2)</code> という <strong>2回の再帰呼び出し</strong> の結果を足し合わせます.</p>
 <p><code>total</code> が ｢自分自身を1回だけ呼び出す｣ 単純な再帰だったのに対し, <code>fib</code> は ｢自分自身を2回呼び出す｣ 点が異なります. <code>fib 4</code> における処理の流れを追うと, 呼び出しが木のように枝分かれしていくのがわかります.</p>
 <pre><code>fib 4
@@ -686,8 +737,13 @@ fib(n-1) + fib(n-2),~if~n &gt;=2
 <p><strong>再帰による <code>length2</code> と FizzBuzz</strong></p>
 <ol type="1">
 <li><p>リストの長さを返す<code>length2 :: [a] -&gt; Int</code> 関数を新しく実装してください.</p></li>
-<li><p>与えられた整数のリストを引数にとり,要素毎にFizzBuzzを実行した結果を文字列のリストで返す関数
-<code>fizzBuzz :: [Int] -&gt; [String]</code>実装してください.</p></li>
+<li><p>与えられた整数のリストを引数にとり,要素を文字列に変換する <code>toStr :: [Int] -&gt; [Strings]</code>関数を新しく実装して下さい.</p></li>
+</ol>
+<p>文字列への変換は <code>show</code> を使いましょう.</p>
+<div class="sourceCode" id="cb49"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>toStr [<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>] <span class="co">-- [&quot;1&quot;,&quot;2&quot;,&quot;3&quot;]</span></span></code></pre></div>
+<ol start="3" type="1">
+<li>与えられた整数のリストを引数にとり,要素毎にFizzBuzzを実行した結果を文字列のリストで返す関数
+<code>fizzBuzz :: [Int] -&gt; [String]</code>実装してください.</li>
 </ol>
 <p>FizzBuzzは,プログラミング学習で題材としてよく用いられる問題で,整数 <code>n</code> を以下のルールに従って文字列に変換します.</p>
 <ul>
@@ -697,47 +753,52 @@ fib(n-1) + fib(n-2),~if~n &gt;=2
 <li>それ以外のときは <code>n</code> をそのまま文字列化したもの(<code>show n</code>)</li>
 </ul>
 <p>例えば <code>[1..15]</code> を入力すると,以下の結果が得られます.</p>
-<div class="sourceCode" id="cb45"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>fizzBuzz [<span class="dv">1</span><span class="op">..</span><span class="dv">15</span>]</span>
-<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a><span class="co">-- [&quot;1&quot;,&quot;2&quot;,&quot;Fizz&quot;,&quot;4&quot;,&quot;Buzz&quot;,&quot;Fizz&quot;,&quot;7&quot;,&quot;8&quot;,&quot;Fizz&quot;,&quot;Buzz&quot;,&quot;11&quot;,&quot;Fizz&quot;,&quot;13&quot;,&quot;14&quot;,&quot;FizzBuzz&quot;]</span></span></code></pre></div>
+<div class="sourceCode" id="cb50"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>fizzBuzz [<span class="dv">1</span><span class="op">..</span><span class="dv">15</span>]</span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a><span class="co">-- [&quot;1&quot;,&quot;2&quot;,&quot;Fizz&quot;,&quot;4&quot;,&quot;Buzz&quot;,&quot;Fizz&quot;,&quot;7&quot;,&quot;8&quot;,&quot;Fizz&quot;,&quot;Buzz&quot;,&quot;11&quot;,&quot;Fizz&quot;,&quot;13&quot;,&quot;14&quot;,&quot;FizzBuzz&quot;]</span></span></code></pre></div>
 <p>なお,3と5の両方の倍数のケースを先に判定しないと <code>"Fizz"</code> や <code>"Buzz"</code> にマッチしてしまうため,条件の順序に注意が必要です.</p>
 <details class="protected" data-pass="yakagika">
 <summary>
 回答例
 </summary>
-<div class="sourceCode" id="cb46"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 1. リストの長さを再帰で求める</span></span>
-<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a><span class="ot">length2 ::</span> [a] <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
-<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>length2 []     <span class="ot">=</span> <span class="dv">0</span></span>
-<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>length2 (_<span class="op">:</span>xs) <span class="ot">=</span> <span class="dv">1</span> <span class="op">+</span> length2 xs</span>
-<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb46-6"><a href="#cb46-6" aria-hidden="true" tabindex="-1"></a><span class="co">-- 2. 各要素を FizzBuzz 文字列へ変換</span></span>
-<span id="cb46-7"><a href="#cb46-7" aria-hidden="true" tabindex="-1"></a><span class="ot">fizzBuzz ::</span> [<span class="dt">Int</span>] <span class="ot">-&gt;</span> [<span class="dt">String</span>]</span>
-<span id="cb46-8"><a href="#cb46-8" aria-hidden="true" tabindex="-1"></a>fizzBuzz []     <span class="ot">=</span> []</span>
-<span id="cb46-9"><a href="#cb46-9" aria-hidden="true" tabindex="-1"></a>fizzBuzz (x<span class="op">:</span>xs) <span class="ot">=</span> fb x <span class="op">:</span> fizzBuzz xs</span>
-<span id="cb46-10"><a href="#cb46-10" aria-hidden="true" tabindex="-1"></a>  <span class="kw">where</span></span>
-<span id="cb46-11"><a href="#cb46-11" aria-hidden="true" tabindex="-1"></a>    fb n</span>
-<span id="cb46-12"><a href="#cb46-12" aria-hidden="true" tabindex="-1"></a>      <span class="op">|</span> n <span class="ot">`mod`</span> <span class="dv">15</span> <span class="op">==</span> <span class="dv">0</span> <span class="ot">=</span> <span class="st">&quot;FizzBuzz&quot;</span></span>
-<span id="cb46-13"><a href="#cb46-13" aria-hidden="true" tabindex="-1"></a>      <span class="op">|</span> n <span class="ot">`mod`</span>  <span class="dv">3</span> <span class="op">==</span> <span class="dv">0</span> <span class="ot">=</span> <span class="st">&quot;Fizz&quot;</span></span>
-<span id="cb46-14"><a href="#cb46-14" aria-hidden="true" tabindex="-1"></a>      <span class="op">|</span> n <span class="ot">`mod`</span>  <span class="dv">5</span> <span class="op">==</span> <span class="dv">0</span> <span class="ot">=</span> <span class="st">&quot;Buzz&quot;</span></span>
-<span id="cb46-15"><a href="#cb46-15" aria-hidden="true" tabindex="-1"></a>      <span class="op">|</span> <span class="fu">otherwise</span>       <span class="ot">=</span> <span class="fu">show</span> n</span>
-<span id="cb46-16"><a href="#cb46-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb46-17"><a href="#cb46-17" aria-hidden="true" tabindex="-1"></a><span class="co">-- 実行例</span></span>
-<span id="cb46-18"><a href="#cb46-18" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb46-19"><a href="#cb46-19" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb46-20"><a href="#cb46-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> <span class="op">$</span> length2 [<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">5</span>]           <span class="co">-- 5</span></span>
-<span id="cb46-21"><a href="#cb46-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> <span class="op">$</span> length2 <span class="st">&quot;hello&quot;</span>               <span class="co">-- 5</span></span>
-<span id="cb46-22"><a href="#cb46-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> <span class="op">$</span> fizzBuzz [<span class="dv">1</span><span class="op">..</span><span class="dv">15</span>]</span>
-<span id="cb46-23"><a href="#cb46-23" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- [&quot;1&quot;,&quot;2&quot;,&quot;Fizz&quot;,&quot;4&quot;,&quot;Buzz&quot;,&quot;Fizz&quot;,&quot;7&quot;,&quot;8&quot;,&quot;Fizz&quot;,&quot;Buzz&quot;,&quot;11&quot;,&quot;Fizz&quot;,&quot;13&quot;,&quot;14&quot;,&quot;FizzBuzz&quot;]</span></span></code></pre></div>
+<div class="sourceCode" id="cb51"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 1. リストの長さを再帰で求める</span></span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a><span class="ot">length2 ::</span> [a] <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
+<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a>length2 []     <span class="ot">=</span> <span class="dv">0</span></span>
+<span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a>length2 (_<span class="op">:</span>xs) <span class="ot">=</span> <span class="dv">1</span> <span class="op">+</span> length2 xs</span>
+<span id="cb51-5"><a href="#cb51-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb51-6"><a href="#cb51-6" aria-hidden="true" tabindex="-1"></a><span class="co">-- 2. 各要素を文字列に変換</span></span>
+<span id="cb51-7"><a href="#cb51-7" aria-hidden="true" tabindex="-1"></a><span class="ot">toStr ::</span> [<span class="dt">Int</span>] <span class="ot">-&gt;</span> [<span class="dt">Strings</span>]</span>
+<span id="cb51-8"><a href="#cb51-8" aria-hidden="true" tabindex="-1"></a>toStr [] <span class="ot">=</span> []</span>
+<span id="cb51-9"><a href="#cb51-9" aria-hidden="true" tabindex="-1"></a>toStr (x<span class="op">:</span>xs) <span class="ot">=</span> <span class="fu">show</span> x <span class="op">:</span> toStr xs</span>
+<span id="cb51-10"><a href="#cb51-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb51-11"><a href="#cb51-11" aria-hidden="true" tabindex="-1"></a><span class="co">-- 3. 各要素を FizzBuzz 文字列へ変換</span></span>
+<span id="cb51-12"><a href="#cb51-12" aria-hidden="true" tabindex="-1"></a><span class="ot">fizzBuzz ::</span> [<span class="dt">Int</span>] <span class="ot">-&gt;</span> [<span class="dt">String</span>]</span>
+<span id="cb51-13"><a href="#cb51-13" aria-hidden="true" tabindex="-1"></a>fizzBuzz []     <span class="ot">=</span> []</span>
+<span id="cb51-14"><a href="#cb51-14" aria-hidden="true" tabindex="-1"></a>fizzBuzz (x<span class="op">:</span>xs) <span class="ot">=</span> fb x <span class="op">:</span> fizzBuzz xs</span>
+<span id="cb51-15"><a href="#cb51-15" aria-hidden="true" tabindex="-1"></a>  <span class="kw">where</span></span>
+<span id="cb51-16"><a href="#cb51-16" aria-hidden="true" tabindex="-1"></a>    fb n</span>
+<span id="cb51-17"><a href="#cb51-17" aria-hidden="true" tabindex="-1"></a>      <span class="op">|</span> n <span class="ot">`mod`</span> <span class="dv">15</span> <span class="op">==</span> <span class="dv">0</span> <span class="ot">=</span> <span class="st">&quot;FizzBuzz&quot;</span></span>
+<span id="cb51-18"><a href="#cb51-18" aria-hidden="true" tabindex="-1"></a>      <span class="op">|</span> n <span class="ot">`mod`</span>  <span class="dv">3</span> <span class="op">==</span> <span class="dv">0</span> <span class="ot">=</span> <span class="st">&quot;Fizz&quot;</span></span>
+<span id="cb51-19"><a href="#cb51-19" aria-hidden="true" tabindex="-1"></a>      <span class="op">|</span> n <span class="ot">`mod`</span>  <span class="dv">5</span> <span class="op">==</span> <span class="dv">0</span> <span class="ot">=</span> <span class="st">&quot;Buzz&quot;</span></span>
+<span id="cb51-20"><a href="#cb51-20" aria-hidden="true" tabindex="-1"></a>      <span class="op">|</span> <span class="fu">otherwise</span>       <span class="ot">=</span> <span class="fu">show</span> n</span>
+<span id="cb51-21"><a href="#cb51-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb51-22"><a href="#cb51-22" aria-hidden="true" tabindex="-1"></a><span class="co">-- 実行例</span></span>
+<span id="cb51-23"><a href="#cb51-23" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb51-24"><a href="#cb51-24" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb51-25"><a href="#cb51-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> <span class="op">$</span> length2 [<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">5</span>]           <span class="co">-- 5</span></span>
+<span id="cb51-26"><a href="#cb51-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> <span class="op">$</span> length2 <span class="st">&quot;hello&quot;</span>               <span class="co">-- 5</span></span>
+<span id="cb51-27"><a href="#cb51-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> <span class="op">$</span> fizzBuzz [<span class="dv">1</span><span class="op">..</span><span class="dv">15</span>]</span>
+<span id="cb51-28"><a href="#cb51-28" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- [&quot;1&quot;,&quot;2&quot;,&quot;Fizz&quot;,&quot;4&quot;,&quot;Buzz&quot;,&quot;Fizz&quot;,&quot;7&quot;,&quot;8&quot;,&quot;Fizz&quot;,&quot;Buzz&quot;,&quot;11&quot;,&quot;Fizz&quot;,&quot;13&quot;,&quot;14&quot;,&quot;FizzBuzz&quot;]</span></span></code></pre></div>
 </details>
 </section>
 <h3 id="変数値の束縛">変数(値の束縛)</h3>
 <p>Pythonなどの言語では,特定の変数に値を代入することができます.例えば,以下の最大値を求めるプログラムでは,変数<code>m</code>に最初の中身はリストの最初の要素が代入された後,次々とより大きな変数が代入されていきます. <code>変数</code>は名前の通り,次々とその値を変更していきます.</p>
-<div class="sourceCode" id="cb47"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>xs <span class="op">=</span> [<span class="dv">3</span>,<span class="dv">5</span>,<span class="dv">2</span>,<span class="dv">4</span>,<span class="dv">6</span>,<span class="dv">7</span>,<span class="dv">1</span>]</span>
-<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>m  <span class="op">=</span> xs[<span class="dv">0</span>]</span>
-<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> x <span class="kw">in</span> xs[<span class="dv">1</span>:]:</span>
-<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> x <span class="op">&gt;</span> m:</span>
-<span id="cb47-6"><a href="#cb47-6" aria-hidden="true" tabindex="-1"></a>        m <span class="op">=</span> x</span>
-<span id="cb47-7"><a href="#cb47-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'max value:'</span>,m)</span></code></pre></div>
+<div class="sourceCode" id="cb52"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a>xs <span class="op">=</span> [<span class="dv">3</span>,<span class="dv">5</span>,<span class="dv">2</span>,<span class="dv">4</span>,<span class="dv">6</span>,<span class="dv">7</span>,<span class="dv">1</span>]</span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a>m  <span class="op">=</span> xs[<span class="dv">0</span>]</span>
+<span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb52-4"><a href="#cb52-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> x <span class="kw">in</span> xs[<span class="dv">1</span>:]:</span>
+<span id="cb52-5"><a href="#cb52-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> x <span class="op">&gt;</span> m:</span>
+<span id="cb52-6"><a href="#cb52-6" aria-hidden="true" tabindex="-1"></a>        m <span class="op">=</span> x</span>
+<span id="cb52-7"><a href="#cb52-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'max value:'</span>,m)</span></code></pre></div>
 <p>一方でHaskellでは,変数に一度値を割り当てると,その変数の値を後から変更することができません. 変数に値を再代入するという操作が許されていないのです. この性質を<code>不変性</code> (immutability) といいます. したがって,Haskellでは代入という言葉を使わず<code>束縛</code>といいます.
 これは,通常の手続き型言語との大きな違いになります.</p>
 <div class="warn">
@@ -745,26 +806,26 @@ fib(n-1) + fib(n-2),~if~n &gt;=2
 <p>※2 実は後にでてくる<code>State</code>や<code>ST</code>などHaskellでも<code>再代入(破壊的代入)</code>を扱うことはできますが,特定の仕組みによって以下の純粋関数型言語の特徴を保っています.</p>
 </div>
 <p>例えば,以下のように一度値を束縛した変数に新しく変数を代入しようとすると<code>xという変数に複数の宣言をしている</code>というエラーが出ます(ghciでやる場合には,<code>:{ :}</code>を入れる必要があり余計にややこしいですね.すみません).</p>
-<div class="sourceCode" id="cb48"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>ghci<span class="op">&gt;</span> <span class="op">:</span>{</span>
-<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a>ghci<span class="op">|</span> x <span class="ot">=</span> <span class="dv">1</span></span>
-<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a>ghci<span class="op">|</span> x <span class="ot">=</span> <span class="dv">2</span></span>
-<span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a>ghci<span class="op">|</span> <span class="op">:</span>}</span>
-<span id="cb48-5"><a href="#cb48-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb48-6"><a href="#cb48-6" aria-hidden="true" tabindex="-1"></a><span class="op">&lt;</span>interactive<span class="op">&gt;:</span><span class="dv">5</span><span class="op">:</span><span class="dv">1</span><span class="op">:</span> <span class="fu">error</span><span class="op">:</span></span>
-<span id="cb48-7"><a href="#cb48-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Multiple</span> declarations <span class="kw">of</span> ‘x’</span>
-<span id="cb48-8"><a href="#cb48-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Declared</span> at<span class="op">:</span> <span class="op">&lt;</span>interactive<span class="op">&gt;:</span><span class="dv">4</span><span class="op">:</span><span class="dv">1</span></span>
-<span id="cb48-9"><a href="#cb48-9" aria-hidden="true" tabindex="-1"></a>                 <span class="op">&lt;</span>interactive<span class="op">&gt;:</span><span class="dv">5</span><span class="op">:</span><span class="dv">1</span></span></code></pre></div>
+<div class="sourceCode" id="cb53"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a>ghci<span class="op">&gt;</span> <span class="op">:</span>{</span>
+<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a>ghci<span class="op">|</span> x <span class="ot">=</span> <span class="dv">1</span></span>
+<span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a>ghci<span class="op">|</span> x <span class="ot">=</span> <span class="dv">2</span></span>
+<span id="cb53-4"><a href="#cb53-4" aria-hidden="true" tabindex="-1"></a>ghci<span class="op">|</span> <span class="op">:</span>}</span>
+<span id="cb53-5"><a href="#cb53-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb53-6"><a href="#cb53-6" aria-hidden="true" tabindex="-1"></a><span class="op">&lt;</span>interactive<span class="op">&gt;:</span><span class="dv">5</span><span class="op">:</span><span class="dv">1</span><span class="op">:</span> <span class="fu">error</span><span class="op">:</span></span>
+<span id="cb53-7"><a href="#cb53-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Multiple</span> declarations <span class="kw">of</span> ‘x’</span>
+<span id="cb53-8"><a href="#cb53-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Declared</span> at<span class="op">:</span> <span class="op">&lt;</span>interactive<span class="op">&gt;:</span><span class="dv">4</span><span class="op">:</span><span class="dv">1</span></span>
+<span id="cb53-9"><a href="#cb53-9" aria-hidden="true" tabindex="-1"></a>                 <span class="op">&lt;</span>interactive<span class="op">&gt;:</span><span class="dv">5</span><span class="op">:</span><span class="dv">1</span></span></code></pre></div>
 <p>これは一見非常に不便なように感じられますが,これによって関数型プログラムでは,プログラムの安全性を高めています.</p>
 <p>例えばPythonにおける以下のプログラムについて考えてみましょう.</p>
-<div class="sourceCode" id="cb49"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>counter <span class="op">=</span> <span class="dv">0</span></span>
-<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> count_plus(x):</span>
-<span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">global</span> counter</span>
-<span id="cb49-5"><a href="#cb49-5" aria-hidden="true" tabindex="-1"></a>    counter <span class="op">+=</span> x</span>
-<span id="cb49-6"><a href="#cb49-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> counter</span>
-<span id="cb49-7"><a href="#cb49-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb49-8"><a href="#cb49-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(count_plus(<span class="dv">1</span>))  <span class="co"># 出力: 1</span></span>
-<span id="cb49-9"><a href="#cb49-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(count_plus(<span class="dv">1</span>))  <span class="co"># 出力: 2</span></span></code></pre></div>
+<div class="sourceCode" id="cb54"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a>counter <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb54-3"><a href="#cb54-3" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> count_plus(x):</span>
+<span id="cb54-4"><a href="#cb54-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">global</span> counter</span>
+<span id="cb54-5"><a href="#cb54-5" aria-hidden="true" tabindex="-1"></a>    counter <span class="op">+=</span> x</span>
+<span id="cb54-6"><a href="#cb54-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> counter</span>
+<span id="cb54-7"><a href="#cb54-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb54-8"><a href="#cb54-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(count_plus(<span class="dv">1</span>))  <span class="co"># 出力: 1</span></span>
+<span id="cb54-9"><a href="#cb54-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(count_plus(<span class="dv">1</span>))  <span class="co"># 出力: 2</span></span></code></pre></div>
 <p>このプログラムでは,<code>count_plus()</code>関数に対して同じ引数1を与えているにもかかわらず,関数を呼び出すたびに,グローバル変数<code>counter</code>が変更されて,結果が変わります. 同じ関数を呼び出しても,結果が変わるために関数のみから,関数の挙動を把握することができません.</p>
 <p>一方でHaskellでは,常に同じ関数は,同じ入力に対して,同じ返り値を返します. このような特性を<strong>参照透過性(Referential Transparency)</strong>と呼び,これによってプログラムの挙動を把握しやすくしています.</p>
 <p>また,上記のPythonのプログラムは,関数を実行するたびに,関数の外にある,<code>counter</code>という変数の状態が変化しています. このような,関数が実行されることで単に値を返す以外に何らかの｢外部の状態を変化させる｣ことを関数の<strong>副作用(Side Effect)</strong>といいます. これは言い換えれば,関数の実行によるプログラム全体への影響が,関数以外の外部の状態に依存していることを意味しており,プログラムの挙動を予測することを難しくします.</p>
@@ -774,52 +835,52 @@ fib(n-1) + fib(n-2),~if~n &gt;=2
 <p>Haskellにおける変数は主に,<strong>トップレベル変数</strong>及び<strong>ローカル変数</strong>に大別されます.</p>
 <h4 id="トップレベル変数">トップレベル変数</h4>
 <p>先程の <code>x=1</code>のように,独立して宣言される変数を<code>トップレベル変数</code>と呼びます. トップレベル変数は,Pythonなどの言語における<code>グローバル変数</code>と同様に,スクリプト内のどの場所からでも利用することができます.</p>
-<div class="sourceCode" id="cb50"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">=</span> <span class="dv">1</span></span>
-<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a><span class="ot">someFunc ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
-<span id="cb50-4"><a href="#cb50-4" aria-hidden="true" tabindex="-1"></a>someFunc y <span class="ot">=</span> x <span class="op">+</span> y</span>
-<span id="cb50-5"><a href="#cb50-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb50-6"><a href="#cb50-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb50-7"><a href="#cb50-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> someFunc <span class="dv">1</span> <span class="co">--  2</span></span></code></pre></div>
+<div class="sourceCode" id="cb55"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a>x <span class="ot">=</span> <span class="dv">1</span></span>
+<span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-3"><a href="#cb55-3" aria-hidden="true" tabindex="-1"></a><span class="ot">someFunc ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
+<span id="cb55-4"><a href="#cb55-4" aria-hidden="true" tabindex="-1"></a>someFunc y <span class="ot">=</span> x <span class="op">+</span> y</span>
+<span id="cb55-5"><a href="#cb55-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-6"><a href="#cb55-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb55-7"><a href="#cb55-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> someFunc <span class="dv">1</span> <span class="co">--  2</span></span></code></pre></div>
 <h4 id="ローカル変数">ローカル変数</h4>
 <p>手続き型言語においてスコープが制限された変数のように,特定の関数内でのみ参照可能な局所変数として,<strong>ローカル変数</strong>が存在します. Haskellにおけるローカル変数は, <code>let式</code>,<code>where節</code>の2つのパターンが用意されています(ラムダ式内の引数も見方によってはローカル変数かもしれません.)</p>
 <h5 id="let式">let式</h5>
 <p>関数内で <code>let 宣言 in 式</code>の形式で局所変数を定義できます.</p>
-<div class="sourceCode" id="cb51"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="ot">someFunc ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
-<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a>someFunc y <span class="ot">=</span> <span class="kw">let</span> x <span class="ot">=</span> <span class="dv">1</span></span>
-<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a>           <span class="kw">in</span> x <span class="op">+</span> y</span>
-<span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb51-5"><a href="#cb51-5" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb51-6"><a href="#cb51-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> someFunc <span class="dv">1</span> <span class="co">--  2</span></span></code></pre></div>
+<div class="sourceCode" id="cb56"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="ot">someFunc ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
+<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a>someFunc y <span class="ot">=</span> <span class="kw">let</span> x <span class="ot">=</span> <span class="dv">1</span></span>
+<span id="cb56-3"><a href="#cb56-3" aria-hidden="true" tabindex="-1"></a>           <span class="kw">in</span> x <span class="op">+</span> y</span>
+<span id="cb56-4"><a href="#cb56-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb56-5"><a href="#cb56-5" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb56-6"><a href="#cb56-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> someFunc <span class="dv">1</span> <span class="co">--  2</span></span></code></pre></div>
 <p>この変数<code>x</code>は別の関数内で参照することはできません.</p>
-<div class="sourceCode" id="cb52"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="ot">someFunc ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
-<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a>someFunc y <span class="ot">=</span> <span class="kw">let</span> x <span class="ot">=</span> <span class="dv">1</span></span>
-<span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a>           <span class="kw">in</span> x <span class="op">+</span> y</span>
-<span id="cb52-4"><a href="#cb52-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb52-5"><a href="#cb52-5" aria-hidden="true" tabindex="-1"></a><span class="ot">someFunc2 ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
-<span id="cb52-6"><a href="#cb52-6" aria-hidden="true" tabindex="-1"></a>someFunc2 y <span class="ot">=</span> x <span class="op">+</span> y</span>
-<span id="cb52-7"><a href="#cb52-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb52-8"><a href="#cb52-8" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb52-9"><a href="#cb52-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> someFunc2 <span class="dv">1</span> <span class="co">--  Variable not in scope: x :: Int</span></span></code></pre></div>
+<div class="sourceCode" id="cb57"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a><span class="ot">someFunc ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
+<span id="cb57-2"><a href="#cb57-2" aria-hidden="true" tabindex="-1"></a>someFunc y <span class="ot">=</span> <span class="kw">let</span> x <span class="ot">=</span> <span class="dv">1</span></span>
+<span id="cb57-3"><a href="#cb57-3" aria-hidden="true" tabindex="-1"></a>           <span class="kw">in</span> x <span class="op">+</span> y</span>
+<span id="cb57-4"><a href="#cb57-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb57-5"><a href="#cb57-5" aria-hidden="true" tabindex="-1"></a><span class="ot">someFunc2 ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
+<span id="cb57-6"><a href="#cb57-6" aria-hidden="true" tabindex="-1"></a>someFunc2 y <span class="ot">=</span> x <span class="op">+</span> y</span>
+<span id="cb57-7"><a href="#cb57-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb57-8"><a href="#cb57-8" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb57-9"><a href="#cb57-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> someFunc2 <span class="dv">1</span> <span class="co">--  Variable not in scope: x :: Int</span></span></code></pre></div>
 <p>複数の宣言をひとまとめにすることも可能です.</p>
-<div class="sourceCode" id="cb53"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="ot">someFunc ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
-<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a>someFunc z <span class="ot">=</span> <span class="kw">let</span> x <span class="ot">=</span> <span class="dv">1</span></span>
-<span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a>                 y <span class="ot">=</span> <span class="dv">2</span></span>
-<span id="cb53-4"><a href="#cb53-4" aria-hidden="true" tabindex="-1"></a>           <span class="kw">in</span> x <span class="op">+</span> y <span class="op">+</span> z</span>
-<span id="cb53-5"><a href="#cb53-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb53-6"><a href="#cb53-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb53-7"><a href="#cb53-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> someFunc <span class="dv">1</span> <span class="co">--  4</span></span></code></pre></div>
+<div class="sourceCode" id="cb58"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="ot">someFunc ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
+<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a>someFunc z <span class="ot">=</span> <span class="kw">let</span> x <span class="ot">=</span> <span class="dv">1</span></span>
+<span id="cb58-3"><a href="#cb58-3" aria-hidden="true" tabindex="-1"></a>                 y <span class="ot">=</span> <span class="dv">2</span></span>
+<span id="cb58-4"><a href="#cb58-4" aria-hidden="true" tabindex="-1"></a>           <span class="kw">in</span> x <span class="op">+</span> y <span class="op">+</span> z</span>
+<span id="cb58-5"><a href="#cb58-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb58-6"><a href="#cb58-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb58-7"><a href="#cb58-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> someFunc <span class="dv">1</span> <span class="co">--  4</span></span></code></pre></div>
 <h5 id="where節">where節</h5>
 <p>数式の直後にインデントをつけて<code>where 宣言</code>と書くことでも局所変数や局所関数を定義できます.</p>
-<div class="sourceCode" id="cb54"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a><span class="ot">someFunc ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
-<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a>someFunc z <span class="ot">=</span> f z</span>
-<span id="cb54-3"><a href="#cb54-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">where</span></span>
-<span id="cb54-4"><a href="#cb54-4" aria-hidden="true" tabindex="-1"></a>    x <span class="ot">=</span> <span class="dv">1</span></span>
-<span id="cb54-5"><a href="#cb54-5" aria-hidden="true" tabindex="-1"></a>    y <span class="ot">=</span> <span class="dv">2</span></span>
-<span id="cb54-6"><a href="#cb54-6" aria-hidden="true" tabindex="-1"></a>    f z <span class="ot">=</span> x <span class="op">+</span> y <span class="op">+</span> z</span>
-<span id="cb54-7"><a href="#cb54-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb54-8"><a href="#cb54-8" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb54-9"><a href="#cb54-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> someFunc <span class="dv">1</span> <span class="co">--  4</span></span></code></pre></div>
+<div class="sourceCode" id="cb59"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="ot">someFunc ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
+<span id="cb59-2"><a href="#cb59-2" aria-hidden="true" tabindex="-1"></a>someFunc z <span class="ot">=</span> f z</span>
+<span id="cb59-3"><a href="#cb59-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">where</span></span>
+<span id="cb59-4"><a href="#cb59-4" aria-hidden="true" tabindex="-1"></a>    x <span class="ot">=</span> <span class="dv">1</span></span>
+<span id="cb59-5"><a href="#cb59-5" aria-hidden="true" tabindex="-1"></a>    y <span class="ot">=</span> <span class="dv">2</span></span>
+<span id="cb59-6"><a href="#cb59-6" aria-hidden="true" tabindex="-1"></a>    f z <span class="ot">=</span> x <span class="op">+</span> y <span class="op">+</span> z</span>
+<span id="cb59-7"><a href="#cb59-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb59-8"><a href="#cb59-8" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb59-9"><a href="#cb59-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> someFunc <span class="dv">1</span> <span class="co">--  4</span></span></code></pre></div>
 <h3 id="練習問題関数総合">練習問題(関数総合)</h3>
 <p>本章で学んだ <strong>パターンマッチ・ガード・再帰・where</strong> を組み合わせて解く総合問題です. ここではまだ次章で扱う高階関数やラムダ式は使わず, 基礎的な道具だけで解くことを意識してください.</p>
 <section id="exercise-ch5-5" class="note">
@@ -834,38 +895,38 @@ fib(n-1) + fib(n-2),~if~n &gt;=2
 <li>それ未満 → <code>"F"</code></li>
 </ul>
 <p>さらに, 点数のリストを受け取り, 各要素をランクに変換した文字列のリストを返す関数 <code>grades :: [Int] -&gt; [String]</code> を <strong>再帰</strong> で実装してください (高階関数 <code>map</code> は使わないこと).</p>
-<div class="sourceCode" id="cb55"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 実行例</span></span>
-<span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb55-3"><a href="#cb55-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb55-4"><a href="#cb55-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> grade <span class="dv">95</span>              <span class="co">-- &quot;A&quot;</span></span>
-<span id="cb55-5"><a href="#cb55-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> grade <span class="dv">72</span>              <span class="co">-- &quot;C&quot;</span></span>
-<span id="cb55-6"><a href="#cb55-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> grade <span class="dv">40</span>              <span class="co">-- &quot;F&quot;</span></span>
-<span id="cb55-7"><a href="#cb55-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> grades [<span class="dv">95</span>,<span class="dv">82</span>,<span class="dv">71</span>,<span class="dv">55</span>]  <span class="co">-- [&quot;A&quot;,&quot;B&quot;,&quot;C&quot;,&quot;F&quot;]</span></span></code></pre></div>
+<div class="sourceCode" id="cb60"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 実行例</span></span>
+<span id="cb60-2"><a href="#cb60-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb60-3"><a href="#cb60-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb60-4"><a href="#cb60-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> grade <span class="dv">95</span>              <span class="co">-- &quot;A&quot;</span></span>
+<span id="cb60-5"><a href="#cb60-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> grade <span class="dv">72</span>              <span class="co">-- &quot;C&quot;</span></span>
+<span id="cb60-6"><a href="#cb60-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> grade <span class="dv">40</span>              <span class="co">-- &quot;F&quot;</span></span>
+<span id="cb60-7"><a href="#cb60-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> grades [<span class="dv">95</span>,<span class="dv">82</span>,<span class="dv">71</span>,<span class="dv">55</span>]  <span class="co">-- [&quot;A&quot;,&quot;B&quot;,&quot;C&quot;,&quot;F&quot;]</span></span></code></pre></div>
 <details class="protected" data-pass="yakagika">
 <summary>
 回答例
 </summary>
-<div class="sourceCode" id="cb56"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ガードで点数をランクへ変換</span></span>
-<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a><span class="ot">grade ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">String</span></span>
-<span id="cb56-3"><a href="#cb56-3" aria-hidden="true" tabindex="-1"></a>grade score</span>
-<span id="cb56-4"><a href="#cb56-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> score <span class="op">&gt;=</span> <span class="dv">90</span> <span class="ot">=</span> <span class="st">&quot;A&quot;</span></span>
-<span id="cb56-5"><a href="#cb56-5" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> score <span class="op">&gt;=</span> <span class="dv">80</span> <span class="ot">=</span> <span class="st">&quot;B&quot;</span></span>
-<span id="cb56-6"><a href="#cb56-6" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> score <span class="op">&gt;=</span> <span class="dv">70</span> <span class="ot">=</span> <span class="st">&quot;C&quot;</span></span>
-<span id="cb56-7"><a href="#cb56-7" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> score <span class="op">&gt;=</span> <span class="dv">60</span> <span class="ot">=</span> <span class="st">&quot;D&quot;</span></span>
-<span id="cb56-8"><a href="#cb56-8" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="fu">otherwise</span>   <span class="ot">=</span> <span class="st">&quot;F&quot;</span></span>
-<span id="cb56-9"><a href="#cb56-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-10"><a href="#cb56-10" aria-hidden="true" tabindex="-1"></a><span class="co">-- 再帰でリストの各要素を変換 (map を使わない)</span></span>
-<span id="cb56-11"><a href="#cb56-11" aria-hidden="true" tabindex="-1"></a><span class="ot">grades ::</span> [<span class="dt">Int</span>] <span class="ot">-&gt;</span> [<span class="dt">String</span>]</span>
-<span id="cb56-12"><a href="#cb56-12" aria-hidden="true" tabindex="-1"></a>grades []     <span class="ot">=</span> []</span>
-<span id="cb56-13"><a href="#cb56-13" aria-hidden="true" tabindex="-1"></a>grades (x<span class="op">:</span>xs) <span class="ot">=</span> grade x <span class="op">:</span> grades xs</span>
-<span id="cb56-14"><a href="#cb56-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb56-15"><a href="#cb56-15" aria-hidden="true" tabindex="-1"></a><span class="co">-- 実行例</span></span>
-<span id="cb56-16"><a href="#cb56-16" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb56-17"><a href="#cb56-17" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb56-18"><a href="#cb56-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> grade <span class="dv">95</span>              <span class="co">-- &quot;A&quot;</span></span>
-<span id="cb56-19"><a href="#cb56-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> grade <span class="dv">72</span>              <span class="co">-- &quot;C&quot;</span></span>
-<span id="cb56-20"><a href="#cb56-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> grade <span class="dv">40</span>              <span class="co">-- &quot;F&quot;</span></span>
-<span id="cb56-21"><a href="#cb56-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> grades [<span class="dv">95</span>,<span class="dv">82</span>,<span class="dv">71</span>,<span class="dv">55</span>]  <span class="co">-- [&quot;A&quot;,&quot;B&quot;,&quot;C&quot;,&quot;F&quot;]</span></span></code></pre></div>
+<div class="sourceCode" id="cb61"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb61-1"><a href="#cb61-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ガードで点数をランクへ変換</span></span>
+<span id="cb61-2"><a href="#cb61-2" aria-hidden="true" tabindex="-1"></a><span class="ot">grade ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">String</span></span>
+<span id="cb61-3"><a href="#cb61-3" aria-hidden="true" tabindex="-1"></a>grade score</span>
+<span id="cb61-4"><a href="#cb61-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> score <span class="op">&gt;=</span> <span class="dv">90</span> <span class="ot">=</span> <span class="st">&quot;A&quot;</span></span>
+<span id="cb61-5"><a href="#cb61-5" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> score <span class="op">&gt;=</span> <span class="dv">80</span> <span class="ot">=</span> <span class="st">&quot;B&quot;</span></span>
+<span id="cb61-6"><a href="#cb61-6" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> score <span class="op">&gt;=</span> <span class="dv">70</span> <span class="ot">=</span> <span class="st">&quot;C&quot;</span></span>
+<span id="cb61-7"><a href="#cb61-7" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> score <span class="op">&gt;=</span> <span class="dv">60</span> <span class="ot">=</span> <span class="st">&quot;D&quot;</span></span>
+<span id="cb61-8"><a href="#cb61-8" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="fu">otherwise</span>   <span class="ot">=</span> <span class="st">&quot;F&quot;</span></span>
+<span id="cb61-9"><a href="#cb61-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-10"><a href="#cb61-10" aria-hidden="true" tabindex="-1"></a><span class="co">-- 再帰でリストの各要素を変換 (map を使わない)</span></span>
+<span id="cb61-11"><a href="#cb61-11" aria-hidden="true" tabindex="-1"></a><span class="ot">grades ::</span> [<span class="dt">Int</span>] <span class="ot">-&gt;</span> [<span class="dt">String</span>]</span>
+<span id="cb61-12"><a href="#cb61-12" aria-hidden="true" tabindex="-1"></a>grades []     <span class="ot">=</span> []</span>
+<span id="cb61-13"><a href="#cb61-13" aria-hidden="true" tabindex="-1"></a>grades (x<span class="op">:</span>xs) <span class="ot">=</span> grade x <span class="op">:</span> grades xs</span>
+<span id="cb61-14"><a href="#cb61-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-15"><a href="#cb61-15" aria-hidden="true" tabindex="-1"></a><span class="co">-- 実行例</span></span>
+<span id="cb61-16"><a href="#cb61-16" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb61-17"><a href="#cb61-17" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb61-18"><a href="#cb61-18" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> grade <span class="dv">95</span>              <span class="co">-- &quot;A&quot;</span></span>
+<span id="cb61-19"><a href="#cb61-19" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> grade <span class="dv">72</span>              <span class="co">-- &quot;C&quot;</span></span>
+<span id="cb61-20"><a href="#cb61-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> grade <span class="dv">40</span>              <span class="co">-- &quot;F&quot;</span></span>
+<span id="cb61-21"><a href="#cb61-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> grades [<span class="dv">95</span>,<span class="dv">82</span>,<span class="dv">71</span>,<span class="dv">55</span>]  <span class="co">-- [&quot;A&quot;,&quot;B&quot;,&quot;C&quot;,&quot;F&quot;]</span></span></code></pre></div>
 <ul>
 <li><code>grade</code> は上から順にガードを判定するため, <code>score &gt;= 90</code> を最初に置けば各範囲の上限を改めて書く必要はありません.</li>
 <li><code>grades</code> は <code>total</code> や <code>fizzBuzz</code> と同じく, 空リストを終了状態とし, 先頭要素を変換して残りを再帰処理する典型的な再帰パターンです.</li>
@@ -887,33 +948,33 @@ f(x1, x2) =
 \end{cases}
 </span></p>
 <p>この回路を表す<code>perceptronOR :: Bool -&gt; Bool -&gt; Bool</code>を実装せよ.</p>
-<div class="sourceCode" id="cb57"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 実行例</span></span>
-<span id="cb57-2"><a href="#cb57-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb57-3"><a href="#cb57-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb57-4"><a href="#cb57-4" aria-hidden="true" tabindex="-1"></a>   <span class="fu">print</span> <span class="op">$</span> perceptronOR <span class="dt">False</span> <span class="dt">False</span> <span class="co">-- False</span></span>
-<span id="cb57-5"><a href="#cb57-5" aria-hidden="true" tabindex="-1"></a>   <span class="fu">print</span> <span class="op">$</span> perceptronOR <span class="dt">True</span> <span class="dt">False</span>  <span class="co">-- True</span></span>
-<span id="cb57-6"><a href="#cb57-6" aria-hidden="true" tabindex="-1"></a>   <span class="fu">print</span> <span class="op">$</span> perceptronOR <span class="dt">False</span> <span class="dt">True</span>  <span class="co">-- True</span></span>
-<span id="cb57-7"><a href="#cb57-7" aria-hidden="true" tabindex="-1"></a>   <span class="fu">print</span> <span class="op">$</span> perceptronOR <span class="dt">True</span> <span class="dt">True</span>   <span class="co">-- True</span></span></code></pre></div>
+<div class="sourceCode" id="cb62"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 実行例</span></span>
+<span id="cb62-2"><a href="#cb62-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb62-3"><a href="#cb62-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb62-4"><a href="#cb62-4" aria-hidden="true" tabindex="-1"></a>   <span class="fu">print</span> <span class="op">$</span> perceptronOR <span class="dt">False</span> <span class="dt">False</span> <span class="co">-- False</span></span>
+<span id="cb62-5"><a href="#cb62-5" aria-hidden="true" tabindex="-1"></a>   <span class="fu">print</span> <span class="op">$</span> perceptronOR <span class="dt">True</span> <span class="dt">False</span>  <span class="co">-- True</span></span>
+<span id="cb62-6"><a href="#cb62-6" aria-hidden="true" tabindex="-1"></a>   <span class="fu">print</span> <span class="op">$</span> perceptronOR <span class="dt">False</span> <span class="dt">True</span>  <span class="co">-- True</span></span>
+<span id="cb62-7"><a href="#cb62-7" aria-hidden="true" tabindex="-1"></a>   <span class="fu">print</span> <span class="op">$</span> perceptronOR <span class="dt">True</span> <span class="dt">True</span>   <span class="co">-- True</span></span></code></pre></div>
 <details class="protected" data-pass="yakagika">
 <summary>
 回答例
 </summary>
-<div class="sourceCode" id="cb58"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb58-1"><a href="#cb58-1" aria-hidden="true" tabindex="-1"></a><span class="ot">perceptronOR ::</span> <span class="dt">Bool</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span></span>
-<span id="cb58-2"><a href="#cb58-2" aria-hidden="true" tabindex="-1"></a>perceptronOR x1 x2</span>
-<span id="cb58-3"><a href="#cb58-3" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> threshold <span class="op">&gt;=</span> <span class="dv">0</span> <span class="ot">=</span> <span class="dt">True</span></span>
-<span id="cb58-4"><a href="#cb58-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="fu">otherwise</span>      <span class="ot">=</span> <span class="dt">False</span></span>
-<span id="cb58-5"><a href="#cb58-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">where</span></span>
-<span id="cb58-6"><a href="#cb58-6" aria-hidden="true" tabindex="-1"></a>    g <span class="dt">True</span>  <span class="ot">=</span> <span class="dv">1</span></span>
-<span id="cb58-7"><a href="#cb58-7" aria-hidden="true" tabindex="-1"></a>    g <span class="dt">False</span> <span class="ot">=</span> <span class="dv">0</span></span>
-<span id="cb58-8"><a href="#cb58-8" aria-hidden="true" tabindex="-1"></a>    threshold <span class="ot">=</span> <span class="fl">0.5</span> <span class="op">*</span> g x1 <span class="op">+</span> <span class="fl">0.5</span> <span class="op">*</span> g x2 <span class="op">-</span> <span class="fl">0.2</span></span>
-<span id="cb58-9"><a href="#cb58-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb58-10"><a href="#cb58-10" aria-hidden="true" tabindex="-1"></a><span class="co">-- 実行例</span></span>
-<span id="cb58-11"><a href="#cb58-11" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb58-12"><a href="#cb58-12" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb58-13"><a href="#cb58-13" aria-hidden="true" tabindex="-1"></a>   <span class="fu">print</span> <span class="op">$</span> perceptronOR <span class="dt">False</span> <span class="dt">False</span> <span class="co">-- False</span></span>
-<span id="cb58-14"><a href="#cb58-14" aria-hidden="true" tabindex="-1"></a>   <span class="fu">print</span> <span class="op">$</span> perceptronOR <span class="dt">True</span> <span class="dt">False</span>  <span class="co">-- True</span></span>
-<span id="cb58-15"><a href="#cb58-15" aria-hidden="true" tabindex="-1"></a>   <span class="fu">print</span> <span class="op">$</span> perceptronOR <span class="dt">False</span> <span class="dt">True</span>  <span class="co">-- True</span></span>
-<span id="cb58-16"><a href="#cb58-16" aria-hidden="true" tabindex="-1"></a>   <span class="fu">print</span> <span class="op">$</span> perceptronOR <span class="dt">True</span> <span class="dt">True</span>   <span class="co">-- True</span></span></code></pre></div>
+<div class="sourceCode" id="cb63"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a><span class="ot">perceptronOR ::</span> <span class="dt">Bool</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span></span>
+<span id="cb63-2"><a href="#cb63-2" aria-hidden="true" tabindex="-1"></a>perceptronOR x1 x2</span>
+<span id="cb63-3"><a href="#cb63-3" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> threshold <span class="op">&gt;=</span> <span class="dv">0</span> <span class="ot">=</span> <span class="dt">True</span></span>
+<span id="cb63-4"><a href="#cb63-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="fu">otherwise</span>      <span class="ot">=</span> <span class="dt">False</span></span>
+<span id="cb63-5"><a href="#cb63-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">where</span></span>
+<span id="cb63-6"><a href="#cb63-6" aria-hidden="true" tabindex="-1"></a>    g <span class="dt">True</span>  <span class="ot">=</span> <span class="dv">1</span></span>
+<span id="cb63-7"><a href="#cb63-7" aria-hidden="true" tabindex="-1"></a>    g <span class="dt">False</span> <span class="ot">=</span> <span class="dv">0</span></span>
+<span id="cb63-8"><a href="#cb63-8" aria-hidden="true" tabindex="-1"></a>    threshold <span class="ot">=</span> <span class="fl">0.5</span> <span class="op">*</span> g x1 <span class="op">+</span> <span class="fl">0.5</span> <span class="op">*</span> g x2 <span class="op">-</span> <span class="fl">0.2</span></span>
+<span id="cb63-9"><a href="#cb63-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb63-10"><a href="#cb63-10" aria-hidden="true" tabindex="-1"></a><span class="co">-- 実行例</span></span>
+<span id="cb63-11"><a href="#cb63-11" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb63-12"><a href="#cb63-12" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb63-13"><a href="#cb63-13" aria-hidden="true" tabindex="-1"></a>   <span class="fu">print</span> <span class="op">$</span> perceptronOR <span class="dt">False</span> <span class="dt">False</span> <span class="co">-- False</span></span>
+<span id="cb63-14"><a href="#cb63-14" aria-hidden="true" tabindex="-1"></a>   <span class="fu">print</span> <span class="op">$</span> perceptronOR <span class="dt">True</span> <span class="dt">False</span>  <span class="co">-- True</span></span>
+<span id="cb63-15"><a href="#cb63-15" aria-hidden="true" tabindex="-1"></a>   <span class="fu">print</span> <span class="op">$</span> perceptronOR <span class="dt">False</span> <span class="dt">True</span>  <span class="co">-- True</span></span>
+<span id="cb63-16"><a href="#cb63-16" aria-hidden="true" tabindex="-1"></a>   <span class="fu">print</span> <span class="op">$</span> perceptronOR <span class="dt">True</span> <span class="dt">True</span>   <span class="co">-- True</span></span></code></pre></div>
 </details>
 </section>
 <h3 id="エラー修正演習">エラー修正演習</h3>
@@ -922,20 +983,20 @@ f(x1, x2) =
 <h4>Exercise CH5-7</h4>
 <p><strong>関数定義中の型不一致</strong></p>
 <p>以下の関数は <code>Int</code> を受け取って <code>Int</code> を返すと宣言されているが, コンパイルが通りません. 原因を答えて修正してください.</p>
-<div class="sourceCode" id="cb59"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch5-7.hs (誤りあり)</span></span>
-<span id="cb59-2"><a href="#cb59-2" aria-hidden="true" tabindex="-1"></a><span class="ot">f ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
-<span id="cb59-3"><a href="#cb59-3" aria-hidden="true" tabindex="-1"></a>f x <span class="ot">=</span> x <span class="op">++</span> <span class="st">&quot;!&quot;</span></span>
-<span id="cb59-4"><a href="#cb59-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb59-5"><a href="#cb59-5" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb59-6"><a href="#cb59-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> (f <span class="dv">1</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb64"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch5-7.hs (誤りあり)</span></span>
+<span id="cb64-2"><a href="#cb64-2" aria-hidden="true" tabindex="-1"></a><span class="ot">f ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
+<span id="cb64-3"><a href="#cb64-3" aria-hidden="true" tabindex="-1"></a>f x <span class="ot">=</span> x <span class="op">++</span> <span class="st">&quot;!&quot;</span></span>
+<span id="cb64-4"><a href="#cb64-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb64-5"><a href="#cb64-5" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb64-6"><a href="#cb64-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> (f <span class="dv">1</span>)</span></code></pre></div>
 <p>実エラー:</p>
-<div class="sourceCode" id="cb60"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:2:7:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">83865</span><span class="pp">]</span></span>
-<span id="cb60-2"><a href="#cb60-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> Couldn<span class="st">'t match expected type ‘Int’ with actual type ‘[Char]’</span></span>
-<span id="cb60-3"><a href="#cb60-3" aria-hidden="true" tabindex="-1"></a><span class="st">    • In the expression: x ++ &quot;!&quot;</span></span>
-<span id="cb60-4"><a href="#cb60-4" aria-hidden="true" tabindex="-1"></a><span class="st">      In an equation for ‘f’: f x = x ++ &quot;!&quot;</span></span>
-<span id="cb60-5"><a href="#cb60-5" aria-hidden="true" tabindex="-1"></a><span class="st">  |</span></span>
-<span id="cb60-6"><a href="#cb60-6" aria-hidden="true" tabindex="-1"></a><span class="st">2 | f x = x ++ &quot;!&quot;</span></span>
-<span id="cb60-7"><a href="#cb60-7" aria-hidden="true" tabindex="-1"></a><span class="st">  |       ^^^^^^^^</span></span></code></pre></div>
+<div class="sourceCode" id="cb65"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:2:7:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">83865</span><span class="pp">]</span></span>
+<span id="cb65-2"><a href="#cb65-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> Couldn<span class="st">'t match expected type ‘Int’ with actual type ‘[Char]’</span></span>
+<span id="cb65-3"><a href="#cb65-3" aria-hidden="true" tabindex="-1"></a><span class="st">    • In the expression: x ++ &quot;!&quot;</span></span>
+<span id="cb65-4"><a href="#cb65-4" aria-hidden="true" tabindex="-1"></a><span class="st">      In an equation for ‘f’: f x = x ++ &quot;!&quot;</span></span>
+<span id="cb65-5"><a href="#cb65-5" aria-hidden="true" tabindex="-1"></a><span class="st">  |</span></span>
+<span id="cb65-6"><a href="#cb65-6" aria-hidden="true" tabindex="-1"></a><span class="st">2 | f x = x ++ &quot;!&quot;</span></span>
+<span id="cb65-7"><a href="#cb65-7" aria-hidden="true" tabindex="-1"></a><span class="st">  |       ^^^^^^^^</span></span></code></pre></div>
 <details class="protected" data-pass="yakagika">
 <summary>
 回答例
@@ -943,15 +1004,15 @@ f(x1, x2) =
 <p><strong>原因</strong>: 型注釈で <code>f :: Int -&gt; Int</code> と宣言したのに, 本体の <code>x ++ "!"</code> は <strong><code>String</code> (= <code>[Char]</code>)</strong> を返している. 期待型 <code>Int</code> と実際の型 <code>[Char]</code> が一致しない.</p>
 <p>修正方針は 2 通り.</p>
 <p><strong>修正 A</strong>: 結果を文字列にする (型注釈を実装に合わせる).</p>
-<div class="sourceCode" id="cb61"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb61-1"><a href="#cb61-1" aria-hidden="true" tabindex="-1"></a><span class="ot">f ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">String</span></span>
-<span id="cb61-2"><a href="#cb61-2" aria-hidden="true" tabindex="-1"></a>f x <span class="ot">=</span> <span class="fu">show</span> x <span class="op">++</span> <span class="st">&quot;!&quot;</span>        <span class="co">-- &quot;1!&quot;</span></span>
-<span id="cb61-3"><a href="#cb61-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb61-4"><a href="#cb61-4" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">putStrLn</span> (f <span class="dv">1</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb66"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a><span class="ot">f ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">String</span></span>
+<span id="cb66-2"><a href="#cb66-2" aria-hidden="true" tabindex="-1"></a>f x <span class="ot">=</span> <span class="fu">show</span> x <span class="op">++</span> <span class="st">&quot;!&quot;</span>        <span class="co">-- &quot;1!&quot;</span></span>
+<span id="cb66-3"><a href="#cb66-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb66-4"><a href="#cb66-4" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">putStrLn</span> (f <span class="dv">1</span>)</span></code></pre></div>
 <p><strong>修正 B</strong>: 整数として返したい場合は, 結果型を変えずに数値演算で実装する.</p>
-<div class="sourceCode" id="cb62"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a><span class="ot">f ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
-<span id="cb62-2"><a href="#cb62-2" aria-hidden="true" tabindex="-1"></a>f x <span class="ot">=</span> x <span class="op">+</span> <span class="dv">1</span>                 <span class="co">-- 2</span></span>
-<span id="cb62-3"><a href="#cb62-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb62-4"><a href="#cb62-4" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> (f <span class="dv">1</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb67"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a><span class="ot">f ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
+<span id="cb67-2"><a href="#cb67-2" aria-hidden="true" tabindex="-1"></a>f x <span class="ot">=</span> x <span class="op">+</span> <span class="dv">1</span>                 <span class="co">-- 2</span></span>
+<span id="cb67-3"><a href="#cb67-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb67-4"><a href="#cb67-4" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> (f <span class="dv">1</span>)</span></code></pre></div>
 <p>「型注釈」と「実装」のどちらが正しいかを意識しながら型を揃えるのがポイント.</p>
 </details>
 </section>
@@ -959,21 +1020,21 @@ f(x1, x2) =
 <h4>Exercise CH5-8</h4>
 <p><strong>関数の引数不足 (No instance for Show)</strong></p>
 <p>以下のコードは <code>add 5</code> の結果を表示しようとしていますが, コンパイルが通りません. 原因を答えて修正してください.</p>
-<div class="sourceCode" id="cb63"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch5-8.hs (誤りあり)</span></span>
-<span id="cb63-2"><a href="#cb63-2" aria-hidden="true" tabindex="-1"></a><span class="ot">add ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
-<span id="cb63-3"><a href="#cb63-3" aria-hidden="true" tabindex="-1"></a>add x y <span class="ot">=</span> x <span class="op">+</span> y</span>
-<span id="cb63-4"><a href="#cb63-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb63-5"><a href="#cb63-5" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb63-6"><a href="#cb63-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> (add <span class="dv">5</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb68"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch5-8.hs (誤りあり)</span></span>
+<span id="cb68-2"><a href="#cb68-2" aria-hidden="true" tabindex="-1"></a><span class="ot">add ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
+<span id="cb68-3"><a href="#cb68-3" aria-hidden="true" tabindex="-1"></a>add x y <span class="ot">=</span> x <span class="op">+</span> y</span>
+<span id="cb68-4"><a href="#cb68-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb68-5"><a href="#cb68-5" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb68-6"><a href="#cb68-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> (add <span class="dv">5</span>)</span></code></pre></div>
 <p>実エラー:</p>
-<div class="sourceCode" id="cb64"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:5:8:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">39999</span><span class="pp">]</span></span>
-<span id="cb64-2"><a href="#cb64-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> No instance for ‘Show <span class="er">(</span><span class="ex">Int</span> <span class="at">-</span><span class="op">&gt;</span> Int<span class="kw">)</span><span class="ex">’</span> arising from a use of ‘print’</span>
-<span id="cb64-3"><a href="#cb64-3" aria-hidden="true" tabindex="-1"></a>        <span class="kw">(</span><span class="ex">maybe</span> you haven<span class="st">'t applied a function to enough arguments?)</span></span>
-<span id="cb64-4"><a href="#cb64-4" aria-hidden="true" tabindex="-1"></a><span class="st">    • In the expression: print (add 5)</span></span>
-<span id="cb64-5"><a href="#cb64-5" aria-hidden="true" tabindex="-1"></a><span class="st">      In an equation for ‘main’: main = print (add 5)</span></span>
-<span id="cb64-6"><a href="#cb64-6" aria-hidden="true" tabindex="-1"></a><span class="st">  |</span></span>
-<span id="cb64-7"><a href="#cb64-7" aria-hidden="true" tabindex="-1"></a><span class="st">5 | main = print (add 5)</span></span>
-<span id="cb64-8"><a href="#cb64-8" aria-hidden="true" tabindex="-1"></a><span class="st">  |        ^^^^^</span></span></code></pre></div>
+<div class="sourceCode" id="cb69"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:5:8:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">39999</span><span class="pp">]</span></span>
+<span id="cb69-2"><a href="#cb69-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> No instance for ‘Show <span class="er">(</span><span class="ex">Int</span> <span class="at">-</span><span class="op">&gt;</span> Int<span class="kw">)</span><span class="ex">’</span> arising from a use of ‘print’</span>
+<span id="cb69-3"><a href="#cb69-3" aria-hidden="true" tabindex="-1"></a>        <span class="kw">(</span><span class="ex">maybe</span> you haven<span class="st">'t applied a function to enough arguments?)</span></span>
+<span id="cb69-4"><a href="#cb69-4" aria-hidden="true" tabindex="-1"></a><span class="st">    • In the expression: print (add 5)</span></span>
+<span id="cb69-5"><a href="#cb69-5" aria-hidden="true" tabindex="-1"></a><span class="st">      In an equation for ‘main’: main = print (add 5)</span></span>
+<span id="cb69-6"><a href="#cb69-6" aria-hidden="true" tabindex="-1"></a><span class="st">  |</span></span>
+<span id="cb69-7"><a href="#cb69-7" aria-hidden="true" tabindex="-1"></a><span class="st">5 | main = print (add 5)</span></span>
+<span id="cb69-8"><a href="#cb69-8" aria-hidden="true" tabindex="-1"></a><span class="st">  |        ^^^^^</span></span></code></pre></div>
 <details class="protected" data-pass="yakagika">
 <summary>
 回答例
@@ -981,34 +1042,34 @@ f(x1, x2) =
 <p><strong>原因</strong>: <code>add :: Int -&gt; Int -&gt; Int</code> は <strong>2 引数関数</strong> だが, <code>add 5</code> は <strong>1 引数しか与えていない</strong> ので結果は <code>Int -&gt; Int</code> (部分適用された関数). 関数自体は <code>Show</code> のインスタンスを持たないため <code>print</code> できない.</p>
 <p>GHC のヒント <code>(maybe you haven't applied a function to enough arguments?)</code> が決定的.</p>
 <p>修正: 引数を全部与える.</p>
-<div class="sourceCode" id="cb65"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb65-1"><a href="#cb65-1" aria-hidden="true" tabindex="-1"></a><span class="ot">add ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
-<span id="cb65-2"><a href="#cb65-2" aria-hidden="true" tabindex="-1"></a>add x y <span class="ot">=</span> x <span class="op">+</span> y</span>
-<span id="cb65-3"><a href="#cb65-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb65-4"><a href="#cb65-4" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb65-5"><a href="#cb65-5" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> (add <span class="dv">5</span> <span class="dv">10</span>)   <span class="co">-- 15</span></span></code></pre></div>
+<div class="sourceCode" id="cb70"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a><span class="ot">add ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
+<span id="cb70-2"><a href="#cb70-2" aria-hidden="true" tabindex="-1"></a>add x y <span class="ot">=</span> x <span class="op">+</span> y</span>
+<span id="cb70-3"><a href="#cb70-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb70-4"><a href="#cb70-4" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb70-5"><a href="#cb70-5" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> (add <span class="dv">5</span> <span class="dv">10</span>)   <span class="co">-- 15</span></span></code></pre></div>
 <p>部分適用を意図的に行いたい場合は, 別の関数に束縛してから利用する (本章 「部分適用」参照).</p>
-<div class="sourceCode" id="cb66"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a><span class="ot">add5 ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
-<span id="cb66-2"><a href="#cb66-2" aria-hidden="true" tabindex="-1"></a>add5 <span class="ot">=</span> add <span class="dv">5</span></span>
-<span id="cb66-3"><a href="#cb66-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb66-4"><a href="#cb66-4" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> (add5 <span class="dv">10</span>)    <span class="co">-- 15</span></span></code></pre></div>
+<div class="sourceCode" id="cb71"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb71-1"><a href="#cb71-1" aria-hidden="true" tabindex="-1"></a><span class="ot">add5 ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
+<span id="cb71-2"><a href="#cb71-2" aria-hidden="true" tabindex="-1"></a>add5 <span class="ot">=</span> add <span class="dv">5</span></span>
+<span id="cb71-3"><a href="#cb71-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb71-4"><a href="#cb71-4" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> (add5 <span class="dv">10</span>)    <span class="co">-- 15</span></span></code></pre></div>
 </details>
 </section>
 <section id="exercise-ch5-9" class="note">
 <h4>Exercise CH5-9</h4>
 <p><strong>関数定義のパターン非網羅 (実行時エラー)</strong></p>
 <p>以下のコードはコンパイルは通りますが (警告は出る), 実行すると途中で停止します. 原因を答えて修正してください.</p>
-<div class="sourceCode" id="cb67"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb67-1"><a href="#cb67-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch5-9.hs (誤りあり)</span></span>
-<span id="cb67-2"><a href="#cb67-2" aria-hidden="true" tabindex="-1"></a><span class="ot">describe ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">String</span></span>
-<span id="cb67-3"><a href="#cb67-3" aria-hidden="true" tabindex="-1"></a>describe <span class="dv">0</span> <span class="ot">=</span> <span class="st">&quot;zero&quot;</span></span>
-<span id="cb67-4"><a href="#cb67-4" aria-hidden="true" tabindex="-1"></a>describe <span class="dv">1</span> <span class="ot">=</span> <span class="st">&quot;one&quot;</span></span>
-<span id="cb67-5"><a href="#cb67-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb67-6"><a href="#cb67-6" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb67-7"><a href="#cb67-7" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb67-8"><a href="#cb67-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> (describe <span class="dv">0</span>)</span>
-<span id="cb67-9"><a href="#cb67-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> (describe <span class="dv">2</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb72"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb72-1"><a href="#cb72-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch5-9.hs (誤りあり)</span></span>
+<span id="cb72-2"><a href="#cb72-2" aria-hidden="true" tabindex="-1"></a><span class="ot">describe ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">String</span></span>
+<span id="cb72-3"><a href="#cb72-3" aria-hidden="true" tabindex="-1"></a>describe <span class="dv">0</span> <span class="ot">=</span> <span class="st">&quot;zero&quot;</span></span>
+<span id="cb72-4"><a href="#cb72-4" aria-hidden="true" tabindex="-1"></a>describe <span class="dv">1</span> <span class="ot">=</span> <span class="st">&quot;one&quot;</span></span>
+<span id="cb72-5"><a href="#cb72-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb72-6"><a href="#cb72-6" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb72-7"><a href="#cb72-7" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb72-8"><a href="#cb72-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> (describe <span class="dv">0</span>)</span>
+<span id="cb72-9"><a href="#cb72-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> (describe <span class="dv">2</span>)</span></code></pre></div>
 <p>実行時出力:</p>
-<div class="sourceCode" id="cb68"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a><span class="ex">zero</span></span>
-<span id="cb68-2"><a href="#cb68-2" aria-hidden="true" tabindex="-1"></a><span class="ex">ch5-9:</span> app/Main.hs:<span class="er">(</span><span class="ex">2,1</span><span class="kw">)</span><span class="ex">-</span><span class="er">(</span><span class="ex">3,18</span><span class="kw">)</span><span class="bu">:</span> Non-exhaustive patterns in function describe</span></code></pre></div>
+<div class="sourceCode" id="cb73"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb73-1"><a href="#cb73-1" aria-hidden="true" tabindex="-1"></a><span class="ex">zero</span></span>
+<span id="cb73-2"><a href="#cb73-2" aria-hidden="true" tabindex="-1"></a><span class="ex">ch5-9:</span> app/Main.hs:<span class="er">(</span><span class="ex">2,1</span><span class="kw">)</span><span class="ex">-</span><span class="er">(</span><span class="ex">3,18</span><span class="kw">)</span><span class="bu">:</span> Non-exhaustive patterns in function describe</span></code></pre></div>
 <details class="protected" data-pass="yakagika">
 <summary>
 回答例
@@ -1016,20 +1077,20 @@ f(x1, x2) =
 <p><strong>原因</strong>: <code>describe</code> のパターンは <code>0</code> と <code>1</code> の 2 つしか定義されていない. <code>describe 2</code> のように <strong>どのパターンにも該当しない値</strong> を渡すと <code>Non-exhaustive patterns in function describe</code> で停止する.</p>
 <p>エラーメッセージの <code>(2,1)-(3,18)</code> は <strong>問題の関数定義の範囲</strong> (ソース 2 行 1 列〜3 行 18 列). 修正は <strong>網羅的にパターンを書く</strong> か <strong>ワイルドカード <code>_</code> で残りを受ける</strong> .</p>
 <p>修正 A: ワイルドカードでフォールバック.</p>
-<div class="sourceCode" id="cb69"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a><span class="ot">describe ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">String</span></span>
-<span id="cb69-2"><a href="#cb69-2" aria-hidden="true" tabindex="-1"></a>describe <span class="dv">0</span> <span class="ot">=</span> <span class="st">&quot;zero&quot;</span></span>
-<span id="cb69-3"><a href="#cb69-3" aria-hidden="true" tabindex="-1"></a>describe <span class="dv">1</span> <span class="ot">=</span> <span class="st">&quot;one&quot;</span></span>
-<span id="cb69-4"><a href="#cb69-4" aria-hidden="true" tabindex="-1"></a>describe _ <span class="ot">=</span> <span class="st">&quot;many&quot;</span></span>
-<span id="cb69-5"><a href="#cb69-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb69-6"><a href="#cb69-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb69-7"><a href="#cb69-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> (describe <span class="dv">0</span>)   <span class="co">-- zero</span></span>
-<span id="cb69-8"><a href="#cb69-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> (describe <span class="dv">2</span>)   <span class="co">-- many</span></span></code></pre></div>
+<div class="sourceCode" id="cb74"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb74-1"><a href="#cb74-1" aria-hidden="true" tabindex="-1"></a><span class="ot">describe ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">String</span></span>
+<span id="cb74-2"><a href="#cb74-2" aria-hidden="true" tabindex="-1"></a>describe <span class="dv">0</span> <span class="ot">=</span> <span class="st">&quot;zero&quot;</span></span>
+<span id="cb74-3"><a href="#cb74-3" aria-hidden="true" tabindex="-1"></a>describe <span class="dv">1</span> <span class="ot">=</span> <span class="st">&quot;one&quot;</span></span>
+<span id="cb74-4"><a href="#cb74-4" aria-hidden="true" tabindex="-1"></a>describe _ <span class="ot">=</span> <span class="st">&quot;many&quot;</span></span>
+<span id="cb74-5"><a href="#cb74-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb74-6"><a href="#cb74-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb74-7"><a href="#cb74-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> (describe <span class="dv">0</span>)   <span class="co">-- zero</span></span>
+<span id="cb74-8"><a href="#cb74-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> (describe <span class="dv">2</span>)   <span class="co">-- many</span></span></code></pre></div>
 <p>修正 B: ガードで網羅性を担保.</p>
-<div class="sourceCode" id="cb70"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb70-1"><a href="#cb70-1" aria-hidden="true" tabindex="-1"></a><span class="ot">describe ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">String</span></span>
-<span id="cb70-2"><a href="#cb70-2" aria-hidden="true" tabindex="-1"></a>describe n</span>
-<span id="cb70-3"><a href="#cb70-3" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> n <span class="op">==</span> <span class="dv">0</span>    <span class="ot">=</span> <span class="st">&quot;zero&quot;</span></span>
-<span id="cb70-4"><a href="#cb70-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> n <span class="op">==</span> <span class="dv">1</span>    <span class="ot">=</span> <span class="st">&quot;one&quot;</span></span>
-<span id="cb70-5"><a href="#cb70-5" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="fu">otherwise</span> <span class="ot">=</span> <span class="st">&quot;many&quot;</span></span></code></pre></div>
+<div class="sourceCode" id="cb75"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a><span class="ot">describe ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">String</span></span>
+<span id="cb75-2"><a href="#cb75-2" aria-hidden="true" tabindex="-1"></a>describe n</span>
+<span id="cb75-3"><a href="#cb75-3" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> n <span class="op">==</span> <span class="dv">0</span>    <span class="ot">=</span> <span class="st">&quot;zero&quot;</span></span>
+<span id="cb75-4"><a href="#cb75-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> n <span class="op">==</span> <span class="dv">1</span>    <span class="ot">=</span> <span class="st">&quot;one&quot;</span></span>
+<span id="cb75-5"><a href="#cb75-5" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="fu">otherwise</span> <span class="ot">=</span> <span class="st">&quot;many&quot;</span></span></code></pre></div>
 <p><code>stack build</code> 時に <strong><code>Pattern match(es) are non-exhaustive</code> の警告</strong> が出るので, 警告を放置せず常に網羅するクセを付けると安全.</p>
 </details>
 </section>
