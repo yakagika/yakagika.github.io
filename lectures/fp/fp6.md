@@ -30,7 +30,6 @@ main = do
     print $ applyFToList (2*) [4,5,6]  -- [8,10,12]
     print $ applyFToList (1+) [4,5,6]  -- [5,6,7]
     print $ applyFToList show [4,5,6]  -- ["4","5","6"]
-    print $ applyFToList fib  [4,5,6]  -- [5,8,13]
 ~~~
 
 関数部分は, `(a -> b)`のように,丸括弧で囲んでいます.
@@ -44,8 +43,9 @@ main = do
     print $ map (2*) [4,5,6]  -- [8,10,12]
     print $ map (1+) [4,5,6]  -- [5,6,7]
     print $ map show [4,5,6]  -- ["4","5","6"]
-    print $ map fib  [4,5,6]  -- [5,8,13]
 ~~~
+
+`map` を利用することで   [Exercise CH5-4](fp5.html#exercise-ch5-4) における `toStr :: [Int] -> [Strings]` は `toStr = map show` として実装できます.
 
 ::: warn
 - Prelude
@@ -92,12 +92,9 @@ import Data.Text hiding (Text,empty)
 
 
 ~~~ haskell
-{-# LANGUAGE OverloadedStrings #-}
-import Data.Text (elem)
-
 main = do
     print $ filter (10 < ) [5,10,15,20] --  [15,20]
-    print $ filter (Data.Text.elem 'a') ["cat","dog","bird"] --  ["cat"]
+    print $ filter (elem 'a' ) ["cat","dog","bird"]
 ~~~
 
 ### fold
@@ -106,6 +103,10 @@ main = do
 `foldr :: (a -> b -> b) -> b -> [a] -> b`
 
 は畳み込み関数です. `foldl` はリストの左端, `foldr` はリストの右端から値を一つずつ抜き出して, 2引数関数によって一つの値に畳み込んでいきます.
+
+`foldl` の型を部分ごとに読むと, 「**畳む用の関数**・**初期値**・**これから畳まれるリスト**」の3つを受け取って「**畳まれた結果**」を返す関数だと分かります.
+
+![foldl の型: (畳む用の関数) → (初期値) → (これから畳まれるリスト) → (畳まれた結果)](/images/fp/ch6/foldl-type.png)
 
 ::: warn
 合計や積のように **アキュムレータに値を蓄積していく** 用途では, `Prelude` の `foldl` は遅延評価のため未評価のサンクが積み上がりスペースリークを起こすことがあります. 実用上は `Data.List` の **`foldl'`** (正格版)を使うのが定石です. 一方で `foldr` は遅延評価の恩恵で無限リストや短絡評価と相性が良く, 用途によって使い分けるのが一般的です.
@@ -131,6 +132,21 @@ main = do
 `6`
 
 となります.
+
+`foldl` は「アキュムレータに値を蓄積していく」処理を一般化したものなので, [Exercise CH5-4](fp5.html#exercise-ch5-4) で再帰を使って実装した `length2 :: [a] -> Int` も, 各要素を見るたびにアキュムレータを `+1` する畳み込みとして書き直せます.
+
+~~~ haskell
+-- 再帰版 (Exercise CH5-4) を foldl で書き直したもの
+length2 :: [a] -> Int
+length2 xs = foldl count 0 xs
+  where count acc _ = acc + 1
+
+main = do
+    print $ length2 [1,2,3,4,5]  -- 5
+    print $ length2 "hello"      -- 5
+~~~
+
+ここで `count acc _ = acc + 1` は, 要素の **中身は使わず** (`_`) にアキュムレータ `acc` だけを 1 増やす2引数関数です. `foldl count 0 [1,2,3]` は `count (count (count 0 1) 2) 3` と展開され, 要素の個数だけ `+1` されるので長さが得られます.
 
 ### zipWith, zip
 

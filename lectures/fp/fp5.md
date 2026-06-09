@@ -1255,52 +1255,97 @@ main = do
 
 ### Exercise CH5-6
 
-**パーセプトロン (OR 回路の発火関数)**
+**パーセプトロンによる論理ゲート**
 
-- or 回路を表すパーセプトロンの発火関数 `f x1 x2` を以下のように定める.
-(パーセプトロンの意味などがわからない場合は, [特別講義資料](slds14.html)を参照のこと)
+パーセプトロンは, 複数の入力 $x_1, x_2$ に重み $w_1, w_2$ を掛けて足し合わせ, バイアス $b$ を加えた値が 0 以上かどうかで `True`/`False` を出力する素子です. **重みとバイアスを変えるだけで**, 同じ仕組みが AND・OR・NAND など異なる論理ゲートになります (パーセプトロンの背景・理論は [特別講義資料](slds14.html) を参照してください).
 
-$$
-f(x1, x2) =
-\begin{cases}
-1 & (0.5 x_1 + 0.5 x_2 \geq 0.2)\\
-0 & (\text{otherwise})
-\end{cases}
-$$
-
-この回路を表す`perceptronOR :: Bool -> Bool -> Bool`を実装せよ.
+1. ウォームアップとして, `||` を使わずに `or :: Bool -> Bool -> Bool` を **パターンマッチ** で実装してください.
 
 ~~~ haskell
 -- 実行例
 main :: IO ()
 main = do
-   print $ perceptronOR False False -- False
-   print $ perceptronOR True False  -- True
-   print $ perceptronOR False True  -- True
-   print $ perceptronOR True True   -- True
+   print $ or False False -- False
+   print $ or True False  -- True
+   print $ or False True  -- True
+   print $ or True True   -- True
+~~~
+
+2. 一般化したパーセプトロン
+
+$$
+\text{perceptron}(w_1, w_2, b,\ x_1, x_2) =
+\begin{cases}
+\text{True}  & (w_1 x_1 + w_2 x_2 + b \geq 0)\\
+\text{False} & (\text{otherwise})
+\end{cases}
+$$
+
+を `perceptron :: Double -> Double -> Double -> Double -> Double -> Bool` として実装してください.
+
+3. `perceptron` の重みとバイアスを固定するだけで AND・OR・NAND ゲートが作れます. **新しく関数本体を書かず, 部分適用** だけで次の 3 つを定義してください (本章で学んだ「カリー化・部分適用」の応用です).
+
+~~~ haskell
+andGate, orGate, nandGate :: Double -> Double -> Bool
+~~~
+
+| ゲート | $w_1$ | $w_2$ | $b$  |
+|:------:|:-----:|:-----:|:----:|
+| AND    | 0.5   | 0.5   | -0.7 |
+| OR     | 0.5   | 0.5   | -0.2 |
+| NAND   | -0.5  | -0.5  | 0.7  |
+
+4. **(発展)** XOR (排他的論理和) は **単一のパーセプトロンでは表現できません**. 入力 $(x_1, x_2)$ を平面に並べると, 出力が `True` になる点と `False` になる点を 1 本の直線では分離できない (線形分離不可能) ためです. しかし `nandGate`・`orGate`・`andGate` を **合成** すれば XOR を作れます. `xorGate :: Double -> Double -> Bool` を実装してください (ゲートの出力 `Bool` を次のゲートの入力 `Double` に渡す橋渡しが必要です).
+
+~~~ haskell
+-- 実行例
+main :: IO ()
+main = do
+   print $ xorGate 0 0 -- False
+   print $ xorGate 1 0 -- True
+   print $ xorGate 0 1 -- True
+   print $ xorGate 1 1 -- False
 ~~~
 
 <details class="protected" data-pass="yakagika">
     <summary> 回答例 </summary>
 
 ~~~ haskell
-perceptronOR :: Bool -> Bool -> Bool
-perceptronOR x1 x2
-  | threshold >= 0 = True
-  | otherwise      = False
-  where
-    g True  = 1
-    g False = 0
-    threshold = 0.5 * g x1 + 0.5 * g x2 - 0.2
+-- 1. パターンマッチによる or
+or :: Bool -> Bool -> Bool
+or False False = False
+or _     _     = True
+
+-- 2. 一般化したパーセプトロン (重み w1,w2 とバイアス b を引数に取る)
+perceptron :: Double -> Double -> Double -> Double -> Double -> Bool
+perceptron w1 w2 b x1 x2 = w1 * x1 + w2 * x2 + b >= 0
+
+-- 3. 部分適用で重み・バイアスを固定するだけ (本体は書かない)
+andGate, orGate, nandGate :: Double -> Double -> Bool
+andGate  = perceptron 0.5    0.5    (-0.7)
+orGate   = perceptron 0.5    0.5    (-0.2)
+nandGate = perceptron (-0.5) (-0.5) 0.7
+
+-- 4. Bool を Double に変換してゲートを合成する
+toD :: Bool -> Double
+toD True  = 1
+toD False = 0
+
+xorGate :: Double -> Double -> Bool
+xorGate x1 x2 = andGate (toD (nandGate x1 x2)) (toD (orGate x1 x2))
 
 -- 実行例
 main :: IO ()
 main = do
-   print $ perceptronOR False False -- False
-   print $ perceptronOR True False  -- True
-   print $ perceptronOR False True  -- True
-   print $ perceptronOR True True   -- True
+   print $ andGate 1 1  -- True
+   print $ orGate  0 0  -- False
+   print $ nandGate 1 1 -- False
+   print $ xorGate 1 0  -- True
+   print $ xorGate 1 1  -- False
 ~~~
+
+- ゲートが「同じ `perceptron` の部分適用」で書けるのは, パーセプトロンが重みとバイアスというパラメータだけで挙動を変えられるからです.
+- XOR は単層では作れませんが, `nandGate` と `orGate` の出力を `andGate` でまとめる **2 段構成 (多層化)** にすると表現できます. これがニューラルネットワークで層を重ねる動機の一つです.
 
 </details>
 

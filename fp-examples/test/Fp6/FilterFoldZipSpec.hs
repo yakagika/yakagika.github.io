@@ -13,15 +13,24 @@ tuple a b = (a, b)
 zip'' :: [a] -> [b] -> [(a, b)]
 zip'' = zipWith tuple
 
+-- Exercise CH5-4 の length2 を foldl で書き直したもの
+length2 :: [a] -> Int
+length2 xs = foldl count 0 xs
+  where count acc _ = acc + 1
+
 spec :: Spec
 spec = describe "Fp6.FilterFoldZip" $ do
   describe "filter" $
     it "filter (10 <) [5,10,15,20] == [15,20]" $
       filter (10 <) [5 :: Int, 10, 15, 20] `shouldBe` [15, 20]
 
-  describe "foldl" $
+  describe "foldl" $ do
     it "foldl (+) 0 [1,2,3] == 6" $
       foldl (+) 0 [1 :: Int, 2, 3] `shouldBe` 6
+    it "length2 [1,2,3,4,5] == 5 (foldl 版)" $
+      length2 [1 :: Int, 2, 3, 4, 5] `shouldBe` 5
+    it "length2 \"hello\" == 5" $
+      length2 "hello" `shouldBe` 5
 
   describe "zipWith / zip" $ do
     it "zipWith (++) [\"a\",\"b\",\"c\"] [\"x\",\"y\",\"z\"] == [\"ax\",\"by\",\"cz\"]" $

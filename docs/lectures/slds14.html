@@ -6,7 +6,7 @@
     <title>yakagika - 特別講義DS Ch14 ニューラルネットワーク(画像認識)</title>
 
     <!-- Stylesheets. -->
-    <link rel="stylesheet" type="text/css" href="../style.css?v=1780899755">
+    <link rel="stylesheet" type="text/css" href="../style.css?v=1780971446">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -77,7 +77,7 @@
     <p class="article-description">資料</p>
     <div class="article-meta">
         <span class="meta-item">公開: 2024-09-28</span>
-        <span class="meta-item">更新: 2026-04-20</span>
+        <span class="meta-item">更新: 2026-06-08</span>
     </div>
     <div class="tag-chips"><a title="All pages tagged 'datascience'." href="../tags/datascience.html" rel="tag">datascience</a>, <a title="All pages tagged 'statistics'." href="../tags/statistics.html" rel="tag">statistics</a>, <a title="All pages tagged 'python'." href="../tags/python.html" rel="tag">python</a></div>
 </header>
@@ -112,7 +112,7 @@ y = \begin{cases}
 \end{cases}
 </span></p>
 <p>パーセプトロンはコンピュータの計算における論理演算との関連が深く,論理演算を実装することができます.
-例えば,<code>AND演算</code>と<code>OR演算</code>を考えてみましょう. <code>TRUE</code>を<code>1</code>,<code>FALSE</code>を<code>2</code>とした場合のそれぞれの真偽値表は,以下のようになります.</p>
+例えば,<code>AND演算</code>と<code>OR演算</code>を考えてみましょう. <code>TRUE</code>を<code>1</code>,<code>FALSE</code>を<code>0</code>とした場合のそれぞれの真偽値表は,以下のようになります.</p>
 <ul>
 <li>AND</li>
 </ul>
@@ -181,6 +181,18 @@ y = \begin{cases}
 </tr>
 </tbody>
 </table>
+<p>論理ゲートは AND・OR だけではありません. <strong>AND の否定</strong>である <code>NAND</code> (両方が 1 のときだけ 0) や, <strong>片方だけが 1</strong> のときに 1 になる <code>XOR</code> (排他的論理和) など, いくつかの基本的なゲートがあります. それぞれが「どんな入力のときに 1 を出すか」は, 2 つの集合の重なりとして描くと直感的に理解できます. 円 <span class="math inline">A</span> を「<span class="math inline">x_1 = 1</span>」, 円 <span class="math inline">B</span> を「<span class="math inline">x_2 = 1</span>」とし, <strong>塗りつぶした領域が出力 1</strong> になる入力の組み合わせを表します (重なり=両方 1, 外側=両方 0).</p>
+<figure>
+<img src="../images/slds/ch14/logic-gates-venn.png" alt="AND・OR・NAND・XOR のベン図表現. 円 A を x1=1, 円 B を x2=1 とし, 塗りつぶし領域が出力 1 を表す." />
+<figcaption aria-hidden="true">AND・OR・NAND・XOR のベン図表現. 円 A を x1=1, 円 B を x2=1 とし, 塗りつぶし領域が出力 1 を表す.</figcaption>
+</figure>
+<ul>
+<li><strong>AND</strong>: 両方が 1 のときだけ 1 = 2 つの円の <strong>重なり</strong> だけを塗る.</li>
+<li><strong>OR</strong>: どちらかが 1 なら 1 = 2 つの円の <strong>和集合</strong> を塗る.</li>
+<li><strong>NAND</strong>: AND の否定 = <strong>重なり以外すべて</strong> (外側も含む) を塗る.</li>
+<li><strong>XOR</strong>: 片方だけが 1 のとき 1 = 重なりを除いた <strong>左右の三日月</strong> を塗る.</li>
+</ul>
+<p>まずはこの図で各ゲートが「何をする演算なのか」を掴んでおきましょう. 以下では, これらをパーセプトロンでどう実現するかを見ていきます.</p>
 <p>このような演算は例えば以下のように<span class="math inline">w_1,w_2,\theta</span>を定めると実現できます.</p>
 <ul>
 <li><code>AND</code></li>
@@ -209,6 +221,97 @@ f(x) = \begin{cases}
 </span></p>
 <p>のように表すことができます. このような特定のニューロンの発火の有無を決める関数を<strong>活性化関数(activation function)</strong>と呼びます.</p>
 <p>パーセプトロンでは,活性化関数として,特定の閾値に重み付け入力合計値が達するか否かによって出力が0か1のいずれかになります.このような,0/1が特定の閾値で極端に切り替わる関数を<strong>ステップ関数</strong>,<strong>階段関数</strong>などと呼びます.</p>
+<h4 id="重みとバイアスでゲートを切り替える">重みとバイアスでゲートを切り替える</h4>
+<p>上の AND・OR は,いずれも「重み付き入力の合計があるしきい値を超えたら発火する」という<strong>同じ仕組み</strong>を使っており,違うのは重み <span class="math inline">w_1,w_2</span> としきい値だけでした.しきい値 <span class="math inline">\theta</span> を左辺に移して<strong>バイアス</strong> <span class="math inline">b = -\theta</span> と書き直すと,どのゲートも</p>
+<p><span class="math display">
+y = \begin{cases}
+1 &amp; (w_1 x_1 + w_2 x_2 + b \geq 0) \\
+0 &amp; (\text{otherwise})
+\end{cases}
+</span></p>
+<p>という一つの式で表せます.つまり<strong>重み <span class="math inline">w_1,w_2</span> とバイアス <span class="math inline">b</span> という3つのパラメータを変えるだけ</strong>で,同じパーセプトロンが別の論理ゲートに変わります.代表的なゲートのパラメータ例は以下の通りです.</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: center;">ゲート</th>
+<th style="text-align: center;"><span class="math inline">w_1</span></th>
+<th style="text-align: center;"><span class="math inline">w_2</span></th>
+<th style="text-align: center;"><span class="math inline">b</span></th>
+<th style="text-align: left;">意味</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">AND</td>
+<td style="text-align: center;">0.5</td>
+<td style="text-align: center;">0.5</td>
+<td style="text-align: center;">-0.7</td>
+<td style="text-align: left;">両方 1 のときだけ発火</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">OR</td>
+<td style="text-align: center;">0.5</td>
+<td style="text-align: center;">0.5</td>
+<td style="text-align: center;">-0.2</td>
+<td style="text-align: left;">どちらか 1 なら発火</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">NAND</td>
+<td style="text-align: center;">-0.5</td>
+<td style="text-align: center;">-0.5</td>
+<td style="text-align: center;">0.7</td>
+<td style="text-align: left;">AND の否定 (両方 1 のときだけ 0)</td>
+</tr>
+</tbody>
+</table>
+<p><code>NAND</code> (Not AND) は重みとバイアスの符号を AND と反転させたもので,両方の入力が 1 のときだけ 0 を,それ以外では 1 を出力します.</p>
+<h4 id="単層では作れないゲート-xor-と線形分離可能性">単層では作れないゲート — XOR と線形分離可能性</h4>
+<p>ところが,<strong>XOR (排他的論理和)</strong> だけは,上のように重みとバイアスを選んでも<strong>1個のパーセプトロンでは絶対に表現できません</strong>.</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: center;"><span class="math inline">x_1</span></th>
+<th style="text-align: center;"><span class="math inline">x_2</span></th>
+<th style="text-align: center;"><span class="math inline">~y~</span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">0</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">1</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0</td>
+</tr>
+</tbody>
+</table>
+<p>なぜ作れないのかは,入力平面 <span class="math inline">(x_1, x_2)</span> に 4 通りの入力を点として打ってみると分かります.パーセプトロンの発火条件 <span class="math inline">w_1 x_1 + w_2 x_2 + b \geq 0</span> は,境界 <span class="math inline">w_1 x_1 + w_2 x_2 + b = 0</span> という <strong>1 本の直線で「出力 1 の点」と「出力 0 の点」を分ける</strong> ことに対応します.このように直線で分離できることを <strong>線形分離可能 (linearly separable)</strong> といいます.</p>
+<figure>
+<img src="../images/slds/ch14/linear-separability.png" alt="OR・AND・XOR の入力点 (x1,x2) と分離直線. OR は (0,0) だけ, AND は (1,1) だけを直線で切り離せるが, XOR は出力 1 と 0 が対角に並ぶため 1 本の直線では分離できない." />
+<figcaption aria-hidden="true">OR・AND・XOR の入力点 (x1,x2) と分離直線. OR は (0,0) だけ, AND は (1,1) だけを直線で切り離せるが, XOR は出力 1 と 0 が対角に並ぶため 1 本の直線では分離できない.</figcaption>
+</figure>
+<p>上図のように,<strong>OR</strong> は出力 0 の <span class="math inline">(0,0)</span> だけを,<strong>AND</strong> は出力 1 の <span class="math inline">(1,1)</span> だけを,それぞれ 1 本の直線で切り離せます.ところが <strong>XOR</strong> は,出力 1 の <span class="math inline">(1,0),(0,1)</span> と出力 0 の <span class="math inline">(0,0),(1,1)</span> が <strong>対角に交互</strong> に並ぶため,どんな直線を引いても必ず片側に 1 と 0 が混ざってしまい,分離できません.これが「単一のパーセプトロンでは XOR を表現できない」ことの正体です.</p>
+<p>そこで,XOR は <strong>複数のゲートを組み合わせる (層を重ねる)</strong> ことで実現します.例えば</p>
+<p><span class="math display">
+\text{XOR}(x_1, x_2) = \text{AND}\bigl(\text{NAND}(x_1, x_2),\ \text{OR}(x_1, x_2)\bigr)
+</span></p>
+<p>と書けます.1段目で <code>NAND</code> と <code>OR</code> を並列に計算し,その2つの出力を2段目の <code>AND</code> に入力する <strong>2層構成</strong> です.このように,<strong>単層では表せない関数も層を重ねれば表せる</strong>という事実が,次節で述べる多層ニューラルネットワークの出発点になります.</p>
+<blockquote>
+<p>なお,ここで挙げた AND・OR・NAND・XOR は,関数型言語の演習として実際に Haskell で実装できます.「同じ <code>perceptron</code> 関数の部分適用で各ゲートを作り,それらを合成して XOR を組む」例は <a href="fp5.html#exercise-ch5-6">関数型プログラミング講義 fp5 の Exercise CH5-6</a> を参照してください.</p>
+</blockquote>
 <h3 id="ニューラルネットワークの構成">ニューラルネットワークの構成</h3>
 <p>これまでに説明してきたのパーセプトロンは最初の<span class="math inline">x_1,x_2</span>からなる0層と入力を受け取る<span class="math inline">y</span>の2層から構成されていますが,ニューロンの数や,層の数を増やして様々な複雑な条件を表現することが可能になります.</p>
 <p>基本的なニューラルネットワークではネットワークを入力層,隠れ層,出力層の3層に分類します.</p>
