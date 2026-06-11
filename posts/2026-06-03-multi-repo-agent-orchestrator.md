@@ -275,6 +275,8 @@ $$
 
 - **curation (本題)**: corpus をただ増やすとノイズで検索精度が落ちる. 引かれた note は本フォルダへ**昇格**, 古い / 撤回された note は `_stale/` へ**隔離** (黙って消さないので追跡可). retrieval のログ (usage signal) が次の curation を駆動する. 一度踏んだ gotcha を別リポの Agent が二度踏まないのは, corpus が増えるからでなく手入れされているからだ.
 
+なお, ここで扱っているのはあくまで *Agent のための* 知識層である. 人間 (私) 自身の学習を同じ枠組み (queue + 巡回) で回す層は, 続編 [個人の学習層 (Learn) — Agent が薦め, スマホで消化し, vault に積む](/posts/2026-06-11-personal-learn-layer.html) に書いた.
+
 # タスク管理層: Todoist
 
 知識層と並ぶもう一つの管理層がタスクで, ここは [Todoist](https://todoist.com/) を hub にしている. **人間と agent が同じタスクを同じ場所で見る**ための層である.
