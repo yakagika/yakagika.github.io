@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>yakagika - 特別講義DS 補足A EDINET APIによる財務データの取得と回帰分析</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../style.css?v=1781232548">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+      <meta property="og:description" content="資料" />
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../">
+          <img src="../favicon.ico" alt="Home" style="width: 32px; height: 32px;">
+        </a>
+      </div>
+      <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../">Home</a>
+      <a href="../posts.html">Blog</a>
+      <a href="../lectures.html">Lecture</a>
+      <a href="../research.html">Research</a>
+      <a href="../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      <div id="lecture-toc" data-mode="series">
+        <h2>Index</h2>
+        <ul class="toc-root"><li class="toc-item toc-series-item"><div class="toc-row"><span class="toc-toggle">▾</span><a href="slds1.html">特別講義DS Ch1 本資料の読み方</a></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item"><div class="toc-row"><span class="toc-toggle">▾</span><a href="slds2.html">特別講義DS Ch2 データサイエンスを始めよう</a></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item"><div class="toc-row"><span class="toc-toggle">▾</span><a href="slds3.html">特別講義DS Ch3 Pythonと環境構築</a></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item"><div class="toc-row"><span class="toc-toggle">▾</span><a href="slds4.html">特別講義DS Ch4 Pythonことはじめ</a></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item"><div class="toc-row"><span class="toc-toggle">▾</span><a href="slds5.html">特別講義DS Ch5 ライブラリの利用</a></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item"><div class="toc-row"><span class="toc-toggle">▾</span><a href="slds6.html">特別講義DS Ch6 データの取得と編集</a></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item"><div class="toc-row"><span class="toc-toggle">▾</span><a href="slds7.html">特別講義DS Ch7 アルゴリズムとPythonの基本構文</a></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item"><div class="toc-row"><span class="toc-toggle">▾</span><a href="slds8.html">特別講義DS Ch8 データの可視化</a></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item"><div class="toc-row"><span class="toc-toggle">▾</span><a href="slds9.html">特別講義DS Ch9 データの数値化</a></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item draft"><div class="toc-row"><span class="toc-toggle">▾</span><span class="draft-title">特別講義DS Ch10 検定</span> <span class="badge badge-draft">準備中</span></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item"><div class="toc-row"><span class="toc-toggle">▾</span><a href="slds11.html">特別講義DS Ch11 線形回帰分析</a></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item"><div class="toc-row"><span class="toc-toggle">▾</span><a href="slds12.html">特別講義DS Ch12 一般化線形モデル</a></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item"><div class="toc-row"><span class="toc-toggle">▾</span><a href="slds13.html">特別講義DS Ch13 機械学習</a></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item"><div class="toc-row"><span class="toc-toggle">▾</span><a href="slds14.html">特別講義DS Ch14 ニューラルネットワーク(画像認識)</a></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item"><div class="toc-row"><span class="toc-toggle">▾</span><a href="slds15.html">特別講義DS Ch15 自然言語処理</a></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item"><div class="toc-row"><span class="toc-toggle">▾</span><a href="slds16.html">特別講義DS Ch16 カテゴリーデータ処理</a></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item draft"><div class="toc-row"><span class="toc-toggle">▾</span><span class="draft-title">特別講義DS Ch17 時系列分析(執筆中)</span> <span class="badge badge-draft">準備中</span></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item current"><div class="toc-row"><span class="toc-toggle">▾</span><a href="slds_a1.html">特別講義DS 補足A EDINET APIによる財務データの取得と回帰分析</a></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item"><div class="toc-row"><span class="toc-toggle">▾</span><a href="slds_b1.html">特別講義DS 補足B X(Twitter) APIによるデータの取得</a></div><ul class="toc-sublist"></ul></li></ul>
+      </div>
+      
+      
+    </nav>
+
+    <div id="content">
+    <article>
+<header class="article-header">
+    <span class="category-badge">Lecture</span>
+    <h1 class="article-title">特別講義DS 補足A EDINET APIによる財務データの取得と回帰分析</h1>
+    <p class="article-description">資料</p>
+    <div class="article-meta">
+        <span class="meta-item">公開: 2026-06-12</span>
+        <span class="meta-item">更新: 2026-06-12</span>
+    </div>
+    <div class="tag-chips"><a title="All pages tagged 'datascience'." href="../tags/datascience.html" rel="tag">datascience</a>, <a title="All pages tagged 'statistics'." href="../tags/statistics.html" rel="tag">statistics</a>, <a title="All pages tagged 'python'." href="../tags/python.html" rel="tag">python</a></div>
+</header>
+
+<!-- 上部: カード型の章ナビゲーション -->
+<nav class="chapter-nav-card">
+    
+        <a class="prev" href="slds17.html">
+            <span class="nav-label">← Previous</span>
+            <span class="nav-title">特別講義DS Ch17 時系列分析(執筆中)</span>
+        </a>
+    
+    
+        <a class="next" href="slds_b1.html">
+            <span class="nav-label">Next →</span>
+            <span class="nav-title">特別講義DS 補足B X(Twitter) APIによるデータの取得</span>
+        </a>
+    
+</nav>
+
+<p>本資料は章番号外の補足資料です. 国の開示システム <strong>EDINET</strong> の API を利用して上場企業の有価証券報告書データを取得し, 整形・他データとの結合を経て, 回帰分析に使える時系列データ (企業 × 年度のパネルデータ) を作るまでの一連の流れを扱います.</p>
+<p>本資料の元になったのは, 本講義の受講生であるピエレット・フィリップさんが研究で作成した一連のコードです. この研究は <strong><a href="../slds_papers.html#2026_ピエレット">「日本企業のESGスコアと企業財務の関係性に関する実証分析」</a></strong> (ピエレット・赤木・江草, 2026) として論文にまとめられており, FTSE Russell の ESG スコアと EDINET から取得した財務指標を統合し, ESG スコアが財務パフォーマンスに与える影響を重回帰分析で検証しています (ESG スコアは ROA に正, 総資産回転率・売上高経常利益率に負の影響を持つ一方, PBR などの市場評価指標とは有意な関係が見られない, という結果が得られています). 論文本体と発表資料は <a href="../slds_papers.html#2026_ピエレット">Ch2 でも紹介している過去の研究事例のページ</a> で閲覧できます.</p>
+<p>研究で実際に使われたコードは「動かしながら育てた」ものなので, そのまま他の人が使うには難しい箇所がいくつもありました. 本資料ではコードを整理・改善した版を解説します. 元のコードにあった問題点は <a href="#元コードから学ぶ-よくある落とし穴">最後の節</a> にまとめてあり, <strong>自分の研究コードを書くときに同じ穴を避ける</strong>ための教材になっています.</p>
+<p>関連する章・補足:</p>
+<ul>
+<li><a href="slds6.html">Ch6 データの取得と編集</a> — 政府統計などのデータソース一覧. EDINET もデータソースの 1 つとしてここで触れられています.</li>
+<li><a href="slds11.html">Ch11 線形回帰分析</a> — 本資料の最終地点である回帰分析の手法的な説明.</li>
+<li><a href="slds_b1.html">補足B X(Twitter) APIによるデータの取得</a> — API を利用したデータ取得のもう 1 つの事例. 取得したデータの分析は <a href="slds15.html">Ch15 自然言語処理</a> で扱っています.</li>
+</ul>
+<h2 id="apiとは">APIとは</h2>
+<p>本補足を含む補足資料シリーズでは, <code>API</code> を利用した外部データの取得を扱います. まず API そのものについて簡単に説明します (既に知っている人は次の節へ).</p>
+<div class="note">
+<p><code>API（Application Programming Interface）</code>とは,ソフトウェア同士がデータや機能をやりとりするための「窓口」のようなものです.開発者はAPIを通じて,他のサービスやアプリケーションの機能を利用できるため,複雑な処理を簡単に実行したり,他のサービスと連携することができます.</p>
+<p>APIの利用に関わる主な通信技術には, <code>HTTP/HTTPSプロトコル</code>, <code>REST（Representational State Transfer）</code>, <code>SOAP（Simple Object Access Protocol）</code>,および<code>WebSocket</code>などがあり,それぞれ異なる目的や特徴を持っています.</p>
+</div>
+<p>本補足で扱う EDINET API も, 補足Bで扱う X API も, <code>REST</code> というアーキテクチャで提供されています. その概要は以下のとおりです.</p>
+<div class="note">
+<ul>
+<li><code>HTTP/HTTPSプロトコル</code></li>
+</ul>
+<p>APIの通信は通常,ウェブブラウザと同様にHTTPやHTTPSプロトコルを使って行われます.HTTPSは通信を暗号化し,セキュリティを確保するため,多くのAPIで推奨されます.</p>
+<ul>
+<li><code>REST（Representational State Transfer）</code></li>
+</ul>
+<p>RESTは,HTTPを利用してリソース（データや機能）にアクセスするための設計原則で,最も広く使われるAPI通信の形式です.REST APIでは,<code>GET</code>,<code>POST</code>,<code>PUT</code>,<code>DELETE</code>などのHTTPメソッドを使ってデータを取得,作成,更新,削除します.シンプルかつ軽量なため,モバイルアプリやWebサービスでの利用に適しています.</p>
+<ul>
+<li><code>GET</code></li>
+</ul>
+<p>概要: リソース（データ）の取得に使用される.</p>
+<p>例: ユーザー情報を取得する場合,GET /users/123のように送信すると,ユーザーIDが123のデータが返されます.</p>
+<p>特徴: サーバー上のデータを変更しない「読み取り専用」操作.</p>
+<ul>
+<li><code>POST</code></li>
+</ul>
+<p>概要: 新しいリソースを作成するために使用される.</p>
+<p>例: 新しい記事を投稿する場合,POST /articlesで記事データをサーバーに送信すると,新しい記事が作成されます.</p>
+<p>特徴: サーバーにデータを送信して新しいエントリを追加する操作.</p>
+<ul>
+<li><code>PUT</code></li>
+</ul>
+<p>概要: 既存のリソースを更新するために使用される.</p>
+<p>例: 記事の内容を変更する場合,PUT /articles/456で新しいデータを送信し,記事ID456の内容を更新します.</p>
+<p>特徴: 指定されたリソース全体を置き換える操作.</p>
+<ul>
+<li><code>DELETE</code></li>
+</ul>
+<p>概要: リソースの削除に使用される.</p>
+<p>例: 記事を削除する場合,DELETE /articles/456を実行すると,記事ID456が削除されます.</p>
+<p>特徴: サーバーからリソースを取り除く操作.</p>
+</div>
+<p>REST APIでデータをやりとりする際のデータ形式として,<strong><code>JSON（JavaScript Object Notation）</code></strong>が一般的に使用されます.JSONはシンプルで軽量なテキスト形式で,読みやすく,プログラミング言語間の互換性も高いため,多くのAPIで標準的なフォーマットとして採用されています (<a href="slds7.html">Ch7 のJSONの節</a>も参照).</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;id&quot;</span><span class="fu">:</span> <span class="dv">123</span><span class="fu">,</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;John Doe&quot;</span><span class="fu">,</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;email&quot;</span><span class="fu">:</span> <span class="st">&quot;johndoe@example.com&quot;</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>データの取得 (本補足と補足Bの範囲) では, このうち <code>GET</code> メソッドだけを使います.</p>
+<h2 id="edinetとは">EDINETとは</h2>
+<p><a href="https://disclosure2.edinet-fsa.go.jp/">EDINET</a> (Electronic Disclosure for Investors’ NETwork) は, 金融庁が運営する有価証券報告書等の開示書類の電子開示システムです. 上場企業は事業年度ごとに<strong>有価証券報告書</strong>の提出が義務付けられており, そこには売上高・利益・資産などの財務情報が, <strong>XBRL</strong> という機械可読な形式で含まれています.</p>
+<p>研究データとしての EDINET の利点は次の通りです.</p>
+<ul>
+<li><strong>無料・網羅的</strong>: 全上場企業の法定開示書類が誰でも取得できます.</li>
+<li><strong>機械可読</strong>: 各数値に「どの項目か (要素 ID)」「どの期間か」「連結か個別か」のタグが付いており, プログラムで処理できます.</li>
+<li><strong>API がある</strong>: Web 画面を 1 社ずつ開かなくても, プログラムから一括取得できます.</li>
+</ul>
+<p>一方で, 取得したデータは<strong>そのままでは分析に使えません</strong>. 報告書は「提出日」単位で並んでおり, 項目名は企業や年度によって揺れ, 1 つの報告書に過年度の値も混ざっています. 本資料の大部分は, この「取得したデータを分析可能な形に整える」作業の解説です. 実際の研究でも, データの取得・整形はしばしば分析そのものより時間がかかります.</p>
+<h3 id="xbrlの概要と構造">XBRLの概要と構造</h3>
+<p>EDINET の開示書類の機械可読部分は <strong>XBRL (eXtensible Business Reporting Language)</strong> という形式で提出されています. XBRL は財務報告のための XML ベースの国際標準で, 「売上高 1,234 億円」のような値の 1 つ 1 つに「何の項目か」「どの期間か」「どの単位か」のタグを付けて表現します. 構造は大きく 2 つの部品からできています.</p>
+<ul>
+<li><strong>タクソノミ (taxonomy)</strong>: 項目 (要素) の定義辞書. 「売上高」「総資産」のような勘定科目等が<strong>要素 (element)</strong> として定義され, 名前空間付きの ID (例: <code>jpcrp_cor:NetSalesSummaryOfBusinessResults</code>) を持ちます. EDINET では金融庁が定める EDINET タクソノミが使われ, 毎年更新されます.</li>
+<li><strong>インスタンス (instance)</strong>: 実際の報告値の集まり. 個々の値 (<strong>fact</strong>) は, タクソノミの要素への参照に加えて, <strong>コンテキスト (context)</strong> (どの期間か・連結か個別か等) と<strong>単位 (unit)</strong> (円, 株など) への参照を持ちます.</li>
+</ul>
+<p>つまり XBRL は「値の表」ではなく「タグ付きの値の集合」であり, 同じ「売上高」でも当期/前期, 連結/個別でコンテキストが異なる別の fact になります. 後述する CSV の「要素ID」列はタクソノミの要素に, 「コンテキストID」「相対年度」「連結・個別」列はインスタンスのコンテキストに対応しており, <strong>EDINET の CSV は XBRL を 1 行 1 fact の表に展開したもの</strong>です. 本資料の整形作業で「重複の解決」が必要になるのは, この XBRL の構造 (同一項目に複数コンテキスト) に由来します.</p>
+<h4 id="xbrlを直接取得パースする場合">XBRLを直接取得・パースする場合</h4>
+<p>本資料のパイプラインは EDINET が XBRL から変換して提供する CSV (書類取得 API の <code>type=5</code>) を使うため, XBRL を直接パースする必要はありません. ただし, CSV が提供されない書類 (古い書類や一部の様式) を扱う場合や, 注記・表構造などの詳細情報が必要な場合は, <code>type=1</code> で XBRL 一式 (zip) を取得して直接読むことになります.</p>
+<p>XBRL は XML なので, 最小限なら Python 標準ライブラリの <code>xml.etree.ElementTree</code> で読めます. zip 内の <code>XBRL/PublicDoc/</code> にあるインスタンスファイル (拡張子 <code>.xbrl</code>) から, 特定の要素の fact を取り出す概念例です.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> xml.etree.ElementTree <span class="im">as</span> ET</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co"># 書類取得 API (type=1) の zip 内 XBRL/PublicDoc/*.xbrl を展開したファイル</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>tree <span class="op">=</span> ET.parse(<span class="st">&quot;jpcrp030000-asr-001_XXXXXX.xbrl&quot;</span>)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co"># 名前空間 URL はタクソノミの年度版によって変わる点に注意</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co"># (インスタンスファイル冒頭の xmlns: 宣言で確認できる)</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>ns <span class="op">=</span> {<span class="st">&quot;jpcrp_cor&quot;</span>:</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>      <span class="st">&quot;https://disclosure.edinet-fsa.go.jp/taxonomy/jpcrp/2025-03-31/jpcrp_cor&quot;</span>}</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> fact <span class="kw">in</span> tree.getroot().findall(<span class="st">&quot;jpcrp_cor:NetSalesSummaryOfBusinessResults&quot;</span>, ns):</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(fact.get(<span class="st">&quot;contextRef&quot;</span>), fact.get(<span class="st">&quot;unitRef&quot;</span>), fact.text)</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="co"># CurrentYearDuration JPY 123456789000  のように, コンテキスト・単位つきで値が取れる</span></span></code></pre></div>
+<p>本格的に XBRL を扱う場合は, タクソノミの解決や検証まで行う OSS の XBRL プロセッサ <a href="https://arelle.org/">Arelle</a> が標準的なツールです (GUI と Python API の両方があります). いずれにせよ, 「要素 × コンテキスト × 単位で値が特定される」という上記の構造を理解していれば, CSV 経由でも XBRL 直接でも同じデータを読んでいることが分かるはずです.</p>
+<h2 id="apiキーの取得">APIキーの取得</h2>
+<p>EDINET API (v2) の利用には <strong>API キー</strong> (Subscription-Key) が必要です. キーは EDINET のサイトで誰でも無料で取得できます. 手順の詳細と最新情報は公式資料を参照してください.</p>
+<ul>
+<li><a href="https://disclosure2.edinet-fsa.go.jp/WEEK0010.aspx">EDINET 書類検索 (閲覧サイト)</a> — APIで取得する書類をブラウザで検索・閲覧できるページ. どんなデータが取れるのかをまずここで確認してみましょう.</li>
+<li><a href="https://disclosure2dl.edinet-fsa.go.jp/guide/static/disclosure/WZEK0110.html">EDINET API 関連資料</a> — 仕様書・利用規約の置き場</li>
+<li>EDINET API 仕様書 (Version 2) — 上記ページから PDF をダウンロード</li>
+</ul>
+<p>手順は次の通りです (EDINET API 仕様書 Version 2 の「2-3 アカウントの作成と API キーの発行について」に基づく).</p>
+<p><strong>手順1: サインイン画面の表示</strong></p>
+<p><a href="https://disclosure2.edinet-fsa.go.jp/WEEK0010.aspx">EDINET の閲覧サイト</a>に接続し, 「EDINET APIの利用登録はこちらから」の「ログイン」ボタンをクリックします.</p>
+<p><img src="../images/slds/a1/edinet-api-login.png" /></p>
+<p><strong>手順2: サインアップ画面の表示</strong></p>
+<p>サインイン画面が表示されます. アカウントをまだ持っていないので, 下部の「今すぐサインアップ」のリンクをクリックします (2 回目以降はこの画面からサインインします).</p>
+<p><img src="../images/slds/a1/edinet-signin.png" /></p>
+<p><strong>手順3: 確認コードの送信</strong></p>
+<p>サインアップ画面 (ユーザーの詳細) で, 最上部の入力欄にメールアドレスを入力し, 「ボットを倒すお手伝いをします」の下に表示された画像認証の文字を二番目の入力欄に入力して, 「確認コードを送信」をクリックします. 入力したメールアドレスに確認コードが記載されたメールが届きます.</p>
+<p><img src="../images/slds/a1/edinet-signup.png" /></p>
+<div class="warn">
+<p>確認コードのメールは <code>@microsoftonline.com</code> のアドレスから届きます (EDINET の認証基盤は Microsoft のサービスを利用しています). 届かない場合は迷惑メールフォルダを確認してください. 大学のメールアドレスでフィルタが厳しい場合は, 受信許可設定が必要なことがあります.</p>
+</div>
+<p><strong>手順4: コードの確認とアカウントの作成</strong></p>
+<p>メールで受信した確認コードを入力欄に入力し「コードの確認」をクリックします. その後, 同じ画面でパスワードを 2 回入力して「作成」をクリックするとアカウントが作成されます. パスワードは <strong>12 文字以上</strong>で, 英数字と記号が使えます.</p>
+<p><strong>手順5: 多要素認証 (電話番号の登録)</strong></p>
+<p>アカウント作成後, 多要素認証画面が表示されます. 国コード (日本: Japan +81) を選び電話番号を入力して, SMS で届く確認コードを入力します (音声通話による確認も選べます). 電話番号は<strong>ハイフンや空白の区切り文字を含めず</strong>に入力してください (例: <code>09012345678</code>).</p>
+<p><strong>手順6: APIキーの発行</strong></p>
+<p>多要素認証でのサインイン後に API キー発行画面が表示されます. 連絡先 (所属・氏名・電話番号) を入力して「連絡先登録」をクリックし, 確認メッセージで「OK」を押すと, <strong>API キーが画面に表示されます</strong>.</p>
+<p><img src="../images/slds/a1/edinet-apikey-issue.png" /></p>
+<p>::: warn
+<strong>API キー発行画面はポップアップで開きます</strong>. ブラウザのポップアップブロックが有効だと発行画面が開かず, <strong>白い画面しか表示されない</strong>ことがあります. その場合は EDINET のサイトをポップアップ許可サイトに追加してください. 許可の設定方法はブラウザ (Edge / Chrome / Safari など) によって異なります — EDINET API 仕様書 (Version 2) の「2-2 ポップアップ許可サイトへの追加」に手順が記載されているので, そちらを参照してください (一度許可すれば以後の発行・削除画面は継続して利用できます).
+::: このキーをコピーして安全な場所に保存してください. 以後の API リクエストでこのキーを使います (初回に発行したキーを継続して利用できます. 再表示はサインインし直せば可能です).</p>
+<div class="note">
+<ul>
+<li><h3 id="apiキーの管理">APIキーの管理</h3></li>
+</ul>
+<p>API キーは<strong>パスワードと同じ扱い</strong>をしてください. 以下は必ず守ること.</p>
+<ul>
+<li>ソースコードに直接書き込まない (書いた場合, そのファイルを提出・共有・公開した時点でキーが漏洩します).</li>
+<li>本資料のコードでは環境変数 <code>EDINET_API_KEY</code> から読み込む形にしています. ターミナルで <code>export EDINET_API_KEY=&lt;自分のキー&gt;</code> を実行してからスクリプトを動かしてください.</li>
+<li>万一キーを共有してしまった場合は, EDINET のページからキーを再発行してください.</li>
+</ul>
+</div>
+<h2 id="全体の流れ">全体の流れ</h2>
+<p>本資料のパイプラインは 6 つのスクリプトで構成されます. 各スクリプトは前の出力 (CSV) を読んで次の CSV を作る, という一本道です. コードは <a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_code/edinet/">配布ページ</a> からまとめてダウンロードできます.</p>
+<table>
+<thead>
+<tr class="header">
+<th>順</th>
+<th>スクリプト</th>
+<th>入力 → 出力</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td><code>fetch_documents.py</code></td>
+<td>EDINET API → 書類の索引 + CSV zip</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td><code>build_financial_table.py</code></td>
+<td>zip 群 → 企業 × 年度の財務表</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td><code>compute_indicators.py</code></td>
+<td>財務表 → 財務指標 (ROA など)</td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td><code>fetch_prices.py</code></td>
+<td>索引 + Yahoo Finance → 株価</td>
+</tr>
+<tr class="odd">
+<td>5</td>
+<td><code>merge_all.py</code></td>
+<td>指標 + 株価 + 業種 + (任意) ESG → 分析用データ</td>
+</tr>
+<tr class="even">
+<td>6</td>
+<td><code>regression.py</code></td>
+<td>分析用データ → 可視化と回帰結果</td>
+</tr>
+</tbody>
+</table>
+<p>必要なライブラリは次の通りです.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> add requests pandas yfinance statsmodels seaborn japanize-matplotlib</span></code></pre></div>
+<h2 id="書類の取得">書類の取得</h2>
+<h3 id="書類一覧api">書類一覧API</h3>
+<p>EDINET API には大きく 2 つのエンドポイントがあります.</p>
+<ul>
+<li><strong>書類一覧 API</strong> <code>documents.json</code> — 指定した<strong>提出日</strong>に提出された書類のメタデータ一覧を返す.</li>
+<li><strong>書類取得 API</strong> <code>documents/&lt;docID&gt;</code> — 書類 ID を指定して書類本体 (zip) を取得する. <code>type=5</code> で CSV 形式が得られます.</li>
+</ul>
+<p>注意すべきは, 一覧が「企業」単位ではなく<strong>「提出日」単位</strong>であることです. 「この企業の報告書がほしい」ではなく「この期間に提出された報告書を全部見て, 必要なものを選ぶ」という発想で書きます. 有価証券報告書 (内国会社) は, メタデータの様式コード (<code>ordinanceCode == "010"</code> かつ <code>formCode == "030000"</code>) で識別できます.</p>
+<h3 id="取得スクリプト">取得スクリプト</h3>
+<p><a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_code/edinet/fetch_documents.py"><code>fetch_documents.py</code></a> の主要部を見てみましょう.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>API_KEY <span class="op">=</span> os.environ.get(<span class="st">&quot;EDINET_API_KEY&quot;</span>, <span class="st">&quot;&quot;</span>)  <span class="co"># 各自取得したキーを設定する</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>BASE_URL <span class="op">=</span> <span class="st">&quot;https://api.edinet-fsa.go.jp/api/v2&quot;</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fetch_document_list(day: datetime.date) <span class="op">-&gt;</span> <span class="bu">list</span>[<span class="bu">dict</span>]:</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;書類一覧 API (type=2) で 1 日分の提出書類メタデータを取得する.&quot;&quot;&quot;</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    resp <span class="op">=</span> requests.get(</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f&quot;</span><span class="sc">{</span>BASE_URL<span class="sc">}</span><span class="ss">/documents.json&quot;</span>,</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>        params<span class="op">=</span>{</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;date&quot;</span>: day.isoformat(),</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;type&quot;</span>: <span class="dv">2</span>,  <span class="co"># 2 = 提出書類一覧およびメタデータ</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;Subscription-Key&quot;</span>: API_KEY,</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>        },</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>        timeout<span class="op">=</span><span class="dv">30</span>,</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    resp.raise_for_status()</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> resp.json().get(<span class="st">&quot;results&quot;</span>, [])</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> is_annual_securities_report(doc: <span class="bu">dict</span>) <span class="op">-&gt;</span> <span class="bu">bool</span>:</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;有価証券報告書 (内国会社) かどうかを様式コードで判定する.&quot;&quot;&quot;</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>        doc.get(<span class="st">&quot;ordinanceCode&quot;</span>) <span class="op">==</span> <span class="st">&quot;010&quot;</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>        <span class="kw">and</span> doc.get(<span class="st">&quot;formCode&quot;</span>) <span class="op">==</span> <span class="st">&quot;030000&quot;</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>        <span class="kw">and</span> doc.get(<span class="st">&quot;csvFlag&quot;</span>) <span class="op">==</span> <span class="st">&quot;1&quot;</span>  <span class="co"># CSV が提供されている書類のみ</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> download_csv_zip(doc_id: <span class="bu">str</span>, dest: Path) <span class="op">-&gt;</span> <span class="bu">bool</span>:</span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;書類取得 API (type=5) で CSV 一式の zip を保存する.&quot;&quot;&quot;</span></span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>    resp <span class="op">=</span> requests.get(</span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f&quot;</span><span class="sc">{</span>BASE_URL<span class="sc">}</span><span class="ss">/documents/</span><span class="sc">{</span>doc_id<span class="sc">}</span><span class="ss">&quot;</span>,</span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>        params<span class="op">=</span>{<span class="st">&quot;type&quot;</span>: <span class="dv">5</span>, <span class="st">&quot;Subscription-Key&quot;</span>: API_KEY},  <span class="co"># 5 = CSV</span></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>        timeout<span class="op">=</span><span class="dv">60</span>,</span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> resp.status_code <span class="op">!=</span> <span class="dv">200</span>:</span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">False</span></span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a>    dest.write_bytes(resp.content)</span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="va">True</span></span></code></pre></div>
+<p>このスクリプトの一番重要な設計は, zip と同時に<strong>書類の索引 (<code>documents_index.csv</code>) を保存する</strong>ことです.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>index_rows.append({</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;docID&quot;</span>: doc_id,</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;edinetCode&quot;</span>: doc.get(<span class="st">&quot;edinetCode&quot;</span>),</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;secCode&quot;</span>: doc.get(<span class="st">&quot;secCode&quot;</span>),       <span class="co"># 証券コード (5 桁) - 以後の結合キー</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;filerName&quot;</span>: doc.get(<span class="st">&quot;filerName&quot;</span>),</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;periodEnd&quot;</span>: doc.get(<span class="st">&quot;periodEnd&quot;</span>),   <span class="co"># 決算期末 - 株価の参照日に使う</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>    ...</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>})</span></code></pre></div>
+<p>メタデータには<strong>証券コード</strong> (<code>secCode</code>) と<strong>決算期末</strong> (<code>periodEnd</code>) が含まれています. この 2 つを最初に確保しておくと, 後の工程 (株価との結合, 業種との結合) がすべて「コードによる正確な結合」になります. 後述しますが, ここで企業名しか保存しないと, 後段のすべての結合が「文字列のあいまい一致」になり, パイプライン全体が脆くなります.</p>
+<div class="note">
+<ul>
+<li><h3 id="サーバへの配慮">サーバへの配慮</h3></li>
+</ul>
+<p>API は便利ですが, 相手のサーバに負荷をかける行為でもあります. 取得期間は必要な範囲に絞り, リクエストの間に <code>time.sleep()</code> を入れ, 一度取得したファイルは再取得しない (スクリプトでは取得済み zip をスキップしています) ようにしましょう. 利用規約も必ず確認してください.</p>
+</div>
+<h2 id="csvの構造と整形">CSVの構造と整形</h2>
+<h3 id="edinetのcsvを読む">EDINETのCSVを読む</h3>
+<p>取得した zip には複数の CSV が入っています. 報告書本体はファイル名に <code>jpcrp030000-asr</code> を含む CSV です. この CSV は<strong>カンマ区切りではなく, UTF-16 エンコーディングのタブ区切り</strong>という珍しい形式なので, 読み込み時に明示的に指定します.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> read_edinet_csv(raw: <span class="bu">bytes</span>) <span class="op">-&gt;</span> pd.DataFrame:</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;EDINET の CSV (UTF-16LE, タブ区切り) を読み込む.&quot;&quot;&quot;</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> pd.read_csv(io.BytesIO(raw), encoding<span class="op">=</span><span class="st">&quot;utf-16&quot;</span>, sep<span class="op">=</span><span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, quotechar<span class="op">=</span><span class="st">'&quot;'</span>)</span></code></pre></div>
+<p>中身は「1 行 = 1 つの値」の縦持ちデータで, 主な列は次の通りです.</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>列</th>
+<th>意味</th>
+<th>例</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>要素ID</td>
+<td>XBRL タクソノミ上の項目 ID</td>
+<td><code>jpcrp_cor:NetSalesSummaryOfBusinessResults</code></td>
+</tr>
+<tr class="even">
+<td>項目名</td>
+<td>項目の日本語名</td>
+<td>売上高、経営指標等</td>
+</tr>
+<tr class="odd">
+<td>相対年度</td>
+<td>この値がどの期のものか</td>
+<td>当期, 前期, 前々期 …</td>
+</tr>
+<tr class="even">
+<td>連結・個別</td>
+<td>連結財務諸表か個別か</td>
+<td>連結 / 個別</td>
+</tr>
+<tr class="odd">
+<td>値</td>
+<td>値そのもの (文字列)</td>
+<td><code>1234567</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="つの落とし穴と対処">3つの落とし穴と対処</h3>
+<p>この構造には, 分析表を作るときに必ず対処が必要な性質が 3 つあります.</p>
+<p><strong>(1) 1 つの報告書に複数年度の値が入っている.</strong> 有価証券報告書には当期だけでなく過年度 (最大 5 期分) の値が併記されています. 「相対年度」を決算期末の年と組み合わせて<strong>絶対年度</strong>に変換します.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>RELATIVE_MAP <span class="op">=</span> {<span class="st">&quot;当期&quot;</span>: <span class="dv">0</span>, <span class="st">&quot;前期&quot;</span>: <span class="op">-</span><span class="dv">1</span>, <span class="st">&quot;前々期&quot;</span>: <span class="op">-</span><span class="dv">2</span>, ...}</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>base_year <span class="op">=</span> pd.Timestamp(meta[<span class="st">&quot;periodEnd&quot;</span>]).year</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>offset <span class="op">=</span> df[<span class="st">&quot;相対年度&quot;</span>].<span class="bu">map</span>(RELATIVE_MAP)</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>df[<span class="st">&quot;年度&quot;</span>] <span class="op">=</span> base_year <span class="op">+</span> offset.astype(<span class="bu">int</span>)</span></code></pre></div>
+<p><strong>(2) 同じ項目 × 年度に複数の行がある.</strong> 連結と個別, 複数のコンテキスト (報告枠) で同じ項目が重複します. 「連結を優先し, 同じならより新しい報告のコンテキストを優先する」というルールで 1 行に絞ります.</p>
+<p><strong>(3) 欠損は欠損のまま残す.</strong> 元のコードには欠損や <code>-</code> を 0 に置き換える処理がありましたが, これは危険です. 「売上が報告されていない」と「売上が 0 円」は全く違う状態であり, 0 に置換すると平均や回帰係数が静かに歪みます. <strong>欠損は NaN のまま運び, 落とすかどうかは分析の直前に変数単位で判断する</strong>のが原則です.</p>
+<p>整形の全体は <a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_code/edinet/build_financial_table.py"><code>build_financial_table.py</code></a> を参照してください. 最終的に <code>pivot_table</code> で「1 行 = 1 企業 1 年度, 列 = 項目」の wide 形式にします.</p>
+<h2 id="財務指標の計算">財務指標の計算</h2>
+<h3 id="項目名の揺れとcoalesce">項目名の揺れとcoalesce</h3>
+<p>wide 化した表の列名 (EDINET の項目名) は, 企業の会計基準 (日本基準 / IFRS) や年度によって揺れます. 例えば「当期純利益」は <code>当期純利益又は当期純損失（△）（平成26年3月28日財規等改正後）</code> と <code>当期純利益又は当期純損失（△）、経営指標等</code> の少なくとも 2 通りの列に現れます. これに対しては, <strong>候補列を優先順に並べて最初の非欠損値を採用する</strong> (SQL でいう coalesce) のが見通しの良い書き方です.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>COALESCE <span class="op">=</span> {</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;当期純利益&quot;</span>: [</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;当期純利益又は当期純損失（△）（平成26年3月28日財規等改正後）&quot;</span>,</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;当期純利益又は当期純損失（△）、経営指標等&quot;</span>,</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    ],</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;総資産&quot;</span>: [<span class="st">&quot;総資産額、経営指標等&quot;</span>],</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;純資産&quot;</span>: [<span class="st">&quot;純資産額、経営指標等&quot;</span>],</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;売上高&quot;</span>: [<span class="st">&quot;売上高、経営指標等&quot;</span>],</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    ...</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalesce(df: pd.DataFrame, candidates: <span class="bu">list</span>[<span class="bu">str</span>]) <span class="op">-&gt;</span> pd.Series:</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;候補列を先頭から順に見て, 最初の非欠損値を採用した Series を返す.&quot;&quot;&quot;</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    result <span class="op">=</span> pd.Series(np.nan, index<span class="op">=</span>df.index, dtype<span class="op">=</span><span class="bu">float</span>)</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> col <span class="kw">in</span> candidates:</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> col <span class="kw">in</span> df.columns:</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>            result <span class="op">=</span> result.fillna(pd.to_numeric(df[col], errors<span class="op">=</span><span class="st">&quot;coerce&quot;</span>))</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> result</span></code></pre></div>
+<h3 id="指標の定義">指標の定義</h3>
+<p>分析に使う指標は, 会計学の標準的な定義どおりに計算します.</p>
+<p><span class="math display">
+\begin{align*}
+\text{ROA} &amp;= \frac{\text{当期純利益}}{\text{総資産}} \times 100 \\
+\text{売上高総利益率} &amp;= \frac{\text{売上総利益}}{\text{売上高}} \times 100 \\
+\text{営業利益率} &amp;= \frac{\text{営業利益}}{\text{売上高}} \times 100 \\
+\text{売上高経常利益率} &amp;= \frac{\text{経常利益}}{\text{売上高}} \times 100 \\
+\text{総資産回転率} &amp;= \frac{\text{売上高}}{\text{総資産}} \\
+\text{自己資本比率} &amp;= \frac{\text{純資産}}{\text{総資産}} \times 100 \\
+\text{PBR} &amp;= \frac{\text{株価}}{\text{BPS (1株当たり純資産)}}
+\end{align*}
+</span></p>
+<p>経常利益が直接報告されていない場合は, 定義に従って補完します.</p>
+<p><span class="math display">
+\text{経常利益} = \text{営業利益} + \text{営業外収益} - \text{営業外費用}
+</span></p>
+<p>ここで 1 つ教訓があります. 元のコードではこの補完式が <code>営業外収益 - 営業外費用</code> となっており, <strong>営業利益が抜け落ちていました</strong>. また純資産の補完で <code>利益剰余金</code> と <code>繰越利益剰余金</code> (前者に含まれる) を<strong>両方足してしまう二重計上</strong>もありました. 財務指標を自分で計算するときは, 式を会計の定義に照らして 1 つずつ確認してください. プログラムは間違った式でも黙って動きます.</p>
+<p>なお, 厳密には自己資本比率の分子は純資産から新株予約権等を除いた「自己資本」ですが, ここでは簡略化して純資産を用いています (論文・レポートでは定義を明記すること).</p>
+<p>実装は <a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_code/edinet/compute_indicators.py"><code>compute_indicators.py</code></a> を参照してください.</p>
+<h2 id="株価の取得">株価の取得</h2>
+<p>株価は <code>yfinance</code> ライブラリ (Yahoo Finance) から取得します. ここでの設計ポイントは 2 つです.</p>
+<p><strong>(1) ティッカーは証券コードから機械的に作る.</strong> 東証上場銘柄の Yahoo Finance でのティッカーは「4 桁の証券コード + <code>.T</code>」(例: トヨタ自動車 7203 → <code>7203.T</code>) です. EDINET のメタデータで保存した <code>secCode</code> (5 桁, 末尾 0) から決定的に変換できます.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> to_ticker(sec_code: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span>:</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;EDINET の証券コード (5 桁, 末尾 0) を Yahoo Finance のティッカーに変換する.&quot;&quot;&quot;</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    code <span class="op">=</span> <span class="bu">str</span>(sec_code).strip().split(<span class="st">&quot;.&quot;</span>)[<span class="dv">0</span>]</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">len</span>(code) <span class="op">==</span> <span class="dv">5</span> <span class="kw">and</span> code.endswith(<span class="st">&quot;0&quot;</span>):</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>        code <span class="op">=</span> code[:<span class="dv">4</span>]</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">len</span>(code) <span class="op">!=</span> <span class="dv">4</span>:</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">None</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="ss">f&quot;</span><span class="sc">{</span>code<span class="sc">}</span><span class="ss">.T&quot;</span></span></code></pre></div>
+<p>元のコードは企業名で Yahoo の検索 API を叩いてティッカーを推定していましたが, 検索は<strong>同名・類似名の別会社に誤マッチする</strong>可能性があり, 検証も困難です. コードという一意な識別子があるなら, 名前による検索はそもそも不要です.</p>
+<p><strong>(2) 「期末日以前の直近営業日」の終値を使う.</strong> 元のコードは「3 月 31 日の株価」を固定で取っていましたが, 3 月 31 日は年によって土日 (市場休場日) であり, その年は株価が欠損 → 欠損処理で企業ごと消える, という事故が起きていました. さらに決算期末は企業によって 3 月とは限りません. そこで索引に保存した <code>periodEnd</code> (その企業の実際の決算期末) を使い, それ以前の直近営業日の終値を取ります.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> close_asof(prices: pd.DataFrame, date: pd.Timestamp) <span class="op">-&gt;</span> <span class="bu">float</span> <span class="op">|</span> <span class="va">None</span>:</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;date 以前の直近営業日の終値を返す (期末日が休日でも欠損しない).&quot;&quot;&quot;</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    upto <span class="op">=</span> prices.loc[prices.index <span class="op">&lt;=</span> date]</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> upto.empty:</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">None</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">float</span>(upto[<span class="st">&quot;Close&quot;</span>].iloc[<span class="op">-</span><span class="dv">1</span>])</span></code></pre></div>
+<p>実装は <a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_code/edinet/fetch_prices.py"><code>fetch_prices.py</code></a> を参照してください.</p>
+<h2 id="外部データとの結合">外部データとの結合</h2>
+<h3 id="結合キーは文字列ではなくコード">結合キーは文字列ではなくコード</h3>
+<p>ここまでで「財務指標」「株価」が揃いました. 分析にはさらに「業種分類」, 研究によっては「ESG スコア」のような外部データを<strong>結合 (merge)</strong> します. このパイプライン最大の教訓がここにあります.</p>
+<p>元のコードは, すべての結合を<strong>企業名の文字列</strong>で行っていました. 企業名には <code>株式会社</code> の有無, 全角/半角, 中黒の有無など無数の表記ゆれがあり, 元コードには表記ゆれを吸収する正規化関数が <strong>3 つのファイルに 3 種類</strong> 実装されていました. それでも一致しない企業は黙って脱落します. どの企業がなぜ落ちたかは, 後からはほとんど追跡できません.</p>
+<p>対して本資料のパイプラインでは, 取得時に確保した<strong>証券コード</strong>ですべてを結合します.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> normalize_sec_code(s: pd.Series) <span class="op">-&gt;</span> pd.Series:</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;証券コードを 4 桁の文字列に揃える (EDINET は 5 桁, JPX は 4 桁).&quot;&quot;&quot;</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    code <span class="op">=</span> s.astype(<span class="bu">str</span>).<span class="bu">str</span>.strip().<span class="bu">str</span>.split(<span class="st">&quot;.&quot;</span>).<span class="bu">str</span>[<span class="dv">0</span>]</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> code.where(code.<span class="bu">str</span>.<span class="bu">len</span>() <span class="op">!=</span> <span class="dv">5</span>, code.<span class="bu">str</span>[:<span class="dv">4</span>])</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> fin.merge(prices[[<span class="st">&quot;code4&quot;</span>, <span class="st">&quot;年度&quot;</span>, <span class="st">&quot;株価&quot;</span>]], on<span class="op">=</span>[<span class="st">&quot;code4&quot;</span>, <span class="st">&quot;年度&quot;</span>], how<span class="op">=</span><span class="st">&quot;left&quot;</span>)</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> df.merge(industry[[<span class="st">&quot;code4&quot;</span>, <span class="st">&quot;33業種区分&quot;</span>, <span class="st">&quot;産業大分類&quot;</span>]], on<span class="op">=</span><span class="st">&quot;code4&quot;</span>, how<span class="op">=</span><span class="st">&quot;left&quot;</span>)</span></code></pre></div>
+<p>一般化すると: <strong>複数のデータソースを突き合わせるときは, 最初の取得段階で共通の識別子 (コード) を確保し, 名前のような表示用文字列をキーにしない.</strong> 識別子が存在しないデータ同士を名前で結合せざるを得ない場合もありますが, その場合も「何件が一致しなかったか」を必ず数えて報告してください.</p>
+<h3 id="業種分類-jpx">業種分類 (JPX)</h3>
+<p>業種は東京証券取引所の <strong>33 業種区分</strong>を使います. JPX (日本取引所グループ) が公表する <a href="https://www.jpx.co.jp/markets/statistics-equities/misc/01.html">東証上場銘柄一覧</a> に証券コードと業種区分が含まれているので, ダウンロードして「コード」「33業種区分」の 2 列を <code>data/jpx_industry.csv</code> として保存してください. 33 業種のままでは業種あたりのサンプルが少なすぎるため, スクリプト内で 10 程度の大分類に集約しています (製造業系の 17 業種を「製造業」にまとめる, など).</p>
+<h3 id="esgスコア">ESGスコア</h3>
+<p>冒頭で紹介した研究では FTSE Russell の ESG スコアを用いていますが, これは<strong>商用データであり再配布できません</strong>. そのため本資料のコードでは ESG スコアを任意入力としています. <code>data/esg_scores.csv</code> (<code>secCode</code>, <code>年度</code>, <code>ESGスコア</code> の 3 列) を置けば自動で結合され, 無ければ ESG 抜きのデータが作られます.</p>
+<p>パイプラインを最後 (回帰分析) まで動かす練習用に, <strong>乱数で生成した合成 ESG スコア</strong>を配布します: <a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/a1/esg_scores_synthetic.csv">esg_scores_synthetic.csv</a> (全上場銘柄 × 2021-2025 年度, 一様乱数 1-5). ダウンロードして <code>data/esg_scores.csv</code> という名前で置いてください.</p>
+<div class="warn">
+<p>配布データが乱数なのは, 実データ (FTSE Russell) が商用で再配布できないためです. <strong>乱数スコアはどの財務指標とも無関係に作られている</strong>ので, これを使った分析結果に実質的な意味はありません (後述のとおり, 係数が 0 に近くなるのが正しい結果です). あくまでコードの動作確認用と理解してください. 研究で ESG スコアを使いたい場合は, 利用可能なデータソースと利用条件を必ず確認してください (大学で契約しているデータベースの有無は教員に相談).</p>
+</div>
+<p>実装は <a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_code/edinet/merge_all.py"><code>merge_all.py</code></a> を参照してください.</p>
+<h2 id="回帰分析">回帰分析</h2>
+<p>データが揃えば, あとは <a href="slds11.html">Ch11 線形回帰分析</a> で学んだ手法の適用です. 冒頭の研究と同様に「ESG スコアが財務指標に影響するか」を例にします. モデルは, 目的変数を ROA などの財務指標, 関心のある説明変数を ESG スコアとし, <strong>産業ダミーと年度ダミー</strong>で企業の属する産業・年ごとの効果を統制します (ダミー変数は <a href="slds11.html">Ch11</a> を参照).</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>X_num <span class="op">=</span> df[[<span class="st">&quot;ESGスコア&quot;</span>, <span class="st">&quot;自己資本比率&quot;</span>, <span class="st">&quot;売上高経常利益率&quot;</span>, <span class="st">&quot;資本生産性&quot;</span>]].astype(<span class="bu">float</span>)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>X_num <span class="op">=</span> (X_num <span class="op">-</span> X_num.mean()) <span class="op">/</span> X_num.std(ddof<span class="op">=</span><span class="dv">0</span>)   <span class="co"># 標準化 (係数の比較のため)</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>dummies <span class="op">=</span> pd.get_dummies(df[[<span class="st">&quot;産業大分類&quot;</span>, <span class="st">&quot;年度&quot;</span>]].astype(<span class="bu">str</span>),</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>                         drop_first<span class="op">=</span><span class="va">True</span>, dtype<span class="op">=</span><span class="bu">float</span>)</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> sm.add_constant(pd.concat([X_num, dummies], axis<span class="op">=</span><span class="dv">1</span>))</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> df[<span class="st">&quot;ROA (総資産利益率)&quot;</span>].astype(<span class="bu">float</span>)</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> sm.OLS(y, X).fit()</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model.summary())</span></code></pre></div>
+<h3 id="変数選択の注意">変数選択の注意</h3>
+<p>元のコードは「AIC で全組合せを探索 → 選ばれたモデルから p 値が 0.05 を超える変数をさらに除外して再推定」という 2 段階の変数選択をしていました. 後半の <strong>「p 値を見てから変数を選び直す」操作は統計的に問題があります</strong>. 同じデータで何度も検定を繰り返して良い結果を選ぶことになるため, 最終モデルの p 値は本来の意味を失います (多重検定の問題. <a href="slds10.html">Ch10 検定</a> も参照).</p>
+<p>実務的な指針としては:</p>
+<ul>
+<li>関心のある仮説 (ここでは「ESG スコアの効果」) に対応する変数は, 有意かどうかにかかわらずモデルに残して係数と信頼区間を報告する.</li>
+<li>モデル比較をするなら, <strong>比較する候補モデルを先に決めて</strong> AIC 等で比較する (例: 統制変数のみ vs + ESG スコア). 結果を見てから探索をやり直さない.</li>
+</ul>
+<p><a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_code/edinet/regression.py"><code>regression.py</code></a> では, 散布図行列・相関ヒートマップによる可視化と, この方針による回帰の実装例を示しています.</p>
+<h3 id="結果の解釈についての注意">結果の解釈についての注意</h3>
+<p>配布している合成 ESG スコアは乱数なので, <strong>この資料の手順をなぞった場合の回帰結果は実データの結果とは異なります</strong> (取得期間によっても変わります). 乱数スコアは財務指標と無関係に生成されているため, ESG スコアの係数は 0 に近く有意にならず, AIC も「統制変数のみ」のモデルが優位になるはずです — そうなれば「無関係な変数を無関係と判定できている」ということで, パイプラインは正しく動いています. <strong>実データ (FTSE Russell) による分析結果は冒頭で紹介した<a href="../slds_papers.html#2026_ピエレット">論文</a>を参照してください</strong> (ESG スコアが ROA に正, 総資産回転率・売上高経常利益率に負の影響, 市場評価指標とは有意な関係なし).</p>
+<h2 id="元コードから学ぶ-よくある落とし穴">元コードから学ぶ: よくある落とし穴</h2>
+<p>最後に, 元のコードにあった問題点を整理します. 先に強調しておくと, 元のコードは<strong>研究を最後まで走り切り, 論文という成果に到達した</strong>コードです. 以下は「動くコード」を「他人 (と将来の自分) が使えるコード」にするための差分であり, 研究を進めながら書くコードに同種の問題が生じるのはごく普通のことです. 自分のコードを見直すときのチェックリストとして使ってください.</p>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>#</th>
+<th>問題</th>
+<th>何が起きるか</th>
+<th>対処</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>1</td>
+<td>API キーをソースコードに直書き</td>
+<td>ファイルを共有・提出した時点でキーが漏洩</td>
+<td>環境変数から読む. キーの書かれたファイルは共有しない</td>
+</tr>
+<tr class="even">
+<td>2</td>
+<td>自分の PC の絶対パス (<code>C:\Users\...</code>) を直書き</td>
+<td>他人の環境で 1 行目から動かない</td>
+<td>スクリプトからの相対パス (<code>pathlib</code>) にする</td>
+</tr>
+<tr class="odd">
+<td>3</td>
+<td>企業名の文字列で結合</td>
+<td>表記ゆれで企業が黙って脱落. 正規化関数が増殖する</td>
+<td>取得時に証券コードを確保し, コードで結合する</td>
+</tr>
+<tr class="even">
+<td>4</td>
+<td>欠損・<code>-</code> を 0 に置換</td>
+<td>「報告なし」が「0 円」になり統計量が歪む</td>
+<td>欠損は NaN のまま運び, 分析直前に変数単位で処理</td>
+</tr>
+<tr class="odd">
+<td>5</td>
+<td><code>dropna(how="any")</code> で行を一括削除</td>
+<td>使わない列の欠損でもサンプルが消える</td>
+<td>分析に使う列だけを <code>subset</code> に指定して落とす</td>
+</tr>
+<tr class="even">
+<td>6</td>
+<td>固定日付 (3/31) の株価を取得</td>
+<td>期末日が休日の年に欠損 → 企業ごと脱落</td>
+<td>期末日以前の直近営業日を取る (asof)</td>
+</tr>
+<tr class="odd">
+<td>7</td>
+<td>会計式の誤り (経常利益の補完式, 純資産の二重計上)</td>
+<td>誤った指標で回帰しても<strong>エラーは出ない</strong></td>
+<td>定義式に照らして検算する. 既知の企業数社で値を公表値と突き合わせる</td>
+</tr>
+<tr class="even">
+<td>8</td>
+<td><code>except:</code> で例外を握り潰す</td>
+<td>失敗が「データが少ない」として現れ, 原因が消える</td>
+<td>想定する例外だけ捕まえ, 何が失敗したか出力する</td>
+</tr>
+<tr class="odd">
+<td>9</td>
+<td>p 値を見てからの変数選択</td>
+<td>多重検定により p 値が意味を失う</td>
+<td>仮説に対応する変数は残す. モデル比較は事前に設計</td>
+</tr>
+<tr class="even">
+<td>10</td>
+<td>実行順がファイル名から分からない 11 本のスクリプト</td>
+<td>数ヶ月後に自分でも再現できない</td>
+<td>番号や README で実行順を明示し, 中間ファイル名を揃える</td>
+</tr>
+</tbody>
+</table>
+<p>この表の 3, 4, 7 のような問題の共通点は, <strong>エラーにならずに結果だけが静かに変わる</strong>ことです. プログラムが動くことと分析が正しいことは別物であり, データ処理のコードでは「途中の件数を数えて表示する」「数社だけ手で検算する」といった地味な確認が最終的な分析の信頼性を支えます.</p>
+<h2 id="まとめ">まとめ</h2>
+<ul>
+<li>EDINET API を使うと, 全上場企業の財務データを機械可読な形で取得できます. API キーは各自で取得し, 環境変数で管理してください.</li>
+<li>取得したデータを分析に使うには, 相対年度の解決・重複の解決・項目名の揺れの吸収・外部データとの結合という整形作業が必要であり, ここに分析以上の時間がかかります.</li>
+<li>複数データソースの結合は, 名前ではなく<strong>識別子 (証券コード)</strong> で行うのが鉄則です.</li>
+<li>「動くコード」と「正しい分析」は別物です. 落とし穴の表をチェックリストとして, 自分の研究コードを見直してください.</li>
+</ul>
+<p>コード一式は <a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_code/edinet/">GitHub のリポジトリ</a> から取得できます. このパイプラインを出発点に, 自分の研究テーマに合わせた変数・データソースを足して活用してください.</p>
+
+<!-- 下部: カード型の章ナビゲーション -->
+<nav class="chapter-nav-card">
+    
+        <a class="prev" href="slds17.html">
+            <span class="nav-label">← Previous</span>
+            <span class="nav-title">特別講義DS Ch17 時系列分析(執筆中)</span>
+        </a>
+    
+    
+        <a class="next" href="slds_b1.html">
+            <span class="nav-label">Next →</span>
+            <span class="nav-title">特別講義DS 補足B X(Twitter) APIによるデータの取得</span>
+        </a>
+    
+</nav>
+</article>
+
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        &copy; yakagika. Site generated by
+        <a href="http://jaspervdj.be/hakyll">Hakyll</a>.
+    </div>
+</div>
+
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level;
+          switch (heading.tagName.toLowerCase()) {
+            case 'h2': level = 0; break;
+            case 'h3': level = 1; break;
+            case 'h4': level = 2; break;
+            default: return;
+          }
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          // Pandoc は `::: note` + 見出し の組み合わせを <section id="..." class="note">
+          // 内の <hN> として出力するため, 見出し自身に id が無い場合は
+          // 親 section の id を辿る.
+          var anchorId = heading.id;
+          if (!anchorId) {
+            var parentSection = heading.closest('section[id]');
+            if (parentSection) anchorId = parentSection.id;
+          }
+          anchor.href = '#' + anchorId;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+
+      // ----------------------------------------
+      // スクロールスパイ: 表示中の見出しを TOC でハイライト
+      // ----------------------------------------
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0 || typeof IntersectionObserver === 'undefined') return;
+
+      var idToTocItem = new Map();
+      headings.forEach(function(h) {
+        if (!h.id) return;
+        var link = tocContainer.querySelector('a[href="#' + CSS.escape(h.id) + '"]');
+        if (link) {
+          var li = link.closest('.toc-item') || link.closest('li');
+          if (li) idToTocItem.set(h.id, li);
+        }
+      });
+
+      var visible = new Set();
+      var lastActive = null;
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+
+        // ドキュメント順で最初に可視な見出しをアクティブに
+        var firstVisible = null;
+        for (var i = 0; i < headings.length; i++) {
+          if (visible.has(headings[i].id)) {
+            firstVisible = headings[i].id;
+            break;
+          }
+        }
+        if (!firstVisible) return;
+
+        var tocItem = idToTocItem.get(firstVisible);
+        if (!tocItem || tocItem === lastActive) return;
+
+        if (lastActive) lastActive.classList.remove('toc-active');
+        tocItem.classList.add('toc-active');
+        lastActive = tocItem;
+
+        // TOC を必要なときだけスクロール
+        tocItem.scrollIntoView({
+          block: 'nearest',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
+      }, {
+        // ヘッダー (60px) を除いた上部 〜 画面下から60% を判定領域とする
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0
+      });
+
+      headings.forEach(function(h) { if (h.id) observer.observe(h); });
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得
+      const pre = codeBlock.parentNode;
+
+      // <pre> を相対配置にし、子要素を絶対配置できるようにする
+      pre.style.position = 'relative';
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.textContent = 'Copy';
+      // ボタンのデザインはCSSで指定するのが望ましいが、簡易的にスタイルを直接指定する例:
+      copyButton.style.position = 'absolute';
+      copyButton.style.top = '8px';
+      copyButton.style.right = '8px';
+      copyButton.style.backgroundColor = '#add8e6'; // 水色
+      copyButton.style.color = '#fff';             // 白文字
+      copyButton.style.border = 'none';
+      copyButton.style.padding = '6px 10px';
+      copyButton.style.borderRadius = '4px';
+      copyButton.style.cursor = 'pointer';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    // パスワード保護付き details (回答例用)
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll('details.protected').forEach(function (det) {
+        var pass = det.getAttribute('data-pass') || '';
+        var summary = det.querySelector('summary');
+        if (!summary) return;
+
+        var gate = document.createElement('div');
+        gate.className = 'pass-gate';
+        gate.innerHTML =
+          '<label>合言葉: <input type="password" autocomplete="off" spellcheck="false"></label>' +
+          '<button type="button">解除</button>' +
+          '<span class="pass-error" hidden>合言葉が違います</span>';
+        summary.insertAdjacentElement('afterend', gate);
+
+        var input = gate.querySelector('input');
+        var button = gate.querySelector('button');
+        var errorMsg = gate.querySelector('.pass-error');
+
+        function tryUnlock() {
+          if (input.value === pass) {
+            det.classList.add('unlocked');
+            errorMsg.hidden = true;
+          } else {
+            errorMsg.hidden = false;
+            input.select();
+          }
+        }
+
+        button.addEventListener('click', tryUnlock);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
+        });
+
+        det.addEventListener('toggle', function () {
+          if (det.open && !det.classList.contains('unlocked')) {
+            input.focus();
+          }
+        });
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            katex.render( texText.data
+                        , mathElements[i]
+                        , { displayMode: mathElements[i].classList.contains("display")
+                          , throwOnError: true
+                         }
+                        );
+          }
+      }
+    });
+  </script>
+
+  </body>
+</html>

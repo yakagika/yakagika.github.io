@@ -206,7 +206,7 @@ nextChapter: slds7.html
 
 その他にも各種研究機関や企業が提供するデータも利用可能です.
 
-統計ではありませんが, [`EDINET`](https://disclosure2.edinet-fsa.go.jp/WEEK0010.aspx)のWEB APIを利用して有価証券報告書のデータを取得する,Wikipediaのテキストデータを自然言語処理してデータを作成するなどもこの講義における過去の研究事例があります.
+統計ではありませんが, [`EDINET`](https://disclosure2.edinet-fsa.go.jp/WEEK0010.aspx)のWEB APIを利用して有価証券報告書のデータを取得する,Wikipediaのテキストデータを自然言語処理してデータを作成するなどもこの講義における過去の研究事例があります. EDINETからのデータ取得については, APIキーの取得から回帰分析用データの作成までを[補足A EDINET APIによる財務データの取得と回帰分析](slds_a1.html)で実例付きで解説しています.
 
 これらに関しては後ほど, Webページから自動でデータを取得する`Webスクレイピング`やTwitterなどのSNSの提供する`API`を利用してデータを取得する方法も扱います.
 

@@ -61,6 +61,10 @@ nextChapter: slds2.html
 
 [第16章 カテゴリーデータ処理](slds16.html)
 
+[補足A EDINET APIによる財務データの取得と回帰分析](slds_a1.html)
+
+[補足B X(Twitter) APIによるデータの取得](slds_b1.html)
+
 
 現在執筆中のため,章の構成等は変更される可能性があります.
 
