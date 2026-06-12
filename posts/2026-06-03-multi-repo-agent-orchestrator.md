@@ -216,6 +216,8 @@ Orchestrator は管理対象リポの上位に立ち, launchd で毎時巡回す
 
 境界を push/pull のキューに固定すると, **どちらが何を書いたかが常に明確**になり, 片方が壊れてももう片方は動き続ける. 上位が下位のコードを勝手に上書きしない, という規律でもある.
 
+なお, このハブは repo ↔ Orchestrator の汎用レーンであり, repo から repo への有向のタスク連鎖は運ばない. そちらは後日追加した別機構で, 続編 [repo 間の Agent タスク連鎖 — 中央 immutable queue による cross-repo handoff](/posts/2026-06-12-cross-repo-handoff-queue.html) に書いた.
+
 # データ表現: (今のところ)すべて markdown
 
 状態, タスク, 知識, 規約 - Orchestrator が扱うデータは全部 [Obsidian](https://obsidian.md/) による markdown + frontmatter で持つ. DB も独自フォーマットも使わない. 狙いは移行容易性で, 別マシン (常時起動の Mac mini を想定) へ移すとき, データ表現が markdown のままなら**差し替えるのは通信層だけ**で済む.

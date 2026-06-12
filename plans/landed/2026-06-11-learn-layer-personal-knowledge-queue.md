@@ -1,23 +1,20 @@
 ---
 plan_id: learn-layer-personal-knowledge-queue
-status: in-progress
+status: landed
 created: 2026-06-11
 updated: 2026-06-11
-next_action: ドラフト (posts/2026-06-11-personal-learn-layer.md) のレビューと公開承認 (publish.sh はユーザ承認後)
-next_actor: user
 ---
 
 # 個人の学習層 (Learn) — Agent が薦め, スマホで少しずつ消化し, vault に集積する
 
 ## メタ情報
 
-- **状態**: in-progress (ドラフト作成済, ユーザレビュー待ち)
+- **状態**: landed (2026-06-11 公開, commit 62bf4a3)
 - **作成日**: 2026-06-11
-- **進捗 (2026-06-11)**: `posts/2026-06-11-personal-learn-layer.md` ドラフト作成.
-  orchestrator 記事と相互リンク済. スクショ 2 枚を
+- **成果**: `posts/2026-06-11-personal-learn-layer.md` 公開.
+  orchestrator 記事と相互リンク. スクショ 2 枚を
   `images/posts/personal-learn-layer/` に配置 (inline-qa.png / note-categorical.png).
-  `stack build && stack exec main build` 通過, RSS 著者付き確認済.
-  残: ユーザレビュー → 公開承認 → publish.sh.
+  ユーザが導入部に Fable 5 に関する動機段落を加筆して publish.sh で公開.
 - **発端**: assistant (Orchestrator) セッションで, ユーザ本人の知識獲得・学習層を
   Phase 1 まで構築 (repo: `~/Developer/claude/learn`, データは existence vault の
   `Learn/`). この機構の設計と運用を記事化する依頼.

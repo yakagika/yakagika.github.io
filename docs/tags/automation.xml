@@ -7,12 +7,202 @@
         <description><![CDATA[Personal blog of yakagika]]></description>
         <atom:link href="/tags/automation.xml" rel="self"
                    type="application/rss+xml" />
-        <lastBuildDate>Thu, 11 Jun 2026 00:00:00 UT</lastBuildDate>
+        <lastBuildDate>Fri, 12 Jun 2026 00:00:00 UT</lastBuildDate>
         
         <managingEditor>kaya3728@gmail.com (yakagika)</managingEditor>
         <webMaster>kaya3728@gmail.com (yakagika)</webMaster>
         
         <item>
+    <title>repo 間の Agent タスク連鎖 — 中央 immutable queue による cross-repo handoff</title>
+    <link>/posts/2026-06-12-cross-repo-handoff-queue.html</link>
+    <description><![CDATA[<p><a href="/posts/2026-06-03-multi-repo-agent-orchestrator.html">Multi-Repo Agent Orchestrator</a> で, 複数リポの Agent を束ねる上位レイヤを紹介した. あの構成の通信モデルは「各リポの Agent ↔︎ Orchestrator」のハブであり, repo 同士は直接話すことができない. 状態の報告も知識もタスクも, いったん中央 (inbox/outbox) or 人間 を経由し, 毎時の巡回が配り直す形式になっている.</p>
+<p>このハブがた運用だと <strong>repo から repo への, 有向の, 低遅延なタスクの受け渡し</strong>の度に人間が何かしらの処理(プロンプトで指示等)を挟む必要があり,非常に手間がかかるので,直接別repoの間のAgentが話せるようにした.</p>
+<p>本記事はそのために追加した中央 immutable queue による cross-repo handoff の仕組みと設計判断の話です. 前回の続編だが, 「複数の git repo に複数の Agent が並行で作業している時, repo 間の依頼をどう運ぶか」という一般的な問題として読めるはず.</p>
+<h1 id="ハブでは何が運べないか">ハブでは何が運べないか</h1>
+<p>既存の inbox/outbox ハブは repo ↔︎ Orchestrator の汎用レーンで, これはこれで機能している. しかし上の用途には 3 点で合わない.</p>
+<ol type="1">
+<li><strong>有向でない</strong>: ハブの宛先は「Orchestrator」であって「特定の repo」ではない. 上流 Agent が「この変更は下流のあのリポに影響する」と分かっているのに, いったん中央の解釈を挟む必然がない.</li>
+<li><strong>低遅延でない</strong>: 配り直しは毎時巡回 (≤1h) 経由である. cmux でライブラリ側と論文側のセッションが<strong>同時に生きている</strong>作業日には, 1 時間の遅延は並行作業の意味を削ぐ.</li>
+<li><strong>連鎖を表現できない</strong>: 「version X の追従が終わってから version Y の追従をする」のような<strong>依存つきのタスク列</strong> (DAG) を, ハブの単発タスクでは表現できない.</li>
+</ol>
+<p>実は当初は, もっと素朴な解決策 — 上流 Agent が下流リポの plan ディレクトリへ直接タスクファイルを書き込む「mailbox 方式」 — を設計していた. これがレビューで棄却された経緯は後述するとして, 先に最終形を見せる.</p>
+<h1 id="解決策-中央-immutable-queue">解決策 — 中央 immutable queue</h1>
+<p>機構の全体は, Orchestrator 領域 (git 追跡) に置かれた 2 種類のファイルだけでできている.</p>
+<pre><code>state/cross-repo-handoffs/
+  &lt;宛先リポ&gt;/
+    queue/   &lt;chain_id&gt;.md   ← 送信者 (上流 Agent) 所有. immutable, write-once = request
+    receipts/&lt;chain_id&gt;.md   ← 受信者 (下流 Agent) 所有 = 処理結果 (disposition)</code></pre>
+<svg viewBox="0 0 720 430" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="cross-repo handoff の全体像" font-family="sans-serif" font-size="13">
+<defs>
+<marker id="hah" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+<path d="M0,0 L7,3 L0,6 Z" fill="#555"/>
+</marker>
+<marker id="hahb" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+<path d="M0,0 L7,3 L0,6 Z" fill="#b58a4a"/>
+</marker>
+</defs>
+<!-- upstream -->
+<rect x="20" y="30" width="190" height="70" rx="6" fill="#eef4fb" stroke="#4a78b5"/>
+<text x="115" y="56" text-anchor="middle" font-weight="bold">上流 repo の Agent</text>
+<text x="115" y="76" text-anchor="middle" fill="#555" font-size="11">semantic change を land</text>
+<text x="115" y="92" text-anchor="middle" fill="#888" font-size="11">(ライブラリの正本)</text>
+<!-- queue -->
+<rect x="270" y="20" width="180" height="180" rx="6" fill="#fbf7ee" stroke="#b58a4a"/>
+<text x="360" y="44" text-anchor="middle" font-weight="bold">中央 queue (git 追跡)</text>
+<rect x="290" y="60" width="140" height="56" rx="4" fill="#fff" stroke="#999"/>
+<text x="360" y="82" text-anchor="middle">queue/&lt;id&gt;.md</text>
+<text x="360" y="100" text-anchor="middle" fill="#888" font-size="11">送信者所有・不変</text>
+<rect x="290" y="128" width="140" height="56" rx="4" fill="#fff" stroke="#999"/>
+<text x="360" y="150" text-anchor="middle">receipts/&lt;id&gt;.md</text>
+<text x="360" y="168" text-anchor="middle" fill="#888" font-size="11">受信者所有</text>
+<!-- downstream -->
+<rect x="510" y="30" width="190" height="70" rx="6" fill="#eef4fb" stroke="#4a78b5"/>
+<text x="605" y="56" text-anchor="middle" font-weight="bold">下流 repo の Agent</text>
+<text x="605" y="76" text-anchor="middle" fill="#555" font-size="11">session 冒頭に queue を走査</text>
+<text x="605" y="92" text-anchor="middle" fill="#888" font-size="11">(ライブラリを使う研究)</text>
+<!-- arrows -->
+<line x1="210" y1="65" x2="290" y2="80" stroke="#555" marker-end="url(#hah)"/>
+<text x="238" y="58" fill="#333" font-size="11">enqueue</text>
+<text x="238" y="72" fill="#888" font-size="10">write-once</text>
+<line x1="430" y1="80" x2="510" y2="65" stroke="#555" marker-end="url(#hah)"/>
+<text x="468" y="58" fill="#333" font-size="11">read</text>
+<line x1="510" y1="90" x2="430" y2="150" stroke="#555" marker-end="url(#hah)"/>
+<text x="487" y="128" fill="#333" font-size="11">receipt を書く</text>
+<!-- import to plan -->
+<rect x="510" y="140" width="190" height="60" rx="6" fill="#fff" stroke="#999"/>
+<text x="605" y="164" text-anchor="middle">自リポの plan へ import</text>
+<text x="605" y="184" text-anchor="middle" fill="#888" font-size="11">受信者所有のコピーで作業</text>
+<line x1="605" y1="100" x2="605" y2="140" stroke="#555" marker-end="url(#hah)"/>
+<!-- orchestrator surface -->
+<rect x="150" y="290" width="420" height="110" rx="6" fill="#f6f1fb" stroke="#7a5aa5"/>
+<text x="360" y="316" text-anchor="middle" font-weight="bold">Orchestrator (毎時巡回)</text>
+<text x="360" y="340" text-anchor="middle" fill="#555" font-size="12">receipt の無い request (未 drain) を数え,</text>
+<text x="360" y="358" text-anchor="middle" fill="#555" font-size="12">下流の context-pack / briefing に surface する</text>
+<text x="360" y="382" text-anchor="middle" fill="#888" font-size="11">永続パス: session を跨いだ取りこぼし防止 (≤1h)</text>
+<path d="M340,290 L350,200" stroke="#b58a4a" fill="none" stroke-dasharray="4 3" marker-end="url(#hahb)"/>
+<text x="290" y="250" fill="#7a5aa5" font-size="11">queue を監視</text>
+<path d="M570,330 L640,210" stroke="#b58a4a" fill="none" stroke-dasharray="4 3" marker-end="url(#hahb)"/>
+<text x="600" y="260" fill="#7a5aa5" font-size="11">通知</text>
+</svg>
+<p>request (queue 側) はこういう形をしている. ポイントは <code>class</code> と <code>verify</code> と <code>depends_on_items</code> の 3 フィールドである.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="pp">---</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">chain_id</span><span class="kw">:</span><span class="at"> &lt;上流&gt;-&lt;commit|version&gt;-&lt;slug&gt;</span><span class="co">   # 一意. 他 request の依存から参照される</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="fu">from</span><span class="kw">:</span><span class="at"> &lt;上流リポ&gt;</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="fu">to</span><span class="kw">:</span><span class="at">   &lt;下流リポ&gt;</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="fu">trigger</span><span class="kw">:</span><span class="at"> </span><span class="kw">{</span><span class="at"> </span><span class="fu">kind</span><span class="kw">:</span><span class="at"> commit | release</span><span class="kw">,</span><span class="at"> </span><span class="fu">ref</span><span class="kw">:</span><span class="at"> &lt;hash|version&gt; </span><span class="kw">}</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="fu">class</span><span class="kw">:</span><span class="at"> mechanical | substantive</span><span class="co">            # 迷ったら substantive</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="fu">depends_on_items</span><span class="kw">:</span><span class="at"> </span><span class="kw">[]</span><span class="co">                       # 先行すべき他 chain_id (DAG)</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="fu">on_dependency_rejected</span><span class="kw">:</span><span class="at"> ask</span><span class="co">                # 先行が却下された時: ask | abandon | continue</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="fu">verify</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="st">&quot;stack build&quot;</span><span class="kw">,</span><span class="at"> </span><span class="st">&quot;...&quot;</span><span class="kw">]</span><span class="co">             # 受信側が preflight で走らせる検証</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="fu">created</span><span class="kw">:</span><span class="at"> 2026-06-11</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="pp">---</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="co">## なぜ (上流で何が変わったか)</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="co">## 受信側でやること (action)</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="co">## 受け入れ基準</span></span></code></pre></div>
+<p>どの repo がどの repo の上流かは, Orchestrator の設定 (1 枚の YAML) に <code>depends_on</code> エッジとして宣言されている. このエッジが queue の張られるトポロジを決め, 巡回が監視する対象も決める.</p>
+<h1 id="設計判断-1-所有権の分離で-git-衝突を原理的に消す">設計判断 1 — 所有権の分離で git 衝突を原理的に消す</h1>
+<p>このシステムのファイルはすべて git 追跡された markdown であり, 複数の Agent (とユーザ) が並行で触る. すると当然, 同一ファイルへの並行書込み (shared-write) が衝突源になる. 解決策として採用したのは <a href="/posts/2026-06-11-personal-learn-layer.html">Learn 層</a>の iCloud 競合対策と同じ指針 — <strong>衝突はマージアルゴリズムでなく所有権で避ける</strong> — である.</p>
+<ul>
+<li><strong>request は送信者所有で, 書いたら不変 (write-once)</strong>. 受信者は request に一切触らない.</li>
+<li><strong>受信者の状態は別ファイル (receipt) に書く</strong>. 1 chain_id = 1 receipt で, これは受信者だけが書く.</li>
+<li>処理の作業コピーは受信側リポの plan ディレクトリへ import し, そこは受信者の領域.</li>
+</ul>
+<p>「queue item に対応する receipt が無い」= 未処理, という判定もファイルの存在だけで決まるので, 状態フィールドの更新合戦が起きない. request を後から訂正したい時も, 元ファイルは編集せず<strong>新しい chain_id を立てて旧を superseded 指定</strong>する. event-sourcing を markdown と git でやっている, と言ってもよい.</p>
+<p>この所有権モデルのおかげで, 同一ファイルへの shared-write が<strong>設計上存在しない</strong> (= git conflict が原理的に起きない). 並行 Agent の数が増えても通信路の不変条件は変わらない.</p>
+<h1 id="設計判断-2-enqueue-は自動-実行はゲート">設計判断 2 — enqueue は自動, 実行はゲート</h1>
+<p>次に「いつ送ってよいか / いつ実行してよいか」の規律. ここは非対称にした.</p>
+<p><strong>enqueue (送る側) は自動・即時・承認不要</strong>である. 上流 Agent は semantic change (下流の挙動を動かしうる変更) を land した時点で, 影響先の queue へ request を積む. 迷ったら積む. これが許されるのは, <strong>積むだけでは何も実行されない</strong>からである. queue は不変の依頼書の束であって, 積むこと自体に副作用がない.</p>
+<p><strong>drain (実行する側) はゲート付き</strong>である. 下流 Agent は session 冒頭に自分宛て queue を走査し, class で分岐する.</p>
+<svg viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="drain の実行ゲート" font-family="sans-serif" font-size="13">
+<defs>
+<marker id="gah" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+<path d="M0,0 L7,3 L0,6 Z" fill="#555"/>
+</marker>
+</defs>
+<rect x="20" y="110" width="130" height="56" rx="6" fill="#fbf7ee" stroke="#b58a4a"/>
+<text x="85" y="134" text-anchor="middle" font-weight="bold">request</text>
+<text x="85" y="152" text-anchor="middle" fill="#555" font-size="11">class で分岐</text>
+<rect x="210" y="30" width="180" height="64" rx="6" fill="#fff" stroke="#999"/>
+<text x="300" y="54" text-anchor="middle" font-weight="bold">mechanical</text>
+<text x="300" y="74" text-anchor="middle" fill="#555" font-size="11">preflight: verify 実行 + diff 生成</text>
+<rect x="210" y="190" width="180" height="64" rx="6" fill="#fff" stroke="#999"/>
+<text x="300" y="214" text-anchor="middle" font-weight="bold">substantive</text>
+<text x="300" y="234" text-anchor="middle" fill="#555" font-size="11">承認ゲートへ (実行しない)</text>
+<line x1="150" y1="125" x2="210" y2="70" stroke="#555" marker-end="url(#gah)"/>
+<line x1="150" y1="150" x2="210" y2="210" stroke="#555" marker-end="url(#gah)"/>
+<rect x="480" y="20" width="220" height="56" rx="6" fill="#eef7ee" stroke="#5a9a5a"/>
+<text x="590" y="42" text-anchor="middle" font-weight="bold">自動完了</text>
+<text x="590" y="62" text-anchor="middle" fill="#555" font-size="11">diff 空 + 統計判定・図表値が不変</text>
+<rect x="480" y="190" width="220" height="80" rx="6" fill="#f7eeee" stroke="#a55a5a"/>
+<text x="590" y="214" text-anchor="middle" font-weight="bold">ユーザ承認待ち</text>
+<text x="590" y="234" text-anchor="middle" fill="#555" font-size="11">承認 → 実行 → done</text>
+<text x="590" y="252" text-anchor="middle" fill="#555" font-size="11">却下 → rejected で記録</text>
+<line x1="390" y1="48" x2="480" y2="48" stroke="#555" marker-end="url(#gah)"/>
+<line x1="390" y1="222" x2="480" y2="222" stroke="#555" marker-end="url(#gah)"/>
+<path d="M390,80 C440,110 440,160 410,190" stroke="#a55a5a" fill="none" marker-end="url(#gah)"/>
+<text x="455" y="140" fill="#a55a5a" font-size="11">非ゼロ diff / 統計判定変化</text>
+<text x="455" y="156" fill="#a55a5a" font-size="11">/ 図表値変化 → 自動昇格</text>
+</svg>
+<ul>
+<li><strong>mechanical</strong> (新しい解釈を要さない反映 — 版番号の追従, pin の更新, 決定的再実行) でも, 自動で許されるのは <strong>preflight = 検証コマンドの実行と diff の生成まで</strong>. その結果 diff が空で統計判定も図表値も動かない時だけ, ユーザ指示なしで完了する. これが自動完了の<strong>唯一の</strong>経路である.</li>
+<li>preflight で<strong>非ゼロ diff, 統計判定の変化, 図表値の変化</strong>が出たら, その request は自動で substantive に昇格し, 承認ゲートに回る (receipt に昇格の事実が記録される).</li>
+<li><strong>substantive</strong> (定義の改訂, 結論に関わる数値解釈, 本文主張の変更) は最初から承認ゲート行き. 承認まで実行されない.</li>
+</ul>
+<p>この設計の核は, 動機の事故をそのまま裏返したものである. 「機械的な版更新」と分類されたタスクが, 実行してみたら結論を動かす — これが一番危ない取りこぼしだった. だから<strong>分類を信用せず, preflight の結果で再分類する</strong>. mechanical とは「安全だと宣言されたタスク」ではなく「安全かどうかを安く確認できるタスク」のことだ, と言い換えてもよい.</p>
+<p>依存連鎖 (DAG) の側にも対応するゲートがある. 先行 chain_id が done になるまで後続は処理されない. では先行が<strong>却下</strong>されたら? — ここで黙って待ち続けるとデッドロックになるので, request 自身が <code>on_dependency_rejected</code> (ask / abandon / continue) で振る舞いを宣言しておく. 循環依存や参照先不明の request は blocked として隔離され, ユーザに報告される. 「待ちで固まる」状態を作らないことは, 人間が常時監視しない系では特に効く.</p>
+<h1 id="設計判断-3-二重トランスポート">設計判断 3 — 二重トランスポート</h1>
+<p>通信路は 2 本あり, どちらも同じ queue を指す.</p>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>パス</th>
+<th>経路</th>
+<th>遅延</th>
+<th>役割</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>即時</td>
+<td>上流 Agent が中央 queue へ直接 write</td>
+<td>ゼロ</td>
+<td>並行 session が同時に生きている時の低遅延 handoff</td>
+</tr>
+<tr class="even">
+<td>永続</td>
+<td>Orchestrator 巡回が未 drain 件数を下流の context-pack / briefing に surface</td>
+<td>≤1h</td>
+<td>session・日・版を跨いだ取りこぼし防止</td>
+</tr>
+</tbody>
+</table>
+<p>即時パスだけだと, 下流のセッションが立っていない時に request が放置される. 永続パスだけだと冒頭の低遅延要件に戻ってしまう. 2 本を併設し, ただし<strong>状態は queue という 1 箇所にだけ持つ</strong> (パスはどちらも「気づかせる」だけ) ので, 二重計上や食い違いは起きない.</p>
+<p>ハブ (inbox/outbox) との関係も同じ整理である. ハブは repo ↔︎ Orchestrator の汎用レーン, 本機構は repo ↔︎ repo の有向タスク連鎖で, <strong>役割が違うので置き換えず併存させる</strong>. 通信路を増やす時は「既存路の代替か, 別役割か」を先に決めておくと, 後で経路の選択に迷わない.</p>
+<h1 id="初期廃案-ai-同士の相互検証">初期廃案 — AI 同士の相互検証</h1>
+<p>最後に設計の経緯を書いておきたい. 冒頭で触れたとおり, 初版の設計は「上流 Agent が<strong>下流リポの plan ディレクトリへ直接</strong> request を書き込む mailbox 方式」だった. 直感的だし, 中央を経由しない分シンプルに見える.</p>
+<p>この案を, 普段から使っている相互検証の枠組み — Claude が設計し, 独立した別モデル (Codex) が懐疑的にレビューする — に掛けたところ, 4 点の指摘で棄却された.</p>
+<ol type="1">
+<li>受信者が request の status を更新すると, 送信者と受信者の<strong>同一ファイル shared-write</strong> になる (git 衝突源).</li>
+<li>mechanical の自動実行は, 「機械的な版更新が結論を覆す」事故 (まさに動機の実例) を<strong>取りこぼす</strong>.</li>
+<li>一部の下流リポは「plan ディレクトリは Orchestrator が取り込まない」という既存契約を持っており, 上流 Agent がそこへ書き込む設計は<strong>契約と衝突</strong>する.</li>
+<li>リポによって plan を git 追跡していたりいなかったりして (gitignore), mailbox の<strong>永続性が非対称</strong>になる.</li>
+</ol>
+<p>どれも言われてみればその通りで, 特に 2 は失敗例があり上手く働かないことが分かっていた. この指摘を受けて「中央 immutable queue + 所有権分離 + preflight 止まり」へ改設計したのが本記事の形である. 設計文書には, 採用した原則だけでなく<strong>初版が何で棄却されたか</strong>も why として記録してあり, 将来似た判断をする Agent がそこを読む.</p>
+<p>一人で開発していると設計レビューの相手がいない, というのは個人開発の古典的な弱点だが, 独立した複数の AI に同じ設計を別角度から読ませる体制は, その代替として実用になりつつあると感じる.</p>]]></description>
+    <pubDate>Fri, 12 Jun 2026 00:00:00 UT</pubDate>
+    <guid>/posts/2026-06-12-cross-repo-handoff-queue.html</guid>
+    
+    <author>kaya3728@gmail.com (yakagika)</author>
+    
+    <dc:creator>yakagika</dc:creator>
+</item>
+<item>
     <title>AIと連携した個人の学習層 (Learn)</title>
     <link>/posts/2026-06-11-personal-learn-layer.html</link>
     <description><![CDATA[<p>前回の記事 <a href="/posts/2026-06-03-multi-repo-agent-orchestrator.html">Multi-Repo Agent Orchestrator</a> で, 複数リポの Claude/Codex セッションを束ねる上位レイヤを紹介した. あの構成にはタグ付きの知識層 (自前 RAG) があり, あるリポの Agent が踏んだ gotcha を別リポの Agent が二度踏まない, という横断再利用が回っている.</p>
@@ -243,7 +433,7 @@
 <li>例外は 1 つ: ユーザがセッション中に「これを learn に入れて」と明示指示した場合のみ, その場で直接 enqueue してよい.</li>
 </ol>
 <p>面白いのは, このために<strong>新しい仕組みをほぼ作っていない</strong>ことである. Orchestrator には元々「Agent からユーザへの判断依頼」を briefing に集約する承認フローがあり, 学習推奨はそれに 📖 prefix を付けて相乗りしただけ. 横断的なタスクは Orchestrator だけが扱い, 各リポの Agent は自リポのことだけを surface するという既存の役割分担とも整合する. レイヤを増やす時は, 専用機構より既存フローへの相乗りを先に検討する方がよい.</p>
-<h1 id="実例-圏論入門-note-研究知識の段階配信">実例: 圏論入門 note — 研究知識の段階配信</h1>
+<h1 id="実例-圏論解説-note-研究知識の段階配信">実例: 圏論解説 note — 研究知識の段階配信</h1>
 <p>この機構が一番活きたユースケースを紹介する. ライブラリの開発で, 並列実行の正しさを圏論で整理して定理証明→実装を進めていた際にその実装内容を, 私が確認する作業を一旦スキップして,証明自体は型推論とコンパイラに任せて取り敢えずgoを出した.そこで研究リポの Agent に, <strong>できるだけ分解して理解への負担を最小限にした解説 note</strong> を書かせ, learn に投入した.</p>
 <p>結果は 23 Parts, 確認問題 6 問の note になった. 書かせる時の規約が効いていて:</p>
 <ul>
@@ -547,6 +737,7 @@ vault (RAG 知識 + 規約 + タスク) を横断共有
 <text x="248" y="185" fill="#333">pull</text>
 </svg>
 <p>境界を push/pull のキューに固定すると, <strong>どちらが何を書いたかが常に明確</strong>になり, 片方が壊れてももう片方は動き続ける. 上位が下位のコードを勝手に上書きしない, という規律でもある.</p>
+<p>なお, このハブは repo ↔︎ Orchestrator の汎用レーンであり, repo から repo への有向のタスク連鎖は運ばない. そちらは後日追加した別機構で, 続編 <a href="/posts/2026-06-12-cross-repo-handoff-queue.html">repo 間の Agent タスク連鎖 — 中央 immutable queue による cross-repo handoff</a> に書いた.</p>
 <h1 id="データ表現-今のところすべて-markdown">データ表現: (今のところ)すべて markdown</h1>
 <p>状態, タスク, 知識, 規約 - Orchestrator が扱うデータは全部 <a href="https://obsidian.md/">Obsidian</a> による markdown + frontmatter で持つ. DB も独自フォーマットも使わない. 狙いは移行容易性で, 別マシン (常時起動の Mac mini を想定) へ移すとき, データ表現が markdown のままなら<strong>差し替えるのは通信層だけ</strong>で済む.</p>
 <p><span class="math display">
