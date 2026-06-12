@@ -1,17 +1,15 @@
 ---
 plan_id: slds-edinet-supplement
-status: in-progress
+status: landed
 created: 2026-06-12
 updated: 2026-06-12
-next_action: ドラフト一式のユーザレビュー (補足資料 slds_a1.md / slds_code/edinet/ 6 本 / Ch6・Ch11・Ch15 リンク). 公開は publish.sh (ユーザ実行). 元 API キーの失効は学生へ要連絡
-next_actor: user
 ---
 
 # slds 補足資料: EDINET API による財務データの取得と回帰分析
 
 ## メタ情報
 
-- **状態**: in-progress
+- **状態**: landed (2026-06-12 公開, commit f867a7b)
 - **作成日**: 2026-06-12
 - **最終更新**: 2026-06-12
 - **発端**: 学生 (ピエレット・フィリップ氏) が研究で作成した EDINET データ取得・
