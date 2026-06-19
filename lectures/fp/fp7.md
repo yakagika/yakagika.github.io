@@ -836,9 +836,102 @@ mkRectangle b h = Rectangle {bottom = b, height = h}
 
 ## newtype
 
+`type` は既存の型に別名を付けるだけなので, 型検査上は元の型と完全に同じものとして扱われます. そのため, 前節の
 
+~~~ haskell
+type Bottom = Double
+type Height = Double
+~~~
 
-yakagika
+では, `Bottom` と `Height` はどちらも `Double` の別名にすぎません. 型注釈を読む人間にとっては意味が分かりやすくなりますが, コンパイラは底辺と高さを別の型として区別しません.
+
+型レベルで $\text{Bottom}$ と $\text{Height}$ を区別したい場合には, `newtype` を使います. `newtype` は既存の型を 1 つだけ包んで, 新しい独立した型を作るための構文です.
+
+`newtype 新しい型名 = コンストラクタ名 既存の型`
+
+例えば, 底辺と高さをそれぞれ独立した型として定義するには, 次のように書きます.
+
+~~~ haskell
+newtype Bottom = Bottom Double
+newtype Height = Height Double
+~~~
+
+ここで左辺の `Bottom`, `Height` は **型構築子** です. 一方, 右辺の `Bottom`, `Height` は **データ構築子** です. 名前は同じでも, 型の名前と値を作る関数の名前として別の名前空間に属しています.
+
+データ構築子としての型は, それぞれ次のようになります.
+
+~~~ haskell
+Bottom :: Double -> Bottom
+Height :: Double -> Height
+~~~
+
+つまり, `Bottom 3.0` は `Double` の `3.0` を `Bottom` 型として包んだ値であり, `Height 3.0` とは型が異なります.
+
+この性質を使うと, 長方形の底辺と高さの取り違えを型検査で防げます.
+
+~~~ haskell
+newtype Bottom = Bottom Double deriving Show
+newtype Height = Height Double deriving Show
+
+data Rectangle = Rectangle Bottom Height
+    deriving Show
+
+mkRectangle :: Bottom -> Height -> Rectangle
+mkRectangle b h = Rectangle b h
+
+main :: IO ()
+main = print (mkRectangle (Bottom 3.0) (Height 4.0))
+~~~
+
+このとき, `mkRectangle` は第一引数に `Bottom`, 第二引数に `Height` を要求します. そのため, 次のように底辺と高さを逆に渡そうとすると, コンパイルエラーになります.
+
+~~~ haskell
+-- mkRectangle (Height 4.0) (Bottom 3.0)
+~~~
+
+`type Bottom = Double` では `Bottom` も `Height` も実体は同じ `Double` なので, このような取り違えをコンパイラは検出できません. 一方, `newtype` では `Bottom` と `Height` は別々の型なので, 取り違えは型エラーになります.
+
+`newtype` で包んだ値を計算に使うには, パターンマッチで中身を取り出します. 例えば, 長方形の面積を求める関数は次のように書けます.
+
+~~~ haskell
+newtype Bottom = Bottom Double deriving Show
+newtype Height = Height Double deriving Show
+
+data Rectangle = Rectangle Bottom Height
+    deriving Show
+
+area :: Rectangle -> Double
+area (Rectangle (Bottom b) (Height h)) = b * h
+~~~
+
+`Rectangle (Bottom b) (Height h)` というパターンにより, `Bottom` の中の `Double` を `b` に, `Height` の中の `Double` を `h` に取り出しています. `newtype` で作った値は元の `Double` と同じように自動で計算に使えるわけではありません. **別の型として包んだので, 必要な場所で明示的に取り出す**必要があります.
+
+集合論的に見ると, `type` は既存の集合に別名を付けているだけです. したがって,
+
+$$\text{Bottom} = \text{Height} = \mathbb{R}$$
+
+とみなせます. 一方, `newtype` は既存の集合と同じ要素数を持つ **タグ付きのコピー** を作っていると考えられます. `Bottom` も `Height` も中身は `Double` ですが, Haskell の型検査上は,
+
+$$\text{Bottom} \neq \text{Height}$$
+
+として扱われます. つまり, `Double` と `Bottom` は互いに変換可能なほどよく似ていますが, プログラム上では明示的に包む / 取り出す操作を通じて区別されます.
+
+::: warn
+`newtype` は, **コンストラクタが 1 つで, そのコンストラクタが包むフィールドも 1 つ** の場合にだけ使えます. 複数のフィールドを持つ直積型や, 複数のコンストラクタを持つ直和型を作りたい場合は, これまで通り `data` を使います.
+:::
+
+::: warn
+`newtype` は新しい型を作りますが, 値が条件を満たすことまでは自動では保証しません. 例えば,
+
+~~~ haskell
+newtype Positive = Positive Int
+
+badPositive :: Positive
+badPositive = Positive (-1)
+~~~
+
+と定義しても, `Positive (-1)` は作れてしまいます. 「正の整数だけを作れるようにしたい」場合には, 前に見たスマートコンストラクタのように, コンストラクタをモジュール外へ公開せず, 検査付きの関数を経由して値を作る設計が必要です.
+:::
 
 
 ## エラー修正演習

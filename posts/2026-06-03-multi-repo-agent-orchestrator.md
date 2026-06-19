@@ -52,6 +52,8 @@ Pi は製品 / UX 層, Hermes Agent はモデル + 単一 agent 層に当たる.
 
 Orchestrator は管理対象リポの上位に立ち, launchd で毎時巡回するバッチと対話セッションの二面で動く. 処理は 5 層に分かれ, 各リポの Agent とは共有キュー (inbox/outbox) だけで接続する.
 
+なお, この対話セッションの側は後に, 各リポの Agent を cmux のタブで起動・操舵し, **変更操作だけを承認ゲートに通す対話型 coordinator** へ発展させた. その仕組みは続編 [対話型 multi-repo coordinator — repo agent を cmux で起動し, 変更操作だけ承認ゲートに通す](/posts/2026-06-19-interactive-multi-repo-coordinator.html) に書いた.
+
 <svg viewBox="0 0 720 430" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="全体アーキテクチャ 5 層" font-family="sans-serif" font-size="13">
   <defs>
     <marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">

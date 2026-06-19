@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"
+    xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <channel>
+        <title>yakagika - Posts tagged hooks</title>
+        <link></link>
+        <description><![CDATA[Personal blog of yakagika]]></description>
+        <atom:link href="/tags/hooks.xml" rel="self"
+                   type="application/rss+xml" />
+        <lastBuildDate>Fri, 19 Jun 2026 00:00:00 UT</lastBuildDate>
+        
+        <managingEditor>kaya3728@gmail.com (yakagika)</managingEditor>
+        <webMaster>kaya3728@gmail.com (yakagika)</webMaster>
+        
+        <item>
+    <title>対話型 multi-repo coordinator — repo agent を cmux で起動し, 変更操作だけ承認ゲートに通す</title>
+    <link>/posts/2026-06-19-interactive-multi-repo-coordinator.html</link>
+    <description><![CDATA[<p><a href="/posts/2026-06-03-multi-repo-agent-orchestrator.html">Multi-Repo Agent Orchestrator</a> で, 複数リポの Agent を束ねる上位レイヤを紹介した. あの構成の Orchestrator は launchd の毎時巡回バッチが主役で, 各リポの Agent とは共有キュー (inbox/outbox) 越しに最大 1 時間の遅延で繋がる. 監視, 知識集約, タスク配分にはこれで十分なのだが, 複数リポの作業を今<strong>並行で進めている</strong>日には, 毎時巡回は遅すぎる. 結局, 人間が各リポに cd して <code>claude</code> を開き, 毎ターン操舵することになっていた.</p>
+<p>本記事では, その対話セッションの側を <strong>cmux のタブで各リポの Agent を起動・操舵する対話型 coordinator</strong> に育てた運用について解説する. 中でも核心は, coordinator が走行中の Agent の<strong>変更操作だけ</strong>を横取りして人間の承認に上げる「仲介承認」の仕組みで, これにより「routine は coordinator が捌き, 実判断だけ人に上げる」を, 対話性を保ったまま実現した.</p>
+<h1 id="ハブからコックピットへ">ハブからコックピットへ</h1>
+<p>既存の inbox/outbox ハブは repo ↔︎ Orchestrator の汎用レーンで, これはこれで機能している. ただし設計上, <strong>受動的</strong>である. repo 側が push してきた状態を毎時巡回が拾い, context-pack に配り直す. この形は監視と集約には向くが, 「こちらから特定の repo に作業を投げ込んで, その場で見届ける」用途には 3 点で合わない.</p>
+<ol type="1">
+<li><strong>能動的に起動できない</strong>: ハブは repo がセッションを立ち上げて push してくるのを待つ. coordinator 側から「このリポでこの作業を, 今, 始めてくれ」と火を点ける経路がない.</li>
+<li><strong>低遅延でない</strong>: 配り直しは毎時巡回 (最大 1 時間) 経由である. 複数のセッションが<strong>同時に生きている</strong>作業日には, 1 時間の遅延は並行作業の意味を削ぐ.</li>
+<li><strong>走行中に操舵できない</strong>: すでに走っているセッションに対し, 追加・再指示を差し込む契機がない.</li>
+</ol>
+<p>そこで, ハブは残したまま, その上に<strong>対話型のコックピット</strong>を一枚足した. 肝は, 状態を運ぶ経路を<strong>増やしていない</strong>ことだ. 指示の下りは既存の feed (<code>state/outbox/&lt;repo&gt;/feed.md</code>, repo agent は <code>pull_inbox</code> で取得), 報告の上りは既存の inbox をそのまま使う. coordinator が新しく持つのは「能動的に起動する」「走行中の Agent を起こす」という signal の層だけで, <strong>状態の正本は依然としてファイル (feed/inbox/vault) 側にある</strong>. signal 層に状態を載せない, というのは前回の cross-repo handoff でも貫いた指針である.</p>
+<h1 id="dispatch-起動-報告-teardown">dispatch → 起動 → 報告 → teardown</h1>
+<p>dispatch された Agent の一生は, 起動から後始末までの一巡で回る.</p>
+<svg viewBox="0 0 720 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="dispatch から teardown までの一巡" font-family="sans-serif" font-size="13">
+<defs>
+<marker id="cah" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+<path d="M0,0 L7,3 L0,6 Z" fill="#555"/>
+</marker>
+<marker id="cahd" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+<path d="M0,0 L7,3 L0,6 Z" fill="#b58a4a"/>
+</marker>
+</defs>
+<!-- coordinator -->
+<rect x="260" y="20" width="200" height="64" rx="6" fill="#fbf7ee" stroke="#b58a4a"/>
+<text x="360" y="46" text-anchor="middle" font-weight="bold">対話 coordinator</text>
+<text x="360" y="66" text-anchor="middle" fill="#555" font-size="11">dispatch / 集約 / 操舵</text>
+<!-- feed -->
+<rect x="30" y="180" width="190" height="64" rx="6" fill="#fff" stroke="#999"/>
+<text x="125" y="206" text-anchor="middle">feed (下り channel)</text>
+<text x="125" y="226" text-anchor="middle" fill="#888" font-size="11">task-id / brief / allowed_paths</text>
+<!-- repo agent -->
+<rect x="265" y="180" width="190" height="64" rx="6" fill="#eef4fb" stroke="#4a78b5"/>
+<text x="360" y="206" text-anchor="middle" font-weight="bold">repo agent (cmux tab)</text>
+<text x="360" y="226" text-anchor="middle" fill="#555" font-size="11">worktree で実作業</text>
+<!-- inbox -->
+<rect x="500" y="180" width="190" height="64" rx="6" fill="#fff" stroke="#999"/>
+<text x="595" y="206" text-anchor="middle">inbox (上り channel)</text>
+<text x="595" y="226" text-anchor="middle" fill="#888" font-size="11">task-id + done</text>
+<!-- (1) coordinator -> feed -->
+<path d="M300,84 L150,180" stroke="#555" fill="none" marker-end="url(#cah)"/>
+<text x="186" y="126" text-anchor="middle" fill="#333" font-size="11">(1) 指示を書く</text>
+<!-- (2) feed -> agent -->
+<line x1="220" y1="212" x2="265" y2="212" stroke="#555" marker-end="url(#cah)"/>
+<text x="242" y="174" text-anchor="middle" fill="#333" font-size="11">(2) pull_inbox</text>
+<!-- 起動 launch -->
+<line x1="378" y1="84" x2="378" y2="180" stroke="#555" marker-end="url(#cah)"/>
+<text x="386" y="126" fill="#333" font-size="11">起動</text>
+<text x="386" y="141" fill="#888" font-size="10">cmux new-workspace</text>
+<!-- teardown -->
+<line x1="344" y1="84" x2="344" y2="180" stroke="#b58a4a" stroke-dasharray="4 3" marker-end="url(#cahd)"/>
+<text x="336" y="126" text-anchor="end" fill="#b58a4a" font-size="11">(5) teardown</text>
+<text x="336" y="141" text-anchor="end" fill="#b58a4a" font-size="10">cmux close</text>
+<!-- (3) agent -> inbox -->
+<line x1="455" y1="212" x2="500" y2="212" stroke="#555" marker-end="url(#cah)"/>
+<text x="478" y="174" text-anchor="middle" fill="#333" font-size="11">(3) 報告</text>
+<!-- (4) inbox -> coordinator -->
+<path d="M595,180 L430,84" stroke="#555" fill="none" marker-end="url(#cah)"/>
+<text x="540" y="126" text-anchor="middle" fill="#333" font-size="11">(4) done を検知</text>
+</svg>
+<ul>
+<li><strong>dispatch</strong>: coordinator は指示を argv に詰めず, feed に書く. task-id, 作業の brief, 触ってよい範囲 (allowed_paths) を 1 エントリにする. ついでに監査用に, git 追跡された場所へミラーも残す (後述の通り feed/inbox 自体は gitignore なので, 監査痕は別に確保する).</li>
+<li><strong>起動</strong>: coordinator が cmux のワークスペースを立てる (<code>cmux new-workspace --cwd &lt;repo-worktree&gt; --command "claude ..."</code>). bootstrap プロンプトは薄く, 「<code>pull_inbox</code> で feed を読み, 実行し, 完了したら inbox に task-id と done を報告せよ」だけ. 指示の本体はあくまで feed にある.</li>
+<li><strong>報告</strong>: Agent は自分の worktree で作業し, 結果を inbox に task-id 付き + <code>done</code> で書く. 既存の集約パイプライン (inbox → vault → briefing) がそのまま拾う.</li>
+<li><strong>teardown</strong>: coordinator が done を検知したらセッションを畳む. 常時 hot にしておくと文脈の再読込コスト (usage) がかさむので, 完了したものは閉じる</li>
+</ul>
+<p>teardown は 3 段ある. <strong>soft <code>/clear</code></strong> は文脈だけ消して warm なセッションを温存する (同じ repo で連続タスクがある時の再起動コストを避ける). <strong>exit</strong> はプロセスを終わらせてタブは残す. <strong>hard close</strong> (<code>cmux close-workspace</code>) はタブごと撤去で, これが既定. Agent は自分でスラッシュコマンドを叩けないので, いずれも coordinator が cmux 経由で送る. <strong>異常時は閉じない</strong> — blocker やエラーが報告されたらタブを残して人間に surface する. 対話セッションで生きたまま中を覗いて操舵できるのが, headless 巡回にはない利点だからだ. idle で固まった時も, 黙って kill せずタブを残してアラートする.</p>
+<p>地味だが効くのが lifecycle の取りこぼし防止である. どのタブがどの task かを registry で突き合わせ, セッションの同定は cmux のワークスペース uuid で行う (使い回される ref を ID にすると, 別のセッションを取り違える危険があった). 完了の検知は「claim した」ではなく「complete した」という構造化シグナルで判定し (作業中を完了と誤認しない), 閉じる前には grace を置く (操舵中のタブを即閉じない). 削除は CAS で行い, 一度閉じたつもりが裏で再起動されていた時に取り違えて消すのを防ぐ. このあたりは, 後述する相互検証で具体的に指摘されて固めた箇所だ.</p>
+<h1 id="仲介承認-mediated-approval">仲介承認 (mediated approval)</h1>
+<p>ここが本記事の山である. coordinator が Agent を起動して放っておくと, Agent は人間が承認すべき変更を勝手にやってしまうかもしれない. かといって 1 操作ごとに承認を求めていたら, 結局つきっきりになって自動化の意味がない. 欲しいのは「<strong>変更操作だけ</strong>を人間に上げ, 読み取りや routine は素通りさせる」中間である.</p>
+<p>これを <code>PreToolUse</code> フックで実現した. フックは<strong>変更系のツールと MCP 呼び出しだけ</strong>にマッチする (Edit / Write / MultiEdit / NotebookEdit / Bash / WebFetch / WebSearch / <code>mcp__*</code>). 読み取り専用のツール呼び出しはそもそもフックを踏まないので, 性能上のコストもかからない. マッチしたものの中でも, 安全と分かっているごく一部 (ツール検索など) は黙って通し, それ以外を coordinator に escalate する.</p>
+<svg viewBox="0 0 640 540" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="仲介承認の判定フロー" font-family="sans-serif" font-size="13">
+<defs>
+<marker id="dah" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+<path d="M0,0 L7,3 L0,6 Z" fill="#555"/>
+</marker>
+</defs>
+<!-- tool call -->
+<rect x="220" y="20" width="200" height="50" rx="6" fill="#eef4fb" stroke="#4a78b5"/>
+<text x="320" y="50" text-anchor="middle" font-weight="bold">repo agent の tool 呼び出し</text>
+<line x1="320" y1="70" x2="320" y2="100" stroke="#555" marker-end="url(#dah)"/>
+<!-- decision 1: heartbeat -->
+<rect x="208" y="100" width="224" height="58" rx="6" fill="#fbf7ee" stroke="#b58a4a"/>
+<text x="320" y="125" text-anchor="middle" font-weight="bold">coordinator heartbeat 新鮮?</text>
+<text x="320" y="144" text-anchor="middle" fill="#555" font-size="11">per-repo, TTL 180s</text>
+<!-- branch no -> native -->
+<line x1="432" y1="129" x2="488" y2="129" stroke="#555" marker-end="url(#dah)"/>
+<text x="460" y="120" text-anchor="middle" fill="#333" font-size="11">いいえ</text>
+<rect x="488" y="101" width="142" height="58" rx="6" fill="#eef7ee" stroke="#5a9a5a"/>
+<text x="559" y="125" text-anchor="middle" font-size="12">solo session</text>
+<text x="559" y="143" text-anchor="middle" fill="#555" font-size="11">native (素通り)</text>
+<!-- down はい -->
+<line x1="320" y1="158" x2="320" y2="190" stroke="#555" marker-end="url(#dah)"/>
+<text x="332" y="178" fill="#333" font-size="11">はい</text>
+<!-- decision 2: mutating -->
+<rect x="208" y="190" width="224" height="58" rx="6" fill="#fbf7ee" stroke="#b58a4a"/>
+<text x="320" y="215" text-anchor="middle" font-weight="bold">変更系 + MCP tool?</text>
+<text x="320" y="234" text-anchor="middle" fill="#555" font-size="11">Edit / Write / Bash / mcp__*</text>
+<!-- branch no -> passthrough -->
+<line x1="432" y1="219" x2="488" y2="219" stroke="#555" marker-end="url(#dah)"/>
+<text x="460" y="210" text-anchor="middle" fill="#333" font-size="11">いいえ</text>
+<rect x="488" y="191" width="142" height="58" rx="6" fill="#eef7ee" stroke="#5a9a5a"/>
+<text x="559" y="215" text-anchor="middle" font-size="12">read-only</text>
+<text x="559" y="233" text-anchor="middle" fill="#555" font-size="11">素通り</text>
+<!-- down はい -->
+<line x1="320" y1="248" x2="320" y2="280" stroke="#555" marker-end="url(#dah)"/>
+<text x="332" y="268" fill="#333" font-size="11">はい</text>
+<!-- escalate -->
+<rect x="208" y="280" width="224" height="58" rx="6" fill="#f6f1fb" stroke="#7a5aa5"/>
+<text x="320" y="305" text-anchor="middle" font-weight="bold">coordinator に escalate</text>
+<text x="320" y="323" text-anchor="middle" fill="#555" font-size="11">full payload + path 検証</text>
+<line x1="320" y1="338" x2="320" y2="370" stroke="#555" marker-end="url(#dah)"/>
+<!-- user -->
+<rect x="208" y="370" width="224" height="58" rx="6" fill="#fff" stroke="#999"/>
+<text x="320" y="395" text-anchor="middle" font-weight="bold">user が承認</text>
+<text x="320" y="413" text-anchor="middle" fill="#555" font-size="11">AskUserQuestion</text>
+<!-- approve -->
+<line x1="268" y1="428" x2="180" y2="462" stroke="#555" marker-end="url(#dah)"/>
+<text x="200" y="450" text-anchor="end" fill="#333" font-size="11">承認</text>
+<rect x="40" y="462" width="220" height="58" rx="6" fill="#eef7ee" stroke="#5a9a5a"/>
+<text x="150" y="487" text-anchor="middle" font-weight="bold">無プロンプトで実行</text>
+<text x="150" y="505" text-anchor="middle" fill="#555" font-size="11">hook allow</text>
+<!-- reject -->
+<line x1="372" y1="428" x2="460" y2="462" stroke="#555" marker-end="url(#dah)"/>
+<text x="440" y="450" fill="#333" font-size="11">却下</text>
+<rect x="380" y="462" width="220" height="58" rx="6" fill="#f7eeee" stroke="#a55a5a"/>
+<text x="490" y="487" text-anchor="middle" font-weight="bold">deny</text>
+<text x="490" y="505" text-anchor="middle" fill="#555" font-size="11">却下として記録</text>
+</svg>
+<p>escalate されると, coordinator は保留中の承認を検知して人間に surface する. 人間は <code>AskUserQuestion</code> で承認/却下を選び, <strong>承認すると, フックは以後の追加プロンプトなしにそのツールを実行させる</strong>. 却下すれば deny で記録. escalate にはツールの完全なペイロードと, allowed_paths との照合結果が付くので, 何を許そうとしているのかを見てから判断できる.</p>
+<p>ポリシーは <strong>fail-safe</strong> にしてある. 分類が未知のツールは「とりあえず通す」ではなく「とりあえず聞く」に倒す. 安全と分かっているものだけを黙認し, それ以外は承認に回す. ここを逆 (未知は通す = fail-open) にした初版は, 相互検証で一発で止められた. 承認ゲートが fail-open だと, ゲートを置いた意味が消える.</p>
+<p>この設計で得られるのが, 冒頭に書いた「coordinator が routine を捌き, 実判断だけ人に escalate する」状態である. しかも対話性を失わない. 人間は各 repo に張り付くのをやめ, 上がってきた判断だけに答えればよくなる.</p>
+<h1 id="per-repo-heartbeat-の自己ゲート">per-repo heartbeat の自己ゲート</h1>
+<p>承認フックを全 repo に常設しようとすると, <strong>coordinator なんて居ない, ただ自分で <code>claude</code> を開いただけの普通のセッション</strong>でも, あらゆる編集が「居ない承認者」を待ってデッドロックする可能性がある.</p>
+<p>これを per-repo の heartbeat による自己ゲートで解いた. フックが escalate するのは, <strong>その repo の coordinator heartbeat が新鮮 (TTL 180 秒以内) な時だけ</strong>である. heartbeat が無い, あるいは古い = coordinator が居ない = solo session, とみなしてフックは何もせず native フローに通す (上の図の最初の分岐). coordinator はある repo を能動的に操舵している間だけ heartbeat を打ち続け, 手を離せばゲートはまた休眠に戻る.</p>
+<p>効くのは heartbeat が <strong>per-repo</strong> であることだ. これを global にすると, どこか 1 つの repo に coordinator が居るだけで全 repo の編集がゲートされてしまう (これも相互検証で指摘されて直した). repo ごとに区切ったので, 現に coordinator の操舵下にある repo だけが仲介を受ける.</p>
+<p>この自己ゲートのおかげで, <strong>承認フックを全 repo (git 管理下でないものも含む) に配って回っても, 既定では休眠していて何のコストもない</strong>. 同じ仕組みが, solo の手作業には透明で, coordinator が来た時だけ起きる. 「常設しても壊れない」を, 設定の出し入れではなく liveness による自己判定で担保することができた.</p>
+<h1 id="足場-先に塞いだ前提">足場: 先に塞いだ前提</h1>
+<p>仲介承認や lifecycle の前に, 地味だが先に塞いでおく必要のあった穴が 2 つあった.</p>
+<ul>
+<li><strong>共有ファイルのロック</strong>: feed や task のファイルは, 毎時巡回 / MCP / 走行中の Agent という複数の書き手が read-modify-write する. ロックが無いと並行 RMW が lost-update を起こす. ファイルロックでこれらを直列化した. 走行中の Agent と巡回が同じ feed を触る本機構では, これが全ての前提になる.</li>
+<li><strong>安全 MCP の事前許可</strong>: 起動された Agent が routine の MCP (feed の取得など) を呼ぶたびに許可プロンプトで止まると, 対話で立ち上げたはずのセッションが最初のツール呼び出しで固まる — 居なくて済むはずの人間を待って. なので, Orchestrator 自身の安全な MCP ツール群を repo の設定で事前許可しておく.</li>
+</ul>
+<p>どちらも派手さは無いが, これが無いと「能動的に起動して放っておく」が成立しない.</p>
+<h1 id="何が変わって-何が変わっていないか">何が変わって, 何が変わっていないか</h1>
+<p>実証は, ファイルを編集しない疎通確認と, 1 ファイルを書く編集タスクの両方で, dispatch → 承認 → 実行 → 完了 → teardown の一巡を end-to-end で通すところまで. 常時 hot 運用はせず, 必要な時だけ起動して畳む方針も維持している.</p>
+<p>前回の記事で Orchestrator の中心命題として書いたのは, 「上位は下位の FS を直接書き換えない」「Orchestrator は判断と記録に徹し, 現場では手を動かさない」だった. 一見, 能動的に起動・操舵する coordinator はこれを破っているように見える. だが破っていない. coordinator は依然として repo のファイルに自分で書き込まない — feed に指示を置き, 実作業は Agent が自分の worktree で行う. 仲介承認が横取りするのも <em>Agent 自身の</em> ツール呼び出しであって, coordinator が代わりに編集するわけではない. 変わったのは,「対話セッションの側が受動から能動になった」ことと,「人間の役割が, 各 repo を操作する人から, coordinator が上げてくる判断に答える人へ移った」ことだ. 司令塔は司令塔のまま, ただ黙って巡回を待つのをやめて, こちらから火を点けられるようになった.</p>
+<p>という感じで, ハブの上にコックピットを一枚足した話でした. 例によって毎日変わっているので, あくまで暫定版です.</p>]]></description>
+    <pubDate>Fri, 19 Jun 2026 00:00:00 UT</pubDate>
+    <guid>/posts/2026-06-19-interactive-multi-repo-coordinator.html</guid>
+    
+    <author>kaya3728@gmail.com (yakagika)</author>
+    
+    <dc:creator>yakagika</dc:creator>
+</item>
+
+    </channel>
+</rss>
