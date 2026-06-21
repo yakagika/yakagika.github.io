@@ -6,7 +6,7 @@
     <title>yakagika - 関数型プログラミング Ch7 代数的データ型1</title>
 
     <!-- Stylesheets. -->
-    <link rel="stylesheet" type="text/css" href="../style.css?v=1781840310">
+    <link rel="stylesheet" type="text/css" href="../style.css?v=1782006494">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -77,7 +77,7 @@
     <p class="article-description">資料</p>
     <div class="article-meta">
         <span class="meta-item">公開: 2024-10-18</span>
-        <span class="meta-item">更新: 2026-06-20</span>
+        <span class="meta-item">更新: 2026-06-21</span>
     </div>
     <div class="tag-chips"><a title="All pages tagged 'algebra'." href="../tags/algebra.html" rel="tag">algebra</a>, <a title="All pages tagged 'lecture'." href="../tags/lecture.html" rel="tag">lecture</a>, <a title="All pages tagged 'statistics'." href="../tags/statistics.html" rel="tag">statistics</a>, <a title="All pages tagged 'haskell'." href="../tags/haskell.html" rel="tag">haskell</a></div>
 </header>
@@ -302,7 +302,7 @@ Haskellでは空集合を表すデータ型として<code>Data.Void</code>に定
 <span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="co">-- [(1,2),(1,3),(2,1),(2,3),(3,1),(3,2)]</span></span></code></pre></div>
 <p>ただし,リスト内包表記は<strong>値のレベル</strong>での構成であり,得られるのはあくまで <code>[Int]</code> などのリストです. 「型として偶数のみからなる新しいデータ型」を定義しているわけではない点に注意してください.</p>
 <div class="warn">
-<p>ここではリスト内包表記を集合の内包表記の<strong>比喩</strong>として紹介していますが, リストと集合は別物です. リストには<strong>順序があり, 同じ要素を重複して含むことができ, 要素の等価性も個別に比較する必要があります</strong>. 一方,数学における集合は順序を持たず,同じ要素を重複して含むこともありません. リストが代数的にどのように定義されるかに関してはのちの章で扱います.</p>
+<p>ここではリスト内包表記を集合の内包表記の<strong>比喩</strong>として紹介していますが, リストと集合は別物です. リストには<strong>順序があり, 同じ要素を重複して含むことができ, 要素の等価性も個別に比較する必要があります</strong>. 一方,数学における集合は順序を持たず,同じ要素を重複して含むこともありません. リストが <strong>再帰的データ型</strong> としてどう定義されるかは本章後半の「<a href="#再帰的データ型">再帰的データ型</a>」で, それを任意の要素型へ一般化し代数構造 (モノイド) を載せる話は <a href="fp9.html">第9章</a> で扱います.</p>
 <p>したがって,実際に<strong>集合としての操作</strong>(要素の存在判定,和集合 <span class="math inline">\cup</span>,積集合 <span class="math inline">\cap</span>,差集合 <span class="math inline">\setminus</span>,重複の自動排除など)が必要な場合は,リストではなく <code>containers</code> パッケージの提供する <code>Data.Set</code> の <code>Set</code> 型を利用するほうが適切であり,計算量の面でも有利です.</p>
 <div class="sourceCode" id="cb15"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Set</span> <span class="kw">as</span> <span class="dt">Set</span></span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -634,77 +634,109 @@ Haskellでは空集合を表すデータ型として<code>Data.Void</code>に定
 <p>直和型の各コンストラクタが異なる数・種類の引数を持ってよいため, 図形ごとに必要な情報を自然に表現できます. 面積計算のような処理はパターンマッチで場合分けして書くのが定石です.</p>
 </details>
 </section>
+<h3 id="再帰的データ型">再帰的データ型</h3>
+<p>ここまでのデータ型 (直積・直和) は, <strong>すでにある型を有限個組み合わせる</strong> ものでした. もう 1 つ強力な作り方があります. <strong>データ型が自分自身を使って定義される</strong> —— これを <strong>再帰的データ型 (recursive data type)</strong> といいます. 有限の定義で, いくらでも大きくなりうるデータ (列や木など) を表せます.</p>
+<p>代表例として <strong>自然数</strong> を作ってみます. 「自然数とは, <span class="math inline">0</span> であるか, またはある自然数の <strong>次の数 (successor)</strong> である」と定義できます. これをそのまま直和型にすると, 次のようになります.</p>
+<div class="sourceCode" id="cb34"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Nat</span> <span class="ot">=</span> <span class="dt">Zero</span> <span class="op">|</span> <span class="dt">Succ</span> <span class="dt">Nat</span> <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>)</span></code></pre></div>
+<p>コンストラクタ <code>Succ</code> が引数に <strong><code>Nat</code> 自身</strong> を取っている点が再帰です. 値は <code>Zero</code>, <code>Succ Zero</code>, <code>Succ (Succ Zero)</code>, … と続き, それぞれ <span class="math inline">0, 1, 2, \dots</span> を表します. たとえば <span class="math inline">3</span> は <code>Succ (Succ (Succ Zero))</code> です. これは数学で自然数を定める <strong>ペアノの公理 (Peano axioms)</strong> とまったく同じ構成です.</p>
+<p>集合論的に見ると, <code>Nat</code> は</p>
+<ul>
+<li><span class="math inline">\text{Zero} \in \mathrm{Nat}</span></li>
+<li><span class="math inline">n \in \mathrm{Nat}</span> ならば <span class="math inline">\text{Succ}\ n \in \mathrm{Nat}</span></li>
+</ul>
+<p>を満たす <strong>最小の集合</strong> です. このように「自分自身を使った規則で定まる集合」を <strong>帰納的に定義された集合</strong> といいます (有限の規則だけで, 無限個の要素をもつ集合を表せます).</p>
+<p><strong>再帰的データ型は, 再帰関数で処理します.</strong> <a href="fp5.html">第5章</a>で学んだ関数の再帰を思い出してください. 関数の場合分けが型のコンストラクタ (<code>Zero</code> / <code>Succ n</code>) に一対一で対応し, <code>Succ n</code> の枝で自分自身を再帰呼び出しします.</p>
+<div class="sourceCode" id="cb35"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Nat</span> <span class="ot">=</span> <span class="dt">Zero</span> <span class="op">|</span> <span class="dt">Succ</span> <span class="dt">Nat</span> <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>)</span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a><span class="co">-- Nat を Int に変換する (構造をたどって 1 ずつ数える)</span></span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a><span class="fu">toInt</span><span class="ot"> ::</span> <span class="dt">Nat</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a><span class="fu">toInt</span> <span class="dt">Zero</span>     <span class="ot">=</span> <span class="dv">0</span></span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a><span class="fu">toInt</span> (<span class="dt">Succ</span> n) <span class="ot">=</span> <span class="dv">1</span> <span class="op">+</span> <span class="fu">toInt</span> n</span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a><span class="co">-- 自然数の足し算 (m の上に Succ を n 個積み直す)</span></span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a><span class="ot">add ::</span> <span class="dt">Nat</span> <span class="ot">-&gt;</span> <span class="dt">Nat</span> <span class="ot">-&gt;</span> <span class="dt">Nat</span></span>
+<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a>add <span class="dt">Zero</span>     m <span class="ot">=</span> m</span>
+<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a>add (<span class="dt">Succ</span> n) m <span class="ot">=</span> <span class="dt">Succ</span> (add n m)</span>
+<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-13"><a href="#cb35-13" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb35-15"><a href="#cb35-15" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> three <span class="ot">=</span> <span class="dt">Succ</span> (<span class="dt">Succ</span> (<span class="dt">Succ</span> <span class="dt">Zero</span>))</span>
+<span id="cb35-16"><a href="#cb35-16" aria-hidden="true" tabindex="-1"></a>      two   <span class="ot">=</span> <span class="dt">Succ</span> (<span class="dt">Succ</span> <span class="dt">Zero</span>)</span>
+<span id="cb35-17"><a href="#cb35-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="fu">toInt</span> three)            <span class="co">-- 3</span></span>
+<span id="cb35-18"><a href="#cb35-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="fu">toInt</span> (add three two))  <span class="co">-- 5</span></span></code></pre></div>
+<p><code>toInt</code> も <code>add</code> も, <strong>基底ケース (<code>Zero</code>)</strong> と <strong>再帰ケース (<code>Succ n</code>)</strong> に分けて書かれており, 関数の再帰構造が型の再帰構造をそのままなぞっています. これが再帰的データ型を扱うときの基本パターンです.</p>
+<p>実は, これまで使ってきた <strong>リストも再帰的データ型</strong> です. 「リストとは, 空リスト <code>[]</code> であるか, または先頭要素 <code>x</code> と残りのリスト <code>xs</code> をつないだ <code>x : xs</code> である」という再帰的な構造を持ち, 概念的には <code>[] | x : xs</code> と定義されます. <a href="fp5.html">第5章</a>以降で <code>(x : xs)</code> をパターンマッチして再帰処理してきたのは, まさにこの再帰型をたどる操作でした. リストや木を <strong>任意の要素型</strong> について扱えるようにする一般化 (型引数) と, それらに代数構造 (モノイド) を載せる話は <a href="fp9.html">第9章</a> で扱います.</p>
 <h3 id="type">type</h3>
 <p>これまで新しいデータを作成するためには <code>data</code> を利用してきました. しかし, 新しい型を作るほどではないものの, <strong>同じ表現型 (たとえば <code>Double</code>) に文脈上の意味を持つ名前を与えて, 可読性を高めたい</strong> 場合があります.
 既存のデータ型に別名を与える最も簡単な方法が, <code>type</code> を用いて <strong>型シノニム (type synonym)</strong> と呼ばれる別名を導入する方法です.</p>
 <p>例えば,</p>
-<div class="sourceCode" id="cb34"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Rectangle</span> <span class="ot">=</span> <span class="dt">Rectangle</span> <span class="dt">Double</span> <span class="dt">Double</span></span>
-<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">deriving</span> <span class="dt">Show</span></span>
-<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a><span class="ot">mkRectangle ::</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Rectangle</span></span>
-<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>mkRectangle b h <span class="ot">=</span> <span class="dt">Rectangle</span> b h</span></code></pre></div>
+<div class="sourceCode" id="cb36"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Rectangle</span> <span class="ot">=</span> <span class="dt">Rectangle</span> <span class="dt">Double</span> <span class="dt">Double</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">deriving</span> <span class="dt">Show</span></span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a><span class="ot">mkRectangle ::</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Rectangle</span></span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>mkRectangle b h <span class="ot">=</span> <span class="dt">Rectangle</span> b h</span></code></pre></div>
 <p>としたとき, 最初の引数と2つ目の引数のどちらが底辺で, どちらが高さなのかが判別できません.</p>
-<div class="sourceCode" id="cb35"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Rectangle</span> <span class="ot">=</span> <span class="dt">Rectangle</span> {<span class="ot">bottom ::</span> <span class="dt">Double</span></span>
-<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a>                           ,<span class="ot">height ::</span> <span class="dt">Double</span>}</span>
-<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">deriving</span> <span class="dt">Show</span></span>
-<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a><span class="ot">mkRectangle ::</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Rectangle</span></span>
-<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>mkRectangle b h <span class="ot">=</span> <span class="dt">Rectangle</span> {bottom <span class="ot">=</span> b, height <span class="ot">=</span> h}</span></code></pre></div>
+<div class="sourceCode" id="cb37"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Rectangle</span> <span class="ot">=</span> <span class="dt">Rectangle</span> {<span class="ot">bottom ::</span> <span class="dt">Double</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>                           ,<span class="ot">height ::</span> <span class="dt">Double</span>}</span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">deriving</span> <span class="dt">Show</span></span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a><span class="ot">mkRectangle ::</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Rectangle</span></span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a>mkRectangle b h <span class="ot">=</span> <span class="dt">Rectangle</span> {bottom <span class="ot">=</span> b, height <span class="ot">=</span> h}</span></code></pre></div>
 <p>のようにレコード構文を用いることでフィールド名による区別は可能ですが, 型注釈側にも意味のある名前が現れる方が, さらに可読性と解釈可能性が上がります.</p>
 <p><code>type 新しい型名 = 既存のデータ型</code></p>
 <p>の形式で記述することで, 以下のように同じ <code>Double</code> に別名を付けることができます.</p>
-<div class="sourceCode" id="cb36"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">Bottom</span> <span class="ot">=</span> <span class="dt">Double</span></span>
-<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">Height</span> <span class="ot">=</span> <span class="dt">Double</span></span>
-<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Rectangle</span> <span class="ot">=</span> <span class="dt">Rectangle</span> {<span class="ot">bottom ::</span> <span class="dt">Bottom</span></span>
-<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>                           ,<span class="ot">height ::</span> <span class="dt">Height</span>}</span>
-<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">deriving</span> <span class="dt">Show</span></span>
-<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a><span class="ot">mkRectangle ::</span> <span class="dt">Bottom</span> <span class="ot">-&gt;</span> <span class="dt">Height</span> <span class="ot">-&gt;</span> <span class="dt">Rectangle</span></span>
-<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a>mkRectangle b h <span class="ot">=</span> <span class="dt">Rectangle</span> {bottom <span class="ot">=</span> b, height <span class="ot">=</span> h}</span></code></pre></div>
+<div class="sourceCode" id="cb38"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">Bottom</span> <span class="ot">=</span> <span class="dt">Double</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">Height</span> <span class="ot">=</span> <span class="dt">Double</span></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Rectangle</span> <span class="ot">=</span> <span class="dt">Rectangle</span> {<span class="ot">bottom ::</span> <span class="dt">Bottom</span></span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a>                           ,<span class="ot">height ::</span> <span class="dt">Height</span>}</span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">deriving</span> <span class="dt">Show</span></span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a><span class="ot">mkRectangle ::</span> <span class="dt">Bottom</span> <span class="ot">-&gt;</span> <span class="dt">Height</span> <span class="ot">-&gt;</span> <span class="dt">Rectangle</span></span>
+<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a>mkRectangle b h <span class="ot">=</span> <span class="dt">Rectangle</span> {bottom <span class="ot">=</span> b, height <span class="ot">=</span> h}</span></code></pre></div>
 <p>これは集合論的には, <strong>既知の集合 <span class="math inline">\mathbb{R}</span> に対して別名 <span class="math inline">\text{Bottom}, \text{Height}</span> を与えたもの</strong> に等しく, 集合としては <span class="math inline">\text{Bottom} = \text{Height} = \mathbb{R}</span> で完全に同一です. つまり <code>type</code> は <strong>新しい集合 (型) を構成しているわけではなく, 既存の型に別名 (alias) を導入しているだけ</strong> であり, 役割は <strong>可読性のための注釈</strong> に限られます.</p>
 <div class="warn">
 <p>そのため, 型レベルで <span class="math inline">\text{Bottom}</span> と <span class="math inline">\text{Height}</span> を区別したい (例えば底辺と高さを取り違えるとコンパイルエラーになるようにしたい) 場合には, <code>type</code> では不十分です. その場合には次節で扱う <code>newtype</code> や, 専用のコンストラクタを持つ <code>data</code> を用いる必要があります.</p>
 </div>
 <h3 id="newtype">newtype</h3>
 <p><code>type</code> は既存の型に別名を付けるだけなので, 型検査上は元の型と完全に同じものとして扱われます. そのため, 前節の</p>
-<div class="sourceCode" id="cb37"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">Bottom</span> <span class="ot">=</span> <span class="dt">Double</span></span>
-<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">Height</span> <span class="ot">=</span> <span class="dt">Double</span></span></code></pre></div>
+<div class="sourceCode" id="cb39"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">Bottom</span> <span class="ot">=</span> <span class="dt">Double</span></span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">Height</span> <span class="ot">=</span> <span class="dt">Double</span></span></code></pre></div>
 <p>では, <code>Bottom</code> と <code>Height</code> はどちらも <code>Double</code> の別名にすぎません. 型注釈を読む人間にとっては意味が分かりやすくなりますが, コンパイラは底辺と高さを別の型として区別しません.</p>
 <p>型レベルで <span class="math inline">\text{Bottom}</span> と <span class="math inline">\text{Height}</span> を区別したい場合には, <code>newtype</code> を使います. <code>newtype</code> は既存の型を 1 つだけ包んで, 新しい独立した型を作るための構文です.</p>
 <p><code>newtype 新しい型名 = コンストラクタ名 既存の型</code></p>
 <p>例えば, 底辺と高さをそれぞれ独立した型として定義するには, 次のように書きます.</p>
-<div class="sourceCode" id="cb38"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">Bottom</span> <span class="ot">=</span> <span class="dt">Bottom</span> <span class="dt">Double</span></span>
-<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">Height</span> <span class="ot">=</span> <span class="dt">Height</span> <span class="dt">Double</span></span></code></pre></div>
+<div class="sourceCode" id="cb40"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">Bottom</span> <span class="ot">=</span> <span class="dt">Bottom</span> <span class="dt">Double</span></span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">Height</span> <span class="ot">=</span> <span class="dt">Height</span> <span class="dt">Double</span></span></code></pre></div>
 <p>ここで左辺の <code>Bottom</code>, <code>Height</code> は <strong>型構築子</strong> です. 一方, 右辺の <code>Bottom</code>, <code>Height</code> は <strong>データ構築子</strong> です. 名前は同じでも, 型の名前と値を作る関数の名前として別の名前空間に属しています.</p>
 <p>データ構築子としての型は, それぞれ次のようになります.</p>
-<div class="sourceCode" id="cb39"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="dt">Bottom</span><span class="ot"> ::</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Bottom</span></span>
-<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a><span class="dt">Height</span><span class="ot"> ::</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Height</span></span></code></pre></div>
+<div class="sourceCode" id="cb41"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="dt">Bottom</span><span class="ot"> ::</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Bottom</span></span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a><span class="dt">Height</span><span class="ot"> ::</span> <span class="dt">Double</span> <span class="ot">-&gt;</span> <span class="dt">Height</span></span></code></pre></div>
 <p>つまり, <code>Bottom 3.0</code> は <code>Double</code> の <code>3.0</code> を <code>Bottom</code> 型として包んだ値であり, <code>Height 3.0</code> とは型が異なります.</p>
 <p>この性質を使うと, 長方形の底辺と高さの取り違えを型検査で防げます.</p>
-<div class="sourceCode" id="cb40"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">Bottom</span> <span class="ot">=</span> <span class="dt">Bottom</span> <span class="dt">Double</span> <span class="kw">deriving</span> <span class="dt">Show</span></span>
-<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">Height</span> <span class="ot">=</span> <span class="dt">Height</span> <span class="dt">Double</span> <span class="kw">deriving</span> <span class="dt">Show</span></span>
-<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Rectangle</span> <span class="ot">=</span> <span class="dt">Rectangle</span> <span class="dt">Bottom</span> <span class="dt">Height</span></span>
-<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">deriving</span> <span class="dt">Show</span></span>
-<span id="cb40-6"><a href="#cb40-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb40-7"><a href="#cb40-7" aria-hidden="true" tabindex="-1"></a><span class="ot">mkRectangle ::</span> <span class="dt">Bottom</span> <span class="ot">-&gt;</span> <span class="dt">Height</span> <span class="ot">-&gt;</span> <span class="dt">Rectangle</span></span>
-<span id="cb40-8"><a href="#cb40-8" aria-hidden="true" tabindex="-1"></a>mkRectangle b h <span class="ot">=</span> <span class="dt">Rectangle</span> b h</span>
-<span id="cb40-9"><a href="#cb40-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb40-10"><a href="#cb40-10" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb40-11"><a href="#cb40-11" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> (mkRectangle (<span class="dt">Bottom</span> <span class="fl">3.0</span>) (<span class="dt">Height</span> <span class="fl">4.0</span>))</span></code></pre></div>
-<p>このとき, <code>mkRectangle</code> は第一引数に <code>Bottom</code>, 第二引数に <code>Height</code> を要求します. そのため, 次のように底辺と高さを逆に渡そうとすると, コンパイルエラーになります.</p>
-<div class="sourceCode" id="cb41"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- mkRectangle (Height 4.0) (Bottom 3.0)</span></span></code></pre></div>
-<p><code>type Bottom = Double</code> では <code>Bottom</code> も <code>Height</code> も実体は同じ <code>Double</code> なので, このような取り違えをコンパイラは検出できません. 一方, <code>newtype</code> では <code>Bottom</code> と <code>Height</code> は別々の型なので, 取り違えは型エラーになります.</p>
-<p><code>newtype</code> で包んだ値を計算に使うには, パターンマッチで中身を取り出します. 例えば, 長方形の面積を求める関数は次のように書けます.</p>
 <div class="sourceCode" id="cb42"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">Bottom</span> <span class="ot">=</span> <span class="dt">Bottom</span> <span class="dt">Double</span> <span class="kw">deriving</span> <span class="dt">Show</span></span>
 <span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">Height</span> <span class="ot">=</span> <span class="dt">Height</span> <span class="dt">Double</span> <span class="kw">deriving</span> <span class="dt">Show</span></span>
 <span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Rectangle</span> <span class="ot">=</span> <span class="dt">Rectangle</span> <span class="dt">Bottom</span> <span class="dt">Height</span></span>
 <span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">deriving</span> <span class="dt">Show</span></span>
 <span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a><span class="ot">area ::</span> <span class="dt">Rectangle</span> <span class="ot">-&gt;</span> <span class="dt">Double</span></span>
-<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a>area (<span class="dt">Rectangle</span> (<span class="dt">Bottom</span> b) (<span class="dt">Height</span> h)) <span class="ot">=</span> b <span class="op">*</span> h</span></code></pre></div>
+<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a><span class="ot">mkRectangle ::</span> <span class="dt">Bottom</span> <span class="ot">-&gt;</span> <span class="dt">Height</span> <span class="ot">-&gt;</span> <span class="dt">Rectangle</span></span>
+<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a>mkRectangle b h <span class="ot">=</span> <span class="dt">Rectangle</span> b h</span>
+<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-10"><a href="#cb42-10" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb42-11"><a href="#cb42-11" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> (mkRectangle (<span class="dt">Bottom</span> <span class="fl">3.0</span>) (<span class="dt">Height</span> <span class="fl">4.0</span>))</span></code></pre></div>
+<p>このとき, <code>mkRectangle</code> は第一引数に <code>Bottom</code>, 第二引数に <code>Height</code> を要求します. そのため, 次のように底辺と高さを逆に渡そうとすると, コンパイルエラーになります.</p>
+<div class="sourceCode" id="cb43"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- mkRectangle (Height 4.0) (Bottom 3.0)</span></span></code></pre></div>
+<p><code>type Bottom = Double</code> では <code>Bottom</code> も <code>Height</code> も実体は同じ <code>Double</code> なので, このような取り違えをコンパイラは検出できません. 一方, <code>newtype</code> では <code>Bottom</code> と <code>Height</code> は別々の型なので, 取り違えは型エラーになります.</p>
+<p><code>newtype</code> で包んだ値を計算に使うには, パターンマッチで中身を取り出します. 例えば, 長方形の面積を求める関数は次のように書けます.</p>
+<div class="sourceCode" id="cb44"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">Bottom</span> <span class="ot">=</span> <span class="dt">Bottom</span> <span class="dt">Double</span> <span class="kw">deriving</span> <span class="dt">Show</span></span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">Height</span> <span class="ot">=</span> <span class="dt">Height</span> <span class="dt">Double</span> <span class="kw">deriving</span> <span class="dt">Show</span></span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Rectangle</span> <span class="ot">=</span> <span class="dt">Rectangle</span> <span class="dt">Bottom</span> <span class="dt">Height</span></span>
+<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">deriving</span> <span class="dt">Show</span></span>
+<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a><span class="ot">area ::</span> <span class="dt">Rectangle</span> <span class="ot">-&gt;</span> <span class="dt">Double</span></span>
+<span id="cb44-8"><a href="#cb44-8" aria-hidden="true" tabindex="-1"></a>area (<span class="dt">Rectangle</span> (<span class="dt">Bottom</span> b) (<span class="dt">Height</span> h)) <span class="ot">=</span> b <span class="op">*</span> h</span></code></pre></div>
 <p><code>Rectangle (Bottom b) (Height h)</code> というパターンにより, <code>Bottom</code> の中の <code>Double</code> を <code>b</code> に, <code>Height</code> の中の <code>Double</code> を <code>h</code> に取り出しています. <code>newtype</code> で作った値は元の <code>Double</code> と同じように自動で計算に使えるわけではありません. <strong>別の型として包んだので, 必要な場所で明示的に取り出す</strong>必要があります.</p>
 <p>集合論的に見ると, <code>type</code> は既存の集合に別名を付けているだけです. したがって,</p>
 <p><span class="math display">\text{Bottom} = \text{Height} = \mathbb{R}</span></p>
@@ -716,10 +748,10 @@ Haskellでは空集合を表すデータ型として<code>Data.Void</code>に定
 </div>
 <div class="warn">
 <p><code>newtype</code> は新しい型を作りますが, 値が条件を満たすことまでは自動では保証しません. 例えば,</p>
-<div class="sourceCode" id="cb43"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">Positive</span> <span class="ot">=</span> <span class="dt">Positive</span> <span class="dt">Int</span></span>
-<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a><span class="ot">badPositive ::</span> <span class="dt">Positive</span></span>
-<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>badPositive <span class="ot">=</span> <span class="dt">Positive</span> (<span class="op">-</span><span class="dv">1</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb45"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">Positive</span> <span class="ot">=</span> <span class="dt">Positive</span> <span class="dt">Int</span></span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a><span class="ot">badPositive ::</span> <span class="dt">Positive</span></span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>badPositive <span class="ot">=</span> <span class="dt">Positive</span> (<span class="op">-</span><span class="dv">1</span>)</span></code></pre></div>
 <p>と定義しても, <code>Positive (-1)</code> は作れてしまいます. 「正の整数だけを作れるようにしたい」場合には, 前に見たスマートコンストラクタのように, コンストラクタをモジュール外へ公開せず, 検査付きの関数を経由して値を作る設計が必要です.</p>
 </div>
 <h3 id="エラー修正演習">エラー修正演習</h3>
@@ -728,17 +760,17 @@ Haskellでは空集合を表すデータ型として<code>Data.Void</code>に定
 <h4>Exercise CH7-5</h4>
 <p><strong>Data constructor not in scope (コンストラクタのタイポ)</strong></p>
 <p>以下のコードは <code>Color</code> 列挙型を定義して使っていますが, コンパイルが通りません. 原因を答えて修正してください.</p>
-<div class="sourceCode" id="cb44"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch7-5.hs (誤りあり)</span></span>
-<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Color</span> <span class="ot">=</span> <span class="dt">Red</span> <span class="op">|</span> <span class="dt">Blue</span> <span class="op">|</span> <span class="dt">Green</span> <span class="kw">deriving</span> <span class="dt">Show</span></span>
-<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> <span class="dt">Yellow</span></span></code></pre></div>
+<div class="sourceCode" id="cb46"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch7-5.hs (誤りあり)</span></span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Color</span> <span class="ot">=</span> <span class="dt">Red</span> <span class="op">|</span> <span class="dt">Blue</span> <span class="op">|</span> <span class="dt">Green</span> <span class="kw">deriving</span> <span class="dt">Show</span></span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> <span class="dt">Yellow</span></span></code></pre></div>
 <p>実エラー:</p>
-<div class="sourceCode" id="cb45"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:4:14:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">88464</span><span class="pp">]</span></span>
-<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Data</span> constructor not in scope: Yellow</span>
-<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
-<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a><span class="ex">4</span> <span class="kw">|</span> <span class="ex">main</span> = print Yellow</span>
-<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span>              <span class="ex">^^^^^^</span></span></code></pre></div>
+<div class="sourceCode" id="cb47"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:4:14:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">88464</span><span class="pp">]</span></span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Data</span> constructor not in scope: Yellow</span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
+<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a><span class="ex">4</span> <span class="kw">|</span> <span class="ex">main</span> = print Yellow</span>
+<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span>              <span class="ex">^^^^^^</span></span></code></pre></div>
 <details class="protected" data-pass="yakagika">
 <summary>
 回答例
@@ -746,13 +778,13 @@ Haskellでは空集合を表すデータ型として<code>Data.Void</code>に定
 <p><strong>原因</strong>: <code>Color</code> のコンストラクタとして <code>Red | Blue | Green</code> の 3 つしか定義していないのに, <code>Yellow</code> を使おうとした. Haskell は大文字始まりの識別子を「データ構築子 (コンストラクタ)」として扱うため, 定義していない <code>Yellow</code> は <code>Data constructor not in scope</code> になる.</p>
 <p>修正方針は 2 通り.</p>
 <p><strong>修正 A</strong>: 既存コンストラクタを使う.</p>
-<div class="sourceCode" id="cb46"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Color</span> <span class="ot">=</span> <span class="dt">Red</span> <span class="op">|</span> <span class="dt">Blue</span> <span class="op">|</span> <span class="dt">Green</span> <span class="kw">deriving</span> <span class="dt">Show</span></span>
-<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> <span class="dt">Green</span>   <span class="co">-- Green</span></span></code></pre></div>
+<div class="sourceCode" id="cb48"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Color</span> <span class="ot">=</span> <span class="dt">Red</span> <span class="op">|</span> <span class="dt">Blue</span> <span class="op">|</span> <span class="dt">Green</span> <span class="kw">deriving</span> <span class="dt">Show</span></span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> <span class="dt">Green</span>   <span class="co">-- Green</span></span></code></pre></div>
 <p><strong>修正 B</strong>: <code>Yellow</code> も型に加える.</p>
-<div class="sourceCode" id="cb47"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Color</span> <span class="ot">=</span> <span class="dt">Red</span> <span class="op">|</span> <span class="dt">Blue</span> <span class="op">|</span> <span class="dt">Green</span> <span class="op">|</span> <span class="dt">Yellow</span> <span class="kw">deriving</span> <span class="dt">Show</span></span>
-<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> <span class="dt">Yellow</span>   <span class="co">-- Yellow</span></span></code></pre></div>
+<div class="sourceCode" id="cb49"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Color</span> <span class="ot">=</span> <span class="dt">Red</span> <span class="op">|</span> <span class="dt">Blue</span> <span class="op">|</span> <span class="dt">Green</span> <span class="op">|</span> <span class="dt">Yellow</span> <span class="kw">deriving</span> <span class="dt">Show</span></span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> <span class="dt">Yellow</span>   <span class="co">-- Yellow</span></span></code></pre></div>
 <p><code>Variable not in scope</code> と <code>Data constructor not in scope</code> は <strong>識別子の頭文字</strong> が小文字か大文字かで使い分けられる. エラーメッセージのどちらが出るかで「変数を間違えた」のか「コンストラクタを間違えた」のかが分かる.</p>
 </details>
 </section>
@@ -760,25 +792,25 @@ Haskellでは空集合を表すデータ型として<code>Data.Void</code>に定
 <h4>Exercise CH7-6</h4>
 <p><strong>型の取り違え (異なるデータ型を渡してしまう)</strong></p>
 <p>以下のコードは 2 つの独立したデータ型 <code>Color</code> と <code>Animal</code> を扱っていますが, コンパイルが通りません. 原因を答えて修正してください.</p>
-<div class="sourceCode" id="cb48"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch7-6.hs (誤りあり)</span></span>
-<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Color</span> <span class="ot">=</span> <span class="dt">Red</span> <span class="op">|</span> <span class="dt">Blue</span> <span class="kw">deriving</span> <span class="dt">Show</span></span>
-<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Animal</span> <span class="ot">=</span> <span class="dt">Cat</span> <span class="op">|</span> <span class="dt">Dog</span> <span class="kw">deriving</span> <span class="dt">Show</span></span>
-<span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb48-5"><a href="#cb48-5" aria-hidden="true" tabindex="-1"></a><span class="ot">isRed ::</span> <span class="dt">Color</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span></span>
-<span id="cb48-6"><a href="#cb48-6" aria-hidden="true" tabindex="-1"></a>isRed <span class="dt">Red</span>  <span class="ot">=</span> <span class="dt">True</span></span>
-<span id="cb48-7"><a href="#cb48-7" aria-hidden="true" tabindex="-1"></a>isRed <span class="dt">Blue</span> <span class="ot">=</span> <span class="dt">False</span></span>
-<span id="cb48-8"><a href="#cb48-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb48-9"><a href="#cb48-9" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb48-10"><a href="#cb48-10" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> (isRed <span class="dt">Cat</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb50"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch7-6.hs (誤りあり)</span></span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Color</span> <span class="ot">=</span> <span class="dt">Red</span> <span class="op">|</span> <span class="dt">Blue</span> <span class="kw">deriving</span> <span class="dt">Show</span></span>
+<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Animal</span> <span class="ot">=</span> <span class="dt">Cat</span> <span class="op">|</span> <span class="dt">Dog</span> <span class="kw">deriving</span> <span class="dt">Show</span></span>
+<span id="cb50-4"><a href="#cb50-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-5"><a href="#cb50-5" aria-hidden="true" tabindex="-1"></a><span class="ot">isRed ::</span> <span class="dt">Color</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span></span>
+<span id="cb50-6"><a href="#cb50-6" aria-hidden="true" tabindex="-1"></a>isRed <span class="dt">Red</span>  <span class="ot">=</span> <span class="dt">True</span></span>
+<span id="cb50-7"><a href="#cb50-7" aria-hidden="true" tabindex="-1"></a>isRed <span class="dt">Blue</span> <span class="ot">=</span> <span class="dt">False</span></span>
+<span id="cb50-8"><a href="#cb50-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-9"><a href="#cb50-9" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb50-10"><a href="#cb50-10" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> (isRed <span class="dt">Cat</span>)</span></code></pre></div>
 <p>実エラー:</p>
-<div class="sourceCode" id="cb49"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:8:21:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">83865</span><span class="pp">]</span></span>
-<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> Couldn<span class="st">'t match expected type ‘Color’ with actual type ‘Animal’</span></span>
-<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a><span class="st">    • In the first argument of ‘isRed’, namely ‘Cat’</span></span>
-<span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a><span class="st">      In the first argument of ‘print’, namely ‘(isRed Cat)’</span></span>
-<span id="cb49-5"><a href="#cb49-5" aria-hidden="true" tabindex="-1"></a><span class="st">      In the expression: print (isRed Cat)</span></span>
-<span id="cb49-6"><a href="#cb49-6" aria-hidden="true" tabindex="-1"></a><span class="st">  |</span></span>
-<span id="cb49-7"><a href="#cb49-7" aria-hidden="true" tabindex="-1"></a><span class="st">8 | main = print (isRed Cat)</span></span>
-<span id="cb49-8"><a href="#cb49-8" aria-hidden="true" tabindex="-1"></a><span class="st">  |                     ^^^</span></span></code></pre></div>
+<div class="sourceCode" id="cb51"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:8:21:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">83865</span><span class="pp">]</span></span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> Couldn<span class="st">'t match expected type ‘Color’ with actual type ‘Animal’</span></span>
+<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a><span class="st">    • In the first argument of ‘isRed’, namely ‘Cat’</span></span>
+<span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a><span class="st">      In the first argument of ‘print’, namely ‘(isRed Cat)’</span></span>
+<span id="cb51-5"><a href="#cb51-5" aria-hidden="true" tabindex="-1"></a><span class="st">      In the expression: print (isRed Cat)</span></span>
+<span id="cb51-6"><a href="#cb51-6" aria-hidden="true" tabindex="-1"></a><span class="st">  |</span></span>
+<span id="cb51-7"><a href="#cb51-7" aria-hidden="true" tabindex="-1"></a><span class="st">8 | main = print (isRed Cat)</span></span>
+<span id="cb51-8"><a href="#cb51-8" aria-hidden="true" tabindex="-1"></a><span class="st">  |                     ^^^</span></span></code></pre></div>
 <details class="protected" data-pass="yakagika">
 <summary>
 回答例
@@ -786,33 +818,33 @@ Haskellでは空集合を表すデータ型として<code>Data.Void</code>に定
 <p><strong>原因</strong>: <code>isRed :: Color -&gt; Bool</code> は <strong><code>Color</code> 型</strong> を期待しているのに, <code>Cat</code> は <strong><code>Animal</code> 型</strong> のコンストラクタ. 型不一致でコンパイルエラー.</p>
 <p>代数的データ型は <strong>タグ (コンストラクタ) を伴う独立した型</strong> であり, 別のデータ型のコンストラクタとは交換不可能. 型システムが「全く別の集合」として両者を区別してくれる, というのが代数的データ型の大きな利点.</p>
 <p>修正: <code>isRed</code> には <code>Color</code> の値 (<code>Red</code> か <code>Blue</code>) を渡す.</p>
-<div class="sourceCode" id="cb50"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Color</span> <span class="ot">=</span> <span class="dt">Red</span> <span class="op">|</span> <span class="dt">Blue</span> <span class="kw">deriving</span> <span class="dt">Show</span></span>
-<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Animal</span> <span class="ot">=</span> <span class="dt">Cat</span> <span class="op">|</span> <span class="dt">Dog</span> <span class="kw">deriving</span> <span class="dt">Show</span></span>
-<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb50-4"><a href="#cb50-4" aria-hidden="true" tabindex="-1"></a><span class="ot">isRed ::</span> <span class="dt">Color</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span></span>
-<span id="cb50-5"><a href="#cb50-5" aria-hidden="true" tabindex="-1"></a>isRed <span class="dt">Red</span>  <span class="ot">=</span> <span class="dt">True</span></span>
-<span id="cb50-6"><a href="#cb50-6" aria-hidden="true" tabindex="-1"></a>isRed <span class="dt">Blue</span> <span class="ot">=</span> <span class="dt">False</span></span>
-<span id="cb50-7"><a href="#cb50-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb50-8"><a href="#cb50-8" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb50-9"><a href="#cb50-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> (isRed <span class="dt">Red</span>)    <span class="co">-- True</span></span>
-<span id="cb50-10"><a href="#cb50-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> (isRed <span class="dt">Blue</span>)   <span class="co">-- False</span></span></code></pre></div>
+<div class="sourceCode" id="cb52"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Color</span> <span class="ot">=</span> <span class="dt">Red</span> <span class="op">|</span> <span class="dt">Blue</span> <span class="kw">deriving</span> <span class="dt">Show</span></span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Animal</span> <span class="ot">=</span> <span class="dt">Cat</span> <span class="op">|</span> <span class="dt">Dog</span> <span class="kw">deriving</span> <span class="dt">Show</span></span>
+<span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb52-4"><a href="#cb52-4" aria-hidden="true" tabindex="-1"></a><span class="ot">isRed ::</span> <span class="dt">Color</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span></span>
+<span id="cb52-5"><a href="#cb52-5" aria-hidden="true" tabindex="-1"></a>isRed <span class="dt">Red</span>  <span class="ot">=</span> <span class="dt">True</span></span>
+<span id="cb52-6"><a href="#cb52-6" aria-hidden="true" tabindex="-1"></a>isRed <span class="dt">Blue</span> <span class="ot">=</span> <span class="dt">False</span></span>
+<span id="cb52-7"><a href="#cb52-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb52-8"><a href="#cb52-8" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb52-9"><a href="#cb52-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> (isRed <span class="dt">Red</span>)    <span class="co">-- True</span></span>
+<span id="cb52-10"><a href="#cb52-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> (isRed <span class="dt">Blue</span>)   <span class="co">-- False</span></span></code></pre></div>
 </details>
 </section>
 <section id="exercise-ch7-7" class="note">
 <h4>Exercise CH7-7</h4>
 <p><strong>レコードセレクタの部分関数 (実行時エラー)</strong></p>
 <p>以下は直和型 + レコード構文で図形を表現したコードです. コンパイルは通りますが, 実行すると停止します. 原因を答えて修正してください.</p>
-<div class="sourceCode" id="cb51"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch7-7.hs (誤りあり)</span></span>
-<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Shape</span> <span class="ot">=</span> <span class="dt">Circle</span> {<span class="ot"> radius ::</span> <span class="dt">Double</span> }</span>
-<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a>           <span class="op">|</span> <span class="dt">Square</span> {<span class="ot"> side   ::</span> <span class="dt">Double</span> }</span>
-<span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a>           <span class="kw">deriving</span> <span class="dt">Show</span></span>
-<span id="cb51-5"><a href="#cb51-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb51-6"><a href="#cb51-6" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb51-7"><a href="#cb51-7" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb51-8"><a href="#cb51-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> s <span class="ot">=</span> <span class="dt">Square</span> <span class="fl">4.0</span></span>
-<span id="cb51-9"><a href="#cb51-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> (radius s)</span></code></pre></div>
+<div class="sourceCode" id="cb53"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch7-7.hs (誤りあり)</span></span>
+<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Shape</span> <span class="ot">=</span> <span class="dt">Circle</span> {<span class="ot"> radius ::</span> <span class="dt">Double</span> }</span>
+<span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a>           <span class="op">|</span> <span class="dt">Square</span> {<span class="ot"> side   ::</span> <span class="dt">Double</span> }</span>
+<span id="cb53-4"><a href="#cb53-4" aria-hidden="true" tabindex="-1"></a>           <span class="kw">deriving</span> <span class="dt">Show</span></span>
+<span id="cb53-5"><a href="#cb53-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb53-6"><a href="#cb53-6" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb53-7"><a href="#cb53-7" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb53-8"><a href="#cb53-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> s <span class="ot">=</span> <span class="dt">Square</span> <span class="fl">4.0</span></span>
+<span id="cb53-9"><a href="#cb53-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> (radius s)</span></code></pre></div>
 <p>実行時出力:</p>
-<div class="sourceCode" id="cb52"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="ex">ch7-7:</span> No match in record selector radius</span></code></pre></div>
+<div class="sourceCode" id="cb54"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a><span class="ex">ch7-7:</span> No match in record selector radius</span></code></pre></div>
 <details class="protected" data-pass="yakagika">
 <summary>
 回答例
@@ -820,19 +852,19 @@ Haskellでは空集合を表すデータ型として<code>Data.Void</code>に定
 <p><strong>原因</strong>: <code>radius</code> は <code>Circle</code> コンストラクタにしか定義されていないアクセサだが, <code>s</code> は <code>Square</code> で構築されている. 異なるコンストラクタの値に対してアクセサを呼ぶと <code>No match in record selector</code> (実行時エラー) になる. これは <strong>直和型 + レコード構文</strong> で生じる古典的な落とし穴で, fp6 「レコード構文」節の警告でも触れた <strong>部分関数のアクセサ</strong> の典型例.</p>
 <p>修正方針は複数ある.</p>
 <p><strong>修正 A</strong>: パターンマッチで取り出す (どのコンストラクタかで分岐).</p>
-<div class="sourceCode" id="cb53"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="ot">area ::</span> <span class="dt">Shape</span> <span class="ot">-&gt;</span> <span class="dt">Double</span></span>
-<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a>area (<span class="dt">Circle</span> r) <span class="ot">=</span> <span class="fl">3.14159</span> <span class="op">*</span> r <span class="op">*</span> r</span>
-<span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a>area (<span class="dt">Square</span> s) <span class="ot">=</span> s <span class="op">*</span> s</span>
-<span id="cb53-4"><a href="#cb53-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb53-5"><a href="#cb53-5" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb53-6"><a href="#cb53-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> (area (<span class="dt">Square</span> <span class="fl">4.0</span>))   <span class="co">-- 16.0</span></span>
-<span id="cb53-7"><a href="#cb53-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> (area (<span class="dt">Circle</span> <span class="fl">2.0</span>))   <span class="co">-- 12.56636</span></span></code></pre></div>
+<div class="sourceCode" id="cb55"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="ot">area ::</span> <span class="dt">Shape</span> <span class="ot">-&gt;</span> <span class="dt">Double</span></span>
+<span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a>area (<span class="dt">Circle</span> r) <span class="ot">=</span> <span class="fl">3.14159</span> <span class="op">*</span> r <span class="op">*</span> r</span>
+<span id="cb55-3"><a href="#cb55-3" aria-hidden="true" tabindex="-1"></a>area (<span class="dt">Square</span> s) <span class="ot">=</span> s <span class="op">*</span> s</span>
+<span id="cb55-4"><a href="#cb55-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb55-5"><a href="#cb55-5" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb55-6"><a href="#cb55-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> (area (<span class="dt">Square</span> <span class="fl">4.0</span>))   <span class="co">-- 16.0</span></span>
+<span id="cb55-7"><a href="#cb55-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> (area (<span class="dt">Circle</span> <span class="fl">2.0</span>))   <span class="co">-- 12.56636</span></span></code></pre></div>
 <p><strong>修正 B</strong>: アクセサ呼び出し前にコンストラクタを確認する (推奨度低).</p>
-<div class="sourceCode" id="cb54"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> s <span class="ot">=</span> <span class="dt">Square</span> <span class="fl">4.0</span></span>
-<span id="cb54-3"><a href="#cb54-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">case</span> s <span class="kw">of</span></span>
-<span id="cb54-4"><a href="#cb54-4" aria-hidden="true" tabindex="-1"></a>      <span class="dt">Circle</span> _ <span class="ot">-&gt;</span> <span class="fu">print</span> (radius s)</span>
-<span id="cb54-5"><a href="#cb54-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">Square</span> _ <span class="ot">-&gt;</span> <span class="fu">putStrLn</span> <span class="st">&quot;Not a Circle&quot;</span></span></code></pre></div>
+<div class="sourceCode" id="cb56"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> s <span class="ot">=</span> <span class="dt">Square</span> <span class="fl">4.0</span></span>
+<span id="cb56-3"><a href="#cb56-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">case</span> s <span class="kw">of</span></span>
+<span id="cb56-4"><a href="#cb56-4" aria-hidden="true" tabindex="-1"></a>      <span class="dt">Circle</span> _ <span class="ot">-&gt;</span> <span class="fu">print</span> (radius s)</span>
+<span id="cb56-5"><a href="#cb56-5" aria-hidden="true" tabindex="-1"></a>      <span class="dt">Square</span> _ <span class="ot">-&gt;</span> <span class="fu">putStrLn</span> <span class="st">&quot;Not a Circle&quot;</span></span></code></pre></div>
 <p><strong>根本的に安全にするには</strong>: <code>Circle</code> と <code>Square</code> を <strong>別のデータ型</strong> にする, あるいは異なるフィールド名 (<code>circleRadius</code>, <code>squareSide</code>) を使ってアクセサ衝突を避ける, または後の章で扱う <code>Maybe</code> を返す独自ラッパ関数を定義する.</p>
 </details>
 </section>
