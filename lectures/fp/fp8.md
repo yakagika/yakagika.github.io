@@ -726,15 +726,15 @@ main = do
 
 3. `Monoid` インスタンスを定義してください. 単位元は「個数 0, 合計 0」です.
 
-4. 整数 1 つを `Stats` 1 件に変換する関数 `fromInt :: Int -> Stats` を定義し, `mconcat (map fromInt xs)` でリスト `xs` の件数と合計をまとめて求められることを確認してください.
+4. 整数 1 つを `Stats` 1 件分 (件数 1・その値が合計) にする関数 `singleton :: Int -> Stats` を定義し, `mconcat (map singleton xs)` でリスト `xs` の件数と合計をまとめて求められることを確認してください.
 
 ~~~ haskell
 -- 実行例
 main :: IO ()
 main = do
-  print (fromInt 10 <> fromInt 20)              -- Stats {statCount = 2, statSum = 30}
-  print (mconcat (map fromInt [1,2,3,4]))       -- Stats {statCount = 4, statSum = 10}
-  print (mconcat (map fromInt []) )             -- Stats {statCount = 0, statSum = 0}
+  print (singleton 10 <> singleton 20)          -- Stats {statCount = 2, statSum = 30}
+  print (mconcat (map singleton [1,2,3,4]))     -- Stats {statCount = 4, statSum = 10}
+  print (mconcat (map singleton []) )           -- Stats {statCount = 0, statSum = 0}
 ~~~
 
 <details class="protected" data-pass="yakagika">
@@ -750,17 +750,17 @@ instance Semigroup Stats where
 instance Monoid Stats where
   mempty = Stats 0 0
 
-fromInt :: Int -> Stats
-fromInt n = Stats 1 n
+singleton :: Int -> Stats
+singleton n = Stats 1 n
 
 main :: IO ()
 main = do
-  print (fromInt 10 <> fromInt 20)         -- Stats {statCount = 2, statSum = 30}
-  print (mconcat (map fromInt [1,2,3,4]))  -- Stats {statCount = 4, statSum = 10}
-  print (mconcat (map fromInt []))         -- Stats {statCount = 0, statSum = 0}
+  print (singleton 10 <> singleton 20)     -- Stats {statCount = 2, statSum = 30}
+  print (mconcat (map singleton [1,2,3,4])) -- Stats {statCount = 4, statSum = 10}
+  print (mconcat (map singleton []))       -- Stats {statCount = 0, statSum = 0}
 ~~~
 
-各データを `Stats 1 n` (件数 1・合計 n) に変換し, モノイドの畳み込み `mconcat` でまとめて集計しています. 空リストのときは `mempty = Stats 0 0` が結果になり, 単位元が「集計の初期値」として効きます. このように, 集計処理をモノイドで表すと「1 件への変換」と「畳み込み」に分離でき, 平均 (`statSum / statCount`) なども後から組み立てられます.
+各データを `singleton n = Stats 1 n` (件数 1・その値が合計) で「1 点分の要約」に持ち上げ, モノイドの畳み込み `mconcat` でまとめて集計しています. `singleton` という名前は, `Data.Set.singleton` や `Data.Map.singleton` と同じく「要素 1 つからその構造を作る」関数を表す慣用です. 空リストのときは `mempty = Stats 0 0` が結果になり, 単位元が「集計の初期値」として効きます. このように, 集計処理をモノイドで表すと「1 件への持ち上げ (`singleton`)」と「畳み込み (`mconcat`)」に分離でき, 平均 (`statSum / statCount`) なども後から組み立てられます.
 
 </details>
 
