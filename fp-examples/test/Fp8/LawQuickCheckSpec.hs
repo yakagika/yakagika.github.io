@@ -5,7 +5,7 @@ import Test.Hspec
 import Test.Hspec.QuickCheck (prop)
 import Test.QuickCheck (Arbitrary (..))
 
-newtype Add = Add Int deriving (Show, Eq)
+newtype Add = Add Integer deriving (Show, Eq)
 instance Semigroup Add where Add a <> Add b = Add (a + b)
 instance Monoid    Add where mempty = Add 0
 

@@ -5,7 +5,7 @@ import Test.Hspec
 import Data.Foldable (fold)
 import Data.Semigroup (stimes)
 
-newtype Add = Add Int deriving (Show, Eq)
+newtype Add = Add Integer deriving (Show, Eq)
 instance Semigroup Add where Add a <> Add b = Add (a + b)
 instance Monoid    Add where mempty = Add 0
 
@@ -19,7 +19,7 @@ spec = describe "Fp8.InstanceBenefits (instance にする利点)" $ do
     it "リスト以外の Foldable でも動く: foldMap Add (Just 5) == Add 5" $
       foldMap Add (Just 5) `shouldBe` Add 5
     it "空コンテナは mempty: foldMap Add [] == Add 0" $
-      foldMap Add ([] :: [Int]) `shouldBe` Add 0
+      foldMap Add ([] :: [Integer]) `shouldBe` Add 0
   describe "stimes (Semigroup, n 回繰り返し)" $ do
     it "stimes 3 (Add 2) == Add 6" $
       stimes (3 :: Int) (Add 2) `shouldBe` Add 6

@@ -4,14 +4,14 @@ module Fp8.MonoidSpec (spec) where
 import Test.Hspec
 
 -- 加法のモノイド:  a ⊕ b = a + b,  単位元 e = 0
-newtype Add = Add Int deriving (Show, Eq)
+newtype Add = Add Integer deriving (Show, Eq)
 (.+.) :: Add -> Add -> Add
 Add a .+. Add b = Add (a + b)
 instance Semigroup Add where (<>)   = (.+.)
 instance Monoid    Add where mempty = Add 0
 
 -- 乗法のモノイド:  a ⊗ b = a × b,  単位元 e = 1
-newtype Mul = Mul Int deriving (Show, Eq)
+newtype Mul = Mul Integer deriving (Show, Eq)
 (.*.) :: Mul -> Mul -> Mul
 Mul a .*. Mul b = Mul (a * b)
 instance Semigroup Mul where (<>)   = (.*.)

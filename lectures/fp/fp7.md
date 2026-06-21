@@ -812,7 +812,7 @@ main = do
 data Nat = Zero | Succ Nat deriving (Show, Eq)
 ~~~
 
-コンストラクタ `Succ` が引数に **`Nat` 自身** を取っている点が再帰です. 値は `Zero`, `Succ Zero`, `Succ (Succ Zero)`, … と続き, それぞれ $0, 1, 2, \dots$ を表します. たとえば $3$ は `Succ (Succ (Succ Zero))` です. これは数学で自然数を定める **ペアノの公理 (Peano axioms)** とまったく同じ構成です.
+コンストラクタ `Succ` が引数に **`Nat` 自身** を取っている点が再帰です. 値は `Zero`, `Succ Zero`, `Succ (Succ Zero)`, … と続き, それぞれ $0, 1, 2, \dots$ を表します. たとえば $3$ は `Succ (Succ (Succ Zero))` です. これは数学で自然数を定める **ペアノの公理 (Peano axioms)** とまったく同じ構成です. (`Succ` を何段も重ねるのは煩雑ですが, [第8章](fp8.html)で `Nat` に数値リテラルを使えるようにし, `3 :: Nat` と書けるようにします.)
 
 集合論的に見ると, `Nat` は
 

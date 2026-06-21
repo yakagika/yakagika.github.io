@@ -547,6 +547,55 @@ main = do
 
 :::
 
+## Num — 数値リテラルの正体
+
+ここまで `3` や `7` といった **数値リテラル** を当たり前に使ってきました. では `3` の型は何でしょうか. 実は Haskell の数値リテラルは **多相** で, `3 :: Num a => a` という型を持ちます. コンパイラは `3` を **`fromInteger 3`** と読み替えます. `fromInteger :: Num a => Integer -> a` は「整数から各数値型の値を作る」メソッドで, 文脈が要求する `Num` のインスタンス (`Int`, `Integer`, `Double`, …) に化けます. だから同じ `3` が `Int` にも `Double` にもなれるのです.
+
+[第4章](fp4.html)で見た `No instance for (Num String)` や `No instance for (Fractional Int)` というエラーは, まさにこの仕組みの裏返しでした. リテラルが要求する `Num` / `Fractional` のインスタンスがその型に無かったために起きていたのです.
+
+`Num` は次のメソッドを束ねた型クラスです.
+
+~~~ haskell
+class Num a where
+  (+), (-), (*) :: a -> a -> a
+  negate        :: a -> a
+  abs, signum   :: a -> a
+  fromInteger   :: Integer -> a   -- 数値リテラルはこれで作られる
+~~~
+
+普段は `Int` / `Integer` / `Double` などの組込の `Num` インスタンスを使うだけですが, **自作の型にも `Num` を与えれば数値リテラルが書けます**. [第7章](fp7.html)で作った自然数 `Nat` に `Num` インスタンスを与えてみましょう.
+
+~~~ haskell
+data Nat = Zero | Succ Nat deriving (Show, Eq)
+
+instance Num Nat where
+  -- 数値リテラルの変換: 0 を Zero に, n を Succ の n 段重ねにする
+  fromInteger n
+    | n <= 0    = Zero
+    | otherwise = Succ (fromInteger (n - 1))
+  -- 足し算・掛け算
+  Zero   + m = m
+  Succ n + m = Succ (n + m)
+  Zero   * _ = Zero
+  Succ n * m = m + n * m
+  -- 絶対値・符号 (ℕ では自明)
+  abs    n    = n
+  signum Zero = Zero
+  signum _    = Succ Zero
+  -- 加法逆元 (負の数) は ℕ に存在しない
+  negate _ = error "Nat: 負の数は表せない"
+
+main :: IO ()
+main = do
+  print (3 :: Nat)             -- Succ (Succ (Succ Zero))
+  print (2 + 1 == (3 :: Nat))  -- True
+  print (2 * 3 == (6 :: Nat))  -- True
+~~~
+
+`3 :: Nat` と書けるようになり, その正体が `Succ (Succ (Succ Zero))` であることが `print` の結果から見えます —— 数値リテラルが `fromInteger` で展開される様子をそのまま観察できるわけです.
+
+ここで `negate` (符号反転) を **エラー** にした点に注目してください. ℕ には「足して `Zero` に戻す相手 (加法逆元)」が `Zero` 以外に存在しないため, `negate` は意味を持てません. このことは, 後の **群** の節で「自然数の加法 $(\mathbb{N}, +, 0)$ はモノイドだが **群ではない**」と述べることと, ちょうど対応しています.
+
 # 代数とクラス
 
 ここからは, 型クラスが数学の **代数構造** とどう対応するかを見ます.
@@ -698,18 +747,18 @@ class Semigroup a => Monoid a where
 
 整数の加法・乗法が結合的であること自体は, 整数がもともと備える基本性質 (環の公理) として認めます. ここで本質的なのは, **同じ台集合 $\mathbb{Z}$ でも演算と単位元の組を取り替えると別のモノイドになる**こと, そして単位元が $0$ と $1$ で異なることです (前者を整数環の **加法モノイド**, 後者を **乗法モノイド** と呼びます).
 
-この「台集合は同じだが構造が違う」状況が, Haskell の `newtype` の動機そのものです. 1 つの型に `Monoid` インスタンスは 1 つしか付けられないので, `Int` を 2 通りに包み分けて, 組ごとに別の型 (`Add` = $(\mathbb{Z},+,0)$, `Mul` = $(\mathbb{Z},\times,1)$) を与えます.
+この「台集合は同じだが構造が違う」状況が, Haskell の `newtype` の動機そのものです. 1 つの型に `Monoid` インスタンスは 1 つしか付けられないので, **任意精度整数 `Integer`** (有界な `Int` と違い, 数学の $\mathbb{Z}$ をそのまま表せます) を 2 通りに包み分けて, 組ごとに別の型 (`Add` = $(\mathbb{Z},+,0)$, `Mul` = $(\mathbb{Z},\times,1)$) を与えます.
 
 ~~~ haskell
 -- 加法のモノイド:  a ⊕ b = a + b,  単位元 e = 0
-newtype Add = Add Int deriving (Show, Eq)
+newtype Add = Add Integer deriving (Show, Eq)
 (.+.) :: Add -> Add -> Add
 Add a .+. Add b = Add (a + b)
 instance Semigroup Add where (<>)   = (.+.)   -- <> = ⊕
 instance Monoid    Add where mempty = Add 0   -- e  = 0
 
 -- 乗法のモノイド:  a ⊗ b = a × b,  単位元 e = 1
-newtype Mul = Mul Int deriving (Show, Eq)
+newtype Mul = Mul Integer deriving (Show, Eq)
 (.*.) :: Mul -> Mul -> Mul
 Mul a .*. Mul b = Mul (a * b)
 instance Semigroup Mul where (<>)   = (.*.)   -- <> = ⊗
@@ -881,7 +930,7 @@ $$\forall x.\ \exists y.\ \ x \bullet y = y \bullet x = e \quad (e \text{ は単
 
 モノイドの単位元 $\exists e.\ \forall x$ と, 群の逆元 $\forall x.\ \exists y$ では **量化子の順序が逆** です. この違いが, 「(全体で) 1 つの単位元」と「(元ごとに) それぞれの逆元」という差を生みます.
 
-整数の加法 $(\mathbb{Z}, +, 0)$ は群です. 各 $n$ の逆元は $-n$ で, $n + (-n) = 0$ となります. 一方, 整数の乗法 $(\mathbb{Z}, \times, 1)$ はモノイドですが **群ではありません**. たとえば $2$ の逆元 $\frac{1}{2}$ は整数ではないからです. また, 自然数の加法 $(\mathbb{N}, +, 0)$ もモノイドですが, 負の数がないので群にはなりません.
+整数の加法 $(\mathbb{Z}, +, 0)$ は群です. 各 $n$ の逆元は $-n$ で, $n + (-n) = 0$ となります. 一方, 整数の乗法 $(\mathbb{Z}, \times, 1)$ はモノイドですが **群ではありません**. たとえば $2$ の逆元 $\frac{1}{2}$ は整数ではないからです. また, 自然数の加法 $(\mathbb{N}, +, 0)$ もモノイドですが, 負の数がないので群にはなりません. 本章の **Num** 節で `Nat` の `negate` をエラーにしたのは, まさにこの加法逆元の非存在を表しています.
 
 Haskell の標準ライブラリに群のクラスはないので, モノイドを拡張する形で学習用に定義します. 組の 4 つ目の材料 ${}^{-1}$ が, メソッド `invert` に対応します.
 
