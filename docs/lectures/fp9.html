@@ -99,7 +99,7 @@
 </nav>
 
 <p><a href="fp8.html">第8章</a>では, 型クラスと代数構造の対応を見ました. 型 (= 集合) の上に演算と法則を載せると半群・モノイド・群といった代数になり, それを <code>Semigroup</code> / <code>Monoid</code> などの型クラスで表せる, という流れでした. その最後で「リスト・ツリーも多相データ型なので, 次章で関手と合わせて扱う」と予告しました. 本章はその回収です.</p>
-<p>本章は 2 部構成です. 前半 <strong>多相データ型</strong> では, 型引数 <code>a</code> を持つデータ型を整理します. リスト・ツリーに加え, 実用的な辞書型 <code>Map</code>, 失敗を型で表す <code>Maybe</code>, 二者択一を表す <code>Either</code> を扱います. これらは <a href="fp7.html">第7章</a>で「後の章で扱う」と先送りした型でもあります.</p>
+<p>本章は 2 部構成です. 前半 <strong>多相データ型</strong> では, 型引数 <code>a</code> を持つデータ型を整理します. リストと実用的な辞書型 <code>Map</code>, その内部構造を自作で確かめるツリー (二分探索木) に加え, 失敗を型で表す <code>Maybe</code>, 二者択一を表す <code>Either</code> を扱います. これらは <a href="fp7.html">第7章</a>で「後の章で扱う」と先送りした型でもあります.</p>
 <p>後半 <strong>圏論的解釈</strong> では, これらの型を <strong>圏論</strong> の言葉で読み直します. <a href="fp7.html">第7章</a>で型を集合とみなし, <a href="fp8.html">第8章</a>で集合に演算を載せて代数とみなしたのに続き, 本章では「型を <strong>対象</strong>, 関数を <strong>射</strong> とみなす」見方を導入します. このとき, 型引数を持つ多相データ型は <strong>関手 (functor)</strong>, 型に依らない一様な多相関数は <strong>自然変換 (natural transformation)</strong> という構造に対応します. すなわち, 次の対応を順に確かめていきます.</p>
 <table>
 <colgroup>
@@ -147,7 +147,7 @@
 </ul>
 <p><code>Pair a b</code> は型引数を 2 つ取るので, 型構築子の種は <code>Pair :: * -&gt; * -&gt; *</code> です. このように, 型引数の個数が種の矢印の本数に対応します.</p>
 <p>実は, すでに使ってきた <strong>リスト <code>[a]</code></strong> も多相データ型です. <code>[]</code> が型構築子 (<code>[] :: * -&gt; *</code>), 要素の型 <code>a</code> を受け取って <code>[a]</code> 型を作ります. <code>[Int]</code>, <code>[Char]</code>, <code>[Bool]</code> がすべて同じ <code>[]</code> から作られるのは, リストが「中身の型を後から決められる」多相データ型だからです.</p>
-<p>以下では, 型引数 <code>a</code> を持つ多相データ型を 5 つ見ていきます. まず <strong>リスト <code>[a]</code> / ツリー <code>Tree a</code></strong> (<a href="fp8.html">第8章</a>で学んだ <strong>モノイド</strong> の実例) と, 実用的な辞書型 <strong><code>Map</code></strong> を扱います. これらは「型引数を持つ多相データ型」であると同時に, モノイドや関手といった構造も備えます (関手は後半 <a href="#圏論的解釈">圏論的解釈</a> の <strong>Functor</strong> の節で扱います). その後, 失敗を表す <strong><code>Maybe</code></strong>, 二者択一を表す <strong><code>Either</code></strong> に進みます.</p>
+<p>以下では, 型引数 <code>a</code> を持つ多相データ型を 5 つ見ていきます. まず <strong>リスト <code>[a]</code></strong> (<a href="fp8.html">第8章</a>で学んだ <strong>モノイド</strong> の実例) を確認し, 次に実務でよく使う辞書型 <strong><code>Map</code></strong> を扱います. その <code>Map</code> の <strong>内部構造</strong> と「自作の型への <strong><code>Monoid</code></strong> 定義」を理解するために, <strong>ツリー <code>Tree a</code></strong> (二分探索木) を自分で作ります. これらはいずれも「型引数を持つ多相データ型」であると同時に, モノイドや関手といった構造も備えます (関手は後半 <a href="#圏論的解釈">圏論的解釈</a> の <strong>Functor</strong> の節で扱います). その後, 失敗を表す <strong><code>Maybe</code></strong>, 二者択一を表す <strong><code>Either</code></strong> に進みます.</p>
 <h3 id="リスト">リスト</h3>
 <p><a href="fp7.html">第7章</a>では「リストが代数的にどのように定義されるかは後の章で扱う」と予告しました (<a href="fp7.html">第7章</a>「集合の内包表記と代数的データ型」の警告). その回収です.</p>
 <p>リストは, 連結演算 <code>(++)</code> と空リスト <code>[]</code> を単位元として, <strong>モノイド</strong> になります. 数式で書けば, 連結 <span class="math inline">xs \mathbin{+\!\!\!+} ys</span> が演算, <span class="math inline">[]</span> が単位元で, 結合律 <span class="math inline">(xs \mathbin{+\!\!\!+} ys) \mathbin{+\!\!\!+} zs = xs \mathbin{+\!\!\!+} (ys \mathbin{+\!\!\!+} zs)</span> と単位元律 <span class="math inline">[] \mathbin{+\!\!\!+} xs = xs \mathbin{+\!\!\!+} [] = xs</span> を満たします. リストでは新しく演算子を定義する必要はなく, <strong>既存の <code>(++)</code> がその役割を果たし</strong>, <code>(&lt;&gt;) = (++)</code>, <code>mempty = []</code> となっています.</p>
@@ -159,82 +159,132 @@
 <span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="fu">mconcat</span> [[<span class="dv">1</span>],[<span class="dv">2</span>],[<span class="dv">3</span>]]<span class="ot"> ::</span> [<span class="dt">Int</span>])     <span class="co">-- [1,2,3]      (畳み込み)</span></span></code></pre></div>
 <p>リストの <code>&lt;&gt;</code> は <code>(++)</code>, <code>mempty</code> は <code>[]</code> です. <code>mconcat</code> は <code>concat</code> と同じはたらきをします.</p>
 <p>リストは, モノイドの中でも特別な位置を占めます. 要素の型 <code>a</code> を決めると, <code>[a]</code> は <strong><code>a</code> の値から作れる「最も自由な」モノイド</strong> になります. これを <strong>自由モノイド (free monoid)</strong> といいます. 「自由」とは, 結合律と単位元律以外に余計な等式が成り立たない, という意味です. たとえば <code>[1,2]</code> と <code>[2,1]</code> は (集合ではないので) 別物のままで, 順序や重複が潰れません. <a href="fp7.html">第7章</a>で「リストには順序があり重複も許され, 集合とは別物」と注意したことが, ここでは「自由モノイド = 余計な等式を課さないモノイド」として代数的に説明できます.</p>
+<h3 id="map-キーと値の対応">Map — キーと値の対応</h3>
+<p>次に, 連想的なデータを扱うとき実務で最もよく使う, 標準ライブラリ <code>containers</code> の <strong><code>Map</code></strong> を見ます. <code>Map k v</code> は <strong>キー <code>k</code> から値 <code>v</code> を引ける辞書 (連想配列)</strong> を表す多相データ型で, 型引数を <strong>2 つ</strong> 取ります (<code>Map :: * -&gt; * -&gt; *</code>). リストと同じ多相型ですが, 自作せずライブラリの型をそのまま使う点が違います (次節では逆に, この種の構造を自分で作って中身を理解します).</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Map</span> <span class="kw">as</span> <span class="dt">Map</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Data.Map</span> (<span class="dt">Map</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co">-- キー (果物名) から 値 (個数) への対応</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="ot">stock ::</span> <span class="dt">Map</span> <span class="dt">String</span> <span class="dt">Int</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>stock <span class="ot">=</span> Map.fromList [(<span class="st">&quot;apple&quot;</span>, <span class="dv">3</span>), (<span class="st">&quot;banana&quot;</span>, <span class="dv">2</span>)]</span></code></pre></div>
+<p>キーで値を引くには <code>Map.lookup</code> を使います. キーが無いこともあるので, 結果は <strong><code>Maybe v</code></strong> で返ります (この <code>Maybe</code> は後の節で詳しく扱います).</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (Map.lookup <span class="st">&quot;apple&quot;</span> stock)   <span class="co">-- Just 3</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (Map.lookup <span class="st">&quot;grape&quot;</span> stock)   <span class="co">-- Nothing  (キーが無い)</span></span></code></pre></div>
+<p><strong><code>Map</code> はモノイド</strong> です. ただし <code>(&lt;&gt;)</code> は <strong>左偏 (left-biased) の和</strong> で, 同じキーがあれば <strong>左の値を優先</strong> し, 値そのものは結合しません. 単位元 <code>mempty</code> は空の <code>Map</code> です.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> a <span class="ot">=</span> Map.fromList [(<span class="st">&quot;a&quot;</span>, <span class="dv">1</span>), (<span class="st">&quot;b&quot;</span>, <span class="dv">2</span>)]</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>      c <span class="ot">=</span> Map.fromList [(<span class="st">&quot;a&quot;</span>, <span class="dv">9</span>), (<span class="st">&quot;d&quot;</span>, <span class="dv">4</span>)]</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> ((a <span class="op">&lt;&gt;</span> c)<span class="ot"> ::</span> <span class="dt">Map</span> <span class="dt">String</span> <span class="dt">Int</span>)</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">-- fromList [(&quot;a&quot;,1),(&quot;b&quot;,2),(&quot;d&quot;,4)]   (キー &quot;a&quot; は左の 1 が残る)</span></span></code></pre></div>
+<p>同じキーの値を <strong>結合</strong> したいときは, <a href="fp8.html">第8章</a>「代数のインスタンスにする利点」で予告したとおり, <strong>値が <code>Semigroup</code> であれば</strong> <code>Map.unionWith (&lt;&gt;)</code> を使います. 衝突したキーの値を <code>(&lt;&gt;)</code> でまとめられます. 典型例が <strong>単語の出現回数の集計</strong> です.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Data.Monoid</span> (<span class="dt">Sum</span> (..))</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co">-- 2 つの集計を, 同じキーの値を &lt;&gt; (= 加算) でまとめる</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="ot">merged ::</span> <span class="dt">Map</span> <span class="dt">String</span> (<span class="dt">Sum</span> <span class="dt">Int</span>)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>merged <span class="ot">=</span> Map.unionWith (<span class="op">&lt;&gt;</span>)</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>           (Map.fromList [(<span class="st">&quot;a&quot;</span>, <span class="dt">Sum</span> <span class="dv">1</span>), (<span class="st">&quot;b&quot;</span>, <span class="dt">Sum</span> <span class="dv">1</span>)])</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>           (Map.fromList [(<span class="st">&quot;a&quot;</span>, <span class="dt">Sum</span> <span class="dv">1</span>), (<span class="st">&quot;c&quot;</span>, <span class="dt">Sum</span> <span class="dv">1</span>)])</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- fromList [(&quot;a&quot;,Sum 2),(&quot;b&quot;,Sum 1),(&quot;c&quot;,Sum 1)]</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="co">-- 単語リストから出現回数を数える</span></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="ot">wordCount ::</span> [<span class="dt">String</span>] <span class="ot">-&gt;</span> <span class="dt">Map</span> <span class="dt">String</span> (<span class="dt">Sum</span> <span class="dt">Int</span>)</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>wordCount ws <span class="ot">=</span> Map.fromListWith (<span class="op">&lt;&gt;</span>) [(w, <span class="dt">Sum</span> <span class="dv">1</span>) <span class="op">|</span> w <span class="ot">&lt;-</span> ws]</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- wordCount [&quot;a&quot;,&quot;b&quot;,&quot;a&quot;] = fromList [(&quot;a&quot;,Sum 2),(&quot;b&quot;,Sum 1)]</span></span></code></pre></div>
+<p><strong><code>Map</code> は関手 (Functor) でもあります.</strong> ただし <code>fmap</code> が作用するのは <strong>値だけ</strong> で, キーは変わりません (<code>Map k</code> が関手で, 動かせるのは値 <code>v</code> の側です).</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="fu">fmap</span> (<span class="op">*</span> <span class="dv">10</span>) stock)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">-- fromList [(&quot;apple&quot;,30),(&quot;banana&quot;,20)]</span></span></code></pre></div>
+<p>このように <code>Map</code> は, <strong>多相型であり, モノイドであり, 関手でもある</strong>, 実務で頻出の型です. 関手としての側面は後半の <strong>Functor</strong> の節で他の型と合わせて整理します. なお <code>lookup</code> が <code>Maybe</code> を返すことは, 後の <strong><code>Maybe</code></strong> の節を学ぶ動機にもなります.</p>
 <h3 id="ツリー">ツリー</h3>
-<p>次に, 自分で定義した木構造に代数構造を載せてみます. ここでは二分探索木 (binary search tree) を考え, <strong>「要素の集まりを表す木」</strong> としてモノイドを与えます.</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Tree</span> a <span class="ot">=</span> <span class="dt">Leaf</span> <span class="op">|</span> <span class="dt">Node</span> (<span class="dt">Tree</span> a) a (<span class="dt">Tree</span> a) <span class="kw">deriving</span> <span class="dt">Show</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="co">-- 二分探索木への挿入 (すでにあれば何もしない)</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="ot">insert' ::</span> <span class="dt">Ord</span> a <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">Tree</span> a <span class="ot">-&gt;</span> <span class="dt">Tree</span> a</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>insert' x <span class="dt">Leaf</span> <span class="ot">=</span> <span class="dt">Node</span> <span class="dt">Leaf</span> x <span class="dt">Leaf</span></span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>insert' x t<span class="op">@</span>(<span class="dt">Node</span> l y r)</span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> x <span class="op">&lt;</span> y     <span class="ot">=</span> <span class="dt">Node</span> (insert' x l) y r</span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> x <span class="op">&gt;</span> y     <span class="ot">=</span> <span class="dt">Node</span> l y (insert' x r)</span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="fu">otherwise</span> <span class="ot">=</span> t</span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="co">-- 中間順走査で要素を昇順に取り出す</span></span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="ot">toList' ::</span> <span class="dt">Tree</span> a <span class="ot">-&gt;</span> [a]</span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>toList' <span class="dt">Leaf</span>         <span class="ot">=</span> []</span>
-<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>toList' (<span class="dt">Node</span> l x r) <span class="ot">=</span> toList' l <span class="op">++</span> [x] <span class="op">++</span> toList' r</span>
-<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="ot">fromList' ::</span> <span class="dt">Ord</span> a <span class="ot">=&gt;</span> [a] <span class="ot">-&gt;</span> <span class="dt">Tree</span> a</span>
-<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>fromList' <span class="ot">=</span> <span class="fu">foldr</span> insert' <span class="dt">Leaf</span></span>
-<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a><span class="co">-- 合併演算 ⊔:  t1 ⊔ t2 = 「t1 の全要素を t2 に挿入した木」</span></span>
-<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a><span class="ot">(|+|) ::</span> <span class="dt">Ord</span> a <span class="ot">=&gt;</span> <span class="dt">Tree</span> a <span class="ot">-&gt;</span> <span class="dt">Tree</span> a <span class="ot">-&gt;</span> <span class="dt">Tree</span> a</span>
-<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>t1 <span class="op">|+|</span> t2 <span class="ot">=</span> <span class="fu">foldr</span> insert' t2 (toList' t1)</span>
-<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a><span class="co">-- &lt;&gt; は (|+|), 単位元は空の木</span></span>
-<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Ord</span> a <span class="ot">=&gt;</span> <span class="dt">Semigroup</span> (<span class="dt">Tree</span> a) <span class="kw">where</span> (<span class="op">&lt;&gt;</span>)   <span class="ot">=</span> (<span class="op">|+|</span>)</span>
-<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Ord</span> a <span class="ot">=&gt;</span> <span class="dt">Monoid</span>    (<span class="dt">Tree</span> a) <span class="kw">where</span> <span class="fu">mempty</span> <span class="ot">=</span> <span class="dt">Leaf</span></span>
-<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> t <span class="ot">=</span> fromList' [<span class="dv">5</span>,<span class="dv">3</span>,<span class="dv">8</span>] <span class="op">&lt;&gt;</span> fromList' [<span class="dv">3</span>,<span class="dv">9</span>,<span class="dv">1</span>]</span>
-<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (toList' t)   <span class="co">-- [1,3,5,8,9]</span></span></code></pre></div>
+<p>前節の <code>Map</code> (やその仲間の <code>Set</code>) は, 実は内部的に <strong>平衡二分探索木 (balanced binary search tree)</strong> で実装されています. 普段はライブラリの <code>Map</code> / <code>Set</code> を使えば十分ですが, ここでは ① その <strong>内部構造</strong> がどうなっているか, ② 自作のデータ型に <strong><code>Monoid</code> をどう定義するか</strong> の 2 点を理解するために, 簡単な二分探索木 (binary search tree) を自分で作ってみます.</p>
+<p>二分探索木は, 各 <strong>節点 (node)</strong> が 1 つの値と左右 2 つの部分木を持つ木で, どの節点でも</p>
+<p><strong>左部分木のすべての値 <span class="math inline">&lt;</span> 節点の値 <span class="math inline">&lt;</span> 右部分木のすべての値</strong></p>
+<p>という <strong>不変条件</strong> を保ちます. この順序のおかげで, 中間順 (左 → 節点 → 右) に走査すると値が <strong>昇順</strong> に並びます. 値 <span class="math inline">\{1, 3, 5, 8, 9\}</span> を持つ二分探索木の例を図に示します (同じ要素集合でも, 挿入順によって木の形は変わりえます. 詳しくは下の注意を参照).</p>
+<svg viewBox="0 0 460 340" width="100%" style="max-width: 520px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="二分探索木の例: 根 5, 左部分木の根 3 (左の子 1), 右部分木の根 8 (右の子 9). 各節点で 左 &lt; 節点 &lt; 右 を満たし, 中間順走査で 1 3 5 8 9 と昇順になる">
+<line x1="210" y1="44" x2="120" y2="120" stroke="currentColor" stroke-width="1.5"></line>
+<line x1="210" y1="44" x2="300" y2="120" stroke="currentColor" stroke-width="1.5"></line>
+<line x1="120" y1="120" x2="72" y2="196" stroke="currentColor" stroke-width="1.5"></line>
+<line x1="300" y1="120" x2="348" y2="196" stroke="currentColor" stroke-width="1.5"></line>
+<g stroke="currentColor" stroke-width="1" opacity="0.4">
+<line x1="120" y1="120" x2="168" y2="190"></line>
+<line x1="300" y1="120" x2="252" y2="190"></line>
+<line x1="72" y1="196" x2="44" y2="264"></line>
+<line x1="72" y1="196" x2="100" y2="264"></line>
+<line x1="348" y1="196" x2="320" y2="264"></line>
+<line x1="348" y1="196" x2="376" y2="264"></line>
+</g>
+<g fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3 2" opacity="0.55">
+<rect x="162" y="184" width="12" height="12" rx="2"></rect>
+<rect x="246" y="184" width="12" height="12" rx="2"></rect>
+<rect x="38" y="258" width="12" height="12" rx="2"></rect>
+<rect x="94" y="258" width="12" height="12" rx="2"></rect>
+<rect x="314" y="258" width="12" height="12" rx="2"></rect>
+<rect x="370" y="258" width="12" height="12" rx="2"></rect>
+</g>
+<g fill="rgba(13,148,136,0.18)" stroke="currentColor" stroke-width="1.5">
+<circle cx="210" cy="44" r="19"></circle>
+<circle cx="120" cy="120" r="19"></circle>
+<circle cx="300" cy="120" r="19"></circle>
+<circle cx="72" cy="196" r="19"></circle>
+<circle cx="348" cy="196" r="19"></circle>
+</g>
+<g fill="currentColor" font-size="15" font-weight="600" text-anchor="middle">
+<text x="210" y="49">5</text>
+<text x="120" y="125">3</text>
+<text x="300" y="125">8</text>
+<text x="72" y="201">1</text>
+<text x="348" y="201">9</text>
+</g>
+<g font-size="11">
+<circle cx="22" cy="24" r="7" fill="rgba(13,148,136,0.18)" stroke="currentColor" stroke-width="1.2"></circle>
+<text x="34" y="28" fill="currentColor">= Node (左部分木・値・右部分木)</text>
+<rect x="16" y="40" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3 2"></rect>
+<text x="34" y="50" fill="currentColor">= Leaf (空の木)</text>
+</g>
+<g fill="currentColor" font-size="12" text-anchor="middle">
+<text x="230" y="300">不変条件: 左部分木の値 &lt; 節点の値 &lt; 右部分木の値</text>
+<text x="230" y="320" font-weight="600">中間順走査 toList’ → 1 3 5 8 9 (昇順)</text>
+</g>
+</svg>
+<p>Haskell では, この構造をそのまま <strong>再帰的な代数的データ型</strong> で表せます. 空の木を <code>Leaf</code> (図の破線の四角), 値と左右の部分木を持つ節点を <code>Node (Tree a) a (Tree a)</code> (図の丸) とします. 続いて, 不変条件を保つ挿入 <code>insert'</code>, 中間順走査 <code>toList'</code> を定義し, <strong>「要素の集まりを表す木」</strong> としてモノイドを与えます.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Tree</span> a <span class="ot">=</span> <span class="dt">Leaf</span> <span class="op">|</span> <span class="dt">Node</span> (<span class="dt">Tree</span> a) a (<span class="dt">Tree</span> a) <span class="kw">deriving</span> <span class="dt">Show</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co">-- 二分探索木への挿入 (すでにあれば何もしない)</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="ot">insert' ::</span> <span class="dt">Ord</span> a <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> <span class="dt">Tree</span> a <span class="ot">-&gt;</span> <span class="dt">Tree</span> a</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>insert' x <span class="dt">Leaf</span> <span class="ot">=</span> <span class="dt">Node</span> <span class="dt">Leaf</span> x <span class="dt">Leaf</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>insert' x t<span class="op">@</span>(<span class="dt">Node</span> l y r)</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> x <span class="op">&lt;</span> y     <span class="ot">=</span> <span class="dt">Node</span> (insert' x l) y r</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> x <span class="op">&gt;</span> y     <span class="ot">=</span> <span class="dt">Node</span> l y (insert' x r)</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="fu">otherwise</span> <span class="ot">=</span> t</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="co">-- 中間順走査で要素を昇順に取り出す</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a><span class="ot">toList' ::</span> <span class="dt">Tree</span> a <span class="ot">-&gt;</span> [a]</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>toList' <span class="dt">Leaf</span>         <span class="ot">=</span> []</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>toList' (<span class="dt">Node</span> l x r) <span class="ot">=</span> toList' l <span class="op">++</span> [x] <span class="op">++</span> toList' r</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a><span class="ot">fromList' ::</span> <span class="dt">Ord</span> a <span class="ot">=&gt;</span> [a] <span class="ot">-&gt;</span> <span class="dt">Tree</span> a</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>fromList' <span class="ot">=</span> <span class="fu">foldr</span> insert' <span class="dt">Leaf</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a><span class="co">-- 合併演算 ⊔:  t1 ⊔ t2 = 「t1 の全要素を t2 に挿入した木」</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a><span class="ot">(|+|) ::</span> <span class="dt">Ord</span> a <span class="ot">=&gt;</span> <span class="dt">Tree</span> a <span class="ot">-&gt;</span> <span class="dt">Tree</span> a <span class="ot">-&gt;</span> <span class="dt">Tree</span> a</span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>t1 <span class="op">|+|</span> t2 <span class="ot">=</span> <span class="fu">foldr</span> insert' t2 (toList' t1)</span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a><span class="co">-- &lt;&gt; は (|+|), 単位元は空の木</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Ord</span> a <span class="ot">=&gt;</span> <span class="dt">Semigroup</span> (<span class="dt">Tree</span> a) <span class="kw">where</span> (<span class="op">&lt;&gt;</span>)   <span class="ot">=</span> (<span class="op">|+|</span>)</span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Ord</span> a <span class="ot">=&gt;</span> <span class="dt">Monoid</span>    (<span class="dt">Tree</span> a) <span class="kw">where</span> <span class="fu">mempty</span> <span class="ot">=</span> <span class="dt">Leaf</span></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> t <span class="ot">=</span> fromList' [<span class="dv">5</span>,<span class="dv">3</span>,<span class="dv">8</span>] <span class="op">&lt;&gt;</span> fromList' [<span class="dv">3</span>,<span class="dv">9</span>,<span class="dv">1</span>]</span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (toList' t)   <span class="co">-- [1,3,5,8,9]</span></span></code></pre></div>
 <p>ここでは木を「要素の集合の入れ物」とみなし, <code>&lt;&gt;</code> を「一方の全要素をもう一方に挿入する合併」として定義しています. 単位元は空の木 <code>Leaf</code> です. <code>instance Ord a =&gt; Semigroup (Tree a)</code> のように, インスタンス宣言にも <code>Ord a =&gt;</code> という <strong>制約を付けられる</strong> 点に注目してください (挿入のために要素の比較 <code>Ord</code> が必要なため).</p>
 <div class="warn">
 <p>この <code>&lt;&gt;</code> が結合律を満たすのは, あくまで <strong>「木が表す要素の集合」のレベル</strong> です. <code>t1 &lt;&gt; t2</code> と <code>t2 &lt;&gt; t1</code>, あるいは括弧の付け方を変えたものは, 取り出される要素の集合 (<code>toList'</code> の結果) は等しくなりますが, <strong>木の内部構造 (枝分かれの形) は異なりうる</strong> 点に注意してください. これは<a href="fp7.html">第7章</a>で見た「リストと集合は別物」という注意の, 木における対応物です. 法則を「どの同値性のもとで成り立つと見るか」を意識することが大切です.</p>
 </div>
-<h3 id="map-キーと値の対応">Map — キーと値の対応</h3>
-<p>最後に, 標準ライブラリ <code>containers</code> の <strong><code>Map</code></strong> を扱います. <code>Map k v</code> は <strong>キー <code>k</code> から値 <code>v</code> を引ける辞書 (連想配列)</strong> を表す多相データ型で, 型引数を <strong>2 つ</strong> 取ります (<code>Map :: * -&gt; * -&gt; *</code>). リストや木と同じ多相型ですが, 自作せずライブラリの型をそのまま使う点が違います.</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Map</span> <span class="kw">as</span> <span class="dt">Map</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Data.Map</span> (<span class="dt">Map</span>)</span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co">-- キー (果物名) から 値 (個数) への対応</span></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="ot">stock ::</span> <span class="dt">Map</span> <span class="dt">String</span> <span class="dt">Int</span></span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>stock <span class="ot">=</span> Map.fromList [(<span class="st">&quot;apple&quot;</span>, <span class="dv">3</span>), (<span class="st">&quot;banana&quot;</span>, <span class="dv">2</span>)]</span></code></pre></div>
-<p>キーで値を引くには <code>Map.lookup</code> を使います. キーが無いこともあるので, 結果は <strong><code>Maybe v</code></strong> で返ります (この <code>Maybe</code> は次節で詳しく扱います).</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (Map.lookup <span class="st">&quot;apple&quot;</span> stock)   <span class="co">-- Just 3</span></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (Map.lookup <span class="st">&quot;grape&quot;</span> stock)   <span class="co">-- Nothing  (キーが無い)</span></span></code></pre></div>
-<p><strong><code>Map</code> はモノイド</strong> です. ただし <code>(&lt;&gt;)</code> は <strong>左偏 (left-biased) の和</strong> で, 同じキーがあれば <strong>左の値を優先</strong> し, 値そのものは結合しません. 単位元 <code>mempty</code> は空の <code>Map</code> です.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> a <span class="ot">=</span> Map.fromList [(<span class="st">&quot;a&quot;</span>, <span class="dv">1</span>), (<span class="st">&quot;b&quot;</span>, <span class="dv">2</span>)]</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>      c <span class="ot">=</span> Map.fromList [(<span class="st">&quot;a&quot;</span>, <span class="dv">9</span>), (<span class="st">&quot;d&quot;</span>, <span class="dv">4</span>)]</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> ((a <span class="op">&lt;&gt;</span> c)<span class="ot"> ::</span> <span class="dt">Map</span> <span class="dt">String</span> <span class="dt">Int</span>)</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">-- fromList [(&quot;a&quot;,1),(&quot;b&quot;,2),(&quot;d&quot;,4)]   (キー &quot;a&quot; は左の 1 が残る)</span></span></code></pre></div>
-<p>同じキーの値を <strong>結合</strong> したいときは, <a href="fp8.html">第8章</a>「代数のインスタンスにする利点」で予告したとおり, <strong>値が <code>Semigroup</code> であれば</strong> <code>Map.unionWith (&lt;&gt;)</code> を使います. 衝突したキーの値を <code>(&lt;&gt;)</code> でまとめられます. 典型例が <strong>単語の出現回数の集計</strong> です.</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Data.Monoid</span> (<span class="dt">Sum</span> (..))</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co">-- 2 つの集計を, 同じキーの値を &lt;&gt; (= 加算) でまとめる</span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="ot">merged ::</span> <span class="dt">Map</span> <span class="dt">String</span> (<span class="dt">Sum</span> <span class="dt">Int</span>)</span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>merged <span class="ot">=</span> Map.unionWith (<span class="op">&lt;&gt;</span>)</span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>           (Map.fromList [(<span class="st">&quot;a&quot;</span>, <span class="dt">Sum</span> <span class="dv">1</span>), (<span class="st">&quot;b&quot;</span>, <span class="dt">Sum</span> <span class="dv">1</span>)])</span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>           (Map.fromList [(<span class="st">&quot;a&quot;</span>, <span class="dt">Sum</span> <span class="dv">1</span>), (<span class="st">&quot;c&quot;</span>, <span class="dt">Sum</span> <span class="dv">1</span>)])</span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- fromList [(&quot;a&quot;,Sum 2),(&quot;b&quot;,Sum 1),(&quot;c&quot;,Sum 1)]</span></span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="co">-- 単語リストから出現回数を数える</span></span>
-<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="ot">wordCount ::</span> [<span class="dt">String</span>] <span class="ot">-&gt;</span> <span class="dt">Map</span> <span class="dt">String</span> (<span class="dt">Sum</span> <span class="dt">Int</span>)</span>
-<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>wordCount ws <span class="ot">=</span> Map.fromListWith (<span class="op">&lt;&gt;</span>) [(w, <span class="dt">Sum</span> <span class="dv">1</span>) <span class="op">|</span> w <span class="ot">&lt;-</span> ws]</span>
-<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- wordCount [&quot;a&quot;,&quot;b&quot;,&quot;a&quot;] = fromList [(&quot;a&quot;,Sum 2),(&quot;b&quot;,Sum 1)]</span></span></code></pre></div>
-<p><strong><code>Map</code> は関手 (Functor) でもあります.</strong> ただし <code>fmap</code> が作用するのは <strong>値だけ</strong> で, キーは変わりません (<code>Map k</code> が関手で, 動かせるのは値 <code>v</code> の側です).</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="fu">fmap</span> (<span class="op">*</span> <span class="dv">10</span>) stock)</span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="co">-- fromList [(&quot;apple&quot;,30),(&quot;banana&quot;,20)]</span></span></code></pre></div>
-<p>このように <code>Map</code> は, <strong>多相型であり, モノイドであり, 関手でもある</strong>, 実務で頻出の型です. 関手としての側面は後半の <strong>Functor</strong> の節で他の型と合わせて整理します. なお <code>lookup</code> が <code>Maybe</code> を返すことは, 次節で <code>Maybe</code> を学ぶ動機にもなります.</p>
 <h3 id="maybe-失敗を型で表す">Maybe — 失敗を型で表す</h3>
 <p><a href="fp4.html">第4章</a>・<a href="fp7.html">第7章</a>で何度か「<code>Maybe</code> は後の章で扱う」と先送りしてきました. ここで回収します.</p>
 <p><a href="fp7.html">第7章</a>では, <code>head</code> や直和型のレコードセレクタが <strong>部分関数</strong> になる問題を見ました. 空リストに <code>head</code> を適用すると <code>error "Empty List"</code> で停止し (<a href="fp7.html">第7章</a>「集合と列挙型」), <code>Square</code> の値に <code>radius</code> を適用すると <code>No match in record selector</code> で停止しました (Exercise CH7-7). どちらも「答えを返せない入力」があるのに, 型の上では <code>[a] -&gt; a</code> のように「必ず答えを返す」かのように見えてしまうのが原因です.</p>

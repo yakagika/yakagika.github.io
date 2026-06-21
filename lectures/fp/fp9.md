@@ -17,7 +17,7 @@ open: true
 
 [第8章](fp8.html)では, 型クラスと代数構造の対応を見ました. 型 (= 集合) の上に演算と法則を載せると半群・モノイド・群といった代数になり, それを `Semigroup` / `Monoid` などの型クラスで表せる, という流れでした. その最後で「リスト・ツリーも多相データ型なので, 次章で関手と合わせて扱う」と予告しました. 本章はその回収です.
 
-本章は 2 部構成です. 前半 **多相データ型** では, 型引数 `a` を持つデータ型を整理します. リスト・ツリーに加え, 実用的な辞書型 `Map`, 失敗を型で表す `Maybe`, 二者択一を表す `Either` を扱います. これらは [第7章](fp7.html)で「後の章で扱う」と先送りした型でもあります.
+本章は 2 部構成です. 前半 **多相データ型** では, 型引数 `a` を持つデータ型を整理します. リストと実用的な辞書型 `Map`, その内部構造を自作で確かめるツリー (二分探索木) に加え, 失敗を型で表す `Maybe`, 二者択一を表す `Either` を扱います. これらは [第7章](fp7.html)で「後の章で扱う」と先送りした型でもあります.
 
 後半 **圏論的解釈** では, これらの型を **圏論** の言葉で読み直します. [第7章](fp7.html)で型を集合とみなし, [第8章](fp8.html)で集合に演算を載せて代数とみなしたのに続き, 本章では「型を **対象**, 関数を **射** とみなす」見方を導入します. このとき, 型引数を持つ多相データ型は **関手 (functor)**, 型に依らない一様な多相関数は **自然変換 (natural transformation)** という構造に対応します. すなわち, 次の対応を順に確かめていきます.
 
@@ -54,7 +54,7 @@ data Pair a b = Pair a b     -- 型 a と型 b を 1 つずつ持つ組
 
 実は, すでに使ってきた **リスト `[a]`** も多相データ型です. `[]` が型構築子 (`[] :: * -> *`), 要素の型 `a` を受け取って `[a]` 型を作ります. `[Int]`, `[Char]`, `[Bool]` がすべて同じ `[]` から作られるのは, リストが「中身の型を後から決められる」多相データ型だからです.
 
-以下では, 型引数 `a` を持つ多相データ型を 5 つ見ていきます. まず **リスト `[a]` / ツリー `Tree a`** ([第8章](fp8.html)で学んだ **モノイド** の実例) と, 実用的な辞書型 **`Map`** を扱います. これらは「型引数を持つ多相データ型」であると同時に, モノイドや関手といった構造も備えます (関手は後半 [圏論的解釈](#圏論的解釈) の **Functor** の節で扱います). その後, 失敗を表す **`Maybe`**, 二者択一を表す **`Either`** に進みます.
+以下では, 型引数 `a` を持つ多相データ型を 5 つ見ていきます. まず **リスト `[a]`** ([第8章](fp8.html)で学んだ **モノイド** の実例) を確認し, 次に実務でよく使う辞書型 **`Map`** を扱います. その `Map` の **内部構造** と「自作の型への **`Monoid`** 定義」を理解するために, **ツリー `Tree a`** (二分探索木) を自分で作ります. これらはいずれも「型引数を持つ多相データ型」であると同時に, モノイドや関手といった構造も備えます (関手は後半 [圏論的解釈](#圏論的解釈) の **Functor** の節で扱います). その後, 失敗を表す **`Maybe`**, 二者択一を表す **`Either`** に進みます.
 
 ## リスト
 
@@ -75,52 +75,9 @@ main = do
 
 リストは, モノイドの中でも特別な位置を占めます. 要素の型 `a` を決めると, `[a]` は **`a` の値から作れる「最も自由な」モノイド** になります. これを **自由モノイド (free monoid)** といいます. 「自由」とは, 結合律と単位元律以外に余計な等式が成り立たない, という意味です. たとえば `[1,2]` と `[2,1]` は (集合ではないので) 別物のままで, 順序や重複が潰れません. [第7章](fp7.html)で「リストには順序があり重複も許され, 集合とは別物」と注意したことが, ここでは「自由モノイド = 余計な等式を課さないモノイド」として代数的に説明できます.
 
-## ツリー
-
-次に, 自分で定義した木構造に代数構造を載せてみます. ここでは二分探索木 (binary search tree) を考え, **「要素の集まりを表す木」** としてモノイドを与えます.
-
-~~~ haskell
-data Tree a = Leaf | Node (Tree a) a (Tree a) deriving Show
-
--- 二分探索木への挿入 (すでにあれば何もしない)
-insert' :: Ord a => a -> Tree a -> Tree a
-insert' x Leaf = Node Leaf x Leaf
-insert' x t@(Node l y r)
-  | x < y     = Node (insert' x l) y r
-  | x > y     = Node l y (insert' x r)
-  | otherwise = t
-
--- 中間順走査で要素を昇順に取り出す
-toList' :: Tree a -> [a]
-toList' Leaf         = []
-toList' (Node l x r) = toList' l ++ [x] ++ toList' r
-
-fromList' :: Ord a => [a] -> Tree a
-fromList' = foldr insert' Leaf
-
--- 合併演算 ⊔:  t1 ⊔ t2 = 「t1 の全要素を t2 に挿入した木」
-(|+|) :: Ord a => Tree a -> Tree a -> Tree a
-t1 |+| t2 = foldr insert' t2 (toList' t1)
-
--- <> は (|+|), 単位元は空の木
-instance Ord a => Semigroup (Tree a) where (<>)   = (|+|)
-instance Ord a => Monoid    (Tree a) where mempty = Leaf
-
-main :: IO ()
-main = do
-  let t = fromList' [5,3,8] <> fromList' [3,9,1]
-  print (toList' t)   -- [1,3,5,8,9]
-~~~
-
-ここでは木を「要素の集合の入れ物」とみなし, `<>` を「一方の全要素をもう一方に挿入する合併」として定義しています. 単位元は空の木 `Leaf` です. `instance Ord a => Semigroup (Tree a)` のように, インスタンス宣言にも `Ord a =>` という **制約を付けられる** 点に注目してください (挿入のために要素の比較 `Ord` が必要なため).
-
-::: warn
-この `<>` が結合律を満たすのは, あくまで **「木が表す要素の集合」のレベル** です. `t1 <> t2` と `t2 <> t1`, あるいは括弧の付け方を変えたものは, 取り出される要素の集合 (`toList'` の結果) は等しくなりますが, **木の内部構造 (枝分かれの形) は異なりうる** 点に注意してください. これは[第7章](fp7.html)で見た「リストと集合は別物」という注意の, 木における対応物です. 法則を「どの同値性のもとで成り立つと見るか」を意識することが大切です.
-:::
-
 ## Map — キーと値の対応
 
-最後に, 標準ライブラリ `containers` の **`Map`** を扱います. `Map k v` は **キー `k` から値 `v` を引ける辞書 (連想配列)** を表す多相データ型で, 型引数を **2 つ** 取ります (`Map :: * -> * -> *`). リストや木と同じ多相型ですが, 自作せずライブラリの型をそのまま使う点が違います.
+次に, 連想的なデータを扱うとき実務で最もよく使う, 標準ライブラリ `containers` の **`Map`** を見ます. `Map k v` は **キー `k` から値 `v` を引ける辞書 (連想配列)** を表す多相データ型で, 型引数を **2 つ** 取ります (`Map :: * -> * -> *`). リストと同じ多相型ですが, 自作せずライブラリの型をそのまま使う点が違います (次節では逆に, この種の構造を自分で作って中身を理解します).
 
 ~~~ haskell
 import qualified Data.Map as Map
@@ -131,7 +88,7 @@ stock :: Map String Int
 stock = Map.fromList [("apple", 3), ("banana", 2)]
 ~~~
 
-キーで値を引くには `Map.lookup` を使います. キーが無いこともあるので, 結果は **`Maybe v`** で返ります (この `Maybe` は次節で詳しく扱います).
+キーで値を引くには `Map.lookup` を使います. キーが無いこともあるので, 結果は **`Maybe v`** で返ります (この `Maybe` は後の節で詳しく扱います).
 
 ~~~ haskell
 main :: IO ()
@@ -178,7 +135,105 @@ main = do
     -- fromList [("apple",30),("banana",20)]
 ~~~
 
-このように `Map` は, **多相型であり, モノイドであり, 関手でもある**, 実務で頻出の型です. 関手としての側面は後半の **Functor** の節で他の型と合わせて整理します. なお `lookup` が `Maybe` を返すことは, 次節で `Maybe` を学ぶ動機にもなります.
+このように `Map` は, **多相型であり, モノイドであり, 関手でもある**, 実務で頻出の型です. 関手としての側面は後半の **Functor** の節で他の型と合わせて整理します. なお `lookup` が `Maybe` を返すことは, 後の **`Maybe`** の節を学ぶ動機にもなります.
+
+## ツリー
+
+前節の `Map` (やその仲間の `Set`) は, 実は内部的に **平衡二分探索木 (balanced binary search tree)** で実装されています. 普段はライブラリの `Map` / `Set` を使えば十分ですが, ここでは ① その **内部構造** がどうなっているか, ② 自作のデータ型に **`Monoid` をどう定義するか** の 2 点を理解するために, 簡単な二分探索木 (binary search tree) を自分で作ってみます.
+
+二分探索木は, 各 **節点 (node)** が 1 つの値と左右 2 つの部分木を持つ木で, どの節点でも
+
+**左部分木のすべての値 $<$ 節点の値 $<$ 右部分木のすべての値**
+
+という **不変条件** を保ちます. この順序のおかげで, 中間順 (左 → 節点 → 右) に走査すると値が **昇順** に並びます. 値 $\{1, 3, 5, 8, 9\}$ を持つ二分探索木の例を図に示します (同じ要素集合でも, 挿入順によって木の形は変わりえます. 詳しくは下の注意を参照).
+
+<svg viewBox="0 0 460 340" width="100%" style="max-width: 520px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="二分探索木の例: 根 5, 左部分木の根 3 (左の子 1), 右部分木の根 8 (右の子 9). 各節点で 左 < 節点 < 右 を満たし, 中間順走査で 1 3 5 8 9 と昇順になる">
+  <line x1="210" y1="44" x2="120" y2="120" stroke="currentColor" stroke-width="1.5"/>
+  <line x1="210" y1="44" x2="300" y2="120" stroke="currentColor" stroke-width="1.5"/>
+  <line x1="120" y1="120" x2="72" y2="196" stroke="currentColor" stroke-width="1.5"/>
+  <line x1="300" y1="120" x2="348" y2="196" stroke="currentColor" stroke-width="1.5"/>
+  <g stroke="currentColor" stroke-width="1" opacity="0.4">
+    <line x1="120" y1="120" x2="168" y2="190"/>
+    <line x1="300" y1="120" x2="252" y2="190"/>
+    <line x1="72" y1="196" x2="44" y2="264"/>
+    <line x1="72" y1="196" x2="100" y2="264"/>
+    <line x1="348" y1="196" x2="320" y2="264"/>
+    <line x1="348" y1="196" x2="376" y2="264"/>
+  </g>
+  <g fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3 2" opacity="0.55">
+    <rect x="162" y="184" width="12" height="12" rx="2"/>
+    <rect x="246" y="184" width="12" height="12" rx="2"/>
+    <rect x="38" y="258" width="12" height="12" rx="2"/>
+    <rect x="94" y="258" width="12" height="12" rx="2"/>
+    <rect x="314" y="258" width="12" height="12" rx="2"/>
+    <rect x="370" y="258" width="12" height="12" rx="2"/>
+  </g>
+  <g fill="rgba(13,148,136,0.18)" stroke="currentColor" stroke-width="1.5">
+    <circle cx="210" cy="44" r="19"/>
+    <circle cx="120" cy="120" r="19"/>
+    <circle cx="300" cy="120" r="19"/>
+    <circle cx="72" cy="196" r="19"/>
+    <circle cx="348" cy="196" r="19"/>
+  </g>
+  <g fill="currentColor" font-size="15" font-weight="600" text-anchor="middle">
+    <text x="210" y="49">5</text>
+    <text x="120" y="125">3</text>
+    <text x="300" y="125">8</text>
+    <text x="72" y="201">1</text>
+    <text x="348" y="201">9</text>
+  </g>
+  <g font-size="11">
+    <circle cx="22" cy="24" r="7" fill="rgba(13,148,136,0.18)" stroke="currentColor" stroke-width="1.2"/>
+    <text x="34" y="28" fill="currentColor">= Node (左部分木・値・右部分木)</text>
+    <rect x="16" y="40" width="12" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3 2"/>
+    <text x="34" y="50" fill="currentColor">= Leaf (空の木)</text>
+  </g>
+  <g fill="currentColor" font-size="12" text-anchor="middle">
+    <text x="230" y="300">不変条件: 左部分木の値 &lt; 節点の値 &lt; 右部分木の値</text>
+    <text x="230" y="320" font-weight="600">中間順走査 toList' → 1  3  5  8  9 (昇順)</text>
+  </g>
+</svg>
+
+Haskell では, この構造をそのまま **再帰的な代数的データ型** で表せます. 空の木を `Leaf` (図の破線の四角), 値と左右の部分木を持つ節点を `Node (Tree a) a (Tree a)` (図の丸) とします. 続いて, 不変条件を保つ挿入 `insert'`, 中間順走査 `toList'` を定義し, **「要素の集まりを表す木」** としてモノイドを与えます.
+
+~~~ haskell
+data Tree a = Leaf | Node (Tree a) a (Tree a) deriving Show
+
+-- 二分探索木への挿入 (すでにあれば何もしない)
+insert' :: Ord a => a -> Tree a -> Tree a
+insert' x Leaf = Node Leaf x Leaf
+insert' x t@(Node l y r)
+  | x < y     = Node (insert' x l) y r
+  | x > y     = Node l y (insert' x r)
+  | otherwise = t
+
+-- 中間順走査で要素を昇順に取り出す
+toList' :: Tree a -> [a]
+toList' Leaf         = []
+toList' (Node l x r) = toList' l ++ [x] ++ toList' r
+
+fromList' :: Ord a => [a] -> Tree a
+fromList' = foldr insert' Leaf
+
+-- 合併演算 ⊔:  t1 ⊔ t2 = 「t1 の全要素を t2 に挿入した木」
+(|+|) :: Ord a => Tree a -> Tree a -> Tree a
+t1 |+| t2 = foldr insert' t2 (toList' t1)
+
+-- <> は (|+|), 単位元は空の木
+instance Ord a => Semigroup (Tree a) where (<>)   = (|+|)
+instance Ord a => Monoid    (Tree a) where mempty = Leaf
+
+main :: IO ()
+main = do
+  let t = fromList' [5,3,8] <> fromList' [3,9,1]
+  print (toList' t)   -- [1,3,5,8,9]
+~~~
+
+ここでは木を「要素の集合の入れ物」とみなし, `<>` を「一方の全要素をもう一方に挿入する合併」として定義しています. 単位元は空の木 `Leaf` です. `instance Ord a => Semigroup (Tree a)` のように, インスタンス宣言にも `Ord a =>` という **制約を付けられる** 点に注目してください (挿入のために要素の比較 `Ord` が必要なため).
+
+::: warn
+この `<>` が結合律を満たすのは, あくまで **「木が表す要素の集合」のレベル** です. `t1 <> t2` と `t2 <> t1`, あるいは括弧の付け方を変えたものは, 取り出される要素の集合 (`toList'` の結果) は等しくなりますが, **木の内部構造 (枝分かれの形) は異なりうる** 点に注意してください. これは[第7章](fp7.html)で見た「リストと集合は別物」という注意の, 木における対応物です. 法則を「どの同値性のもとで成り立つと見るか」を意識することが大切です.
+:::
 
 ## Maybe — 失敗を型で表す
 
