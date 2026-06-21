@@ -578,8 +578,10 @@ instance Num Nat where
   Succ n + m = Succ (n + m)
   Zero   * _ = Zero
   Succ n * m = m + n * m
-  -- 絶対値・符号 (ℕ では自明)
+  -- 絶対値 abs はそのまま (ℕ は非負なので符号を外す操作は不要)
   abs    n    = n
+  -- signum は符号を返すメソッド (正→1, 0→0, 負→-1). ℕ には負がないので
+  -- Zero なら 0, それ以外は 1 (= Succ Zero) のみ
   signum Zero = Zero
   signum _    = Succ Zero
   -- 加法逆元 (負の数) は ℕ に存在しない
