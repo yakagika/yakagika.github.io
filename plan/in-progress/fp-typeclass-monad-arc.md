@@ -1,3 +1,13 @@
+---
+plan_id: fp-typeclass-monad-arc
+status: in-progress
+created: 2026-06-15
+updated: 2026-06-21
+priority: medium
+next_actor: agent
+next_action: "Phase 2 以降 (fp9〜fp11) の章執筆 — 型クラス→代数→多相データ型→モナド→効果の流れで fp9 から"
+---
+
 # fp 後半 (型クラス→代数→多相データ型→モナド→効果) の章構成と執筆計画
 
 ## メタ情報

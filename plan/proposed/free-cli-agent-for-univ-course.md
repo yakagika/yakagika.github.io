@@ -1,3 +1,13 @@
+---
+plan_id: free-cli-agent-for-univ-course
+status: proposed
+created: 2026-06-03
+updated: 2026-06-21
+priority: low
+next_actor: agent
+next_action: "記事化ブリーフ — blog agent が posts/2026-06-XX-free-cli-agent-for-univ-course.md として記事化"
+---
+
 # 記事化ブリーフ: 2026年 大学講義の無料 CLI AI Agent 環境をどう用意するか
 
 ## メタ情報

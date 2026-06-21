@@ -1,3 +1,13 @@
+---
+plan_id: teaching-reification-cognitive-skills
+status: proposed
+created: 2026-06-03
+updated: 2026-06-21
+priority: low
+next_actor: agent
+next_action: "fp に限定して暗黙スキルを棚卸し→note 追加検討→講義で効果検証→slds/全体導入可否を判断"
+---
+
 # 暗黙の認知スキルを note で可視化する — fp 先行・効果検証つき
 
 ## メタ情報

@@ -1,3 +1,13 @@
+---
+plan_id: fp-examples-verification
+status: in-progress
+created: 2026-05-12
+updated: 2026-06-21
+priority: medium
+next_actor: agent
+next_action: "Phase 3 以降 (未着手) に着手 — fp3〜fp7 のコード例検証 Stack プロジェクトの残フェーズを進める"
+---
+
 # fp 講義サンプルの検証用 Stack プロジェクト
 
 ## メタ情報
