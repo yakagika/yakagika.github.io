@@ -6,7 +6,7 @@
     <title>yakagika - 関数型プログラミング Ch8 代数的データ型2</title>
 
     <!-- Stylesheets. -->
-    <link rel="stylesheet" type="text/css" href="../style.css?v=1781840310">
+    <link rel="stylesheet" type="text/css" href="../style.css?v=1782006494">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -77,7 +77,7 @@
     <p class="article-description">資料</p>
     <div class="article-meta">
         <span class="meta-item">公開: 2025-06-06</span>
-        <span class="meta-item">更新: 2026-06-20</span>
+        <span class="meta-item">更新: 2026-06-21</span>
     </div>
     <div class="tag-chips"><a title="All pages tagged 'algebra'." href="../tags/algebra.html" rel="tag">algebra</a>, <a title="All pages tagged 'lecture'." href="../tags/lecture.html" rel="tag">lecture</a>, <a title="All pages tagged 'statistics'." href="../tags/statistics.html" rel="tag">statistics</a>, <a title="All pages tagged 'haskell'." href="../tags/haskell.html" rel="tag">haskell</a></div>
 </header>
@@ -471,12 +471,46 @@
 <li><strong>演算 (operation)</strong>: 集合の要素どうしを組み合わせる規則 (= 型クラスのメソッド).</li>
 <li><strong>法則 (law)</strong>: 演算が満たすべき性質 (= 規約. コンパイラは強制しない).</li>
 </ol>
-<p><a href="fp7.html">第7章</a>では「型 = 集合」と捉えました. その集合の上に「演算」を載せ, さらに「どんな法則を満たすか」で構造を分類したものが代数構造です. ここでは, 演算が満たす法則の <strong>少ない順</strong> に, マグマ → 半群 → モノイド → 群 と積み上げていきます.</p>
+<p>数学では, この「台集合とその上の演算 (と特別な元)」をまとめて <strong>1 つの組 (tuple)</strong> として書きます. たとえば二項演算 <span class="math inline">\bullet</span> を 1 つ持つ構造なら <span class="math inline">(S, \bullet)</span>, さらに単位元 <span class="math inline">e</span> を持つなら <span class="math inline">(S, \bullet, e)</span> です. <strong>この組に書き出すのは「材料」(台集合・演算・特別な元) だけ</strong>で, 3 番目の <strong>法則は組には現れません</strong>. 同じ材料 <span class="math inline">(S, \bullet)</span> でも, 法則を課すか課さないかで別の構造 (後述のマグマと半群) になる, という点に注意してください.</p>
+<p>この章では, <strong>数学の組 → Haskell の型クラス</strong> という 1 対 1 の対応を軸に進めます. 大まかには次の辞書です.</p>
 <table>
 <thead>
 <tr class="header">
+<th>数学 (組の材料)</th>
+<th>Haskell</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>台集合 <span class="math inline">S</span></td>
+<td>型 <code>a</code></td>
+</tr>
+<tr class="even">
+<td>二項演算 <span class="math inline">\bullet</span></td>
+<td>型クラスのメソッド (<code>(&lt;&gt;)</code> など)</td>
+</tr>
+<tr class="odd">
+<td>単位元 <span class="math inline">e</span></td>
+<td>メソッド (<code>mempty</code>)</td>
+</tr>
+<tr class="even">
+<td>法則 (結合律など)</td>
+<td>規約 (コンパイラは強制しない)</td>
+</tr>
+</tbody>
+</table>
+<p><a href="fp7.html">第7章</a>では「型 = 集合」と捉えました. その集合の上に「演算」を載せ, さらに「どんな法則を満たすか」で構造を分類したものが代数構造です. ここでは, 演算が満たす法則の <strong>少ない順</strong> に, マグマ → 半群 → モノイド → 群 と積み上げていきます. 組の <strong>材料が増える</strong> (<span class="math inline">(S,\bullet) \to (S,\bullet,e) \to (S,\bullet,e,{}^{-1})</span>) のと, <strong>法則が増える</strong> のが同時に進みます.</p>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr class="header">
 <th>構造</th>
-<th>演算</th>
+<th>組 (材料)</th>
 <th>満たす法則</th>
 <th>対応する型クラス</th>
 </tr>
@@ -484,36 +518,37 @@
 <tbody>
 <tr class="odd">
 <td>マグマ</td>
-<td>二項演算 1 つ</td>
+<td><span class="math inline">(S, \bullet)</span></td>
 <td>閉じている (だけ)</td>
 <td>(標準には無い)</td>
 </tr>
 <tr class="even">
 <td>半群</td>
-<td>二項演算 1 つ</td>
+<td><span class="math inline">(S, \bullet)</span></td>
 <td>結合律</td>
 <td><code>Semigroup</code></td>
 </tr>
 <tr class="odd">
 <td>モノイド</td>
-<td>二項演算 + 単位元</td>
+<td><span class="math inline">(S, \bullet, e)</span></td>
 <td>結合律 + 単位元律</td>
 <td><code>Monoid</code></td>
 </tr>
 <tr class="even">
 <td>群</td>
-<td>二項演算 + 単位元 + 逆元</td>
+<td><span class="math inline">(S, \bullet, e, {}^{-1})</span></td>
 <td>結合律 + 単位元律 + 逆元律</td>
 <td>(標準には無い)</td>
 </tr>
 </tbody>
 </table>
+<p>マグマと半群は組 (材料) が同じ <span class="math inline">(S, \bullet)</span> で, 違いは <strong>法則 (結合律) を課すかどうか</strong> だけです. モノイドで単位元 <span class="math inline">e</span>, 群で逆元 <span class="math inline">{}^{-1}</span> と, 下に行くほど組の材料が増えていきます.</p>
 <h3 id="マグマ">マグマ</h3>
-<p>最も法則の少ない代数構造が <strong>マグマ (magma)</strong> です. 台集合 <span class="math inline">S</span> と二項演算 <span class="math inline">\bullet : S \times S \to S</span> の組で, 要求されるのは <strong>演算が集合の中で閉じている</strong> (結果がまた <span class="math inline">S</span> の要素になる) ことだけです. 結合律も単位元も要求しません.</p>
-<p>Haskell の標準ライブラリにマグマのクラスはありませんが, この二項演算 <span class="math inline">\bullet</span> に対応する演算子 <code>(|*|)</code> をメソッドに持つクラスを学習用に定義してみましょう.</p>
+<p>最も法則の少ない代数構造が <strong>マグマ (magma)</strong> です. 台集合 <span class="math inline">S</span> と二項演算 <span class="math inline">\bullet : S \times S \to S</span> の組 <span class="math inline">(S, \bullet)</span> で, 要求されるのは <strong>演算が集合の中で閉じている</strong> (結果がまた <span class="math inline">S</span> の要素になる) ことだけです. 結合律も単位元も要求しません.</p>
+<p>Haskell の標準ライブラリにマグマのクラスはありませんが, この二項演算 <span class="math inline">\bullet</span> に対応する演算子 <code>(|*|)</code> をメソッドに持つクラスを学習用に定義してみましょう. 組 <span class="math inline">(S, \bullet)</span> の <strong>台集合 <span class="math inline">S</span> が型変数 <code>a</code></strong>, <strong>演算 <span class="math inline">\bullet</span> がメソッド <code>(|*|)</code></strong> に対応します.</p>
 <div class="sourceCode" id="cb29"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> <span class="dt">Magma</span> a <span class="kw">where</span></span>
 <span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a><span class="ot">  (|*|) ::</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> a   <span class="co">-- 数式の · に対応する閉じた二項演算 (法則は要求しない)</span></span></code></pre></div>
-<p>身近なマグマの例が <strong>じゃんけん</strong> です. 「2 手を出して勝った方を返す」演算 <span class="math inline">a \bullet b</span> を考えます (あいこなら左を返すことにします). たとえば <span class="math inline">\text{グー} \bullet \text{チョキ} = \text{グー}</span> です.</p>
+<p>身近なマグマの例が <strong>じゃんけん</strong> です. 台集合を <span class="math inline">S = \{\text{グー}, \text{チョキ}, \text{パー}\}</span> とし, 「2 手を出して勝った方を返す」演算 <span class="math inline">a \bullet b</span> を考えます (あいこなら左を返すことにします). たとえば <span class="math inline">\text{グー} \bullet \text{チョキ} = \text{グー}</span> です. この組 <span class="math inline">(\{\text{グー}, \text{チョキ}, \text{パー}\}, \bullet)</span> を Haskell に写すと, 台集合が型 <code>RPS</code>, 演算 <span class="math inline">\bullet</span> が <code>(|*|)</code> になります.</p>
 <div class="sourceCode" id="cb30"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">RPS</span> <span class="ot">=</span> <span class="dt">Rock</span> <span class="op">|</span> <span class="dt">Paper</span> <span class="op">|</span> <span class="dt">Scissors</span> <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>)</span>
 <span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a><span class="co">-- (|*|) が数式の · に対応する</span></span>
@@ -533,13 +568,13 @@
 <span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a><span class="co">-- Scissors /= Rock  なので結合律は成り立たない</span></span></code></pre></div>
 <p>「グーにパーで勝ち, それにチョキで勝つ」と「パーにチョキで勝ち, それにグーが向かう」とで結果が変わってしまうわけです. このように, <strong>閉じてはいるが結合律を満たさない</strong> のがマグマの典型例です.</p>
 <h3 id="半群-semigroup">半群 (Semigroup)</h3>
-<p>マグマに <strong>結合律 (associativity)</strong> を加えたものが <strong>半群 (semigroup)</strong> です. 結合律とは, 二項演算 <span class="math inline">\bullet</span> が <strong>すべての</strong> <span class="math inline">x, y, z</span> について</p>
+<p>マグマに <strong>結合律 (associativity)</strong> を加えたものが <strong>半群 (semigroup)</strong> です. 組としてはマグマと同じ <span class="math inline">(S, \bullet)</span> のまま (新しい材料は増えません) で, 変わるのは <strong>課す法則</strong> だけです. 結合律とは, 二項演算 <span class="math inline">\bullet</span> が <strong>すべての</strong> <span class="math inline">x, y, z</span> について</p>
 <p><span class="math display">\forall x, y, z.\ \ (x \bullet y) \bullet z = x \bullet (y \bullet z)</span></p>
 <p>を満たすことです. 先頭の <span class="math inline">\forall</span> (= すべての) は <a href="fp7.html">第7章</a> で導入した <strong>全称命題</strong> で, 「どの 3 要素をとっても成り立つ等式」を要求しています. 結合律が成り立つと「演算する順序 (どこから括弧でくくるか) を気にしなくてよい」ため, <span class="math inline">x \bullet y \bullet z</span> と括弧なしで書けます.</p>
 <p>Haskell では半群は <code>Semigroup</code> クラスで表され, 演算子は <code>(&lt;&gt;)</code> です.</p>
 <div class="sourceCode" id="cb32"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> <span class="dt">Semigroup</span> a <span class="kw">where</span></span>
 <span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="ot">  (&lt;&gt;) ::</span> a <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> a   <span class="co">-- 結合律を満たすことが規約</span></span></code></pre></div>
-<p>例として, 「2 つの整数の <strong>大きい方</strong> を返す」演算 <span class="math inline">a \sqcup b = \max(a, b)</span> を考えます. <code>max</code> は結合律 <span class="math inline">(a \sqcup b) \sqcup c = a \sqcup (b \sqcup c)</span> を満たす (どこから比べても最大は同じ) ので半群になります. まず数式の <span class="math inline">\sqcup</span> に対応する 2 項演算子 <code>(|+|)</code> を定義し, それを使って <code>Semigroup</code> の <code>(&lt;&gt;)</code> を与えます.</p>
+<p>例として, 整数の上の演算「2 つの整数の <strong>大きい方</strong> を返す」<span class="math inline">a \sqcup b = \max(a, b)</span>, すなわち組 <span class="math inline">(\mathbb{Z}, \sqcup)</span> を考えます. <code>max</code> は結合律 <span class="math inline">(a \sqcup b) \sqcup c = a \sqcup (b \sqcup c)</span> を満たす (どこから比べても最大は同じ) ので半群になります. まず数式の <span class="math inline">\sqcup</span> に対応する 2 項演算子 <code>(|+|)</code> を定義し, それを使って <code>Semigroup</code> の <code>(&lt;&gt;)</code> を与えます (台集合 <span class="math inline">\mathbb{Z}</span> は型 <code>Max</code> で表します).</p>
 <div class="sourceCode" id="cb33"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">Max</span> <span class="ot">=</span> <span class="dt">Max</span> <span class="dt">Int</span> <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>)</span>
 <span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a><span class="co">-- (|+|) が数式の ⊔ (= max) に対応する</span></span>
@@ -561,14 +596,15 @@
 </div>
 <p><code>Max</code> には「これと演算しても相手を変えない値」, すなわち <strong>単位元</strong> が (<code>Int</code> の範囲では) <code>minBound</code> を使えば作れますが, 一般の半群には単位元があるとは限りません. 単位元の有無が, 次のモノイドとの違いになります.</p>
 <h3 id="モノイド-monoid">モノイド (Monoid)</h3>
-<p>半群に <strong>単位元 (identity element)</strong> を加えたものが <strong>モノイド (monoid)</strong> です. 単位元とは, 「すべての <span class="math inline">x</span> と演算しても相手を変えない要素 <span class="math inline">e</span> が <strong>存在する</strong>」という条件で, <a href="fp7.html">第7章</a> の <strong>存在命題</strong> を使って</p>
+<p>半群に <strong>単位元 (identity element)</strong> を加えたものが <strong>モノイド (monoid)</strong> です. ここで初めて組に新しい材料が増え, <span class="math inline">(S, \bullet)</span> から <span class="math inline">(S, \bullet, e)</span> になります (<span class="math inline">e</span> が単位元). 単位元とは, 「すべての <span class="math inline">x</span> と演算しても相手を変えない要素 <span class="math inline">e</span> が <strong>存在する</strong>」という条件で, <a href="fp7.html">第7章</a> の <strong>存在命題</strong> を使って</p>
 <p><span class="math display">\exists e.\ \forall x.\ \ e \bullet x = x \bullet e = x</span></p>
 <p>と書けます. ここで <span class="math inline">\exists e</span> が <span class="math inline">\forall x</span> の <strong>外側</strong> にある点が大切で, 「(全体で) たった 1 つの <span class="math inline">e</span> が, すべての <span class="math inline">x</span> に効く」ことを表します. 「何もしない」値, と考えるとよいでしょう (足し算の <span class="math inline">0</span>, 掛け算の <span class="math inline">1</span> がこれにあたります).</p>
 <p>Haskell では <code>Monoid</code> クラスで表され, 単位元を <code>mempty</code> という名前で与えます.</p>
 <div class="sourceCode" id="cb34"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> <span class="dt">Semigroup</span> a <span class="ot">=&gt;</span> <span class="dt">Monoid</span> a <span class="kw">where</span></span>
 <span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a><span class="ot">  mempty ::</span> a   <span class="co">-- 単位元</span></span></code></pre></div>
 <p><code>class Semigroup a =&gt; Monoid a</code> とあるように, <code>Monoid</code> は <code>Semigroup</code> を <strong>スーパークラス</strong> に持ちます. 「単位元付きの半群」がモノイドなので, まず半群 (<code>&lt;&gt;</code>) であることが前提になるわけです.</p>
-<p>整数は, <strong>同じ台集合の上に 2 つのモノイド構造</strong> を持ちます. 足し算 (<code>+</code>, 単位元 <span class="math inline">0</span>) と掛け算 (<code>*</code>, 単位元 <span class="math inline">1</span>) です. Haskell では 1 つの型に <code>Monoid</code> インスタンスは 1 つしか付けられないため, <code>newtype</code> で包んで区別します.</p>
+<p>整数は, <strong>同じ台集合の上に 2 つのモノイド構造</strong> を持ちます. 足し算の組 <span class="math inline">(\mathbb{Z}, +, 0)</span> と掛け算の組 <span class="math inline">(\mathbb{Z}, \times, 1)</span> です. ここが組記法の効きどころで, <strong>台集合 <span class="math inline">\mathbb{Z}</span> だけでは構造は決まらず</strong>, どの演算 <span class="math inline">\bullet</span> と単位元 <span class="math inline">e</span> を選ぶかまで指定して初めて 1 つのモノイドになります. <span class="math inline">(\mathbb{Z}, +, 0)</span> と <span class="math inline">(\mathbb{Z}, \times, 1)</span> は数学的に <strong>別の対象</strong> です.</p>
+<p>この「台集合は同じだが構造が違う」状況が, Haskell の <code>newtype</code> の動機そのものです. 1 つの型に <code>Monoid</code> インスタンスは 1 つしか付けられないので, <code>Int</code> を 2 通りに包み分けて, 組ごとに別の型 (<code>Add</code> = <span class="math inline">(\mathbb{Z},+,0)</span>, <code>Mul</code> = <span class="math inline">(\mathbb{Z},\times,1)</span>) を与えます.</p>
 <div class="sourceCode" id="cb35"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 加法のモノイド:  a ⊕ b = a + b,  単位元 e = 0</span></span>
 <span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">Add</span> <span class="ot">=</span> <span class="dt">Add</span> <span class="dt">Int</span> <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>)</span>
 <span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a><span class="ot">(.+.) ::</span> <span class="dt">Add</span> <span class="ot">-&gt;</span> <span class="dt">Add</span> <span class="ot">-&gt;</span> <span class="dt">Add</span></span>
@@ -653,12 +689,12 @@
 <span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a><span class="ot">not2 ::</span> <span class="dt">Bool2</span> <span class="ot">-&gt;</span> <span class="dt">Bool2</span></span>
 <span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a>not2 <span class="dt">T</span> <span class="ot">=</span> <span class="dt">F</span></span>
 <span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a>not2 <span class="dt">F</span> <span class="ot">=</span> <span class="dt">T</span></span></code></pre></div>
-<p>この <code>Bool2</code> の上で, 2 つのモノイドを考えます.</p>
+<p>この台集合 <span class="math inline">\{\text{T}, \text{F}\}</span> の上にも, 整数のときと同じく 2 つのモノイドの組が載ります.</p>
 <ul>
-<li><span class="math inline">\wedge</span> (<code>(.&amp;.)</code>): 単位元は <code>T</code> (<span class="math inline">\text{T} \wedge x = x</span>).</li>
-<li><span class="math inline">\vee</span> (<code>(.|.)</code>): 単位元は <code>F</code> (<span class="math inline">\text{F} \vee x = x</span>).</li>
+<li>論理積の組 <span class="math inline">(\{\text{T}, \text{F}\}, \wedge, \text{T})</span>: 演算 <span class="math inline">\wedge</span> (<code>(.&amp;.)</code>), 単位元 <code>T</code> (<span class="math inline">\text{T} \wedge x = x</span>).</li>
+<li>論理和の組 <span class="math inline">(\{\text{T}, \text{F}\}, \vee, \text{F})</span>: 演算 <span class="math inline">\vee</span> (<code>(.|.)</code>), 単位元 <code>F</code> (<span class="math inline">\text{F} \vee x = x</span>).</li>
 </ul>
-<p>整数のときと同様, 1 つの型に <code>Monoid</code> は 1 つしか付けられないので, <code>newtype</code> で 2 通りに包みます (組込の <code>Bool</code> に対する同じ構造が, <code>Data.Monoid</code> に <code>All</code> / <code>Any</code> として実在します).</p>
+<p>整数の <span class="math inline">(\mathbb{Z}, +, 0)</span> / <span class="math inline">(\mathbb{Z}, \times, 1)</span> とまったく同じ構図で, 台集合は共通でも組が違えば別のモノイドです. よって 1 つの型に <code>Monoid</code> は 1 つしか付けられない以上, <code>newtype</code> で 2 通りに包み分けます (組込の <code>Bool</code> に対する同じ構造が, <code>Data.Monoid</code> に <code>All</code> / <code>Any</code> として実在します).</p>
 <div class="sourceCode" id="cb39"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 論理積のモノイド: 全部 T なら T  (&lt;&gt; = ∧)</span></span>
 <span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">All2</span> <span class="ot">=</span> <span class="dt">All2</span> {<span class="ot"> getAll2 ::</span> <span class="dt">Bool2</span> } <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>)</span>
 <span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Semigroup</span> <span class="dt">All2</span> <span class="kw">where</span> <span class="dt">All2</span> a <span class="op">&lt;&gt;</span> <span class="dt">All2</span> b <span class="ot">=</span> <span class="dt">All2</span> (a <span class="op">.&amp;.</span> b)</span>
@@ -706,15 +742,15 @@
 <p>そして, <strong>有界・分配・可補をすべて満たす束がブール代数</strong>です. <code>Bool2</code> では <span class="math inline">\wedge</span> / <span class="math inline">\vee</span> / 最大元 <span class="math inline">\top =</span> <code>T</code> / 最小元 <span class="math inline">\bot =</span> <code>F</code> / 補元 <span class="math inline">=</span> <code>not2</code> がそれぞれ対応します. また <a href="fp7.html">第7章</a> で扱った <strong>部分集合の全体 (べき集合)</strong> も, 包含 <span class="math inline">\subseteq</span> を順序, 積集合 <span class="math inline">\cap</span> を交わり, 和集合 <span class="math inline">\cup</span> を結び, 補集合を補元とするブール代数の代表例です. 束のより進んだ理論や応用は本講義の範囲を超えるため, ここでは「2 つのモノイドが順序を介して協調する構造」という理解で十分です.</p>
 </div>
 <h3 id="群-group">群 (Group)</h3>
-<p>モノイドに <strong>逆元 (inverse element)</strong> を加えたものが <strong>群 (group)</strong> です. 逆元とは, 「<strong>各要素</strong> <span class="math inline">x</span> に対して, 演算で打ち消して単位元に戻せる相手 <span class="math inline">y</span> が <strong>存在する</strong>」という条件で, 全称命題と存在命題を組み合わせて</p>
+<p>モノイドに <strong>逆元 (inverse element)</strong> を加えたものが <strong>群 (group)</strong> です. 組はさらに伸びて <span class="math inline">(S, \bullet, e, {}^{-1})</span> になります (<span class="math inline">{}^{-1}</span> が「各元にその逆元を返す」操作). 逆元とは, 「<strong>各要素</strong> <span class="math inline">x</span> に対して, 演算で打ち消して単位元に戻せる相手 <span class="math inline">y</span> が <strong>存在する</strong>」という条件で, 全称命題と存在命題を組み合わせて</p>
 <p><span class="math display">\forall x.\ \exists y.\ \ x \bullet y = y \bullet x = e \quad (e \text{ は単位元})</span></p>
 <p>と書けます (この <span class="math inline">y</span> を <span class="math inline">x^{-1}</span> と書きます). ここでは <span class="math inline">\exists y</span> が <span class="math inline">\forall x</span> の <strong>内側</strong> にあり, 「<span class="math inline">x</span> <strong>ごとに</strong> 別の <span class="math inline">y</span> を選んでよい」ことを表します.</p>
 <p>モノイドの単位元 <span class="math inline">\exists e.\ \forall x</span> と, 群の逆元 <span class="math inline">\forall x.\ \exists y</span> では <strong>量化子の順序が逆</strong> です. この違いが, 「(全体で) 1 つの単位元」と「(元ごとに) それぞれの逆元」という差を生みます.</p>
 <p>整数の加法 <span class="math inline">(\mathbb{Z}, +, 0)</span> は群です. 各 <span class="math inline">n</span> の逆元は <span class="math inline">-n</span> で, <span class="math inline">n + (-n) = 0</span> となります. 一方, 整数の乗法 <span class="math inline">(\mathbb{Z}, \times, 1)</span> はモノイドですが <strong>群ではありません</strong>. たとえば <span class="math inline">2</span> の逆元 <span class="math inline">\frac{1}{2}</span> は整数ではないからです. また, 自然数の加法 <span class="math inline">(\mathbb{N}, +, 0)</span> もモノイドですが, 負の数がないので群にはなりません.</p>
-<p>Haskell の標準ライブラリに群のクラスはないので, モノイドを拡張する形で学習用に定義します.</p>
+<p>Haskell の標準ライブラリに群のクラスはないので, モノイドを拡張する形で学習用に定義します. 組の 4 つ目の材料 <span class="math inline">{}^{-1}</span> が, メソッド <code>invert</code> に対応します.</p>
 <div class="sourceCode" id="cb40"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> <span class="dt">Monoid</span> a <span class="ot">=&gt;</span> <span class="dt">Group</span> a <span class="kw">where</span></span>
-<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="ot">  invert ::</span> a <span class="ot">-&gt;</span> a   <span class="co">-- 逆元を返す</span></span></code></pre></div>
-<p>有限の群の例として, 「3 で割った余り」の世界 <span class="math inline">\mathbb{Z}/3\mathbb{Z} = \{0, 1, 2\}</span> における加法を考えます. これは<a href="fp7.html">第7章</a>で学んだ <strong>列挙型</strong> で表せます.</p>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="ot">  invert ::</span> a <span class="ot">-&gt;</span> a   <span class="co">-- 逆元 (組の 4 つ目の材料) を返す</span></span></code></pre></div>
+<p>有限の群の例として, 「3 で割った余り」の世界 <span class="math inline">\mathbb{Z}/3\mathbb{Z} = \{0, 1, 2\}</span> における加法, すなわち組 <span class="math inline">(\mathbb{Z}/3\mathbb{Z}, +, 0, {}^{-1})</span> を考えます. これは<a href="fp7.html">第7章</a>で学んだ <strong>列挙型</strong> で表せます.</p>
 <div class="sourceCode" id="cb41"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Z3</span> <span class="ot">=</span> <span class="dt">Z0</span> <span class="op">|</span> <span class="dt">Z1</span> <span class="op">|</span> <span class="dt">Z2</span> <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>, <span class="dt">Enum</span>, <span class="dt">Bounded</span>)</span>
 <span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a><span class="co">-- 群の演算 ⊕:  a ⊕ b = (a + b) mod 3</span></span>
@@ -734,12 +770,12 @@
 <span id="cb41-17"><a href="#cb41-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="dt">Z1</span> <span class="op">&lt;&gt;</span> invert <span class="dt">Z1</span>)   <span class="co">-- Z0   (元と逆元の演算は単位元)</span></span></code></pre></div>
 <p><code>fromEnum</code> で列挙型を整数に直し, <code>mod 3</code> で「3 で割った余り」の世界に閉じ込め, <code>toEnum</code> で再び <code>Z3</code> に戻しています. <code>Z1 &lt;&gt; invert Z1</code> が単位元 <code>Z0</code> に戻るのが逆元律です. このように, <a href="fp7.html">第7章</a>の列挙型に演算と法則を載せることで, 有限群という代数構造をそのまま表現できます.</p>
 <div class="note">
-<p>ここまでの マグマ → 半群 → モノイド → 群 は, 法則を 1 つずつ足して構造を強くしていく階層になっています.</p>
+<p>ここまでの マグマ → 半群 → モノイド → 群 は, 組の <strong>材料</strong> と <strong>法則</strong> を 1 つずつ足して構造を強くしていく階層になっています. 組が伸びる (<span class="math inline">(S,\bullet) \to (S,\bullet,e) \to (S,\bullet,e,{}^{-1})</span>) のと, 法則が積み上がるのが対応します.</p>
 <ul>
-<li><strong>マグマ</strong>: 閉じた演算だけ (じゃんけん)</li>
-<li><strong>半群</strong>: + 結合律 (<code>Max</code>)</li>
-<li><strong>モノイド</strong>: + 単位元 (<code>Add</code> / <code>Mul</code>, <code>All2</code> / <code>Any2</code>)</li>
-<li><strong>群</strong>: + 逆元 (<span class="math inline">\mathbb{Z}</span> の加法, <code>Z3</code>)</li>
+<li><strong>マグマ</strong> <span class="math inline">(S, \bullet)</span>: 閉じた演算だけ (じゃんけん)</li>
+<li><strong>半群</strong> <span class="math inline">(S, \bullet)</span>: + 結合律 (<code>Max</code>) — 組は同じ, 法則だけ追加</li>
+<li><strong>モノイド</strong> <span class="math inline">(S, \bullet, e)</span>: + 単位元 (<code>Add</code> / <code>Mul</code>, <code>All2</code> / <code>Any2</code>)</li>
+<li><strong>群</strong> <span class="math inline">(S, \bullet, e, {}^{-1})</span>: + 逆元 (<span class="math inline">\mathbb{Z}</span> の加法, <code>Z3</code>)</li>
 </ul>
 <p><code>Semigroup</code> → <code>Monoid</code> のスーパークラス関係は, この「半群に単位元を足すとモノイド」という数学的な階層を, そのまま型クラスの継承関係として写したものです.</p>
 </div>
