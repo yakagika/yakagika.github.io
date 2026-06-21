@@ -604,6 +604,20 @@
 <span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a><span class="ot">  mempty ::</span> a   <span class="co">-- 単位元</span></span></code></pre></div>
 <p><code>class Semigroup a =&gt; Monoid a</code> とあるように, <code>Monoid</code> は <code>Semigroup</code> を <strong>スーパークラス</strong> に持ちます. 「単位元付きの半群」がモノイドなので, まず半群 (<code>&lt;&gt;</code>) であることが前提になるわけです.</p>
 <p>整数は, <strong>同じ台集合の上に 2 つのモノイド構造</strong> を持ちます. 足し算の組 <span class="math inline">(\mathbb{Z}, +, 0)</span> と掛け算の組 <span class="math inline">(\mathbb{Z}, \times, 1)</span> です. ここが組記法の効きどころで, <strong>台集合 <span class="math inline">\mathbb{Z}</span> だけでは構造は決まらず</strong>, どの演算 <span class="math inline">\bullet</span> と単位元 <span class="math inline">e</span> を選ぶかまで指定して初めて 1 つのモノイドになります. <span class="math inline">(\mathbb{Z}, +, 0)</span> と <span class="math inline">(\mathbb{Z}, \times, 1)</span> は数学的に <strong>別の対象</strong> です.</p>
+<p>この 2 つの組がそれぞれ <strong>モノイドの条件 (結合律・単位元律) を満たすこと</strong> を確認しておきましょう.</p>
+<p><strong>加法の組 <span class="math inline">(\mathbb{Z}, +, 0)</span> がモノイドであること.</strong></p>
+<ul>
+<li>結合律: <span class="math inline">\forall a, b, c \in \mathbb{Z}.\ (a + b) + c = a + (b + c)</span>. これは整数の加法がもともと満たす性質 (加法の結合法則) なので成り立ちます.</li>
+<li>単位元律: <span class="math inline">e = 0</span> とおくと <span class="math inline">\forall a \in \mathbb{Z}.\ a + 0 = 0 + a = a</span>. すなわち <span class="math inline">0</span> はどの <span class="math inline">a</span> に足しても <span class="math inline">a</span> を変えないので, 単位元の条件 <span class="math inline">\exists e.\ \forall a.\ e + a = a + e = a</span> を満たします.</li>
+</ul>
+<p>両方を満たすので <span class="math inline">(\mathbb{Z}, +, 0)</span> はモノイドです.</p>
+<p><strong>乗法の組 <span class="math inline">(\mathbb{Z}, \times, 1)</span> がモノイドであること.</strong></p>
+<ul>
+<li>結合律: <span class="math inline">\forall a, b, c \in \mathbb{Z}.\ (a \times b) \times c = a \times (b \times c)</span>. これも整数の乗法の結合法則として成り立ちます.</li>
+<li>単位元律: <span class="math inline">e = 1</span> とおくと <span class="math inline">\forall a \in \mathbb{Z}.\ a \times 1 = 1 \times a = a</span>. すなわち <span class="math inline">1</span> が単位元です.</li>
+</ul>
+<p>両方を満たすので <span class="math inline">(\mathbb{Z}, \times, 1)</span> もモノイドです.</p>
+<p>整数の加法・乗法が結合的であること自体は, 整数がもともと備える基本性質 (環の公理) として認めます. ここで本質的なのは, <strong>同じ台集合 <span class="math inline">\mathbb{Z}</span> でも演算と単位元の組を取り替えると別のモノイドになる</strong>こと, そして単位元が <span class="math inline">0</span> と <span class="math inline">1</span> で異なることです (前者を整数環の <strong>加法モノイド</strong>, 後者を <strong>乗法モノイド</strong> と呼びます).</p>
 <p>この「台集合は同じだが構造が違う」状況が, Haskell の <code>newtype</code> の動機そのものです. 1 つの型に <code>Monoid</code> インスタンスは 1 つしか付けられないので, <code>Int</code> を 2 通りに包み分けて, 組ごとに別の型 (<code>Add</code> = <span class="math inline">(\mathbb{Z},+,0)</span>, <code>Mul</code> = <span class="math inline">(\mathbb{Z},\times,1)</span>) を与えます.</p>
 <div class="sourceCode" id="cb35"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 加法のモノイド:  a ⊕ b = a + b,  単位元 e = 0</span></span>
 <span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">Add</span> <span class="ot">=</span> <span class="dt">Add</span> <span class="dt">Int</span> <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>)</span>
@@ -750,7 +764,24 @@
 <p>Haskell の標準ライブラリに群のクラスはないので, モノイドを拡張する形で学習用に定義します. 組の 4 つ目の材料 <span class="math inline">{}^{-1}</span> が, メソッド <code>invert</code> に対応します.</p>
 <div class="sourceCode" id="cb40"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> <span class="dt">Monoid</span> a <span class="ot">=&gt;</span> <span class="dt">Group</span> a <span class="kw">where</span></span>
 <span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="ot">  invert ::</span> a <span class="ot">-&gt;</span> a   <span class="co">-- 逆元 (組の 4 つ目の材料) を返す</span></span></code></pre></div>
-<p>有限の群の例として, 「3 で割った余り」の世界 <span class="math inline">\mathbb{Z}/3\mathbb{Z} = \{0, 1, 2\}</span> における加法, すなわち組 <span class="math inline">(\mathbb{Z}/3\mathbb{Z}, +, 0, {}^{-1})</span> を考えます. これは<a href="fp7.html">第7章</a>で学んだ <strong>列挙型</strong> で表せます.</p>
+<p>有限の群の例として, 「3 で割った余り」の世界 <span class="math inline">\mathbb{Z}/3\mathbb{Z} = \{0, 1, 2\}</span> における加法 (これを <span class="math inline">\oplus</span> と書きます), すなわち組 <span class="math inline">(\mathbb{Z}/3\mathbb{Z}, \oplus, 0, {}^{-1})</span> を考えます.</p>
+<p>この群を数式で定義すると, 下の Haskell 実装と次のように 1 対 1 で対応します.</p>
+<ul>
+<li><strong>台集合</strong> <span class="math inline">\mathbb{Z}/3\mathbb{Z} = \{0, 1, 2\}</span>: 型 <code>Z3</code> の <code>Z0</code> / <code>Z1</code> / <code>Z2</code>.</li>
+<li><strong>演算</strong> <span class="math inline">\oplus</span> (<code>(.+.)</code>, すなわち <code>(&lt;&gt;)</code>): 整数として足してから 3 で割った余りをとる.</li>
+</ul>
+<p><span class="math display">a \oplus b = (a + b) \bmod 3</span></p>
+<ul>
+<li><strong>単位元</strong> <span class="math inline">e = 0</span> (<code>mempty = Z0</code>): <span class="math inline">a \oplus 0 = (a + 0) \bmod 3 = a</span> で, 何も動かさない元.</li>
+<li><strong>逆元</strong> <span class="math inline">-a</span> (<code>invert</code>): 各 <span class="math inline">a</span> に対して</li>
+</ul>
+<p><span class="math display">-a = (3 - a) \bmod 3</span></p>
+<p>で定めます. 具体的には <span class="math inline">-0 = 0,\ -1 = 2,\ -2 = 1</span> です.</p>
+<p><strong>なぜ <span class="math inline">(3 - a) \bmod 3</span> が逆元になるのか.</strong> 逆元とは「<span class="math inline">a</span> と演算すると単位元 <span class="math inline">0</span> に戻る相手」, すなわち <span class="math inline">a \oplus (-a) = 0</span> を満たす元でした. 実際に計算すると</p>
+<p><span class="math display">a \oplus (-a) = \big(a + (3 - a)\big) \bmod 3 = 3 \bmod 3 = 0 = e</span></p>
+<p>となり, どの <span class="math inline">a</span> でも単位元 <span class="math inline">0</span> に戻ります (<span class="math inline">\oplus</span> は可換なので <span class="math inline">(-a) \oplus a = 0</span> も成り立ちます). 直感的には <strong>3 時間で 1 周する時計</strong> を思い浮かべてください. 文字盤を <span class="math inline">a</span> だけ進めたあと残り <span class="math inline">3 - a</span> だけ進めれば, 合わせて <span class="math inline">a + (3 - a) = 3</span> でちょうど 1 周し, この世界では <span class="math inline">3 \equiv 0</span> なので出発点 <span class="math inline">0</span> に戻ります.</p>
+<p>外側の <span class="math inline">\bmod 3</span> が効くのは <span class="math inline">a = 0</span> のときです. <span class="math inline">3 - 0 = 3</span> は台集合 <span class="math inline">\{0, 1, 2\}</span> からはみ出すため, <span class="math inline">3 \bmod 3 = 0</span> と折り返して台集合に戻します (これが <code>invert</code> 内の <code>mod 3</code> に対応します). 結果, <span class="math inline">0</span> の逆元は <span class="math inline">0</span> 自身になります.</p>
+<p>以上の数式を, <a href="fp7.html">第7章</a>で学んだ <strong>列挙型</strong> にそのまま写したのが次のコードです.</p>
 <div class="sourceCode" id="cb41"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Z3</span> <span class="ot">=</span> <span class="dt">Z0</span> <span class="op">|</span> <span class="dt">Z1</span> <span class="op">|</span> <span class="dt">Z2</span> <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>, <span class="dt">Enum</span>, <span class="dt">Bounded</span>)</span>
 <span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a><span class="co">-- 群の演算 ⊕:  a ⊕ b = (a + b) mod 3</span></span>
