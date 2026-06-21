@@ -2,14 +2,16 @@
 module Fp8.NumNatSpec (spec) where
 
 import Test.Hspec
+import Control.Exception (evaluate)
 
 data Nat = Zero | Succ Nat deriving (Show, Eq)
 
 instance Num Nat where
   -- 数値リテラルの変換: 0 を Zero に, n を Succ の n 段重ねにする
   fromInteger n
-    | n <= 0    = Zero
-    | otherwise = Succ (fromInteger (n - 1))
+    | n == 0    = Zero
+    | n > 0     = Succ (fromInteger (n - 1))
+    | otherwise = error "Nat: 負の整数は表せない"
   -- 足し算・掛け算
   Zero   + m = m
   Succ n + m = Succ (n + m)
@@ -36,3 +38,5 @@ spec = describe "Fp8.NumNat (Nat の Num インスタンス)" $ do
     (2 * 3 :: Nat) `shouldBe` 6
   it "Zero は加法の単位元: 0 + 5 == (5 :: Nat)" $
     (0 + 5 :: Nat) `shouldBe` 5
+  it "負の整数は表せない: fromInteger (-1) はエラー" $
+    evaluate (fromInteger (-1) :: Nat) `shouldThrow` anyErrorCall

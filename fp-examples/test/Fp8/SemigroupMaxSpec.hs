@@ -3,7 +3,7 @@ module Fp8.SemigroupMaxSpec (spec) where
 
 import Test.Hspec
 
-newtype Max = Max Int deriving (Show, Eq)
+newtype Max = Max Integer deriving (Show, Eq)
 
 -- (|+|) が数式の ⊔ (= max) に対応する
 (|+|) :: Max -> Max -> Max

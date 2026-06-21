@@ -571,8 +571,9 @@ data Nat = Zero | Succ Nat deriving (Show, Eq)
 instance Num Nat where
   -- 数値リテラルの変換: 0 を Zero に, n を Succ の n 段重ねにする
   fromInteger n
-    | n <= 0    = Zero
-    | otherwise = Succ (fromInteger (n - 1))
+    | n == 0    = Zero
+    | n > 0     = Succ (fromInteger (n - 1))
+    | otherwise = error "Nat: 負の整数は表せない"
   -- 足し算・掛け算
   Zero   + m = m
   Succ n + m = Succ (n + m)
@@ -687,7 +688,7 @@ class Semigroup a where
 例として, 整数の上の演算「2 つの整数の **大きい方** を返す」$a \sqcup b = \max(a, b)$, すなわち組 $(\mathbb{Z}, \sqcup)$ を考えます. `max` は結合律 $(a \sqcup b) \sqcup c = a \sqcup (b \sqcup c)$ を満たす (どこから比べても最大は同じ) ので半群になります. まず数式の $\sqcup$ に対応する 2 項演算子 `(|+|)` を定義し, それを使って `Semigroup` の `(<>)` を与えます (台集合 $\mathbb{Z}$ は型 `Max` で表します).
 
 ~~~ haskell
-newtype Max = Max Int deriving (Show, Eq)
+newtype Max = Max Integer deriving (Show, Eq)
 
 -- (|+|) が数式の ⊔ (= max) に対応する
 (|+|) :: Max -> Max -> Max
@@ -710,7 +711,7 @@ main = do
 `Semigroup` クラスはメソッドのシグネチャを定めるだけで, **結合律が成り立つかどうかをコンパイラは検査しません**. 結合律を満たさない `(<>)` を書いてもコンパイルは通ってしまいます. 法則を守るのはプログラマの責任です (本章末のコラム「法則を Haskell でどう守るか」で QuickCheck による確認方法を扱います).
 :::
 
-`Max` には「これと演算しても相手を変えない値」, すなわち **単位元** が (`Int` の範囲では) `minBound` を使えば作れますが, 一般の半群には単位元があるとは限りません. 単位元の有無が, 次のモノイドとの違いになります.
+`Max` には「これと演算しても相手を変えない値」, すなわち **単位元** が **ありません**. 台集合 $\mathbb{Z}$ には最小元がなく, どんな整数よりも小さい値が存在しないため, `max` に対する単位元を作れないのです. このように一般の半群には単位元があるとは限らず, 単位元の有無が次のモノイドとの違いになります.
 
 ## モノイド (Monoid)
 
@@ -1009,6 +1010,10 @@ main = do
 ~~~ haskell
 import Test.QuickCheck
 
+-- Add は前掲のモノイド. ランダム生成のため Arbitrary を与える
+instance Arbitrary Add where
+  arbitrary = Add <$> arbitrary
+
 -- 結合律:  ∀ x y z. (x <> y) <> z == x <> (y <> z)
 prop_assoc :: Add -> Add -> Add -> Bool
 prop_assoc x y z = (x <> y) <> z == x <> (y <> z)
@@ -1035,7 +1040,7 @@ prop_identity x = mempty <> x == x && x <> mempty == x
 
 ## foldMap と Foldable
 
-[第6章](fp6.html) では `foldr` / `foldl` を使い, `(+)` と初期値 `0` を渡して `[1,2,3]` を `6` に畳み込みました. このとき **「畳む関数」と「初期値」を自分で渡していた** ことを思い出してください. ここで, リストのように **要素を格納して畳み込める入れ物** を **コンテナ (container)** と呼びます. コンテナを束ねて扱う型クラスが `Foldable` で, リストはもちろん, 本章や [第7章](fp7.html) で自作した木, 後の章で扱う `Maybe` なども Foldable なコンテナです.
+[第6章](fp6.html) では `foldr` / `foldl` を使い, `(+)` と初期値 `0` を渡して `[1,2,3]` を `6` に畳み込みました. このとき **「畳む関数」と「初期値」を自分で渡していた** ことを思い出してください. ここで, リストのように **要素を格納して畳み込める入れ物** を **コンテナ (container)** と呼びます. コンテナを束ねて扱う型クラスが `Foldable` で, リストはもちろん, 次章 [第9章](fp9.html) で自作する木 (`Tree`) や `Maybe` なども Foldable なコンテナです.
 
 ここで Monoid が効いてきます. 型が Monoid なら **畳む関数は `(<>)`, 初期値は `mempty`** と最初から決まっているので, [第6章](fp6.html) のように毎回渡す必要がありません. これを使うのが `fold` と `foldMap` です.
 
@@ -1050,7 +1055,7 @@ foldMap :: (Foldable t, Monoid m) => (a -> m) -> t a -> m
 - `fold` は **すでに Monoid 値が詰まった** コンテナを `(<>)` で 1 つに畳みます. リストなら `fold = foldr (<>) mempty`, つまり [第6章](fp6.html) の `foldr` の「畳む関数」を `(<>)` に, 「初期値」を `mempty` に固定したものです.
 - `foldMap f` は, 畳む前に **各要素を `f` で Monoid に変換** してから畳みます ([第6章](fp6.html) で `map` してから畳むのと同じ流れです). 両者には `fold = foldMap id` の関係があります.
 
-`Add` を Monoid にしておけば, 整数のリストを合計に畳み込めます.
+`Add` を Monoid にしておけば, 整数のリストを合計に畳み込めます. (以降のコード片は, モノイド節で定義した `Add` と, `import Data.Foldable (fold)` / `import Data.Semigroup (stimes)` を前提とします. `foldMap` は標準で使えます.)
 
 ~~~ haskell
 -- foldMap: 各 Int を Add に変換してから畳む

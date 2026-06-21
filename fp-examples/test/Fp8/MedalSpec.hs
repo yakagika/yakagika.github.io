@@ -1,4 +1,4 @@
--- | fp8.md 演習 CH8-2 の回答例.
+-- | fp8.md 演習 CH8-4 の回答例.
 module Fp8.MedalSpec (spec) where
 
 import Test.Hspec
