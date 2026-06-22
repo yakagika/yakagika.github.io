@@ -66,6 +66,38 @@ hello x = "こんにちは, " ++ greet x
 
 `Greet a => a -> String` は「`a` が `Greet` のインスタンスでありさえすれば, どの型でも受け取れる」という意味です. `=>` の左がクラス制約, 右が本来の型です. これにより, 型ごとに `helloAnimal`, `helloDog` …と別名で関数を書く必要がなくなります.
 
+実際に動かして確かめてみましょう. ここまでの定義をまとめ, `main` で `greet` の結果を画面に出力します.
+
+~~~ haskell
+class Greet a where
+  greet :: a -> String
+
+data Animal = Cat | Dog
+
+instance Greet Animal where
+  greet Cat = "にゃー"
+  greet Dog = "わん"
+
+hello :: Greet a => a -> String
+hello x = "こんにちは, " ++ greet x
+
+main :: IO ()
+main = do
+  putStrLn (greet Cat)   -- にゃー
+  putStrLn (greet Dog)   -- わん
+  putStrLn (hello Cat)   -- こんにちは, にゃー
+~~~
+
+`greet` の戻り値は `String` なので, 画面に出すときは `putStrLn` を使います. ここで `putStrLn` の代わりに `print` を使うと, 日本語が次のように **数値へエスケープ** されてしまい, 期待通りに表示されません.
+
+~~~ haskell
+main = print (greet Cat)   -- "\12395\12419\12540"  ← "にゃー" にならない
+~~~
+
+::: warn
+`print x` は [第7章](fp7.html)で見たとおり `putStrLn (show x)` と定義されています. `show` は値を **Haskell のソースコードに書ける文字列リテラル** へ変換するメソッドで, `String` に対しては全体を `"` で囲んだうえ, ASCII の範囲外にある文字を `\12395` のような十進エスケープに置き換えます (こうすれば `show` の結果をそのまま Haskell コードに貼り戻せます). そのため `print (greet Cat)` は `にゃー` ではなく `"\12395\12419\12540"` を出力します. 一方 `putStrLn` は `show` を介さず文字列をそのまま書き出すため, 日本語がそのまま表示されます. **戻り値が `String` の関数の結果を表示するときは `putStrLn` / `putStr` を使い, `print` は数値や自作データ型など「`Show` 表現そのもの」を見たいときに使う**, と整理しておくとよいでしょう.
+:::
+
 ::: note
 集合論的に言えば, 型クラス `C` は「メソッドを備えた型たちの集まり」であり, クラス制約 `C a =>` は「型 `a` がその集まりに属する ($a \in C$ とみなせる) ことを要求する」記法だと考えられます. ただし厳密には型クラスは型の集合そのものではなく, GHC が解決する **制約** です.
 :::
