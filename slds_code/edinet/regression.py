@@ -15,7 +15,7 @@
 
 from pathlib import Path
 
-import japanize_matplotlib  # noqa: F401  (matplotlib の日本語表示)
+import matplotlib_fontja  # noqa: F401  (matplotlib の日本語表示)
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns

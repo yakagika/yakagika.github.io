@@ -7,7 +7,7 @@
 ## 実行順
 
 ```
-uv add requests pandas yfinance statsmodels seaborn japanize-matplotlib
+uv add requests pandas yfinance statsmodels seaborn matplotlib-fontja
 export EDINET_API_KEY=<各自取得したキー>
 
 uv run python fetch_documents.py        # 1. 書類一覧 + CSV zip の取得
