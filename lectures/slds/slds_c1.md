@@ -44,15 +44,40 @@ YouTube Data API v3 は **無料の quota (割り当て)** の範囲内で利用
 
 YouTube Data API の利用に必要な認証方式は **API キー** (公開データの読み取りのみ) と **OAuth 2.0** (ログインユーザ固有のデータ操作) の 2 種類があります. 本資料では公開されている動画・チャンネルデータを取得するだけなので, 手続きが簡単な **API キー** を使います.
 
-API キーの取得手順については [補足A の「API キーの取得」節](slds_a1.html#apiキーの取得) で Google Cloud Console を使った手順が説明されています. 以下では YouTube Data API に特有の部分だけを補足します.
+API キーは **Google Cloud Console** から無料で発行します. 手順は次のとおりです (API という仕組み自体や API キーの考え方は[補足A](slds_a1.html#apiとは)も参照してください).
 
-1. [Google Cloud Console](https://console.cloud.google.com/) にアクセスし, プロジェクトを作成 (または既存のものを選択) する.
-2. 左メニューの **「API とサービス」→「ライブラリ」** から **「YouTube Data API v3」** を検索して有効化する.
-3. **「API とサービス」→「認証情報」→「認証情報を作成」→「API キー」** を選択する.
-4. 作成された API キーをコピーして安全な場所に保管する.
+**1. プロジェクトを作成する.** [Google Cloud Console](https://console.cloud.google.com/) にアクセスし, 上部の「プロジェクトを作成または選択する」を開きます.
+
+![Google Cloud Console のトップ画面](/images/slds/c1/gcloud-console-top.png)
+
+プロジェクト選択ダイアログで右上の「新しいプロジェクト」を選び,
+
+![プロジェクトの選択](/images/slds/c1/gcloud-select-project.png)
+
+プロジェクト名を付けて「作成」します (既存のプロジェクトがあればそれを選んでも構いません).
+
+![新しいプロジェクトの作成](/images/slds/c1/gcloud-new-project.png)
+
+**2. YouTube Data API v3 を有効化する.** 左上のナビゲーションメニューから **「API とサービス」→「ライブラリ」** を開きます.
+
+![API とサービスのメニュー](/images/slds/c1/gcloud-api-menu.png)
+
+ライブラリの検索欄で **「youtube data api v3」** を検索し, 表示された **YouTube Data API v3** を選択します.
+
+![ライブラリで YouTube Data API v3 を検索](/images/slds/c1/gcloud-library-search.png)
+
+API の詳細画面で **「有効にする」** をクリックします.
+
+![YouTube Data API v3 を有効にする](/images/slds/c1/gcloud-enable-api.png)
+
+**3. API キーを作成する.** **「API とサービス」→「認証情報」** を開き, 上部の **「+ 認証情報を作成」→「API キー」** を選択します.
+
+![認証情報から API キーを作成](/images/slds/c1/gcloud-create-key.png)
+
+**4. キーを保管する.** 作成された API キーをコピーして安全な場所に保管します.
 
 ::: note
-API キーは[補足A](slds_a1.html#apiキーの取得) で解説しているとおり**パスワードと同じ扱い**をしてください. ソースコードに直接書いたまま提出・共有・公開すると漏洩します. 環境変数やコード外ファイルへの分離を推奨します.
+API キーは**パスワードと同じ扱い**をしてください. ソースコードに直接書いたまま提出・共有・公開すると漏洩します. 環境変数やコード外ファイルへの分離を推奨します ([補足B](slds_b1.html) の認証トークンと同じ注意です).
 :::
 
 # 取得プログラム
