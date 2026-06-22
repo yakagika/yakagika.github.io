@@ -434,7 +434,33 @@ def get_video_comments(video_id: str, max_comments: int = 100) -> pd.DataFrame:
 コメントが無効化されている動画では `commentThreads().list()` が `403 (commentsDisabled)` を返します. 複数動画をまとめて処理するときは `try / except` で囲み, 失敗した動画はスキップしてください.
 :::
 
-![commentThreads のレスポンス例](/images/slds/c1/comments-api.png)
+`commentThreads().list()` が返す JSON は次のような構造です (`items` の 1 件を抜粋, 投稿者情報は匿名化). コメント本文は `snippet.topLevelComment.snippet.textDisplay`, いいね数は `likeCount`, 投稿日時は `publishedAt` に入っています (上の `get_video_comments` はこれらを取り出しています).
+
+~~~ json
+{
+  "kind": "youtube#commentThread",
+  "id": "UgwwJ4D-3oTROYQub454AaABAg",
+  "snippet": {
+    "channelId": "UCpdtHm6VFP_Qc-IDIsyLh1A",
+    "videoId": "T1r_LQCmeT8",
+    "topLevelComment": {
+      "kind": "youtube#comment",
+      "snippet": {
+        "videoId": "T1r_LQCmeT8",
+        "textDisplay": "長時間おつかれさまでした。\nありがとうございました。",
+        "authorDisplayName": "@example_user",
+        "authorChannelId": { "value": "UCxxxxxxxxxxxxxxxxxxxxxx" },
+        "likeCount": 14,
+        "publishedAt": "2025-07-20T22:49:19Z",
+        "updatedAt": "2025-07-20T22:49:19Z"
+      }
+    },
+    "canReply": true,
+    "totalReplyCount": 0,
+    "isPublic": true
+  }
+}
+~~~
 
 ## 事前学習済みモデルによるネガポジ判定
 
