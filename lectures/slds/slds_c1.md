@@ -1,4 +1,3 @@
-<!-- DRAFT (Agent生成 2026-06-21): 補足C YouTube API。要・人手レビュー: コード実行確認 + 章ナビ接続 + 採番。未コミット。 -->
 ---
 title: 特別講義DS 補足C YouTube Data APIによる動画・チャンネルデータの取得
 description: 資料
@@ -367,7 +366,7 @@ print(pd.DataFrame(results))
 1. 再生数が最も多い動画のタイトルと再生数は何か?
 2. 高評価数と再生数の間に相関はあるか? (`df.corr()` を使って確認してください.)
 
-提出ファイル名: `slds_c-1.py`
+提出ファイル名: `sldsc-1.py`
 
 <details class="protected" data-pass="yakagika">
     <summary> 回答例 </summary>
@@ -405,7 +404,7 @@ for item in stats_res.get('items', []):
     })
 
 df = pd.DataFrame(rows).sort_values('view_count', ascending=False).reset_index(drop=True)
-df.to_csv('slds_c-1.csv', index=False, encoding='utf-8-sig')
+df.to_csv('sldsc-1.csv', index=False, encoding='utf-8-sig')
 print(df[['title', 'view_count', 'like_count']])
 
 # 問2: 相関
@@ -427,7 +426,7 @@ print(df[['view_count', 'like_count', 'comment_count']].corr())
 
 2 つ以上の YouTube チャンネル (例: 大学の公式チャンネルや研究機関のチャンネル) のチャンネル ID を調べ, 本資料の `get_channel_stats()` 関数を使って登録者数・総再生数・動画本数を取得して比較する DataFrame を作成してください.
 
-提出ファイル名: `slds_c-2.py`
+提出ファイル名: `sldsc-2.py`
 
 <details class="protected" data-pass="yakagika">
     <summary> 回答例 </summary>
@@ -465,7 +464,7 @@ def get_channel_stats(channel_id):
 rows = [get_channel_stats(cid) for cid in channel_ids]
 df = pd.DataFrame([r for r in rows if r is not None])
 df = df.sort_values('subscriber_count', ascending=False).reset_index(drop=True)
-df.to_csv('slds_c-2.csv', index=False, encoding='utf-8-sig')
+df.to_csv('sldsc-2.csv', index=False, encoding='utf-8-sig')
 print(df)
 ~~~
 

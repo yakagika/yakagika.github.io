@@ -65,6 +65,8 @@ nextChapter: slds2.html
 
 [補足B X(Twitter) APIによるデータの取得](slds_b1.html)
 
+[補足C YouTube Data APIによる動画・チャンネルデータの取得](slds_c1.html)
+
 
 現在執筆中のため,章の構成等は変更される可能性があります.
 
