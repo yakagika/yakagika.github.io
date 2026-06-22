@@ -9,6 +9,7 @@ featured: false
 date: 2026-06-12
 tableOfContents: true
 previousChapter: slds_a1.html
+nextChapter: slds_c1.html
 ---
 
 本資料は章番号外の補足資料です. X(旧:Twitter)のAPIを利用して呟きデータを取得する手順を扱います. 取得したデータを利用した分析 (ワードクラウド, トピックモデルなど) は[Ch15 自然言語処理](slds15.html)で扱っています.
