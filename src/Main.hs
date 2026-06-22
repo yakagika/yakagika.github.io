@@ -273,8 +273,8 @@ main = do
 
 
     -- Index
-    match "index.html" $ do
-        route idRoute
+    match "pages/index.html" $ do
+        route $ customRoute (const "index.html")
         compile $ do
             posts <- recentByMtime =<< featured =<< filterOpen =<< loadAll "posts/*"
             lectures <- fmap (take 5) (recentByMtime =<< featured =<< filterOpen =<< loadAll "lectures/**")
@@ -298,15 +298,15 @@ main = do
 
     -- Render some static pages
     match (fromList pages) $ do
-        route   $ setExtension ".html"
+        route   $ customRoute $ \ident -> replaceExtension (takeFileName (toFilePath ident)) "html"
         compile $ pandocCompilerWith customReaderOptions customWriterOptions
             >>= loadAndApplyTemplate "templates/content.html" defaultContext
             >>= loadAndApplyTemplate "templates/default.html" (versionCtx <> defaultContext)
             >>= relativizeUrls
 
     -- Render the 404 page, we don't relativize URL's here.
-    match "404.html" $ do
-        route idRoute
+    match "pages/404.html" $ do
+        route $ customRoute (const "404.html")
         compile $ pandocCompilerWith customReaderOptions customWriterOptions
             >>= loadAndApplyTemplate "templates/content.html" defaultContext
             >>= loadAndApplyTemplate "templates/default.html" (versionCtx <> defaultContext)
@@ -341,10 +341,10 @@ main = do
 
   where
     pages =
-        [ "contact.markdown"
-        , "research.markdown"
-        , "lectures.markdown"
-        , "slds_papers.markdown"
+        [ "pages/contact.markdown"
+        , "pages/research.markdown"
+        , "pages/lectures.markdown"
+        , "pages/slds_papers.markdown"
         ]
 
     writeXeTex :: Item Pandoc.Pandoc -> Compiler (Item String)
