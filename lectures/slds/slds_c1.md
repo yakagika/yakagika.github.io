@@ -252,101 +252,6 @@ df_stats_sorted = df_stats.sort_values('view_count', ascending=False)
 print(df_stats_sorted[['title', 'view_count', 'like_count', 'comment_count']])
 ~~~
 
-## まとめ: 取得→分析のパイプライン
-
-上の 3 つのステップをつなぐと, **キーワード検索 → 動画統計取得 → DataFrame 化 → CSV 保存** という一連のパイプラインになります.
-
-~~~ py
-import os
-from googleapiclient.discovery import build
-import pandas as pd
-
-# ---- 設定 ----
-API_KEY    = os.environ.get('YOUTUBE_API_KEY', 'YOUR_API_KEY')
-QUERY      = 'データサイエンス 入門'
-MAX_VIDEOS = 20
-OUTPUT_CSV = 'youtube_stats.csv'
-
-# ---- クライアント ----
-youtube = build('youtube', 'v3', developerKey=API_KEY)
-
-# ---- (b) 動画検索 ----
-def search_videos(query, max_results=10):
-    req = youtube.search().list(
-        part='snippet', q=query, type='video',
-        maxResults=max_results, relevanceLanguage='ja'
-    )
-    res = req.execute()
-    return [
-        {'video_id': item['id']['videoId'],
-         'title'   : item['snippet']['title'],
-         'published_at': item['snippet']['publishedAt']}
-        for item in res.get('items', [])
-    ]
-
-# ---- (c) 動画統計 ----
-def get_video_stats(video_ids):
-    rows = []
-    for i in range(0, len(video_ids), 50):
-        chunk = video_ids[i:i+50]
-        res = youtube.videos().list(
-            part='snippet,statistics', id=','.join(chunk)
-        ).execute()
-        for item in res.get('items', []):
-            s = item.get('statistics', {})
-            rows.append({
-                'video_id'     : item['id'],
-                'title'        : item['snippet'].get('title', ''),
-                'published_at' : item['snippet'].get('publishedAt', ''),
-                'view_count'   : int(s.get('viewCount', 0)),
-                'like_count'   : int(s.get('likeCount', 0)),
-                'comment_count': int(s.get('commentCount', 0)),
-            })
-    return rows
-
-# ---- 実行 ----
-print(f'「{QUERY}」で動画を検索中...')
-search_results = search_videos(QUERY, max_results=MAX_VIDEOS)
-video_ids = [r['video_id'] for r in search_results]
-
-print(f'{len(video_ids)} 件の動画の統計を取得中...')
-stats_rows = get_video_stats(video_ids)
-
-df = pd.DataFrame(stats_rows)
-df = df.sort_values('view_count', ascending=False).reset_index(drop=True)
-df.to_csv(OUTPUT_CSV, index=False, encoding='utf-8-sig')
-print(f'{OUTPUT_CSV} に保存しました.')
-print(df[['title', 'view_count', 'like_count', 'comment_count']].to_string())
-~~~
-
-このコードで取得したデータは [Ch15 自然言語処理](slds15.html) のワードクラウド・トピックモデルの手法を `title` 列に適用したり, [Ch11 線形回帰分析](slds11.html) で `view_count` を目的変数とした回帰モデルを構築したりするときの入力として使えます.
-
-# Quota・制限と X との比較
-
-YouTube Data API と補足B で扱った X (Twitter) API を比較すると, 研究・学習での利用しやすさに大きな差があります. X 側の料金・制限の詳細は[補足B](slds_b1.html#利用上の注意-料金と制限)にまとめてあります.
-
-| 項目 | YouTube Data API v3 | X (Twitter) API v2 |
-|---|---|---|
-| 無料枠 | **10,000 ユニット/日** (継続更新) | Basic プランは月 200 USD〜, 無料版は月 100 件のみ |
-| 認証方式 | API キー (公開データ) / OAuth (個人データ) | Bearer Token (取得に英文 250 字の目的申請が必要) |
-| 主なコスト | `search` = 100 U, `videos.list` = 1 U, `channels.list` = 1 U | リクエスト数・月次ツイート取得数で課金 |
-| 過去データ | 投稿日 (`publishedAfter` 等) で絞り込み可能 | Free/Basic は直近 7 日のみ (全期間取得は Pro = 月 5,000 USD) |
-| 利用規約の安定性 | Google の方針変更は少ない | 頻繁に改定・値上げが行われている (2023〜) |
-
-::: note
-**Quota の消費例**: 動画 20 件の統計を取得するために `search().list()` を 1 回 (100 U) + `videos().list()` を 1 回 (1 U) = **101 ユニット** で済みます. 無料枠 10,000 U 内では約 99 回の同規模操作が可能です.
-
-Quota が不足した場合は翌日 (太平洋時間の午前 0 時) にリセットされます. 使い切ってしまった場合は Google Cloud Console で追加 Quota を購入することもできますが, 学習目的では不要です.
-:::
-
-# 発展: コメントのネガポジ分析 (政治動画の簡易分析)
-
-ここまでで取得した動画・チャンネルの統計に加え, **コメント**を取得すると, 視聴者の反応をテキストとして分析できます. ここでは応用例として, 政治関連の動画に付いたコメントを **事前学習済みの感情分析モデル**でポジティブ/ネガティブに分類し, その結果と動画の属性 (再生数・高評価数) の関係を簡単に分析してみます.
-
-::: note
-**背景となる研究**: 千葉商科大学の丹波ら (2025)「SNS 投稿日時及びイベントの時間的変遷による感情変動のテキスト解析」(SICE) は, 参議院選挙2025 期間中の政党別の X (Twitter) 投稿を日本語 BERT による感情スコアに変換し, STL 分解やワードクラウド・LDA で時間的変遷を分析しています. 本資料はその**簡易版**として, 対象を YouTube のコメントに替え, 時系列分解は省いて「動画ごとの感情の傾向」と「動画属性との関係」に絞ります.
-:::
-
 ## (d) コメントの取得 (`commentThreads`)
 
 `commentThreads` リソースを使うと, 指定した動画のトップレベルコメントを取得できます. 1 回の呼び出しで最大 100 件取得でき, `list_next()` でページ送りできます. 消費 quota は 1 ユニット/回です.
@@ -356,17 +261,10 @@ def get_video_comments(video_id: str, max_comments: int = 100) -> pd.DataFrame:
     """
     動画 ID を受け取り, トップレベルコメントを DataFrame で返す.
 
-    Parameters
-    ----------
-    video_id : str
-        対象動画の ID
-    max_comments : int
-        取得するコメントの最大件数
-
     Returns
     -------
     pd.DataFrame
-        video_id, comment, like_count, published_at を列に持つ DataFrame
+        video_id, comment, comment_like_count, comment_published_at を列に持つ DataFrame
     """
     rows = []
     request = youtube.commentThreads().list(
@@ -381,10 +279,10 @@ def get_video_comments(video_id: str, max_comments: int = 100) -> pd.DataFrame:
         for item in response.get('items', []):
             c = item['snippet']['topLevelComment']['snippet']
             rows.append({
-                'video_id'    : video_id,
-                'comment'     : c['textDisplay'],
-                'like_count'  : int(c.get('likeCount', 0)),
-                'published_at': c['publishedAt'],
+                'video_id'            : video_id,
+                'comment'             : c['textDisplay'],
+                'comment_like_count'  : int(c.get('likeCount', 0)),
+                'comment_published_at': c['publishedAt'],
             })
         request = youtube.commentThreads().list_next(request, response)
 
@@ -422,6 +320,84 @@ def get_video_comments(video_id: str, max_comments: int = 100) -> pd.DataFrame:
   }
 }
 ~~~
+
+## まとめ: 市川市データセットの作成
+
+ここまでの (a)〜(d) を組み合わせて, **市川市に関する動画を数件取得し, 各動画のタイトル・ID・統計情報 (再生数・高評価数・コメント数)・コメントを 1 つの CSV にまとめる**パイプラインを作ります. このあとの[発展節](#発展-コメントのネガポジ分析)では, ここで作った CSV を読み込んで感情分析を行います.
+
+CSV は **1 行 = 1 コメント**とし, その動画のメタ情報 (タイトル・統計) を各行に持たせます. こうしておくと, あとで `groupby('video_id')` で動画ごとに集約できます.
+
+~~~ py
+import os
+import pandas as pd
+from googleapiclient.discovery import build
+
+API_KEY    = os.environ.get('YOUTUBE_API_KEY', 'YOUR_API_KEY')
+QUERY      = '市川市'              # 取得したいキーワード
+MAX_VIDEOS = 10
+OUTPUT_CSV = 'ichikawa_youtube.csv'
+
+youtube = build('youtube', 'v3', developerKey=API_KEY)
+
+# (b) 検索で動画 ID を集める
+df_search = search_videos(QUERY, max_results=MAX_VIDEOS)   # (b) の関数
+video_ids = df_search['video_id'].tolist()
+
+# (c) 動画統計 (タイトル・再生数・高評価数・コメント数)
+df_stats  = get_video_stats(video_ids)                     # (c) の関数 (DataFrame を返す)
+
+# (d) 各動画のコメントを取得し, 動画メタを各コメント行に付与
+frames = []
+for _, video in df_stats.iterrows():
+    try:
+        cdf = get_video_comments(video['video_id'], max_comments=100)
+    except Exception as e:
+        print(f"skip {video['video_id']}: {e}")   # コメント無効化などはスキップ
+        continue
+    if cdf.empty:
+        continue
+    cdf['title']         = video['title']
+    cdf['view_count']    = video['view_count']
+    cdf['like_count']    = video['like_count']
+    cdf['comment_count'] = video['comment_count']
+    frames.append(cdf)
+
+df = pd.concat(frames, ignore_index=True)
+df = df[['video_id', 'title', 'view_count', 'like_count', 'comment_count',
+         'comment', 'comment_like_count', 'comment_published_at']]
+df.to_csv(OUTPUT_CSV, index=False, encoding='utf-8-sig')
+print(f'{OUTPUT_CSV} に {len(df)} 行 ({df["video_id"].nunique()} 動画) を保存しました.')
+~~~
+
+::: note
+このパイプラインのコード一式は [配布ページ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_code/c1/) の `build_dataset.py` にあります. 出力した `ichikawa_youtube.csv` は [補足B](slds_b1.html) の `tweets.csv` と同様に [GitHub で配布](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/c1/ichikawa_youtube.csv) します. API キーが無い受講生はこの CSV をダウンロードして次の[発展節](#発展-コメントのネガポジ分析)に進んでください.
+:::
+
+# Quota・制限と X との比較
+
+YouTube Data API と補足B で扱った X (Twitter) API を比較すると, 研究・学習での利用しやすさに大きな差があります. X 側の料金・制限の詳細は[補足B](slds_b1.html#利用上の注意-料金と制限)にまとめてあります.
+
+| 項目 | YouTube Data API v3 | X (Twitter) API v2 |
+|---|---|---|
+| 無料枠 | **10,000 ユニット/日** (継続更新) | Basic プランは月 200 USD〜, 無料版は月 100 件のみ |
+| 認証方式 | API キー (公開データ) / OAuth (個人データ) | Bearer Token (取得に英文 250 字の目的申請が必要) |
+| 主なコスト | `search` = 100 U, `videos.list` = 1 U, `channels.list` = 1 U | リクエスト数・月次ツイート取得数で課金 |
+| 過去データ | 投稿日 (`publishedAfter` 等) で絞り込み可能 | Free/Basic は直近 7 日のみ (全期間取得は Pro = 月 5,000 USD) |
+| 利用規約の安定性 | Google の方針変更は少ない | 頻繁に改定・値上げが行われている (2023〜) |
+
+::: note
+**Quota の消費例**: 動画 20 件の統計を取得するために `search().list()` を 1 回 (100 U) + `videos().list()` を 1 回 (1 U) = **101 ユニット** で済みます. 無料枠 10,000 U 内では約 99 回の同規模操作が可能です.
+
+Quota が不足した場合は翌日 (太平洋時間の午前 0 時) にリセットされます. 使い切ってしまった場合は Google Cloud Console で追加 Quota を購入することもできますが, 学習目的では不要です.
+:::
+
+# 発展: コメントのネガポジ分析
+
+取得プログラム節で作った市川市データセット (`ichikawa_youtube.csv`) を使い, 各コメントを **事前学習済みの感情分析モデル**でポジティブ/ネガティブに分類し, その結果と動画の属性 (再生数・高評価数) の関係を簡単に分析してみます. ここからは API キーは不要で, 配布 CSV だけで進められます.
+
+::: note
+**背景となる研究**: 千葉商科大学の丹波ら (2025)[「SNS 投稿日時及びイベントの時間的変遷による感情変動のテキスト解析」](/slds_papers.html#2026_丹波) (SICE) は, X (Twitter) 投稿を日本語 BERT による感情スコアに変換し, STL 分解やワードクラウド・LDA で時間的変遷を分析しています. 本資料はその**簡易版**として, 対象を YouTube のコメントに替え, 時系列分解は省いて「動画ごとの感情の傾向」と「動画属性との関係」に絞ります.
+:::
 
 ## 事前学習済みモデルによるネガポジ判定
 
@@ -472,23 +448,32 @@ def classify_comments(df: pd.DataFrame, classifier) -> pd.DataFrame:
 初回はモデル (数百 MB) のダウンロードに時間がかかります. テストデータでの Accuracy は約 0.81 で万能ではありません — 皮肉や文脈依存の表現は誤判定しやすい点に注意してください.
 :::
 
+## データの読み込みと分類
+
+配布されている市川市データセット (`ichikawa_youtube.csv`) を読み込み, `comment` 列を分類して `Label`・`Score` を付与します.
+
+~~~ py
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib_fontja   # 日本語ラベルの文字化けを防ぐ
+
+df = pd.read_csv('ichikawa_youtube.csv')
+classifier = load_classifier()
+df = classify_comments(df, classifier)
+print(df[['title', 'comment', 'Label', 'Score']].head())
+~~~
+
 ## 1 本の動画の感情比率を見る
 
 まず 1 本の動画について, コメントのポジ/ネガ/ニュートラルの比率を可視化してみます.
 
 ~~~ py
-import matplotlib.pyplot as plt
-import matplotlib_fontja   # 日本語ラベルの文字化けを防ぐ
+# 任意の 1 動画を取り出す (ここでは最初の動画)
+one = df[df['video_id'] == df['video_id'].iloc[0]]
 
-classifier = load_classifier()
-
-video_id = 'XXXXXXXXXXX'                        # 任意の政治関連動画の ID
-comments = get_video_comments(video_id, max_comments=100)
-comments = classify_comments(comments, classifier)
-
-counts = comments['Label'].value_counts()
+counts = one['Label'].value_counts()
 counts.plot.pie(autopct='%1.1f%%', ylabel='')
-plt.title('コメントの感情比率')
+plt.title(f"コメントの感情比率（{one['title'].iloc[0]}）")
 plt.show()
 ~~~
 
@@ -496,50 +481,30 @@ plt.show()
 
 ## 複数動画を横断して属性との関係を見る
 
-次に, 同じ政治トピックの動画を複数集め, **動画ごとのポジティブコメント比率**を計算して, 再生数や高評価数との関係を調べます. ポジ率は 1 本だけだと 1 つの値にしかなりませんが, 複数動画を並べると属性との相関を見られます.
+次に, **動画ごとのポジティブコメント比率**を計算して, 再生数や高評価数との関係を調べます. ポジ率は 1 本だけだと 1 つの値にしかなりませんが, 複数動画を並べると属性との相関を見られます. CSV は 1 行 = 1 コメントで動画統計が各行に入っているので, `groupby('video_id')` で動画ごとに集約します.
 
 ~~~ py
 LABEL_TO_SCORE = {'POSITIVE': 1, 'NEUTRAL': 0, 'NEGATIVE': -1}
 
-def summarize_video(video_id: str, classifier) -> dict:
-    """1 本の動画のコメントを分類し, 感情の要約統計を返す."""
-    cdf = get_video_comments(video_id, max_comments=100)
-    if cdf.empty:
-        return None
-    cdf = classify_comments(cdf, classifier)
-    signed = cdf['Label'].map(LABEL_TO_SCORE).fillna(0) * cdf['Score']
-    return {
-        'video_id'      : video_id,
-        'n_comments'    : len(cdf),
-        'positive_ratio': (cdf['Label'] == 'POSITIVE').mean(),
-        'mean_score'    : signed.mean(),
-    }
+df['signed'] = df['Label'].map(LABEL_TO_SCORE).fillna(0) * df['Score']
 
-# (b) で検索した政治トピックの動画 ID 群を使う
-df_search = search_videos('参議院選挙 2025', max_results=15)
-video_ids = df_search['video_id'].tolist()
-
-records = []
-for vid in video_ids:
-    try:
-        s = summarize_video(vid, classifier)
-        if s is not None:
-            records.append(s)
-    except Exception as e:
-        print(f'skip {vid}: {e}')           # コメント無効化などはスキップ
-
-df_sent = pd.DataFrame(records)
-
-# (c) の get_video_stats で再生数・高評価数を取得して結合
-df_stats = get_video_stats(video_ids)
-merged = df_sent.merge(df_stats, on='video_id')
+# 動画ごとに集約 (動画統計は動画内で一定なので first を取る)
+agg = df.groupby('video_id').agg(
+    title          = ('title', 'first'),
+    n_comments     = ('comment', 'size'),
+    positive_ratio = ('Label', lambda s: (s == 'POSITIVE').mean()),
+    mean_score     = ('signed', 'mean'),
+    view_count     = ('view_count', 'first'),
+    like_count     = ('like_count', 'first'),
+    comment_count  = ('comment_count', 'first'),
+).reset_index()
 
 # 相関
 cols = ['positive_ratio', 'mean_score', 'view_count', 'like_count', 'comment_count']
-print(merged[cols].corr())
+print(agg[cols].corr())
 
 # 散布図: ポジ率 vs 高評価数
-plt.scatter(merged['positive_ratio'], merged['like_count'])
+plt.scatter(agg['positive_ratio'], agg['like_count'])
 plt.xlabel('ポジティブコメント比率')
 plt.ylabel('高評価数')
 plt.title('コメントのポジ率と高評価数の関係')
@@ -548,10 +513,10 @@ plt.show()
 
 ![ポジ率と高評価数の散布図](/images/slds/c1/sentiment-scatter.png)
 
-このように,「コメントがポジティブな動画ほど高評価が多いか」「再生数とコメントの感情に関係はあるか」といった問いを動画横断で定量的に調べられます. ただし丹波ら (2025) が指摘するように, 感情は時間帯やイベント (選挙日程など) によっても変動します. より踏み込んだ分析として, 取得したコメントを [Ch15 自然言語処理](slds15.html) のワードクラウド・LDA で語彙レベルに分解したり, [Ch11 線形回帰分析](slds11.html) でポジ率を説明変数とした回帰モデルを組んだりできます.
+このように,「コメントがポジティブな動画ほど高評価が多いか」「再生数とコメントの感情に関係はあるか」といった問いを動画横断で定量的に調べられます. ただし丹波ら (2025) が指摘するように, 感情は時間帯やイベントによっても変動します. より踏み込んだ分析として, 取得したコメントを [Ch15 自然言語処理](slds15.html) のワードクラウド・LDA で語彙レベルに分解したり, [Ch11 線形回帰分析](slds11.html) でポジ率を説明変数とした回帰モデルを組んだりできます.
 
 ::: note
-**サンプルデータ**: API キーが無くても分析を試せるよう, コメントに感情ラベルを付与したサンプル CSV を後日 `slds_data/c1/` に配置予定です ([補足B](slds_b1.html) の `tweets.csv` と同じ運用). 列は `video_id, comment, like_count, published_at, Label, Score` です.
+この感情分析のコード一式は [配布ページ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_code/c1/) の `sentiment_analysis.py` にあります. 入力の `ichikawa_youtube.csv` も [GitHub で配布](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/c1/ichikawa_youtube.csv) しているので, API キーが無くても分析を再現できます.
 :::
 
 ---
@@ -679,7 +644,7 @@ print(df)
 
 **コメントのネガポジ分析と動画属性の関係**
 
-任意の政治・社会トピックのキーワードで YouTube 動画を複数 (5〜15 本程度) 検索し, 各動画のコメントを事前学習済みモデルでネガポジ判定してください. 動画ごとのポジティブコメント比率を求め, 再生数・高評価数との相関を `df.corr()` と散布図で確認してください.
+市川市以外の**任意のキーワード** (自分の関心のあるトピックや自治体など) で YouTube 動画を複数 (5〜15 本程度) 検索し, 本資料の `build_dataset.py` と同じ要領でデータセットを作って, 各動画のコメントを事前学習済みモデルでネガポジ判定してください. 動画ごとのポジティブコメント比率を求め, 再生数・高評価数との相関を `df.corr()` と散布図で確認してください.
 
 1. ポジティブコメント比率が最も高い動画と最も低い動画は何か?
 2. ポジ率と高評価数の間に相関はあるか? あるとすればどの程度か?
@@ -709,8 +674,9 @@ clf = pipeline('sentiment-analysis',
                tokenizer=BertJapaneseTokenizer.from_pretrained(MODEL_NAME),
                device=device)
 
-# --- 検索 ---
-search = youtube.search().list(part='snippet', q='参議院選挙 2025',
+# --- 検索 (任意のキーワードに変更) ---
+QUERY = '市川市'
+search = youtube.search().list(part='snippet', q=QUERY,
                                type='video', maxResults=15,
                                relevanceLanguage='ja').execute()
 video_ids = [it['id']['videoId'] for it in search.get('items', [])]
