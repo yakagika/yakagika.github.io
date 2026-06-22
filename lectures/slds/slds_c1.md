@@ -353,6 +353,195 @@ print(pd.DataFrame(results))
 
 `google-api-python-client` 版と比べると URL や パラメータ名を自前で管理する必要がありますが, `requests` だけで完結するため環境によっては導入が簡単です.
 
+# 発展: コメントのネガポジ分析 (政治動画の簡易分析)
+
+ここまでで取得した動画・チャンネルの統計に加え, **コメント**を取得すると, 視聴者の反応をテキストとして分析できます. ここでは応用例として, 政治関連の動画に付いたコメントを **事前学習済みの感情分析モデル**でポジティブ/ネガティブに分類し, その結果と動画の属性 (再生数・高評価数) の関係を簡単に分析してみます.
+
+::: note
+**背景となる研究**: 千葉商科大学の丹波ら (2025)「SNS 投稿日時及びイベントの時間的変遷による感情変動のテキスト解析」(SICE) は, 参議院選挙2025 期間中の政党別の X (Twitter) 投稿を日本語 BERT による感情スコアに変換し, STL 分解やワードクラウド・LDA で時間的変遷を分析しています. 本資料はその**簡易版**として, 対象を YouTube のコメントに替え, 時系列分解は省いて「動画ごとの感情の傾向」と「動画属性との関係」に絞ります.
+:::
+
+## (d) コメントの取得 (`commentThreads`)
+
+`commentThreads` リソースを使うと, 指定した動画のトップレベルコメントを取得できます. 1 回の呼び出しで最大 100 件取得でき, `list_next()` でページ送りできます. 消費 quota は 1 ユニット/回です.
+
+~~~ py
+def get_video_comments(video_id: str, max_comments: int = 100) -> pd.DataFrame:
+    """
+    動画 ID を受け取り, トップレベルコメントを DataFrame で返す.
+
+    Parameters
+    ----------
+    video_id : str
+        対象動画の ID
+    max_comments : int
+        取得するコメントの最大件数
+
+    Returns
+    -------
+    pd.DataFrame
+        video_id, comment, like_count, published_at を列に持つ DataFrame
+    """
+    rows = []
+    request = youtube.commentThreads().list(
+        part='snippet',
+        videoId=video_id,
+        maxResults=100,        # 1 ページの上限
+        textFormat='plainText',
+        order='relevance',
+    )
+    while request is not None and len(rows) < max_comments:
+        response = request.execute()
+        for item in response.get('items', []):
+            c = item['snippet']['topLevelComment']['snippet']
+            rows.append({
+                'video_id'    : video_id,
+                'comment'     : c['textDisplay'],
+                'like_count'  : int(c.get('likeCount', 0)),
+                'published_at': c['publishedAt'],
+            })
+        request = youtube.commentThreads().list_next(request, response)
+
+    return pd.DataFrame(rows[:max_comments])
+~~~
+
+::: warn
+コメントが無効化されている動画では `commentThreads().list()` が `403 (commentsDisabled)` を返します. 複数動画をまとめて処理するときは `try / except` で囲み, 失敗した動画はスキップしてください.
+:::
+
+![commentThreads のレスポンス例](/images/slds/c1/comments-api.png)
+
+## 事前学習済みモデルによるネガポジ判定
+
+感情分析には, Amazon レビューでファインチューニングされた日本語 BERT モデル `christian-phu/bert-finetuned-japanese-sentiment` を使います. このモデルは各テキストを **POSITIVE / NEGATIVE / NEUTRAL** の 3 クラスに分類し, その確信度スコア (0〜1) を返します.
+
+~~~ sh
+uv add transformers fugashi unidic-lite torch tqdm japanize-matplotlib
+~~~
+
+~~~ py
+import torch
+from transformers import pipeline, AutoModelForSequenceClassification, BertJapaneseTokenizer
+from tqdm import tqdm
+
+MODEL_NAME = 'christian-phu/bert-finetuned-japanese-sentiment'
+
+def load_classifier():
+    """感情分析の pipeline を作成する. GPU があれば利用する."""
+    if torch.backends.mps.is_available():
+        device = torch.device('mps')     # Mac の GPU
+    elif torch.cuda.is_available():
+        device = torch.device('cuda:0')  # NVIDIA GPU
+    else:
+        device = torch.device('cpu')
+    model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME)
+    tokenizer = BertJapaneseTokenizer.from_pretrained(MODEL_NAME)
+    return pipeline('sentiment-analysis', model=model, tokenizer=tokenizer, device=device)
+
+
+def classify_comments(df: pd.DataFrame, classifier) -> pd.DataFrame:
+    """comment 列を分類し, Label と Score を付与した DataFrame を返す."""
+    df = df[df['comment'].apply(lambda x: isinstance(x, str))].copy()
+    labels, scores = [], []
+    for text in tqdm(df['comment']):
+        try:
+            result = classifier(text, truncation=True)[0]   # 長文はモデル最大長で切り詰め
+            labels.append(result['label'].upper())           # POSITIVE / NEGATIVE / NEUTRAL に正規化
+            scores.append(round(result['score'], 4))
+        except Exception:
+            labels.append('ERROR')
+            scores.append(0.0)
+    df['Label'] = labels
+    df['Score'] = scores
+    return df
+~~~
+
+::: note
+初回はモデル (数百 MB) のダウンロードに時間がかかります. テストデータでの Accuracy は約 0.81 で万能ではありません — 皮肉や文脈依存の表現は誤判定しやすい点に注意してください.
+:::
+
+## 1 本の動画の感情比率を見る
+
+まず 1 本の動画について, コメントのポジ/ネガ/ニュートラルの比率を可視化してみます.
+
+~~~ py
+import matplotlib.pyplot as plt
+import japanize_matplotlib   # 日本語ラベルの文字化けを防ぐ
+
+classifier = load_classifier()
+
+video_id = 'XXXXXXXXXXX'                        # 任意の政治関連動画の ID
+comments = get_video_comments(video_id, max_comments=100)
+comments = classify_comments(comments, classifier)
+
+counts = comments['Label'].value_counts()
+counts.plot.pie(autopct='%1.1f%%', ylabel='')
+plt.title('コメントの感情比率')
+plt.show()
+~~~
+
+![1 本の動画のコメント感情比率](/images/slds/c1/sentiment-pie.png)
+
+## 複数動画を横断して属性との関係を見る
+
+次に, 同じ政治トピックの動画を複数集め, **動画ごとのポジティブコメント比率**を計算して, 再生数や高評価数との関係を調べます. ポジ率は 1 本だけだと 1 つの値にしかなりませんが, 複数動画を並べると属性との相関を見られます.
+
+~~~ py
+LABEL_TO_SCORE = {'POSITIVE': 1, 'NEUTRAL': 0, 'NEGATIVE': -1}
+
+def summarize_video(video_id: str, classifier) -> dict:
+    """1 本の動画のコメントを分類し, 感情の要約統計を返す."""
+    cdf = get_video_comments(video_id, max_comments=100)
+    if cdf.empty:
+        return None
+    cdf = classify_comments(cdf, classifier)
+    signed = cdf['Label'].map(LABEL_TO_SCORE).fillna(0) * cdf['Score']
+    return {
+        'video_id'      : video_id,
+        'n_comments'    : len(cdf),
+        'positive_ratio': (cdf['Label'] == 'POSITIVE').mean(),
+        'mean_score'    : signed.mean(),
+    }
+
+# (b) で検索した政治トピックの動画 ID 群を使う
+df_search = search_videos('参議院選挙 2025', max_results=15)
+video_ids = df_search['video_id'].tolist()
+
+records = []
+for vid in video_ids:
+    try:
+        s = summarize_video(vid, classifier)
+        if s is not None:
+            records.append(s)
+    except Exception as e:
+        print(f'skip {vid}: {e}')           # コメント無効化などはスキップ
+
+df_sent = pd.DataFrame(records)
+
+# (c) の get_video_stats で再生数・高評価数を取得して結合
+df_stats = get_video_stats(video_ids)
+merged = df_sent.merge(df_stats, on='video_id')
+
+# 相関
+cols = ['positive_ratio', 'mean_score', 'view_count', 'like_count', 'comment_count']
+print(merged[cols].corr())
+
+# 散布図: ポジ率 vs 高評価数
+plt.scatter(merged['positive_ratio'], merged['like_count'])
+plt.xlabel('ポジティブコメント比率')
+plt.ylabel('高評価数')
+plt.title('コメントのポジ率と高評価数の関係')
+plt.show()
+~~~
+
+![ポジ率と高評価数の散布図](/images/slds/c1/sentiment-scatter.png)
+
+このように,「コメントがポジティブな動画ほど高評価が多いか」「再生数とコメントの感情に関係はあるか」といった問いを動画横断で定量的に調べられます. ただし丹波ら (2025) が指摘するように, 感情は時間帯やイベント (選挙日程など) によっても変動します. より踏み込んだ分析として, 取得したコメントを [Ch15 自然言語処理](slds15.html) のワードクラウド・LDA で語彙レベルに分解したり, [Ch11 線形回帰分析](slds11.html) でポジ率を説明変数とした回帰モデルを組んだりできます.
+
+::: note
+**サンプルデータ**: API キーが無くても分析を試せるよう, コメントに感情ラベルを付与したサンプル CSV を後日 `slds_data/c1/` に配置予定です ([補足B](slds_b1.html) の `tweets.csv` と同じ運用). 列は `video_id, comment, like_count, published_at, Label, Score` です.
+:::
+
 ---
 
 ### Exercise SLDSc-1
@@ -469,5 +658,91 @@ print(df)
 ~~~
 
 登録者数や総再生数の大小と, 動画本数の関係を観察してみましょう. 「少ない動画本数で高い総再生数を持つ」チャンネルはバズ動画を持つ可能性があります.
+
+</details>
+
+---
+
+### Exercise SLDSc-3
+
+**コメントのネガポジ分析と動画属性の関係**
+
+任意の政治・社会トピックのキーワードで YouTube 動画を複数 (5〜15 本程度) 検索し, 各動画のコメントを事前学習済みモデルでネガポジ判定してください. 動画ごとのポジティブコメント比率を求め, 再生数・高評価数との相関を `df.corr()` と散布図で確認してください.
+
+1. ポジティブコメント比率が最も高い動画と最も低い動画は何か?
+2. ポジ率と高評価数の間に相関はあるか? あるとすればどの程度か?
+
+提出ファイル名: `sldsc-3.py`
+
+<details class="protected" data-pass="yakagika">
+    <summary> 回答例 </summary>
+
+~~~ py
+import torch
+from googleapiclient.discovery import build
+from transformers import pipeline, AutoModelForSequenceClassification, BertJapaneseTokenizer
+import pandas as pd
+import matplotlib.pyplot as plt
+import japanize_matplotlib
+
+API_KEY = 'YOUR_API_KEY'
+youtube = build('youtube', 'v3', developerKey=API_KEY)
+MODEL_NAME = 'christian-phu/bert-finetuned-japanese-sentiment'
+
+# --- 分類器 ---
+device = torch.device('mps' if torch.backends.mps.is_available()
+                      else 'cuda:0' if torch.cuda.is_available() else 'cpu')
+clf = pipeline('sentiment-analysis',
+               model=AutoModelForSequenceClassification.from_pretrained(MODEL_NAME),
+               tokenizer=BertJapaneseTokenizer.from_pretrained(MODEL_NAME),
+               device=device)
+
+# --- 検索 ---
+search = youtube.search().list(part='snippet', q='参議院選挙 2025',
+                               type='video', maxResults=15,
+                               relevanceLanguage='ja').execute()
+video_ids = [it['id']['videoId'] for it in search.get('items', [])]
+
+# --- 動画ごとにポジ率を集約 ---
+records = []
+for vid in video_ids:
+    try:
+        res = youtube.commentThreads().list(
+            part='snippet', videoId=vid,
+            maxResults=100, textFormat='plainText', order='relevance').execute()
+    except Exception:
+        continue   # コメント無効化などはスキップ
+    comments = [it['snippet']['topLevelComment']['snippet']['textDisplay']
+                for it in res.get('items', [])]
+    if not comments:
+        continue
+    labels = pd.Series([clf(t, truncation=True)[0]['label'].upper() for t in comments])
+    records.append({'video_id': vid, 'positive_ratio': (labels == 'POSITIVE').mean()})
+
+df_sent = pd.DataFrame(records)
+
+# --- 動画統計と結合 ---
+stats = youtube.videos().list(part='statistics',
+                              id=','.join(df_sent['video_id'])).execute()
+rows = [{'video_id': it['id'],
+         'view_count': int(it['statistics'].get('viewCount', 0)),
+         'like_count': int(it['statistics'].get('likeCount', 0))}
+        for it in stats.get('items', [])]
+merged = df_sent.merge(pd.DataFrame(rows), on='video_id')
+
+# 問 1
+print('最もポジティブ:', merged.loc[merged['positive_ratio'].idxmax(), 'video_id'])
+print('最もネガティブ:', merged.loc[merged['positive_ratio'].idxmin(), 'video_id'])
+
+# 問 2
+print(merged[['positive_ratio', 'view_count', 'like_count']].corr())
+plt.scatter(merged['positive_ratio'], merged['like_count'])
+plt.xlabel('ポジティブコメント比率'); plt.ylabel('高評価数')
+plt.show()
+~~~
+
+**問 1**: `positive_ratio` の `idxmax()` / `idxmin()` で特定できます.
+
+**問 2**: 一般に応援目的の動画はポジティブコメントが多く高評価も集まりやすいため正の相関が出やすいですが, 批判的な話題や炎上動画ではポジ率が低くても再生数・コメント数が伸びることがあり, 相関は一定しません.
 
 </details>
