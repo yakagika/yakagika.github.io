@@ -441,7 +441,7 @@ def get_video_comments(video_id: str, max_comments: int = 100) -> pd.DataFrame:
 感情分析には, Amazon レビューでファインチューニングされた日本語 BERT モデル `christian-phu/bert-finetuned-japanese-sentiment` を使います. このモデルは各テキストを **POSITIVE / NEGATIVE / NEUTRAL** の 3 クラスに分類し, その確信度スコア (0〜1) を返します.
 
 ~~~ sh
-uv add transformers fugashi unidic-lite torch tqdm japanize-matplotlib
+uv add transformers fugashi unidic-lite torch tqdm matplotlib-fontja
 ~~~
 
 ~~~ py
@@ -491,7 +491,7 @@ def classify_comments(df: pd.DataFrame, classifier) -> pd.DataFrame:
 
 ~~~ py
 import matplotlib.pyplot as plt
-import japanize_matplotlib   # 日本語ラベルの文字化けを防ぐ
+import matplotlib_fontja   # 日本語ラベルの文字化けを防ぐ
 
 classifier = load_classifier()
 
@@ -708,7 +708,7 @@ from googleapiclient.discovery import build
 from transformers import pipeline, AutoModelForSequenceClassification, BertJapaneseTokenizer
 import pandas as pd
 import matplotlib.pyplot as plt
-import japanize_matplotlib
+import matplotlib_fontja
 
 API_KEY = 'YOUR_API_KEY'
 youtube = build('youtube', 'v3', developerKey=API_KEY)
