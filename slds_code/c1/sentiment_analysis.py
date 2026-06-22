@@ -15,6 +15,7 @@ build_dataset.py が作った ichikawa_youtube.csv を読み込み, 各コメン
 """
 
 import os
+import re
 import torch
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -65,9 +66,10 @@ def main():
 
     # --- 1 本の動画の感情比率 (sentiment-pie.png) ---
     one = df[df['video_id'] == df['video_id'].iloc[0]]
+    title = re.sub(r'[^\w\s]', '', one['title'].iloc[0])[:18]   # 絵文字・記号を除いて短縮
     plt.figure()
     one['Label'].value_counts().plot.pie(autopct='%1.1f%%', ylabel='')
-    plt.title(f"コメントの感情比率（{one['title'].iloc[0]}）")
+    plt.title(f'コメントの感情比率（{title}）')
     plt.tight_layout()
     plt.savefig(os.path.join(OUT_DIR, 'sentiment-pie.png'), dpi=150)
     plt.close()
