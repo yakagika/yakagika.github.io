@@ -113,7 +113,7 @@ def get_channel_stats(channel_id: str) -> dict:
     }
 
 # 例: NHK のチャンネル (channel_id は実際の ID に置き換えてください)
-channel_id = 'UCXXXXXXXXXXXXXXXXXXXXXXX'  # 例: 'UC6o44hS0ze1blFN3TQEPV3w' (NHK)
+channel_id = 'UCXXXXXXXXXXXXXXXXXXXXXXX'  # 実際のチャンネル ID に置き換える (調べ方は下の note を参照)
 
 stats = get_channel_stats(channel_id)
 df_channel = pd.DataFrame([stats])
@@ -138,7 +138,7 @@ def search_videos(query: str, max_results: int = 10) -> pd.DataFrame:
     query : str
         検索キーワード
     max_results : int
-        取得する動画の最大件数 (上限 50, デフォルト 10)
+        取得する動画の最大件数 (関数の既定値 10, API の上限は 50)
 
     Returns
     -------
@@ -298,14 +298,14 @@ print(df[['title', 'view_count', 'like_count', 'comment_count']].to_string())
 
 # Quota・制限と X との比較
 
-YouTube Data API と補足B で扱った X (Twitter) API を比較すると, 研究・学習での利用しやすさに大きな差があります.
+YouTube Data API と補足B で扱った X (Twitter) API を比較すると, 研究・学習での利用しやすさに大きな差があります. X 側の料金・制限の詳細は[補足B](slds_b1.html#利用上の注意-料金と制限)にまとめてあります.
 
 | 項目 | YouTube Data API v3 | X (Twitter) API v2 |
 |---|---|---|
 | 無料枠 | **10,000 ユニット/日** (継続更新) | Basic プランは月 200 USD〜, 無料版は月 100 件のみ |
 | 認証方式 | API キー (公開データ) / OAuth (個人データ) | Bearer Token (取得に英文 250 字の目的申請が必要) |
 | 主なコスト | `search` = 100 U, `videos.list` = 1 U, `channels.list` = 1 U | リクエスト数・月次ツイート取得数で課金 |
-| 過去データ | 投稿日で絞り込み可能 | 無料版は過去 7 日分のみ |
+| 過去データ | 投稿日 (`publishedAfter` 等) で絞り込み可能 | Free/Basic は直近 7 日のみ (全期間取得は Pro = 月 5,000 USD) |
 | 利用規約の安定性 | Google の方針変更は少ない | 頻繁に改定・値上げが行われている (2023〜) |
 
 ::: note
