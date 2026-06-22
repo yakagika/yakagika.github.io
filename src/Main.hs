@@ -117,11 +117,6 @@ main = do
             csses <- loadAll "css/*.css"
             makeItem $ unlines $ map itemBody csses
 
-    -- Render the /tmp index page
-    match "tmp/index.html" $ do
-        route idRoute
-        compile $ getResourceBody >>= relativizeUrls
-
     -- Build tags
     tags <- buildTagsWithList ["posts/*","lectures/**"] (fromCapture "tags/*.html")
 
@@ -339,14 +334,6 @@ main = do
                 >>= relativizeUrls
 
 
-    -- Showcases
-    match "photos/*/index.html" $ do
-        route idRoute
-        compile $ getResourceBody
-            >>= relativizeUrls
-    match "photos/*/*.jpg" $ do
-        route idRoute
-        compile copyFileCompiler
     -- google
     match "google444b04943c3fafb4.html" $ do
         route idRoute
@@ -356,7 +343,6 @@ main = do
     pages =
         [ "contact.markdown"
         , "research.markdown"
-        , "links.markdown"
         , "lectures.markdown"
         , "slds_papers.markdown"
         ]
