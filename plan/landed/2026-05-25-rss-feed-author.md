@@ -1,3 +1,9 @@
+---
+plan_id: rss-feed-author
+status: landed
+created: 2026-05-25
+updated: 2026-05-25
+---
 # RSS フィードに著者情報を追加
 
 ## メタ情報

@@ -1,3 +1,9 @@
+---
+plan_id: slds-exercise-restructure
+status: landed
+created: 2026-05-12
+updated: 2026-05-12
+---
 # slds 講義への演習見出し規約 + 回答埋め込みの適用
 
 ## メタ情報

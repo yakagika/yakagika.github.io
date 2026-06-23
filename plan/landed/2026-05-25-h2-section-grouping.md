@@ -1,3 +1,9 @@
+---
+plan_id: h2-section-grouping
+status: landed
+created: 2026-05-25
+updated: 2026-05-25
+---
 # h2 セクション全体の視覚的グルーピング
 
 ## メタ情報

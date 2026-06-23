@@ -1,3 +1,9 @@
+---
+plan_id: fp5-split-applied-functions
+status: landed
+created: 2026-06-01
+updated: 2026-06-01
+---
 # fp5 分割: 「関数(応用編)」章の新設
 
 ## メタ情報
