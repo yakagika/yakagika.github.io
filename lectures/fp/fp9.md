@@ -600,7 +600,13 @@ class Functor f where
 
 $$\mathrm{fmap}\ \mathrm{id} = \mathrm{id}, \qquad \mathrm{fmap}\ (g \circ h) = \mathrm{fmap}\ g \circ \mathrm{fmap}\ h$$
 
-最も身近な関手が `Maybe` です. `fmap` は「`Just` の中身に関数を適用し, `Nothing` はそのまま返す」操作になります.
+別の見方をすると, `fmap` は [第4章](fp4.html) でリストに使った `map` を **任意の関手に一般化** したものです. `map` の型 `(a -> b) -> [a] -> [b]` の `[]` を一般の型構築子 `f` で置き換えると, ちょうど `fmap :: (a -> b) -> f a -> f b` になります.
+
+$$\underbrace{(a \to b) \to [a] \to [b]}_{\text{map (リスト専用)}} \;\;\Longrightarrow\;\; \underbrace{(a \to b) \to f\,a \to f\,b}_{\text{fmap (任意の関手)}}$$
+
+つまり `fmap` は「**`f a` という入れ物の中身 `a` だけに関数を作用させ, 入れ物の形は保つ `map`**」です. 関手ごとに「形をどう保つか」 — `Maybe` なら `Nothing` はそのまま, リストなら各要素に, 木なら各ノードに — が決まります. 以下, `Maybe`・`Either`・リスト・木の順に実例を見ます.
+
+まず, 本章前半で扱った `Maybe` を関手として見ます. `fmap` は「`Just` の中身に関数を適用し, `Nothing` はそのまま返す」操作になります.
 
 ~~~ haskell
 main :: IO ()
@@ -611,15 +617,6 @@ main = do
 
 `fmap (+1) (Just 3)` が `Just 4` になり, `Nothing` には何も起きません. 「箱の中身に関数を適用する」イメージで, 箱が空 (`Nothing`) なら何もしないわけです.
 
-**リストも関手** です. リストに対する `fmap` は, すでに [第4章](fp4.html) で学んだ `map` そのものです.
-
-~~~ haskell
-main :: IO ()
-main = do
-  print (fmap (* 2) [1, 2, 3])  -- [2,4,6]   (fmap = map)
-  print (map  (* 2) [1, 2, 3])  -- [2,4,6]
-~~~
-
 **`Either a` も関手** です. ただし `Either` は型引数を 2 つ取る (`Either :: * -> * -> *`) ため, 関手にするには片方を固定して `Either a` (種が `* -> *`) の形にします. `fmap` は `Right` の中身にだけ作用し, `Left` (慣習上は失敗) はそのまま素通しします.
 
 ~~~ haskell
@@ -628,6 +625,27 @@ main = do
   print (fmap (+ 1) (Right 3 :: Either String Int))  -- Right 4
   print (fmap (+ 1) (Left "err" :: Either String Int))  -- Left "err"
 ~~~
+
+`Maybe` と `Either a` は, どちらも「失敗するかもしれない値」を表す関手です. `fmap` で成功側 (`Just` / `Right`) の中身だけを加工しつつ, 失敗 (`Nothing` / `Left`) が出たらそれ以降の加工を素通しできます.
+
+次に **リストも関手** です. リストは組込みで `Functor` のインスタンスになっており, リストに対する `fmap` は, すでに [第4章](fp4.html) で学んだ `map` そのものです. 「`fmap` は `map` の一般化」と述べたことが, リストでは文字どおり `fmap = map` という形で現れます.
+
+その実装も, [第4章](fp4.html) の `map` の再帰定義をそのまま書いたものです. 組込みのインスタンスと同じ定義を `fmapList` として書き下し, `fmap`・`map` と一致することを確かめます.
+
+~~~ haskell
+-- リストの fmap の中身 = 第4章の map の再帰定義そのもの
+fmapList :: (a -> b) -> [a] -> [b]
+fmapList _ []       = []
+fmapList f (x : xs) = f x : fmapList f xs
+
+main :: IO ()
+main = do
+  print (fmapList (* 2) [1, 2, 3])  -- [2,4,6]
+  print (fmap     (* 2) [1, 2, 3])  -- [2,4,6]   (組込みの fmap = map)
+  print (map      (* 2) [1, 2, 3])  -- [2,4,6]
+~~~
+
+3 つの結果はすべて一致します. `fmapList` は「空リストには何もせず, `(x : xs)` の各要素に関数を適用して同じ形のリストに組み直す」操作で, リストの長さや並び (入れ物の形) は保ったまま, 中身だけを変えています. これが, リストという関手の「形を保つ」やり方です.
 
 エラー処理の文脈では, この性質が便利です. `fmap` で成功値 (`Right`) だけを次々と加工しつつ, 失敗 (`Left`) が出たらそれ以降の加工を素通しできます.
 

@@ -18,21 +18,33 @@ toList' (Node l x r) = toList' l ++ [x] ++ toList' r
 sample :: Tree Int
 sample = Node (Node Leaf 1 Leaf) 2 (Node Leaf 3 Leaf)
 
+-- リストの fmap の中身 = 第4章の map の再帰定義そのもの
+fmapList :: (a -> b) -> [a] -> [b]
+fmapList _ []       = []
+fmapList f (x : xs) = f x : fmapList f xs
+
 spec :: Spec
 spec = describe "Fp9.TreeFunctor" $ do
-  describe "Maybe / リスト / Either の fmap" $ do
+  describe "Maybe / Either / リスト の fmap" $ do
     it "fmap (+1) (Just 3) == Just 4" $
       fmap (+ 1) (Just 3) `shouldBe` Just (4 :: Int)
     it "fmap (+1) Nothing == Nothing" $
       fmap (+ 1) (Nothing :: Maybe Int) `shouldBe` Nothing
-    it "fmap (*2) [1,2,3] == [2,4,6] (= map)" $
-      fmap (* 2) [1, 2, 3] `shouldBe` [2, 4, 6 :: Int]
-    it "fmap = map で一致する" $
-      fmap (* 2) [1, 2, 3] `shouldBe` map (* 2) [1, 2, 3 :: Int]
     it "fmap (+1) (Right 3) == Right 4" $
       fmap (+ 1) (Right 3 :: Either String Int) `shouldBe` Right 4
     it "fmap (+1) (Left err) == Left err" $
       fmap (+ 1) (Left "err" :: Either String Int) `shouldBe` Left "err"
+    it "fmap (*2) [1,2,3] == [2,4,6] (= map)" $
+      fmap (* 2) [1, 2, 3] `shouldBe` [2, 4, 6 :: Int]
+    it "fmap = map で一致する" $
+      fmap (* 2) [1, 2, 3] `shouldBe` map (* 2) [1, 2, 3 :: Int]
+  describe "リストの fmap の実装 (fmapList = map の再帰定義)" $ do
+    it "fmapList (*2) [1,2,3] == [2,4,6]" $
+      fmapList (* 2) [1, 2, 3] `shouldBe` [2, 4, 6 :: Int]
+    it "fmapList = fmap で一致する" $
+      fmapList (* 2) [1, 2, 3] `shouldBe` fmap (* 2) [1, 2, 3 :: Int]
+    it "fmapList = map で一致する" $
+      fmapList (* 2) [1, 2, 3] `shouldBe` map (* 2) [1, 2, 3 :: Int]
   describe "Tree の Functor" $ do
     it "toList' sample == [1,2,3]" $
       toList' sample `shouldBe` [1, 2, 3]
