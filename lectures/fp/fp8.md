@@ -506,6 +506,10 @@ class Bounded a where
   maxBound :: a
 ~~~
 
+これら 4 つのメソッドと `minBound` / `maxBound` の関係を, 曜日型 `Weekday` を例に図示すると次のようになります. 各構築子が宣言順に整数 `0, 1, 2, …` へ対応し, `fromEnum` が構築子→整数, `toEnum` がその逆 (整数→構築子) で互いに逆向きの変換, `succ` / `pred` が隣の構築子への移動, `minBound` / `maxBound` が先頭・末尾の端点を表します.
+
+![曜日型 Weekday を例にした Enum と整数の対応図. 構築子 Sunday, Monday, …, Saturday が整数 0〜6 に対応し, fromEnum が構築子→整数, toEnum が整数→構築子 (互いに逆), succ が次の構築子へ, pred が前の構築子へ移動し, minBound が先頭 (Sunday), maxBound が末尾 (Saturday) を指す.](/images/fp/ch8/enum-int.png)
+
 この 2 つを `deriving` すると, [第7章](fp7.html)の `nextDay` は次のように書き直せます.
 
 ~~~ haskell
@@ -830,6 +834,8 @@ main = do
 
 4. 整数 1 つを `Stats` 1 件分 (件数 1・その値が合計) にする関数 `singleton :: Int -> Stats` を定義し, `mconcat (map singleton xs)` でリスト `xs` の件数と合計をまとめて求められることを確認してください.
 
+5. リスト全体を 1 つの `Stats` にまとめる関数 `stats :: [Int] -> Stats` を `stats = mconcat . map singleton` で定義してください. そのうえで `stats (xs ++ ys) == stats xs <> stats ys` が成り立つこと — すなわち **リストを連結してから集計しても (合算 → 関数適用), 別々に集計してから合成しても (関数適用 → 合算), 結果が一致する** ことを確認してください.
+
 ~~~ haskell
 -- 実行例
 main :: IO ()
@@ -837,6 +843,10 @@ main = do
   print (singleton 10 <> singleton 20)          -- Stats {statCount = 2, statSum = 30}
   print (mconcat (map singleton [1,2,3,4]))     -- Stats {statCount = 4, statSum = 10}
   print (mconcat (map singleton []) )           -- Stats {statCount = 0, statSum = 0}
+  print (stats [1,2,3,4])                       -- Stats {statCount = 4, statSum = 10}
+  -- 連結してから集計 == 別々に集計してから合成
+  print (stats ([1,2] ++ [3,4]))                -- Stats {statCount = 4, statSum = 10}
+  print (stats [1,2] <> stats [3,4])            -- Stats {statCount = 4, statSum = 10}
 ~~~
 
 <details class="protected" data-pass="yakagika">
@@ -855,14 +865,22 @@ instance Monoid Stats where
 singleton :: Int -> Stats
 singleton n = Stats 1 n
 
+stats :: [Int] -> Stats
+stats = mconcat . map singleton
+
 main :: IO ()
 main = do
   print (singleton 10 <> singleton 20)     -- Stats {statCount = 2, statSum = 30}
   print (mconcat (map singleton [1,2,3,4])) -- Stats {statCount = 4, statSum = 10}
   print (mconcat (map singleton []))       -- Stats {statCount = 0, statSum = 0}
+  print (stats [1,2,3,4])                  -- Stats {statCount = 4, statSum = 10}
+  print (stats ([1,2] ++ [3,4]))           -- Stats {statCount = 4, statSum = 10}
+  print (stats [1,2] <> stats [3,4])       -- Stats {statCount = 4, statSum = 10}
 ~~~
 
 各データを `singleton n = Stats 1 n` (件数 1・その値が合計) で「1 点分の要約」に持ち上げ, モノイドの畳み込み `mconcat` でまとめて集計しています. `singleton` という名前は, `Data.Set.singleton` や `Data.Map.singleton` と同じく「要素 1 つからその構造を作る」関数を表す慣用です. 空リストのときは `mempty = Stats 0 0` が結果になり, 単位元が「集計の初期値」として効きます. このように, 集計処理をモノイドで表すと「1 件への持ち上げ (`singleton`)」と「畳み込み (`mconcat`)」に分離でき, 平均 (`statSum / statCount`) なども後から組み立てられます.
+
+なお `stats = mconcat . map singleton` は **準同型** — `stats (xs ++ ys) = stats xs <> stats ys` かつ `stats [] = mempty` — を満たします. これは「関数適用と合算を入れ替えてよい」という性質で, 後の節「結合律と準同型が可能にすること」で見る並列化・差分集計・融合といった最適化の土台になります.
 
 </details>
 
@@ -1087,6 +1105,8 @@ foldMap :: (Foldable t, Monoid m) => (a -> m) -> t a -> m
 - `fold` は **すでに Monoid 値が詰まった** コンテナを `(<>)` で 1 つに畳みます. リストなら `fold = foldr (<>) mempty`, つまり [第6章](fp6.html) の `foldr` の「畳む関数」を `(<>)` に, 「初期値」を `mempty` に固定したものです.
 - `foldMap f` は, 畳む前に **各要素を `f` で Monoid に変換** してから畳みます ([第6章](fp6.html) で `map` してから畳むのと同じ流れです). 両者には `fold = foldMap id` の関係があります.
 
+なお, モノイド節で登場した `mconcat :: Monoid m => [m] -> m` は, この `fold` を **リストに特殊化** したものです. `fold` をリスト上で使えば型 (`[m] -> m`) も結果も `mconcat` と一致します — この後の例にある `fold [Add 1, Add 2, Add 3]` は, モノイド節で見た `mconcat [Add 1, Add 2, Add 3]` とまったく同じ `Add 6` を返します. 逆に言えば `fold` は, リスト専用だった `mconcat` を `Maybe` や木を含む **任意の Foldable コンテナ** へ一般化したものだと捉えてください.
+
 `Add` を Monoid にしておけば, 整数のリストを合計に畳み込めます. (以降のコード片は, モノイド節で定義した `Add` と, `import Data.Foldable (fold)` / `import Data.Semigroup (stimes)` を前提とします. `foldMap` は標準で使えます.)
 
 ~~~ haskell
@@ -1124,9 +1144,97 @@ ones = stimes 3 [1]          -- [1,1,1]
 
 しかも `stimes` の既定実装は **繰り返し二乗法** で動くため, 素朴に $n-1$ 回 `(<>)` するより高速です. これは「どの順序で括弧をくくっても結果が同じ」という結合律があるからこそ可能な最適化です.
 
-## 結合律は並列化を可能にする
+## 結合律と準同型が可能にすること
 
 `(<>)` が結合律を満たすことは, 単に「括弧を省ける」だけではありません. $a \bullet b \bullet c \bullet d$ を $(a \bullet b) \bullet (c \bullet d)$ のように **好きな形に分割して計算してよい** ことを意味します. つまり大きなデータの集計を **分割統治・並列** で実行できます (大規模分散処理の MapReduce は, この「結合的な演算 = モノイド」で集計を分散させる考え方そのものです). 単位元 `mempty` は「空の断片」の集計結果として働きます.
+
+CH8-6 の `stats = mconcat . map singleton` は, この構造を一段おし進めた **準同型 (homomorphism)** の例でした:
+
+~~~ text
+stats (xs ++ ys) = stats xs <> stats ys      -- 連結 (++) を合成 (<>) に写す
+stats []         = mempty                     -- 空リストを単位元に写す
+~~~
+
+これは「**連結してから集計する (合算 → 関数適用)**」と「**別々に集計してから合成する (関数適用 → 合算)**」が一致するという意味で, リストの `++` から `Stats` の `<>` へ **構造を保つ写像** になっています.
+
+より一般に, **モノイド準同型 (monoid homomorphism)** とは, 2 つのモノイド $(M, \bullet_M, e_M)$, $(N, \bullet_N, e_N)$ の間の写像 $f : M \to N$ で, 次の 2 つを満たすもののことです.
+
+$$f(x \bullet_M y) = f(x) \bullet_N f(y), \qquad f(e_M) = e_N$$
+
+第 1 式は「**演算を保つ**」, 第 2 式は「**単位元を保つ**」という条件です (群と違い, モノイドでは第 2 式は第 1 式から導けないため独立に要求します). `stats` はこの定義のちょうど特例で, 源 (domain) がリストのモノイド (`[Int]`, `++`, `[]`), 標的 (codomain) が (`Stats`, `<>`, `mempty`) の準同型です. 上の text ブロックの 2 行は, この一般の 2 法則を `stats` に当てはめたものに他なりません.
+
+### なぜ `foldMap` はいつも準同型なのか
+
+`stats` が準同型になるのは偶然ではありません. リスト `[a]` は, 台集合 `a` の上の **自由モノイド (free monoid)** と呼ばれる特別なモノイドです. 「自由」とは結合律・単位元律以外に余計な等式を一切課さないという意味で, 1 要素のリスト `[x]` を **生成元** として `++` でただ並べただけの構造になっています.
+
+自由モノイドには次の **普遍性 (universal property)** があります — 任意のモノイド `M` と, 生成元を `M` へ送る関数 `g :: a -> M` を 1 つ決めると, それを `++` の上へ延長する準同型 `[a] -> M` が **ただ 1 つ** 定まります. その準同型こそ `foldMap g` です.
+
+~~~ text
+foldMap g [x1, x2, ..., xn] = g x1 <> g x2 <> ... <> g xn
+~~~
+
+だから `g` が何であれ, `foldMap g` は自動的に `foldMap g (xs ++ ys) = foldMap g xs <> foldMap g ys` と `foldMap g [] = mempty` を満たします. `stats = foldMap singleton` はその `g = singleton` の場合にすぎません. **準同型であることをわざわざ証明しなくても, 「リストを畳んでモノイドへ送る」形にした時点で, 構造から無料で従う** のです.
+
+### 準同型則は「意味を保つ書き換え規則」
+
+これらの法則が最適化に効くのは, **法則がそのまま「意味を変えない書き換えの許可証」になる** からです. コンパイラや私たちが行う最適化とは, 突き詰めれば「同じ結果を返す, より安い式へ書き換える」ことで, その書き換えが結果を壊さない保証が法則です.
+
+- **結合律** $(a \bullet b) \bullet c = a \bullet (b \bullet c)$ は「**括弧を組み替えてよい**」という許可.
+- **準同型則** $f(x \bullet y) = f(x) \bullet f(y)$ は「**変換 `f` を合算 `<>` の外側へ出し入れしてよい**」という許可.
+
+冒頭の並列化も, これから挙げる差分集計・融合・1 パス集計も, すべてこの 2 つの許可を別々の向きに使っているだけです — 状況に応じて「左辺が安い / 右辺が安い」を選び, 安い方へ書き換えます. 以下では, 並列でなくても効く使い道を順に見ます.
+
+::: note
+**並列には結合律で足り, 並べ替えには可換律が要る.** 大きな入力を **連続した塊** に分け, 左から順に `<>` で合流するだけなら **結合律だけで十分** です (塊の順序は保たれる). 一方, 分散フレームワークが部分結果を **任意の順序で** 畳む場合は, さらに **可換律** $a \bullet b = b \bullet a$ も要ります. `Stats` や後述の `Moments` は加算ベースで可換なのでどちらでも安全ですが, 文字列連結のような **非可換** モノイドは「隣接する塊の並列化は可能でも, 並べ替えは不可」です. 最適化の正しさは, この区別に依存します.
+:::
+
+### 差分集計 (incremental)
+
+すでに集計済みの要約 `acc = stats xs` を持っているとき, 新しいデータ `ys` が届いたら, 全体を計算し直さずに `acc <> stats ys` で合流できます (履歴 `xs` を再走査しない). ログの逐次集計やオンライン統計はこの形です.
+
+### 融合 (fusion) — 中間データと多重走査を消す
+
+「関数適用と合算を入れ替えてよい」ことから, 同じ結果を保ったまま計算の形を組み替え (= **融合, fusion**) できます. これは並列とは別の, **逐次のままの最適化**です.
+
+**(1) 中間リストを作らない.** `mconcat (map singleton xs)` は, 一度 `[Stats]` というリストを組み立ててから畳みます. これを `foldMap singleton xs` に融合すると, 中間リストを作らず 1 回の走査で畳めます (GHC のリスト融合も同じ変換を自動で行います).
+
+~~~ haskell
+stats :: [Int] -> Stats
+stats = foldMap singleton          -- mconcat . map singleton と同じ結果, 中間リストなし
+~~~
+
+**(2) 複数の集計を 1 回の走査で.** `(length xs, sum xs)` は `xs` を **2 回** たどります. `Stats` は件数と合計を 1 つのモノイドに束ねているので, `stats xs` なら **1 回** の走査で両方が得られます. 束ねる集計を増やせばさらに効きます — 件数・合計・二乗和を持てば, **平均も分散も 1 パス**で計算できます (全データを保持せず流しながら集計する「ストリーミング統計」).
+
+~~~ haskell
+-- 件数・合計・二乗和を 1 つのモノイドに束ねる
+data Moments = Moments { mN :: Int, mSum :: Double, mSumSq :: Double }
+  deriving (Show, Eq)
+
+instance Semigroup Moments where
+  Moments n1 s1 q1 <> Moments n2 s2 q2 = Moments (n1 + n2) (s1 + s2) (q1 + q2)
+
+instance Monoid Moments where
+  mempty = Moments 0 0 0
+
+moment :: Double -> Moments
+moment x = Moments 1 x (x * x)
+
+mean :: Moments -> Double
+mean (Moments n s _) = s / fromIntegral n
+
+-- 分散 = E[x^2] - (E[x])^2
+variance :: Moments -> Double
+variance m@(Moments n _ q) = q / fromIntegral n - mu * mu
+  where mu = mean m
+
+-- foldMap moment [2,4,4,4,5,5,7,9] を 1 回走査するだけで
+--   mean     -> 5.0
+--   variance -> 4.0
+~~~
+
+件数・合計・二乗和を 1 つの型に束ねてよいことにも代数的な裏付けがあります — **モノイドの直積はまたモノイド** であり (各成分を独立に `<>` する), **準同型 `f`, `g` の組 $x \mapsto (f\,x,\ g\,x)$ もまた準同型** になります. `Moments` は実質 3 つの加算モノイドの直積, `moment` はそれらの準同型を束ねた組です. だからこそ 1 回の走査で 3 つを同時に集計しても結果が正しく, 束ねる成分を増やしても (例えば三乗和を足して歪度へ) 同じ理屈で 1 パスのまま拡張できます.
+
+このように, モノイドと準同型を設計しておくと, 「何を集計するか」を 1 つの型に束ね, 走査も中間データも最小化できます (Haskell の `Control.Foldl` などはこの考え方を一般化したライブラリです).
 
 ## さらに先の利点 (予告)
 
