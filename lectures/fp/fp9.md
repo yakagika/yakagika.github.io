@@ -361,6 +361,47 @@ main = do
 
 [第7章](fp7.html)では「リストが代数的にどのように定義されるかは後の章で扱う」と予告しました ([第7章](fp7.html)「集合の内包表記と代数的データ型」の警告). その回収です.
 
+### リストは再帰的な代数的データ型
+
+組込のリスト `[a]` は, [第7章](fp7.html)で作った再帰型 `Nat` (`Zero | Succ Nat`) と同じ仲間 — **自分自身を参照する代数的データ型** です. 違いは, `Succ` が「1 つ前の自然数」を抱えるだけだったのに対し, リストは各段に **要素の値も一緒に** 抱える点です. リストの構築子は次の 2 つで,
+
+- `[]` : **空リスト**. 要素を 1 つも持たない基底.
+- `(:)` : **cons**. 先頭の要素 `x` と残りのリスト `xs` から `x : xs` を作る再帰.
+
+`[1,2,3]` は糖衣にすぎず, 実体は `1 : (2 : (3 : []))` です. この構造をそのまま `data` で書くと, 組込リストの正体が見えます. `[a]` と同型な自作版 `List a` を書いてみましょう.
+
+~~~ haskell
+-- 組込リストの正体:  data [a] = [] | a : [a]
+-- それを自作の名前で書いたもの (Nil ↔ [], Cons ↔ (:))
+data List a = Nil | Cons a (List a)
+  deriving (Show, Eq)
+
+-- [1,2,3] に対応するのは  Cons 1 (Cons 2 (Cons 3 Nil))
+
+-- 長さ: Nil で 0, Cons で「1 + 残りの長さ」
+len :: List a -> Int
+len Nil         = 0
+len (Cons _ xs) = 1 + len xs
+
+-- 連結: 左が空なら右をそのまま, Cons なら先頭を残して残りを再帰的に連結
+append :: List a -> List a -> List a
+append Nil         ys = ys
+append (Cons x xs) ys = Cons x (append xs ys)
+
+main :: IO ()
+main = do
+  let xs = Cons 1 (Cons 2 (Cons 3 Nil))
+      ys = Cons 4 (Cons 5 Nil)
+  print (len xs)        -- 3
+  print (append xs ys)  -- Cons 1 (Cons 2 (Cons 3 (Cons 4 (Cons 5 Nil))))
+~~~
+
+`len` も `append` も, **型の再帰構造に沿って** 定義されています. 構築子が `Nil` (基底) と `Cons` (再帰) の 2 通りなので, 関数もその 2 通りに場合分けし, `Cons` の枝で「残りのリスト `xs`」へ再帰します. これが[第6章](fp6.html)・[第7章](fp7.html)で繰り返した **構造的再帰** で, データの形と関数の形がそのまま対応します.
+
+そして, この `append` こそが組込の `(++)` にほかなりません (`Nil ↔ []`, `Cons ↔ (:)` と読み替えれば `(++)` の定義そのものです). つまりリストの連結は「型の再帰構造をたどって末尾までつなぐ」再帰関数として定義され, その `(++)` と `[]` が, 次に見るリストのモノイド構造を与えます.
+
+### リストはモノイド
+
 リストは, 連結演算 `(++)` と空リスト `[]` を単位元として, **モノイド** になります. 数式で書けば, 連結 $xs \mathbin{+\!\!\!+} ys$ が演算, $[]$ が単位元で, 結合律 $(xs \mathbin{+\!\!\!+} ys) \mathbin{+\!\!\!+} zs = xs \mathbin{+\!\!\!+} (ys \mathbin{+\!\!\!+} zs)$ と単位元律 $[] \mathbin{+\!\!\!+} xs = xs \mathbin{+\!\!\!+} [] = xs$ を満たします. リストでは新しく演算子を定義する必要はなく, **既存の `(++)` がその役割を果たし**, `(<>) = (++)`, `mempty = []` となっています.
 
 ~~~ haskell
@@ -572,6 +613,50 @@ main = do
 ~~~
 
 `(.)` と `id` は [第6章](fp6.html) で関数合成として導入しましたが, 圏論的にはこれが「射の合成」と「恒等射」にあたります. 圏の法則も成り立ちます. `(f . g) . h` と `f . (g . h)` はどちらも `\x -> f (g (h x))` で等しく (結合律), `id . f` と `f . id` はどちらも `f` です (恒等律).
+
+もう一つ, 対象が相異なる具体例で **合成** を図にしてみましょう. 3 つの型 `Bool`, `Int`, `String` を **対象**, それらをつなぐ 2 つの関数を **射** とします.
+
+~~~ haskell
+-- 対象 = 型, 射 = 関数.  2 つの射:
+--   fromEnum :: Bool -> Int      False → 0, True → 1
+--   show     :: Int  -> String   数を文字列へ
+showBit :: Bool -> String
+showBit = show . fromEnum        -- 合成した射 g . f
+
+main :: IO ()
+main = do
+  print (fromEnum True)    -- 1     (Bool -> Int)
+  print (show (1 :: Int))  -- "1"   (Int -> String)
+  print (showBit True)     -- "1"   (show . fromEnum, Bool -> String)
+~~~
+
+`show . fromEnum` は, `Bool` から `String` への **1 本の射** です. `True` を渡すと `fromEnum` で `Int` の `1` を経由し, `show` で `"1"` になります. この「対象・射・合成」の関係を描いたのが次の **可換図式 (commutative diagram)** です. `Bool` から `String` へ至る 2 つの経路 — 上を回って `fromEnum` してから `show`, あるいは対角の `show . fromEnum` を直接たどる — が **同じ射** になる (これを「図式が **可換** である」といいます) ことを表しています.
+
+<svg viewBox="0 0 460 250" width="100%" style="max-width: 520px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="圏の合成を表す可換図式. 対象 Bool から fromEnum で Int へ, Int から show で String へ矢印が伸び, さらに Bool から String へ直接 show . fromEnum の対角の矢印が伸びる. fromEnum してから show をたどる経路と, 対角の show . fromEnum をたどる経路は, どちらも同じ射 Bool から String を表し, 図式は可換である.">
+  <defs>
+    <marker id="cd-arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="currentColor"/>
+    </marker>
+  </defs>
+  <g stroke="currentColor" stroke-width="1.5" fill="none">
+    <line x1="104" y1="52" x2="358" y2="52" marker-end="url(#cd-arrow)"/>
+    <line x1="388" y1="72" x2="388" y2="181" marker-end="url(#cd-arrow)"/>
+    <line x1="80" y1="74" x2="350" y2="184" marker-end="url(#cd-arrow)"/>
+  </g>
+  <g fill="currentColor" font-family="monospace" font-size="17" font-weight="600" text-anchor="middle">
+    <text x="72" y="58">Bool</text>
+    <text x="388" y="58">Int</text>
+    <text x="388" y="205">String</text>
+  </g>
+  <g fill="currentColor" font-family="monospace" font-size="13">
+    <text x="231" y="42" text-anchor="middle">fromEnum</text>
+    <text x="400" y="132" text-anchor="start">show</text>
+    <text x="180" y="158" text-anchor="middle">show . fromEnum</text>
+  </g>
+  <text x="230" y="238" fill="currentColor" font-size="12" text-anchor="middle">2 経路はどちらも同じ射 Bool → String — 図式は可換</text>
+</svg>
+
+矢印が **射**, 頂点が **対象**, 対角線が **合成した射** です. 合成 $g \circ f$ とは, まさに「この図で `f` の矢印と `g` の矢印を継いで得られる対角の矢印」にほかなりません.
 
 ここで, [第8章](fp8.html)の **モノイド則** と見比べてください. モノイドは「結合律 + 単位元律」を満たす演算 `(<>)` と単位元 `mempty` の組でした. 圏もまた「結合律 + 恒等律」を満たす合成 `(.)` と恒等射 `id` の組です.
 

@@ -29,3 +29,9 @@ spec = describe "Fp8.Monoid" $ do
     it "Mul 3 .*. Mul 4 == Mul 12"      $ (Mul 3 .*. Mul 4) `shouldBe` Mul 12
     it "mconcat [Mul 1,2,3] == Mul 6"   $ mconcat [Mul 1, Mul 2, Mul 3] `shouldBe` Mul 6
     it "mempty :: Mul == Mul 1"         $ (mempty :: Mul) `shouldBe` Mul 1
+  describe "リスト (代表的なモノイド)" $ do
+    it "[1,2,3] <> [4,5,6] == [1..6]"   $ ([1,2,3] <> [4,5,6]) `shouldBe` [1,2,3,4,5,6 :: Int]
+    it "[1,2,3] <> mempty == [1,2,3]"   $ ([1,2,3] <> mempty) `shouldBe` [1,2,3 :: Int]
+    it "mconcat [[1,2],[3],[4,5]]"      $ mconcat [[1,2],[3],[4,5]] `shouldBe` [1,2,3,4,5 :: Int]
+    it "String は [Char] のモノイド"    $ ("Hello, " <> "world" <> "!") `shouldBe` "Hello, world!"
+    it "連結は非可換"                   $ ([1,2] <> [3]) `shouldNotBe` ([3] <> [1,2 :: Int])
