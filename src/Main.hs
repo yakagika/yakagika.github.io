@@ -16,6 +16,7 @@ import qualified System.Process  as Process
 import qualified Text.Pandoc     as Pandoc
 import qualified Data.Set as S
 import Control.Monad (foldM, mplus)
+import Data.Char (toLower)
 import Data.List (elemIndex, find, isPrefixOf, sortBy)
 import Data.Maybe (fromMaybe)
 import Data.Ord (Down(..))
@@ -156,18 +157,35 @@ main = do
                                  <> constField "noindex" "true")
                         >>= relativizeUrls
 
-    -- Post list
+    -- Post list (Blog = posts that are NOT categorised as research)
     create ["posts.html"] $ do
         route idRoute
         compile $ do
             posts <- recentFirst =<< loadAll "posts/*"
-            -- keep closed items visible but marked "準備中"
+            -- keep closed items visible but marked "準備中"; drop research posts
+            blog <- filterM (fmap not . isResearch) posts
             let ctx = versionCtx <>
                         constField "title" "Posts" <>
-                        listField "posts" (postCtx tags) (return posts) <>
+                        listField "posts" (postCtx tags) (return blog) <>
                         defaultContext
             makeItem ""
                 >>= loadAndApplyTemplate "templates/posts.html" ctx
+                >>= loadAndApplyTemplate "templates/content.html" ctx
+                >>= loadAndApplyTemplate "templates/default.html" ctx
+                >>= relativizeUrls
+
+    -- Research list (posts categorised as research: paper intros, research software, ...)
+    create ["research.html"] $ do
+        route idRoute
+        compile $ do
+            posts <- recentFirst =<< loadAll "posts/*"
+            research <- filterM isResearch posts
+            let ctx = versionCtx <>
+                        constField "title" "Research" <>
+                        listField "posts" (postCtx tags) (return research) <>
+                        defaultContext
+            makeItem ""
+                >>= loadAndApplyTemplate "templates/research.html" ctx
                 >>= loadAndApplyTemplate "templates/content.html" ctx
                 >>= loadAndApplyTemplate "templates/default.html" ctx
                 >>= relativizeUrls
@@ -276,15 +294,19 @@ main = do
     match "pages/index.html" $ do
         route $ customRoute (const "index.html")
         compile $ do
-            posts <- recentByMtime =<< featured =<< filterOpen =<< loadAll "posts/*"
+            allFeatured <- recentByMtime =<< featured =<< filterOpen =<< loadAll "posts/*"
+            blogPosts <- filterM (fmap not . isResearch) allFeatured
+            researchPosts <- fmap (take 6) (filterM isResearch allFeatured)
             lectures <- fmap (take 6) (recentByMtime =<< featured =<< filterOpen =<< loadAll "lectures/**")
-            -- Elevate the newest featured post as a lead card; the rest form the grid.
-            let (leadPosts, restPosts) = splitAt 1 posts
+            -- Elevate the newest featured Blog post as a lead card; the rest form the grid.
+            let (leadPosts, restPosts) = splitAt 1 blogPosts
             let indexContext =
                     versionCtx <>
                     listField "featuredLead" (postCtx tags) (return leadPosts) <>
                     listField "posts" (postCtx tags) (return restPosts) <>
+                    listField "research" (postCtx tags) (return researchPosts) <>
                     listField "lectures" (postCtx tags) (return lectures) <>
+                    (if null researchPosts then mempty else constField "hasResearch" "yes") <>
                     field "tags" (\_ -> renderTagCloudChips tags) <>
                     defaultContext
 
@@ -345,7 +367,6 @@ main = do
   where
     pages =
         [ "pages/contact.markdown"
-        , "pages/research.markdown"
         , "pages/lectures.markdown"
         , "pages/slds_papers.markdown"
         ]
@@ -399,7 +420,7 @@ postCtx tags = mconcat
     [ modificationTimeField "mtime" "%Y-%m-%d"
     , dateField "date" "%Y-%m-%d"
     , tagChipsField "tags" tags
-    , pathCategoryField "category"
+    , postCategoryField "category"
     , urlField "url"
     , openField "isOpen"
     , Context $ \key -> case key of
@@ -409,13 +430,27 @@ postCtx tags = mconcat
     ]
 
 --------------------------------------------------------------------------------
--- | Display category derived from the item's source path.
---   Anything under lectures/ is a "Lecture"; everything else is "Blog".
---   Used to show a category badge on list cards (works on mixed tag pages).
-pathCategoryField :: String -> Context a
-pathCategoryField key = field key $ \item ->
+-- | Display category for a list card / article header.
+--   Anything under lectures/ is a "Lecture"; a post whose frontmatter carries
+--   `category: research` is "Research"; everything else is "Blog".
+--   Works on mixed tag pages (derived per item, not per route).
+postCategoryField :: String -> Context a
+postCategoryField key = field key $ \item -> do
     let path = toFilePath (itemIdentifier item)
-    in return $ if "lectures/" `isPrefixOf` path then "Lecture" else "Blog"
+    if "lectures/" `isPrefixOf` path
+        then return "Lecture"
+        else do
+            research <- isResearch item
+            return $ if research then "Research" else "Blog"
+
+--------------------------------------------------------------------------------
+-- | A post is "research" when its frontmatter sets `category: research`.
+--   Lets Blog / Research be two views over the single posts/ collection
+--   (stable URLs, hybrids cross-listed via tags) instead of separate folders.
+isResearch :: MonadMetadata m => Item a -> m Bool
+isResearch item = do
+    mcat <- getMetadataField (itemIdentifier item) "category"
+    pure $ fmap (map toLower) mcat == Just "research"
 
 --------------------------------------------------------------------------------
 -- | Per-item tag chips without the default ", " separator, so a flex/pill

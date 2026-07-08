@@ -8,6 +8,7 @@ tags:
     - accounting
     - simulation
 featured: true
+category: research
 date: 2026-05-26
 tableOfContents: true
 ---
