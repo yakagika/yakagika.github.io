@@ -4,30 +4,25 @@ title: Lectures
 
 # Lectures
 
-- 特別講義(データサイエンス)
-------------------------------------------------------------------
-
-[資料はこちら](lectures/slds1.html)
-
-特別講義(データサイエンス)の講義資料.
-文系学部生がデータサイエンスの一連の流れを, 自分の選んだテーマで実践する講義.
-前期はプログラミング及び,Pythonライブラリの基本的な用法について学習し,後期は研究テーマに応じた必要となる分析手法について学習する.
-年度末に学会の口頭発表に参加することを最終目標とする.
-
-
-- 関数型プログラミング
-------------------------------------------------------------------
-
-[資料はこちら](lectures/fp1.html)
-
-純粋関数型言語Haskellを題材に, 関数型プログラミングの基礎と設計思想を学ぶ.
-
-
-- 共通設定
-------------------------------------------------------------------
-
-[プログラミング用の設定](lectures/setup.html)
-
-VSCode,CLI,基本コマンドなど,各講義で共通のプログラミング環境設定.
-
-
+```{=html}
+<div class="lecture-series-grid">
+  <a class="series-card" href="lectures/slds1.html">
+    <span class="series-badge">Data Science</span>
+    <span class="series-title">特別講義 (データサイエンス)</span>
+    <span class="series-desc">文系学部生がデータサイエンスの一連の流れを, 自分の選んだテーマで実践する講義. 前期はプログラミングと Python ライブラリの基本, 後期は研究テーマに応じた分析手法を学び, 年度末の学会口頭発表を最終目標とする.</span>
+    <span class="series-cta">資料を見る →</span>
+  </a>
+  <a class="series-card" href="lectures/fp1.html">
+    <span class="series-badge">Functional Programming</span>
+    <span class="series-title">関数型プログラミング</span>
+    <span class="series-desc">純粋関数型言語 Haskell を題材に, 関数型プログラミングの基礎と設計思想を学ぶ.</span>
+    <span class="series-cta">資料を見る →</span>
+  </a>
+  <a class="series-card" href="lectures/setup.html">
+    <span class="series-badge">Setup</span>
+    <span class="series-title">共通設定</span>
+    <span class="series-desc">VSCode, CLI, 基本コマンドなど, 各講義で共通のプログラミング環境設定.</span>
+    <span class="series-cta">設定を見る →</span>
+  </a>
+</div>
+```

@@ -16,7 +16,7 @@ import qualified System.Process  as Process
 import qualified Text.Pandoc     as Pandoc
 import qualified Data.Set as S
 import Control.Monad (foldM, mplus)
-import Data.List (elemIndex, find, sortBy)
+import Data.List (elemIndex, find, isPrefixOf, sortBy)
 import Data.Maybe (fromMaybe)
 import Data.Ord (Down(..))
 import           Data.Time.Clock (UTCTime)
@@ -277,12 +277,15 @@ main = do
         route $ customRoute (const "index.html")
         compile $ do
             posts <- recentByMtime =<< featured =<< filterOpen =<< loadAll "posts/*"
-            lectures <- fmap (take 5) (recentByMtime =<< featured =<< filterOpen =<< loadAll "lectures/**")
+            lectures <- fmap (take 6) (recentByMtime =<< featured =<< filterOpen =<< loadAll "lectures/**")
+            -- Elevate the newest featured post as a lead card; the rest form the grid.
+            let (leadPosts, restPosts) = splitAt 1 posts
             let indexContext =
                     versionCtx <>
-                    listField "posts" (postCtx tags) (return (posts)) <>
+                    listField "featuredLead" (postCtx tags) (return leadPosts) <>
+                    listField "posts" (postCtx tags) (return restPosts) <>
                     listField "lectures" (postCtx tags) (return lectures) <>
-                    field "tags" (\_ -> renderTagList tags) <>
+                    field "tags" (\_ -> renderTagCloudChips tags) <>
                     defaultContext
 
 
@@ -395,7 +398,8 @@ postCtx :: Tags -> Context String
 postCtx tags = mconcat
     [ modificationTimeField "mtime" "%Y-%m-%d"
     , dateField "date" "%Y-%m-%d"
-    , tagsField "tags" tags
+    , tagChipsField "tags" tags
+    , pathCategoryField "category"
     , urlField "url"
     , openField "isOpen"
     , Context $ \key -> case key of
@@ -403,6 +407,43 @@ postCtx tags = mconcat
         _       -> unContext mempty key
     , defaultContext
     ]
+
+--------------------------------------------------------------------------------
+-- | Display category derived from the item's source path.
+--   Anything under lectures/ is a "Lecture"; everything else is "Blog".
+--   Used to show a category badge on list cards (works on mixed tag pages).
+pathCategoryField :: String -> Context a
+pathCategoryField key = field key $ \item ->
+    let path = toFilePath (itemIdentifier item)
+    in return $ if "lectures/" `isPrefixOf` path then "Lecture" else "Blog"
+
+--------------------------------------------------------------------------------
+-- | Per-item tag chips without the default ", " separator, so a flex/pill
+--   layout renders cleanly. Yields noResult when the item has no tags,
+--   so `$if(tags)$` guards against an empty container.
+tagChipsField :: String -> Tags -> Context a
+tagChipsField key _tags = field key $ \item -> do
+    ts <- getTags (itemIdentifier item)
+    if null ts
+        then noResult "no tags"
+        else return $ concatMap chip ts
+  where
+    chip t = "<a href=\"" ++ toUrl ("tags/" ++ t ++ ".html") ++ "\">" ++ t ++ "</a>"
+
+--------------------------------------------------------------------------------
+-- | Site-wide tag cloud rendered as weighted chips. Font/weight emphasis is
+--   tiered (1..5) by each tag's frequency relative to the min/max counts.
+renderTagCloudChips :: Tags -> Compiler String
+renderTagCloudChips = renderTags makeChip concat
+  where
+    makeChip tag url count minC maxC =
+        let tier :: Int
+            tier | maxC <= minC = 3
+                 | otherwise    = 1 + round (4 * fromIntegral (count - minC)
+                                               / fromIntegral (maxC - minC) :: Double)
+        in "<a class=\"tag-cloud-chip tier-" ++ show tier ++ "\" href=\"" ++ url
+           ++ "\">" ++ tag ++ "<span class=\"tc-count\">" ++ show count
+           ++ "</span></a>"
 
 
 --------------------------------------------------------------------------------
