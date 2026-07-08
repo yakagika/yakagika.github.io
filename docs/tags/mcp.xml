@@ -16,25 +16,24 @@
     <title>AIと連携した個人の学習層 (Learn)</title>
     <link>/posts/2026-06-11-personal-learn-layer.html</link>
     <description><![CDATA[<p>前回の記事 <a href="/posts/2026-06-03-multi-repo-agent-orchestrator.html">Multi-Repo Agent Orchestrator</a> で, 複数リポの Claude/Codex セッションを束ねる上位レイヤを紹介した. あの構成にはタグ付きの知識層 (自前 RAG) があり, あるリポの Agent が踏んだ gotcha を別リポの Agent が二度踏まない, という横断再利用が回っている.</p>
-<p>Agentの自律運用がある程度回ってくる中で, Agentの成果に対する私の理解と承認が障壁として顕在化してきた. 特に Opus 4.8 までは,提案の内容を理解して,課題等の指摘が可能であったが, 昨日公開された Fable 5 を使っていると, 思考の展開が早い,抽象度が高い,コードと数理の間の横断が自動的に展開していき追いつけない場面が出てきた.</p>
-<p>対話の中で確認することは可能だが,人間の理解がボトルネックとなり,また理解してもそれらは会話ログの中に死蔵されることになる. そこで,人間のための学習キューをセッションから分離することにした(Orchestrator の知識層は <em>Agent のための</em> corpus であって, <em>人間のための</em> 学習キューではない).</p>
-<p>本記事はその欠けた層 — <strong>人間 (私) 自身の学習を, Agent 群と同じ枠組み (queue + 毎時巡回) で回す層</strong> — の作成と運用を扱う.</p>
-<p>まだ運用を始めたばかりなのであまり事例が積まれていないが,</p>
+<p>Agent の自律運用がある程度回ってくる中で, Agent の成果に対する私の理解と承認が障壁として顕在化してきた. 特に Opus 4.8 までは, 提案の内容を理解して, 課題等の指摘が可能であったが, 昨日公開された Fable 5 を使っていると, 思考の展開が早い, 抽象度が高い, コードと数理の間の横断が自動的に展開していき追いつけない場面が出てきた.</p>
+<p>対話の中で確認することは可能だが, 人間の理解がボトルネックとなり, また理解してもそれらは会話ログの中に死蔵されることになる. そこで, 人間のための学習キューをセッションから分離することにした (Orchestrator の知識層は <em>Agent のための</em> corpus であって, <em>人間のための</em> 学習キューではない).</p>
+<p>作ったのは, 人間 (私) 自身の学習を, Agent 群と同じ枠組み (queue + 毎時巡回) で回す層である.</p>
+<p>まだ運用を始めたばかりで事例は少ないが, 次のような使い方をしている.</p>
 <ul>
-<li><p>全論文の参考文献(候補)とbibを管理する,papaer repo が次に読むべき論文をmd化→分割キュー化,スマホでちまちま読む,メモをする,質問をする,などを統合.</p></li>
-<li><p>作業中に出てきた実装,数学,その他の知識に関して,教科書的に説明するmdを作成→分割キュー化</p></li>
+<li>参考文献の候補と bib を管理する paper repo が, 次に読むべき論文を markdown 化して分割し, キューに載せる. あとはスマホで少しずつ読み, メモや質問をその場に書き込む.</li>
+<li>作業中に出てきた実装, 数学, その他の知識について, 教科書的に説明する markdown を作り, 分割してキューに載せる.</li>
 </ul>
-<p>などを行っている. 特に1つ目に関しては,論文をスキマ時間に読む環境として,かなり良さそうに感じている.</p>
+<p>特に 1 つ目は, 論文を隙間時間に読む環境としてかなり良さそうに感じている.</p>
 <h1 id="要件">要件</h1>
-<p>作る前に, 自分の学習がどこで破綻しているかを整理すると, 要件は次の 5 つになった.</p>
+<p>作る前に, 自分の学習がどこで破綻しているかを整理すると, 要件は次の 4 つになった.</p>
 <ol type="1">
-<li><p><strong>queue できる</strong>: Agent が「これは学ぶ価値がある」と判断した知識 (承認制), または私が「これを学びたい」と指示した知識が, 1 箇所に積まれる.</p></li>
-<li><p><strong>スマホで少しずつ消化できる</strong>:
-通勤や隙間時間に, 数分で読める単位 (Part) に割られていてほしい. 進捗が視覚化・管理可能なこと.</p></li>
-<li><p><strong>集積される</strong>: 学習済みの知識が markdown として個人の知識管理 (PKM) 網に残り, リンク・検索・関連付けに乗り,資産として運用できること.</p></li>
-<li><p><strong>質問できる</strong>: 読んでいて分からないところをその場で書いておけば, 短時間で Agent が答えてくれる.</p></li>
+<li><strong>queue できる</strong>: Agent が「これは学ぶ価値がある」と判断した知識 (承認制), または私が「これを学びたい」と指示した知識が, 1 箇所に積まれる.</li>
+<li><strong>スマホで少しずつ消化できる</strong>: 通勤や隙間時間に, 数分で読める単位 (Part) に割られている. 進捗も視覚化して管理できる.</li>
+<li><strong>集積される</strong>: 学習済みの知識が markdown として個人の知識管理 (PKM) 網に残り, リンク, 検索, 関連付けに乗り, 資産として運用できる.</li>
+<li><strong>質問できる</strong>: 読んでいて分からないところをその場で書いておけば, 短時間で Agent が答えてくれる.</li>
 </ol>
-<h1 id="手法比較-なぜ-obsidian-正本か">手法比較 — なぜ Obsidian 正本か</h1>
+<h1 id="なぜ-obsidian-を正本にするか">なぜ Obsidian を正本にするか</h1>
 <p>当初考えていた候補は 以下の4 手法.</p>
 <table>
 <colgroup>
@@ -92,7 +91,7 @@
 </tbody>
 </table>
 <p>決め手は要件 3 (集積) である. 学習の成果物は「読了の記録」ではなく「自分の vault に増えた知識ノート」であってほしい. もともと個人の知識管理を Obsidian でやっているので, 学習 note の正本を Obsidian (iCloud 同期) に置けば, スマホ閲覧も集積も追加実装なしで手に入る.</p>
-<p>Todoist は, 後ほど連携して<strong>通知と Done 入口だけの薄い一方向ミラー</strong>として足す予定. 間隔反復 (Anki 的な復習サイクル) も 後の検討項目で, 正本が plain markdown なのでどの方向にも発展できる可能. この「アプリ化や高機能化を後回しにしても障害にならない」点が, 正本を plain markdown に置く最大の利点である.</p>
+<p>Todoist は, 後ほど連携して<strong>通知と Done 入口だけの薄い一方向ミラー</strong>として足す予定. 間隔反復 (Anki 的な復習サイクル) も後の検討項目だが, 正本が plain markdown なのでどの方向にも発展できる. この「アプリ化や高機能化を後回しにしても障害にならない」点が, 正本を plain markdown に置く最大の利点である.</p>
 <h1 id="全体像">全体像</h1>
 <p>仕組みは小さい. Python スクリプト数本 (stdlib のみ) + headless Claude + launchd の毎時巡回で構成される.</p>
 <svg viewBox="0 0 720 470" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Learn 層の全体像" font-family="sans-serif" font-size="13">
@@ -119,7 +118,7 @@
 <line x1="565" y1="76" x2="565" y2="120" stroke="#555" marker-end="url(#lah)"/>
 <!-- vault -->
 <rect x="40" y="122" width="640" height="130" rx="6" fill="#f6f1fb" stroke="#7a5aa5"/>
-<text x="360" y="144" text-anchor="middle" font-weight="bold">Obsidian vault (iCloud) の Learn/ — 正本</text>
+<text x="360" y="144" text-anchor="middle" font-weight="bold">Obsidian vault (iCloud) の Learn/ (正本)</text>
 <rect x="60" y="158" width="280" height="74" rx="4" fill="#fff" stroke="#999"/>
 <text x="200" y="178" text-anchor="middle" font-weight="bold">queue/&lt;note&gt;.md</text>
 <text x="200" y="196" text-anchor="middle" fill="#555" font-size="11">ユーザ正本 (checkbox / ##Q / ##A / ##M)</text>
@@ -170,16 +169,16 @@
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="fu"># &lt;タイトル&gt;</span></span>
 <span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="fu">## Part 1/23 — &lt;小見出し&gt;</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="fu">## Part 1/23: &lt;小見出し&gt;</span></span>
 <span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>&lt;本文&gt;</span>
 <span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="va">[ ]</span> Part 1/23 読了</span>
 <span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="fu">## Part 2/23 — ...</span></span></code></pre></div>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="fu">## Part 2/23: ...</span></span></code></pre></div>
 <p>ユーザ (私) のやることは, スマホの Obsidian で Part を読んで checkbox を ✓ するだけ. 進捗は毎時の巡回が checkbox から数えて dashboard (一覧 note) に反映する.</p>
 <h1 id="設計の肝">設計の肝</h1>
 <p>機能としては「分割して積んで, 質問に答える」だけだが, 設計判断はいくつか紹介する価値があると思っている.</p>
-<h2 id="ファイル-1-書き手-icloud-は無言で上書きする">1 ファイル 1 書き手 — iCloud は無言で上書きする</h2>
+<h2 id="ファイル-1-書き手">1 ファイル 1 書き手</h2>
 <p>最大の敵は iCloud 同期である. iCloud はオフライン編集が重なると, マージもエラーもせず<strong>片方を無言で上書きする</strong> (運が良ければ conflict copy が残る. 別リポでは conflict copy 58 件を踏んだ実績がある). スマホで checkbox を ✓ した直後に Agent が同じファイルを書くと, どちらかの編集が消える.</p>
 <p>対策は同期アルゴリズムの工夫ではなく, <strong>ファイルごとに書き手を固定する</strong>という構造的なものにした.</p>
 <table>
@@ -210,7 +209,7 @@
 </table>
 <p>当初は「queue note にはユーザしか書かない. Agent の回答は別ファイルに append して embed で読む」という完全分離だった. しかし使ってみると, 質問の回答は<strong>質問を書いたその場所の直下</strong>に出てほしい (スマホで embed の先まで飛ぶのは体験が悪い). そこで不変条件を一段緩和して, Agent の書込みを次の 4 条件つきで許した.</p>
 <ol type="1">
-<li>挿入位置はユーザが書いたマーカーブロックの<strong>直下のみ</strong>. 既存行の変更・削除は絶対にしない (append-only な挿入).</li>
+<li>挿入位置はユーザが書いたマーカーブロックの<strong>直下のみ</strong>. 既存行の変更や削除は絶対にしない (append-only な挿入).</li>
 <li><strong>冪等</strong>: ブロック内容の hash に対するマーカーをコメントで残し, 二重挿入を防ぐ. ユーザが質問文を書き換えると hash が変わり, 新しい質問として再回答される.</li>
 <li>挿入前に note 全文を repo 側へ <strong>snapshot</strong> する (iCloud に上書きされた場合の復元用の安全網).</li>
 <li>書込みは巡回時の数秒のみ (ユーザのオフライン編集と時間が重なる確率を最小化する).</li>
@@ -219,23 +218,23 @@
 <h2 id="ユーザの操作は行頭マーカー-3-種だけ">ユーザの操作は行頭マーカー 3 種だけ</h2>
 <p>note への能動的な操作は, 任意の場所に行頭マーカーで書く 3 種類に統一した. スマホのキーボードで打てる記法であることが重要である.</p>
 <ul>
-<li><code>##Q &lt;質問&gt;</code> — 質問. 次の巡回 (≤1h) で<strong>直下に</strong>回答 callout が入る.</li>
-<li><code>##A &lt;自分の解答&gt;</code> — 確認問題への解答. 直下に添削 callout (正誤 + 指導) が入る.</li>
-<li><code>##M &lt;メモ&gt;</code> — 学習メモ. Agent は回答せず, dashboard のメモ欄に集約だけされる (note を汚さず, 後から知識化する時の材料になる).</li>
+<li><strong><code>##Q &lt;質問&gt;</code></strong>: 質問. 次の巡回 (≤1h) で<strong>直下に</strong>回答 callout が入る.</li>
+<li><strong><code>##A &lt;自分の解答&gt;</code></strong>: 確認問題への解答. 直下に添削 callout (正誤 + 指導) が入る.</li>
+<li><strong><code>##M &lt;メモ&gt;</code></strong>: 学習メモ. Agent は回答せず, dashboard のメモ欄に集約だけされる (note を汚さず, 後から知識化する時の材料になる).</li>
 </ul>
 <p>実際の画面はこうなる. 読んでいる論文 note の途中に <code>##Q</code> で質問を書いておくと, 次の巡回で直下に回答が挿入される.</p>
 <figure>
 <img src="/images/posts/personal-learn-layer/inline-qa.png" alt="##Q で書いた質問の直下に, 巡回が回答 callout を冪等挿入する (スマホの Obsidian)" />
 <figcaption aria-hidden="true">##Q で書いた質問の直下に, 巡回が回答 callout を冪等挿入する (スマホの Obsidian)</figcaption>
 </figure>
-<p>回答の生成は headless の <code>claude -p</code> で行う. 巡回スクリプトが未回答の <code>##Q</code> / 未添削の <code>##A</code> を検出して JSON に吐き, 回答 Agent が note 全文 + 質問 (解答添削の場合は直前の確認問題も) を文脈にして回答を生成し, 専用 CLI がブロック直下へ挿入する. <strong>リアルタイムの対話なしで「Agent に質問できる」を成立させる</strong>のがポイントで, スマホで読んでいる最中に PC の前にいる必要はない.</p>
-<p>地味な gotcha として, マーカーブロックの終端は「空行まで」にしてある. note の任意箇所に書かれるため, 空行を越えて続きを読むと元の本文と機械的に区別できなくなるからである. この種の「どこまでがユーザの書いた質問か」問題は, 自由編集される markdown に機械処理を混ぜる時に必ず出てくる.</p>
-<h2 id="進捗は導出状態-note-に書き戻さない">進捗は導出状態 — note に書き戻さない</h2>
+<p>回答の生成は headless の <code>claude -p</code> で行う. 巡回スクリプトが未回答の <code>##Q</code> / 未添削の <code>##A</code> を検出して JSON に吐き, 回答 Agent が note 全文 + 質問 (解答添削の場合は直前の確認問題も) を文脈にして回答を生成し, 専用 CLI がブロック直下へ挿入する. <strong>リアルタイムの対話なし</strong>で「Agent に質問できる」を成立させるのがポイントで, スマホで読んでいる最中に PC の前にいる必要はない.</p>
+<p>地味な gotcha として, マーカーブロックの終端は「空行まで」にしてある. note の任意箇所に書かれるため, 空行を越えて続きを読むと元の本文と機械的に区別できなくなるからである. この種の「どこまでがユーザの書いた質問か」問題は, 自由編集される markdown に機械処理を混ぜる時に出てきやすい.</p>
+<h2 id="進捗の導出状態">進捗の導出状態</h2>
 <p>M/N の進捗や queued / learning / done の状態を note の frontmatter に書き戻す設計も考えられるが, やめた. 巡回は checkbox を<strong>数えるだけ</strong>で, 導出した状態を dashboard にのみ表示する. 状態の二重管理 (checkbox と frontmatter が食い違う) を避けるためと, ユーザ正本への書込み経路を増やさないためである. 状態を 1 箇所 (checkbox) に置いて他は導出にする, というのは Orchestrator のタスク層でフィールド単位に真の側を分けたのと同じ思想である.</p>
-<h2 id="launchd-と-icloud-tcc-binbash-では書けない">launchd と iCloud TCC — /bin/bash では書けない</h2>
+<h2 id="launchd-と-icloud-の-tcc-制約">launchd と iCloud の TCC 制約</h2>
 <p>毎時巡回は launchd で回している. ここに macOS 固有の罠があって, launchd から <code>/bin/bash</code> 直起動したスクリプトは, TCC (プライバシー保護) により iCloud 配下 (<code>Mobile Documents</code>) への書込みが拒否される. 対策は, 独立にコンパイルした小さな helper binary を responsible process として立てる方式で, これは以前 backup 機構を作った時に確立した手法の再利用である. ついでに深夜 (0-7 時) は巡回を skip する quiet hours も入れてある (深夜に回答が届いても読まないし, 万一の暴走時の被害も減る).</p>
-<h1 id="他リポの-agent-からの登録経路-承認制">他リポの Agent からの登録経路 — 承認制</h1>
-<p>この層の入口は「Agent が学習を薦める」である. 十数リポで走っている各 Agent が, セッション中に「これはユーザが学ぶ価値がある」と判断した知識を送ってくる — のだが, ここを自由化すると queue がすぐ Agent の善意で溢れる. そこで<strong>承認制</strong>にした.</p>
+<h1 id="他リポの-agent-からの登録経路">他リポの Agent からの登録経路</h1>
+<p>この層の入口は「Agent が学習を薦める」である. 十数リポで走っている各 Agent が, セッション中に「これはユーザが学ぶ価値がある」と判断した知識を送ってくる. だがここを自由化すると queue がすぐ Agent の善意で溢れる. そこで<strong>承認制</strong>にした.</p>
 <ol type="1">
 <li>各リポの Agent は, 学習推奨を Orchestrator 経由のユーザ依頼 (📖 prefix 付き) として送る. <strong>queue への直接書込みはさせない.</strong></li>
 <li>推奨は briefing (毎時の横断レポート) に surface され, 対話セッションが選択肢として提示する.</li>
@@ -243,31 +242,31 @@
 <li>例外は 1 つ: ユーザがセッション中に「これを learn に入れて」と明示指示した場合のみ, その場で直接 enqueue してよい.</li>
 </ol>
 <p>面白いのは, このために<strong>新しい仕組みをほぼ作っていない</strong>ことである. Orchestrator には元々「Agent からユーザへの判断依頼」を briefing に集約する承認フローがあり, 学習推奨はそれに 📖 prefix を付けて相乗りしただけ. 横断的なタスクは Orchestrator だけが扱い, 各リポの Agent は自リポのことだけを surface するという既存の役割分担とも整合する. レイヤを増やす時は, 専用機構より既存フローへの相乗りを先に検討する方がよい.</p>
-<h1 id="実例-圏論解説-note-研究知識の段階配信">実例: 圏論解説 note — 研究知識の段階配信</h1>
-<p>この機構が一番活きたユースケースを紹介する. ライブラリの開発で, 並列実行の正しさを圏論で整理して定理証明→実装を進めていた際にその実装内容を, 私が確認する作業を一旦スキップして,証明自体は型推論とコンパイラに任せて取り敢えずgoを出した.そこで研究リポの Agent に, <strong>できるだけ分解して理解への負担を最小限にした解説 note</strong> を書かせ, learn に投入した.</p>
+<h1 id="実例-圏論解説-note-の段階配信">実例: 圏論解説 note の段階配信</h1>
+<p>この機構が一番活きたユースケースを紹介する. ライブラリの開発で, 並列実行の正しさを圏論で整理し, 定理証明から実装へと進めていた. その実装内容を私が確認する作業は一旦スキップし, 証明自体は型推論とコンパイラに任せてひとまず go を出した. そこで研究リポの Agent に, <strong>できるだけ分解して理解への負担を最小限にした解説 note</strong> を書かせ, learn に投入した.</p>
 <p>結果は 23 Parts, 確認問題 6 問の note になった. 書かせる時の規約が効いていて:</p>
 <ul>
-<li>証明は省略しない. 等式変形は 1 行 1 根拠で, どの定義・どの補題を使ったか明記する.</li>
+<li>証明は省略しない. 等式変形は 1 行 1 根拠で, どの定義とどの補題を使ったか明記する.</li>
 <li>各節末に<strong>確認問題</strong>を置き, 解答は折りたたみ (callout) で同じ場所に入れる.</li>
 </ul>
 <figure>
 <img src="/images/posts/personal-learn-layer/note-categorical.png" alt="圏論入門 note (23 Parts). 1 行 1 根拠の証明と折りたたみ解答, Part 単位の読了 checkbox (スマホの Obsidian)" />
 <figcaption aria-hidden="true">圏論入門 note (23 Parts). 1 行 1 根拠の証明と折りたたみ解答, Part 単位の読了 checkbox (スマホの Obsidian)</figcaption>
 </figure>
-<p>↑この初歩的なところから,自分の研究まで分割して接続しているので,そのまま他人への説明になりうる(まだ全部読めていないけれど).</p>
-<p>これをスマホで Part ごとに消化していく. モノイドの定義から始まって 1 Part 数分, 確認問題には <code>##A</code> で自分の解答を書くと巡回が添削を返してくる. 「研究に必要な長い数学知識を, 確認問題つきで自分に段階配信する」という体験は, 講義を受けるのとも教科書を読むのとも違っていて, 自分の研究の文脈だけに最適化された教材が, 自分の隙間時間の粒度かつ初学者レベルまで分解して届くために,認知不可が極限まで低下している感覚がある.</p>
+<p>この note は, 初歩的なところから自分の研究までを分割して接続しているので, そのまま他人への説明にもなりうる (まだ全部は読めていないけれど).</p>
+<p>これをスマホで Part ごとに消化していく. モノイドの定義から始まって 1 Part 数分, 確認問題には <code>##A</code> で自分の解答を書くと巡回が添削を返してくる. 「研究に必要な長い数学知識を, 確認問題つきで自分に段階配信する」という体験は, 講義を受けるのとも教科書を読むのとも違う. 自分の研究の文脈だけに最適化された教材が, 隙間時間の粒度かつ初学者レベルまで分解されて届く. そのぶん, 読むときの認知負荷が下がる感覚がある.</p>
 <p>副産物として, 読了後の note はそのまま vault に残る. 論文の改稿で同じ数学に触れる時, Agent も私もこの note を参照できる. 学習の成果物が「読了の記録」でなく「知識ノート」になる, という要件 3 はここで効いている.</p>
 <h1 id="段階導入と今後">段階導入と今後</h1>
 <p>現在 Phase 1 (queue + M/N + 非同期 Q&amp;A, Obsidian plugin ゼロ) が稼働中で, 以後は運用データを見ながら段階導入する.</p>
 <ol type="1">
-<li><strong>Phase 1 — Obsidian コア</strong> (稼働中): 本記事の内容.</li>
-<li><strong>Phase 2 — Todoist 一方向ミラー</strong>: enqueue 時に「📖 タイトル (0/N)」をタスク起票し, 巡回が進捗を reconcile する. 通知と Done 入口だけの薄い層で, 正本は常に vault.</li>
-<li><strong>Phase 3 — TTS / 間隔反復</strong>: 読み上げと復習サイクル (FSRS 系) の検討.</li>
-<li><strong>Phase 4 — アプリ化判断</strong>: 消化率や Q&amp;A 頻度のデータを見て決める.</li>
+<li><strong>Phase 1: Obsidian コア</strong> (稼働中): 本記事の内容.</li>
+<li><strong>Phase 2: Todoist 一方向ミラー</strong>: enqueue 時に「📖 タイトル (0/N)」をタスク起票し, 巡回が進捗を reconcile する. 通知と Done 入口だけの薄い層で, 正本は常に vault.</li>
+<li><strong>Phase 3: TTS / 間隔反復</strong>: 読み上げと復習サイクル (FSRS 系) の検討.</li>
+<li><strong>Phase 4: アプリ化判断</strong>: 消化率や Q&amp;A 頻度のデータを見て決める.</li>
 </ol>
-<p>最初から専用アプリを作らなかったのは意図的で, 「そもそも自分は queue された知識を消化するのか」という一番の不確実性を, 一番安い構成 (plain markdown + 既存の Obsidian) で検証したかったからである. そして正本が plain markdown である限り, どの Phase に進んでもデータの移行が問題にならない — これは Orchestrator の vault を全 markdown にしたのと同じ賭けであり, 今のところ良い賭けだったと思っている.</p>
-<p>AI に何かを教わること自体は, もう誰でもやっているが 流れて消えるその知識を, 自分の知識基盤に向けて queue し直す層を一枚挟む — Agent 群の orchestration の隣に, 人間の learning を置いてみた, という話でした.
-学生にAIの使い方,AIに教わる的な使い方を指導している資料などが多いが,個人的にも一番しっくり来ている. そのうち,学生向けの資料としてまとめるためのたたき台にしようかと思っている.</p>]]></description>
+<p>最初から専用アプリを作らなかったのは意図的で, 「そもそも自分は queue された知識を消化するのか」という一番の不確実性を, 一番安い構成 (plain markdown + 既存の Obsidian) で検証したかったからである. そして正本が plain markdown である限り, どの Phase に進んでもデータの移行が問題にならない. これは Orchestrator の vault を全 markdown にしたのと同じ賭けであり, 今のところ良い賭けだったと思っている.</p>
+<p>AI に何かを教わること自体は, もう誰でもやっている. ただ, 流れて消えるその知識を, 自分の知識基盤に向けて queue し直す層を一枚挟んだ. Agent 群の orchestration の隣に, 人間の learning を置いてみた, という話でした.
+学生に AI の使い方, AI に教わる的な使い方を指導している資料などが多いが, 個人的にも一番しっくり来ている. そのうち, 学生向けの資料としてまとめるためのたたき台にしようかと思っている.</p>]]></description>
     <pubDate>Thu, 11 Jun 2026 00:00:00 UT</pubDate>
     <guid>/posts/2026-06-11-personal-learn-layer.html</guid>
     
@@ -278,10 +277,10 @@
 <item>
     <title>Multi-Repo Agent Orchestrator</title>
     <link>/posts/2026-06-03-multi-repo-agent-orchestrator.html</link>
-    <description><![CDATA[<p>近頃皆さんやっていることだが, PC上のあらゆる作業にAI Agentを介入させるように仕事の再構築を進めている. 構築を進める中で, 複数のプロジェクトが同時進行する中で, CLAUDE.md/AGENT.md, skills の仕様判断, その他規約,コンテキストの設定を共有・自動化したいという欲求が出てきた.</p>
-<p>複数Agentの並行管理自体は, <code>Remote Control</code> や <a href="https://cmux.com/">cmux</a> などの導入で軽くなってきたが, それぞれのrepoで独立していると初期設定,知識層の反映で手間がかかる. どのrepoで起動しても作業目標毎に知識,規約の引き継ぎの手間がボトルネックとなってきた.</p>
+    <description><![CDATA[<p>近頃よくある取り組みだが, PC 上のあらゆる作業に AI Agent を介入させるように仕事の再構築を進めている. 再構築を進めるうちに, 複数のプロジェクトが同時進行する状況で, CLAUDE.md/AGENT.md, skills の仕様判断, その他の規約やコンテキストの設定を共有し自動化したいという欲求が出てきた.</p>
+<p>複数 Agent の並行管理自体は, <code>Remote Control</code> や <a href="https://cmux.com/">cmux</a> などの導入で軽くなってきたが, それぞれの repo で独立していると初期設定や知識層の反映に手間がかかる. どの repo で起動しても, 作業目標ごとに知識と規約を引き継ぐのがボトルネックとなってきた.</p>
 <p>そのために, 複数リポで別々に走らせている十数個の Claude/Codex セッションを, 横断で監視, 記録, タスク配分, 知識集約する上位レイヤ(Agent Orchestrator)を自作した. 各リポの Agent は賢いが, それらを束ねる視点 (誰が何を進行中か, 知見の横断再利用, タスクの配分) は別レイヤの問題で, そこを担うのがこの Orchestrator である.</p>
-<p>このような用途としてはわざわざ車輪の再発明をしなくても既存 AI Assistant tool として有名なものに <a href="https://pi.ai/">Pi</a> (Inflection) や <a href="https://nousresearch.com/">Hermes Agent</a> (Nous Research) とがあり,わざわざこんなことをしなくても既存アーキテクチャを採用することで類似の効果は得られる.</p>
+<p>このような用途なら, 既存の AI Assistant tool として有名な <a href="https://pi.ai/">Pi</a> (Inflection) や <a href="https://nousresearch.com/">Hermes Agent</a> (Nous Research) がある. わざわざ車輪の再発明をしなくても, 既存アーキテクチャを採用すれば類似の効果は得られる.</p>
 <p>Pi は製品 / UX 層, Hermes Agent はモデル + 単一 agent 層に当たる. どちらも記憶や知識の集約・反映の仕組みを持ち (Hermes Agent は永続メモリ + skills, Pi は会話文脈), 私の理解では orchestrator 的な役割もある程度こなす一般ツールである.</p>
 <table>
 <thead>
@@ -391,11 +390,11 @@ vault (RAG 知識 + 規約 + タスク) を横断共有
 <li><strong>記憶層が小さい</strong>: 既製ツールの記憶は基本的に単一 agent スコープで, 複数リポ・複数分野にまたがる横断知識ベース (本プロジェクトの vault) としては手狭. RAG として手入れする前提の corpus を, agent の外側に独立して持ちたい.</li>
 <li><strong>作業ごとに分人的な役割分担がある</strong>: 研究, 講義, 開発, 私生活で必要な人格・文脈・規約は異なる. すべてを単一 agent に集約するより, <strong>agent ごとの個別コンテキストと, 横断の共通知識とを併存</strong>させたい. 一個の強い agent を作る (Hermes Agent の方向) のではなく, 弱くてもよいので多数の agent をそれぞれの分人として保ちつつ, 共通の知識層で束ねる, という選択である.</li>
 </ul>
-<p>あと単純に自分で弄れる範囲が大きい方が楽しい. ので普通はHermes Agentを入れておけば殆ど事足りると思われる.</p>
+<p>あと単純に, 自分で弄れる範囲が大きい方が楽しい. 普通は Hermes Agent を入れておけばほとんどこと足りると思う.</p>
 <p>なお,以下の構成は最終的には,ネットワーク上の常時稼働Agentに引き継ぐが現在は試験的に,全てローカルで完結させている.</p>
 <h1 id="全体構成-5-層">全体構成: 5 層</h1>
 <p>Orchestrator は管理対象リポの上位に立ち, launchd で毎時巡回するバッチと対話セッションの二面で動く. 処理は 5 層に分かれ, 各リポの Agent とは共有キュー (inbox/outbox) だけで接続する.</p>
-<p>なお, この対話セッションの側は後に, 各リポの Agent を cmux のタブで起動・操舵し, <strong>変更操作だけを承認ゲートに通す対話型 coordinator</strong> へ発展させた. その仕組みは続編 <a href="/posts/2026-06-19-interactive-multi-repo-coordinator.html">対話型 multi-repo coordinator — repo agent を cmux で起動し, 変更操作だけ承認ゲートに通す</a> に書いた.</p>
+<p>なお, この対話セッションの側は後に, 各リポの Agent を cmux のタブで起動・操舵し, <strong>変更操作だけを承認ゲートに通す対話型 coordinator</strong> へ発展させた. その仕組みは続編 <a href="/posts/2026-06-19-interactive-multi-repo-coordinator.html">cmux で起動した repo agent の変更操作だけを承認ゲートに通す対話型 coordinator</a> に書いた.</p>
 <svg viewBox="0 0 720 430" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="全体アーキテクチャ 5 層" font-family="sans-serif" font-size="13">
 <defs>
 <marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
@@ -441,10 +440,10 @@ vault (RAG 知識 + 規約 + タスク) を横断共有
 <rect x="480" y="350" width="160" height="40" rx="6" fill="#eef4fb" stroke="#4a78b5"/>
 <text x="560" y="375" text-anchor="middle">Todoist (タスク)</text>
 </svg>
-<p>ポイントは, <strong>Orchestrator 自身は判断と記録に徹し, 各リポでの実作業はそのリポの Agent が担う</strong>こと. Orchestrator は司令塔兼書記であって, 現場では手を動かさない.</p>
+<p>Orchestrator 自身は判断と記録に徹し, 各リポでの実作業はそのリポの Agent が担う. Orchestrator は司令塔兼書記であって, 現場では手を動かさない.</p>
 <h1 id="管理対象-複数リポをカテゴリで束ねる">管理対象: 複数リポをカテゴリで束ねる</h1>
 <p>以下は匿名化したリポの構造を表している. 各リポは <code>runtime</code> (claude / codex), <code>cadence</code> (毎時 / 日次 / 週次), <code>category</code>, <code>techs</code> をメタデータに持ち, これが後段の routing と知識索引のキーになる. 設定は 1 枚の YAML に集約し, パーサも 1 本に統一している.</p>
-<p>構造は二段に分かれる. <strong>Orchestrator が作業レイヤの頂点に立ち</strong>, 十数リポを束ねる. そして <strong>その Orchestrator を頂点とする系全体を, さらに外側から評価するのが existential (Vault)</strong> である.</p>
+<p>構造は二段に分かれる. 作業レイヤの頂点に Orchestrator が立って十数リポを束ね, その系全体をさらに外側から評価するのが existential (Vault) である.</p>
 <svg viewBox="0 0 720 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Orchestrator を頂点とする作業レイヤと existential のメタ評価" font-family="sans-serif" font-size="13">
 <defs>
 <marker id="ahm" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
@@ -516,10 +515,10 @@ vault (RAG 知識 + 規約 + タスク) を横断共有
 <text x="360" y="492" text-anchor="middle" fill="#888" font-size="11">各リポは runtime (claude / codex) / cadence (毎時 / 日次 / 週次) / category / techs をメタデータに持つ</text>
 <text x="360" y="512" text-anchor="middle" fill="#888" font-size="11">設定は 1 枚の YAML に集約し, パーサも 1 本に統一. これが routing と知識索引のキーになる</text>
 </svg>
-<p>二段構成のポイントは, <strong>Orchestrator と existential (Vault) の役割が違う層にある</strong>ことだ. Orchestrator は作業レイヤの頂点として, 十数リポの routing / 知識 / タスクを束ねる司令塔である. これに対し existential は, その Orchestrator を頂点とする系全体を<strong>さらに外側からメタ的に評価する</strong>. ここには <code>now.md</code> をはじめ思想 / 現状 / 価値観の single source があり, 個々の作業や routing が自分の価値観・現状と整合しているかを問う. <strong>Orchestrator が “何を / どう進めるか” の司令塔なら, existential は “そもそもその方向で良いか” を問うメタ評価レイヤ</strong>にあたる. now.md 自体は Orchestrator 経由で必要な agent にも配信されるが (思想 context の routing), existential の主たる役割は系全体のメタ評価である.</p>
-<p>各リポもOrchesratorを通じて連携できるようにしている. 例えば, 最近開発を進めている <strong>paper 層</strong>は, 文献管理に特化したパイプラインを持つ. 論文 PDF を原典として取り込み, それを <strong>md</strong> に抽出・要約 (図表や式の扱いも含む) してから, 引用情報を <strong>bib</strong> (引用データベース) に落とす. この <strong>PDF → md → bib</strong> の流れが research 層の執筆へ供給され, 「読んだ論文がそのまま引用可能な形で原稿に届く」状態が構築されている.</p>
+<p>Orchestrator と existential (Vault) は層が違う. Orchestrator は作業レイヤの頂点として十数リポの routing / 知識 / タスクを束ねるが, existential はその Orchestrator を含む系全体を外側から評価する. existential には <code>now.md</code> をはじめ思想 / 現状 / 価値観の single source があり, 個々の作業や routing が自分の価値観と現状に整合しているかを問う. Orchestrator が「何を / どう進めるか」を扱うのに対し, existential は「そもそもその方向で良いか」を扱う. now.md 自体は Orchestrator 経由で必要な agent にも配信される.</p>
+<p>各リポも Orchestrator を通じて連携できるようにしている. 例えば, 最近開発を進めている <strong>paper 層</strong>は, 文献管理に特化したパイプラインを持つ. 論文 PDF を原典として取り込み, それを <strong>md</strong> に抽出・要約 (図表や式の扱いも含む) してから, 引用情報を <strong>bib</strong> (引用データベース) に落とす. この <strong>PDF → md → bib</strong> の流れが research 層の執筆へ供給され, 「読んだ論文がそのまま引用可能な形で原稿に届く」状態が構築されている.</p>
 <h1 id="通信モデル-repo-initiated">通信モデル: repo-initiated</h1>
-<p>一番大事な制約として, <strong>Orchestrator は管理対象リポの FS を直接書き換えない</strong>ことがある. 通信はすべて repo 側から共有キューへの push / pull に固定する.</p>
+<p>Orchestrator は管理対象リポの FS を直接書き換えない. これが一番大事な制約だ. 通信はすべて repo 側から共有キューへの push / pull に固定する.</p>
 <svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="repo-initiated 通信" font-family="sans-serif" font-size="13">
 <defs>
 <marker id="ah2" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
@@ -548,14 +547,14 @@ vault (RAG 知識 + 規約 + タスク) を横断共有
 <text x="248" y="185" fill="#333">pull</text>
 </svg>
 <p>境界を push/pull のキューに固定すると, <strong>どちらが何を書いたかが常に明確</strong>になり, 片方が壊れてももう片方は動き続ける. 上位が下位のコードを勝手に上書きしない, という規律でもある.</p>
-<p>なお, このハブは repo ↔︎ Orchestrator の汎用レーンであり, repo から repo への有向のタスク連鎖は運ばない. そちらは後日追加した別機構で, 続編 <a href="/posts/2026-06-12-cross-repo-handoff-queue.html">repo 間の Agent タスク連鎖 — 中央 immutable queue による cross-repo handoff</a> に書いた.</p>
+<p>なお, このハブは repo ↔︎ Orchestrator の汎用レーンであり, repo から repo への有向のタスク連鎖は運ばない. そちらは後日追加した別機構で, 続編 <a href="/posts/2026-06-12-cross-repo-handoff-queue.html">中央 immutable queue で運ぶ repo 間の Agent タスク連鎖</a> に書いた.</p>
 <h1 id="データ表現-今のところすべて-markdown">データ表現: (今のところ)すべて markdown</h1>
 <p>状態, タスク, 知識, 規約 - Orchestrator が扱うデータは全部 <a href="https://obsidian.md/">Obsidian</a> による markdown + frontmatter で持つ. DB も独自フォーマットも使わない. 狙いは移行容易性で, 別マシン (常時起動の Mac mini を想定) へ移すとき, データ表現が markdown のままなら<strong>差し替えるのは通信層だけ</strong>で済む.</p>
 <p><span class="math display">
 \text{Phase 1 (file)} \;\longrightarrow\; \text{Phase 2 (MCP)} \;\longrightarrow\; \text{Phase 3 (LAN MCP)}
 </span></p>
-<p>通信は進化させても vault の中身は不変. でそのまま人間が読める利点も大きい.</p>
-<p>markdown / Obsidian を選んだ主な理由は, <strong>もともと個人の知識管理を Obsidian で行っていた</strong>ことにある. 設計として一から選んだというより, 既存資産 (過去の日記やメモ) をそのまま agent に読ませられる連続性が大きく, 実際 existential (Vault) では過去の日記・メモを文脈として読ませている. したがって <strong>人間が文章を読む面は当面 Obsidian 固定</strong>で行く予定だ. 一方, 人間が読まない orchestrator 層の内部表現 (state や中間データ) は markdown に縛る必然はなく, <strong>より効率的な手段があれば置き換える予定</strong>でいる. markdown は “人間も読む層” の共通項として残し, 機械専用の層は最適な表現へ寄せていきたい.</p>
+<p>通信を進化させても vault の中身は変わらない. markdown のままなので, そのまま人間が読める利点も大きい.</p>
+<p>markdown / Obsidian を選んだ主な理由は, もともと個人の知識管理を Obsidian で行っていたことにある. 設計として一から選んだというより, 既存資産 (過去の日記やメモ) をそのまま agent に読ませられる連続性が大きい. 実際 existential (Vault) では過去の日記やメモを文脈として読ませている. そのため, <strong>人間が文章を読む面は当面 Obsidian 固定</strong>で行く予定だ. 一方, 人間が読まない orchestrator 層の内部表現 (state や中間データ) は markdown に縛る必然がなく, より効率的な手段があれば置き換える. markdown は人間も読む層の共通項として残す.</p>
 <h1 id="知識層-自前-rag">知識層 = 自前 RAG</h1>
 <p>このプロジェクトで一番効いている知識層は, 実質 RAG (Retrieval-Augmented Generation) の自前運用である. ただし主眼は “貯める” ことより “腐らせない” ことにある.</p>
 <svg viewBox="0 0 720 270" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="知識 RAG ライフサイクル" font-family="sans-serif" font-size="13">
@@ -601,7 +600,7 @@ vault (RAG 知識 + 規約 + タスク) を横断共有
 <ul>
 <li><strong>curation (本題)</strong>: corpus をただ増やすとノイズで検索精度が落ちる. 引かれた note は本フォルダへ<strong>昇格</strong>, 古い / 撤回された note は <code>_stale/</code> へ<strong>隔離</strong> (黙って消さないので追跡可). retrieval のログ (usage signal) が次の curation を駆動する. 一度踏んだ gotcha を別リポの Agent が二度踏まないのは, corpus が増えるからでなく手入れされているからだ.</li>
 </ul>
-<p>なお, ここで扱っているのはあくまで <em>Agent のための</em> 知識層である. 人間 (私) 自身の学習を同じ枠組み (queue + 巡回) で回す層は, 続編 <a href="/posts/2026-06-11-personal-learn-layer.html">個人の学習層 (Learn) — Agent が薦め, スマホで消化し, vault に積む</a> に書いた.</p>
+<p>なお, ここで扱っているのはあくまで <em>Agent のための</em> 知識層である. 人間 (私) 自身の学習を同じ枠組み (queue + 巡回) で回す層は, 続編 <a href="/posts/2026-06-11-personal-learn-layer.html">AIと連携した個人の学習層 (Learn)</a> に書いた.</p>
 <h1 id="タスク管理層-todoist">タスク管理層: Todoist</h1>
 <p>知識層と並ぶもう一つの管理層がタスクで, ここは <a href="https://todoist.com/">Todoist</a> を hub にしている. <strong>人間と agent が同じタスクを同じ場所で見る</strong>ための層である.</p>
 <svg viewBox="0 0 720 170" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="タスク管理層 Todoist" font-family="sans-serif" font-size="13">
@@ -652,7 +651,7 @@ vault (RAG 知識 + 規約 + タスク) を横断共有
 <path d="M390,98 L460,55" stroke="#555" fill="none" marker-end="url(#ah4)"/>
 <path d="M390,112 L460,150" stroke="#555" fill="none" marker-end="url(#ah4)"/>
 </svg>
-<p>ツールが落ちても依頼の種別に応じて確実に拾われる. 賢いコンポーネントほど壊れ方に対する設計が効く, という一例である.</p>
+<p>ツールが落ちても, 依頼は種別に応じて確実に拾われる. 賢いコンポーネントほど, 正常時の動作だけでなく壊れ方まで設計しておく必要がある.</p>
 <p>という感じで色々やってみているが, なんとなく機能してきたのでまとめました記事でした. 毎日変わっているのであくまで暫定版ですが.</p>]]></description>
     <pubDate>Wed, 03 Jun 2026 00:00:00 UT</pubDate>
     <guid>/posts/2026-06-03-multi-repo-agent-orchestrator.html</guid>

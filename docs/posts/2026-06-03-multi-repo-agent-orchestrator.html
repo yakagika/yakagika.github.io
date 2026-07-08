@@ -3,10 +3,32 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
+         localStorage['theme'] に手動選択があればそちらを優先.
+         描画前に <html> へ .dark を付けるため <head> の早い位置で同期実行する
+         (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+    <script>
+      (function () {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+        function apply() {
+          var t = null;
+          try { t = localStorage.getItem('theme'); } catch (e) {}
+          var dark = t === 'dark' || (t !== 'light' && mq && mq.matches);
+          document.documentElement.classList.toggle('dark', dark);
+        }
+        apply();
+        if (mq) {
+          if (mq.addEventListener) mq.addEventListener('change', apply);
+          else if (mq.addListener) mq.addListener(apply);
+        }
+      })();
+    </script>
     <title>yakagika - Multi-Repo Agent Orchestrator</title>
 
     <!-- Stylesheets. -->
-    <link rel="stylesheet" type="text/css" href="../style.css?v=1783052843">
+    <link rel="stylesheet" type="text/css" href="../style.css?v=1783486487">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -36,8 +58,9 @@
      <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
     <header class="site-header">
       <div class="site-title">
-        <a href="../">
-          <img src="../favicon.ico" alt="Home" style="width: 32px; height: 32px;">
+        <a href="../" class="site-brand" aria-label="Home">
+          <span class="site-mark" aria-hidden="true"></span>
+          <span class="site-word">yakagika</span>
         </a>
       </div>
       <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
@@ -77,15 +100,15 @@
     <p class="article-description">複数リポで別々に走る Claude/Codex セッションを横断で束ねる "上位 AI assistant (Orchestrator)" のアーキテクチャ解説. 5 層構成, repo-initiated 通信, 全 markdown 設計, 知識層の RAG 的運用, 耐障害ルーティングを構成図中心に説明し, Inflection Pi / Nous Hermes Agent と位置づけを比較する.</p>
     <div class="article-meta">
         <span class="meta-item">公開: 2026-06-03</span>
-        <span class="meta-item">更新: 2026-06-18</span>
+        <span class="meta-item">更新: 2026-07-08</span>
     </div>
-    <div class="tag-chips"><a title="All pages tagged 'claude-code'." href="../tags/claude-code.html" rel="tag">claude-code</a>, <a title="All pages tagged 'mcp'." href="../tags/mcp.html" rel="tag">mcp</a>, <a title="All pages tagged 'orchestrator'." href="../tags/orchestrator.html" rel="tag">orchestrator</a>, <a title="All pages tagged 'rag'." href="../tags/rag.html" rel="tag">rag</a>, <a title="All pages tagged 'automation'." href="../tags/automation.html" rel="tag">automation</a>, <a title="All pages tagged 'multi-repo'." href="../tags/multi-repo.html" rel="tag">multi-repo</a>, <a title="All pages tagged 'architecture'." href="../tags/architecture.html" rel="tag">architecture</a></div>
+    <div class="tag-chips"><a href="../tags/claude-code.html">claude-code</a><a href="../tags/mcp.html">mcp</a><a href="../tags/orchestrator.html">orchestrator</a><a href="../tags/rag.html">rag</a><a href="../tags/automation.html">automation</a><a href="../tags/multi-repo.html">multi-repo</a><a href="../tags/architecture.html">architecture</a></div>
 </header>
 
-<p>近頃皆さんやっていることだが, PC上のあらゆる作業にAI Agentを介入させるように仕事の再構築を進めている. 構築を進める中で, 複数のプロジェクトが同時進行する中で, CLAUDE.md/AGENT.md, skills の仕様判断, その他規約,コンテキストの設定を共有・自動化したいという欲求が出てきた.</p>
-<p>複数Agentの並行管理自体は, <code>Remote Control</code> や <a href="https://cmux.com/">cmux</a> などの導入で軽くなってきたが, それぞれのrepoで独立していると初期設定,知識層の反映で手間がかかる. どのrepoで起動しても作業目標毎に知識,規約の引き継ぎの手間がボトルネックとなってきた.</p>
+<p>近頃よくある取り組みだが, PC 上のあらゆる作業に AI Agent を介入させるように仕事の再構築を進めている. 再構築を進めるうちに, 複数のプロジェクトが同時進行する状況で, CLAUDE.md/AGENT.md, skills の仕様判断, その他の規約やコンテキストの設定を共有し自動化したいという欲求が出てきた.</p>
+<p>複数 Agent の並行管理自体は, <code>Remote Control</code> や <a href="https://cmux.com/">cmux</a> などの導入で軽くなってきたが, それぞれの repo で独立していると初期設定や知識層の反映に手間がかかる. どの repo で起動しても, 作業目標ごとに知識と規約を引き継ぐのがボトルネックとなってきた.</p>
 <p>そのために, 複数リポで別々に走らせている十数個の Claude/Codex セッションを, 横断で監視, 記録, タスク配分, 知識集約する上位レイヤ(Agent Orchestrator)を自作した. 各リポの Agent は賢いが, それらを束ねる視点 (誰が何を進行中か, 知見の横断再利用, タスクの配分) は別レイヤの問題で, そこを担うのがこの Orchestrator である.</p>
-<p>このような用途としてはわざわざ車輪の再発明をしなくても既存 AI Assistant tool として有名なものに <a href="https://pi.ai/">Pi</a> (Inflection) や <a href="https://nousresearch.com/">Hermes Agent</a> (Nous Research) とがあり,わざわざこんなことをしなくても既存アーキテクチャを採用することで類似の効果は得られる.</p>
+<p>このような用途なら, 既存の AI Assistant tool として有名な <a href="https://pi.ai/">Pi</a> (Inflection) や <a href="https://nousresearch.com/">Hermes Agent</a> (Nous Research) がある. わざわざ車輪の再発明をしなくても, 既存アーキテクチャを採用すれば類似の効果は得られる.</p>
 <p>Pi は製品 / UX 層, Hermes Agent はモデル + 単一 agent 層に当たる. どちらも記憶や知識の集約・反映の仕組みを持ち (Hermes Agent は永続メモリ + skills, Pi は会話文脈), 私の理解では orchestrator 的な役割もある程度こなす一般ツールである.</p>
 <table>
 <thead>
@@ -195,11 +218,11 @@ vault (RAG 知識 + 規約 + タスク) を横断共有
 <li><strong>記憶層が小さい</strong>: 既製ツールの記憶は基本的に単一 agent スコープで, 複数リポ・複数分野にまたがる横断知識ベース (本プロジェクトの vault) としては手狭. RAG として手入れする前提の corpus を, agent の外側に独立して持ちたい.</li>
 <li><strong>作業ごとに分人的な役割分担がある</strong>: 研究, 講義, 開発, 私生活で必要な人格・文脈・規約は異なる. すべてを単一 agent に集約するより, <strong>agent ごとの個別コンテキストと, 横断の共通知識とを併存</strong>させたい. 一個の強い agent を作る (Hermes Agent の方向) のではなく, 弱くてもよいので多数の agent をそれぞれの分人として保ちつつ, 共通の知識層で束ねる, という選択である.</li>
 </ul>
-<p>あと単純に自分で弄れる範囲が大きい方が楽しい. ので普通はHermes Agentを入れておけば殆ど事足りると思われる.</p>
+<p>あと単純に, 自分で弄れる範囲が大きい方が楽しい. 普通は Hermes Agent を入れておけばほとんどこと足りると思う.</p>
 <p>なお,以下の構成は最終的には,ネットワーク上の常時稼働Agentに引き継ぐが現在は試験的に,全てローカルで完結させている.</p>
 <h2 id="全体構成-5-層">全体構成: 5 層</h2>
 <p>Orchestrator は管理対象リポの上位に立ち, launchd で毎時巡回するバッチと対話セッションの二面で動く. 処理は 5 層に分かれ, 各リポの Agent とは共有キュー (inbox/outbox) だけで接続する.</p>
-<p>なお, この対話セッションの側は後に, 各リポの Agent を cmux のタブで起動・操舵し, <strong>変更操作だけを承認ゲートに通す対話型 coordinator</strong> へ発展させた. その仕組みは続編 <a href="../posts/2026-06-19-interactive-multi-repo-coordinator.html">対話型 multi-repo coordinator — repo agent を cmux で起動し, 変更操作だけ承認ゲートに通す</a> に書いた.</p>
+<p>なお, この対話セッションの側は後に, 各リポの Agent を cmux のタブで起動・操舵し, <strong>変更操作だけを承認ゲートに通す対話型 coordinator</strong> へ発展させた. その仕組みは続編 <a href="../posts/2026-06-19-interactive-multi-repo-coordinator.html">cmux で起動した repo agent の変更操作だけを承認ゲートに通す対話型 coordinator</a> に書いた.</p>
 <svg viewBox="0 0 720 430" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="全体アーキテクチャ 5 層" font-family="sans-serif" font-size="13">
 <defs>
 <marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
@@ -245,10 +268,10 @@ vault (RAG 知識 + 規約 + タスク) を横断共有
 <rect x="480" y="350" width="160" height="40" rx="6" fill="#eef4fb" stroke="#4a78b5"></rect>
 <text x="560" y="375" text-anchor="middle">Todoist (タスク)</text>
 </svg>
-<p>ポイントは, <strong>Orchestrator 自身は判断と記録に徹し, 各リポでの実作業はそのリポの Agent が担う</strong>こと. Orchestrator は司令塔兼書記であって, 現場では手を動かさない.</p>
+<p>Orchestrator 自身は判断と記録に徹し, 各リポでの実作業はそのリポの Agent が担う. Orchestrator は司令塔兼書記であって, 現場では手を動かさない.</p>
 <h2 id="管理対象-複数リポをカテゴリで束ねる">管理対象: 複数リポをカテゴリで束ねる</h2>
 <p>以下は匿名化したリポの構造を表している. 各リポは <code>runtime</code> (claude / codex), <code>cadence</code> (毎時 / 日次 / 週次), <code>category</code>, <code>techs</code> をメタデータに持ち, これが後段の routing と知識索引のキーになる. 設定は 1 枚の YAML に集約し, パーサも 1 本に統一している.</p>
-<p>構造は二段に分かれる. <strong>Orchestrator が作業レイヤの頂点に立ち</strong>, 十数リポを束ねる. そして <strong>その Orchestrator を頂点とする系全体を, さらに外側から評価するのが existential (Vault)</strong> である.</p>
+<p>構造は二段に分かれる. 作業レイヤの頂点に Orchestrator が立って十数リポを束ね, その系全体をさらに外側から評価するのが existential (Vault) である.</p>
 <svg viewBox="0 0 720 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Orchestrator を頂点とする作業レイヤと existential のメタ評価" font-family="sans-serif" font-size="13">
 <defs>
 <marker id="ahm" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
@@ -320,10 +343,10 @@ vault (RAG 知識 + 規約 + タスク) を横断共有
 <text x="360" y="492" text-anchor="middle" fill="#888" font-size="11">各リポは runtime (claude / codex) / cadence (毎時 / 日次 / 週次) / category / techs をメタデータに持つ</text>
 <text x="360" y="512" text-anchor="middle" fill="#888" font-size="11">設定は 1 枚の YAML に集約し, パーサも 1 本に統一. これが routing と知識索引のキーになる</text>
 </svg>
-<p>二段構成のポイントは, <strong>Orchestrator と existential (Vault) の役割が違う層にある</strong>ことだ. Orchestrator は作業レイヤの頂点として, 十数リポの routing / 知識 / タスクを束ねる司令塔である. これに対し existential は, その Orchestrator を頂点とする系全体を<strong>さらに外側からメタ的に評価する</strong>. ここには <code>now.md</code> をはじめ思想 / 現状 / 価値観の single source があり, 個々の作業や routing が自分の価値観・現状と整合しているかを問う. <strong>Orchestrator が “何を / どう進めるか” の司令塔なら, existential は “そもそもその方向で良いか” を問うメタ評価レイヤ</strong>にあたる. now.md 自体は Orchestrator 経由で必要な agent にも配信されるが (思想 context の routing), existential の主たる役割は系全体のメタ評価である.</p>
-<p>各リポもOrchesratorを通じて連携できるようにしている. 例えば, 最近開発を進めている <strong>paper 層</strong>は, 文献管理に特化したパイプラインを持つ. 論文 PDF を原典として取り込み, それを <strong>md</strong> に抽出・要約 (図表や式の扱いも含む) してから, 引用情報を <strong>bib</strong> (引用データベース) に落とす. この <strong>PDF → md → bib</strong> の流れが research 層の執筆へ供給され, 「読んだ論文がそのまま引用可能な形で原稿に届く」状態が構築されている.</p>
+<p>Orchestrator と existential (Vault) は層が違う. Orchestrator は作業レイヤの頂点として十数リポの routing / 知識 / タスクを束ねるが, existential はその Orchestrator を含む系全体を外側から評価する. existential には <code>now.md</code> をはじめ思想 / 現状 / 価値観の single source があり, 個々の作業や routing が自分の価値観と現状に整合しているかを問う. Orchestrator が「何を / どう進めるか」を扱うのに対し, existential は「そもそもその方向で良いか」を扱う. now.md 自体は Orchestrator 経由で必要な agent にも配信される.</p>
+<p>各リポも Orchestrator を通じて連携できるようにしている. 例えば, 最近開発を進めている <strong>paper 層</strong>は, 文献管理に特化したパイプラインを持つ. 論文 PDF を原典として取り込み, それを <strong>md</strong> に抽出・要約 (図表や式の扱いも含む) してから, 引用情報を <strong>bib</strong> (引用データベース) に落とす. この <strong>PDF → md → bib</strong> の流れが research 層の執筆へ供給され, 「読んだ論文がそのまま引用可能な形で原稿に届く」状態が構築されている.</p>
 <h2 id="通信モデル-repo-initiated">通信モデル: repo-initiated</h2>
-<p>一番大事な制約として, <strong>Orchestrator は管理対象リポの FS を直接書き換えない</strong>ことがある. 通信はすべて repo 側から共有キューへの push / pull に固定する.</p>
+<p>Orchestrator は管理対象リポの FS を直接書き換えない. これが一番大事な制約だ. 通信はすべて repo 側から共有キューへの push / pull に固定する.</p>
 <svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="repo-initiated 通信" font-family="sans-serif" font-size="13">
 <defs>
 <marker id="ah2" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
@@ -352,14 +375,14 @@ vault (RAG 知識 + 規約 + タスク) を横断共有
 <text x="248" y="185" fill="#333">pull</text>
 </svg>
 <p>境界を push/pull のキューに固定すると, <strong>どちらが何を書いたかが常に明確</strong>になり, 片方が壊れてももう片方は動き続ける. 上位が下位のコードを勝手に上書きしない, という規律でもある.</p>
-<p>なお, このハブは repo ↔︎ Orchestrator の汎用レーンであり, repo から repo への有向のタスク連鎖は運ばない. そちらは後日追加した別機構で, 続編 <a href="../posts/2026-06-12-cross-repo-handoff-queue.html">repo 間の Agent タスク連鎖 — 中央 immutable queue による cross-repo handoff</a> に書いた.</p>
+<p>なお, このハブは repo ↔︎ Orchestrator の汎用レーンであり, repo から repo への有向のタスク連鎖は運ばない. そちらは後日追加した別機構で, 続編 <a href="../posts/2026-06-12-cross-repo-handoff-queue.html">中央 immutable queue で運ぶ repo 間の Agent タスク連鎖</a> に書いた.</p>
 <h2 id="データ表現-今のところすべて-markdown">データ表現: (今のところ)すべて markdown</h2>
 <p>状態, タスク, 知識, 規約 - Orchestrator が扱うデータは全部 <a href="https://obsidian.md/">Obsidian</a> による markdown + frontmatter で持つ. DB も独自フォーマットも使わない. 狙いは移行容易性で, 別マシン (常時起動の Mac mini を想定) へ移すとき, データ表現が markdown のままなら<strong>差し替えるのは通信層だけ</strong>で済む.</p>
 <p><span class="math display">
 \text{Phase 1 (file)} \;\longrightarrow\; \text{Phase 2 (MCP)} \;\longrightarrow\; \text{Phase 3 (LAN MCP)}
 </span></p>
-<p>通信は進化させても vault の中身は不変. でそのまま人間が読める利点も大きい.</p>
-<p>markdown / Obsidian を選んだ主な理由は, <strong>もともと個人の知識管理を Obsidian で行っていた</strong>ことにある. 設計として一から選んだというより, 既存資産 (過去の日記やメモ) をそのまま agent に読ませられる連続性が大きく, 実際 existential (Vault) では過去の日記・メモを文脈として読ませている. したがって <strong>人間が文章を読む面は当面 Obsidian 固定</strong>で行く予定だ. 一方, 人間が読まない orchestrator 層の内部表現 (state や中間データ) は markdown に縛る必然はなく, <strong>より効率的な手段があれば置き換える予定</strong>でいる. markdown は “人間も読む層” の共通項として残し, 機械専用の層は最適な表現へ寄せていきたい.</p>
+<p>通信を進化させても vault の中身は変わらない. markdown のままなので, そのまま人間が読める利点も大きい.</p>
+<p>markdown / Obsidian を選んだ主な理由は, もともと個人の知識管理を Obsidian で行っていたことにある. 設計として一から選んだというより, 既存資産 (過去の日記やメモ) をそのまま agent に読ませられる連続性が大きい. 実際 existential (Vault) では過去の日記やメモを文脈として読ませている. そのため, <strong>人間が文章を読む面は当面 Obsidian 固定</strong>で行く予定だ. 一方, 人間が読まない orchestrator 層の内部表現 (state や中間データ) は markdown に縛る必然がなく, より効率的な手段があれば置き換える. markdown は人間も読む層の共通項として残す.</p>
 <h2 id="知識層-自前-rag">知識層 = 自前 RAG</h2>
 <p>このプロジェクトで一番効いている知識層は, 実質 RAG (Retrieval-Augmented Generation) の自前運用である. ただし主眼は “貯める” ことより “腐らせない” ことにある.</p>
 <svg viewBox="0 0 720 270" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="知識 RAG ライフサイクル" font-family="sans-serif" font-size="13">
@@ -405,7 +428,7 @@ vault (RAG 知識 + 規約 + タスク) を横断共有
 <ul>
 <li><strong>curation (本題)</strong>: corpus をただ増やすとノイズで検索精度が落ちる. 引かれた note は本フォルダへ<strong>昇格</strong>, 古い / 撤回された note は <code>_stale/</code> へ<strong>隔離</strong> (黙って消さないので追跡可). retrieval のログ (usage signal) が次の curation を駆動する. 一度踏んだ gotcha を別リポの Agent が二度踏まないのは, corpus が増えるからでなく手入れされているからだ.</li>
 </ul>
-<p>なお, ここで扱っているのはあくまで <em>Agent のための</em> 知識層である. 人間 (私) 自身の学習を同じ枠組み (queue + 巡回) で回す層は, 続編 <a href="../posts/2026-06-11-personal-learn-layer.html">個人の学習層 (Learn) — Agent が薦め, スマホで消化し, vault に積む</a> に書いた.</p>
+<p>なお, ここで扱っているのはあくまで <em>Agent のための</em> 知識層である. 人間 (私) 自身の学習を同じ枠組み (queue + 巡回) で回す層は, 続編 <a href="../posts/2026-06-11-personal-learn-layer.html">AIと連携した個人の学習層 (Learn)</a> に書いた.</p>
 <h2 id="タスク管理層-todoist">タスク管理層: Todoist</h2>
 <p>知識層と並ぶもう一つの管理層がタスクで, ここは <a href="https://todoist.com/">Todoist</a> を hub にしている. <strong>人間と agent が同じタスクを同じ場所で見る</strong>ための層である.</p>
 <svg viewBox="0 0 720 170" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="タスク管理層 Todoist" font-family="sans-serif" font-size="13">
@@ -456,7 +479,7 @@ vault (RAG 知識 + 規約 + タスク) を横断共有
 <path d="M390,98 L460,55" stroke="#555" fill="none" marker-end="url(#ah4)"></path>
 <path d="M390,112 L460,150" stroke="#555" fill="none" marker-end="url(#ah4)"></path>
 </svg>
-<p>ツールが落ちても依頼の種別に応じて確実に拾われる. 賢いコンポーネントほど壊れ方に対する設計が効く, という一例である.</p>
+<p>ツールが落ちても, 依頼は種別に応じて確実に拾われる. 賢いコンポーネントほど, 正常時の動作だけでなく壊れ方まで設計しておく必要がある.</p>
 <p>という感じで色々やってみているが, なんとなく機能してきたのでまとめました記事でした. 毎日変わっているのであくまで暫定版ですが.</p>
 </article>
 
@@ -464,11 +487,21 @@ vault (RAG 知識 + 規約 + タスク) を横断共有
     <div style="clear: both"></div>
 
     <div id="footer">
-        &copy; yakagika. Site generated by
-        <a href="http://jaspervdj.be/hakyll">Hakyll</a>.
+        <nav class="footer-nav" aria-label="フッターナビゲーション">
+            <a href="../">Home</a>
+            <a href="../posts.html">Blog</a>
+            <a href="../lectures.html">Lecture</a>
+            <a href="../research.html">Research</a>
+            <a href="../rss.xml">RSS</a>
+            <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+        </nav>
+        <p class="footer-copy">&copy; yakagika &middot; Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>.</p>
     </div>
 </div>
 
+
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="ページ先頭へ戻る" title="先頭へ戻る">↑</button>
 
     <!-- GUID -->
     <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
@@ -817,6 +850,58 @@ vault (RAG 知識 + 規約 + タスク) を横断共有
                         );
           }
       }
+    });
+  </script>
+
+  <!-- 見出しアンカーリンク + Back to top -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 記事見出しに hover で現れる # パーマリンクを付与
+      document.querySelectorAll('article h2[id], article h3[id]').forEach(function (h) {
+        var a = document.createElement('a');
+        a.className = 'heading-anchor';
+        a.href = '#' + h.id;
+        a.setAttribute('aria-label', 'このセクションへのリンク');
+        a.textContent = '#';
+        h.appendChild(a);
+      });
+
+      // Back to top: スクロール量に応じて表示
+      var btt = document.getElementById('back-to-top');
+      if (btt) {
+        var onScroll = function () {
+          if (window.pageYOffset > 600) btt.classList.add('visible');
+          else btt.classList.remove('visible');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        btt.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
     });
   </script>
 

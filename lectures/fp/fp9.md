@@ -185,28 +185,41 @@ $$\mathrm{Either}\ a\ b = a + b$$
 
 になります (`Left` / `Right` というタグで両者を区別するので, 共通要素があっても素な和になります).
 
-エラー処理では, **`Left` を失敗 (理由つき) / `Right` を成功** に使うのが Haskell の慣習です. 「正しい (right)」と「右 (right)」を掛けた語呂で, 成功を `Right` に割り当てると覚えるとよいでしょう. 失敗の理由を文字列で持たせるなら, 型は `Either String b` のようになります.
+エラー処理では, **`Left` を失敗 (理由つき) / `Right` を成功** に使うのが Haskell の慣習です. 「正しい (right)」と「右 (right)」を掛けた語呂で, 成功を `Right` に割り当てると覚えるとよいでしょう.
 
-前節の `safeDiv` を, 失敗の理由を伝える形に書き直します.
+では, 失敗の理由 `a` はどんな型で持たせるべきでしょうか. いちばん手軽なのは `Either String b` のように **文字列** で持たせることですが, 純粋関数型らしく設計するなら, **起こりうるエラーを列挙した専用の直和型** を作るほうが適切です. 「ある計算で起こりうる失敗」はふつう有限個しかありません. その候補を [第7章](fp7.html) の **直和型 (列挙型)** としてあらかじめ書き出しておくのです. 割り算の失敗が「0 除算」1 種類なら, 候補全体を直和で書けば $\mathrm{DivError} = \mathrm{DivByZero}$ (エラーの種類が増えれば $e_1 + e_2 + \cdots$ と構築子を足していく) となります. 前節の `safeDiv` を, この専用エラー型で書き直します.
 
 ~~~ haskell
--- 失敗の理由を文字列で返す安全な割り算
-safeDivE :: Int -> Int -> Either String Int
-safeDivE _ 0 = Left "0 では割れません"
+-- 起こりうる失敗を列挙した専用のエラー型 (いまは 1 種類)
+data DivError = DivByZero
+  deriving (Show, Eq)
+
+safeDivE :: Int -> Int -> Either DivError Int
+safeDivE _ 0 = Left DivByZero
 safeDivE x y = Right (x `div` y)
 
 main :: IO ()
 main = do
   print (safeDivE 10 2)  -- Right 5
-  print (safeDivE 10 0)  -- Left "0 では割れません"
+  print (safeDivE 10 0)  -- Left DivByZero
 ~~~
 
-`safeDiv` が `Nothing` を返していた箇所で, `safeDivE` は `Left "0 では割れません"` と **理由つきの失敗** を返します. 受け取る側はやはりパターンマッチで両方を処理します.
+`safeDiv` が `Nothing` を返していた箇所で, `safeDivE` は `Left DivByZero` と **理由つきの失敗** を返します. 理由が「文字列という値」ではなく **専用の型** になったことで, 3 つの利点が生まれます.
+
+- **失敗が閉じた集合になる**: 起こりうるエラーが型の構築子として列挙されるので, 「どんな失敗がありうるか」を型を見るだけで把握できます. 文字列だと理由は無限に書けてしまい, 呼び出す側は一覧を追えません.
+- **網羅性を検査できる**: `Left` を受けてパターンマッチするとき, 構築子を書き漏らすと GHC が警告します ([第7章](fp7.html) の直和型と同じ利点). 文字列にはこの検査が効きません.
+- **表示 (プレゼンテーション) を値から分離できる**: 「何が起きたか」は `DivByZero` という値で持ち, 「どう見せるか」は **別の関数** で与えます.
+
+最後の点を担うのが, エラー値を人間向けの文字列へ変換する関数です. 受け取る側は, これと `Right` の整形を組み合わせて表示します.
 
 ~~~ haskell
-report :: Either String Int -> String
-report (Left err) = "エラー: " ++ err
-report (Right n)  = "結果: " ++ show n
+-- エラー値を人間向けメッセージへ (表示を値から分離する)
+renderDivError :: DivError -> String
+renderDivError DivByZero = "0 では割れません"
+
+report :: Either DivError Int -> String
+report (Left e)  = "エラー: " ++ renderDivError e
+report (Right n) = "結果: " ++ show n
 
 main :: IO ()
 main = do
@@ -214,43 +227,96 @@ main = do
   putStrLn (report (safeDivE 10 0))  -- エラー: 0 では割れません
 ~~~
 
-`Maybe` と `Either` の使い分けは「失敗の理由が要るか」です. 理由が不要なら `Maybe`, 理由を運びたいなら `Either String`(や独自のエラー型) を使います.
+`renderDivError` を差し替えれば, 同じ `DivByZero` を英語で出すことも, ログ用に整形することもできます. **「何が起きたか (値)」と「どう見せるか (文字列)」を分けられる** のが, 専用エラー型の実務上の効きどころです.
+
+::: note
+
+**文字列でもエラーは書ける.** 手早く試すだけなら, 理由をそのまま文字列で持たせて `Either String Int` としてもかまいません.
+
+~~~ haskell
+-- 文字列版: 手軽だが「閉じた集合」でも「網羅検査」でもない
+safeDivS :: Int -> Int -> Either String Int
+safeDivS _ 0 = Left "0 では割れません"
+safeDivS x y = Right (x `div` y)
+~~~
+
+この書き方は簡単ですが, 失敗の集合が閉じず (どんな文字列でも `Left` にできてしまう), 網羅性検査も効かず, さらに次の warn で述べる **`print` の日本語エスケープ** にも直面します. プロトタイプや使い捨ての計算では文字列で十分ですが, エラーを設計の一部として扱うなら専用の直和型を選ぶ, と使い分けるとよいでしょう.
+
+:::
+
+::: warn
+
+**日本語のエラー文字列を `print` すると化ける.** [第8章](fp8.html) で見たとおり `print x = putStrLn (show x)` であり, `show` は ASCII の範囲外の文字を `\12391` (「で」) のような十進エスケープに置き換えます (`show` の結果をそのまま Haskell コードに貼り戻せるようにするため). 第8章の例は「`String` を返す関数」だったので `putStrLn` に替えれば済みましたが, `Either String Int` のように **`Show` 表現の内側に日本語 `String` が入れ子** になっている場合はやっかいです.
+
+~~~ haskell
+ghci> print (Left "0 では割れません" :: Either String Int)
+Left "0 \12391\12399\21106\12428\12414\12379\12435"   -- ASCII の "0 " は残り, 日本語だけ化ける
+~~~
+
+値全体は `String` ではなく `Either` なので, `putStrLn` に単純に替えることはできません (`putStrLn :: String -> IO ()` は `String` しか受け取れない). 対処は 2 通りあります.
+
+1. **専用エラー型 + `render` 関数で組む (本節の方針)**: `Left DivByZero` は `Show` しても `Left DivByZero` という ASCII だけの表現になり, そもそもエスケープが起きません. 日本語は `renderDivError` が返す `String` にだけ現れ, それを `putStrLn` で出します. 純粋関数型として設計する動機に, この表示上の利点も加わるわけです.
+2. **`unicode-show` パッケージの `uprint` / `ushow` を使う**: どうしても日本語を含む `Show` 表現をそのまま出したいときは, エスケープせず表示する `uprint` (= `putStrLn . ushow`) が使えます.
+
+~~~ haskell
+ghci> import Text.Show.Unicode (uprint)
+ghci> uprint (Left "0 では割れません" :: Either String Int)
+Left "0 では割れません"   -- エスケープされない
+~~~
+
+`unicode-show` は標準ライブラリ外なので, 使うにはプロジェクトの依存に加える必要があります (`stack` なら `package.yaml` の `dependencies` に `unicode-show` を足す). GHCi で常用したいなら `:set -interactive-print Text.Show.Unicode.uprint` で既定の表示器を差し替える手もあります.
+
+:::
+
+`Maybe` と `Either` の使い分けは「失敗の理由が要るか」です. 理由が不要なら `Maybe`, 理由を運びたいなら `Either` を使い, その理由の型は **専用の直和型を第一候補** に (手軽さを優先するなら `String` でも) 選びます.
 
 ::: note
 
 ### Exercise CH9-2
 
-**理由つきの検証 `checkAge` (Either)**
+**理由つきの検証 `checkAge` (専用エラー型)**
 
-年齢を表す `Int` を受け取り, 妥当なら `Right 年齢`, 不正なら `Left 理由` を返す関数 `checkAge :: Int -> Either String Int` を実装してください. 0 未満なら `"年齢が負です"`, 150 より大きいなら `"年齢が大きすぎます"`, それ以外は `Right` でその年齢を返します.
+年齢の検証で起こりうる失敗を, まず **専用の直和型** `AgeError` として列挙してください. 「負の年齢」と「大きすぎる年齢」の 2 種類なので, 直和で書けば $\mathrm{AgeError} = \mathrm{Negative} + \mathrm{TooLarge}$ です. これを使い, `Int` を受け取って妥当なら `Right 年齢`, 不正なら対応する `Left` を返す関数 `checkAge :: Int -> Either AgeError Int` を実装してください (0 未満なら `Negative`, 150 より大きいなら `TooLarge`). さらに, エラー値を日本語メッセージへ変換する `renderAgeError :: AgeError -> String` も書いてください.
 
 ~~~ haskell
 -- 実行例
 main :: IO ()
 main = do
-  print (checkAge 30)    -- Right 30
-  print (checkAge (-1))  -- Left "年齢が負です"
-  print (checkAge 200)   -- Left "年齢が大きすぎます"
+  print (checkAge 30)                                    -- Right 30
+  print (checkAge (-1))                                  -- Left Negative
+  print (checkAge 200)                                   -- Left TooLarge
+  putStrLn (either renderAgeError show (checkAge (-1)))  -- 年齢が負です
 ~~~
 
 <details class="protected" data-pass="yakagika">
     <summary> 回答例 </summary>
 
 ~~~ haskell
-checkAge :: Int -> Either String Int
+-- ① 起こりうる失敗を直和型で列挙する
+data AgeError = Negative | TooLarge
+  deriving (Show, Eq)
+
+-- ② その型を Left に載せて検証する
+checkAge :: Int -> Either AgeError Int
 checkAge n
-  | n < 0     = Left "年齢が負です"
-  | n > 150   = Left "年齢が大きすぎます"
+  | n < 0     = Left Negative
+  | n > 150   = Left TooLarge
   | otherwise = Right n
+
+-- ③ 表示は値と分離し, render 関数で与える
+renderAgeError :: AgeError -> String
+renderAgeError Negative = "年齢が負です"
+renderAgeError TooLarge = "年齢が大きすぎます"
 
 main :: IO ()
 main = do
-  print (checkAge 30)    -- Right 30
-  print (checkAge (-1))  -- Left "年齢が負です"
-  print (checkAge 200)   -- Left "年齢が大きすぎます"
+  print (checkAge 30)                                    -- Right 30
+  print (checkAge (-1))                                  -- Left Negative
+  print (checkAge 200)                                   -- Left TooLarge
+  putStrLn (either renderAgeError show (checkAge (-1)))  -- 年齢が負です
 ~~~
 
-`Maybe` では「不正だった」ことしか伝えられませんが, `Either String` なら **どう不正か** を `Left` の文字列で伝えられます. ガード式で条件ごとに別の理由を返すのが定石です.
+`Maybe` では「不正だった」ことしか伝えられませんが, 専用エラー型 `AgeError` なら **どう不正か** を型の構築子で伝えられます. `Negative` / `TooLarge` と名前が付くので, 受け取る側は文字列を照合せず構築子でパターンマッチでき, 構築子を書き漏らせば網羅性の警告が出ます. 日本語メッセージは `renderAgeError` に切り出し, 値と表示を分けています. (文字列で `Left "年齢が負です"` と持たせることもできますが, その場合は本文の warn で述べた `print` のエスケープに注意が要ります.)
 
 </details>
 
@@ -291,9 +357,9 @@ main = do
   -- fromMaybe 既定値 Maybe値
   print (fromMaybe (-1) (safeDiv 10 2))    -- 5
   print (fromMaybe (-1) (safeDiv 10 0))    -- -1
-  -- either 左用関数 右用関数 Either値
-  putStrLn (either ("エラー: " ++) (\n -> "結果: " ++ show n) (safeDivE 10 2))  -- 結果: 5
-  putStrLn (either ("エラー: " ++) (\n -> "結果: " ++ show n) (safeDivE 10 0))  -- エラー: 0 では割れません
+  -- either 左用関数 右用関数 Either値 (Left は renderDivError で文字列化)
+  putStrLn (either (\e -> "エラー: " ++ renderDivError e) (\n -> "結果: " ++ show n) (safeDivE 10 2))  -- 結果: 5
+  putStrLn (either (\e -> "エラー: " ++ renderDivError e) (\n -> "結果: " ++ show n) (safeDivE 10 0))  -- エラー: 0 では割れません
 ~~~
 
 `Data.Maybe` には, `Maybe` の集まりを扱う関数もあります. `isJust` / `isNothing` は中身の有無を判定し, `catMaybes` は `Maybe` のリストから `Just` の中身だけを集め, `mapMaybe` は「各要素に `Maybe` を返す関数を適用し, `Just` のものだけ残す」操作です.
@@ -321,37 +387,43 @@ main = do
 
 ### Exercise CH9-3
 
-**`Maybe` を返す安全な計算の連結 (Either への変換)**
+**`Maybe` を `Either` へ変換 (エラー型を選べる `toEither`)**
 
-`safeDiv :: Int -> Int -> Maybe Int` (本文の定義) の結果を, 理由つきの `Either String Int` に変換する関数 `toEither :: String -> Maybe a -> Either String a` を実装してください. `Nothing` のときは渡した理由を `Left` に, `Just x` のときは `Right x` にします. これを使い, `safeDiv` の `Nothing` に理由を付ける例を完成させてください.
+`safeDiv :: Int -> Int -> Maybe Int` (本文の定義) の結果を, 理由つきの `Either e a` に変換する関数 `toEither :: e -> Maybe a -> Either e a` を実装してください. `Nothing` のときは渡した理由 (エラー値) を `Left` に, `Just x` のときは `Right x` にします. 理由の型を **`e` のまま多相** にしておくと, 本文の `DivError` のような専用エラー型でも, 手軽な `String` でも, **同じ関数** で変換できます.
 
 ~~~ haskell
--- 実行例
+-- 実行例 (理由には本文の DivError を使う)
 main :: IO ()
 main = do
-  print (toEither "0 では割れません" (safeDiv 10 2))  -- Right 5
-  print (toEither "0 では割れません" (safeDiv 10 0))  -- Left "0 では割れません"
+  print (toEither DivByZero (safeDiv 10 2))          -- Right 5
+  print (toEither DivByZero (safeDiv 10 0))          -- Left DivByZero
+  print (toEither "0 では割れません" (safeDiv 10 2))  -- Right 5   (同じ toEither が String でも動く)
 ~~~
 
 <details class="protected" data-pass="yakagika">
     <summary> 回答例 </summary>
 
 ~~~ haskell
+data DivError = DivByZero
+  deriving (Show, Eq)
+
 safeDiv :: Int -> Int -> Maybe Int
 safeDiv _ 0 = Nothing
 safeDiv x y = Just (x `div` y)
 
-toEither :: String -> Maybe a -> Either String a
+-- 理由の型 e を固定しない (専用エラー型でも String でも動く)
+toEither :: e -> Maybe a -> Either e a
 toEither reason Nothing  = Left reason
 toEither _      (Just x) = Right x
 
 main :: IO ()
 main = do
+  print (toEither DivByZero (safeDiv 10 2))          -- Right 5
+  print (toEither DivByZero (safeDiv 10 0))          -- Left DivByZero
   print (toEither "0 では割れません" (safeDiv 10 2))  -- Right 5
-  print (toEither "0 では割れません" (safeDiv 10 0))  -- Left "0 では割れません"
 ~~~
 
-`toEither` は「理由を持たない失敗 (`Maybe`)」を「理由つきの失敗 (`Either`)」へ橋渡しします. `Maybe` で十分な内側の計算と, 理由を伝えたい外側の境界とで型を使い分けられるのが利点です. `toEither` 自体も中身 `a` には触れない自然変換 (`Maybe` から `Either String` への変換) になっています.
+`toEither` は「理由を持たない失敗 (`Maybe`)」を「理由つきの失敗 (`Either`)」へ橋渡しします. 理由の型 `e` を固定しないことで, 専用エラー型と文字列のどちらにも同じコードで対応できます. 型を多相にできるのは, `toEither` が中身 `a` にも理由 `e` にも触れず ただ運ぶだけだからで, これは `Maybe` から `Either e` への自然変換になっています.
 
 </details>
 

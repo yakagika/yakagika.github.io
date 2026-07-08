@@ -3,10 +3,32 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>yakagika - 対話型 multi-repo coordinator — repo agent を cmux で起動し, 変更操作だけ承認ゲートに通す</title>
+    <meta name="color-scheme" content="light dark">
+
+    <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
+         localStorage['theme'] に手動選択があればそちらを優先.
+         描画前に <html> へ .dark を付けるため <head> の早い位置で同期実行する
+         (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+    <script>
+      (function () {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+        function apply() {
+          var t = null;
+          try { t = localStorage.getItem('theme'); } catch (e) {}
+          var dark = t === 'dark' || (t !== 'light' && mq && mq.matches);
+          document.documentElement.classList.toggle('dark', dark);
+        }
+        apply();
+        if (mq) {
+          if (mq.addEventListener) mq.addEventListener('change', apply);
+          else if (mq.addListener) mq.addListener(apply);
+        }
+      })();
+    </script>
+    <title>yakagika - cmux で起動した repo agent の変更操作だけを承認ゲートに通す対話型 coordinator</title>
 
     <!-- Stylesheets. -->
-    <link rel="stylesheet" type="text/css" href="../style.css?v=1783052843">
+    <link rel="stylesheet" type="text/css" href="../style.css?v=1783486487">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -26,7 +48,7 @@
     
 
     
-      <meta property="og:description" content="Multi-Repo Agent Orchestrator の続編. 受動的な毎時巡回ハブの上に, 各リポの Agent を cmux タブで起動・操舵する対話型 coordinator を載せた. dispatch → 起動 → 報告 → teardown の一巡, 走行中の Agent の変更操作だけを横取りして人間の承認に上げる「仲介承認」, それを全 repo に常設しても solo session を壊さない per-repo heartbeat の自己ゲート, AI 同士の相互検証 (codex cross-check) で land 前に捕えた実害級バグを解説する." />
+      <meta property="og:description" content="Multi-Repo Agent Orchestrator の続編. 受動的な毎時巡回ハブの上に, 各リポの Agent を cmux タブで起動と操舵する対話型 coordinator を載せた. dispatch → 起動 → 報告 → teardown の一巡, 走行中の Agent の変更操作だけを横取りして人間の承認に上げる「仲介承認」, それを全 repo に常設しても solo session を壊さない per-repo heartbeat の自己ゲート, AI 同士の相互検証 (codex cross-check) が land 前に捕えた実害級バグまで." />
     
   </head>
 
@@ -36,8 +58,9 @@
      <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
     <header class="site-header">
       <div class="site-title">
-        <a href="../">
-          <img src="../favicon.ico" alt="Home" style="width: 32px; height: 32px;">
+        <a href="../" class="site-brand" aria-label="Home">
+          <span class="site-mark" aria-hidden="true"></span>
+          <span class="site-word">yakagika</span>
         </a>
       </div>
       <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
@@ -73,25 +96,25 @@
     <article>
 <header class="article-header">
     <span class="category-badge">Blog</span>
-    <h1 class="article-title">対話型 multi-repo coordinator — repo agent を cmux で起動し, 変更操作だけ承認ゲートに通す</h1>
-    <p class="article-description">Multi-Repo Agent Orchestrator の続編. 受動的な毎時巡回ハブの上に, 各リポの Agent を cmux タブで起動・操舵する対話型 coordinator を載せた. dispatch → 起動 → 報告 → teardown の一巡, 走行中の Agent の変更操作だけを横取りして人間の承認に上げる「仲介承認」, それを全 repo に常設しても solo session を壊さない per-repo heartbeat の自己ゲート, AI 同士の相互検証 (codex cross-check) で land 前に捕えた実害級バグを解説する.</p>
+    <h1 class="article-title">cmux で起動した repo agent の変更操作だけを承認ゲートに通す対話型 coordinator</h1>
+    <p class="article-description">Multi-Repo Agent Orchestrator の続編. 受動的な毎時巡回ハブの上に, 各リポの Agent を cmux タブで起動と操舵する対話型 coordinator を載せた. dispatch → 起動 → 報告 → teardown の一巡, 走行中の Agent の変更操作だけを横取りして人間の承認に上げる「仲介承認」, それを全 repo に常設しても solo session を壊さない per-repo heartbeat の自己ゲート, AI 同士の相互検証 (codex cross-check) が land 前に捕えた実害級バグまで.</p>
     <div class="article-meta">
         <span class="meta-item">公開: 2026-06-19</span>
-        <span class="meta-item">更新: 2026-06-19</span>
+        <span class="meta-item">更新: 2026-07-08</span>
     </div>
-    <div class="tag-chips"><a title="All pages tagged 'claude-code'." href="../tags/claude-code.html" rel="tag">claude-code</a>, <a title="All pages tagged 'orchestrator'." href="../tags/orchestrator.html" rel="tag">orchestrator</a>, <a title="All pages tagged 'automation'." href="../tags/automation.html" rel="tag">automation</a>, <a title="All pages tagged 'multi-repo'." href="../tags/multi-repo.html" rel="tag">multi-repo</a>, <a title="All pages tagged 'architecture'." href="../tags/architecture.html" rel="tag">architecture</a>, <a title="All pages tagged 'cmux'." href="../tags/cmux.html" rel="tag">cmux</a>, <a title="All pages tagged 'hooks'." href="../tags/hooks.html" rel="tag">hooks</a></div>
+    <div class="tag-chips"><a href="../tags/claude-code.html">claude-code</a><a href="../tags/orchestrator.html">orchestrator</a><a href="../tags/automation.html">automation</a><a href="../tags/multi-repo.html">multi-repo</a><a href="../tags/architecture.html">architecture</a><a href="../tags/cmux.html">cmux</a><a href="../tags/hooks.html">hooks</a></div>
 </header>
 
 <p><a href="../posts/2026-06-03-multi-repo-agent-orchestrator.html">Multi-Repo Agent Orchestrator</a> で, 複数リポの Agent を束ねる上位レイヤを紹介した. あの構成の Orchestrator は launchd の毎時巡回バッチが主役で, 各リポの Agent とは共有キュー (inbox/outbox) 越しに最大 1 時間の遅延で繋がる. 監視, 知識集約, タスク配分にはこれで十分なのだが, 複数リポの作業を今<strong>並行で進めている</strong>日には, 毎時巡回は遅すぎる. 結局, 人間が各リポに cd して <code>claude</code> を開き, 毎ターン操舵することになっていた.</p>
-<p>本記事では, その対話セッションの側を <strong>cmux のタブで各リポの Agent を起動・操舵する対話型 coordinator</strong> に育てた運用について解説する. 中でも核心は, coordinator が走行中の Agent の<strong>変更操作だけ</strong>を横取りして人間の承認に上げる「仲介承認」の仕組みで, これにより「routine は coordinator が捌き, 実判断だけ人に上げる」を, 対話性を保ったまま実現した.</p>
+<p>そこで対話セッションの側を, cmux のタブで各リポの Agent を起動と操舵する対話型 coordinator に育てた. coordinator は走行中の Agent の変更操作だけを横取りして人間の承認に上げる (仲介承認). これで routine は coordinator が捌き, 実判断だけが人に上がる.</p>
 <h2 id="ハブからコックピットへ">ハブからコックピットへ</h2>
 <p>既存の inbox/outbox ハブは repo ↔︎ Orchestrator の汎用レーンで, これはこれで機能している. ただし設計上, <strong>受動的</strong>である. repo 側が push してきた状態を毎時巡回が拾い, context-pack に配り直す. この形は監視と集約には向くが, 「こちらから特定の repo に作業を投げ込んで, その場で見届ける」用途には 3 点で合わない.</p>
 <ol type="1">
 <li><strong>能動的に起動できない</strong>: ハブは repo がセッションを立ち上げて push してくるのを待つ. coordinator 側から「このリポでこの作業を, 今, 始めてくれ」と火を点ける経路がない.</li>
-<li><strong>低遅延でない</strong>: 配り直しは毎時巡回 (最大 1 時間) 経由である. 複数のセッションが<strong>同時に生きている</strong>作業日には, 1 時間の遅延は並行作業の意味を削ぐ.</li>
-<li><strong>走行中に操舵できない</strong>: すでに走っているセッションに対し, 追加・再指示を差し込む契機がない.</li>
+<li><strong>低遅延でない</strong>: 配り直しは毎時巡回 (最大 1 時間) 経由である. 複数のセッションが同時に生きている作業日には, 1 時間の遅延は並行作業の意味を削ぐ.</li>
+<li><strong>走行中に操舵できない</strong>: すでに走っているセッションに対し, 追加や再指示を差し込む契機がない.</li>
 </ol>
-<p>そこで, ハブは残したまま, その上に<strong>対話型のコックピット</strong>を一枚足した. 肝は, 状態を運ぶ経路を<strong>増やしていない</strong>ことだ. 指示の下りは既存の feed (<code>state/outbox/&lt;repo&gt;/feed.md</code>, repo agent は <code>pull_inbox</code> で取得), 報告の上りは既存の inbox をそのまま使う. coordinator が新しく持つのは「能動的に起動する」「走行中の Agent を起こす」という signal の層だけで, <strong>状態の正本は依然としてファイル (feed/inbox/vault) 側にある</strong>. signal 層に状態を載せない, というのは前回の cross-repo handoff でも貫いた指針である.</p>
+<p>そこで, ハブは残したまま, その上に対話型のコックピットを一枚足した. ここで状態を運ぶ経路は増やしていない. 指示の下りは既存の feed (<code>state/outbox/&lt;repo&gt;/feed.md</code>, repo agent は <code>pull_inbox</code> で取得), 報告の上りは既存の inbox をそのまま使う. coordinator が新しく持つのは「能動的に起動する」「走行中の Agent を起こす」という signal の層だけで, <strong>状態の正本は依然としてファイル (feed/inbox/vault) 側にある</strong>. signal 層に状態を載せない, というのは前回の cross-repo handoff でも貫いた指針である.</p>
 <h2 id="dispatch-起動-報告-teardown">dispatch → 起動 → 報告 → teardown</h2>
 <p>dispatch された Agent の一生は, 起動から後始末までの一巡で回る.</p>
 <svg viewBox="0 0 720 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="dispatch から teardown までの一巡" font-family="sans-serif" font-size="13">
@@ -144,13 +167,13 @@
 <li><strong>dispatch</strong>: coordinator は指示を argv に詰めず, feed に書く. task-id, 作業の brief, 触ってよい範囲 (allowed_paths) を 1 エントリにする. ついでに監査用に, git 追跡された場所へミラーも残す (後述の通り feed/inbox 自体は gitignore なので, 監査痕は別に確保する).</li>
 <li><strong>起動</strong>: coordinator が cmux のワークスペースを立てる (<code>cmux new-workspace --cwd &lt;repo-worktree&gt; --command "claude ..."</code>). bootstrap プロンプトは薄く, 「<code>pull_inbox</code> で feed を読み, 実行し, 完了したら inbox に task-id と done を報告せよ」だけ. 指示の本体はあくまで feed にある.</li>
 <li><strong>報告</strong>: Agent は自分の worktree で作業し, 結果を inbox に task-id 付き + <code>done</code> で書く. 既存の集約パイプライン (inbox → vault → briefing) がそのまま拾う.</li>
-<li><strong>teardown</strong>: coordinator が done を検知したらセッションを畳む. 常時 hot にしておくと文脈の再読込コスト (usage) がかさむので, 完了したものは閉じる</li>
+<li><strong>teardown</strong>: coordinator が done を検知したらセッションを畳む. 常時 hot にしておくと文脈の再読込コスト (usage) がかさむので, 完了したものは閉じる.</li>
 </ul>
-<p>teardown は 3 段ある. <strong>soft <code>/clear</code></strong> は文脈だけ消して warm なセッションを温存する (同じ repo で連続タスクがある時の再起動コストを避ける). <strong>exit</strong> はプロセスを終わらせてタブは残す. <strong>hard close</strong> (<code>cmux close-workspace</code>) はタブごと撤去で, これが既定. Agent は自分でスラッシュコマンドを叩けないので, いずれも coordinator が cmux 経由で送る. <strong>異常時は閉じない</strong> — blocker やエラーが報告されたらタブを残して人間に surface する. 対話セッションで生きたまま中を覗いて操舵できるのが, headless 巡回にはない利点だからだ. idle で固まった時も, 黙って kill せずタブを残してアラートする.</p>
+<p>teardown は 3 段ある. <strong>soft <code>/clear</code></strong> は文脈だけ消して warm なセッションを温存する (同じ repo で連続タスクがある時の再起動コストを避ける). <strong>exit</strong> はプロセスを終わらせてタブは残す. <strong>hard close</strong> (<code>cmux close-workspace</code>) はタブごと撤去で, これが既定. Agent は自分でスラッシュコマンドを叩けないので, いずれも coordinator が cmux 経由で送る. 異常時は閉じない. blocker やエラーが報告されたらタブを残して人間に surface する. 対話セッションで生きたまま中を覗いて操舵できるのが, headless 巡回にはない利点だからだ. idle で固まった時も, 黙って kill せずタブを残してアラートする.</p>
 <p>地味だが効くのが lifecycle の取りこぼし防止である. どのタブがどの task かを registry で突き合わせ, セッションの同定は cmux のワークスペース uuid で行う (使い回される ref を ID にすると, 別のセッションを取り違える危険があった). 完了の検知は「claim した」ではなく「complete した」という構造化シグナルで判定し (作業中を完了と誤認しない), 閉じる前には grace を置く (操舵中のタブを即閉じない). 削除は CAS で行い, 一度閉じたつもりが裏で再起動されていた時に取り違えて消すのを防ぐ. このあたりは, 後述する相互検証で具体的に指摘されて固めた箇所だ.</p>
 <h2 id="仲介承認-mediated-approval">仲介承認 (mediated approval)</h2>
-<p>ここが本記事の山である. coordinator が Agent を起動して放っておくと, Agent は人間が承認すべき変更を勝手にやってしまうかもしれない. かといって 1 操作ごとに承認を求めていたら, 結局つきっきりになって自動化の意味がない. 欲しいのは「<strong>変更操作だけ</strong>を人間に上げ, 読み取りや routine は素通りさせる」中間である.</p>
-<p>これを <code>PreToolUse</code> フックで実現した. フックは<strong>変更系のツールと MCP 呼び出しだけ</strong>にマッチする (Edit / Write / MultiEdit / NotebookEdit / Bash / WebFetch / WebSearch / <code>mcp__*</code>). 読み取り専用のツール呼び出しはそもそもフックを踏まないので, 性能上のコストもかからない. マッチしたものの中でも, 安全と分かっているごく一部 (ツール検索など) は黙って通し, それ以外を coordinator に escalate する.</p>
+<p>coordinator が Agent を起動して放っておくと, Agent は人間が承認すべき変更を勝手にやってしまうかもしれない. かといって 1 操作ごとに承認を求めていたら, 結局つきっきりになって自動化の意味がない. 欲しいのは「<strong>変更操作だけ</strong>を人間に上げ, 読み取りや routine は素通りさせる」中間である.</p>
+<p>これを <code>PreToolUse</code> フックで実現した. フックは変更系のツールと MCP 呼び出しだけにマッチする (Edit / Write / MultiEdit / NotebookEdit / Bash / WebFetch / WebSearch / <code>mcp__*</code>). 読み取り専用のツール呼び出しはそもそもフックを踏まないので, 性能上のコストもかからない. マッチしたものの中でも, 安全と分かっているごく一部 (ツール検索など) は黙って通し, それ以外を coordinator に escalate する.</p>
 <svg viewBox="0 0 640 540" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="仲介承認の判定フロー" font-family="sans-serif" font-size="13">
 <defs>
 <marker id="dah" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
@@ -209,24 +232,24 @@
 <text x="490" y="487" text-anchor="middle" font-weight="bold">deny</text>
 <text x="490" y="505" text-anchor="middle" fill="#555" font-size="11">却下として記録</text>
 </svg>
-<p>escalate されると, coordinator は保留中の承認を検知して人間に surface する. 人間は <code>AskUserQuestion</code> で承認/却下を選び, <strong>承認すると, フックは以後の追加プロンプトなしにそのツールを実行させる</strong>. 却下すれば deny で記録. escalate にはツールの完全なペイロードと, allowed_paths との照合結果が付くので, 何を許そうとしているのかを見てから判断できる.</p>
+<p>escalate されると, coordinator は保留中の承認を検知して人間に surface する. 人間は <code>AskUserQuestion</code> で承認/却下を選び, 承認すると, フックは以後の追加プロンプトなしにそのツールを実行させる. 却下すれば deny で記録. escalate にはツールの完全なペイロードと, allowed_paths との照合結果が付くので, 何を許そうとしているのかを見てから判断できる.</p>
 <p>ポリシーは <strong>fail-safe</strong> にしてある. 分類が未知のツールは「とりあえず通す」ではなく「とりあえず聞く」に倒す. 安全と分かっているものだけを黙認し, それ以外は承認に回す. ここを逆 (未知は通す = fail-open) にした初版は, 相互検証で一発で止められた. 承認ゲートが fail-open だと, ゲートを置いた意味が消える.</p>
-<p>この設計で得られるのが, 冒頭に書いた「coordinator が routine を捌き, 実判断だけ人に escalate する」状態である. しかも対話性を失わない. 人間は各 repo に張り付くのをやめ, 上がってきた判断だけに答えればよくなる.</p>
+<p>この設計で, coordinator が routine を捌き, 実判断だけを人に escalate する形になる. 対話性も失わない. 人間は各 repo に張り付くのをやめ, 上がってきた判断だけに答えればよくなる.</p>
 <h2 id="per-repo-heartbeat-の自己ゲート">per-repo heartbeat の自己ゲート</h2>
-<p>承認フックを全 repo に常設しようとすると, <strong>coordinator なんて居ない, ただ自分で <code>claude</code> を開いただけの普通のセッション</strong>でも, あらゆる編集が「居ない承認者」を待ってデッドロックする可能性がある.</p>
+<p>承認フックを全 repo に常設しようとすると, coordinator なんて居ない, ただ自分で <code>claude</code> を開いただけの普通のセッションでも, あらゆる編集が「居ない承認者」を待ってデッドロックする可能性がある.</p>
 <p>これを per-repo の heartbeat による自己ゲートで解いた. フックが escalate するのは, <strong>その repo の coordinator heartbeat が新鮮 (TTL 180 秒以内) な時だけ</strong>である. heartbeat が無い, あるいは古い = coordinator が居ない = solo session, とみなしてフックは何もせず native フローに通す (上の図の最初の分岐). coordinator はある repo を能動的に操舵している間だけ heartbeat を打ち続け, 手を離せばゲートはまた休眠に戻る.</p>
 <p>効くのは heartbeat が <strong>per-repo</strong> であることだ. これを global にすると, どこか 1 つの repo に coordinator が居るだけで全 repo の編集がゲートされてしまう (これも相互検証で指摘されて直した). repo ごとに区切ったので, 現に coordinator の操舵下にある repo だけが仲介を受ける.</p>
-<p>この自己ゲートのおかげで, <strong>承認フックを全 repo (git 管理下でないものも含む) に配って回っても, 既定では休眠していて何のコストもない</strong>. 同じ仕組みが, solo の手作業には透明で, coordinator が来た時だけ起きる. 「常設しても壊れない」を, 設定の出し入れではなく liveness による自己判定で担保することができた.</p>
+<p>この自己ゲートのおかげで, 承認フックを全 repo (git 管理下でないものも含む) に配って回っても, 既定では休眠していて何のコストもない. 同じ仕組みが, solo の手作業には透明で, coordinator が来た時だけ起きる. 「常設しても壊れない」を, 設定の出し入れではなく liveness による自己判定で担保することができた.</p>
 <h2 id="足場-先に塞いだ前提">足場: 先に塞いだ前提</h2>
-<p>仲介承認や lifecycle の前に, 地味だが先に塞いでおく必要のあった穴が 2 つあった.</p>
+<p>仲介承認や lifecycle の前に, 先に塞いでおく必要のあった穴が 2 つあった.</p>
 <ul>
 <li><strong>共有ファイルのロック</strong>: feed や task のファイルは, 毎時巡回 / MCP / 走行中の Agent という複数の書き手が read-modify-write する. ロックが無いと並行 RMW が lost-update を起こす. ファイルロックでこれらを直列化した. 走行中の Agent と巡回が同じ feed を触る本機構では, これが全ての前提になる.</li>
-<li><strong>安全 MCP の事前許可</strong>: 起動された Agent が routine の MCP (feed の取得など) を呼ぶたびに許可プロンプトで止まると, 対話で立ち上げたはずのセッションが最初のツール呼び出しで固まる — 居なくて済むはずの人間を待って. なので, Orchestrator 自身の安全な MCP ツール群を repo の設定で事前許可しておく.</li>
+<li><strong>安全 MCP の事前許可</strong>: 起動された Agent が routine の MCP (feed の取得など) を呼ぶたびに許可プロンプトで止まると, 対話で立ち上げたはずのセッションが最初のツール呼び出しで固まる. 居なくて済むはずの人間を待たせて. なので, Orchestrator 自身の安全な MCP ツール群を repo の設定で事前許可しておく.</li>
 </ul>
 <p>どちらも派手さは無いが, これが無いと「能動的に起動して放っておく」が成立しない.</p>
 <h2 id="何が変わって-何が変わっていないか">何が変わって, 何が変わっていないか</h2>
 <p>実証は, ファイルを編集しない疎通確認と, 1 ファイルを書く編集タスクの両方で, dispatch → 承認 → 実行 → 完了 → teardown の一巡を end-to-end で通すところまで. 常時 hot 運用はせず, 必要な時だけ起動して畳む方針も維持している.</p>
-<p>前回の記事で Orchestrator の中心命題として書いたのは, 「上位は下位の FS を直接書き換えない」「Orchestrator は判断と記録に徹し, 現場では手を動かさない」だった. 一見, 能動的に起動・操舵する coordinator はこれを破っているように見える. だが破っていない. coordinator は依然として repo のファイルに自分で書き込まない — feed に指示を置き, 実作業は Agent が自分の worktree で行う. 仲介承認が横取りするのも <em>Agent 自身の</em> ツール呼び出しであって, coordinator が代わりに編集するわけではない. 変わったのは,「対話セッションの側が受動から能動になった」ことと,「人間の役割が, 各 repo を操作する人から, coordinator が上げてくる判断に答える人へ移った」ことだ. 司令塔は司令塔のまま, ただ黙って巡回を待つのをやめて, こちらから火を点けられるようになった.</p>
+<p>前回の記事で Orchestrator の中心命題として書いたのは, 「上位は下位の FS を直接書き換えない」「Orchestrator は判断と記録に徹し, 現場では手を動かさない」だった. 一見, 能動的に起動と操舵する coordinator はこれを破っているように見える. だが破っていない. coordinator は依然として repo のファイルに自分で書き込まない. feed に指示を置くだけで, 実作業は Agent が自分の worktree で行う. 仲介承認が横取りするのも <em>Agent 自身の</em> ツール呼び出しであって, coordinator が代わりに編集するわけではない. 変わったのは,「対話セッションの側が受動から能動になった」ことと,「人間の役割が, 各 repo を操作する人から, coordinator が上げてくる判断に答える人へ移った」ことだ. 司令塔は司令塔のまま, ただ黙って巡回を待つのをやめて, こちらから火を点けられるようになった.</p>
 <p>という感じで, ハブの上にコックピットを一枚足した話でした. 例によって毎日変わっているので, あくまで暫定版です.</p>
 </article>
 
@@ -234,11 +257,21 @@
     <div style="clear: both"></div>
 
     <div id="footer">
-        &copy; yakagika. Site generated by
-        <a href="http://jaspervdj.be/hakyll">Hakyll</a>.
+        <nav class="footer-nav" aria-label="フッターナビゲーション">
+            <a href="../">Home</a>
+            <a href="../posts.html">Blog</a>
+            <a href="../lectures.html">Lecture</a>
+            <a href="../research.html">Research</a>
+            <a href="../rss.xml">RSS</a>
+            <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+        </nav>
+        <p class="footer-copy">&copy; yakagika &middot; Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>.</p>
     </div>
 </div>
 
+
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="ページ先頭へ戻る" title="先頭へ戻る">↑</button>
 
     <!-- GUID -->
     <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
@@ -587,6 +620,58 @@
                         );
           }
       }
+    });
+  </script>
+
+  <!-- 見出しアンカーリンク + Back to top -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 記事見出しに hover で現れる # パーマリンクを付与
+      document.querySelectorAll('article h2[id], article h3[id]').forEach(function (h) {
+        var a = document.createElement('a');
+        a.className = 'heading-anchor';
+        a.href = '#' + h.id;
+        a.setAttribute('aria-label', 'このセクションへのリンク');
+        a.textContent = '#';
+        h.appendChild(a);
+      });
+
+      // Back to top: スクロール量に応じて表示
+      var btt = document.getElementById('back-to-top');
+      if (btt) {
+        var onScroll = function () {
+          if (window.pageYOffset > 600) btt.classList.add('visible');
+          else btt.classList.remove('visible');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        btt.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
     });
   </script>
 

@@ -13,18 +13,18 @@
         <webMaster>kaya3728@gmail.com (yakagika)</webMaster>
         
         <item>
-    <title>対話型 multi-repo coordinator — repo agent を cmux で起動し, 変更操作だけ承認ゲートに通す</title>
+    <title>cmux で起動した repo agent の変更操作だけを承認ゲートに通す対話型 coordinator</title>
     <link>/posts/2026-06-19-interactive-multi-repo-coordinator.html</link>
     <description><![CDATA[<p><a href="/posts/2026-06-03-multi-repo-agent-orchestrator.html">Multi-Repo Agent Orchestrator</a> で, 複数リポの Agent を束ねる上位レイヤを紹介した. あの構成の Orchestrator は launchd の毎時巡回バッチが主役で, 各リポの Agent とは共有キュー (inbox/outbox) 越しに最大 1 時間の遅延で繋がる. 監視, 知識集約, タスク配分にはこれで十分なのだが, 複数リポの作業を今<strong>並行で進めている</strong>日には, 毎時巡回は遅すぎる. 結局, 人間が各リポに cd して <code>claude</code> を開き, 毎ターン操舵することになっていた.</p>
-<p>本記事では, その対話セッションの側を <strong>cmux のタブで各リポの Agent を起動・操舵する対話型 coordinator</strong> に育てた運用について解説する. 中でも核心は, coordinator が走行中の Agent の<strong>変更操作だけ</strong>を横取りして人間の承認に上げる「仲介承認」の仕組みで, これにより「routine は coordinator が捌き, 実判断だけ人に上げる」を, 対話性を保ったまま実現した.</p>
+<p>そこで対話セッションの側を, cmux のタブで各リポの Agent を起動と操舵する対話型 coordinator に育てた. coordinator は走行中の Agent の変更操作だけを横取りして人間の承認に上げる (仲介承認). これで routine は coordinator が捌き, 実判断だけが人に上がる.</p>
 <h1 id="ハブからコックピットへ">ハブからコックピットへ</h1>
 <p>既存の inbox/outbox ハブは repo ↔︎ Orchestrator の汎用レーンで, これはこれで機能している. ただし設計上, <strong>受動的</strong>である. repo 側が push してきた状態を毎時巡回が拾い, context-pack に配り直す. この形は監視と集約には向くが, 「こちらから特定の repo に作業を投げ込んで, その場で見届ける」用途には 3 点で合わない.</p>
 <ol type="1">
 <li><strong>能動的に起動できない</strong>: ハブは repo がセッションを立ち上げて push してくるのを待つ. coordinator 側から「このリポでこの作業を, 今, 始めてくれ」と火を点ける経路がない.</li>
-<li><strong>低遅延でない</strong>: 配り直しは毎時巡回 (最大 1 時間) 経由である. 複数のセッションが<strong>同時に生きている</strong>作業日には, 1 時間の遅延は並行作業の意味を削ぐ.</li>
-<li><strong>走行中に操舵できない</strong>: すでに走っているセッションに対し, 追加・再指示を差し込む契機がない.</li>
+<li><strong>低遅延でない</strong>: 配り直しは毎時巡回 (最大 1 時間) 経由である. 複数のセッションが同時に生きている作業日には, 1 時間の遅延は並行作業の意味を削ぐ.</li>
+<li><strong>走行中に操舵できない</strong>: すでに走っているセッションに対し, 追加や再指示を差し込む契機がない.</li>
 </ol>
-<p>そこで, ハブは残したまま, その上に<strong>対話型のコックピット</strong>を一枚足した. 肝は, 状態を運ぶ経路を<strong>増やしていない</strong>ことだ. 指示の下りは既存の feed (<code>state/outbox/&lt;repo&gt;/feed.md</code>, repo agent は <code>pull_inbox</code> で取得), 報告の上りは既存の inbox をそのまま使う. coordinator が新しく持つのは「能動的に起動する」「走行中の Agent を起こす」という signal の層だけで, <strong>状態の正本は依然としてファイル (feed/inbox/vault) 側にある</strong>. signal 層に状態を載せない, というのは前回の cross-repo handoff でも貫いた指針である.</p>
+<p>そこで, ハブは残したまま, その上に対話型のコックピットを一枚足した. ここで状態を運ぶ経路は増やしていない. 指示の下りは既存の feed (<code>state/outbox/&lt;repo&gt;/feed.md</code>, repo agent は <code>pull_inbox</code> で取得), 報告の上りは既存の inbox をそのまま使う. coordinator が新しく持つのは「能動的に起動する」「走行中の Agent を起こす」という signal の層だけで, <strong>状態の正本は依然としてファイル (feed/inbox/vault) 側にある</strong>. signal 層に状態を載せない, というのは前回の cross-repo handoff でも貫いた指針である.</p>
 <h1 id="dispatch-起動-報告-teardown">dispatch → 起動 → 報告 → teardown</h1>
 <p>dispatch された Agent の一生は, 起動から後始末までの一巡で回る.</p>
 <svg viewBox="0 0 720 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="dispatch から teardown までの一巡" font-family="sans-serif" font-size="13">
@@ -77,13 +77,13 @@
 <li><strong>dispatch</strong>: coordinator は指示を argv に詰めず, feed に書く. task-id, 作業の brief, 触ってよい範囲 (allowed_paths) を 1 エントリにする. ついでに監査用に, git 追跡された場所へミラーも残す (後述の通り feed/inbox 自体は gitignore なので, 監査痕は別に確保する).</li>
 <li><strong>起動</strong>: coordinator が cmux のワークスペースを立てる (<code>cmux new-workspace --cwd &lt;repo-worktree&gt; --command "claude ..."</code>). bootstrap プロンプトは薄く, 「<code>pull_inbox</code> で feed を読み, 実行し, 完了したら inbox に task-id と done を報告せよ」だけ. 指示の本体はあくまで feed にある.</li>
 <li><strong>報告</strong>: Agent は自分の worktree で作業し, 結果を inbox に task-id 付き + <code>done</code> で書く. 既存の集約パイプライン (inbox → vault → briefing) がそのまま拾う.</li>
-<li><strong>teardown</strong>: coordinator が done を検知したらセッションを畳む. 常時 hot にしておくと文脈の再読込コスト (usage) がかさむので, 完了したものは閉じる</li>
+<li><strong>teardown</strong>: coordinator が done を検知したらセッションを畳む. 常時 hot にしておくと文脈の再読込コスト (usage) がかさむので, 完了したものは閉じる.</li>
 </ul>
-<p>teardown は 3 段ある. <strong>soft <code>/clear</code></strong> は文脈だけ消して warm なセッションを温存する (同じ repo で連続タスクがある時の再起動コストを避ける). <strong>exit</strong> はプロセスを終わらせてタブは残す. <strong>hard close</strong> (<code>cmux close-workspace</code>) はタブごと撤去で, これが既定. Agent は自分でスラッシュコマンドを叩けないので, いずれも coordinator が cmux 経由で送る. <strong>異常時は閉じない</strong> — blocker やエラーが報告されたらタブを残して人間に surface する. 対話セッションで生きたまま中を覗いて操舵できるのが, headless 巡回にはない利点だからだ. idle で固まった時も, 黙って kill せずタブを残してアラートする.</p>
+<p>teardown は 3 段ある. <strong>soft <code>/clear</code></strong> は文脈だけ消して warm なセッションを温存する (同じ repo で連続タスクがある時の再起動コストを避ける). <strong>exit</strong> はプロセスを終わらせてタブは残す. <strong>hard close</strong> (<code>cmux close-workspace</code>) はタブごと撤去で, これが既定. Agent は自分でスラッシュコマンドを叩けないので, いずれも coordinator が cmux 経由で送る. 異常時は閉じない. blocker やエラーが報告されたらタブを残して人間に surface する. 対話セッションで生きたまま中を覗いて操舵できるのが, headless 巡回にはない利点だからだ. idle で固まった時も, 黙って kill せずタブを残してアラートする.</p>
 <p>地味だが効くのが lifecycle の取りこぼし防止である. どのタブがどの task かを registry で突き合わせ, セッションの同定は cmux のワークスペース uuid で行う (使い回される ref を ID にすると, 別のセッションを取り違える危険があった). 完了の検知は「claim した」ではなく「complete した」という構造化シグナルで判定し (作業中を完了と誤認しない), 閉じる前には grace を置く (操舵中のタブを即閉じない). 削除は CAS で行い, 一度閉じたつもりが裏で再起動されていた時に取り違えて消すのを防ぐ. このあたりは, 後述する相互検証で具体的に指摘されて固めた箇所だ.</p>
 <h1 id="仲介承認-mediated-approval">仲介承認 (mediated approval)</h1>
-<p>ここが本記事の山である. coordinator が Agent を起動して放っておくと, Agent は人間が承認すべき変更を勝手にやってしまうかもしれない. かといって 1 操作ごとに承認を求めていたら, 結局つきっきりになって自動化の意味がない. 欲しいのは「<strong>変更操作だけ</strong>を人間に上げ, 読み取りや routine は素通りさせる」中間である.</p>
-<p>これを <code>PreToolUse</code> フックで実現した. フックは<strong>変更系のツールと MCP 呼び出しだけ</strong>にマッチする (Edit / Write / MultiEdit / NotebookEdit / Bash / WebFetch / WebSearch / <code>mcp__*</code>). 読み取り専用のツール呼び出しはそもそもフックを踏まないので, 性能上のコストもかからない. マッチしたものの中でも, 安全と分かっているごく一部 (ツール検索など) は黙って通し, それ以外を coordinator に escalate する.</p>
+<p>coordinator が Agent を起動して放っておくと, Agent は人間が承認すべき変更を勝手にやってしまうかもしれない. かといって 1 操作ごとに承認を求めていたら, 結局つきっきりになって自動化の意味がない. 欲しいのは「<strong>変更操作だけ</strong>を人間に上げ, 読み取りや routine は素通りさせる」中間である.</p>
+<p>これを <code>PreToolUse</code> フックで実現した. フックは変更系のツールと MCP 呼び出しだけにマッチする (Edit / Write / MultiEdit / NotebookEdit / Bash / WebFetch / WebSearch / <code>mcp__*</code>). 読み取り専用のツール呼び出しはそもそもフックを踏まないので, 性能上のコストもかからない. マッチしたものの中でも, 安全と分かっているごく一部 (ツール検索など) は黙って通し, それ以外を coordinator に escalate する.</p>
 <svg viewBox="0 0 640 540" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="仲介承認の判定フロー" font-family="sans-serif" font-size="13">
 <defs>
 <marker id="dah" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
@@ -142,24 +142,24 @@
 <text x="490" y="487" text-anchor="middle" font-weight="bold">deny</text>
 <text x="490" y="505" text-anchor="middle" fill="#555" font-size="11">却下として記録</text>
 </svg>
-<p>escalate されると, coordinator は保留中の承認を検知して人間に surface する. 人間は <code>AskUserQuestion</code> で承認/却下を選び, <strong>承認すると, フックは以後の追加プロンプトなしにそのツールを実行させる</strong>. 却下すれば deny で記録. escalate にはツールの完全なペイロードと, allowed_paths との照合結果が付くので, 何を許そうとしているのかを見てから判断できる.</p>
+<p>escalate されると, coordinator は保留中の承認を検知して人間に surface する. 人間は <code>AskUserQuestion</code> で承認/却下を選び, 承認すると, フックは以後の追加プロンプトなしにそのツールを実行させる. 却下すれば deny で記録. escalate にはツールの完全なペイロードと, allowed_paths との照合結果が付くので, 何を許そうとしているのかを見てから判断できる.</p>
 <p>ポリシーは <strong>fail-safe</strong> にしてある. 分類が未知のツールは「とりあえず通す」ではなく「とりあえず聞く」に倒す. 安全と分かっているものだけを黙認し, それ以外は承認に回す. ここを逆 (未知は通す = fail-open) にした初版は, 相互検証で一発で止められた. 承認ゲートが fail-open だと, ゲートを置いた意味が消える.</p>
-<p>この設計で得られるのが, 冒頭に書いた「coordinator が routine を捌き, 実判断だけ人に escalate する」状態である. しかも対話性を失わない. 人間は各 repo に張り付くのをやめ, 上がってきた判断だけに答えればよくなる.</p>
+<p>この設計で, coordinator が routine を捌き, 実判断だけを人に escalate する形になる. 対話性も失わない. 人間は各 repo に張り付くのをやめ, 上がってきた判断だけに答えればよくなる.</p>
 <h1 id="per-repo-heartbeat-の自己ゲート">per-repo heartbeat の自己ゲート</h1>
-<p>承認フックを全 repo に常設しようとすると, <strong>coordinator なんて居ない, ただ自分で <code>claude</code> を開いただけの普通のセッション</strong>でも, あらゆる編集が「居ない承認者」を待ってデッドロックする可能性がある.</p>
+<p>承認フックを全 repo に常設しようとすると, coordinator なんて居ない, ただ自分で <code>claude</code> を開いただけの普通のセッションでも, あらゆる編集が「居ない承認者」を待ってデッドロックする可能性がある.</p>
 <p>これを per-repo の heartbeat による自己ゲートで解いた. フックが escalate するのは, <strong>その repo の coordinator heartbeat が新鮮 (TTL 180 秒以内) な時だけ</strong>である. heartbeat が無い, あるいは古い = coordinator が居ない = solo session, とみなしてフックは何もせず native フローに通す (上の図の最初の分岐). coordinator はある repo を能動的に操舵している間だけ heartbeat を打ち続け, 手を離せばゲートはまた休眠に戻る.</p>
 <p>効くのは heartbeat が <strong>per-repo</strong> であることだ. これを global にすると, どこか 1 つの repo に coordinator が居るだけで全 repo の編集がゲートされてしまう (これも相互検証で指摘されて直した). repo ごとに区切ったので, 現に coordinator の操舵下にある repo だけが仲介を受ける.</p>
-<p>この自己ゲートのおかげで, <strong>承認フックを全 repo (git 管理下でないものも含む) に配って回っても, 既定では休眠していて何のコストもない</strong>. 同じ仕組みが, solo の手作業には透明で, coordinator が来た時だけ起きる. 「常設しても壊れない」を, 設定の出し入れではなく liveness による自己判定で担保することができた.</p>
+<p>この自己ゲートのおかげで, 承認フックを全 repo (git 管理下でないものも含む) に配って回っても, 既定では休眠していて何のコストもない. 同じ仕組みが, solo の手作業には透明で, coordinator が来た時だけ起きる. 「常設しても壊れない」を, 設定の出し入れではなく liveness による自己判定で担保することができた.</p>
 <h1 id="足場-先に塞いだ前提">足場: 先に塞いだ前提</h1>
-<p>仲介承認や lifecycle の前に, 地味だが先に塞いでおく必要のあった穴が 2 つあった.</p>
+<p>仲介承認や lifecycle の前に, 先に塞いでおく必要のあった穴が 2 つあった.</p>
 <ul>
 <li><strong>共有ファイルのロック</strong>: feed や task のファイルは, 毎時巡回 / MCP / 走行中の Agent という複数の書き手が read-modify-write する. ロックが無いと並行 RMW が lost-update を起こす. ファイルロックでこれらを直列化した. 走行中の Agent と巡回が同じ feed を触る本機構では, これが全ての前提になる.</li>
-<li><strong>安全 MCP の事前許可</strong>: 起動された Agent が routine の MCP (feed の取得など) を呼ぶたびに許可プロンプトで止まると, 対話で立ち上げたはずのセッションが最初のツール呼び出しで固まる — 居なくて済むはずの人間を待って. なので, Orchestrator 自身の安全な MCP ツール群を repo の設定で事前許可しておく.</li>
+<li><strong>安全 MCP の事前許可</strong>: 起動された Agent が routine の MCP (feed の取得など) を呼ぶたびに許可プロンプトで止まると, 対話で立ち上げたはずのセッションが最初のツール呼び出しで固まる. 居なくて済むはずの人間を待たせて. なので, Orchestrator 自身の安全な MCP ツール群を repo の設定で事前許可しておく.</li>
 </ul>
 <p>どちらも派手さは無いが, これが無いと「能動的に起動して放っておく」が成立しない.</p>
 <h1 id="何が変わって-何が変わっていないか">何が変わって, 何が変わっていないか</h1>
 <p>実証は, ファイルを編集しない疎通確認と, 1 ファイルを書く編集タスクの両方で, dispatch → 承認 → 実行 → 完了 → teardown の一巡を end-to-end で通すところまで. 常時 hot 運用はせず, 必要な時だけ起動して畳む方針も維持している.</p>
-<p>前回の記事で Orchestrator の中心命題として書いたのは, 「上位は下位の FS を直接書き換えない」「Orchestrator は判断と記録に徹し, 現場では手を動かさない」だった. 一見, 能動的に起動・操舵する coordinator はこれを破っているように見える. だが破っていない. coordinator は依然として repo のファイルに自分で書き込まない — feed に指示を置き, 実作業は Agent が自分の worktree で行う. 仲介承認が横取りするのも <em>Agent 自身の</em> ツール呼び出しであって, coordinator が代わりに編集するわけではない. 変わったのは,「対話セッションの側が受動から能動になった」ことと,「人間の役割が, 各 repo を操作する人から, coordinator が上げてくる判断に答える人へ移った」ことだ. 司令塔は司令塔のまま, ただ黙って巡回を待つのをやめて, こちらから火を点けられるようになった.</p>
+<p>前回の記事で Orchestrator の中心命題として書いたのは, 「上位は下位の FS を直接書き換えない」「Orchestrator は判断と記録に徹し, 現場では手を動かさない」だった. 一見, 能動的に起動と操舵する coordinator はこれを破っているように見える. だが破っていない. coordinator は依然として repo のファイルに自分で書き込まない. feed に指示を置くだけで, 実作業は Agent が自分の worktree で行う. 仲介承認が横取りするのも <em>Agent 自身の</em> ツール呼び出しであって, coordinator が代わりに編集するわけではない. 変わったのは,「対話セッションの側が受動から能動になった」ことと,「人間の役割が, 各 repo を操作する人から, coordinator が上げてくる判断に答える人へ移った」ことだ. 司令塔は司令塔のまま, ただ黙って巡回を待つのをやめて, こちらから火を点けられるようになった.</p>
 <p>という感じで, ハブの上にコックピットを一枚足した話でした. 例によって毎日変わっているので, あくまで暫定版です.</p>]]></description>
     <pubDate>Fri, 19 Jun 2026 00:00:00 UT</pubDate>
     <guid>/posts/2026-06-19-interactive-multi-repo-coordinator.html</guid>
@@ -169,10 +169,10 @@
     <dc:creator>yakagika</dc:creator>
 </item>
 <item>
-    <title>repo 間の Agent タスク連鎖 — 中央 immutable queue による cross-repo handoff</title>
+    <title>中央 immutable queue で運ぶ repo 間の Agent タスク連鎖</title>
     <link>/posts/2026-06-12-cross-repo-handoff-queue.html</link>
-    <description><![CDATA[<p><a href="/posts/2026-06-03-multi-repo-agent-orchestrator.html">Multi-Repo Agent Orchestrator</a> で, 複数リポの Agent を束ねる上位レイヤを紹介した. あの構成の通信モデルは「各リポの Agent ↔︎ Orchestrator」のハブであり, repo 同士は直接話すことができない. 状態の報告も知識もタスクも, いったん中央 (inbox/outbox) or 人間 を経由し, 毎時の巡回が配り直す形式になっている.</p>
-<p>このハブがた運用だと <strong>repo から repo への, 有向の, 低遅延なタスクの受け渡し</strong>の度に人間が何かしらの処理(プロンプトで指示等)を挟む必要があり,非常に手間がかかるので,直接別repoの間のAgentが話せるようにした.</p>
+    <description><![CDATA[<p><a href="/posts/2026-06-03-multi-repo-agent-orchestrator.html">Multi-Repo Agent Orchestrator</a> で, 複数リポの Agent を束ねる上位レイヤを紹介した. あの構成の通信モデルは「各リポの Agent ↔︎ Orchestrator」のハブであり, repo 同士は直接話すことができない. 状態の報告も知識もタスクも, いったん中央 (inbox/outbox) か人間を経由し, 毎時の巡回が配り直す形式になっている.</p>
+<p>このハブ型運用だと, <strong>repo から repo への, 有向の, 低遅延なタスクの受け渡し</strong>のたびに人間が何かしらの処理 (プロンプトで指示など) を挟む必要があり, 手間がかかる. そこで別 repo の間の Agent が直接話せるようにした.</p>
 <p>本記事はそのために追加した中央 immutable queue による cross-repo handoff の仕組みと設計判断の話です. 前回の続編だが, 「複数の git repo に複数の Agent が並行で作業している時, repo 間の依頼をどう運ぶか」という一般的な問題として読めるはず.</p>
 <h1 id="ハブでは何が運べないか">ハブでは何が運べないか</h1>
 <p>既存の inbox/outbox ハブは repo ↔︎ Orchestrator の汎用レーンで, これはこれで機能している. しかし上の用途には 3 点で合わない.</p>
@@ -181,8 +181,8 @@
 <li><strong>低遅延でない</strong>: 配り直しは毎時巡回 (≤1h) 経由である. cmux でライブラリ側と論文側のセッションが<strong>同時に生きている</strong>作業日には, 1 時間の遅延は並行作業の意味を削ぐ.</li>
 <li><strong>連鎖を表現できない</strong>: 「version X の追従が終わってから version Y の追従をする」のような<strong>依存つきのタスク列</strong> (DAG) を, ハブの単発タスクでは表現できない.</li>
 </ol>
-<p>実は当初は, もっと素朴な解決策 — 上流 Agent が下流リポの plan ディレクトリへ直接タスクファイルを書き込む「mailbox 方式」 — を設計していた. これがレビューで棄却された経緯は後述するとして, 先に最終形を見せる.</p>
-<h1 id="解決策-中央-immutable-queue">解決策 — 中央 immutable queue</h1>
+<p>実は当初は, もっと素朴な解決策 (上流 Agent が下流リポの plan ディレクトリへ直接タスクファイルを書き込む「mailbox 方式」) を設計していた. これがレビューで棄却された経緯は後述するとして, 先に最終形を見せる.</p>
+<h1 id="中央-immutable-queue-という解決策">中央 immutable queue という解決策</h1>
 <p>機構の全体は, Orchestrator 領域 (git 追跡) に置かれた 2 種類のファイルだけでできている.</p>
 <pre><code>state/cross-repo-handoffs/
   &lt;宛先リポ&gt;/
@@ -256,18 +256,18 @@
 <span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="co">## 受信側でやること (action)</span></span>
 <span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="co">## 受け入れ基準</span></span></code></pre></div>
 <p>どの repo がどの repo の上流かは, Orchestrator の設定 (1 枚の YAML) に <code>depends_on</code> エッジとして宣言されている. このエッジが queue の張られるトポロジを決め, 巡回が監視する対象も決める.</p>
-<h1 id="設計判断-1-所有権の分離で-git-衝突を原理的に消す">設計判断 1 — 所有権の分離で git 衝突を原理的に消す</h1>
-<p>このシステムのファイルはすべて git 追跡された markdown であり, 複数の Agent (とユーザ) が並行で触る. すると当然, 同一ファイルへの並行書込み (shared-write) が衝突源になる. 解決策として採用したのは <a href="/posts/2026-06-11-personal-learn-layer.html">Learn 層</a>の iCloud 競合対策と同じ指針 — <strong>衝突はマージアルゴリズムでなく所有権で避ける</strong> — である.</p>
+<h1 id="設計判断-1-所有権の分離で-git-衝突を原理的に消す">設計判断 1: 所有権の分離で git 衝突を原理的に消す</h1>
+<p>このシステムのファイルはすべて git 追跡された markdown であり, 複数の Agent (とユーザ) が並行で触る. すると当然, 同一ファイルへの並行書込み (shared-write) が衝突源になる. 解決策として採用したのは <a href="/posts/2026-06-11-personal-learn-layer.html">Learn 層</a>の iCloud 競合対策と同じ指針である. すなわち, 衝突はマージアルゴリズムでなく所有権で避ける.</p>
 <ul>
 <li><strong>request は送信者所有で, 書いたら不変 (write-once)</strong>. 受信者は request に一切触らない.</li>
 <li><strong>受信者の状態は別ファイル (receipt) に書く</strong>. 1 chain_id = 1 receipt で, これは受信者だけが書く.</li>
 <li>処理の作業コピーは受信側リポの plan ディレクトリへ import し, そこは受信者の領域.</li>
 </ul>
-<p>「queue item に対応する receipt が無い」= 未処理, という判定もファイルの存在だけで決まるので, 状態フィールドの更新合戦が起きない. request を後から訂正したい時も, 元ファイルは編集せず<strong>新しい chain_id を立てて旧を superseded 指定</strong>する. event-sourcing を markdown と git でやっている, と言ってもよい.</p>
+<p>「queue item に対応する receipt が無い」= 未処理, という判定もファイルの存在だけで決まるので, 状態フィールドの更新合戦が起きない. request を後から訂正したい時も, 元ファイルは編集せず<strong>新しい chain_id を立てて旧を superseded 指定</strong>する. これは markdown と git による event-sourcing である.</p>
 <p>この所有権モデルのおかげで, 同一ファイルへの shared-write が<strong>設計上存在しない</strong> (= git conflict が原理的に起きない). 並行 Agent の数が増えても通信路の不変条件は変わらない.</p>
-<h1 id="設計判断-2-enqueue-は自動-実行はゲート">設計判断 2 — enqueue は自動, 実行はゲート</h1>
+<h1 id="設計判断-2-enqueue-は自動-実行はゲート">設計判断 2: enqueue は自動, 実行はゲート</h1>
 <p>次に「いつ送ってよいか / いつ実行してよいか」の規律. ここは非対称にした.</p>
-<p><strong>enqueue (送る側) は自動・即時・承認不要</strong>である. 上流 Agent は semantic change (下流の挙動を動かしうる変更) を land した時点で, 影響先の queue へ request を積む. 迷ったら積む. これが許されるのは, <strong>積むだけでは何も実行されない</strong>からである. queue は不変の依頼書の束であって, 積むこと自体に副作用がない.</p>
+<p><strong>enqueue (送る側) は自動, 即時, 承認不要</strong>である. 上流 Agent は semantic change (下流の挙動を動かしうる変更) を land した時点で, 影響先の queue へ request を積む. 迷ったら積む. これが許されるのは, <strong>積むだけでは何も実行されない</strong>からである. queue は不変の依頼書の束であって, 積むこと自体に副作用がない.</p>
 <p><strong>drain (実行する側) はゲート付き</strong>である. 下流 Agent は session 冒頭に自分宛て queue を走査し, class で分岐する.</p>
 <svg viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="drain の実行ゲート" font-family="sans-serif" font-size="13">
 <defs>
@@ -300,13 +300,13 @@
 <text x="455" y="156" fill="#a55a5a" font-size="11">/ 図表値変化 → 自動昇格</text>
 </svg>
 <ul>
-<li><strong>mechanical</strong> (新しい解釈を要さない反映 — 版番号の追従, pin の更新, 決定的再実行) でも, 自動で許されるのは <strong>preflight = 検証コマンドの実行と diff の生成まで</strong>. その結果 diff が空で統計判定も図表値も動かない時だけ, ユーザ指示なしで完了する. これが自動完了の<strong>唯一の</strong>経路である.</li>
+<li><strong>mechanical</strong> (新しい解釈を要さない反映: 版番号の追従, pin の更新, 決定的再実行) でも, 自動で許されるのは <strong>preflight = 検証コマンドの実行と diff の生成まで</strong>. その結果 diff が空で統計判定も図表値も動かない時だけ, ユーザ指示なしで完了する. これが自動完了の<strong>唯一の</strong>経路である.</li>
 <li>preflight で<strong>非ゼロ diff, 統計判定の変化, 図表値の変化</strong>が出たら, その request は自動で substantive に昇格し, 承認ゲートに回る (receipt に昇格の事実が記録される).</li>
 <li><strong>substantive</strong> (定義の改訂, 結論に関わる数値解釈, 本文主張の変更) は最初から承認ゲート行き. 承認まで実行されない.</li>
 </ul>
-<p>この設計の核は, 動機の事故をそのまま裏返したものである. 「機械的な版更新」と分類されたタスクが, 実行してみたら結論を動かす — これが一番危ない取りこぼしだった. だから<strong>分類を信用せず, preflight の結果で再分類する</strong>. mechanical とは「安全だと宣言されたタスク」ではなく「安全かどうかを安く確認できるタスク」のことだ, と言い換えてもよい.</p>
-<p>依存連鎖 (DAG) の側にも対応するゲートがある. 先行 chain_id が done になるまで後続は処理されない. では先行が<strong>却下</strong>されたら? — ここで黙って待ち続けるとデッドロックになるので, request 自身が <code>on_dependency_rejected</code> (ask / abandon / continue) で振る舞いを宣言しておく. 循環依存や参照先不明の request は blocked として隔離され, ユーザに報告される. 「待ちで固まる」状態を作らないことは, 人間が常時監視しない系では特に効く.</p>
-<h1 id="設計判断-3-二重トランスポート">設計判断 3 — 二重トランスポート</h1>
+<p>この設計は, 動機の事故をそのまま裏返している. 「機械的な版更新」と分類されたタスクが, 実行してみたら結論を動かす. これが一番危ない取りこぼしだった. だから<strong>分類を信用せず, preflight の結果で再分類する</strong>. mechanical とは「安全だと宣言されたタスク」ではなく「安全かどうかを安く確認できるタスク」のことだ.</p>
+<p>依存連鎖 (DAG) の側にも対応するゲートがある. 先行 chain_id が done になるまで後続は処理されない. では先行が却下されたらどうなるか. 黙って待ち続けるとデッドロックになるので, request 自身が <code>on_dependency_rejected</code> (ask / abandon / continue) で振る舞いを宣言しておく. 循環依存や参照先不明の request は blocked として隔離され, ユーザに報告される. 「待ちで固まる」状態を作らないことは, 人間が常時監視しない系では特に効く.</p>
+<h1 id="設計判断-3-二重トランスポート">設計判断 3: 二重トランスポート</h1>
 <p>通信路は 2 本あり, どちらも同じ queue を指す.</p>
 <table>
 <colgroup>
@@ -340,9 +340,9 @@
 </table>
 <p>即時パスだけだと, 下流のセッションが立っていない時に request が放置される. 永続パスだけだと冒頭の低遅延要件に戻ってしまう. 2 本を併設し, ただし<strong>状態は queue という 1 箇所にだけ持つ</strong> (パスはどちらも「気づかせる」だけ) ので, 二重計上や食い違いは起きない.</p>
 <p>ハブ (inbox/outbox) との関係も同じ整理である. ハブは repo ↔︎ Orchestrator の汎用レーン, 本機構は repo ↔︎ repo の有向タスク連鎖で, <strong>役割が違うので置き換えず併存させる</strong>. 通信路を増やす時は「既存路の代替か, 別役割か」を先に決めておくと, 後で経路の選択に迷わない.</p>
-<h1 id="初期廃案-ai-同士の相互検証">初期廃案 — AI 同士の相互検証</h1>
+<h1 id="初期に廃案にした-mailbox-方式">初期に廃案にした mailbox 方式</h1>
 <p>最後に設計の経緯を書いておきたい. 冒頭で触れたとおり, 初版の設計は「上流 Agent が<strong>下流リポの plan ディレクトリへ直接</strong> request を書き込む mailbox 方式」だった. 直感的だし, 中央を経由しない分シンプルに見える.</p>
-<p>この案を, 普段から使っている相互検証の枠組み — Claude が設計し, 独立した別モデル (Codex) が懐疑的にレビューする — に掛けたところ, 4 点の指摘で棄却された.</p>
+<p>この案を, 普段から使っている相互検証の枠組み (Claude が設計し, 独立した別モデルの Codex が懐疑的にレビューする) に掛けたところ, 4 点の指摘で棄却された.</p>
 <ol type="1">
 <li>受信者が request の status を更新すると, 送信者と受信者の<strong>同一ファイル shared-write</strong> になる (git 衝突源).</li>
 <li>mechanical の自動実行は, 「機械的な版更新が結論を覆す」事故 (まさに動機の実例) を<strong>取りこぼす</strong>.</li>
@@ -350,7 +350,7 @@
 <li>リポによって plan を git 追跡していたりいなかったりして (gitignore), mailbox の<strong>永続性が非対称</strong>になる.</li>
 </ol>
 <p>どれも言われてみればその通りで, 特に 2 は失敗例があり上手く働かないことが分かっていた. この指摘を受けて「中央 immutable queue + 所有権分離 + preflight 止まり」へ改設計したのが本記事の形である. 設計文書には, 採用した原則だけでなく<strong>初版が何で棄却されたか</strong>も why として記録してあり, 将来似た判断をする Agent がそこを読む.</p>
-<p>一人で開発していると設計レビューの相手がいない, というのは個人開発の古典的な弱点だが, 独立した複数の AI に同じ設計を別角度から読ませる体制は, その代替として実用になりつつあると感じる.</p>]]></description>
+<p>一人で開発していると設計レビューの相手がいない, というのは個人開発の古典的な弱点だが, 独立した複数のモデルに同じ設計を別角度から読ませる体制は, その代替として実用になりつつあると感じる.</p>]]></description>
     <pubDate>Fri, 12 Jun 2026 00:00:00 UT</pubDate>
     <guid>/posts/2026-06-12-cross-repo-handoff-queue.html</guid>
     
@@ -361,10 +361,10 @@
 <item>
     <title>Multi-Repo Agent Orchestrator</title>
     <link>/posts/2026-06-03-multi-repo-agent-orchestrator.html</link>
-    <description><![CDATA[<p>近頃皆さんやっていることだが, PC上のあらゆる作業にAI Agentを介入させるように仕事の再構築を進めている. 構築を進める中で, 複数のプロジェクトが同時進行する中で, CLAUDE.md/AGENT.md, skills の仕様判断, その他規約,コンテキストの設定を共有・自動化したいという欲求が出てきた.</p>
-<p>複数Agentの並行管理自体は, <code>Remote Control</code> や <a href="https://cmux.com/">cmux</a> などの導入で軽くなってきたが, それぞれのrepoで独立していると初期設定,知識層の反映で手間がかかる. どのrepoで起動しても作業目標毎に知識,規約の引き継ぎの手間がボトルネックとなってきた.</p>
+    <description><![CDATA[<p>近頃よくある取り組みだが, PC 上のあらゆる作業に AI Agent を介入させるように仕事の再構築を進めている. 再構築を進めるうちに, 複数のプロジェクトが同時進行する状況で, CLAUDE.md/AGENT.md, skills の仕様判断, その他の規約やコンテキストの設定を共有し自動化したいという欲求が出てきた.</p>
+<p>複数 Agent の並行管理自体は, <code>Remote Control</code> や <a href="https://cmux.com/">cmux</a> などの導入で軽くなってきたが, それぞれの repo で独立していると初期設定や知識層の反映に手間がかかる. どの repo で起動しても, 作業目標ごとに知識と規約を引き継ぐのがボトルネックとなってきた.</p>
 <p>そのために, 複数リポで別々に走らせている十数個の Claude/Codex セッションを, 横断で監視, 記録, タスク配分, 知識集約する上位レイヤ(Agent Orchestrator)を自作した. 各リポの Agent は賢いが, それらを束ねる視点 (誰が何を進行中か, 知見の横断再利用, タスクの配分) は別レイヤの問題で, そこを担うのがこの Orchestrator である.</p>
-<p>このような用途としてはわざわざ車輪の再発明をしなくても既存 AI Assistant tool として有名なものに <a href="https://pi.ai/">Pi</a> (Inflection) や <a href="https://nousresearch.com/">Hermes Agent</a> (Nous Research) とがあり,わざわざこんなことをしなくても既存アーキテクチャを採用することで類似の効果は得られる.</p>
+<p>このような用途なら, 既存の AI Assistant tool として有名な <a href="https://pi.ai/">Pi</a> (Inflection) や <a href="https://nousresearch.com/">Hermes Agent</a> (Nous Research) がある. わざわざ車輪の再発明をしなくても, 既存アーキテクチャを採用すれば類似の効果は得られる.</p>
 <p>Pi は製品 / UX 層, Hermes Agent はモデル + 単一 agent 層に当たる. どちらも記憶や知識の集約・反映の仕組みを持ち (Hermes Agent は永続メモリ + skills, Pi は会話文脈), 私の理解では orchestrator 的な役割もある程度こなす一般ツールである.</p>
 <table>
 <thead>
@@ -474,11 +474,11 @@ vault (RAG 知識 + 規約 + タスク) を横断共有
 <li><strong>記憶層が小さい</strong>: 既製ツールの記憶は基本的に単一 agent スコープで, 複数リポ・複数分野にまたがる横断知識ベース (本プロジェクトの vault) としては手狭. RAG として手入れする前提の corpus を, agent の外側に独立して持ちたい.</li>
 <li><strong>作業ごとに分人的な役割分担がある</strong>: 研究, 講義, 開発, 私生活で必要な人格・文脈・規約は異なる. すべてを単一 agent に集約するより, <strong>agent ごとの個別コンテキストと, 横断の共通知識とを併存</strong>させたい. 一個の強い agent を作る (Hermes Agent の方向) のではなく, 弱くてもよいので多数の agent をそれぞれの分人として保ちつつ, 共通の知識層で束ねる, という選択である.</li>
 </ul>
-<p>あと単純に自分で弄れる範囲が大きい方が楽しい. ので普通はHermes Agentを入れておけば殆ど事足りると思われる.</p>
+<p>あと単純に, 自分で弄れる範囲が大きい方が楽しい. 普通は Hermes Agent を入れておけばほとんどこと足りると思う.</p>
 <p>なお,以下の構成は最終的には,ネットワーク上の常時稼働Agentに引き継ぐが現在は試験的に,全てローカルで完結させている.</p>
 <h1 id="全体構成-5-層">全体構成: 5 層</h1>
 <p>Orchestrator は管理対象リポの上位に立ち, launchd で毎時巡回するバッチと対話セッションの二面で動く. 処理は 5 層に分かれ, 各リポの Agent とは共有キュー (inbox/outbox) だけで接続する.</p>
-<p>なお, この対話セッションの側は後に, 各リポの Agent を cmux のタブで起動・操舵し, <strong>変更操作だけを承認ゲートに通す対話型 coordinator</strong> へ発展させた. その仕組みは続編 <a href="/posts/2026-06-19-interactive-multi-repo-coordinator.html">対話型 multi-repo coordinator — repo agent を cmux で起動し, 変更操作だけ承認ゲートに通す</a> に書いた.</p>
+<p>なお, この対話セッションの側は後に, 各リポの Agent を cmux のタブで起動・操舵し, <strong>変更操作だけを承認ゲートに通す対話型 coordinator</strong> へ発展させた. その仕組みは続編 <a href="/posts/2026-06-19-interactive-multi-repo-coordinator.html">cmux で起動した repo agent の変更操作だけを承認ゲートに通す対話型 coordinator</a> に書いた.</p>
 <svg viewBox="0 0 720 430" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="全体アーキテクチャ 5 層" font-family="sans-serif" font-size="13">
 <defs>
 <marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
@@ -524,10 +524,10 @@ vault (RAG 知識 + 規約 + タスク) を横断共有
 <rect x="480" y="350" width="160" height="40" rx="6" fill="#eef4fb" stroke="#4a78b5"/>
 <text x="560" y="375" text-anchor="middle">Todoist (タスク)</text>
 </svg>
-<p>ポイントは, <strong>Orchestrator 自身は判断と記録に徹し, 各リポでの実作業はそのリポの Agent が担う</strong>こと. Orchestrator は司令塔兼書記であって, 現場では手を動かさない.</p>
+<p>Orchestrator 自身は判断と記録に徹し, 各リポでの実作業はそのリポの Agent が担う. Orchestrator は司令塔兼書記であって, 現場では手を動かさない.</p>
 <h1 id="管理対象-複数リポをカテゴリで束ねる">管理対象: 複数リポをカテゴリで束ねる</h1>
 <p>以下は匿名化したリポの構造を表している. 各リポは <code>runtime</code> (claude / codex), <code>cadence</code> (毎時 / 日次 / 週次), <code>category</code>, <code>techs</code> をメタデータに持ち, これが後段の routing と知識索引のキーになる. 設定は 1 枚の YAML に集約し, パーサも 1 本に統一している.</p>
-<p>構造は二段に分かれる. <strong>Orchestrator が作業レイヤの頂点に立ち</strong>, 十数リポを束ねる. そして <strong>その Orchestrator を頂点とする系全体を, さらに外側から評価するのが existential (Vault)</strong> である.</p>
+<p>構造は二段に分かれる. 作業レイヤの頂点に Orchestrator が立って十数リポを束ね, その系全体をさらに外側から評価するのが existential (Vault) である.</p>
 <svg viewBox="0 0 720 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Orchestrator を頂点とする作業レイヤと existential のメタ評価" font-family="sans-serif" font-size="13">
 <defs>
 <marker id="ahm" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
@@ -599,10 +599,10 @@ vault (RAG 知識 + 規約 + タスク) を横断共有
 <text x="360" y="492" text-anchor="middle" fill="#888" font-size="11">各リポは runtime (claude / codex) / cadence (毎時 / 日次 / 週次) / category / techs をメタデータに持つ</text>
 <text x="360" y="512" text-anchor="middle" fill="#888" font-size="11">設定は 1 枚の YAML に集約し, パーサも 1 本に統一. これが routing と知識索引のキーになる</text>
 </svg>
-<p>二段構成のポイントは, <strong>Orchestrator と existential (Vault) の役割が違う層にある</strong>ことだ. Orchestrator は作業レイヤの頂点として, 十数リポの routing / 知識 / タスクを束ねる司令塔である. これに対し existential は, その Orchestrator を頂点とする系全体を<strong>さらに外側からメタ的に評価する</strong>. ここには <code>now.md</code> をはじめ思想 / 現状 / 価値観の single source があり, 個々の作業や routing が自分の価値観・現状と整合しているかを問う. <strong>Orchestrator が “何を / どう進めるか” の司令塔なら, existential は “そもそもその方向で良いか” を問うメタ評価レイヤ</strong>にあたる. now.md 自体は Orchestrator 経由で必要な agent にも配信されるが (思想 context の routing), existential の主たる役割は系全体のメタ評価である.</p>
-<p>各リポもOrchesratorを通じて連携できるようにしている. 例えば, 最近開発を進めている <strong>paper 層</strong>は, 文献管理に特化したパイプラインを持つ. 論文 PDF を原典として取り込み, それを <strong>md</strong> に抽出・要約 (図表や式の扱いも含む) してから, 引用情報を <strong>bib</strong> (引用データベース) に落とす. この <strong>PDF → md → bib</strong> の流れが research 層の執筆へ供給され, 「読んだ論文がそのまま引用可能な形で原稿に届く」状態が構築されている.</p>
+<p>Orchestrator と existential (Vault) は層が違う. Orchestrator は作業レイヤの頂点として十数リポの routing / 知識 / タスクを束ねるが, existential はその Orchestrator を含む系全体を外側から評価する. existential には <code>now.md</code> をはじめ思想 / 現状 / 価値観の single source があり, 個々の作業や routing が自分の価値観と現状に整合しているかを問う. Orchestrator が「何を / どう進めるか」を扱うのに対し, existential は「そもそもその方向で良いか」を扱う. now.md 自体は Orchestrator 経由で必要な agent にも配信される.</p>
+<p>各リポも Orchestrator を通じて連携できるようにしている. 例えば, 最近開発を進めている <strong>paper 層</strong>は, 文献管理に特化したパイプラインを持つ. 論文 PDF を原典として取り込み, それを <strong>md</strong> に抽出・要約 (図表や式の扱いも含む) してから, 引用情報を <strong>bib</strong> (引用データベース) に落とす. この <strong>PDF → md → bib</strong> の流れが research 層の執筆へ供給され, 「読んだ論文がそのまま引用可能な形で原稿に届く」状態が構築されている.</p>
 <h1 id="通信モデル-repo-initiated">通信モデル: repo-initiated</h1>
-<p>一番大事な制約として, <strong>Orchestrator は管理対象リポの FS を直接書き換えない</strong>ことがある. 通信はすべて repo 側から共有キューへの push / pull に固定する.</p>
+<p>Orchestrator は管理対象リポの FS を直接書き換えない. これが一番大事な制約だ. 通信はすべて repo 側から共有キューへの push / pull に固定する.</p>
 <svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="repo-initiated 通信" font-family="sans-serif" font-size="13">
 <defs>
 <marker id="ah2" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
@@ -631,14 +631,14 @@ vault (RAG 知識 + 規約 + タスク) を横断共有
 <text x="248" y="185" fill="#333">pull</text>
 </svg>
 <p>境界を push/pull のキューに固定すると, <strong>どちらが何を書いたかが常に明確</strong>になり, 片方が壊れてももう片方は動き続ける. 上位が下位のコードを勝手に上書きしない, という規律でもある.</p>
-<p>なお, このハブは repo ↔︎ Orchestrator の汎用レーンであり, repo から repo への有向のタスク連鎖は運ばない. そちらは後日追加した別機構で, 続編 <a href="/posts/2026-06-12-cross-repo-handoff-queue.html">repo 間の Agent タスク連鎖 — 中央 immutable queue による cross-repo handoff</a> に書いた.</p>
+<p>なお, このハブは repo ↔︎ Orchestrator の汎用レーンであり, repo から repo への有向のタスク連鎖は運ばない. そちらは後日追加した別機構で, 続編 <a href="/posts/2026-06-12-cross-repo-handoff-queue.html">中央 immutable queue で運ぶ repo 間の Agent タスク連鎖</a> に書いた.</p>
 <h1 id="データ表現-今のところすべて-markdown">データ表現: (今のところ)すべて markdown</h1>
 <p>状態, タスク, 知識, 規約 - Orchestrator が扱うデータは全部 <a href="https://obsidian.md/">Obsidian</a> による markdown + frontmatter で持つ. DB も独自フォーマットも使わない. 狙いは移行容易性で, 別マシン (常時起動の Mac mini を想定) へ移すとき, データ表現が markdown のままなら<strong>差し替えるのは通信層だけ</strong>で済む.</p>
 <p><span class="math display">
 \text{Phase 1 (file)} \;\longrightarrow\; \text{Phase 2 (MCP)} \;\longrightarrow\; \text{Phase 3 (LAN MCP)}
 </span></p>
-<p>通信は進化させても vault の中身は不変. でそのまま人間が読める利点も大きい.</p>
-<p>markdown / Obsidian を選んだ主な理由は, <strong>もともと個人の知識管理を Obsidian で行っていた</strong>ことにある. 設計として一から選んだというより, 既存資産 (過去の日記やメモ) をそのまま agent に読ませられる連続性が大きく, 実際 existential (Vault) では過去の日記・メモを文脈として読ませている. したがって <strong>人間が文章を読む面は当面 Obsidian 固定</strong>で行く予定だ. 一方, 人間が読まない orchestrator 層の内部表現 (state や中間データ) は markdown に縛る必然はなく, <strong>より効率的な手段があれば置き換える予定</strong>でいる. markdown は “人間も読む層” の共通項として残し, 機械専用の層は最適な表現へ寄せていきたい.</p>
+<p>通信を進化させても vault の中身は変わらない. markdown のままなので, そのまま人間が読める利点も大きい.</p>
+<p>markdown / Obsidian を選んだ主な理由は, もともと個人の知識管理を Obsidian で行っていたことにある. 設計として一から選んだというより, 既存資産 (過去の日記やメモ) をそのまま agent に読ませられる連続性が大きい. 実際 existential (Vault) では過去の日記やメモを文脈として読ませている. そのため, <strong>人間が文章を読む面は当面 Obsidian 固定</strong>で行く予定だ. 一方, 人間が読まない orchestrator 層の内部表現 (state や中間データ) は markdown に縛る必然がなく, より効率的な手段があれば置き換える. markdown は人間も読む層の共通項として残す.</p>
 <h1 id="知識層-自前-rag">知識層 = 自前 RAG</h1>
 <p>このプロジェクトで一番効いている知識層は, 実質 RAG (Retrieval-Augmented Generation) の自前運用である. ただし主眼は “貯める” ことより “腐らせない” ことにある.</p>
 <svg viewBox="0 0 720 270" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="知識 RAG ライフサイクル" font-family="sans-serif" font-size="13">
@@ -684,7 +684,7 @@ vault (RAG 知識 + 規約 + タスク) を横断共有
 <ul>
 <li><strong>curation (本題)</strong>: corpus をただ増やすとノイズで検索精度が落ちる. 引かれた note は本フォルダへ<strong>昇格</strong>, 古い / 撤回された note は <code>_stale/</code> へ<strong>隔離</strong> (黙って消さないので追跡可). retrieval のログ (usage signal) が次の curation を駆動する. 一度踏んだ gotcha を別リポの Agent が二度踏まないのは, corpus が増えるからでなく手入れされているからだ.</li>
 </ul>
-<p>なお, ここで扱っているのはあくまで <em>Agent のための</em> 知識層である. 人間 (私) 自身の学習を同じ枠組み (queue + 巡回) で回す層は, 続編 <a href="/posts/2026-06-11-personal-learn-layer.html">個人の学習層 (Learn) — Agent が薦め, スマホで消化し, vault に積む</a> に書いた.</p>
+<p>なお, ここで扱っているのはあくまで <em>Agent のための</em> 知識層である. 人間 (私) 自身の学習を同じ枠組み (queue + 巡回) で回す層は, 続編 <a href="/posts/2026-06-11-personal-learn-layer.html">AIと連携した個人の学習層 (Learn)</a> に書いた.</p>
 <h1 id="タスク管理層-todoist">タスク管理層: Todoist</h1>
 <p>知識層と並ぶもう一つの管理層がタスクで, ここは <a href="https://todoist.com/">Todoist</a> を hub にしている. <strong>人間と agent が同じタスクを同じ場所で見る</strong>ための層である.</p>
 <svg viewBox="0 0 720 170" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="タスク管理層 Todoist" font-family="sans-serif" font-size="13">
@@ -735,7 +735,7 @@ vault (RAG 知識 + 規約 + タスク) を横断共有
 <path d="M390,98 L460,55" stroke="#555" fill="none" marker-end="url(#ah4)"/>
 <path d="M390,112 L460,150" stroke="#555" fill="none" marker-end="url(#ah4)"/>
 </svg>
-<p>ツールが落ちても依頼の種別に応じて確実に拾われる. 賢いコンポーネントほど壊れ方に対する設計が効く, という一例である.</p>
+<p>ツールが落ちても, 依頼は種別に応じて確実に拾われる. 賢いコンポーネントほど, 正常時の動作だけでなく壊れ方まで設計しておく必要がある.</p>
 <p>という感じで色々やってみているが, なんとなく機能してきたのでまとめました記事でした. 毎日変わっているのであくまで暫定版ですが.</p>]]></description>
     <pubDate>Wed, 03 Jun 2026 00:00:00 UT</pubDate>
     <guid>/posts/2026-06-03-multi-repo-agent-orchestrator.html</guid>

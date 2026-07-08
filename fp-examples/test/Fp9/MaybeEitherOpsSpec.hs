@@ -4,13 +4,19 @@ module Fp9.MaybeEitherOpsSpec (spec) where
 import Test.Hspec
 import Data.Maybe (fromMaybe, isJust, catMaybes, mapMaybe)
 
+data DivError = DivByZero
+  deriving (Show, Eq)
+
 safeDiv :: Int -> Int -> Maybe Int
 safeDiv _ 0 = Nothing
 safeDiv x y = Just (x `div` y)
 
-safeDivE :: Int -> Int -> Either String Int
-safeDivE _ 0 = Left "0 では割れません"
+safeDivE :: Int -> Int -> Either DivError Int
+safeDivE _ 0 = Left DivByZero
 safeDivE x y = Right (x `div` y)
+
+renderDivError :: DivError -> String
+renderDivError DivByZero = "0 では割れません"
 
 -- 文字列を Int に変換しようとし, 数字でなければ Nothing
 parseInt :: String -> Maybe Int
@@ -29,11 +35,11 @@ spec = describe "Fp9.MaybeEitherOps" $ do
       fromMaybe (-1) (safeDiv 10 2) `shouldBe` 5
     it "fromMaybe (-1) (safeDiv 10 0) == -1" $
       fromMaybe (-1) (safeDiv 10 0) `shouldBe` (-1)
-    it "either で Right を整形" $
-      either ("エラー: " ++) (\n -> "結果: " ++ show n) (safeDivE 10 2)
+    it "either で Right を整形 (Left は renderDivError)" $
+      either (\e -> "エラー: " ++ renderDivError e) (\n -> "結果: " ++ show n) (safeDivE 10 2)
         `shouldBe` "結果: 5"
-    it "either で Left を整形" $
-      either ("エラー: " ++) (\n -> "結果: " ++ show n) (safeDivE 10 0)
+    it "either で Left を整形 (renderDivError)" $
+      either (\e -> "エラー: " ++ renderDivError e) (\n -> "結果: " ++ show n) (safeDivE 10 0)
         `shouldBe` "エラー: 0 では割れません"
   describe "isJust / catMaybes / mapMaybe" $ do
     it "isJust (Just 3) == True" $
