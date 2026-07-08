@@ -1,6 +1,6 @@
 ---
-title: 対話型 multi-repo coordinator — repo agent を cmux で起動し, 変更操作だけ承認ゲートに通す
-description: Multi-Repo Agent Orchestrator の続編. 受動的な毎時巡回ハブの上に, 各リポの Agent を cmux タブで起動・操舵する対話型 coordinator を載せた. dispatch → 起動 → 報告 → teardown の一巡, 走行中の Agent の変更操作だけを横取りして人間の承認に上げる「仲介承認」, それを全 repo に常設しても solo session を壊さない per-repo heartbeat の自己ゲート, AI 同士の相互検証 (codex cross-check) で land 前に捕えた実害級バグを解説する.
+title: cmux で起動した repo agent の変更操作だけを承認ゲートに通す対話型 coordinator
+description: Multi-Repo Agent Orchestrator の続編. 受動的な毎時巡回ハブの上に, 各リポの Agent を cmux タブで起動と操舵する対話型 coordinator を載せた. dispatch → 起動 → 報告 → teardown の一巡, 走行中の Agent の変更操作だけを横取りして人間の承認に上げる「仲介承認」, それを全 repo に常設しても solo session を壊さない per-repo heartbeat の自己ゲート, AI 同士の相互検証 (codex cross-check) が land 前に捕えた実害級バグまで.
 tags:
     - claude-code
     - orchestrator
@@ -15,17 +15,17 @@ tableOfContents: true
 
 [Multi-Repo Agent Orchestrator](/posts/2026-06-03-multi-repo-agent-orchestrator.html) で, 複数リポの Agent を束ねる上位レイヤを紹介した. あの構成の Orchestrator は launchd の毎時巡回バッチが主役で, 各リポの Agent とは共有キュー (inbox/outbox) 越しに最大 1 時間の遅延で繋がる. 監視, 知識集約, タスク配分にはこれで十分なのだが, 複数リポの作業を今**並行で進めている**日には, 毎時巡回は遅すぎる. 結局, 人間が各リポに cd して `claude` を開き, 毎ターン操舵することになっていた.
 
-本記事では, その対話セッションの側を **cmux のタブで各リポの Agent を起動・操舵する対話型 coordinator** に育てた運用について解説する. 中でも核心は, coordinator が走行中の Agent の**変更操作だけ**を横取りして人間の承認に上げる「仲介承認」の仕組みで, これにより「routine は coordinator が捌き, 実判断だけ人に上げる」を, 対話性を保ったまま実現した.
+そこで対話セッションの側を, cmux のタブで各リポの Agent を起動と操舵する対話型 coordinator に育てた. coordinator は走行中の Agent の変更操作だけを横取りして人間の承認に上げる (仲介承認). これで routine は coordinator が捌き, 実判断だけが人に上がる.
 
 # ハブからコックピットへ
 
 既存の inbox/outbox ハブは repo ↔ Orchestrator の汎用レーンで, これはこれで機能している. ただし設計上, **受動的**である. repo 側が push してきた状態を毎時巡回が拾い, context-pack に配り直す. この形は監視と集約には向くが, 「こちらから特定の repo に作業を投げ込んで, その場で見届ける」用途には 3 点で合わない.
 
 1. **能動的に起動できない**: ハブは repo がセッションを立ち上げて push してくるのを待つ. coordinator 側から「このリポでこの作業を, 今, 始めてくれ」と火を点ける経路がない.
-2. **低遅延でない**: 配り直しは毎時巡回 (最大 1 時間) 経由である. 複数のセッションが**同時に生きている**作業日には, 1 時間の遅延は並行作業の意味を削ぐ.
-3. **走行中に操舵できない**: すでに走っているセッションに対し, 追加・再指示を差し込む契機がない.
+2. **低遅延でない**: 配り直しは毎時巡回 (最大 1 時間) 経由である. 複数のセッションが同時に生きている作業日には, 1 時間の遅延は並行作業の意味を削ぐ.
+3. **走行中に操舵できない**: すでに走っているセッションに対し, 追加や再指示を差し込む契機がない.
 
-そこで, ハブは残したまま, その上に**対話型のコックピット**を一枚足した. 肝は, 状態を運ぶ経路を**増やしていない**ことだ. 指示の下りは既存の feed (`state/outbox/<repo>/feed.md`, repo agent は `pull_inbox` で取得), 報告の上りは既存の inbox をそのまま使う. coordinator が新しく持つのは「能動的に起動する」「走行中の Agent を起こす」という signal の層だけで, **状態の正本は依然としてファイル (feed/inbox/vault) 側にある**. signal 層に状態を載せない, というのは前回の cross-repo handoff でも貫いた指針である.
+そこで, ハブは残したまま, その上に対話型のコックピットを一枚足した. ここで状態を運ぶ経路は増やしていない. 指示の下りは既存の feed (`state/outbox/<repo>/feed.md`, repo agent は `pull_inbox` で取得), 報告の上りは既存の inbox をそのまま使う. coordinator が新しく持つのは「能動的に起動する」「走行中の Agent を起こす」という signal の層だけで, **状態の正本は依然としてファイル (feed/inbox/vault) 側にある**. signal 層に状態を載せない, というのは前回の cross-repo handoff でも貫いた指針である.
 
 # dispatch → 起動 → 報告 → teardown
 
@@ -81,17 +81,17 @@ dispatch された Agent の一生は, 起動から後始末までの一巡で�
 - **dispatch**: coordinator は指示を argv に詰めず, feed に書く. task-id, 作業の brief, 触ってよい範囲 (allowed_paths) を 1 エントリにする. ついでに監査用に, git 追跡された場所へミラーも残す (後述の通り feed/inbox 自体は gitignore なので, 監査痕は別に確保する).
 - **起動**: coordinator が cmux のワークスペースを立てる (`cmux new-workspace --cwd <repo-worktree> --command "claude ..."`). bootstrap プロンプトは薄く, 「`pull_inbox` で feed を読み, 実行し, 完了したら inbox に task-id と done を報告せよ」だけ. 指示の本体はあくまで feed にある.
 - **報告**: Agent は自分の worktree で作業し, 結果を inbox に task-id 付き + `done` で書く. 既存の集約パイプライン (inbox → vault → briefing) がそのまま拾う.
-- **teardown**: coordinator が done を検知したらセッションを畳む. 常時 hot にしておくと文脈の再読込コスト (usage) がかさむので, 完了したものは閉じる
+- **teardown**: coordinator が done を検知したらセッションを畳む. 常時 hot にしておくと文脈の再読込コスト (usage) がかさむので, 完了したものは閉じる.
 
-teardown は 3 段ある. **soft `/clear`** は文脈だけ消して warm なセッションを温存する (同じ repo で連続タスクがある時の再起動コストを避ける). **exit** はプロセスを終わらせてタブは残す. **hard close** (`cmux close-workspace`) はタブごと撤去で, これが既定. Agent は自分でスラッシュコマンドを叩けないので, いずれも coordinator が cmux 経由で送る. **異常時は閉じない** — blocker やエラーが報告されたらタブを残して人間に surface する. 対話セッションで生きたまま中を覗いて操舵できるのが, headless 巡回にはない利点だからだ. idle で固まった時も, 黙って kill せずタブを残してアラートする.
+teardown は 3 段ある. **soft `/clear`** は文脈だけ消して warm なセッションを温存する (同じ repo で連続タスクがある時の再起動コストを避ける). **exit** はプロセスを終わらせてタブは残す. **hard close** (`cmux close-workspace`) はタブごと撤去で, これが既定. Agent は自分でスラッシュコマンドを叩けないので, いずれも coordinator が cmux 経由で送る. 異常時は閉じない. blocker やエラーが報告されたらタブを残して人間に surface する. 対話セッションで生きたまま中を覗いて操舵できるのが, headless 巡回にはない利点だからだ. idle で固まった時も, 黙って kill せずタブを残してアラートする.
 
 地味だが効くのが lifecycle の取りこぼし防止である. どのタブがどの task かを registry で突き合わせ, セッションの同定は cmux のワークスペース uuid で行う (使い回される ref を ID にすると, 別のセッションを取り違える危険があった). 完了の検知は「claim した」ではなく「complete した」という構造化シグナルで判定し (作業中を完了と誤認しない), 閉じる前には grace を置く (操舵中のタブを即閉じない). 削除は CAS で行い, 一度閉じたつもりが裏で再起動されていた時に取り違えて消すのを防ぐ. このあたりは, 後述する相互検証で具体的に指摘されて固めた箇所だ.
 
 # 仲介承認 (mediated approval)
 
-ここが本記事の山である. coordinator が Agent を起動して放っておくと, Agent は人間が承認すべき変更を勝手にやってしまうかもしれない. かといって 1 操作ごとに承認を求めていたら, 結局つきっきりになって自動化の意味がない. 欲しいのは「**変更操作だけ**を人間に上げ, 読み取りや routine は素通りさせる」中間である.
+coordinator が Agent を起動して放っておくと, Agent は人間が承認すべき変更を勝手にやってしまうかもしれない. かといって 1 操作ごとに承認を求めていたら, 結局つきっきりになって自動化の意味がない. 欲しいのは「**変更操作だけ**を人間に上げ, 読み取りや routine は素通りさせる」中間である.
 
-これを `PreToolUse` フックで実現した. フックは**変更系のツールと MCP 呼び出しだけ**にマッチする (Edit / Write / MultiEdit / NotebookEdit / Bash / WebFetch / WebSearch / `mcp__*`). 読み取り専用のツール呼び出しはそもそもフックを踏まないので, 性能上のコストもかからない. マッチしたものの中でも, 安全と分かっているごく一部 (ツール検索など) は黙って通し, それ以外を coordinator に escalate する.
+これを `PreToolUse` フックで実現した. フックは変更系のツールと MCP 呼び出しだけにマッチする (Edit / Write / MultiEdit / NotebookEdit / Bash / WebFetch / WebSearch / `mcp__*`). 読み取り専用のツール呼び出しはそもそもフックを踏まないので, 性能上のコストもかからない. マッチしたものの中でも, 安全と分かっているごく一部 (ツール検索など) は黙って通し, それ以外を coordinator に escalate する.
 
 <svg viewBox="0 0 640 540" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="仲介承認の判定フロー" font-family="sans-serif" font-size="13">
   <defs>
@@ -152,28 +152,28 @@ teardown は 3 段ある. **soft `/clear`** は文脈だけ消して warm なセ
   <text x="490" y="505" text-anchor="middle" fill="#555" font-size="11">却下として記録</text>
 </svg>
 
-escalate されると, coordinator は保留中の承認を検知して人間に surface する. 人間は `AskUserQuestion` で承認/却下を選び, **承認すると, フックは以後の追加プロンプトなしにそのツールを実行させる**. 却下すれば deny で記録. escalate にはツールの完全なペイロードと, allowed_paths との照合結果が付くので, 何を許そうとしているのかを見てから判断できる.
+escalate されると, coordinator は保留中の承認を検知して人間に surface する. 人間は `AskUserQuestion` で承認/却下を選び, 承認すると, フックは以後の追加プロンプトなしにそのツールを実行させる. 却下すれば deny で記録. escalate にはツールの完全なペイロードと, allowed_paths との照合結果が付くので, 何を許そうとしているのかを見てから判断できる.
 
 ポリシーは **fail-safe** にしてある. 分類が未知のツールは「とりあえず通す」ではなく「とりあえず聞く」に倒す. 安全と分かっているものだけを黙認し, それ以外は承認に回す. ここを逆 (未知は通す = fail-open) にした初版は, 相互検証で一発で止められた. 承認ゲートが fail-open だと, ゲートを置いた意味が消える.
 
-この設計で得られるのが, 冒頭に書いた「coordinator が routine を捌き, 実判断だけ人に escalate する」状態である. しかも対話性を失わない. 人間は各 repo に張り付くのをやめ, 上がってきた判断だけに答えればよくなる.
+この設計で, coordinator が routine を捌き, 実判断だけを人に escalate する形になる. 対話性も失わない. 人間は各 repo に張り付くのをやめ, 上がってきた判断だけに答えればよくなる.
 
 # per-repo heartbeat の自己ゲート
 
-承認フックを全 repo に常設しようとすると,  **coordinator なんて居ない, ただ自分で `claude` を開いただけの普通のセッション**でも, あらゆる編集が「居ない承認者」を待ってデッドロックする可能性がある.
+承認フックを全 repo に常設しようとすると, coordinator なんて居ない, ただ自分で `claude` を開いただけの普通のセッションでも, あらゆる編集が「居ない承認者」を待ってデッドロックする可能性がある.
 
 これを per-repo の heartbeat による自己ゲートで解いた. フックが escalate するのは, **その repo の coordinator heartbeat が新鮮 (TTL 180 秒以内) な時だけ**である. heartbeat が無い, あるいは古い = coordinator が居ない = solo session, とみなしてフックは何もせず native フローに通す (上の図の最初の分岐). coordinator はある repo を能動的に操舵している間だけ heartbeat を打ち続け, 手を離せばゲートはまた休眠に戻る.
 
 効くのは heartbeat が **per-repo** であることだ. これを global にすると, どこか 1 つの repo に coordinator が居るだけで全 repo の編集がゲートされてしまう (これも相互検証で指摘されて直した). repo ごとに区切ったので, 現に coordinator の操舵下にある repo だけが仲介を受ける.
 
-この自己ゲートのおかげで, **承認フックを全 repo (git 管理下でないものも含む) に配って回っても, 既定では休眠していて何のコストもない**. 同じ仕組みが, solo の手作業には透明で, coordinator が来た時だけ起きる. 「常設しても壊れない」を, 設定の出し入れではなく liveness による自己判定で担保することができた.
+この自己ゲートのおかげで, 承認フックを全 repo (git 管理下でないものも含む) に配って回っても, 既定では休眠していて何のコストもない. 同じ仕組みが, solo の手作業には透明で, coordinator が来た時だけ起きる. 「常設しても壊れない」を, 設定の出し入れではなく liveness による自己判定で担保することができた.
 
 # 足場: 先に塞いだ前提
 
-仲介承認や lifecycle の前に, 地味だが先に塞いでおく必要のあった穴が 2 つあった.
+仲介承認や lifecycle の前に, 先に塞いでおく必要のあった穴が 2 つあった.
 
 - **共有ファイルのロック**: feed や task のファイルは, 毎時巡回 / MCP / 走行中の Agent という複数の書き手が read-modify-write する. ロックが無いと並行 RMW が lost-update を起こす. ファイルロックでこれらを直列化した. 走行中の Agent と巡回が同じ feed を触る本機構では, これが全ての前提になる.
-- **安全 MCP の事前許可**: 起動された Agent が routine の MCP (feed の取得など) を呼ぶたびに許可プロンプトで止まると, 対話で立ち上げたはずのセッションが最初のツール呼び出しで固まる — 居なくて済むはずの人間を待って. なので, Orchestrator 自身の安全な MCP ツール群を repo の設定で事前許可しておく.
+- **安全 MCP の事前許可**: 起動された Agent が routine の MCP (feed の取得など) を呼ぶたびに許可プロンプトで止まると, 対話で立ち上げたはずのセッションが最初のツール呼び出しで固まる. 居なくて済むはずの人間を待たせて. なので, Orchestrator 自身の安全な MCP ツール群を repo の設定で事前許可しておく.
 
 どちらも派手さは無いが, これが無いと「能動的に起動して放っておく」が成立しない.
 
@@ -182,6 +182,6 @@ escalate されると, coordinator は保留中の承認を検知して人間に
 
 実証は, ファイルを編集しない疎通確認と, 1 ファイルを書く編集タスクの両方で, dispatch → 承認 → 実行 → 完了 → teardown の一巡を end-to-end で通すところまで. 常時 hot 運用はせず, 必要な時だけ起動して畳む方針も維持している.
 
-前回の記事で Orchestrator の中心命題として書いたのは, 「上位は下位の FS を直接書き換えない」「Orchestrator は判断と記録に徹し, 現場では手を動かさない」だった. 一見, 能動的に起動・操舵する coordinator はこれを破っているように見える. だが破っていない. coordinator は依然として repo のファイルに自分で書き込まない — feed に指示を置き, 実作業は Agent が自分の worktree で行う. 仲介承認が横取りするのも *Agent 自身の* ツール呼び出しであって, coordinator が代わりに編集するわけではない. 変わったのは,「対話セッションの側が受動から能動になった」ことと,「人間の役割が, 各 repo を操作する人から, coordinator が上げてくる判断に答える人へ移った」ことだ. 司令塔は司令塔のまま, ただ黙って巡回を待つのをやめて, こちらから火を点けられるようになった.
+前回の記事で Orchestrator の中心命題として書いたのは, 「上位は下位の FS を直接書き換えない」「Orchestrator は判断と記録に徹し, 現場では手を動かさない」だった. 一見, 能動的に起動と操舵する coordinator はこれを破っているように見える. だが破っていない. coordinator は依然として repo のファイルに自分で書き込まない. feed に指示を置くだけで, 実作業は Agent が自分の worktree で行う. 仲介承認が横取りするのも *Agent 自身の* ツール呼び出しであって, coordinator が代わりに編集するわけではない. 変わったのは,「対話セッションの側が受動から能動になった」ことと,「人間の役割が, 各 repo を操作する人から, coordinator が上げてくる判断に答える人へ移った」ことだ. 司令塔は司令塔のまま, ただ黙って巡回を待つのをやめて, こちらから火を点けられるようになった.
 
 という感じで, ハブの上にコックピットを一枚足した話でした. 例によって毎日変わっているので, あくまで暫定版です.

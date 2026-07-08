@@ -14,13 +14,13 @@ date: 2026-06-03
 tableOfContents: true
 ---
 
-近頃皆さんやっていることだが, PC上のあらゆる作業にAI Agentを介入させるように仕事の再構築を進めている. 構築を進める中で, 複数のプロジェクトが同時進行する中で, CLAUDE.md/AGENT.md, skills の仕様判断, その他規約,コンテキストの設定を共有・自動化したいという欲求が出てきた.
+近頃よくある取り組みだが, PC 上のあらゆる作業に AI Agent を介入させるように仕事の再構築を進めている. 再構築を進めるうちに, 複数のプロジェクトが同時進行する状況で, CLAUDE.md/AGENT.md, skills の仕様判断, その他の規約やコンテキストの設定を共有し自動化したいという欲求が出てきた.
 
-複数Agentの並行管理自体は, `Remote Control` や [cmux](https://cmux.com/) などの導入で軽くなってきたが, それぞれのrepoで独立していると初期設定,知識層の反映で手間がかかる. どのrepoで起動しても作業目標毎に知識,規約の引き継ぎの手間がボトルネックとなってきた.
+複数 Agent の並行管理自体は, `Remote Control` や [cmux](https://cmux.com/) などの導入で軽くなってきたが, それぞれの repo で独立していると初期設定や知識層の反映に手間がかかる. どの repo で起動しても, 作業目標ごとに知識と規約を引き継ぐのがボトルネックとなってきた.
 
 そのために, 複数リポで別々に走らせている十数個の Claude/Codex セッションを, 横断で監視, 記録, タスク配分, 知識集約する上位レイヤ(Agent Orchestrator)を自作した. 各リポの Agent は賢いが, それらを束ねる視点 (誰が何を進行中か, 知見の横断再利用, タスクの配分) は別レイヤの問題で, そこを担うのがこの Orchestrator である.
 
-このような用途としてはわざわざ車輪の再発明をしなくても既存 AI Assistant tool として有名なものに [Pi](https://pi.ai/) (Inflection) や [Hermes Agent](https://nousresearch.com/) (Nous Research) とがあり,わざわざこんなことをしなくても既存アーキテクチャを採用することで類似の効果は得られる.
+このような用途なら, 既存の AI Assistant tool として有名な [Pi](https://pi.ai/) (Inflection) や [Hermes Agent](https://nousresearch.com/) (Nous Research) がある. わざわざ車輪の再発明をしなくても, 既存アーキテクチャを採用すれば類似の効果は得られる.
 
 
 Pi は製品 / UX 層, Hermes Agent はモデル + 単一 agent 層に当たる. どちらも記憶や知識の集約・反映の仕組みを持ち (Hermes Agent は永続メモリ + skills, Pi は会話文脈), 私の理解では orchestrator 的な役割もある程度こなす一般ツールである.
@@ -39,12 +39,12 @@ Pi は製品 / UX 層, Hermes Agent はモデル + 単一 agent 層に当たる.
   </tbody>
 </table>
 
-それでも自作したのは,  次の二点を得たかったところによる.
+それでも自作したのは, 次の二点を得たかったところによる.
 
 - **記憶層が小さい**: 既製ツールの記憶は基本的に単一 agent スコープで, 複数リポ・複数分野にまたがる横断知識ベース (本プロジェクトの vault) としては手狭. RAG として手入れする前提の corpus を, agent の外側に独立して持ちたい.
 - **作業ごとに分人的な役割分担がある**: 研究, 講義, 開発, 私生活で必要な人格・文脈・規約は異なる. すべてを単一 agent に集約するより, **agent ごとの個別コンテキストと, 横断の共通知識とを併存**させたい. 一個の強い agent を作る (Hermes Agent の方向) のではなく, 弱くてもよいので多数の agent をそれぞれの分人として保ちつつ, 共通の知識層で束ねる, という選択である.
 
-あと単純に自分で弄れる範囲が大きい方が楽しい. ので普通はHermes Agentを入れておけば殆ど事足りると思われる.
+あと単純に, 自分で弄れる範囲が大きい方が楽しい. 普通は Hermes Agent を入れておけばほとんどこと足りると思う.
 
 なお,以下の構成は最終的には,ネットワーク上の常時稼働Agentに引き継ぐが現在は試験的に,全てローカルで完結させている.
 
@@ -52,7 +52,7 @@ Pi は製品 / UX 層, Hermes Agent はモデル + 単一 agent 層に当たる.
 
 Orchestrator は管理対象リポの上位に立ち, launchd で毎時巡回するバッチと対話セッションの二面で動く. 処理は 5 層に分かれ, 各リポの Agent とは共有キュー (inbox/outbox) だけで接続する.
 
-なお, この対話セッションの側は後に, 各リポの Agent を cmux のタブで起動・操舵し, **変更操作だけを承認ゲートに通す対話型 coordinator** へ発展させた. その仕組みは続編 [対話型 multi-repo coordinator — repo agent を cmux で起動し, 変更操作だけ承認ゲートに通す](/posts/2026-06-19-interactive-multi-repo-coordinator.html) に書いた.
+なお, この対話セッションの側は後に, 各リポの Agent を cmux のタブで起動・操舵し, **変更操作だけを承認ゲートに通す対話型 coordinator** へ発展させた. その仕組みは続編 [cmux で起動した repo agent の変更操作だけを承認ゲートに通す対話型 coordinator](/posts/2026-06-19-interactive-multi-repo-coordinator.html) に書いた.
 
 <svg viewBox="0 0 720 430" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="全体アーキテクチャ 5 層" font-family="sans-serif" font-size="13">
   <defs>
@@ -100,13 +100,13 @@ Orchestrator は管理対象リポの上位に立ち, launchd で毎時巡回す
   <text x="560" y="375" text-anchor="middle">Todoist (タスク)</text>
 </svg>
 
-ポイントは, **Orchestrator 自身は判断と記録に徹し, 各リポでの実作業はそのリポの Agent が担う**こと. Orchestrator は司令塔兼書記であって, 現場では手を動かさない.
+Orchestrator 自身は判断と記録に徹し, 各リポでの実作業はそのリポの Agent が担う. Orchestrator は司令塔兼書記であって, 現場では手を動かさない.
 
 # 管理対象: 複数リポをカテゴリで束ねる
 
 以下は匿名化したリポの構造を表している. 各リポは `runtime` (claude / codex), `cadence` (毎時 / 日次 / 週次), `category`, `techs` をメタデータに持ち, これが後段の routing と知識索引のキーになる. 設定は 1 枚の YAML に集約し, パーサも 1 本に統一している.
 
-構造は二段に分かれる. **Orchestrator が作業レイヤの頂点に立ち**, 十数リポを束ねる. そして **その Orchestrator を頂点とする系全体を, さらに外側から評価するのが existential (Vault)** である.
+構造は二段に分かれる. 作業レイヤの頂点に Orchestrator が立って十数リポを束ね, その系全体をさらに外側から評価するのが existential (Vault) である.
 
 <svg viewBox="0 0 720 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Orchestrator を頂点とする作業レイヤと existential のメタ評価" font-family="sans-serif" font-size="13">
   <defs>
@@ -180,13 +180,13 @@ Orchestrator は管理対象リポの上位に立ち, launchd で毎時巡回す
   <text x="360" y="512" text-anchor="middle" fill="#888" font-size="11">設定は 1 枚の YAML に集約し, パーサも 1 本に統一. これが routing と知識索引のキーになる</text>
 </svg>
 
-二段構成のポイントは, **Orchestrator と existential (Vault) の役割が違う層にある**ことだ. Orchestrator は作業レイヤの頂点として, 十数リポの routing / 知識 / タスクを束ねる司令塔である. これに対し existential は, その Orchestrator を頂点とする系全体を**さらに外側からメタ的に評価する**. ここには `now.md` をはじめ思想 / 現状 / 価値観の single source があり, 個々の作業や routing が自分の価値観・現状と整合しているかを問う. **Orchestrator が "何を / どう進めるか" の司令塔なら, existential は "そもそもその方向で良いか" を問うメタ評価レイヤ**にあたる. now.md 自体は Orchestrator 経由で必要な agent にも配信されるが (思想 context の routing), existential の主たる役割は系全体のメタ評価である.
+Orchestrator と existential (Vault) は層が違う. Orchestrator は作業レイヤの頂点として十数リポの routing / 知識 / タスクを束ねるが, existential はその Orchestrator を含む系全体を外側から評価する. existential には `now.md` をはじめ思想 / 現状 / 価値観の single source があり, 個々の作業や routing が自分の価値観と現状に整合しているかを問う. Orchestrator が「何を / どう進めるか」を扱うのに対し, existential は「そもそもその方向で良いか」を扱う. now.md 自体は Orchestrator 経由で必要な agent にも配信される.
 
-各リポもOrchesratorを通じて連携できるようにしている. 例えば, 最近開発を進めている **paper 層**は, 文献管理に特化したパイプラインを持つ. 論文 PDF を原典として取り込み, それを **md** に抽出・要約 (図表や式の扱いも含む) してから, 引用情報を **bib** (引用データベース) に落とす. この **PDF → md → bib** の流れが research 層の執筆へ供給され, 「読んだ論文がそのまま引用可能な形で原稿に届く」状態が構築されている.
+各リポも Orchestrator を通じて連携できるようにしている. 例えば, 最近開発を進めている **paper 層**は, 文献管理に特化したパイプラインを持つ. 論文 PDF を原典として取り込み, それを **md** に抽出・要約 (図表や式の扱いも含む) してから, 引用情報を **bib** (引用データベース) に落とす. この **PDF → md → bib** の流れが research 層の執筆へ供給され, 「読んだ論文がそのまま引用可能な形で原稿に届く」状態が構築されている.
 
 # 通信モデル: repo-initiated
 
-一番大事な制約として, **Orchestrator は管理対象リポの FS を直接書き換えない**ことがある. 通信はすべて repo 側から共有キューへの push / pull に固定する.
+Orchestrator は管理対象リポの FS を直接書き換えない. これが一番大事な制約だ. 通信はすべて repo 側から共有キューへの push / pull に固定する.
 
 <svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="repo-initiated 通信" font-family="sans-serif" font-size="13">
   <defs>
@@ -218,7 +218,7 @@ Orchestrator は管理対象リポの上位に立ち, launchd で毎時巡回す
 
 境界を push/pull のキューに固定すると, **どちらが何を書いたかが常に明確**になり, 片方が壊れてももう片方は動き続ける. 上位が下位のコードを勝手に上書きしない, という規律でもある.
 
-なお, このハブは repo ↔ Orchestrator の汎用レーンであり, repo から repo への有向のタスク連鎖は運ばない. そちらは後日追加した別機構で, 続編 [repo 間の Agent タスク連鎖 — 中央 immutable queue による cross-repo handoff](/posts/2026-06-12-cross-repo-handoff-queue.html) に書いた.
+なお, このハブは repo ↔ Orchestrator の汎用レーンであり, repo から repo への有向のタスク連鎖は運ばない. そちらは後日追加した別機構で, 続編 [中央 immutable queue で運ぶ repo 間の Agent タスク連鎖](/posts/2026-06-12-cross-repo-handoff-queue.html) に書いた.
 
 # データ表現: (今のところ)すべて markdown
 
@@ -228,9 +228,9 @@ $$
 \text{Phase 1 (file)} \;\longrightarrow\; \text{Phase 2 (MCP)} \;\longrightarrow\; \text{Phase 3 (LAN MCP)}
 $$
 
-通信は進化させても vault の中身は不変. でそのまま人間が読める利点も大きい.
+通信を進化させても vault の中身は変わらない. markdown のままなので, そのまま人間が読める利点も大きい.
 
-markdown / Obsidian を選んだ主な理由は, **もともと個人の知識管理を Obsidian で行っていた**ことにある. 設計として一から選んだというより, 既存資産 (過去の日記やメモ) をそのまま agent に読ませられる連続性が大きく, 実際 existential (Vault) では過去の日記・メモを文脈として読ませている. したがって **人間が文章を読む面は当面 Obsidian 固定**で行く予定だ. 一方, 人間が読まない orchestrator 層の内部表現 (state や中間データ) は markdown に縛る必然はなく, **より効率的な手段があれば置き換える予定**でいる. markdown は "人間も読む層" の共通項として残し, 機械専用の層は最適な表現へ寄せていきたい.
+markdown / Obsidian を選んだ主な理由は, もともと個人の知識管理を Obsidian で行っていたことにある. 設計として一から選んだというより, 既存資産 (過去の日記やメモ) をそのまま agent に読ませられる連続性が大きい. 実際 existential (Vault) では過去の日記やメモを文脈として読ませている. そのため, **人間が文章を読む面は当面 Obsidian 固定**で行く予定だ. 一方, 人間が読まない orchestrator 層の内部表現 (state や中間データ) は markdown に縛る必然がなく, より効率的な手段があれば置き換える. markdown は人間も読む層の共通項として残す.
 
 # 知識層 = 自前 RAG
 
@@ -279,7 +279,7 @@ $$
 
 - **curation (本題)**: corpus をただ増やすとノイズで検索精度が落ちる. 引かれた note は本フォルダへ**昇格**, 古い / 撤回された note は `_stale/` へ**隔離** (黙って消さないので追跡可). retrieval のログ (usage signal) が次の curation を駆動する. 一度踏んだ gotcha を別リポの Agent が二度踏まないのは, corpus が増えるからでなく手入れされているからだ.
 
-なお, ここで扱っているのはあくまで *Agent のための* 知識層である. 人間 (私) 自身の学習を同じ枠組み (queue + 巡回) で回す層は, 続編 [個人の学習層 (Learn) — Agent が薦め, スマホで消化し, vault に積む](/posts/2026-06-11-personal-learn-layer.html) に書いた.
+なお, ここで扱っているのはあくまで *Agent のための* 知識層である. 人間 (私) 自身の学習を同じ枠組み (queue + 巡回) で回す層は, 続編 [AIと連携した個人の学習層 (Learn)](/posts/2026-06-11-personal-learn-layer.html) に書いた.
 
 # タスク管理層: Todoist
 
@@ -338,7 +338,7 @@ Agent のセッションで MCP server が一時的に繋がらないと, Agent 
   <path d="M390,112 L460,150" stroke="#555" fill="none" marker-end="url(#ah4)"/>
 </svg>
 
-ツールが落ちても依頼の種別に応じて確実に拾われる. 賢いコンポーネントほど壊れ方に対する設計が効く, という一例である.
+ツールが落ちても, 依頼は種別に応じて確実に拾われる. 賢いコンポーネントほど, 正常時の動作だけでなく壊れ方まで設計しておく必要がある.
 
 
 という感じで色々やってみているが, なんとなく機能してきたのでまとめました記事でした. 毎日変わっているのであくまで暫定版ですが.
