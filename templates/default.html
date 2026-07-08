@@ -479,6 +479,29 @@
           window.scrollTo({ top: 0, behavior: 'smooth' });
         });
       }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
     });
   </script>
 
