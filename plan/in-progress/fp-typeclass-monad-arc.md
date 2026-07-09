@@ -4,8 +4,8 @@ status: in-progress
 created: 2026-06-15
 updated: 2026-07-09
 priority: medium
-next_actor: user
-next_action: "fp-v2-unified-rebuild の Phase 0 判断待ち — fp10 後半 (IO)・fp11 を現行版で書くか v2 に吸収するか. 判断後に Phase 3 後半 (IO) or v2 へ"
+next_actor: agent
+next_action: "Phase 3 後半 = fp10 IO を v2 前提で執筆 (fp8/fp9 接続 note → fp10 俯瞰の階段 → IO). fp-v2-unified-rebuild Phase A0/A1' と同一作業"
 ---
 
 # fp 後半 (型クラス→代数→多相データ型→モナド→効果) の章構成と執筆計画
@@ -112,7 +112,7 @@ fp 講義後半 (fp8〜fp11) を **「型クラス → 代数構造 → 多相�
 3. **fp11 の nextChapter**: ~~現時点の終端章として `nextChapter` を省略した. fp12 以降を作る際に追記する.~~ → fp12 (総合演習章) を新設し, fp11 に `nextChapter: fp12.html` を追記済 (2026-06-29). fp12 は本体課題「RPN 式評価器 + REPL」(fp7 ADT → fp8 Stats モノイド → fp9 Either → fp10 Monad/IO を統合, 純粋コアを `Fp12.CalcSpec` で検証済) を Stage 1 として着地. 選択課題 (家計簿 / ログ集計 / うさぎ Sim) は Stage 2 で追加予定.
 4. **IO/ST 例の機械検証**: fp-examples は純粋関数の評価検証が中心. IO アクションや `runST` を含む例は `hspec` での検証方法 (期待出力のキャプチャ等) を別途設計する必要がある. fp-examples-verification.md 側との調整が必要.
 5. **型引数 (多相) の導入深度**: fp9 で初めて多相データ型を扱うが, 多相「関数」(fp5/fp6 で未導入) との関係をどこまで遡って説明するか要検討.
-6. **(2026-07-10) v2 全面再構築との調停**: 統一視座に基づく [fp-v2-unified-rebuild.md](fp-v2-unified-rebuild.md) が起動. 本 arc の残フェーズ (fp10 後半 IO / fp11) を現行版で完走するか v2 に吸収するかは同計画 Phase 0 のユーザ判断による. 現行版 fp7〜fp10 前半は配信済みのため不変で温存.
+6. **(2026-07-10) v2 全面再構築との調停** → **確定 (折衷案)**: 現行 fp8/fp9 に俯瞰視座の最低限の接続 note を投入した上で, **fp10 は現行チェーン内で v2 前提として完成** (本 arc Phase 3 後半 = [fp-v2-unified-rebuild.md](fp-v2-unified-rebuild.md) Phase A0/A1'). fp7/8/9 の v2 は並行して別ファイルで作成. fp11 も fp10 方式 (現行チェーンで v2 前提) を既定とする.
 
 ## 関連ファイル
 
