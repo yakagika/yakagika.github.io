@@ -1241,7 +1241,37 @@ stats (xs ++ ys) = stats xs <> stats ys      -- 連結 (++) を合成 (<>) に�
 stats []         = mempty                     -- 空リストを単位元に写す
 ~~~
 
-これは「**連結してから集計する (合算 → 関数適用)**」と「**別々に集計してから合成する (関数適用 → 合算)**」が一致するという意味で, リストの `++` から `Stats` の `<>` へ **構造を保つ写像** になっています.
+これは「**連結してから集計する (合算 → 関数適用)**」と「**別々に集計してから合成する (関数適用 → 合算)**」が一致するという意味で, リストの `++` から `Stats` の `<>` へ **構造を保つ写像** になっています. この一致を絵にすると, 下の四角形の **2 つの経路** — 先につないでから集計する道と, 先にそれぞれ集計してから合成する道 — が, どちらも同じ角 (右下) にたどり着く, という形になります.
+
+<svg viewBox="0 0 520 282" width="100%" style="max-width: 560px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="stats が構造を保つ写像であることを表す四角形の図. 左上に 2 つのリスト (xs, ys), 右上に連結したリスト xs ++ ys, 左下にそれぞれの要約 (stats xs, stats ys), 右下に合わせた要約 stats xs &lt;&gt; stats ys がある. 上の横矢印は連結 ++, 下の横矢印は合成 &lt;&gt;, 左右の縦の矢印はどちらも stats. 左上から上を回って先に ++ でつないでから stats で集計する経路と, 左上から下を回って先にそれぞれ stats で集計してから &lt;&gt; で合成する経路が, どちらも同じ右下の要約 (stats (xs ++ ys) と stats xs &lt;&gt; stats ys が一致する) にたどり着く.">
+  <defs>
+    <marker id="hom-arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="currentColor"/>
+    </marker>
+  </defs>
+  <g stroke="currentColor" stroke-width="1.5" fill="none">
+    <line x1="170" y1="52" x2="352" y2="52" marker-end="url(#hom-arrow)"/>
+    <line x1="212" y1="196" x2="300" y2="196" marker-end="url(#hom-arrow)"/>
+    <line x1="120" y1="70" x2="120" y2="176" marker-end="url(#hom-arrow)"/>
+    <line x1="404" y1="70" x2="404" y2="176" marker-end="url(#hom-arrow)"/>
+  </g>
+  <g fill="currentColor" font-family="monospace" font-size="15" font-weight="600" text-anchor="middle">
+    <text x="120" y="46">(xs, ys)</text>
+    <text x="404" y="46">xs ++ ys</text>
+    <text x="120" y="202">(stats xs, stats ys)</text>
+    <text x="404" y="202">stats xs &lt;&gt; stats ys</text>
+  </g>
+  <g fill="currentColor" font-family="monospace" font-size="13">
+    <text x="261" y="42" text-anchor="middle">++</text>
+    <text x="256" y="188" text-anchor="middle">&lt;&gt;</text>
+    <text x="112" y="127" text-anchor="end">stats</text>
+    <text x="412" y="127" text-anchor="start">stats</text>
+  </g>
+  <text x="404" y="222" fill="currentColor" font-family="monospace" font-size="11" text-anchor="middle">= stats (xs ++ ys)</text>
+  <text x="260" y="264" fill="currentColor" font-size="12" text-anchor="middle">先につないで集計 / 先に集計して合成 — 2 経路は同じ要約に一致する</text>
+</svg>
+
+上を回る道 (`++` してから `stats`) と下を回る道 (`stats` してから `<>`) が右下でぴったり重なる, これが「構造を保つ」ことの絵です. `stats []` が `Stats` の単位元 `mempty` に移ることも合わせて, 「つなぎ方 (`++` と `[]`) を要約側のつなぎ方 (`<>` と `mempty`) へ翻訳しても意味が変わらない」写像になっています.
 
 より一般に, **モノイド準同型 (monoid homomorphism)** とは, 2 つのモノイド $(M, \bullet_M, e_M)$, $(N, \bullet_N, e_N)$ の間の写像 $f : M \to N$ で, 次の 2 つを満たすもののことです.
 

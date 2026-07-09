@@ -880,6 +880,76 @@ main = do
 
 :::
 
+## モノイド準同型もまた関手 — 一点圏どうしの関手
+
+ここまでは Haskell の `Functor` (種が `* -> *` の型構築子 + `fmap`) を関手の実例として見てきました. しかし「圏の構造を保つ写像」という関手の定義に照らすと, **[第8章](fp8.html)で扱ったモノイド準同型もまた関手** です. 前半の `fmap` とは別の, もう一つの関手の顔を確認しておきます.
+
+[第8章](fp8.html#結合律と準同型が可能にすること)の `stats = mconcat . map singleton` は, リストのモノイド (`[Int]`, `++`, `[]`) から要約のモノイド (`Stats`, `<>`, `mempty`) への **準同型** で, 次の 2 法則を満たすのでした (再掲).
+
+~~~ text
+stats (xs ++ ys) = stats xs <> stats ys      -- 演算 (++) を演算 (<>) に写す
+stats []         = mempty                     -- 単位元 ([]) を単位元 (mempty) に写す
+~~~
+
+第8章ではこれを「2 つの経路が同じ要約にたどり着く」四角形の絵で見ました. 同じ絵を, いま手にした **圏の言葉で読み直します**.
+
+<svg viewBox="0 0 520 282" width="100%" style="max-width: 560px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="モノイド準同型 stats の四角形を圏論的に読み直した図. 左上 (xs, ys), 右上 xs ++ ys, 左下 (stats xs, stats ys), 右下 stats xs &lt;&gt; stats ys の四頂点をもつ. 上下の横矢印 ++ と &lt;&gt; は, 各モノイドを対象が 1 つの圏とみたときの射の合成にあたる. 左右の縦矢印 stats が準同型で, 一方の圏の射を他方の圏の射へ送る. 四角形が閉じること stats (xs ++ ys) = stats xs &lt;&gt; stats ys は stats が合成を保つことを, stats [] = mempty は恒等射を保つことを表す.">
+  <defs>
+    <marker id="hom-arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="currentColor"/>
+    </marker>
+  </defs>
+  <g stroke="currentColor" stroke-width="1.5" fill="none">
+    <line x1="170" y1="52" x2="352" y2="52" marker-end="url(#hom-arrow)"/>
+    <line x1="212" y1="196" x2="300" y2="196" marker-end="url(#hom-arrow)"/>
+    <line x1="120" y1="70" x2="120" y2="176" marker-end="url(#hom-arrow)"/>
+    <line x1="404" y1="70" x2="404" y2="176" marker-end="url(#hom-arrow)"/>
+  </g>
+  <g fill="currentColor" font-family="monospace" font-size="15" font-weight="600" text-anchor="middle">
+    <text x="120" y="46">(xs, ys)</text>
+    <text x="404" y="46">xs ++ ys</text>
+    <text x="120" y="202">(stats xs, stats ys)</text>
+    <text x="404" y="202">stats xs &lt;&gt; stats ys</text>
+  </g>
+  <g fill="currentColor" font-family="monospace" font-size="13">
+    <text x="261" y="41" text-anchor="middle">++</text>
+    <text x="256" y="188" text-anchor="middle">&lt;&gt;</text>
+    <text x="112" y="127" text-anchor="end">stats</text>
+    <text x="412" y="127" text-anchor="start">stats</text>
+  </g>
+  <g fill="currentColor" font-size="10.5" opacity="0.72">
+    <text x="261" y="63" text-anchor="middle">(合成)</text>
+    <text x="256" y="208" text-anchor="middle">(合成)</text>
+    <text x="112" y="145" text-anchor="end">(準同型)</text>
+    <text x="412" y="145" text-anchor="start">(準同型)</text>
+  </g>
+  <text x="260" y="264" fill="currentColor" font-size="12" text-anchor="middle">四角形が閉じる = stats が「合成 (++, &lt;&gt;) を保つ」／ stats [] = mempty = 「恒等射を保つ」</text>
+</svg>
+
+[データ型は対象, 関数は射](#データ型は対象-関数は射)の節で, **モノイドは「対象が 1 つだけの圏」** — 射がその型の要素, 射の合成がモノイド演算 `<>`, 恒等射が単位元 `mempty` — とみなせることを見ました. この目で四角形を見ると:
+
+- 横の 2 本の矢印 `++` と `<>` は, それぞれのモノイドを一点圏とみたときの **射の合成**.
+- 縦の `stats` が, 一方の圏の射 (= リスト) を他方の圏の射 (= 要約) へ送る対応.
+- 四角形が閉じること (`stats (xs ++ ys) = stats xs <> stats ys`) は, `stats` が **合成を保つ** こと.
+- もう 1 つの法則 (`stats [] = mempty`) は, `stats` が **恒等射を保つ** こと.
+
+「合成を保つ」「恒等射を保つ」— これはまさに, この章の [Functor の節](#functor-関手-と-fmap) で挙げた **関手則** そのものです.
+
+$$F\,(g \circ f) = F\,g \circ F\,f \quad(\text{合成を保つ}), \qquad F\,\mathrm{id} = \mathrm{id} \quad(\text{恒等射を保つ})$$
+
+つまり **モノイド準同型とは, 一点圏どうしの間の関手** にほかなりません. `stats` は, リストの一点圏から `Stats` の一点圏への関手です. 第8章で「構造を保つ写像」と呼んでいたものの正体が, 圏論では「一点圏の間の関手」だった, というわけです.
+
+ここで, `fmap` の関手と `stats` の関手は, **同じ「関手」概念の, 当てはめ先が違うだけの 2 つの特殊例** です. 両者を並べて整理しておきます.
+
+| 関手 (圏の構造を保つ写像) を当てはめる先 | 得られるもの | 例 |
+| --- | --- | --- |
+| 一点圏 → 一点圏 | **モノイド準同型** | 第8章の `stats`, `foldMap g` |
+| Hask → Hask (自分自身への関手) | **Haskell の `Functor` (`fmap`)** | `Maybe`, `Either a`, リスト, `Tree` |
+
+::: warn
+だからといって `stats` が Haskell の `Functor` の **インスタンス** になるわけではありません. `Functor` クラスは種が `* -> *` の型構築子 (中身を差し替えられる入れ物) に対するもので, `stats :: [Int] -> Stats` はただの関数です. `stats` が関手なのは **圏論の意味** (一点圏どうしの写像) であって, Haskell の `Functor` クラスとは別物です. 同じ「関手」という言葉が, どの圏を選ぶかで両方を指す — この区別がつくと, [第8章](fp8.html)の代数 (モノイドと準同型) と本章の圏論 (圏と関手) が, ひと続きの話として見えてきます.
+:::
+
 ## 多相型と自然変換
 
 関手が「圏どうしの変換」だとすれば, **自然変換 (natural transformation)** は「関手どうしの変換」です. 2 つの関手 `f` と `g` があるとき, **型 `a` に依らず一様に** `f a` を `g a` に変換する操作が自然変換です. Haskell では, 次のような **多相関数** がこれにあたります.
