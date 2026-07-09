@@ -2,17 +2,17 @@
 plan_id: fp-typeclass-monad-arc
 status: in-progress
 created: 2026-06-15
-updated: 2026-06-21
+updated: 2026-07-09
 priority: medium
 next_actor: agent
-next_action: "Phase 2 以降 (fp9〜fp11) の章執筆 — 型クラス→代数→多相データ型→モナド→効果の流れで fp9 から"
+next_action: "Phase 3 後半 = fp10 入出力 (IO) 節の執筆 (IO モナド / 参照透過性 / 標準入出力 / main). その後 Phase 4 = fp11"
 ---
 
 # fp 後半 (型クラス→代数→多相データ型→モナド→効果) の章構成と執筆計画
 
 ## メタ情報
 
-- **状態**: in-progress (Phase 0 完了 / Phase 1 = fp8 完了 / Phase 2 以降 未着手)
+- **状態**: in-progress (Phase 0 完了 / Phase 1 = fp8 完了 / Phase 2 = fp9 完了 / Phase 3 = fp10 **前半 (モナド) landed** ・後半 (IO) 未 / Phase 4 = fp11 未着手)
 - **作成日**: 2026-06-15
 - **最終更新**: 2026-06-19
 - **対象**: `lectures/fp/fp8.md`〜`fp11.md` (および fp7 からの接続)
@@ -91,9 +91,10 @@ fp 講義後半 (fp8〜fp11) を **「型クラス → 代数構造 → 多相�
   - ✅ 章導入 + 圏論対応表, 型引数を持つデータ型 (Box/Pair/種 `* -> *`), リスト/ツリー (fp8 から移設) + **Map** (ネットワークを差し替えて新設), Maybe (fp4/fp7 の伏線回収), Either, 基本操作 (`maybe`/`either`/`fromMaybe` 等), 圏 (対象・射, モノイドとの対応), Functor/fmap (移設 Tree も関手化), 自然変換 (`forall a. f a -> g a` を [第7章] の ∀ に接続). 演習 CH9-1〜5 を各対応節の直後に配置 (文書順に振り直し).
   - ✅ fp-examples に Fp9 spec (Maybe/Either/基本操作/圏/TreeFunctor/自然変換/Map/演習×5) + 移設分 (ListMonoid/TreeMonoid). `stack test` 345 examples green (containers 依存追加). `open: true`, サイトビルド成功.
   - 残課題: ユーザ推敲, fp4/fp7 の Maybe 脚注→fp9 リンク. (Data.Map は本章に組込み済み.)
-- **Phase 3 — fp10 本文 (モナドと入出力)** 未着手
-  - Applicative→Monad→do の脱糖→Maybe/Either モナド→モナド則, IO モナド (アクションと参照透過性), 標準入出力, main の構造.
-  - IO を含む例の検証方針は要検討 (下記リスク).
+- **Phase 3 — fp10 本文 (モナドと入出力)** 🚧 前半 landed (2026-07-09) / 後半 (IO) 未
+  - ✅ **前半 (モナド)**: Functor 復習 → Applicative (独立節: `pure`/`<*>`, 4 法則) → Monad (`>>=`/`return`, Kleisli 射と `>=>`) → do 脱糖 → Maybe/Either モナド → モナド則 (Kleisli 圏の公理として再フレーム, fp8 モノイド・fp9 圏に接続). Either 例は専用エラー列挙型 (`CalcError`/`BankError`). 演習 CH10-1〜3 を各節直後に配置. `fp-examples/test/Fp10/` に spec 7 本 (純粋コアを hspec, モナド則は QuickCheck), `stack test` green. `open: true` で main に land (`b4fa7f5`).
+  - ⬜ **後半 (入出力)**: IO モナド (アクションと `IO a`) / 参照透過性 / 標準入出力 (`getLine`/`putStrLn`/`interact`) / `main` の構造. 現状 `# 入出力 (IO)` は "後半で執筆" note のプレースホルダ.
+  - IO 検証方針 (下記リスク #4) は fp12 の precedent で確定: **純粋コアは hspec, IO アクションはコンパイル確認のみ**. 前半は純粋なので全数検証済み.
 - **Phase 4 — fp11 本文 (可変状態と効果)** 未着手
   - IORef, State, ST (runST/領域型 s/STRef), Reader/Writer・モナド変換子の概観.
 
@@ -137,3 +138,4 @@ fp 講義後半 (fp8〜fp11) を **「型クラス → 代数構造 → 多相�
 - 2026-06-21: **再帰的データ型を fp7 に新設** (ユーザ検討依頼→評価→承認). 再帰 (自己参照) と多相 (型引数) を軸で分割: fp7 は直和型の直後に `## 再帰的データ型` を新設し **単相の `Nat = Zero | Succ Nat`** (ペアノ自然数, `toInt`/`add`) で「型が自分を参照する」概念・再帰関数での処理・帰納的集合の見方を導入. リスト `[] | x:xs` が再帰型である事実も明かす. fp7:334 のリスト先送り note を本節+第9章への参照に更新. fp9 の Tree 導入を「第7章の再帰型 `Nat` に型引数を載せて多相化」と接続. `fp-examples/test/Fp7/NatSpec.hs` を追加 (`stack test` 349 examples green). 多相な再帰型 (`Tree a`/`[a]`) と代数構造は fp9 のまま (案C の Maybe→fp7 とは別件: 再帰は fp7 のスコープ内で重複も生じないため採用).
 - 2026-06-20: fp8 の `Fp8.InstanceBenefitsSpec` (foldMap/fold/stimes を実走) を追加し `stack test` 291 examples green. その後ユーザ指示で, この節を **トップレベル `#` に昇格** (型クラス / 代数とクラス と並ぶ第3章節) し foldMap/stimes/並列/予告 を `##` 小節化 (目次対応), fold/foldMap のシグネチャのコメントは各関数の上に改行配置, foldMap 説明は「コンテナ概念の導入 + fold との差を [第6章] の畳み込みからの一般化として」加筆.
 - 2026-06-24: fp9 Functor 節に改善メモ 3 件を反映 (inbox triage 2026-06-24, task d1c44cdd0; Todoist 6gwWm2J.../6gwWm34.../6gwWpPj...). (1) `fmap` を「[第4章] の `map` を任意の関手に一般化したもの」として明示 (`map :: (a->b)->[a]->[b]` と `fmap :: (a->b)->f a->f b` を `\underbrace` で対比する数式 + 「入れ物の形を保つ map」という言い換えを追加). (2) 失敗系 2 型 Maybe/Either を **前半「多相データ型」節の先頭** へ移動 (旧: リスト→Map→ツリー→Maybe→Either / 新: Maybe→Either→基本操作→リスト→Map→ツリー), あわせて後半 Functor の実例順も Maybe→Either→リスト→Tree に揃えた. 章導入 2 文と Map の Maybe 前方参照 2 箇所を新順序へ修正. (`maybe either 先` の趣旨は当初 Functor 節の例順と解釈したが, ユーザ指摘で前半「多相データ型」節の並びと判明し追補.) (3) リストの `fmap` 実装例 `fmapList` (= `map` の再帰定義そのもの) を新設し `fmap`/`map` と一致することを確認. `Fp9.TreeFunctorSpec` を同期 (`fmapList` 定義 + 3 ケース追加, describe を Maybe/Either/リスト 順に整列), `cd fp-examples && stack test` = 362 examples / 0 failures. サイトビルド成功 (KaTeX 数式 intact, `\\[` 衝突なし). fp10/11 は対象外 (ユーザ確認済).
+- 2026-07-09: **Phase 3 前半 (fp10 モナド) を執筆・land**. Functor 復習 → Applicative (独立節: `pure`/`<*>`・4 法則) → Monad (`>>=`/`return`, Kleisli 射・`>=>`) → do 脱糖 → Maybe/Either モナド (Either は専用エラー列挙型 `CalcError`/`BankError`) → モナド則 (Kleisli 圏の公理として再フレーム, fp8 モノイド・fp9 圏に接続). 演習 CH10-1〜3 を各節直後に配置. `fp-examples/test/Fp10/` に spec 7 本 (純粋コア hspec + モナド則 QuickCheck). Applicative の深さ = 「独立節で丁寧に」, 進め方 = 「前半→後半の 2 段」をユーザが選択 (AUQ). IO 検証方針 (リスク #4) は fp12 の precedent で「純粋コア hspec / IO アクションはコンパイル確認のみ」に確定. session 中に main が `50893e4`→`079f35c` (fp8/fp9 のモノイド準同型・関手対応追加) まで進んでいたため, 隔離 worktree の branch を rebase → recovery tag `recovery/pre-fp10-land` → ff-merge で land (`b4fa7f5`). ユーザ指示で `open: true` (push 前は非公開のため draft でなく公開状態で main に載せ, ローカル `:8000` でレビュー). 後半 `# 入出力 (IO)` は「後半で執筆」note のプレースホルダとして残置.
