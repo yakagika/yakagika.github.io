@@ -5,14 +5,14 @@ created: 2026-06-15
 updated: 2026-07-09
 priority: medium
 next_actor: agent
-next_action: "Phase 3 後半 = fp10 IO を v2 前提で執筆 (fp8/fp9 接続 note → fp10 俯瞰の階段 → IO). fp-v2-unified-rebuild Phase A0/A1' と同一作業"
+next_action: "Phase 4 = fp11 (可変状態と効果) — fp10 と同じ方式 (現行チェーンで v2 前提) を既定. fp-v2-unified-rebuild Phase A5 と同一"
 ---
 
 # fp 後半 (型クラス→代数→多相データ型→モナド→効果) の章構成と執筆計画
 
 ## メタ情報
 
-- **状態**: in-progress (Phase 0 完了 / Phase 1 = fp8 完了 / Phase 2 = fp9 完了 / Phase 3 = fp10 **前半 (モナド) landed** ・後半 (IO) 未 / Phase 4 = fp11 未着手)
+- **状態**: in-progress (Phase 0〜3 完了 = fp8/fp9/**fp10 完成** / Phase 4 = fp11 未着手)
 - **作成日**: 2026-06-15
 - **最終更新**: 2026-06-19
 - **対象**: `lectures/fp/fp8.md`〜`fp11.md` (および fp7 からの接続)
@@ -91,7 +91,7 @@ fp 講義後半 (fp8〜fp11) を **「型クラス → 代数構造 → 多相�
   - ✅ 章導入 + 圏論対応表, 型引数を持つデータ型 (Box/Pair/種 `* -> *`), リスト/ツリー (fp8 から移設) + **Map** (ネットワークを差し替えて新設), Maybe (fp4/fp7 の伏線回収), Either, 基本操作 (`maybe`/`either`/`fromMaybe` 等), 圏 (対象・射, モノイドとの対応), Functor/fmap (移設 Tree も関手化), 自然変換 (`forall a. f a -> g a` を [第7章] の ∀ に接続). 演習 CH9-1〜5 を各対応節の直後に配置 (文書順に振り直し).
   - ✅ fp-examples に Fp9 spec (Maybe/Either/基本操作/圏/TreeFunctor/自然変換/Map/演習×5) + 移設分 (ListMonoid/TreeMonoid). `stack test` 345 examples green (containers 依存追加). `open: true`, サイトビルド成功.
   - 残課題: ユーザ推敲, fp4/fp7 の Maybe 脚注→fp9 リンク. (Data.Map は本章に組込み済み.)
-- **Phase 3 — fp10 本文 (モナドと入出力)** 🚧 前半 landed (2026-07-09) / 後半 (IO) 未
+- **Phase 3 — fp10 本文 (モナドと入出力)** ✅ 完了 (前半 2026-07-09 / 後半 IO + 俯瞰の階段 2026-07-10, `89a62c0`. v2 前提で完成 — fp-v2-unified-rebuild Phase A1')
   - ✅ **前半 (モナド)**: Functor 復習 → Applicative (独立節: `pure`/`<*>`, 4 法則) → Monad (`>>=`/`return`, Kleisli 射と `>=>`) → do 脱糖 → Maybe/Either モナド → モナド則 (Kleisli 圏の公理として再フレーム, fp8 モノイド・fp9 圏に接続). Either 例は専用エラー列挙型 (`CalcError`/`BankError`). 演習 CH10-1〜3 を各節直後に配置. `fp-examples/test/Fp10/` に spec 7 本 (純粋コアを hspec, モナド則は QuickCheck), `stack test` green. `open: true` で main に land (`b4fa7f5`).
   - ⬜ **後半 (入出力)**: IO モナド (アクションと `IO a`) / 参照透過性 / 標準入出力 (`getLine`/`putStrLn`/`interact`) / `main` の構造. 現状 `# 入出力 (IO)` は "後半で執筆" note のプレースホルダ.
   - IO 検証方針 (下記リスク #4) は fp12 の precedent で確定: **純粋コアは hspec, IO アクションはコンパイル確認のみ**. 前半は純粋なので全数検証済み.
