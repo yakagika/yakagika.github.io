@@ -138,7 +138,10 @@ pre-read し全 rule を ground truth として適用する. 論文ではない�
 - **媒体/体裁**: Hakyll 製ブログ. 記事は `posts/YYYY-MM-DD-slug.md`, 講義は `lectures/fp/` `lectures/slds/`.
   front matter は `title` / `description` / `tags` / `date` / `tableOfContents`. 数式を使う記事は
   `katex: true` を front matter に付け, `$...$` (inline) / `$$...$$` (display) で KaTeX 記法を書く.
-- **文体**: **常体 (である調) で統一**する (既存記事に合わせる; 敬体は使わない). 読者への語りかけは
+- **文体**: **媒体で使い分ける** (既存記事に合わせる). **講義 (`lectures/fp`, `lectures/slds`) は敬体
+  (ですます調) で統一**する (fp1〜 と slds が敬体のため; 章をまたいだ通読で語り口が揺れないように).
+  **ブログ記事 (`posts/`) は常体 (である調)** を既定とする (技術記事は常体が多い; 記事内で統一する).
+  引用符内の命題や「〜であること」の名詞化は敬体の講義でも常体のままでよい. 読者への語りかけは
   役割名で控えめに (「本記事では」式の予告は §A6 に従い最小限, 内容をそのまま書くのを優先).
 - **コード**: コードブロックは言語を指定する (```haskell ```yaml 等). 図・スクリーンショットは
   `images/` に置き, 本文で必ず言及して takeaway を述べる.
