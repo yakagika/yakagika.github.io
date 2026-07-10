@@ -93,7 +93,7 @@ fp 講義後半 (fp8〜fp11) を **「型クラス → 代数構造 → 多相�
   - 残課題: ユーザ推敲, fp4/fp7 の Maybe 脚注→fp9 リンク. (Data.Map は本章に組込み済み.)
 - **Phase 3 — fp10 本文 (モナドと入出力)** ✅ 完了 (前半 2026-07-09 / 後半 IO + 俯瞰の階段 2026-07-10, `89a62c0`. v2 前提で完成 — fp-v2-unified-rebuild Phase A1')
   - ✅ **前半 (モナド)**: Functor 復習 → Applicative (独立節: `pure`/`<*>`, 4 法則) → Monad (`>>=`/`return`, Kleisli 射と `>=>`) → do 脱糖 → Maybe/Either モナド → モナド則 (Kleisli 圏の公理として再フレーム, fp8 モノイド・fp9 圏に接続). Either 例は専用エラー列挙型 (`CalcError`/`BankError`). 演習 CH10-1〜3 を各節直後に配置. `fp-examples/test/Fp10/` に spec 7 本 (純粋コアを hspec, モナド則は QuickCheck), `stack test` green. `open: true` で main に land (`b4fa7f5`).
-  - ⬜ **後半 (入出力)**: IO モナド (アクションと `IO a`) / 参照透過性 / 標準入出力 (`getLine`/`putStrLn`/`interact`) / `main` の構造. 現状 `# 入出力 (IO)` は "後半で執筆" note のプレースホルダ.
+  - ✅ **後半 (入出力)** (2026-07-10, `89a62c0`): IO モナド (アクションと `IO a`) / 参照透過性 / 標準入出力 / `main` と do の脱糖 + 「俯瞰の階段 — 台の持ち上げ」節. 演習 CH10-4・CH10-5. Fp10 spec 計 10 本, `stack test` 543 examples green.
   - IO 検証方針 (下記リスク #4) は fp12 の precedent で確定: **純粋コアは hspec, IO アクションはコンパイル確認のみ**. 前半は純粋なので全数検証済み.
 - **Phase 4 — fp11 本文 (可変状態と効果)** 未着手
   - IORef, State, ST (runST/領域型 s/STRef), Reader/Writer・モナド変換子の概観.

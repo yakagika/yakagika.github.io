@@ -2,19 +2,19 @@
 plan_id: fp-examples-verification
 status: in-progress
 created: 2026-05-12
-updated: 2026-06-21
+updated: 2026-07-10
 priority: medium
 next_actor: agent
-next_action: "Phase 3 以降 (未着手) に着手 — fp3〜fp7 のコード例検証 Stack プロジェクトの残フェーズを進める"
+next_action: "フェーズ 4 (任意: CI 統合・md⇔hs 同期) の要否判断 → 不要なら landed へ (フェーズ 0〜3 は完了済み — 実態反映 2026-07-10)"
 ---
 
 # fp 講義サンプルの検証用 Stack プロジェクト
 
 ## メタ情報
 
-- **状態**: in-progress (Phase 0-2 完了 / Phase 3 以降未着手)
+- **状態**: in-progress (フェーズ 0〜3 完了 / フェーズ 4 (任意) の要否判断待ち)
 - **作成日**: 2026-05-12
-- **最終更新**: 2026-05-12 (Phase 1-2 完了反映)
+- **最終更新**: 2026-07-10 (フェーズ 3 完了の実態反映 — codex レビュー指摘の stale 修正)
 
 ## 概要
 
@@ -232,9 +232,11 @@ dist-newstyle/
 - ✅ 全体で **152 examples, 0 failures**.
 - スマートコンストラクタ (Mult3 モジュール例) は単一ファイル構成と相性が悪いため**対象外**.
 
-### フェーズ 3: fp6 / fp7 (各 1 日 〜)
+### フェーズ 3: fp6 / fp7 (各 1 日 〜) — **完了 (実態反映 2026-07-10)**
 
-- 代数構造・モナドが入るため依存が増える.
+- 本文書は旧章番号のまま停滞していたが, 実体は完了済み. 章再編に伴い spec ディレクトリは rename で追随しており (旧 `Fp4` → `Fp5`, 旧 `Fp5` → `Fp6` → `Fp7`), 現行 `test/` には Fp3 (3 本) / Fp5 (19 本) / Fp6 (6 本) / Fp7 (10 本) が揃っている.
+- さらに後続 arc ([fp-typeclass-monad-arc.md](fp-typeclass-monad-arc.md) ほか) で Fp8〜Fp10 / Fp12 / FpA1 も整備済み. 2026-07-10 時点で `stack test` 543 examples green (fp-v2-unified-rebuild Phase A1' 完了時).
+- 「代数構造・モナドが入るため依存が増える」の懸念は QuickCheck / containers 依存の追加で解消済み.
 
 ### フェーズ 4 (任意): CI 統合とマークダウン同期
 
