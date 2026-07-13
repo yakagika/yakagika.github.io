@@ -1,4 +1,4 @@
--- | fp9.md 「データ型は対象, 関数は射」節のコード例.
+-- | fp9.md 「データ型は対象, 関数は射 — 圏 Hask」節のコード例.
 module Fp9.CategorySpec (spec) where
 
 import Test.Hspec

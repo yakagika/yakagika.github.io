@@ -1,4 +1,4 @@
--- | fp6.md 「集合と列挙型」節の練習問題.
+-- | fp7.md 「集合と列挙型」節の練習問題.
 module Fp7.WeekdaySpec (spec) where
 
 import Test.Hspec

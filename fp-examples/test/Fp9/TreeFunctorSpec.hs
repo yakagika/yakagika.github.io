@@ -1,4 +1,4 @@
--- | fp9.md 「Functor (関手) と fmap」節のコード例.
+-- | fp9.md 「関手 — 圏の準同型」(fmapList) および「Maybe は関手」「Either a は関手」「ツリーは関手」の各節のコード例.
 module Fp9.TreeFunctorSpec (spec) where
 
 import Test.Hspec

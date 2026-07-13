@@ -1,4 +1,4 @@
--- | fp9.md 「ツリー」節のコード例.
+-- | fp9.md 「ツリー — 内部構造を自作して理解する」節のコード例.
 module Fp9.TreeMonoidSpec (spec) where
 
 import Test.Hspec

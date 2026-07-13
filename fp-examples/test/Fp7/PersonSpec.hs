@@ -1,4 +1,4 @@
--- | fp6.md 「直積型 レコード構文」節の練習問題 `Person`.
+-- | fp7.md 「直積型 レコード構文」節の練習問題 `Person`.
 module Fp7.PersonSpec (spec) where
 
 import Test.Hspec

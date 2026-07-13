@@ -1,4 +1,4 @@
--- | fp6.md 「リスト内包表記」節の例と練習問題.
+-- | fp7.md 「リスト内包表記」節の例と練習問題.
 module Fp7.ListComprehensionSpec (spec) where
 
 import Test.Hspec
@@ -38,7 +38,7 @@ spec = describe "Fp7.ListComprehension" $ do
       divisors 13 `shouldBe` [1, 13]
 
   describe "pythagoreans" $
-    it "pythagoreans 20 (fp6.md の期待値)" $
+    it "pythagoreans 20 (fp7.md の期待値)" $
       pythagoreans 20 `shouldBe`
         [ (3, 4, 5), (5, 12, 13), (6, 8, 10)
         , (8, 15, 17), (9, 12, 15), (12, 16, 20)

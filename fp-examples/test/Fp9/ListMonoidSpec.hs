@@ -1,4 +1,4 @@
--- | fp9.md 「リスト」節のコード例.
+-- | fp9.md 「リスト — 再帰型であり, モノイドであり, 関手」節 (リストはモノイド) のコード例.
 module Fp9.ListMonoidSpec (spec) where
 
 import Test.Hspec

@@ -1,21 +1,25 @@
--- | fp9.md Exercise CH9-4 「自作多相型 Box を Functor にする」.
+-- | fp9.md Exercise CH9-4 「Maybe を Either へ変換 (エラー型を選べる toEither)」.
 module Fp9.Ex94Spec (spec) where
 
 import Test.Hspec
 
-data Box a = Box a deriving Show
+data DivError = DivByZero
+  deriving (Show, Eq)
 
-instance Functor Box where
-  fmap f (Box x) = Box (f x)
+safeDiv :: Int -> Int -> Maybe Int
+safeDiv _ 0 = Nothing
+safeDiv x y = Just (x `div` y)
 
-unBox :: Box a -> a
-unBox (Box x) = x
+-- 理由の型 e を固定しない (専用エラー型でも String でも動く)
+toEither :: e -> Maybe a -> Either e a
+toEither reason Nothing  = Left reason
+toEither _      (Just x) = Right x
 
 spec :: Spec
 spec = describe "Fp9.Exercise CH9-4" $ do
-  it "unBox (fmap (+1) (Box 10)) == 11" $
-    unBox (fmap (+ 1) (Box 10)) `shouldBe` (11 :: Int)
-  it "unBox (fmap show (Box 42)) == \"42\"" $
-    unBox (fmap show (Box (42 :: Int))) `shouldBe` "42"
-  it "関手則: unBox (fmap id (Box 7)) == 7" $
-    unBox (fmap id (Box 7)) `shouldBe` (7 :: Int)
+  it "toEither DivByZero (safeDiv 10 2) == Right 5" $
+    toEither DivByZero (safeDiv 10 2) `shouldBe` Right 5
+  it "toEither DivByZero (safeDiv 10 0) == Left DivByZero" $
+    toEither DivByZero (safeDiv 10 0) `shouldBe` Left DivByZero
+  it "toEither も String で動く (エラー型多相)" $
+    toEither "0 では割れません" (safeDiv 10 2) `shouldBe` Right 5

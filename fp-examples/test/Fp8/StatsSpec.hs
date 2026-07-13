@@ -1,4 +1,4 @@
--- | fp8.md 演習 CH8-6 (Stats) と「結合律と準同型が可能にすること」節の例.
+-- | fp8.md 演習 CH8-4 (Stats) と「準同型 — 構造を保つ写像」章の例.
 --   stats の準同型則, および融合 (中間リスト除去・単一走査・Moments による平均/分散) を検証する.
 module Fp8.StatsSpec (spec) where
 

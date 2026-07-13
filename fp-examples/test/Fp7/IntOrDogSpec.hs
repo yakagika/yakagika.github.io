@@ -1,4 +1,4 @@
--- | fp6.md 「直和型」節の `IntOrDog`.
+-- | fp7.md 「直和型」節の `IntOrDog`.
 module Fp7.IntOrDogSpec (spec) where
 
 import Test.Hspec

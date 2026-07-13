@@ -1,4 +1,4 @@
--- | fp6.md 「直和型」節の練習問題 `Shape`.
+-- | fp7.md 「直和型」節の練習問題 `Shape`.
 module Fp7.ShapeSpec (spec) where
 
 import Test.Hspec

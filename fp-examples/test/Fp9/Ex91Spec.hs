@@ -1,26 +1,21 @@
--- | fp9.md Exercise CH9-1 「安全な探索関数 safeLast / lookupKey」.
+-- | fp9.md Exercise CH9-1 「自作多相型 Box を Functor にする」.
 module Fp9.Ex91Spec (spec) where
 
 import Test.Hspec
 
-safeLast :: [a] -> Maybe a
-safeLast []       = Nothing
-safeLast [x]      = Just x
-safeLast (_ : xs) = safeLast xs
+data Box a = Box a deriving Show
 
-lookupKey :: Eq k => k -> [(k, v)] -> Maybe v
-lookupKey _ [] = Nothing
-lookupKey key ((k, v) : rest)
-  | key == k  = Just v
-  | otherwise = lookupKey key rest
+instance Functor Box where
+  fmap f (Box x) = Box (f x)
+
+unBox :: Box a -> a
+unBox (Box x) = x
 
 spec :: Spec
 spec = describe "Fp9.Exercise CH9-1" $ do
-  it "safeLast [1,2,3] == Just 3" $
-    safeLast [1, 2, 3 :: Int] `shouldBe` Just 3
-  it "safeLast [] == Nothing" $
-    safeLast ([] :: [Int]) `shouldBe` Nothing
-  it "lookupKey \"b\" [(\"a\",1),(\"b\",2)] == Just 2" $
-    lookupKey "b" [("a", 1), ("b", 2 :: Int)] `shouldBe` Just 2
-  it "lookupKey \"z\" [(\"a\",1),(\"b\",2)] == Nothing" $
-    lookupKey "z" [("a", 1), ("b", 2 :: Int)] `shouldBe` Nothing
+  it "unBox (fmap (+1) (Box 10)) == 11" $
+    unBox (fmap (+ 1) (Box 10)) `shouldBe` (11 :: Int)
+  it "unBox (fmap show (Box 42)) == \"42\"" $
+    unBox (fmap show (Box (42 :: Int))) `shouldBe` "42"
+  it "関手則: unBox (fmap id (Box 7)) == 7" $
+    unBox (fmap id (Box 7)) `shouldBe` (7 :: Int)

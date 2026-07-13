@@ -1,4 +1,4 @@
--- | fp6.md 「直積型 レコード構文」節の warn ブロック内 `DogInfo`.
+-- | fp7.md 「直積型 レコード構文」節の warn ブロック内 `DogInfo`.
 -- 直和型 + レコード構文でアクセサが部分関数になる例.
 module Fp7.DogInfoSpec (spec) where
 

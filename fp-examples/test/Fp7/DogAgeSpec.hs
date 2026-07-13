@@ -1,4 +1,4 @@
--- | fp6.md 「直積型」節 + レコード構文の `DogAge`.
+-- | fp7.md 「直積型」節 + レコード構文の `DogAge`.
 module Fp7.DogAgeSpec (spec) where
 
 import Test.Hspec
@@ -33,7 +33,7 @@ growOlder' dog@(MkDogAge b n)
 growOlder :: DogAge -> DogAge
 growOlder d = d { age = age d + 1 }
 
--- 高階関数とアクセサ関数の組み合わせ (fp6.md の説明事例)
+-- 高階関数とアクセサ関数の組み合わせ (fp7.md の説明事例)
 dogs :: [DogAge]
 dogs = [ MkDogAge GoldenRetriever 3
        , MkDogAge Beagle 7

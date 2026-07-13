@@ -1,33 +1,26 @@
--- | fp9.md Exercise CH9-2 「理由つきの検証 checkAge (専用エラー型)」.
+-- | fp9.md Exercise CH9-2 「安全な探索関数 safeLast / lookupKey」.
 module Fp9.Ex92Spec (spec) where
 
 import Test.Hspec
 
--- ① 起こりうる失敗を直和型で列挙する
-data AgeError = Negative | TooLarge
-  deriving (Show, Eq)
+safeLast :: [a] -> Maybe a
+safeLast []       = Nothing
+safeLast [x]      = Just x
+safeLast (_ : xs) = safeLast xs
 
--- ② その型を Left に載せて検証する
-checkAge :: Int -> Either AgeError Int
-checkAge n
-  | n < 0     = Left Negative
-  | n > 150   = Left TooLarge
-  | otherwise = Right n
-
--- ③ 表示は値と分離し, render 関数で与える
-renderAgeError :: AgeError -> String
-renderAgeError Negative = "年齢が負です"
-renderAgeError TooLarge = "年齢が大きすぎます"
+lookupKey :: Eq k => k -> [(k, v)] -> Maybe v
+lookupKey _ [] = Nothing
+lookupKey key ((k, v) : rest)
+  | key == k  = Just v
+  | otherwise = lookupKey key rest
 
 spec :: Spec
 spec = describe "Fp9.Exercise CH9-2" $ do
-  it "checkAge 30 == Right 30" $
-    checkAge 30 `shouldBe` Right 30
-  it "checkAge (-1) == Left Negative" $
-    checkAge (-1) `shouldBe` Left Negative
-  it "checkAge 200 == Left TooLarge" $
-    checkAge 200 `shouldBe` Left TooLarge
-  it "renderAgeError Negative == 年齢が負です" $
-    renderAgeError Negative `shouldBe` "年齢が負です"
-  it "either renderAgeError show (checkAge (-1)) == 年齢が負です" $
-    either renderAgeError show (checkAge (-1)) `shouldBe` "年齢が負です"
+  it "safeLast [1,2,3] == Just 3" $
+    safeLast [1, 2, 3 :: Int] `shouldBe` Just 3
+  it "safeLast [] == Nothing" $
+    safeLast ([] :: [Int]) `shouldBe` Nothing
+  it "lookupKey \"b\" [(\"a\",1),(\"b\",2)] == Just 2" $
+    lookupKey "b" [("a", 1), ("b", 2 :: Int)] `shouldBe` Just 2
+  it "lookupKey \"z\" [(\"a\",1),(\"b\",2)] == Nothing" $
+    lookupKey "z" [("a", 1), ("b", 2 :: Int)] `shouldBe` Nothing

@@ -1,4 +1,4 @@
--- | fp8.md 「群 (Group)」節のコード例.
+-- | fp8.md 「群 (Group)」「ℤ/7ℤ — 商集合が群をなす」節のコード例.
 module Fp8.GroupSpec (spec) where
 
 import Test.Hspec
@@ -6,24 +6,37 @@ import Test.Hspec
 class Monoid a => Group a where
   invert :: a -> a
 
-data Z3 = Z0 | Z1 | Z2 deriving (Show, Eq, Enum, Bounded)
+newtype Z7 = Z7 Int deriving (Show, Eq)
 
--- 群の演算 ⊕:  a ⊕ b = (a + b) mod 3
-(.+.) :: Z3 -> Z3 -> Z3
-a .+. b = toEnum ((fromEnum a + fromEnum b) `mod` 3)
+-- 商への射影: 整数をその同値類の代表元 (0..6) へ送る
+mkZ7 :: Int -> Z7
+mkZ7 n = Z7 (n `mod` 7)
 
-instance Semigroup Z3 where (<>)   = (.+.)
-instance Monoid    Z3 where mempty = Z0
-instance Group     Z3 where
-  invert a = toEnum ((3 - fromEnum a) `mod` 3)
+-- 群の演算 ⊕:  [a] ⊕ [b] = [a + b]
+(.@.) :: Z7 -> Z7 -> Z7
+Z7 a .@. Z7 b = mkZ7 (a + b)
+
+instance Semigroup Z7 where (<>)   = (.@.)
+instance Monoid    Z7 where mempty = mkZ7 0
+instance Group     Z7 where
+  invert (Z7 a) = mkZ7 (7 - a)
 
 spec :: Spec
-spec = describe "Fp8.Group" $ do
-  it "Z1 .+. Z2 == Z0"           $ (Z1 .+. Z2) `shouldBe` Z0
-  it "Z2 .+. Z2 == Z1"           $ (Z2 .+. Z2) `shouldBe` Z1
-  it "Z1 <> Z2 == Z0 (<> = .+.)" $ (Z1 <> Z2) `shouldBe` Z0
-  it "invert Z1 == Z2"           $ invert Z1 `shouldBe` Z2
-  it "invert Z2 == Z1"           $ invert Z2 `shouldBe` Z1
-  it "invert Z0 == Z0"           $ invert Z0 `shouldBe` Z0
-  it "Z1 <> invert Z1 == Z0 (逆元律)" $ (Z1 <> invert Z1) `shouldBe` Z0
-  it "mempty :: Z3 == Z0"        $ (mempty :: Z3) `shouldBe` Z0
+spec = describe "Fp8.Group (Z7 = ℤ/7ℤ)" $ do
+  it "mkZ7 1 ⊕ mkZ7 3 == mkZ7 4 (月曜の 3 日後は木曜)" $
+    (mkZ7 1 .@. mkZ7 3) `shouldBe` mkZ7 4
+  it "mkZ7 5 ⊕ mkZ7 4 == mkZ7 2 (9 ≡ 2)" $
+    (mkZ7 5 .@. mkZ7 4) `shouldBe` mkZ7 2
+  it "invert (mkZ7 2) == mkZ7 5" $
+    invert (mkZ7 2) `shouldBe` mkZ7 5
+  it "元と逆元の演算は単位元" $
+    (mkZ7 2 <> invert (mkZ7 2)) `shouldBe` (mempty :: Z7)
+  it "mkZ7 9 == mkZ7 2 (同じ同値類は代表元に正規化される)" $
+    mkZ7 9 `shouldBe` mkZ7 2
+  it "逆元律の全数検査 (代表元 0..6)" $
+    and [ (mkZ7 a <> invert (mkZ7 a)) == mempty | a <- [0..6] ]
+      `shouldBe` True
+  it "結合律の全数検査 (代表元 0..6 の全 3 つ組)" $
+    and [ (mkZ7 a <> mkZ7 b) <> mkZ7 c == mkZ7 a <> (mkZ7 b <> mkZ7 c)
+        | a <- [0..6], b <- [0..6], c <- [0..6] ]
+      `shouldBe` True

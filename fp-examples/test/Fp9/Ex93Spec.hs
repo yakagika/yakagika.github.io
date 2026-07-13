@@ -1,25 +1,33 @@
--- | fp9.md Exercise CH9-3 「Maybe を Either へ変換 (エラー型を選べる toEither)」.
+-- | fp9.md Exercise CH9-3 「理由つきの検証 checkAge (専用エラー型)」.
 module Fp9.Ex93Spec (spec) where
 
 import Test.Hspec
 
-data DivError = DivByZero
+-- ① 起こりうる失敗を直和型で列挙する
+data AgeError = Negative | TooLarge
   deriving (Show, Eq)
 
-safeDiv :: Int -> Int -> Maybe Int
-safeDiv _ 0 = Nothing
-safeDiv x y = Just (x `div` y)
+-- ② その型を Left に載せて検証する
+checkAge :: Int -> Either AgeError Int
+checkAge n
+  | n < 0     = Left Negative
+  | n > 150   = Left TooLarge
+  | otherwise = Right n
 
--- 理由の型 e を固定しない (専用エラー型でも String でも動く)
-toEither :: e -> Maybe a -> Either e a
-toEither reason Nothing  = Left reason
-toEither _      (Just x) = Right x
+-- ③ 表示は値と分離し, render 関数で与える
+renderAgeError :: AgeError -> String
+renderAgeError Negative = "年齢が負です"
+renderAgeError TooLarge = "年齢が大きすぎます"
 
 spec :: Spec
 spec = describe "Fp9.Exercise CH9-3" $ do
-  it "toEither DivByZero (safeDiv 10 2) == Right 5" $
-    toEither DivByZero (safeDiv 10 2) `shouldBe` Right 5
-  it "toEither DivByZero (safeDiv 10 0) == Left DivByZero" $
-    toEither DivByZero (safeDiv 10 0) `shouldBe` Left DivByZero
-  it "toEither も String で動く (エラー型多相)" $
-    toEither "0 では割れません" (safeDiv 10 2) `shouldBe` Right 5
+  it "checkAge 30 == Right 30" $
+    checkAge 30 `shouldBe` Right 30
+  it "checkAge (-1) == Left Negative" $
+    checkAge (-1) `shouldBe` Left Negative
+  it "checkAge 200 == Left TooLarge" $
+    checkAge 200 `shouldBe` Left TooLarge
+  it "renderAgeError Negative == 年齢が負です" $
+    renderAgeError Negative `shouldBe` "年齢が負です"
+  it "either renderAgeError show (checkAge (-1)) == 年齢が負です" $
+    either renderAgeError show (checkAge (-1)) `shouldBe` "年齢が負です"

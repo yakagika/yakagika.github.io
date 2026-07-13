@@ -1,5 +1,5 @@
 ---
-title: 関数型プログラミング Ch9 代数的データ型3
+title: 関数型プログラミング Ch9 圏と多相データ型
 description: 資料
 tags:
     - algebra
@@ -8,33 +8,666 @@ tags:
     - haskell
 featured: true
 katex: true
-date: 2025-06-06
+date: 2026-07-13
 tableOfContents: true
 previousChapter: fp8.html
 nextChapter: fp10.html
 open: true
 ---
 
-[第8章](fp8.html)では, 型クラスと代数構造の対応を見ました. 型 (= 集合) の上に演算と法則を載せると半群・モノイド・群といった代数になり, それを `Semigroup` / `Monoid` などの型クラスで表せる, という流れでした. その最後で「リスト・ツリーも多相データ型なので, 次章で関手と合わせて扱う」と予告しました. 本章はその回収です.
+[前章 (第8章)](fp8.html)では, 型 (= 集合) の上に演算と法則を載せた **代数構造** と, その受け皿としての型クラスを見ました. 章の後半では **準同型 — 構造を保つ写像** が一級の登場人物になり, 締めくくりで「台が値から関数 (射) へ持ち上がる」と予告しました. 本章はその回収です.
 
-本章は 2 部構成です. 前半 **多相データ型** では, 型引数 `a` を持つデータ型を整理します. まず, 失敗を型で表す `Maybe` と二者択一を表す `Either` ([第7章](fp7.html)で「後の章で扱う」と先送りした型) を扱い, 続いて既習のリスト, 実用的な辞書型 `Map`, その内部構造を自作で確かめるツリー (二分探索木) を扱います.
+振り返ると, ここまでの 2 章は「**台に何を据えるか**」の物語として読めます.
 
-後半 **圏論的解釈** では, これらの型を **圏論** の言葉で読み直します. [第7章](fp7.html)で型を集合とみなし, [第8章](fp8.html)で集合に演算を載せて代数とみなしたのに続き, 本章では「型を **対象**, 関数を **射** とみなす」見方を導入します. このとき, 型引数を持つ多相データ型は **関手 (functor)**, 型に依らない一様な多相関数は **自然変換 (natural transformation)** という構造に対応します. すなわち, 次の対応を順に確かめていきます.
+- [第7章](fp7.html)では, 型を **集合** とみなしました. 台は「値の集まり」で, その上の関係・関数を直積の部分集合として定義しました.
+- [第8章](fp8.html)では, 集合の上に **演算と法則** を載せて **代数** を作りました. 台は変わらず値の集まりのまま, 載せるものが増え, 最後に **構造を保つ写像 (準同型)** を手に入れました.
+
+本章では, 台そのものを取り替えます. これまで「値の集まり」の上に構造を載せてきたのに対し, 今度は **関数 (写像) そのものの集まり** を台に据え, その上に **合成** という演算を載せます. こうしてできる構造が **圏 (category)** です.
+
+[第7章](fp7.html)の「演算 — 台の上で閉じた関数」の節で描いた図の系列が, この転換をそのまま表しています. 図0 は集合だけの世界. [第8章](fp8.html)までの主役は **図1 の世界** でした — 点 = 台 (集合) はただ 1 つ, 射 = 台の中で閉じた演算で, この世界に法則を課して代数を作ったのでした. 本章の主役は **図2 の世界** です. 点 = 型 (集合) は無数にあり, 射 = 関数が型から型へ渡ります. この図2 の世界を, 点 (型) の側からではなく **射 (関数) の側から** 眺め, 射の集まりを台に据えて合成の法則を課したものが圏です. 図1 から図2 への矢印 — [第7章](fp7.html)の演算の節で **俯瞰** (台を射の集まりに取り替える見方の転換) と名づけた操作 — を, 本章はついに実行するわけです.
+
+<svg viewBox="0 0 772 246" width="100%" style="max-width: 780px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="図0 から図2 までの系列. 図0: 集合だけの世界 (点 Type のみ). 図1: 代数 — 台 = Type, 演算 = ● と e がループの射. 第8章までは この世界に法則を課して代数を作った. 右の矢印は俯瞰 — 台を射の集まりに取り替える見方の転換. 図2: 圏 Hask — Ob = {A, B, C}, Mor = {f, g, g∘f, id, …}. 本章はこの図2 の世界の射の集まりを台に据える — それが圏である.">
+  <defs>
+    <marker id="lad0-arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="currentColor"/>
+    </marker>
+  </defs>
+  <!-- 図0: 集合だけの世界 -->
+  <rect x="12" y="26" width="196" height="150" rx="10" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.75"/>
+  <text x="26" y="46" fill="currentColor" font-size="10" opacity="0.8">図0  集合</text>
+  <text x="110" y="106" fill="currentColor" font-family="monospace" font-size="12.5" font-weight="600" text-anchor="middle">Type</text>
+  <g fill="currentColor" text-anchor="middle">
+    <text x="110" y="193" font-size="12" font-weight="600">点 = 集合 (型)</text>
+    <text x="110" y="208" font-size="9.5" opacity="0.85">台 = Type</text>
+    <text x="110" y="222" font-size="9.5" opacity="0.85">演算 = (まだ無い)</text>
+    <text x="110" y="237" font-size="10" opacity="0.7">第7章: 型 = 集合</text>
+  </g>
+  <line x1="214" y1="100" x2="282" y2="100" stroke="currentColor" stroke-width="1.2" marker-end="url(#lad0-arrow)" opacity="0.75"/>
+  <g fill="currentColor" text-anchor="middle">
+    <text x="248" y="78" font-size="10" font-weight="600">演算を</text>
+    <text x="248" y="92" font-size="8.5" opacity="0.8">載せる</text>
+  </g>
+  <!-- 図1: 代数 -->
+  <rect x="288" y="26" width="196" height="150" rx="10" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.75"/>
+  <text x="302" y="46" fill="currentColor" font-size="10" opacity="0.8">図1  代数</text>
+  <text x="386" y="106" fill="currentColor" font-family="monospace" font-size="12" font-weight="600" text-anchor="middle">Type</text>
+  <path d="M 400 94 C 452 52, 320 52, 372 94" fill="none" stroke="currentColor" stroke-width="1.3" marker-end="url(#lad0-arrow)"/>
+  <text x="386" y="79" fill="currentColor"  font-size="11" text-anchor="middle">●</text>
+  <path d="M 400 116 C 452 158, 320 158, 372 116" fill="none" stroke="currentColor" stroke-width="1.3" marker-end="url(#lad0-arrow)"/>
+  <text x="386" y="142" fill="currentColor" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="11" text-anchor="middle">e</text>
+  <g fill="currentColor" text-anchor="middle">
+    <text x="386" y="193" font-size="12" font-weight="600">点 = 台 (集合), 射 = 演算</text>
+    <text x="386" y="208" font-size="9.5" opacity="0.85">台 = Type</text>
+    <text x="386" y="222" font-size="9.5" opacity="0.85">演算 = ●, e</text>
+    <text x="386" y="237" font-size="10" opacity="0.7">第8章まで: この世界 + 法則 = 代数</text>
+  </g>
+  <line x1="490" y1="100" x2="558" y2="100" stroke="currentColor" stroke-width="1.2" marker-end="url(#lad0-arrow)" opacity="0.75"/>
+  <g fill="currentColor" text-anchor="middle">
+    <text x="524" y="78" font-size="10" font-weight="600">俯瞰</text>
+    <text x="524" y="92" font-size="8.5" opacity="0.8">台を射の集まりに</text>
+  </g>
+  <!-- 図2: 関数の世界 -->
+  <rect x="564" y="26" width="196" height="150" rx="10" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.75"/>
+  <text x="578" y="46" fill="currentColor" font-size="10" opacity="0.8">図2  圏 Hask</text>
+  <g fill="currentColor" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="13" text-anchor="middle">
+    <text x="604" y="71">A</text>
+    <text x="714" y="71">B</text>
+    <text x="660" y="151">C</text>
+  </g>
+  <g stroke="currentColor" stroke-width="1.3" fill="none">
+    <line x1="620" y1="67" x2="698" y2="67" marker-end="url(#lad0-arrow)"/>
+    <line x1="708" y1="80" x2="672" y2="136" marker-end="url(#lad0-arrow)"/>
+    <line x1="608" y1="80" x2="646" y2="136" marker-end="url(#lad0-arrow)"/>
+  </g>
+  <g fill="currentColor" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="11" text-anchor="middle">
+    <text x="659" y="59">f</text>
+    <text x="704" y="112">g</text>
+    <text x="612" y="112">g∘f</text>
+  </g>
+  <g fill="currentColor" text-anchor="middle">
+    <text x="662" y="193" font-size="12" font-weight="600">点 = 型 (集合), 射 = 関数</text>
+    <text x="662" y="208" font-size="9.5" opacity="0.85">Ob = {A, B, C}</text>
+    <text x="662" y="222" font-size="9.5" opacity="0.85">Mor = {f, g, g∘f, id, …}</text>
+    <text x="662" y="237" font-size="10" opacity="0.7">本章: 射の集まりを台に据える = 圏</text>
+  </g>
+</svg>
+
+そしてこの見方に立つと, 型引数を持つ **多相データ型** は **関手 (functor)**, 型に依らない一様な多相関数は **自然変換 (natural transformation)** という構造に対応します. すなわち, 本章では次の対応を順に確かめていきます.
 
 | 圏論の概念 | Haskell での対応 |
 | --- | --- |
 | 対象 (object) | 型 |
 | 射 (morphism) | 関数 `a -> b` |
 | 関手 (functor) | 型引数を持つ多相データ型 (`fmap` を備える) |
-| 自然変換 (natural transformation) | 型に依らない多相関数 `forall a. f a -> g a` |
+| 自然変換 (natural transformation) | 型に依らない一様な多相関数 `forall a. f a -> g a` |
+
+この対応の裏には, [第8章](fp8.html)から続く 1 本の縦糸があります — **レシピは同じまま, 台を持ち上げる**. モノイドも圏も「組 + 法則 (結合律と単位律)」という同じレシピで定義され, 変わるのは **台に何を据えるか** だけです. 台に据えるものを一段ずつ持ち上げると, 次の階段 — 本講義で **俯瞰の階段** と呼ぶ地図 — になります (「図」の列は, 図0 (集合)・図1 (代数)・図2 (関数の世界) に続く本章の図の系列です). 本章はこの階段を下から順に上っていきます — 各段は対応する節で実物 (定義とコード) として確かめるので, いまは全体の地図として眺めるだけでかまいません.
+
+| 段 | 図 | 台 (= 前段の「構造を保つ写像」) | 単位 | どこで確かめるか |
+| --- | --- | --- | --- | --- |
+| モノイド | 図1 | 値 | `mempty` | [第8章](fp8.html) (確認済み) |
+| 圏 Hask | 図2 | 関数 (= 集合の写像) | `id` | 本章前半 |
+| 圏 Cat | 図3 | 関手 (= 圏の準同型) | 恒等関手 | 「関手 — 圏の準同型」の節 |
+| 関手圏 | 図4 | 自然変換 (= 関手どうしの変換) | 恒等自然変換 | 「自然変換」「関手圏」の節・[第10章](fp10.html) |
 
 ::: note
-[第7章](fp7.html)冒頭の警告で「Haskell の高度な機能は集合論的な理解よりも圏論的な理解のほうが適している. 一旦集合論的に概要を把握し, 後の章で圏論的な解釈を試みる」と述べました. 本章の後半がその「後の章」にあたります. ただし圏論そのものを体系的に扱うのではなく, これまで書いてきたコードを別の角度から眺め直す程度に留めます.
+[第7章](fp7.html)冒頭の警告で「Haskell の高度な機能は集合論的な理解よりも圏論的な理解のほうが適している. 一旦集合論的に概要を把握し, 後の章で圏論的な解釈を試みる」と述べました. 本章がその「後の章」にあたります. ただし圏論そのものを体系的に扱うのではなく, [第8章](fp8.html)までに作った「組 + 法則」の道具立てを, そのままもう一度使う程度に留めます.
 :::
 
-# 多相データ型
+本章は 3 部構成です. 前半 **圏** では, 圏を定義し, Haskell の型と関数がそのまま圏をなすこと, そして圏の準同型 = **関手** までを扱います. 中盤 **多相データ型 — 関手のモデルたち** では, 関手のモデル (実例) として多相データ型を一つずつ増やします — 失敗を表す `Maybe`, 二者択一の `Either` ([第7章](fp7.html)で「後の章で扱う」と先送りした型), 既習のリスト, 実務で頻出の辞書 `Map`, その内部構造を確かめるツリーです. それぞれが **なぜ実用で必要になるか** も, ここで一つずつ語ります. 後半では **自然変換** を導入し, 上の対応表を完成させます.
 
-## 型引数を持つデータ型
+# 圏 — 関数を台に据える
+
+## 圏の定義 — 組と法則
+
+[第8章](fp8.html)では, モノイドを「組 $(S, \bullet, e)$ であって, 結合律・単位元律という法則を満たすもの」として定義しました. 圏もまったく同じ流儀で定義します. 変わるのは **演算が乗る台** です. モノイドでは「値の集まり $S$」の上に演算 $\bullet$ を載せましたが, 圏では **「射 (写像) の集まり」の上に合成という演算を載せます**. [第7章](fp7.html)で型を集合とみなしたときの「集合のあいだの写像」たち — それ自体を, 今度は材料 (台) にするわけです.
+
+**圏 (category)** とは, 組
+
+$$(\mathrm{Ob},\ \mathrm{Mor};\ \mathrm{dom},\ \mathrm{cod},\ \circ)$$
+
+であって, 後述の 2 つの法則を満たすものです. 組の成分は次のとおりです.
+
+- **対象 (object) の集まり $\mathrm{Ob}$** — 射に付ける「ラベル」の世界です.
+- **射 (morphism) の集まり $\mathrm{Mor}$** — **演算が乗る台**です.
+- **1 項演算 $\mathrm{dom}, \mathrm{cod} : \mathrm{Mor} \to \mathrm{Ob}$** — 各射に **入口 (domain)** と **出口 (codomain)** の対象を割り当てます. $\mathrm{dom}\ f = A$ かつ $\mathrm{cod}\ f = B$ のとき, $f : A \to B$ と書きます.
+- **2 項演算 $\circ$ (合成, composition)** — ただし, どの 2 射にも使えるわけではありません. 定義域は, [第7章](fp7.html)の内包表記で書ける部分
+
+$$\{(g, f) \mid \mathrm{dom}\ g = \mathrm{cod}\ f\}$$
+
+  — すなわち「$f$ の出口と $g$ の入口が一致する対」に限られます. $f : A \to B$ と $g : B \to C$ を合成すると $g \circ f : A \to C$ です ($\mathrm{dom}(g \circ f) = \mathrm{dom}\ f$, $\mathrm{cod}(g \circ f) = \mathrm{cod}\ g$).
+
+満たすべき **法則** は 2 つで, モノイドの結合律・単位元律に対応します.
+
+- **結合律**: $\forall f, g, h.\ \ (h \circ g) \circ f = h \circ (g \circ f)$ (合成が定義できる限り)
+- **恒等律 (恒等射の存在)**: $\forall A.\ \exists\, \mathrm{id}_A : A \to A.\ \forall f, g.\ \ \mathrm{id}_A \circ f = f,\ \ g \circ \mathrm{id}_A = g$ (型が合う限り. この $\mathrm{id}_A$ を対象 $A$ の **恒等射 (identity)** といいます)
+
+モノイドと並べると, 対応がはっきり見えます.
+
+| | モノイド ([第8章](fp8.html)) | 圏 |
+| --- | --- | --- |
+| 台 (演算が乗る集まり) | 値の集合 $S$ | **射の集まり $\mathrm{Mor}$** |
+| 演算 | $\bullet$ (2 項. どの 2 要素にも使える) | $\circ$ (2 項. 型の合う対のみ) と $\mathrm{dom}, \mathrm{cod}$ (1 項) |
+| 単位 | 単位元 $e$ (全体で 1 つ) | 恒等射 $\mathrm{id}_A$ (**対象ごとに** 1 つ) |
+| 法則 | 結合律・単位元律 | 結合律・恒等律 |
+
+量化子の並びにも注目してください. モノイドの単位元は $\exists e.\ \forall x$ — 全体でたった 1 つの $e$ がすべての $x$ に効くのでした. 圏の恒等射は $\forall A.\ \exists\, \mathrm{id}_A$ — **対象ごとに 1 つずつ** 用意されます. [第8章](fp8.html)で半群・モノイド・群を量化子の形で区別したのと同じく, 量化子の順序と位置が構造の性格を決めています.
+
+成分の役割も, [第8章](fp8.html)の「組 + 法則」の note と同じに分かれます. **台と演算はデータ** (何を選ぶかで圏そのものが変わります), **法則は性質** (選んだデータについて成り立つかを検査します), そして **恒等射は, あれば $\circ$ から一意に決まります** ($u$ と $u'$ がともに $A$ の恒等射なら $u = u \circ u' = u'$). `mempty` が $\bullet$ から一意に決まったのと同じ理屈で, 恒等射はデータとして独立に選ぶものではなく, 演算の付属品です.
+
+## データ型は対象, 関数は射 — 圏 Hask
+
+Haskell の型と関数は, この定義をそのまま満たします. 対象を **型**, 射を **関数 `a -> b`** とみなすと, $\mathrm{dom}$ / $\mathrm{cod}$ は「引数の型と返り値の型」, 合成は関数合成 `(.)`, 恒等射は恒等関数 `id` です. 合成 `g . f` が「`f` の返り値の型と `g` の引数の型が一致するときだけ」型検査を通ることは, $\circ$ の定義域の制限そのものです. この圏を慣習的に **Hask** と呼びます.
+
+~~~ haskell
+-- 射 = 関数, 合成 = (.), 恒等射 = id
+f :: Int -> Int
+f = (+ 1)
+
+g :: Int -> Int
+g = (* 2)
+
+main :: IO ()
+main = do
+  print ((g . f) 3)   -- 8   (g (f 3) = g 4 = 8)
+  print (id 3)        -- 3   (恒等射)
+  print ((f . id) 3)  -- 4   (id . f = f . id = f)
+~~~
+
+`(.)` と `id` は [第6章](fp6.html) で関数合成として導入しましたが, 圏論的にはこれが「射の合成」と「恒等射」にあたります. 圏の法則も成り立ちます. `(f . g) . h` と `f . (g . h)` はどちらも `\x -> f (g (h x))` で等しく (結合律), `id . f` と `f . id` はどちらも `f` です (恒等律).
+
+もう一つ, 対象が相異なる具体例で **合成** を図にしてみましょう. 3 つの型 `Bool`, `Int`, `String` を **対象**, それらをつなぐ 2 つの関数を **射** とします.
+
+~~~ haskell
+-- 対象 = 型, 射 = 関数.  2 つの射:
+--   fromEnum :: Bool -> Int      False → 0, True → 1
+--   show     :: Int  -> String   数を文字列へ
+showBit :: Bool -> String
+showBit = show . fromEnum        -- 合成した射 g . f
+
+main :: IO ()
+main = do
+  print (fromEnum True)    -- 1     (Bool -> Int)
+  print (show (1 :: Int))  -- "1"   (Int -> String)
+  print (showBit True)     -- "1"   (show . fromEnum, Bool -> String)
+~~~
+
+`show . fromEnum` は, `Bool` から `String` への **1 本の射** です. `True` を渡すと `fromEnum` で `Int` の `1` を経由し, `show` で `"1"` になります. この「対象・射・合成」の関係を描いたのが次の **可換図式 (commutative diagram)** です. `Bool` から `String` へ至る 2 つの経路 — 上を回って `fromEnum` してから `show`, あるいは対角の `show . fromEnum` を直接たどる — が **同じ射** になる (これを「図式が **可換** である」といいます) ことを表しています.
+
+<svg viewBox="0 0 460 250" width="100%" style="max-width: 520px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="圏の合成を表す可換図式. 対象 Bool から fromEnum で Int へ, Int から show で String へ矢印が伸び, さらに Bool から String へ直接 show . fromEnum の対角の矢印が伸びる. fromEnum してから show をたどる経路と, 対角の show . fromEnum をたどる経路は, どちらも同じ射 Bool から String を表し, 図式は可換である.">
+  <defs>
+    <marker id="cd-arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="currentColor"/>
+    </marker>
+  </defs>
+  <g stroke="currentColor" stroke-width="1.5" fill="none">
+    <line x1="104" y1="52" x2="358" y2="52" marker-end="url(#cd-arrow)"/>
+    <line x1="388" y1="72" x2="388" y2="181" marker-end="url(#cd-arrow)"/>
+    <line x1="80" y1="74" x2="350" y2="184" marker-end="url(#cd-arrow)"/>
+  </g>
+  <g fill="currentColor" font-family="monospace" font-size="17" font-weight="600" text-anchor="middle">
+    <text x="72" y="58">Bool</text>
+    <text x="388" y="58">Int</text>
+    <text x="388" y="205">String</text>
+  </g>
+  <g fill="currentColor" font-family="monospace" font-size="13">
+    <text x="231" y="42" text-anchor="middle">fromEnum</text>
+    <text x="400" y="132" text-anchor="start">show</text>
+    <text x="180" y="158" text-anchor="middle">show . fromEnum</text>
+  </g>
+  <text x="230" y="238" fill="currentColor" font-size="12" text-anchor="middle">2 経路はどちらも同じ射 Bool → String — 図式は可換</text>
+</svg>
+
+矢印が **射**, 頂点が **対象**, 対角線が **合成した射** です. 合成 $g \circ f$ とは, まさに「この図で `f` の矢印と `g` の矢印を継いで得られる対角の矢印」にほかなりません.
+
+::: note
+**発展: Hask はどこまで含むか — そして厳密には圏でない**
+
+- **Hask は「全部入り」の 1 つの圏です.** 対象は種 `*` を持つ **すべての型**, 射 $\mathrm{Mor}(A, B)$ は **型 `A -> B` の値すべて** — 名前を付けて定義した関数だけでなく, `\x -> x + 1` のようにその場で書けるものも全部, 1 本ずつ射です. 「どの型とどの関数を入れるか」を選ぶ余地はなく, 言語が決まれば Hask は 1 つに決まります.
+- 本文の `Bool`/`Int`/`String` の三角形のような小さな圏は, Hask から対象と射を選んで切り出した **部分圏 (subcategory)** です (恒等射をすべて含み, 合成で閉じるように選びます). 図に描けるのは部分圏ですが, のちの `Functor` クラスが相手にするのは **Hask 全体から Hask 全体への** 関手です.
+- **厳密な但し書き**: 本物の Haskell には $\bot$ (`undefined`・無限ループ) が値として存在するため, Hask は圏の公理を厳密には満たしません (たとえば `seq` を使うと恒等律が人工的な例で破れます). 本講義では **$\bot$ を無視した, 全域関数だけからなる理想化された Hask** で考えます. この立場は「厳密には不正確だが, 導かれる結論は実用上正しい」ことが知られており (*fast and loose reasoning is morally correct*, Danielsson ら 2006), [第7章](fp7.html)で部分関数 (`head`) を全域性の欠けとして扱った議論が, ここでも理想化の境目になっています.
+:::
+
+## 圏はモノイドの一般化 — 一点圏
+
+ここまでの定義を, [第8章](fp8.html)のモノイドとの関係として整理します. モノイドは「結合律 + 単位元律」を満たす演算 `(<>)` と単位元 `mempty` の組, 圏は「結合律 + 恒等律」を満たす合成 `(.)` と恒等射 `id` の組でした.
+
+$$
+\underbrace{(h \circ g) \circ f = h \circ (g \circ f)}_{\text{圏の結合律}}, \quad
+\underbrace{\mathrm{id} \circ f = f \circ \mathrm{id} = f}_{\text{圏の恒等律}}
+$$
+
+実際, 圏は **モノイドを一般化した構造** です. [第8章](fp8.html)のモノイドは, **対象が 1 つだけの圏** (射 = その型の要素, 合成 = `<>`, 恒等射 = `mempty`) とみなせます (なお[第7章](fp7.html)の図1 では射 = **演算** でした. 同じ「一点のまわりのループ」の絵でも, 何を射に据えるかで読み方が変わります — この一点圏の読みでは **要素そのもの** が射です). 対象が 1 つしかなければ「型の合う対だけ」という合成の制限は常に満たされ, 「対象ごとに 1 つ」の恒等射も全体で 1 つに戻ります — 圏の定義が, そのままモノイドの定義に退化するのです. 逆に言えば, 圏とは **モノイドのレシピ (組 + 法則) はそのままに, 台を「値」から「射」へ持ち上げ, 合成の定義域を型で絞ったもの** です. 冒頭の階段の 1 段目 (モノイド) から 2 段目 (圏 Hask) への持ち上げが, まさにこれでした.
+
+言い換えだけでは心もとないので, [第8章](fp8.html)で扱った具体的なモノイドを 1 つ, 実際に圏として読み直してみます. リストのモノイド $([\mathrm{Int}],\ \mathbin{+\!\!\!+},\ [])$ です. 圏の組 $(\mathrm{Ob},\ \mathrm{Mor};\ \mathrm{dom}, \mathrm{cod}, \circ)$ の各成分に, モノイドの部品を次のように割り当てます.
+
+| 圏の成分 | 一点圏として読んだ $([\mathrm{Int}],\ \mathbin{+\!\!\!+},\ [])$ |
+| --- | --- |
+| 対象 $\mathrm{Ob}$ | $\star$ ただ 1 つ (名前はなんでもよい) |
+| 射 $\mathrm{Mor}$ | 各リスト — `[1,2]` も `[3]` も `[]` も, それぞれが射 $\star \to \star$ |
+| $\mathrm{dom},\ \mathrm{cod}$ | すべての射で $\star$ (対象が 1 つしかないので) |
+| 合成 $\circ$ | 連結 `++` — 「型の合う対のみ」の制限は常に満たされる |
+| 恒等射 $\mathrm{id}_\star$ | 空リスト `[]` |
+| 結合律 | $(xs \mathbin{+\!\!\!+} ys) \mathbin{+\!\!\!+} zs = xs \mathbin{+\!\!\!+} (ys \mathbin{+\!\!\!+} zs)$ |
+| 恒等律 | $[] \mathbin{+\!\!\!+} xs = xs \mathbin{+\!\!\!+} [] = xs$ |
+
+同じ内容を図にすると, 左が[第8章](fp8.html)の読み方 (図1 の実例), 右が一点圏としての読み方です.
+
+<svg viewBox="0 0 496 246" width="100%" style="max-width: 506px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="リストのモノイドの 2 つの読み方. 左は第8章の読み方 (図1 の実例) — 台 = [Int], 演算 = ++ と [] がループの射として載る. 右は一点圏としての読み方 — Ob = {★}, Mor = {[1,2], [3], [], …}: 対象 ★ が 1 つだけあり, 各リストが ★ から ★ への射になる. 合成が ++, 恒等射が []. 中央の矢印は値を射へ読み替える対応.">
+  <defs>
+    <marker id="opc-arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="currentColor"/>
+    </marker>
+  </defs>
+  <!-- 図1 の実例: リストの代数 -->
+  <rect x="12" y="26" width="196" height="150" rx="10" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.75"/>
+  <text x="26" y="46" fill="currentColor" font-size="10" opacity="0.8">図1 の実例  代数</text>
+  <text x="110" y="106" fill="currentColor" font-family="monospace" font-size="12" font-weight="600" text-anchor="middle">[Int]</text>
+  <path d="M 124 94 C 176 52, 44 52, 96 94" fill="none" stroke="currentColor" stroke-width="1.3" marker-end="url(#opc-arrow)"/>
+  <text x="110" y="79" fill="currentColor" font-family="monospace" font-size="11" text-anchor="middle">++</text>
+  <path d="M 124 116 C 176 158, 44 158, 96 116" fill="none" stroke="currentColor" stroke-width="1.3" marker-end="url(#opc-arrow)"/>
+  <text x="110" y="142" fill="currentColor" font-family="monospace" font-size="11" text-anchor="middle">[]</text>
+  <g fill="currentColor" text-anchor="middle">
+    <text x="110" y="193" font-size="12" font-weight="600">点 = 台, 射 = 演算</text>
+    <text x="110" y="208" font-size="9.5" opacity="0.85">台 = [Int]</text>
+    <text x="110" y="222" font-size="9.5" opacity="0.85">演算 = ++, []</text>
+    <text x="110" y="237" font-size="10" opacity="0.7">第8章の読み方: 値の上の演算</text>
+  </g>
+  <line x1="214" y1="100" x2="282" y2="100" stroke="currentColor" stroke-width="1.2" marker-end="url(#opc-arrow)" opacity="0.75"/>
+  <g fill="currentColor" text-anchor="middle">
+    <text x="248" y="78" font-size="10" font-weight="600">読み替え</text>
+    <text x="248" y="92" font-size="8.5" opacity="0.8">値を射に</text>
+  </g>
+  <!-- 一点圏として -->
+  <rect x="288" y="26" width="196" height="150" rx="10" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.75"/>
+  <text x="302" y="46" fill="currentColor" font-size="10" opacity="0.8">一点圏</text>
+  <text x="386" y="107" fill="currentColor" font-size="14" text-anchor="middle">★</text>
+  <path d="M 400 94 C 452 52, 320 52, 372 94" fill="none" stroke="currentColor" stroke-width="1.3" marker-end="url(#opc-arrow)"/>
+  <text x="386" y="79" fill="currentColor" font-family="monospace" font-size="9.5" text-anchor="middle">[1,2]</text>
+  <path d="M 400 116 C 452 158, 320 158, 372 116" fill="none" stroke="currentColor" stroke-width="1.3" marker-end="url(#opc-arrow)"/>
+  <text x="386" y="142" fill="currentColor" font-family="monospace" font-size="9.5" text-anchor="middle">[3]</text>
+  <path d="M 370 100 C 310 84, 310 128, 370 112" fill="none" stroke="currentColor" stroke-width="1.3" marker-end="url(#opc-arrow)"/>
+  <text x="334" y="94" fill="currentColor" font-family="monospace" font-size="8.5" text-anchor="middle">[] = id</text>
+  <g fill="currentColor" text-anchor="middle">
+    <text x="386" y="193" font-size="12" font-weight="600">点 = ★ ただ 1 つ, 射 = 各リスト</text>
+    <text x="386" y="208" font-size="9.5" opacity="0.85">Ob = {★}</text>
+    <text x="386" y="222" font-size="9.5" opacity="0.85">Mor = {[1,2], [3], [], …}</text>
+    <text x="386" y="237" font-size="10" opacity="0.7">合成 = ++, 恒等射 = []</text>
+  </g>
+</svg>
+
+[第8章](fp8.html)ではモノイドの **台の要素 (値)** だった `[1,2]` や `[3]` が, この読み方では 1 本ずつの **射** になります. 「リストを 2 つ選んで連結する」ことは「射を 2 本選んで合成する」ことにほかならず, モノイドの結合律・単位元律はそのまま圏の結合律・恒等律として読めます. この「モノイド = 一点圏」の読み方は, 次節で **最初の関手を作る材料** としてさっそく使います.
+
+::: note
+**発展: アリティは「域の形」に溶ける — 演算・値・関係の圏論的整理**
+
+圏の射は, 定義上すべて「1 入力」($f : A \to B$) です. では [第7章](fp7.html)で整理した $n$ 項演算 ($A^n \to A$) はどこへ行ったのでしょうか. 答えは: **アリティの違いは, 射の種類の違いではなく域 (domain) の形の違いに溶けます**.
+
+- **$n$ 項演算** = 域が直積 $A^n$ の射 $A^n \to A$. 直積は [第7章](fp7.html)の直積そのものです.
+- **0 項演算** = 域が $A^0$ の射. $A^0$ は「0 個の直積」= 1 点集合で, Haskell では `()` (Unit 型) です. つまり定数は $() \to A$ という射になります.
+- さらに圏論では, **「$A$ の要素」自体を射 $() \to A$ で定義します** (**大域的元** global element といいます). [第7章](fp7.html)で「0 項演算 = 定数 = 要素の指定」と読み替えたものが, ここでは読み替えですらなく **定義の一致** になります — 値・定数・0 項演算は, 圏論ではすべて「Unit からの射」という同じものです.
+- **カリー化** ([第5章](fp5.html)) はこの積形のもう 1 つの顔で, `(a, a) -> a` と `a -> a -> a` を行き来させます. 数学の一般論では積形 $A^n \to A$ を使うのが標準です.
+- **関係** ($R \subseteq A \times A$, [第7章](fp7.html)) は「`Bool` への射」$A \times A \to \mathrm{Bool}$ として表せます. [第8章](fp8.html)の「関係 = `Bool` への 2 項演算」の読み替えは, `Bool` という対象が圏の中に実在することを使った表現でした.
+
+仕上げに 1 つ予告を. [第7章](fp7.html)の再帰的データ型では, 構成子の束 (たとえば `Nat` の 0 項演算 `Zero` と 1 項演算 `Succ`) を生成作用素 $\Phi$ に畳み込みました. 圏論ではこれをさらに進め, アリティのばらばらな演算たちを直和で束ねて **たった 1 本の射** $\alpha : F(A) \to A$ にします (`Nat` なら $\alpha = [\texttt{Zero}, \texttt{Succ}] : () + \mathrm{Nat} \to \mathrm{Nat}$). この $F$ は本節の次に学ぶ **関手** であり, この形の組 $(A, \alpha)$ は **$F$-代数**, その中で最初に出来上がるものは **始代数 (initial algebra)** と呼ばれます — 「再帰的データ型 = 生成作用素の最小不動点」の圏論版です (名前だけ挙げておきます. [第10章](fp10.html)のモナドの単位 $\eta : \mathrm{Id} \Rightarrow T$ も, 実は「単位対象からの射としての 0 項演算」パターンの再演です).
+:::
+
+## 関手 — 圏の準同型
+
+[第8章](fp8.html)の「準同型 — 構造を保つ写像」の章では, 構造を保つ写像を「集合の対応であって, **構造の成分を対応先の成分に写すもの**」として一般化し, モノイド準同型 (演算と単位元を保つ)・単調写像 (順序を保つ) などを 1 つの表に並べました. 圏も「組 + 法則」で定義された構造ですから, 同じ発想で「圏の構造 — **合成と恒等射** — を保つ写像」が考えられるはずです. それが **関手 (functor)** で, 冒頭の階段の 3 段目にあたります. ただし, いきなり一般の定義や Haskell の型クラスから入るのはやめて, まず **関手そのものを具体的に 2 つ, 手で構成して** みます. あとで見るとおり, Haskell に型クラスとして用意されているのは関手のうち特殊なケースだけ — [第8章](fp8.html)でマグマや群に標準クラスが無かったのと同じ事情 — だからです.
+
+### 最初の関手 — 一点圏から一点圏へ
+
+1 つ目の材料は, 前節で作ったばかりの **リストの一点圏** です. 行き先として, もう 1 つモノイドを一点圏に読み替えておきます — [第8章](fp8.html)の加算モノイド $(\mathrm{Int}, +, 0)$ です ($\mathrm{Ob} = \{\star\}$, $\mathrm{Mor} =$ 各整数, 合成 $= +$, 恒等射 $= 0$).
+
+この 2 つの圏の間の対応 $F$ を定めます.
+
+- **対象の対応**: $\star \mapsto \star$. どちらの圏も対象は 1 つしかないので, 選びようがありません (自明な対応です).
+- **射の対応**: 出発点の圏の射 = リスト $xs$ に, 行き先の圏の射 = その **長さ** `length xs` を割り当てます.
+
+この `length` は, [第7章](fp7.html)の演算の節で「台の外へ出ていく関数」として, [第8章](fp8.html)では **モノイド準同型** として登場したものです. 関手が「保つべきもの」は圏の構造 — 合成と恒等射 — でした. 出発点の圏の合成は `++`, 恒等射は `[]`. 行き先の圏の合成は `+`, 恒等射は `0`. つまり検査すべきは次の 2 つの等式で, これは第8章で確かめた準同型の 2 法則そのものです.
+
+$$\mathrm{length}\ (xs \mathbin{+\!\!\!+} ys) = \mathrm{length}\ xs + \mathrm{length}\ ys, \qquad \mathrm{length}\ [] = 0$$
+
+~~~ haskell
+main :: IO ()
+main = do
+  -- 射の対応: リスト xs ↦ 整数 length xs
+  print (length [10, 20, 30])            -- 3
+  -- 合成を保つか: F (xs ++ ys) = F xs + F ys
+  print (length ([1,2] ++ [3,4,5]))      -- 5
+  print (length [1,2] + length [3,4,5])  -- 5   (一致)
+  -- 恒等射を保つか: F [] = 0
+  print (length ([] :: [Int]))           -- 0
+~~~
+
+これで **関手が 1 つ, 手の中にできました**. 注目してほしいのは, ここに型クラスが 1 つも出てこないことです. 関手とは「対応 + 法則」であって, [第8章](fp8.html)のマグマや群に標準クラスが無かったのと同じように, **この関手のための型クラスは Haskell にありません** — あるのは, ただの関数 `length` と, 検査できる 2 つの等式だけです.
+
+同じ形は, 第8章の準同型ぜんぶに言えます. `stats = mconcat . map singleton` も, リストの一点圏から `Stats` の一点圏への関手です. 第8章で見た「2 つの経路が同じ要約にたどり着く」四角形を, 圏の言葉で読み直してみましょう.
+
+<svg viewBox="0 0 520 282" width="100%" style="max-width: 560px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="モノイド準同型 stats の四角形を圏論的に読み直した図. 左上 (xs, ys), 右上 xs ++ ys, 左下 (stats xs, stats ys), 右下 stats xs &lt;&gt; stats ys の四頂点をもつ. 上下の横矢印 ++ と &lt;&gt; は, 各モノイドを対象が 1 つの圏とみたときの射の合成にあたる. 左右の縦矢印 stats が準同型で, 一方の圏の射を他方の圏の射へ送る. 四角形が閉じること stats (xs ++ ys) = stats xs &lt;&gt; stats ys は stats が合成を保つことを, stats [] = mempty は恒等射を保つことを表す.">
+  <defs>
+    <marker id="hom-arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="currentColor"/>
+    </marker>
+  </defs>
+  <g stroke="currentColor" stroke-width="1.5" fill="none">
+    <line x1="170" y1="52" x2="352" y2="52" marker-end="url(#hom-arrow)"/>
+    <line x1="212" y1="196" x2="300" y2="196" marker-end="url(#hom-arrow)"/>
+    <line x1="120" y1="70" x2="120" y2="176" marker-end="url(#hom-arrow)"/>
+    <line x1="404" y1="70" x2="404" y2="176" marker-end="url(#hom-arrow)"/>
+  </g>
+  <g fill="currentColor" font-family="monospace" font-size="15" font-weight="600" text-anchor="middle">
+    <text x="120" y="46">(xs, ys)</text>
+    <text x="404" y="46">xs ++ ys</text>
+    <text x="120" y="202">(stats xs, stats ys)</text>
+    <text x="404" y="202">stats xs &lt;&gt; stats ys</text>
+  </g>
+  <g fill="currentColor" font-family="monospace" font-size="13">
+    <text x="261" y="41" text-anchor="middle">++</text>
+    <text x="256" y="188" text-anchor="middle">&lt;&gt;</text>
+    <text x="112" y="127" text-anchor="end">stats</text>
+    <text x="412" y="127" text-anchor="start">stats</text>
+  </g>
+  <g fill="currentColor" font-size="10.5" opacity="0.72">
+    <text x="261" y="63" text-anchor="middle">(合成)</text>
+    <text x="256" y="208" text-anchor="middle">(合成)</text>
+    <text x="112" y="145" text-anchor="end">(準同型)</text>
+    <text x="412" y="145" text-anchor="start">(準同型)</text>
+  </g>
+  <text x="260" y="264" fill="currentColor" font-size="12" text-anchor="middle">四角形が閉じる = stats が「合成 (++, &lt;&gt;) を保つ」／ stats [] = mempty = 「恒等射を保つ」</text>
+</svg>
+
+前節で, モノイドは「対象が 1 つだけの圏」— 射がその型の要素, 射の合成がモノイド演算, 恒等射が単位元 — とみなせることを見たばかりです. その目でこの四角形を読むと:
+
+- 横の 2 本の矢印 `++` と `<>` は, それぞれの一点圏の **射の合成**.
+- 縦の `stats` が, 一方の圏の射 (= リスト) を他方の圏の射 (= 要約) へ送る **射の対応**.
+- 四角形が閉じること (`stats (xs ++ ys) = stats xs <> stats ys`) は, `stats` が **合成を保つ** こと.
+- もう 1 つの法則 (`stats [] = mempty`) は, `stats` が **恒等射を保つ** こと.
+
+つまり **モノイド準同型とは, 一点圏どうしの間の関手** にほかなりません. [第8章](fp8.html)で「構造を保つ写像」と呼んでいたものの正体が, これです. `mkZ7` も, そして `fromEnum` も — モノイド $(\mathrm{Bool}, \wedge, \mathrm{True})$ から $(\mathrm{Int}, \times, 1)$ への準同型と読めば ($\mathrm{fromEnum}\,(x \wedge y) = \mathrm{fromEnum}\,x \times \mathrm{fromEnum}\,y$ と $\mathrm{fromEnum}\,\mathrm{True} = 1$ が成り立ちます. `Bool` は有限なので全数検査できます) — みなこの意味の関手です.
+
+### 2 つ目の手作り — リストの世界への複写
+
+一点圏どうしでは, 対象の対応が自明でした. 今度は **対象が複数ある圏** を使って, 対象の対応が本気で働く例を作ります. 出発点は, 「データ型は対象, 関数は射」の節で使った小さな圏 $\mathcal{C}$ — 対象は `Bool`, `Int`, `String` の 3 つ, 射は `fromEnum`, `show`, その合成 `show . fromEnum`, そして各対象の恒等射 `id` — です (図2 の世界の一部です). 行き先は, それぞれの型の **リスト版** の世界 $\mathcal{D}$ — 対象が `[Bool]`, `[Int]`, `[String]` で, 射がその間の関数 — とします. どちらも Hask の一部を切り出した圏です.
+
+$\mathcal{C}$ から $\mathcal{D}$ への対応 $F$ を, 2 本立てで定めます. まず **対象の対応** — 各型に, そのリスト型を割り当てます.
+
+| $\mathcal{C}$ の対象 $A$ | $\mathcal{D}$ の対象 $F\,A$ |
+| --- | --- |
+| `Bool` | `[Bool]` |
+| `Int` | `[Int]` |
+| `String` | `[String]` |
+
+次に **射の対応** — 各関数 $f : A \to B$ に, 「リストの各要素に $f$ を適用する関数」`map f` を割り当てます ([第4章](fp4.html)の `map` です). 行き先の型が $F\,A \to F\,B$ の形にそろっていることを確認してください.
+
+| $\mathcal{C}$ の射 $f : A \to B$ | $\mathcal{D}$ の射 $F\,f : F\,A \to F\,B$ |
+| --- | --- |
+| `fromEnum :: Bool -> Int` | `map fromEnum :: [Bool] -> [Int]` |
+| `show :: Int -> String` | `map show :: [Int] -> [String]` |
+| `show . fromEnum :: Bool -> String` | `map (show . fromEnum) :: [Bool] -> [String]` |
+| `id :: A -> A` (各対象) | `map id :: [A] -> [A]` |
+
+<svg viewBox="0 0 496 246" width="100%" style="max-width: 500px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="手作りの関手 F の図. 左は出発点の圏 C — 対象 Bool, Int, String と, 射 fromEnum, show, その合成. 右は行き先の圏 D — 対象 [Bool], [Int], [String] と, 射 map fromEnum, map show, その合成. 中央の矢印 F が対象と射をまるごと写す: 対象 A は [A] へ, 射 f は map f へ.">
+  <defs>
+    <marker id="cf-arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="currentColor"/>
+    </marker>
+  </defs>
+  <!-- 圏 C: Bool / Int / String -->
+  <rect x="12" y="26" width="196" height="150" rx="10" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.75"/>
+  <text x="26" y="46" fill="currentColor" font-size="10" opacity="0.7">圏 <tspan font-family="Georgia, 'Times New Roman', serif" font-style="italic">C</tspan></text>
+  <g fill="currentColor" font-family="monospace" font-size="12" text-anchor="middle">
+    <text x="52" y="71">Bool</text>
+    <text x="162" y="71">Int</text>
+    <text x="108" y="151">String</text>
+  </g>
+  <g stroke="currentColor" stroke-width="1.3" fill="none">
+    <line x1="74" y1="67" x2="138" y2="67" marker-end="url(#cf-arrow)"/>
+    <line x1="154" y1="80" x2="122" y2="136" marker-end="url(#cf-arrow)"/>
+    <line x1="60" y1="80" x2="92" y2="136" marker-end="url(#cf-arrow)"/>
+  </g>
+  <g fill="currentColor" font-family="monospace" font-size="8.5" text-anchor="middle">
+    <text x="106" y="59">fromEnum</text>
+    <text x="155" y="112">show</text>
+  </g>
+  <g fill="currentColor" text-anchor="middle">
+    <text x="110" y="193" font-size="12" font-weight="600">対象 = 型, 射 = 関数</text>
+    <text x="110" y="208" font-size="9.5" opacity="0.85">Ob = {Bool, Int, String}</text>
+    <text x="110" y="222" font-size="9.5" opacity="0.85">Mor = {fromEnum, show, …}</text>
+    <text x="110" y="237" font-size="10" opacity="0.7">出発点の圏 (図2 の世界)</text>
+  </g>
+  <!-- F: 対象と射をまるごと写す -->
+  <line x1="214" y1="100" x2="282" y2="100" stroke="currentColor" stroke-width="1.4" marker-end="url(#cf-arrow)"/>
+  <text x="248" y="78" fill="currentColor" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="16" text-anchor="middle">F</text>
+  <text x="248" y="92" fill="currentColor" font-size="8" text-anchor="middle" opacity="0.8">対象と射をまるごと写す</text>
+  <!-- 圏 D: [Bool] / [Int] / [String] -->
+  <rect x="288" y="26" width="196" height="150" rx="10" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.75"/>
+  <text x="302" y="46" fill="currentColor" font-size="10" opacity="0.7">圏 <tspan font-family="Georgia, 'Times New Roman', serif" font-style="italic">D</tspan></text>
+  <g fill="currentColor" font-family="monospace" font-size="11" text-anchor="middle">
+    <text x="330" y="71">[Bool]</text>
+    <text x="442" y="71">[Int]</text>
+    <text x="384" y="151">[String]</text>
+  </g>
+  <g stroke="currentColor" stroke-width="1.3" fill="none">
+    <line x1="356" y1="67" x2="418" y2="67" marker-end="url(#cf-arrow)"/>
+    <line x1="434" y1="80" x2="402" y2="136" marker-end="url(#cf-arrow)"/>
+    <line x1="328" y1="80" x2="360" y2="136" marker-end="url(#cf-arrow)"/>
+  </g>
+  <g fill="currentColor" font-family="monospace" font-size="7.5" text-anchor="middle">
+    <text x="386" y="58">map fromEnum</text>
+    <text x="446" y="112">map show</text>
+  </g>
+  <g fill="currentColor" text-anchor="middle">
+    <text x="386" y="193" font-size="12" font-weight="600">対象 = リスト型, 射 = map f</text>
+    <text x="386" y="208" font-size="9.5" opacity="0.85">Ob = {[Bool], [Int], [String]}</text>
+    <text x="386" y="222" font-size="9.5" opacity="0.85">Mor = {map fromEnum, map show, …}</text>
+    <text x="386" y="237" font-size="10" opacity="0.7">行き先の圏 (リストの世界)</text>
+  </g>
+</svg>
+
+これで対応そのものは定まりましたが, まだ「構造を保つ」ことを検査していません. 圏の構造の成分は合成と恒等射でしたから, 確かめるべきは 2 つです — $F$ は恒等射を恒等射に写すか ($F\,\mathrm{id} = \mathrm{id}$), 合成してから写しても写してから合成しても同じか ($F\,(\mathtt{show} \circ \mathtt{fromEnum}) = F\,\mathtt{show} \circ F\,\mathtt{fromEnum}$). どちらも実行して確かめられます.
+
+~~~ haskell
+main :: IO ()
+main = do
+  -- 射の対応: fromEnum ↦ map fromEnum  ([Bool] から [Int] への射になる)
+  print (map fromEnum [False, True])               -- [0,1]
+  -- 恒等射を保つか: F id = id
+  print (map id [False, True])                     -- [False,True]  (id と同じ)
+  -- 合成を保つか: F (show . fromEnum) = F show ∘ F fromEnum
+  print (map (show . fromEnum) [False, True])      -- ["0","1"]
+  print ((map show . map fromEnum) [False, True])  -- ["0","1"]  (一致)
+~~~
+
+一致しました. 各対象に「そのリスト版」を, 各射に「各要素への適用」を割り当てる — これで, 圏 $\mathcal{C}$ から圏 $\mathcal{D}$ への **関手が 1 つ, 手の中にできました**.
+
+### 一般の定義 — 組と法則
+
+いまの 2 つの構成から個別の事情を取り除くと, そのまま関手の一般定義になります.
+
+**関手 (functor)** とは, 圏 $\mathcal{C}$ から圏 $\mathcal{D}$ への写像 $F$ であって, 次のデータと法則からなるものです.
+
+- **データ**: 各対象 $A$ を対象 $F\,A$ に対応させる「対象の対応」と, 各射 $f : A \to B$ を射 $F\,f : F\,A \to F\,B$ に対応させる「射の対応」の 2 本立て.
+- **法則 (関手則)**:
+    - **恒等射を保つ**: $F\,\mathrm{id} = \mathrm{id}$
+    - **合成を保つ**: $F\,(g \circ f) = F\,g \circ F\,f$
+
+手作りした 2 つの関手がこの形をしていることを見比べてみてください — `length` は対象の対応が自明 ($\star \mapsto \star$) で射の対応が `length`, 複写の $F$ は対象の対応がリスト版 (1 つ目の表)・射の対応が `map` (2 つ目の表). 法則はどちらもコードで検査したとおりです. [第8章](fp8.html)の一般化表に, もう 1 行加わったと言ってもかまいません.
+
+| 構造 | 構造を保つ写像 | 保つもの |
+| --- | --- | --- |
+| モノイド $(S, \bullet, e)$ | モノイド準同型 | 演算と単位元 |
+| 順序集合 $(A, \le)$ | 単調写像 | 順序 |
+| 圏 $(\mathrm{Ob}, \mathrm{Mor};\ \mathrm{dom}, \mathrm{cod}, \circ)$ | **関手** | 合成と恒等射 |
+
+ズームアウトの図で言えば, 冒頭の階段の 3 段目に来たことになります. 図2 (点 = 型, 射 = 関数の世界) から一歩引くと, 図2 全体が 1 つの点 (= 圏) に潰れ, 点と点を結ぶ新しい射が現れます — いま手作りした $F$ は, この「圏どうしを結ぶ射」の実物です (図3).
+
+<svg viewBox="0 0 466 246" width="100%" style="max-width: 476px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="関手の導入図. 図2: 圏 Hask — Ob = {A, B, C}, Mor = {f, g, g∘f, id, …} の世界. 一歩引くと図3: 圏 Cat — Ob = {C, D, …}, Mor = {F, G∘F, Id, …} (合成 = 関手の合成, 恒等射 = 恒等関手). 図2 全体が 1 つの点 (圏) に潰れ, 圏と圏を結ぶ新しい射 F が現れる. 点 = 圏, 射 = 関手.">
+  <defs>
+    <marker id="lad1-arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="currentColor"/>
+    </marker>
+  </defs>
+  <!-- 図2: 関数の世界 -->
+  <rect x="12" y="26" width="196" height="150" rx="10" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.75"/>
+  <text x="26" y="46" fill="currentColor" font-size="10" opacity="0.8">図2  圏 Hask</text>
+  <g fill="currentColor" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="13" text-anchor="middle">
+    <text x="52" y="71">A</text>
+    <text x="162" y="71">B</text>
+    <text x="108" y="151">C</text>
+  </g>
+  <g stroke="currentColor" stroke-width="1.3" fill="none">
+    <line x1="68" y1="67" x2="146" y2="67" marker-end="url(#lad1-arrow)"/>
+    <line x1="156" y1="80" x2="120" y2="136" marker-end="url(#lad1-arrow)"/>
+    <line x1="56" y1="80" x2="94" y2="136" marker-end="url(#lad1-arrow)"/>
+  </g>
+  <g fill="currentColor" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="11" text-anchor="middle">
+    <text x="107" y="59">f</text>
+    <text x="152" y="112">g</text>
+    <text x="60" y="112">g∘f</text>
+  </g>
+  <g fill="currentColor" text-anchor="middle">
+    <text x="110" y="193" font-size="12" font-weight="600">点 = 型 (集合), 射 = 関数</text>
+    <text x="110" y="208" font-size="9.5" opacity="0.85">Ob = {A, B, C}</text>
+    <text x="110" y="222" font-size="9.5" opacity="0.85">Mor = {f, g, g∘f, id, …}</text>
+    <text x="110" y="237" font-size="10" opacity="0.7">圏 Hask (これまでの世界)</text>
+  </g>
+  <line x1="214" y1="100" x2="282" y2="100" stroke="currentColor" stroke-width="1.2" marker-end="url(#lad1-arrow)" opacity="0.75"/>
+  <g fill="currentColor" text-anchor="middle">
+    <text x="248" y="78" font-size="10" font-weight="600">一歩引く</text>
+  </g>
+  <!-- 図3: 点 = 圏, 射 = 関手 -->
+  <rect x="258" y="26" width="196" height="150" rx="10" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.75"/>
+  <text x="272" y="46" fill="currentColor" font-size="10" opacity="0.8">図3  圏 Cat</text>
+  <g fill="rgba(13,148,136,0.18)" stroke="currentColor" stroke-width="1.4">
+    <circle cx="308" cy="97" r="17"/>
+    <circle cx="404" cy="97" r="17"/>
+  </g>
+  <g fill="currentColor" opacity="0.8">
+    <circle cx="302" cy="92" r="1.5"/><circle cx="314" cy="92" r="1.5"/><circle cx="308" cy="104" r="1.5"/>
+    <circle cx="398" cy="92" r="1.5"/><circle cx="410" cy="92" r="1.5"/><circle cx="404" cy="104" r="1.5"/>
+  </g>
+  <g stroke="currentColor" stroke-width="0.7" opacity="0.7">
+    <line x1="303" y1="92" x2="312" y2="92"/><line x1="306" y1="94" x2="308" y2="102"/>
+    <line x1="399" y1="92" x2="408" y2="92"/><line x1="402" y1="94" x2="404" y2="102"/>
+  </g>
+  <line x1="330" y1="97" x2="382" y2="97" stroke="currentColor" stroke-width="1.4" marker-end="url(#lad1-arrow)"/>
+  <text x="356" y="84" fill="currentColor" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="15" text-anchor="middle">F</text>
+  <g fill="currentColor" font-size="10.5" text-anchor="middle" opacity="0.8">
+    <text x="308" y="132">圏 <tspan font-family="Georgia, 'Times New Roman', serif" font-style="italic">C</tspan></text>
+    <text x="404" y="132">圏 <tspan font-family="Georgia, 'Times New Roman', serif" font-style="italic">D</tspan></text>
+  </g>
+  <g fill="currentColor" text-anchor="middle">
+    <text x="356" y="193" font-size="12" font-weight="600">点 = 圏, 射 = 関手</text>
+    <text x="356" y="208" font-size="9.5" opacity="0.85">Ob = {C, D, …}</text>
+    <text x="356" y="222" font-size="9.5" opacity="0.85">Mor = {F, G∘F, Id, …}</text>
+    <text x="356" y="237" font-size="10" opacity="0.7">図2 全体が 1 つの点に潰れる</text>
+  </g>
+</svg>
+
+### 圏の圏 Cat — 関手の合成と恒等関手
+
+図3 のラベルには **圏 Cat** と書きました. 「圏」と名乗るからには, この図の世界自身が圏の定義 — 組 + 法則 — を満たしていなければなりません. 点 = 圏, 射 = 関手, までは決まっています. 足りない成分は **射の合成** と **恒等射** の 2 つで, どちらもいま手元にある材料から作れます.
+
+**関手は合成できます.** 関手 $F : \mathcal{C} \to \mathcal{D}$ と $G : \mathcal{D} \to \mathcal{E}$ があれば, 対象の対応どうし・射の対応どうしをそのまま継いだ対応
+
+$$G \circ F : \mathcal{C} \to \mathcal{E}, \qquad A \mapsto G\,(F\,A), \qquad f \mapsto G\,(F\,f)$$
+
+もまた関手です — 関手則は「まず $F$ が保ち, つづけて $G$ が保つ」ので, そのまま引き継がれます. 実物も作れます. 複写の関手 $F$ (対象は `Bool ↦ [Bool]`, 射は `f ↦ map f`) の行き先の世界 $\mathcal{D}$ に, もう一度複写の関手 $F'$ (対象は `[Bool] ↦ [[Bool]]`) を重ねると, 合成 $F' \circ F$ は対象を 2 重リストへ (`Bool ↦ [[Bool]]`), 射を 2 重の `map` へ (`f ↦ map (map f)`) 写す関手になります.
+
+~~~ haskell
+ghci> map (map fromEnum) [[False, True], [True]]
+[[0,1],[1]]
+~~~
+
+この「同じ形の関手を重ねた合成」は, [第10章](fp10.html)で `m (m a)` — モナドの演算の材料 $T \circ T$ — として主役になります.
+
+**恒等関手 (identity functor).** 各対象を自分自身に ($A \mapsto A$), 各射を自分自身に ($f \mapsto f$) 対応させる対応 $\mathrm{Id}_{\mathcal{C}} : \mathcal{C} \to \mathcal{C}$ は, 何もしないがゆえに関手則を自明に満たす関手です. そして関手の合成に対して $G \circ \mathrm{Id}_{\mathcal{C}} = G$, $\mathrm{Id}_{\mathcal{D}} \circ F = F$ — つまり **合成の単位** として振る舞います. 恒等関数 `id` が合成 `(.)` の単位だったことの, 1 段上での再演です.
+
+これで成分が揃ったので, 圏の定義と照合できます. $\mathrm{Ob} = \{\mathcal{C}, \mathcal{D}, \dots\}$ (圏たち), $\mathrm{Mor} = \{F,\ G,\ G \circ F,\ \mathrm{Id}_{\mathcal{C}}, \dots\}$ (関手たち), 合成 = 関手の合成, 恒等射 = 恒等関手. 結合律は「対応を順に継ぐだけ」なので関数合成と同じ理屈で成り立ち, 恒等律はいま確かめたとおりです. つまり **図3 の世界は, それ自身が圏の定義を満たす 1 つの圏** — 対象が圏, 射が関手の **圏の圏 (category of categories) Cat** — です (集合の大きさに関わる厳密な但し書きは, Hask の発展 note と同じく理想化して省きます). 冒頭の階段の 3 段目「圏 Cat — 台 = 関手, 単位 = 恒等関手」は, これで回収されました. 圏を調べるために作った道具 (関手) が, そのまま一段上の圏の射になる — この入れ子こそ, 同じレシピで台を持ち上げ続けられる理由です.
+
+### リスト関手と fmap — Haskell が型クラス化した特殊ケース
+
+2 つ目に手作りした $F$ は, 対象 3 つ・射 4 本に制限した, いわば **ミニチュアのリスト関手** でした. この制限を外し, **すべての型** `a` に `[a]` を, **すべての関数** `f :: a -> b` に `map f` を割り当てると, Hask から Hask 自身への関手 — **リスト関手** — になります.
+
+- **対象の対応**: 型 `a` を型 `[a]` へ. これを担うのが型構築子 `[]` です.
+- **射の対応**: 関数 `f :: a -> b` を `map f :: [a] -> [b]` へ.
+
+関手則も, 手作り版で検査した等式の一般形で, `map` について経験的に知っている事実の言い換えです. `map id` は「各要素に何もしない」ので `id` と同じ (恒等射を保つ). `map (g . f)` は「各要素に `f` してから `g` する」を一度に行うもので, `map f` してから `map g` するのと同じ (合成を保つ).
+
+$$\mathrm{map}\ \mathrm{id} = \mathrm{id}, \qquad \mathrm{map}\ (g \circ f) = \mathrm{map}\ g \circ \mathrm{map}\ f$$
+
+Haskell では, この「射の対応」の部分を型クラスにしています. それが `Functor` クラスで, 射の対応の名前が `fmap` です. 注意してほしいのは抽象度の段差です — **`fmap` は個々の関手そのものではなく, あらゆる関手の「射の対応」を同じ名前で呼べるようにした一般化** であり, 関手より 1 段抽象的な道具です. 先に関手そのもの (手作りの $F$) を持っているからこそ, この一般化を「何の一般化か」を見失わずに読めます.
+
+~~~ haskell
+class Functor f where
+  fmap :: (a -> b) -> f a -> f b
+~~~
+
+`fmap` は「`a` から `b` への関数」を「`f a` から `f b` への関数」に持ち上げます. これがまさに「射 $f : a \to b$ を $F\,f : f\,a \to f\,b$ に対応させる」操作です. 関手が満たすべき **関手則** は, 圏の恒等射と合成を保つことを Haskell の言葉に直したものです.
+
+$$\mathrm{fmap}\ \mathrm{id} = \mathrm{id}, \qquad \mathrm{fmap}\ (g \circ h) = \mathrm{fmap}\ g \circ \mathrm{fmap}\ h$$
+
+つまり `fmap` は, リスト専用だった `map` を **任意の関手に一般化** したものです. `map` の型 `(a -> b) -> [a] -> [b]` の `[]` を一般の型構築子 `f` で置き換えると, ちょうど `fmap :: (a -> b) -> f a -> f b` になります.
+
+$$\underbrace{(a \to b) \to [a] \to [b]}_{\text{map (リスト専用)}} \;\;\Longrightarrow\;\; \underbrace{(a \to b) \to f\,a \to f\,b}_{\text{fmap (任意の関手)}}$$
+
+読み方はここまでと同じで, **`fmap` は「`f` を適用する前の世界で使う関数 `a -> b` を, 適用した後の世界で使える関数 `f a -> f b` に変換する」道具** です. 最初の例と見比べてください — `length` が「リストの世界の射」を「整数の世界の射」に写したように, `fmap` は「`a` の世界の射」を「`f a` の世界の射」に写します. 射の対応 = 関数の変換です. 変換のしかたは関手ごとに決まります — リストなら「各要素に適用する関数」へ, 後で見る `Maybe` なら「`Just` の中身には適用し `Nothing` は素通しする関数」へ, 木なら「各ノードに適用する関数」へ.
+
+リストの `fmap` の中身は, [第4章](fp4.html) の `map` の再帰定義をそのまま書いたものです. 組込みのインスタンスと同じ定義を `fmapList` として書き下し, `fmap`・`map` と一致することを確かめます.
+
+~~~ haskell
+-- リストの fmap の中身 = 第4章の map の再帰定義そのもの
+fmapList :: (a -> b) -> [a] -> [b]
+fmapList _ []       = []
+fmapList f (x : xs) = f x : fmapList f xs
+
+main :: IO ()
+main = do
+  print (fmapList (* 2) [1, 2, 3])  -- [2,4,6]
+  print (fmap     (* 2) [1, 2, 3])  -- [2,4,6]   (組込みの fmap = map)
+  print (map      (* 2) [1, 2, 3])  -- [2,4,6]
+~~~
+
+3 つの結果はすべて一致します. `fmapList f` は「要素に使う関数 `f`」を「リスト全体に使える関数」へ変換したもので, 変換後の関数は空リストには何もせず, `(x : xs)` の各要素だけを `f` で置き換えます. リストの長さと並びが変わらないこと — これが, リスト関手が構造 (合成と恒等射) を保つことの目に見える現れです.
+
+ただし, ここで押さえておいてほしいのは, **`Functor` クラスに載る関手は, 関手全体のごく一部** だということです. クラスの形 (`f` が型構築子, `fmap` が 1 本の多相関数) から, 載るための条件が 3 つ読み取れます.
+
+1. **域も余域も Hask** — 表せるのは **Hask から Hask 自身への関手 (自己関手)** だけです. 最初に作った `length` (一点圏 → 一点圏) は, 立派な関手ですが `Functor` インスタンスにはなれません — 両端の圏が Hask ではないからです.
+2. **対象の対応が型構築子で書ける** — $F(A) = f\,A$ という一様な形 (種 `f :: * -> *`) に限られます. 「`Int` は `Bool` へ, `String` は `Int` へ」のような場当たりな対象の対応は書けません.
+3. **射の対応がパラメトリック多相 1 本** — `fmap` は, 型 `a`, `b` を覗いて型ごとに違う変換をすることができません.
+
+[第8章](fp8.html)のマグマ・群のときと同じ「標準クラスの有無」で整理すると, こうなります.
+
+| 関手 | Haskell での受け皿 | 例 |
+| --- | --- | --- |
+| 一点圏 → 一点圏 (= モノイド準同型) | クラスなし — 関数 + 法則 (マグマ・群と同じ立場) | `length`, `stats`, `mkZ7` |
+| 小さな圏どうしの関手 | クラスなし | 複写の $F$ |
+| **Hask → Hask, 対象対応 = 型構築子, 射対応 = パラメトリック** | **`Functor` クラス (`fmap`)** | リスト, `Maybe`, `Either a`, `Tree` |
+| 反変版 (射の向きを逆に写す関手) | 別クラス `Contravariant` (発展) | 述語 `Pred` の仲間 |
+
+同じ「関手」という言葉が, どの圏を選ぶかで `length` も `fmap` も指す — この区別がつくと, [第8章](fp8.html)の代数 (モノイドと準同型) と本章の圏論 (圏と関手) が, ひと続きの話として見えてきます.
+
+::: note
+**よく見る「`f` は箱」という説明について.** 入門記事ではしばしば, `Functor` を「箱 (容器) の中身に関数を適用するもの」という比喩で説明します. 本講義ではこの比喩を **採用しません**. 理由は 2 つあります. (1) 比喩が成り立たないインスタンスがあるからです — たとえば `f a = r -> a` (「`r` を読んで `a` を返す関数」を包んだ型. `fmap` は関数合成) は立派な `Functor` ですが箱ではありませんし, 「任意の値を箱に入れる操作」`a -> f a` は `Functor` の要件ですらありません (それが要求されるのは[第10章](fp10.html)の `pure` — モナドの単位 $\eta$ — からです). (2) より一貫した読み方がすでに手元にあるからです — 関手とは **射の対応** であり, `fmap` は「適用前の世界の関数を, 適用後の世界で使える関数へ変換するもの」. この読み方なら, `length` (一点圏どうし) にも `Maybe` にも `r -> a` にも, 同じ言葉がそのまま通ります.
+:::
+
+::: warn
+`Functor` クラスも, `Semigroup` などと同様に **関手則をコンパイラは検査しません**. 関手則を破る `fmap` (たとえば木の形を変えてしまうもの) を書いてもコンパイルは通ります. 法則を守るのはプログラマの責任です ([第8章](fp8.html)のコラムで触れた QuickCheck で, `fmap id == id` などを性質として確認できます).
+:::
+
+::: note
+`fmap` には中置演算子 `(<$>)` という別名があり, `(<$>) = fmap` です. `(+1) <$> Just 3` は `fmap (+1) (Just 3)` と同じで `Just 4` を返します. 関数適用 `$` の関手版という見立てで, 実務ではこちらもよく使われます.
+:::
+
+# 多相データ型 — 関手のモデルたち
+
+圏・関手という骨組みは手に入りました. ここからは主役を **モデル (実例)** に移します. [第8章](fp8.html)で「モノイド」という 1 つの構造に対して数の加算・リスト連結・`Stats` という複数のモデルを並べたように, 本部では **「Hask から Hask への関手」のモデル** を一つずつ増やしていきます. 素材は **多相データ型** です. まず型引数を持つデータ型の文法を整え, そのうえで `Maybe` / `Either` / リスト / `Map` / ツリーを順に見ます.
+
+## 型構築子と種 — 関手のデータ部
+
+関手のデータ部は「対象の対応」と「射の対応」の 2 本立てでした. Haskell で **対象 (型) の対応** を担う文法が, **型引数を持つデータ型** です.
 
 これまで定義してきたデータ型は, `MyDogs` や `Color` のように中身の型が固定されていました. これに対し, **中身の型を後から決められる** データ型を作れます. 型の定義に **型変数** (型引数) を持たせるのです.
 
@@ -54,15 +687,65 @@ data Pair a b = Pair a b     -- 型 a と型 b を 1 つずつ持つ組
 
 実は, すでに使ってきた **リスト `[a]`** も多相データ型です. `[]` が型構築子 (`[] :: * -> *`), 要素の型 `a` を受け取って `[a]` 型を作ります. `[Int]`, `[Char]`, `[Bool]` がすべて同じ `[]` から作られるのは, リストが「中身の型を後から決められる」多相データ型だからです.
 
-以下では, 型引数 `a` を持つ多相データ型を 5 つ見ていきます. まず, 失敗を表す **`Maybe`** と二者択一を表す **`Either`** ([第7章](fp7.html)で先送りした型の回収) から始めます. 続いて, **リスト `[a]`** ([第8章](fp8.html)で学んだ **モノイド** の実例), 実務でよく使う辞書型 **`Map`**, そして `Map` の **内部構造** と「自作の型への **`Monoid`** 定義」を理解するための **ツリー `Tree a`** (二分探索木) を順に扱います. これらはいずれも「型引数を持つ多相データ型」であると同時に, モノイドや関手といった構造も備えます (関手は後半 [圏論的解釈](#圏論的解釈) の **Functor** の節で扱います).
+種の記法で言い直すと, 関手 (Hask → Hask) のデータ部との対応はこうなります. **種 `* -> *` の型構築子が「対象の対応」** (型 `a` を型 `f a` へ) を与え, そこに **「射の対応」`fmap` を関手則を満たすように与えられれば**, `Functor` のインスタンス — 関手のモデル — になります. 前節のリストがまさにこの形でした (`[]` が対象の対応, `map` が射の対応).
+
+::: warn
+**種が `* -> *` なら必ず関手になれる, わけではありません.** 多相データ型は関手の **候補** です. たとえば
+
+~~~ haskell
+newtype Pred a = Pred (a -> Bool)   -- a の述語 (a を受け取って判定する)
+~~~
+
+は種 `Pred :: * -> *` を持ちますが, `fmap :: (a -> b) -> Pred a -> Pred b` を書くことはできません. 中身が「`a` を **受け取る** 関数」であり, 型引数 `a` が矢印の **左側 (反変の位置)** に現れているからです. `a -> Bool` から `b -> Bool` を作るには, 手持ちの `f :: a -> b` では向きが合わず, 逆向きの `b -> a` が必要になります. [第7章](fp7.html)の再帰的データ型の発展 note で「矢印の左に自分が現れると生成の道具立てが壊れる」ことに触れましたが, ここでも矢印の左 = 反変の位置が, (共変の) 関手の資格を奪います. 以降で見るモデルたちは, 型引数がすべて「値として持つ」位置 (共変の位置) に現れる型です.
+:::
+
+::: note
+
+### Exercise CH9-1
+
+**自作多相型 `Box` を Functor にする**
+
+値を 1 つ包む多相データ型 `Box a` を定義し, `Functor` インスタンスを実装してください. `fmap f` は「`a` に使う関数 `f`」を「`Box a` に使える関数」へ変換します. また, 中身を取り出す関数 `unBox :: Box a -> a` も定義してください.
+
+~~~ haskell
+-- 実行例
+main :: IO ()
+main = do
+  print (unBox (fmap (+ 1) (Box 10)))      -- 11
+  print (unBox (fmap show (Box (42 :: Int))))  -- "42"
+~~~
+
+<details class="protected" data-pass="yakagika">
+    <summary> 回答例 </summary>
+
+~~~ haskell
+data Box a = Box a deriving Show
+
+instance Functor Box where
+  fmap f (Box x) = Box (f x)
+
+unBox :: Box a -> a
+unBox (Box x) = x
+
+main :: IO ()
+main = do
+  print (unBox (fmap (+ 1) (Box 10)))          -- 11
+  print (unBox (fmap show (Box (42 :: Int))))  -- "42"
+~~~
+
+`fmap f (Box x) = Box (f x)` は, 「`a` に使う関数 `f`」を「`Box a` に使える関数」へ変換しています — 変換後の関数は `Box` の構造を保ち, 中身 `x` だけを `f` で置き換えます. `fmap id (Box x) = Box x` で恒等射が保たれていることも確認できます.
+
+</details>
+
+:::
 
 ## Maybe — 失敗を型で表す
 
 [第4章](fp4.html)・[第7章](fp7.html)で何度か「`Maybe` は後の章で扱う」と先送りしてきました. ここで回収します.
 
-[第7章](fp7.html)では, `head` や直和型のレコードセレクタが **部分関数** になる問題を見ました. 空リストに `head` を適用すると `error "Empty List"` で停止し ([第7章](fp7.html)「集合と列挙型」), `Square` の値に `radius` を適用すると `No match in record selector` で停止しました (Exercise CH7-7). どちらも「答えを返せない入力」があるのに, 型の上では `[a] -> a` のように「必ず答えを返す」かのように見えてしまうのが原因です.
+[第7章](fp7.html)の「関数 — 特別な関係」の節では, `head :: [a] -> a` のような **部分関数** の問題を見ました. 空リストという「出力が定義されていない入力」があるのに, 型の上では「必ず答えを返す」かのように見えてしまい, 適用すると実行時エラーで停止するのでした. 直和型のレコードセレクタ (同じく[第7章](fp7.html)「レコード構文」節の `dogAge`) も同様です. そして同じ節で, 対処の方向は 2 つ — (1) **定義域を型で絞る** (スマートコンストラクタ), (2) **出力を広げる** — あることを整理しました. `Maybe` は, この **「出力を広げる」道の主役** です.
 
-`Maybe` は, この「答えを返せないかもしれない」ことを **型で表す** ための多相データ型です. 定義は次の通りで, [第7章](fp7.html)の **直和型** に型引数 `a` を付けたものです.
+`Maybe` は, 「答えを返せないかもしれない」ことを **型で表す** ための多相データ型です. 定義は次の通りで, [第7章](fp7.html)の **直和型** に型引数 `a` を付けたものです.
 
 ~~~ haskell
 data Maybe a = Nothing | Just a
@@ -119,9 +802,22 @@ main = do
 `Maybe` は「失敗するかもしれない 1 つの値」を表しますが, **なぜ失敗したか** (理由) は持てません. `Nothing` はただの「値なし」です. 失敗の理由を伴わせたい場合は, 次節の `Either` を使います.
 :::
 
+### Maybe は関手
+
+`Maybe` は種 `Maybe :: * -> *` の型構築子で, 組込みで `Functor` のインスタンスです. `fmap` は「`Just` の中身に関数を適用し, `Nothing` はそのまま返す」操作になります.
+
+~~~ haskell
+main :: IO ()
+main = do
+  print (fmap (+ 1) (Just 3))            -- Just 4
+  print (fmap (+ 1) (Nothing :: Maybe Int))  -- Nothing
+~~~
+
+`fmap (+1) (Just 3)` が `Just 4` になり, `Nothing` には何も起きません. `fmap (+1)` は「`Int` に使う関数 `(+1)`」を「`Maybe Int` に使える関数」へ変換したもので, 変換後の関数は `Just` の中身には元の関数を適用し, `Nothing` は素通しします. リストの `fmap` が長さと並びを保ったのと同じく, 「`Nothing` か `Just` か」という **構造は変わりません**.
+
 ::: note
 
-### Exercise CH9-1
+### Exercise CH9-2
 
 **安全な探索関数 `safeLast` / `lookupKey` (Maybe)**
 
@@ -270,9 +966,22 @@ Left "0 では割れません"   -- エスケープされない
 
 `Maybe` と `Either` の使い分けは「失敗の理由が要るか」です. 理由が不要なら `Maybe`, 理由を運びたいなら `Either` を使い, その理由の型は **専用の直和型を第一候補** に (手軽さを優先するなら `String` でも) 選びます.
 
+### Either a は関手
+
+**`Either a` も関手** です. ただし `Either` は型引数を 2 つ取る (`Either :: * -> * -> *`) ため, 関手にするには片方を固定して `Either a` (種が `* -> *`) の形にします. `fmap` は `Right` の中身にだけ作用し, `Left` (慣習上は失敗) はそのまま素通しします.
+
+~~~ haskell
+main :: IO ()
+main = do
+  print (fmap (+ 1) (Right 3 :: Either String Int))  -- Right 4
+  print (fmap (+ 1) (Left "err" :: Either String Int))  -- Left "err"
+~~~
+
+`Maybe` と `Either a` は, どちらも「失敗するかもしれない値」を表す関手です. `fmap` で成功側 (`Just` / `Right`) の中身だけを加工しつつ, 失敗 (`Nothing` / `Left`) が出たらそれ以降の加工を素通しできます. エラー処理の文脈では, この性質が便利です.
+
 ::: note
 
-### Exercise CH9-2
+### Exercise CH9-3
 
 **理由つきの検証 `checkAge` (専用エラー型)**
 
@@ -385,7 +1094,7 @@ main = do
 
 ::: note
 
-### Exercise CH9-3
+### Exercise CH9-4
 
 **`Maybe` を `Either` へ変換 (エラー型を選べる `toEither`)**
 
@@ -423,15 +1132,15 @@ main = do
   print (toEither "0 では割れません" (safeDiv 10 2))  -- Right 5
 ~~~
 
-`toEither` は「理由を持たない失敗 (`Maybe`)」を「理由つきの失敗 (`Either`)」へ橋渡しします. 理由の型 `e` を固定しないことで, 専用エラー型と文字列のどちらにも同じコードで対応できます. 型を多相にできるのは, `toEither` が中身 `a` にも理由 `e` にも触れず ただ運ぶだけだからで, これは `Maybe` から `Either e` への自然変換になっています.
+`toEither` は「理由を持たない失敗 (`Maybe`)」を「理由つきの失敗 (`Either`)」へ橋渡しします. 理由の型 `e` を固定しないことで, 専用エラー型と文字列のどちらにも同じコードで対応できます. 型を多相にできるのは, `toEither` が中身 `a` にも理由 `e` にも触れず ただ運ぶだけだからです. 実はこの「中身に触れず外側の構造だけ移し替える」形には名前が付いています — 本章後半で見る **自然変換** (`Maybe` から `Either e` への自然変換) です.
 
 </details>
 
 :::
 
-## リスト
+## リスト — 再帰型であり, モノイドであり, 関手
 
-[第7章](fp7.html)では「リストが代数的にどのように定義されるかは後の章で扱う」と予告しました ([第7章](fp7.html)「集合の内包表記と代数的データ型」の警告). その回収です.
+[第7章](fp7.html)では「リストが代数的にどのように定義されるかは後の章で扱う」と先送りしていました. その回収です.
 
 ### リストは再帰的な代数的データ型
 
@@ -468,7 +1177,7 @@ main = do
   print (append xs ys)  -- Cons 1 (Cons 2 (Cons 3 (Cons 4 (Cons 5 Nil))))
 ~~~
 
-`len` も `append` も, **型の再帰構造に沿って** 定義されています. 構築子が `Nil` (基底) と `Cons` (再帰) の 2 通りなので, 関数もその 2 通りに場合分けし, `Cons` の枝で「残りのリスト `xs`」へ再帰します. これが[第6章](fp6.html)・[第7章](fp7.html)で繰り返した **構造的再帰** で, データの形と関数の形がそのまま対応します.
+`len` も `append` も, **型の再帰構造に沿って** 定義されています. 構築子が `Nil` (基底) と `Cons` (再帰) の 2 通りなので, 関数もその 2 通りに場合分けし, `Cons` の枝で「残りのリスト `xs`」へ再帰します. これが[第6章](fp6.html)・[第7章](fp7.html)で繰り返した **構造的再帰** で, データの形と関数の形がそのまま対応します. [第7章](fp7.html)の生成作用素の言葉で言えば, `Nat` の $\Phi(X) = \{\texttt{Zero}\} \cup \{\texttt{Succ}\ n \mid n \in X\}$ に対応して, リストは $\Phi(X) = \{\texttt{Nil}\} \cup \{\texttt{Cons}\ x\ xs \mid x \in a,\ xs \in X\}$ が生成する最小の集合です.
 
 そして, この `append` こそが組込の `(++)` にほかなりません (`Nil ↔ []`, `Cons ↔ (:)` と読み替えれば `(++)` の定義そのものです). つまりリストの連結は「型の再帰構造をたどって末尾までつなぐ」再帰関数として定義され, その `(++)` と `[]` が, 次に見るリストのモノイド構造を与えます.
 
@@ -488,6 +1197,8 @@ main = do
 リストの `<>` は `(++)`, `mempty` は `[]` です. `mconcat` は `concat` と同じはたらきをします.
 
 リストは, モノイドの中でも特別な位置を占めます. 要素の型 `a` を決めると, `[a]` は **`a` の値から作れる「最も自由な」モノイド** になります. これを **自由モノイド (free monoid)** といいます. 「自由」とは, 結合律と単位元律以外に余計な等式が成り立たない, という意味です. たとえば `[1,2]` と `[2,1]` は (集合ではないので) 別物のままで, 順序や重複が潰れません. [第7章](fp7.html)で「リストには順序があり重複も許され, 集合とは別物」と注意したことが, ここでは「自由モノイド = 余計な等式を課さないモノイド」として代数的に説明できます.
+
+こうしてリストには, 3 つの見方が重なりました. [第7章](fp7.html)の目には **再帰的な代数的データ型**, [第8章](fp8.html)の目には **(自由) モノイド**, そして本章の目には **関手** — `fmap = map` は「最初のモデル」の節で見たとおりです. 同じ 1 つの型が, 台の取り方 (値の集まり / 演算を載せた代数 / 射の対応) に応じて別の顔を見せるわけです.
 
 ## Map — キーと値の対応
 
@@ -540,7 +1251,7 @@ wordCount ws = Map.fromListWith (<>) [(w, Sum 1) | w <- ws]
   -- wordCount ["a","b","a"] = fromList [("a",Sum 2),("b",Sum 1)]
 ~~~
 
-**`Map` は関手 (Functor) でもあります.** ただし `fmap` が作用するのは **値だけ** で, キーは変わりません (`Map k` が関手で, 動かせるのは値 `v` の側です).
+**`Map` は関手 (Functor) でもあります.** `Either` と同じく型引数が 2 つあるので, キーの側を固定した `Map k` (種が `* -> *`) が関手です. したがって `fmap` が作用するのは **値だけ** で, キーは変わりません.
 
 ~~~ haskell
 main :: IO ()
@@ -549,11 +1260,11 @@ main = do
     -- fromList [("apple",30),("banana",20)]
 ~~~
 
-このように `Map` は, **多相型であり, モノイドであり, 関手でもある**, 実務で頻出の型です. 関手としての側面は後半の **Functor** の節で他の型と合わせて整理します.
+このように `Map` は, **多相型であり, モノイドであり, 関手でもある**, 実務で頻出の型です. リストで見た「3 つの顔」が, ライブラリの型にもそのまま現れています.
 
-## ツリー
+## ツリー — 内部構造を自作して理解する
 
-前節の `Map` (やその仲間の `Set`) は, 実は内部的に **平衡二分探索木 (balanced binary search tree)** で実装されています. 普段はライブラリの `Map` / `Set` を使えば十分ですが, ここでは ① その **内部構造** がどうなっているか, ② 自作のデータ型に **`Monoid` をどう定義するか** の 2 点を理解するために, 簡単な二分探索木 (binary search tree) を自分で作ってみます.
+前節の `Map` (やその仲間の `Set`) は, 実は内部的に **平衡二分探索木 (balanced binary search tree)** で実装されています. 普段はライブラリの `Map` / `Set` を使えば十分ですが, ここでは ① その **内部構造** がどうなっているか, ② 自作のデータ型に **`Monoid` をどう定義するか**, ③ 自作のデータ型を **`Functor` にする** とはどういうことか — の 3 点を理解するために, 簡単な二分探索木 (binary search tree) を自分で作ってみます.
 
 二分探索木は, 各 **節点 (node)** が 1 つの値と左右 2 つの部分木を持つ木で, どの節点でも
 
@@ -646,219 +1357,12 @@ main = do
 ここでは木を「要素の集合の入れ物」とみなし, `<>` を「一方の全要素をもう一方に挿入する合併」として定義しています. 単位元は空の木 `Leaf` です. `instance Ord a => Semigroup (Tree a)` のように, インスタンス宣言にも `Ord a =>` という **制約を付けられる** 点に注目してください (挿入のために要素の比較 `Ord` が必要なため).
 
 ::: warn
-この `<>` が結合律を満たすのは, あくまで **「木が表す要素の集合」のレベル** です. `t1 <> t2` と `t2 <> t1`, あるいは括弧の付け方を変えたものは, 取り出される要素の集合 (`toList'` の結果) は等しくなりますが, **木の内部構造 (枝分かれの形) は異なりうる** 点に注意してください. これは[第7章](fp7.html)で見た「リストと集合は別物」という注意の, 木における対応物です. 法則を「どの同値性のもとで成り立つと見るか」を意識することが大切です.
+この `<>` が結合律を満たすのは, あくまで **「木が表す要素の集合」のレベル** です. `t1 <> t2` と `t2 <> t1`, あるいは括弧の付け方を変えたものは, 取り出される要素の集合 (`toList'` の結果) は等しくなりますが, **木の内部構造 (枝分かれの形) は異なりうる** 点に注意してください. これは[第7章](fp7.html)で見た「リストと集合は別物」という注意の, 木における対応物です. 法則を「どの同値性のもとで成り立つと見るか」を意識することが大切です ([第8章](fp8.html)の商集合の言葉で言えば, 結合律が成り立つのは「同じ要素集合を表す木を同一視した商」の上です).
 :::
 
-# 圏論的解釈
+### ツリーは関手
 
-ここからは, 本章前半で見た多相データ型を **圏論** の言葉で読み直します. [第7章](fp7.html)で型を集合, [第8章](fp8.html)で集合に演算を載せた代数とみなしたのに続く, 第 3 の見方です. 定義のしかたも [第8章](fp8.html) と同じ流儀 — **組 (データ) + 法則 (性質)** — を貫きます. 変わるのは, 組の **台に何を据えるか** だけです.
-
-## 圏の定義 — 組と法則
-
-[第8章](fp8.html)では, モノイドを「組 $(S, \bullet, e)$ であって, 結合律・単位元律という法則を満たすもの」として定義しました. 圏もまったく同じ流儀で定義します. 変わるのは **演算が乗る台** です. モノイドでは「値の集まり $S$」の上に演算 $\bullet$ を載せましたが, 圏では **「射 (写像) の集まり」の上に合成という演算を載せます**. [第7章](fp7.html)で型を集合とみなしたときの「集合のあいだの写像」たち — それ自体を, 今度は材料 (台) にするわけです.
-
-**圏 (category)** とは, 組
-
-$$(\mathrm{Ob},\ \mathrm{Mor};\ \mathrm{dom},\ \mathrm{cod},\ \circ)$$
-
-であって, 後述の 2 つの法則を満たすものです. 組の成分は次のとおりです.
-
-- **対象 (object) の集まり $\mathrm{Ob}$** — 射に付ける「ラベル」の世界です.
-- **射 (morphism) の集まり $\mathrm{Mor}$** — **演算が乗る台**です.
-- **1 項演算 $\mathrm{dom}, \mathrm{cod} : \mathrm{Mor} \to \mathrm{Ob}$** — 各射に **入口 (domain)** と **出口 (codomain)** の対象を割り当てます. $\mathrm{dom}\ f = A$ かつ $\mathrm{cod}\ f = B$ のとき, $f : A \to B$ と書きます.
-- **2 項演算 $\circ$ (合成, composition)** — ただし, どの 2 射にも使えるわけではありません. 定義域は, [第7章](fp7.html)の内包表記で書ける部分
-
-$$\{(g, f) \mid \mathrm{dom}\ g = \mathrm{cod}\ f\}$$
-
-  — すなわち「$f$ の出口と $g$ の入口が一致する対」に限られます. $f : A \to B$ と $g : B \to C$ を合成すると $g \circ f : A \to C$ です ($\mathrm{dom}(g \circ f) = \mathrm{dom}\ f$, $\mathrm{cod}(g \circ f) = \mathrm{cod}\ g$).
-
-満たすべき **法則** は 2 つで, モノイドの結合律・単位元律に対応します.
-
-- **結合律**: $\forall f, g, h.\ \ (h \circ g) \circ f = h \circ (g \circ f)$ (合成が定義できる限り)
-- **恒等律 (恒等射の存在)**: $\forall A.\ \exists\, \mathrm{id}_A : A \to A.\ \forall f, g.\ \ \mathrm{id}_A \circ f = f,\ \ g \circ \mathrm{id}_A = g$ (型が合う限り. この $\mathrm{id}_A$ を対象 $A$ の **恒等射 (identity)** といいます)
-
-モノイドと並べると, 対応がはっきり見えます.
-
-| | モノイド ([第8章](fp8.html)) | 圏 |
-| --- | --- | --- |
-| 台 (演算が乗る集まり) | 値の集合 $S$ | **射の集まり $\mathrm{Mor}$** |
-| 演算 | $\bullet$ (2 項. どの 2 要素にも使える) | $\circ$ (2 項. 型の合う対のみ) と $\mathrm{dom}, \mathrm{cod}$ (1 項) |
-| 単位 | 単位元 $e$ (全体で 1 つ) | 恒等射 $\mathrm{id}_A$ (**対象ごとに** 1 つ) |
-| 法則 | 結合律・単位元律 | 結合律・恒等律 |
-
-量化子の並びにも注目してください. モノイドの単位元は $\exists e.\ \forall x$ — 全体でたった 1 つの $e$ がすべての $x$ に効くのでした. 圏の恒等射は $\forall A.\ \exists\, \mathrm{id}_A$ — **対象ごとに 1 つずつ** 用意されます. [第8章](fp8.html)で半群・モノイド・群を量化子の形で区別したのと同じく, 量化子の順序と位置が構造の性格を決めています.
-
-成分の役割も, [第8章](fp8.html)の「組 + 法則」の note と同じに分かれます. **台と演算はデータ** (何を選ぶかで圏そのものが変わります), **法則は性質** (選んだデータについて成り立つかを検査します), そして **恒等射は, あれば $\circ$ から一意に決まります** ($u$ と $u'$ がともに $A$ の恒等射なら $u = u \circ u' = u'$). `mempty` が $\bullet$ から一意に決まったのと同じ理屈で, 恒等射はデータとして独立に選ぶものではなく, 演算の付属品です.
-
-## データ型は対象, 関数は射
-
-Haskell の型と関数は, この定義をそのまま満たします. 対象を **型**, 射を **関数 `a -> b`** とみなすと, $\mathrm{dom}$ / $\mathrm{cod}$ は「引数の型と返り値の型」, 合成は関数合成 `(.)`, 恒等射は恒等関数 `id` です. 合成 `g . f` が「`f` の返り値の型と `g` の引数の型が一致するときだけ」型検査を通ることは, $\circ$ の定義域の制限そのものです. この圏を慣習的に **Hask** と呼びます.
-
-~~~ haskell
--- 射 = 関数, 合成 = (.), 恒等射 = id
-f :: Int -> Int
-f = (+ 1)
-
-g :: Int -> Int
-g = (* 2)
-
-main :: IO ()
-main = do
-  print ((g . f) 3)   -- 8   (g (f 3) = g 4 = 8)
-  print (id 3)        -- 3   (恒等射)
-  print ((f . id) 3)  -- 4   (id . f = f . id = f)
-~~~
-
-`(.)` と `id` は [第6章](fp6.html) で関数合成として導入しましたが, 圏論的にはこれが「射の合成」と「恒等射」にあたります. 圏の法則も成り立ちます. `(f . g) . h` と `f . (g . h)` はどちらも `\x -> f (g (h x))` で等しく (結合律), `id . f` と `f . id` はどちらも `f` です (恒等律).
-
-もう一つ, 対象が相異なる具体例で **合成** を図にしてみましょう. 3 つの型 `Bool`, `Int`, `String` を **対象**, それらをつなぐ 2 つの関数を **射** とします.
-
-~~~ haskell
--- 対象 = 型, 射 = 関数.  2 つの射:
---   fromEnum :: Bool -> Int      False → 0, True → 1
---   show     :: Int  -> String   数を文字列へ
-showBit :: Bool -> String
-showBit = show . fromEnum        -- 合成した射 g . f
-
-main :: IO ()
-main = do
-  print (fromEnum True)    -- 1     (Bool -> Int)
-  print (show (1 :: Int))  -- "1"   (Int -> String)
-  print (showBit True)     -- "1"   (show . fromEnum, Bool -> String)
-~~~
-
-`show . fromEnum` は, `Bool` から `String` への **1 本の射** です. `True` を渡すと `fromEnum` で `Int` の `1` を経由し, `show` で `"1"` になります. この「対象・射・合成」の関係を描いたのが次の **可換図式 (commutative diagram)** です. `Bool` から `String` へ至る 2 つの経路 — 上を回って `fromEnum` してから `show`, あるいは対角の `show . fromEnum` を直接たどる — が **同じ射** になる (これを「図式が **可換** である」といいます) ことを表しています.
-
-<svg viewBox="0 0 460 250" width="100%" style="max-width: 520px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="圏の合成を表す可換図式. 対象 Bool から fromEnum で Int へ, Int から show で String へ矢印が伸び, さらに Bool から String へ直接 show . fromEnum の対角の矢印が伸びる. fromEnum してから show をたどる経路と, 対角の show . fromEnum をたどる経路は, どちらも同じ射 Bool から String を表し, 図式は可換である.">
-  <defs>
-    <marker id="cd-arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M 0 1 L 9 5 L 0 9 z" fill="currentColor"/>
-    </marker>
-  </defs>
-  <g stroke="currentColor" stroke-width="1.5" fill="none">
-    <line x1="104" y1="52" x2="358" y2="52" marker-end="url(#cd-arrow)"/>
-    <line x1="388" y1="72" x2="388" y2="181" marker-end="url(#cd-arrow)"/>
-    <line x1="80" y1="74" x2="350" y2="184" marker-end="url(#cd-arrow)"/>
-  </g>
-  <g fill="currentColor" font-family="monospace" font-size="17" font-weight="600" text-anchor="middle">
-    <text x="72" y="58">Bool</text>
-    <text x="388" y="58">Int</text>
-    <text x="388" y="205">String</text>
-  </g>
-  <g fill="currentColor" font-family="monospace" font-size="13">
-    <text x="231" y="42" text-anchor="middle">fromEnum</text>
-    <text x="400" y="132" text-anchor="start">show</text>
-    <text x="180" y="158" text-anchor="middle">show . fromEnum</text>
-  </g>
-  <text x="230" y="238" fill="currentColor" font-size="12" text-anchor="middle">2 経路はどちらも同じ射 Bool → String — 図式は可換</text>
-</svg>
-
-矢印が **射**, 頂点が **対象**, 対角線が **合成した射** です. 合成 $g \circ f$ とは, まさに「この図で `f` の矢印と `g` の矢印を継いで得られる対角の矢印」にほかなりません.
-
-## 圏はモノイドの一般化
-
-ここまでの定義を, [第8章](fp8.html)のモノイドとの関係として整理します. モノイドは「結合律 + 単位元律」を満たす演算 `(<>)` と単位元 `mempty` の組, 圏は「結合律 + 恒等律」を満たす合成 `(.)` と恒等射 `id` の組でした.
-
-$$
-\underbrace{(h \circ g) \circ f = h \circ (g \circ f)}_{\text{圏の結合律}}, \quad
-\underbrace{\mathrm{id} \circ f = f \circ \mathrm{id} = f}_{\text{圏の恒等律}}
-$$
-
-実際, 圏は **モノイドを一般化した構造** です. [第8章](fp8.html)のモノイドは, **対象が 1 つだけの圏** (射 = その型の要素, 合成 = `<>`, 恒等射 = `mempty`) とみなせます. 対象が 1 つしかなければ「型の合う対だけ」という合成の制限は常に満たされ, 「対象ごとに 1 つ」の恒等射も全体で 1 つに戻ります — 圏の定義が, そのままモノイドの定義に退化するのです. 逆に言えば, 圏とは **モノイドのレシピ (組 + 法則) はそのままに, 台を「値」から「射」へ持ち上げ, 合成の定義域を型で絞ったもの** です.
-
-この「**レシピは同じまま, 台を持ち上げる**」という見方は, 本章の残りと [第10章](fp10.html) を貫く縦糸です. 台に据えるものを一段ずつ持ち上げていくと, 次の階段ができます.
-
-| 段 | 台 (= 前段の「構造を保つ写像」) | 単位 | どこで |
-| --- | --- | --- | --- |
-| モノイド | 値 | `mempty` | [第8章](fp8.html) |
-| 圏 Hask | 関数 (= 集合の写像) | `id` | 本節 |
-| 圏 Cat | 関手 (= 圏の準同型) | 恒等関手 | 本章後半・[第10章](fp10.html) |
-| 関手圏 | 自然変換 (= 関手どうしの変換) | 恒等自然変換 | [第10章](fp10.html) |
-
-図でいえば **ズームアウトの繰り返し** です. 「点 = 型, 矢 = 関数」の図から一歩引くたびに, それまでの図全体が 1 つの点に潰れ, 矢が一段上の写像に置き換わります. 本章の後半では, 次の段の主役 — **関手** (圏どうしの構造を保つ写像 = 圏の準同型) と **自然変換** (関手どうしの変換) — を導入します. そして [第10章](fp10.html) の「俯瞰の階段」でこの表は完成し, 最上段でモノイドのレシピをもう一度回したものが **モナド** であることを見ます.
-
-::: note
-**発展: アリティは「域の形」に溶ける — 演算・値・関係の圏論的整理**
-
-圏の射は, 定義上すべて「1 入力」($f : A \to B$) です. では [第7章](fp7.html)で整理した $n$ 項演算 ($A^n \to A$) はどこへ行ったのでしょうか. 答えは: **アリティの違いは, 射の種類の違いではなく域 (domain) の形の違いに溶けます**.
-
-- **$n$ 項演算** = 域が直積 $A^n$ の射 $A^n \to A$. 直積は [第7章](fp7.html)の直積そのものです.
-- **0 項演算** = 域が $A^0$ の射. $A^0$ は「0 個の直積」= 1 点集合で, Haskell では `()` (Unit 型) です. つまり定数は $() \to A$ という射になります.
-- さらに圏論では, **「$A$ の要素」自体を射 $() \to A$ で定義します** (**大域的元** global element といいます). [第7章](fp7.html)で「0 項演算 = 定数 = 要素の指定」と読み替えたものが, ここでは読み替えですらなく **定義の一致** になります — 値・定数・0 項演算は, 圏論ではすべて「Unit からの射」という同じものです.
-- **カリー化** ([第5章](fp5.html)) はこの積形のもう 1 つの顔で, `(a, a) -> a` と `a -> a -> a` を行き来させます. 数学の一般論では積形 $A^n \to A$ を使うのが標準です.
-- **関係** ($R \subseteq A \times A$, [第7章](fp7.html)) は「`Bool` への射」$A \times A \to \mathrm{Bool}$ として表せます. [第8章](fp8.html)の「関係 = `Bool` への 2 項演算」の読み替えは, `Bool` という対象が圏の中に実在することを使った表現でした.
-
-仕上げに 1 つ予告を. [第7章](fp7.html)の再帰的データ型では, 構成子の束 (たとえば `Nat` の 0 項演算 `Zero` と 1 項演算 `Succ`) を生成作用素 $\Phi$ に畳み込みました. 圏論ではこれをさらに進め, アリティのばらばらな演算たちを直和で束ねて **たった 1 本の射** $\alpha : F(A) \to A$ にします (`Nat` なら $\alpha = [\texttt{Zero}, \texttt{Succ}] : () + \mathrm{Nat} \to \mathrm{Nat}$). この $F$ は本節の次に学ぶ **関手** であり, この形の組 $(A, \alpha)$ は **$F$-代数**, その中で最初に出来上がるものは **始代数 (initial algebra)** と呼ばれます — 「再帰的データ型 = 生成作用素の最小不動点」の圏論版です (名前だけ挙げておきます. [第10章](fp10.html)のモナドの単位 $\eta : \mathrm{Id} \Rightarrow T$ も, 実は「単位対象からの射としての 0 項演算」パターンの再演です).
-:::
-
-## Functor (関手) と fmap
-
-**関手 (functor)** とは, **圏の構造を保つ写像** です. 圏 $\mathcal{C}$ の各対象 $A$ を別の対象 $F\,A$ に, 各射 $f : A \to B$ を射 $F\,f : F\,A \to F\,B$ に対応させ, しかも次のように **合成と恒等射を保つ** ものを関手といいます.
-
-- **恒等射を保つ**: $F\,\mathrm{id} = \mathrm{id}$
-- **合成を保つ**: $F\,(g \circ f) = F\,g \circ F\,f$
-
-Haskell では, 型引数を持つ多相データ型 (種が `* -> *` のもの) が関手の候補です. 型構築子 `f` が「対象 (型) `a` を `f a` に移す」役割を果たし, 「射 (関数) を移す」役割を担うのが `fmap` です. これを表す型クラスが `Functor` です.
-
-~~~ haskell
-class Functor f where
-  fmap :: (a -> b) -> f a -> f b
-~~~
-
-`fmap` は「`a` から `b` への関数」を「`f a` から `f b` への関数」に持ち上げます. これがまさに「射 $f : a \to b$ を $F\,f : f\,a \to f\,b$ に対応させる」操作です. 関手が満たすべき **関手則** は, 圏の恒等射と合成を保つことを Haskell の言葉に直したものです.
-
-$$\mathrm{fmap}\ \mathrm{id} = \mathrm{id}, \qquad \mathrm{fmap}\ (g \circ h) = \mathrm{fmap}\ g \circ \mathrm{fmap}\ h$$
-
-別の見方をすると, `fmap` は [第4章](fp4.html) でリストに使った `map` を **任意の関手に一般化** したものです. `map` の型 `(a -> b) -> [a] -> [b]` の `[]` を一般の型構築子 `f` で置き換えると, ちょうど `fmap :: (a -> b) -> f a -> f b` になります.
-
-$$\underbrace{(a \to b) \to [a] \to [b]}_{\text{map (リスト専用)}} \;\;\Longrightarrow\;\; \underbrace{(a \to b) \to f\,a \to f\,b}_{\text{fmap (任意の関手)}}$$
-
-つまり `fmap` は「**`f a` という入れ物の中身 `a` だけに関数を作用させ, 入れ物の形は保つ `map`**」です. 関手ごとに「形をどう保つか」 — `Maybe` なら `Nothing` はそのまま, リストなら各要素に, 木なら各ノードに — が決まります. 以下, `Maybe`・`Either`・リスト・木の順に実例を見ます.
-
-まず, 本章前半で扱った `Maybe` を関手として見ます. `fmap` は「`Just` の中身に関数を適用し, `Nothing` はそのまま返す」操作になります.
-
-~~~ haskell
-main :: IO ()
-main = do
-  print (fmap (+ 1) (Just 3))            -- Just 4
-  print (fmap (+ 1) (Nothing :: Maybe Int))  -- Nothing
-~~~
-
-`fmap (+1) (Just 3)` が `Just 4` になり, `Nothing` には何も起きません. 「箱の中身に関数を適用する」イメージで, 箱が空 (`Nothing`) なら何もしないわけです.
-
-**`Either a` も関手** です. ただし `Either` は型引数を 2 つ取る (`Either :: * -> * -> *`) ため, 関手にするには片方を固定して `Either a` (種が `* -> *`) の形にします. `fmap` は `Right` の中身にだけ作用し, `Left` (慣習上は失敗) はそのまま素通しします.
-
-~~~ haskell
-main :: IO ()
-main = do
-  print (fmap (+ 1) (Right 3 :: Either String Int))  -- Right 4
-  print (fmap (+ 1) (Left "err" :: Either String Int))  -- Left "err"
-~~~
-
-`Maybe` と `Either a` は, どちらも「失敗するかもしれない値」を表す関手です. `fmap` で成功側 (`Just` / `Right`) の中身だけを加工しつつ, 失敗 (`Nothing` / `Left`) が出たらそれ以降の加工を素通しできます.
-
-次に **リストも関手** です. リストは組込みで `Functor` のインスタンスになっており, リストに対する `fmap` は, すでに [第4章](fp4.html) で学んだ `map` そのものです. 「`fmap` は `map` の一般化」と述べたことが, リストでは文字どおり `fmap = map` という形で現れます.
-
-その実装も, [第4章](fp4.html) の `map` の再帰定義をそのまま書いたものです. 組込みのインスタンスと同じ定義を `fmapList` として書き下し, `fmap`・`map` と一致することを確かめます.
-
-~~~ haskell
--- リストの fmap の中身 = 第4章の map の再帰定義そのもの
-fmapList :: (a -> b) -> [a] -> [b]
-fmapList _ []       = []
-fmapList f (x : xs) = f x : fmapList f xs
-
-main :: IO ()
-main = do
-  print (fmapList (* 2) [1, 2, 3])  -- [2,4,6]
-  print (fmap     (* 2) [1, 2, 3])  -- [2,4,6]   (組込みの fmap = map)
-  print (map      (* 2) [1, 2, 3])  -- [2,4,6]
-~~~
-
-3 つの結果はすべて一致します. `fmapList` は「空リストには何もせず, `(x : xs)` の各要素に関数を適用して同じ形のリストに組み直す」操作で, リストの長さや並び (入れ物の形) は保ったまま, 中身だけを変えています. これが, リストという関手の「形を保つ」やり方です.
-
-エラー処理の文脈では, この性質が便利です. `fmap` で成功値 (`Right`) だけを次々と加工しつつ, 失敗 (`Left`) が出たらそれ以降の加工を素通しできます.
-
-最後に, 本章前半で扱った **`Tree a` を Functor にしてみます**. これが「型引数を持つ多相データ型 = 関手」の実例で, 前半の予告 ([型引数を持つデータ型](#型引数を持つデータ型)) の回収です. `fmap` は「木の構造はそのままに, 各ノードの値だけを関数で変換する」操作として定義します.
+最後に, `Tree a` を **`Functor` のインスタンス** にしてみます. 自作の多相データ型を関手のモデルに仕立てる, 本部の締めくくりの実例です. `fmap` は「木の構造はそのままに, 各ノードの値だけを関数で変換する」操作として定義します.
 
 ~~~ haskell
 data Tree a = Leaf | Node (Tree a) a (Tree a) deriving Show
@@ -882,133 +1386,99 @@ main = do
   print (toList' (fmap (* 10) sample))  -- [10,20,30]
 ~~~
 
-`fmap (*10) sample` は, 木の枝分かれの形 (どこが `Node` でどこが `Leaf` か) を一切変えずに, 各ノードの値だけを 10 倍します. ここで定義の `fmap _ Leaf = Leaf` が「`Leaf` の構造を保つ」, `Node (fmap f l) (f x) (fmap f r)` が「`Node` の構造を保ちつつ値だけ変換し, 部分木にも再帰的に `fmap` する」ことを表しています. リストや木のように, **要素を一様に持つコンテナはたいてい関手になる** わけです.
-
-::: warn
-`Functor` クラスも, `Semigroup` などと同様に **関手則をコンパイラは検査しません**. 関手則を破る `fmap` (たとえば木の形を変えてしまうもの) を書いてもコンパイルは通ります. 法則を守るのはプログラマの責任です ([第8章](fp8.html)のコラムで触れた QuickCheck で, `fmap id == id` などを性質として確認できます).
-:::
+`fmap (*10) sample` は, 木の枝分かれの形 (どこが `Node` でどこが `Leaf` か) を一切変えずに, 各ノードの値だけを 10 倍します. ここで定義の `fmap _ Leaf = Leaf` が「`Leaf` の構造を保つ」, `Node (fmap f l) (f x) (fmap f r)` が「`Node` の構造を保ちつつ値だけ変換し, 部分木にも再帰的に `fmap` する」ことを表しています. リストや木のように, **要素を一様に持つデータ構造はたいてい関手になる** わけです.
 
 ::: note
-`fmap` には中置演算子 `(<$>)` という別名があり, `(<$>) = fmap` です. `(+1) <$> Just 3` は `fmap (+1) (Just 3)` と同じで `Just 4` を返します. 関数適用 `$` の関手版という見立てで, 実務ではこちらもよく使われます.
+**発展: `data` 宣言は「多項式」 — 多項式関手・始代数・Lambek の補題**
+
+本部で見たモデルたちの `data` 宣言は, [第7章](fp7.html)の数え上げ (直和 = $+$, 直積 = $\times$) の記法で **式** に翻訳できます. 規則は 3 つだけです — 構築子の並び (`|`) は $+$, フィールドの並びは $\times$, 引数のない構築子は $1$ (1 点集合), そして **再帰の位置は変数 $X$** と置きます.
+
+- `Maybe a = Nothing | Just a` → $F(X) = 1 + a$ (再帰なし)
+- `List a = Nil | Cons a (List a)` → $F(X) = 1 + a \times X$
+- `Tree a = Leaf | Node (Tree a) a (Tree a)` → $F(X) = 1 + X \times a \times X$
+
+こうして得られる $F$ は, $1$ (定数) と $a$ (定数) と $X$ を $+$ と $\times$ で組み合わせた, いわば **多項式** の形をしています. 実際この $F$ は (対象の対応 $X \mapsto F(X)$ に自然な射の対応を添えると) 本章の意味での **関手** になり, **多項式関手 (polynomial functor)** と呼ばれます.
+
+この目で再帰的データ型を見直すと, 前半の発展 note の予告がつながります. 構成子の束を 1 本にした射 $\alpha : F(A) \to A$ を備えた組 $(A, \alpha)$ が **$F$-代数** で, 再帰的データ型はその中で「最初に出来上がる」**始代数** — [第7章](fp7.html)の生成作用素 $\Phi$ の最小不動点の圏論版 — でした. さらに **Lambek の補題** という定理が, 始代数の $\alpha$ は必ず **同型** (可逆) になることを保証します. つまり
+
+$$\mathrm{List}\ a \;\cong\; 1 + a \times \mathrm{List}\ a$$
+
+— リストという型は, 方程式 $X \cong 1 + a \times X$ の (最小の) **解** なのです. `data` 宣言とは再帰方程式であり, データ型はその解である — この見方はここで名前を挙げるだけに留めますが, 「データの形 ($F$)」と「その上の再帰 (構造的再帰)」を分けて扱う発想は, [第10章](fp10.html)以降の抽象化にも通じています.
 :::
 
-::: note
+# 自然変換 — 関手どうしの変換
 
-### Exercise CH9-4
-
-**自作多相型 `Box` を Functor にする**
-
-値を 1 つ包む多相データ型 `Box a` を定義し, `Functor` インスタンスを実装してください. `fmap` は「箱の中身に関数を適用し, 箱に入れ直す」操作です. また, 箱から中身を取り出す関数 `unBox :: Box a -> a` も定義してください.
-
-~~~ haskell
--- 実行例
-main :: IO ()
-main = do
-  print (unBox (fmap (+ 1) (Box 10)))      -- 11
-  print (unBox (fmap show (Box (42 :: Int))))  -- "42"
-~~~
-
-<details class="protected" data-pass="yakagika">
-    <summary> 回答例 </summary>
-
-~~~ haskell
-data Box a = Box a deriving Show
-
-instance Functor Box where
-  fmap f (Box x) = Box (f x)
-
-unBox :: Box a -> a
-unBox (Box x) = x
-
-main :: IO ()
-main = do
-  print (unBox (fmap (+ 1) (Box 10)))          -- 11
-  print (unBox (fmap show (Box (42 :: Int))))  -- "42"
-~~~
-
-`fmap f (Box x) = Box (f x)` が, 箱の構造 (`Box` でくるむこと) を保ちつつ中身 `x` だけを `f` で変換しています. これが関手の「入れ物の形は保ち, 中身に射を作用させる」性質そのものです. `fmap id (Box x) = Box x` で恒等射が保たれていることも確認できます.
-
-</details>
-
-:::
-
-## モノイド準同型もまた関手 — 一点圏どうしの関手
-
-ここまでは Haskell の `Functor` (種が `* -> *` の型構築子 + `fmap`) を関手の実例として見てきました. しかし「圏の構造を保つ写像」という関手の定義に照らすと, **[第8章](fp8.html)で扱ったモノイド準同型もまた関手** です. 前半の `fmap` とは別の, もう一つの関手の顔を確認しておきます.
-
-[第8章](fp8.html#結合律と準同型が可能にすること)の `stats = mconcat . map singleton` は, リストのモノイド (`[Int]`, `++`, `[]`) から要約のモノイド (`Stats`, `<>`, `mempty`) への **準同型** で, 次の 2 法則を満たすのでした (再掲).
-
-~~~ text
-stats (xs ++ ys) = stats xs <> stats ys      -- 演算 (++) を演算 (<>) に写す
-stats []         = mempty                     -- 単位元 ([]) を単位元 (mempty) に写す
-~~~
-
-第8章ではこれを「2 つの経路が同じ要約にたどり着く」四角形の絵で見ました. 同じ絵を, いま手にした **圏の言葉で読み直します**.
-
-<svg viewBox="0 0 520 282" width="100%" style="max-width: 560px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="モノイド準同型 stats の四角形を圏論的に読み直した図. 左上 (xs, ys), 右上 xs ++ ys, 左下 (stats xs, stats ys), 右下 stats xs &lt;&gt; stats ys の四頂点をもつ. 上下の横矢印 ++ と &lt;&gt; は, 各モノイドを対象が 1 つの圏とみたときの射の合成にあたる. 左右の縦矢印 stats が準同型で, 一方の圏の射を他方の圏の射へ送る. 四角形が閉じること stats (xs ++ ys) = stats xs &lt;&gt; stats ys は stats が合成を保つことを, stats [] = mempty は恒等射を保つことを表す.">
-  <defs>
-    <marker id="hom-arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-      <path d="M 0 1 L 9 5 L 0 9 z" fill="currentColor"/>
-    </marker>
-  </defs>
-  <g stroke="currentColor" stroke-width="1.5" fill="none">
-    <line x1="170" y1="52" x2="352" y2="52" marker-end="url(#hom-arrow)"/>
-    <line x1="212" y1="196" x2="300" y2="196" marker-end="url(#hom-arrow)"/>
-    <line x1="120" y1="70" x2="120" y2="176" marker-end="url(#hom-arrow)"/>
-    <line x1="404" y1="70" x2="404" y2="176" marker-end="url(#hom-arrow)"/>
-  </g>
-  <g fill="currentColor" font-family="monospace" font-size="15" font-weight="600" text-anchor="middle">
-    <text x="120" y="46">(xs, ys)</text>
-    <text x="404" y="46">xs ++ ys</text>
-    <text x="120" y="202">(stats xs, stats ys)</text>
-    <text x="404" y="202">stats xs &lt;&gt; stats ys</text>
-  </g>
-  <g fill="currentColor" font-family="monospace" font-size="13">
-    <text x="261" y="41" text-anchor="middle">++</text>
-    <text x="256" y="188" text-anchor="middle">&lt;&gt;</text>
-    <text x="112" y="127" text-anchor="end">stats</text>
-    <text x="412" y="127" text-anchor="start">stats</text>
-  </g>
-  <g fill="currentColor" font-size="10.5" opacity="0.72">
-    <text x="261" y="63" text-anchor="middle">(合成)</text>
-    <text x="256" y="208" text-anchor="middle">(合成)</text>
-    <text x="112" y="145" text-anchor="end">(準同型)</text>
-    <text x="412" y="145" text-anchor="start">(準同型)</text>
-  </g>
-  <text x="260" y="264" fill="currentColor" font-size="12" text-anchor="middle">四角形が閉じる = stats が「合成 (++, &lt;&gt;) を保つ」／ stats [] = mempty = 「恒等射を保つ」</text>
-</svg>
-
-[圏はモノイドの一般化](#圏はモノイドの一般化)の節で, **モノイドは「対象が 1 つだけの圏」** — 射がその型の要素, 射の合成がモノイド演算 `<>`, 恒等射が単位元 `mempty` — とみなせることを見ました. この目で四角形を見ると:
-
-- 横の 2 本の矢印 `++` と `<>` は, それぞれのモノイドを一点圏とみたときの **射の合成**.
-- 縦の `stats` が, 一方の圏の射 (= リスト) を他方の圏の射 (= 要約) へ送る対応.
-- 四角形が閉じること (`stats (xs ++ ys) = stats xs <> stats ys`) は, `stats` が **合成を保つ** こと.
-- もう 1 つの法則 (`stats [] = mempty`) は, `stats` が **恒等射を保つ** こと.
-
-「合成を保つ」「恒等射を保つ」— これはまさに, この章の [Functor の節](#functor-関手-と-fmap) で挙げた **関手則** そのものです.
-
-$$F\,(g \circ f) = F\,g \circ F\,f \quad(\text{合成を保つ}), \qquad F\,\mathrm{id} = \mathrm{id} \quad(\text{恒等射を保つ})$$
-
-つまり **モノイド準同型とは, 一点圏どうしの間の関手** にほかなりません. `stats` は, リストの一点圏から `Stats` の一点圏への関手です. 第8章で「構造を保つ写像」と呼んでいたものの正体が, 圏論では「一点圏の間の関手」だった, というわけです.
-
-ここで, `fmap` の関手と `stats` の関手は, **同じ「関手」概念の, 当てはめ先が違うだけの 2 つの特殊例** です. 両者を並べて整理しておきます.
-
-| 関手 (圏の構造を保つ写像) を当てはめる先 | 得られるもの | 例 |
-| --- | --- | --- |
-| 一点圏 → 一点圏 | **モノイド準同型** | 第8章の `stats`, `foldMap g` |
-| Hask → Hask (自分自身への関手) | **Haskell の `Functor` (`fmap`)** | `Maybe`, `Either a`, リスト, `Tree` |
-
-::: warn
-だからといって `stats` が Haskell の `Functor` の **インスタンス** になるわけではありません. `Functor` クラスは種が `* -> *` の型構築子 (中身を差し替えられる入れ物) に対するもので, `stats :: [Int] -> Stats` はただの関数です. `stats` が関手なのは **圏論の意味** (一点圏どうしの写像) であって, Haskell の `Functor` クラスとは別物です. 同じ「関手」という言葉が, どの圏を選ぶかで両方を指す — この区別がつくと, [第8章](fp8.html)の代数 (モノイドと準同型) と本章の圏論 (圏と関手) が, ひと続きの話として見えてきます.
-:::
-
-## 多相型と自然変換
+## 型に依らない一様な変換
 
 関手が「圏どうしの変換」だとすれば, **自然変換 (natural transformation)** は「関手どうしの変換」です. 2 つの関手 `f` と `g` があるとき, **型 `a` に依らず一様に** `f a` を `g a` に変換する操作が自然変換です. Haskell では, 次のような **多相関数** がこれにあたります.
 
 $$\alpha : \forall a.\ f\,a \to g\,a$$
 
-ここで先頭の $\forall a$ ([第7章](fp7.html)で導入した **全称命題** の量化子) が効いています. 「**すべての** 型 `a` について `f a -> g a` が成り立つ」, つまり `a` がどんな型でも同じ仕組みで変換できる関数だけが自然変換になります. 「`a` を覗き見て型ごとに振る舞いを変える」ことはできず, **中身の値には触れず, 入れ物 (関手) の構造だけを組み替える**のが特徴です. この「型に依らない一様さ」は **パラメトリック多相 (parametric polymorphism)** と呼ばれ, 本章冒頭で挙げた「多相型 = 自然変換」という対応の正体です.
+ズームアウトの図では, 関手のとき (図2→図3) からさらに一歩引いた, 冒頭の階段の最終段にあたります. 図3 の射 (関手) が今度は点に潰れ, 関手と関手を結ぶ **二重の射** が現れます — これが自然変換です (図4).
+
+<svg viewBox="0 0 466 246" width="100%" style="max-width: 476px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="自然変換の導入図. 図3: 圏 Cat — 圏どうしを関手 F が結ぶ世界. さらに一歩引くと図4: 関手圏 — Ob = {F, G, …}, Mor = {α, β∘α, id_F, …} (合成 = 関数合成, 恒等射 = 恒等自然変換). 関手 F と G がそれぞれ点に潰れ, 二重の射 α が現れる. 点 = 関手, 射 = 自然変換 (例 listToMaybe : [] ⇒ Maybe).">
+  <defs>
+    <marker id="lad2-arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="currentColor"/>
+    </marker>
+  </defs>
+  <!-- 図3: 点 = 圏, 射 = 関手 -->
+  <rect x="12" y="26" width="196" height="150" rx="10" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.75"/>
+  <text x="26" y="46" fill="currentColor" font-size="10" opacity="0.8">図3  圏 Cat</text>
+  <g fill="rgba(13,148,136,0.18)" stroke="currentColor" stroke-width="1.4">
+    <circle cx="62" cy="97" r="17"/>
+    <circle cx="158" cy="97" r="17"/>
+  </g>
+  <g fill="currentColor" opacity="0.8">
+    <circle cx="56" cy="92" r="1.5"/><circle cx="68" cy="92" r="1.5"/><circle cx="62" cy="104" r="1.5"/>
+    <circle cx="152" cy="92" r="1.5"/><circle cx="164" cy="92" r="1.5"/><circle cx="158" cy="104" r="1.5"/>
+  </g>
+  <g stroke="currentColor" stroke-width="0.7" opacity="0.7">
+    <line x1="57" y1="92" x2="66" y2="92"/><line x1="60" y1="94" x2="62" y2="102"/>
+    <line x1="153" y1="92" x2="162" y2="92"/><line x1="156" y1="94" x2="158" y2="102"/>
+  </g>
+  <line x1="84" y1="97" x2="136" y2="97" stroke="currentColor" stroke-width="1.4" marker-end="url(#lad2-arrow)"/>
+  <text x="110" y="84" fill="currentColor" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="15" text-anchor="middle">F</text>
+  <g fill="currentColor" font-size="10.5" text-anchor="middle" opacity="0.8">
+    <text x="62" y="132">圏 <tspan font-family="Georgia, 'Times New Roman', serif" font-style="italic">C</tspan></text>
+    <text x="158" y="132">圏 <tspan font-family="Georgia, 'Times New Roman', serif" font-style="italic">D</tspan></text>
+  </g>
+  <g fill="currentColor" text-anchor="middle">
+    <text x="110" y="193" font-size="12" font-weight="600">点 = 圏, 射 = 関手</text>
+    <text x="110" y="208" font-size="9.5" opacity="0.85">Ob = {C, D, …}</text>
+    <text x="110" y="222" font-size="9.5" opacity="0.85">Mor = {F, G∘F, Id, …}</text>
+    <text x="110" y="237" font-size="10" opacity="0.7">関手の節までの世界</text>
+  </g>
+  <line x1="214" y1="100" x2="282" y2="100" stroke="currentColor" stroke-width="1.2" marker-end="url(#lad2-arrow)" opacity="0.75"/>
+  <g fill="currentColor" text-anchor="middle">
+    <text x="248" y="78" font-size="10" font-weight="600">一歩引く</text>
+  </g>
+  <!-- 図4: 点 = 関手, 射 = 自然変換 -->
+  <rect x="258" y="26" width="196" height="150" rx="10" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.75"/>
+  <text x="272" y="46" fill="currentColor" font-size="10" opacity="0.8">図4  関手圏</text>
+  <g fill="rgba(13,148,136,0.18)" stroke="currentColor" stroke-width="1.4">
+    <circle cx="308" cy="97" r="17"/>
+    <circle cx="404" cy="97" r="17"/>
+  </g>
+  <g fill="currentColor" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="13" text-anchor="middle">
+    <text x="308" y="102">F</text>
+    <text x="404" y="102">G</text>
+  </g>
+  <g stroke="currentColor" stroke-width="1.4">
+    <line x1="330" y1="93" x2="376" y2="93"/>
+    <line x1="330" y1="101" x2="376" y2="101"/>
+  </g>
+  <path d="M 376 88 L 388 97 L 376 106 z" fill="currentColor"/>
+  <text x="354" y="80" fill="currentColor" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="15" text-anchor="middle">α</text>
+  <g fill="currentColor" text-anchor="middle">
+    <text x="356" y="193" font-size="12" font-weight="600">点 = 関手, 射 = 自然変換</text>
+    <text x="356" y="208" font-size="9.5" opacity="0.85">Ob = {F, G, …}</text>
+    <text x="356" y="222" font-size="9.5" opacity="0.85">Mor = {α, β∘α, id, …}</text>
+    <text x="356" y="237" font-size="10" opacity="0.7">例: listToMaybe : [] ⇒ Maybe</text>
+  </g>
+</svg>
+
+ここで先頭の $\forall a$ ([第7章](fp7.html)で導入した **全称命題** の量化子) が効いています. 「**すべての** 型 `a` について `f a -> g a` が成り立つ」, つまり `a` がどんな型でも同じ仕組みで変換できる関数だけが自然変換になります. 「`a` を覗き見て型ごとに振る舞いを変える」ことはできず, **中身の値には触れず, 関手の構造 (外側の形) だけを組み替える**のが特徴です. この「型に依らない一様さ」は **パラメトリック多相 (parametric polymorphism)** と呼ばれ, 本章冒頭で挙げた「多相型 = 自然変換」という対応の正体です.
 
 代表例が, リストと `Maybe` を相互に変換する 2 つの関数です (どちらも `Data.Maybe` にあります).
 
@@ -1031,20 +1501,52 @@ main = do
   print (maybeToList (Nothing :: Maybe Int)) -- []
 ~~~
 
-`listToMaybe :: forall a. [a] -> Maybe a` は, 関手 `[]` から関手 `Maybe` への自然変換です. 型 `a` が `Int` でも `String` でも何でも, 「先頭要素があれば `Just`, 無ければ `Nothing`」という同じ規則で変換します. `maybeToList` はその逆向き (`Maybe` から `[]` へ) の自然変換です. どちらも中身の値 `a` を加工せず, 入れ物の形だけを移し替えています.
+`listToMaybe :: forall a. [a] -> Maybe a` は, 関手 `[]` から関手 `Maybe` への自然変換です. 型 `a` が `Int` でも `String` でも何でも, 「先頭要素があれば `Just`, 無ければ `Nothing`」という同じ規則で変換します. `maybeToList` はその逆向き (`Maybe` から `[]` へ) の自然変換です. どちらも中身の値 `a` を加工せず, 関手の構造だけを移し替えています. Exercise CH9-4 の `toEither reason :: Maybe a -> Either e a` も同じ仲間 — `Maybe` から `Either e` への自然変換 — でした.
 
-自然変換が満たすべき条件を **自然性条件 (naturality)** といいます. 「先に中身を変換してから入れ物を移す」のと「先に入れ物を移してから中身を変換する」のとで結果が一致する, という条件です. 自然変換 $\alpha$ と任意の関数 `g :: a -> b` について,
+自然変換が満たすべき条件を **自然性条件 (naturality)** といいます. 「先に中身を変換してから構造を移す」のと「先に構造を移してから中身を変換する」のとで結果が一致する, という条件です. 自然変換 $\alpha$ と任意の関数 `g :: a -> b` について,
 
 $$\mathrm{fmap}\ g \circ \alpha = \alpha \circ \mathrm{fmap}\ g$$
 
-が成り立ちます. 左辺は「$\alpha$ で入れ物を移してから `fmap g` で中身を変換」, 右辺は「`fmap g` で中身を変換してから $\alpha$ で入れ物を移す」です. たとえば `listToMaybe` なら, `[10,20,30]` に対して
+が成り立ちます. 左辺は「$\alpha$ で構造を移してから `fmap g` で中身を変換」, 右辺は「`fmap g` で中身を変換してから $\alpha$ で構造を移す」です.
+
+<svg viewBox="0 0 520 282" width="100%" style="max-width: 560px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="自然性条件の可換四角形. 左上 [10,20,30], 右上 [11,21,31], 左下 Just 10, 右下 Just 11. 上下の横向きの射は fmap (+1) (中身の変換), 左右の縦向きの射は listToMaybe (構造の移し替え). 上を回っても下を回っても Just 11 に一致する — これが自然性 fmap g ∘ α = α ∘ fmap g である.">
+  <defs>
+    <marker id="nat-arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="currentColor"/>
+    </marker>
+  </defs>
+  <g stroke="currentColor" stroke-width="1.5" fill="none">
+    <line x1="186" y1="52" x2="330" y2="52" marker-end="url(#nat-arrow)"/>
+    <line x1="176" y1="196" x2="340" y2="196" marker-end="url(#nat-arrow)"/>
+    <line x1="120" y1="70" x2="120" y2="176" marker-end="url(#nat-arrow)"/>
+    <line x1="404" y1="70" x2="404" y2="176" marker-end="url(#nat-arrow)"/>
+  </g>
+  <g fill="currentColor" font-family="monospace" font-size="15" font-weight="600" text-anchor="middle">
+    <text x="120" y="46">[10,20,30]</text>
+    <text x="404" y="46">[11,21,31]</text>
+    <text x="120" y="202">Just 10</text>
+    <text x="404" y="202">Just 11</text>
+  </g>
+  <g fill="currentColor" font-family="monospace" font-size="13">
+    <text x="258" y="41" text-anchor="middle">fmap (+1)</text>
+    <text x="258" y="188" text-anchor="middle">fmap (+1)</text>
+    <text x="112" y="127" text-anchor="end">listToMaybe</text>
+    <text x="412" y="127" text-anchor="start">listToMaybe</text>
+  </g>
+  <g fill="currentColor" font-size="10.5" opacity="0.72">
+    <text x="258" y="63" text-anchor="middle">(中身の変換)</text>
+    <text x="258" y="208" text-anchor="middle">(中身の変換)</text>
+    <text x="112" y="145" text-anchor="end">(α: 構造の移し替え)</text>
+    <text x="412" y="145" text-anchor="start">(α: 構造の移し替え)</text>
+  </g>
+  <text x="260" y="240" fill="currentColor" font-size="12" text-anchor="middle">どちらの経路でも Just 11 — 四角形が閉じる = 自然性 fmap g ∘ α = α ∘ fmap g</text>
+  <text x="260" y="262" fill="currentColor" font-size="10.5" text-anchor="middle" opacity="0.75">第8章の準同型の四角形 (stats), 「最初の関手」の四角形と同じ形</text>
+</svg> たとえば `listToMaybe` なら, `[10,20,30]` に対して
 
 - 先に `fmap (+1)` してから `listToMaybe`: `[11,21,31]` → `Just 11`
 - 先に `listToMaybe` してから `fmap (+1)`: `Just 10` → `Just 11`
 
 と, どちらの順でも `Just 11` で一致します. パラメトリック多相な関数は中身の値に触れないため, この自然性は自動的に成り立ちます (型さえ合えば自然性が従う, という強い性質があります).
-
-これで, 本章冒頭で掲げた対応が一通り埋まりました. 型を **対象**, 関数を **射** とみる圏 Hask の上で, 型引数を持つ多相データ型は **関手** (`fmap` を備える), 型に依らない一様な多相関数は **自然変換** ($\forall a$ で量化された `f a -> g a`) に対応します. [第7章](fp7.html)の集合論, [第8章](fp8.html)の代数に続く第 3 の見方として, 圏論はこれらの構造を統一的に眺める枠組みを与えてくれます.
 
 ::: note
 
@@ -1080,8 +1582,56 @@ main = do
   print (firstTwo "abc")             -- Just ('a','b')
 ~~~
 
-`firstTwo` は要素の型 `a` を一切覗かず (`Int` でも `Char` でも同じ規則), 「先頭 2 つがあるか」という入れ物の形だけで結果を決めています. このため `[a]` から `Maybe (a, a)` への自然変換になっており, `firstTwo "abc"` のように文字列でもそのまま動きます.
+`firstTwo` は要素の型 `a` を一切覗かず (`Int` でも `Char` でも同じ規則), 「先頭 2 つがあるか」という構造だけで結果を決めています. このため `[a]` から `Maybe (a, a)` への自然変換になっており, `firstTwo "abc"` のように文字列でもそのまま動きます.
 
 </details>
 
 :::
+
+## 関手圏 — 最終段もまた圏
+
+図4 に **関手圏 (functor category)** と名前を付けたからには, Cat のときと同じ宿題が残っています — この世界も本当に圏なのか. 成分は同じ手順で揃います.
+
+**自然変換は合成できます.** $\alpha : F \Rightarrow G$ と $\beta : G \Rightarrow H$ があれば, 続けて適用する $\beta \circ \alpha : F \Rightarrow H$ も自然変換です. Haskell では多相関数どうしの, ただの関数合成です. 実物も手元にあります — `listToMaybe` (`[] ⇒ Maybe`) と `maybeToList` (`Maybe ⇒ []`) を継ぐと, 「先頭 1 要素だけ残す」という `[]` から `[]` への自然変換になります.
+
+~~~ haskell
+ghci> (maybeToList . listToMaybe) [10, 20, 30]
+[10]
+ghci> (maybeToList . listToMaybe) ([] :: [Int])
+[]
+~~~
+
+自然性も引き継がれます — 前節の可換四角形を 2 つ横に継げば, 外周がまた可換な四角形になります. Haskell 側では, パラメトリック多相な関数の合成はまたパラメトリック多相なので, 自動で成り立ちます.
+
+**恒等自然変換 (identity natural transformation).** どの型でも何もしない多相関数 $\mathrm{id}_F : \forall a.\ f\,a \to f\,a$ — Haskell の `id` をこの型で読んだもの — は, 関手 $F$ から $F$ 自身への自然変換で, 上の合成の単位になります.
+
+照合しましょう. $\mathrm{Ob} = \{F, G, \dots\}$ (関手たち), $\mathrm{Mor} = \{\alpha,\ \beta,\ \beta \circ \alpha,\ \mathrm{id}_F, \dots\}$ (自然変換たち), 合成 = 関数合成, 恒等射 = 恒等自然変換. 結合律と恒等律は関数のそれをそのまま受け継ぎます. つまり **図4 の世界も圏** — 対象が関手, 射が自然変換の **関手圏** — であり, 冒頭の階段の最終段「関手圏 — 台 = 自然変換, 単位 = 恒等自然変換」も, これで回収されました.
+
+そして, 「圏の圏 Cat」の節とこの節で作った部品が, そのまま [第10章](fp10.html)の素材になります. モナドの単位 $\eta : \mathrm{Id} \Rightarrow T$ は「**恒等関手** からの自然変換」, 乗法 $\mu : T \circ T \Rightarrow T$ は「**関手の合成** からの自然変換」— どちらも, 本章で定義した言葉だけで読める型をしています.
+
+## まとめ — 階段のここまで
+
+これで, 本章冒頭で掲げた対応が一通り埋まりました. 型を **対象**, 関数を **射** とみる圏 Hask の上で, 型引数を持つ多相データ型は **関手** (`fmap` を備える), 型に依らない一様な多相関数は **自然変換** ($\forall a$ で量化された `f a -> g a`) に対応します. 本章の道のりを, 前 2 章から続く 1 本の物語として振り返ります.
+
+| 段階 | 数学 | Haskell | 本章の節 |
+| --- | --- | --- | --- |
+| 台の転換 | 台 = 値の集まり → **射の集まり** | 関数 `a -> b` を素材にする | 導入 |
+| 圏 | 組 $(\mathrm{Ob}, \mathrm{Mor};\ \mathrm{dom}, \mathrm{cod}, \circ)$ + 結合律・恒等律 | 型と関数, `(.)` と `id` (圏 Hask) | 圏の定義 / Hask |
+| 一般化 | モノイド = 一点圏 (圏の退化) | `<>` = 合成, `mempty` = `id` | 圏はモノイドの一般化 |
+| 圏の準同型 | **関手** (合成と恒等射を保つ) | `Functor` クラス (`fmap`) + 関手則 | 関手 |
+| 関手のモデル | $1 + a$, $a + b$, $X \cong 1 + a \times X$, … | `Maybe` / `Either a` / `[]` / `Map k` / `Tree` | 多相データ型 |
+| 関手どうしの変換 | **自然変換** (自然性条件) | `forall a. f a -> g a` | 自然変換 |
+| 階段の照合 | Cat・関手圏もまた圏 (単位 = 恒等関手・恒等自然変換) | `map (map f)` / `maybeToList . listToMaybe` | 圏の圏 Cat / 関手圏 |
+
+そして, 冒頭に地図として掲げた **俯瞰の階段** の各段を, すべて実物 (定義とコード) で確かめ終えました.
+
+| 段 | 図 | 台 (= 前段の「構造を保つ写像」) | 単位 | どこで |
+| --- | --- | --- | --- | --- |
+| モノイド | 図1 | 値 | `mempty` | [第8章](fp8.html) |
+| 圏 Hask | 図2 | 関数 (= 集合の写像) | `id` | 本章 |
+| 圏 Cat | 図3 | **関手 (= 圏の準同型)** | 恒等関手 | 本章 |
+| 関手圏 | 図4 | **自然変換 (= 関手どうしの変換)** | 恒等自然変換 | 本章・[第10章](fp10.html) |
+
+図の系列で言えば, 図0 (集合だけ) → 図1 (点 = 台, 射 = 演算 — [第7章](fp7.html)・[第8章](fp8.html)) → 図2 (点 = 型, 射 = 関数 — 導入) → 図3 (点 = 圏, 射 = 関手 — 関手の節) → 図4 (点 = 関手, 射 = 自然変換 — 前節) と, **射に何を据えるか** を一段ずつ持ち上げてきました.
+
+どの段でも, やっていることは同じでした — **組 (台 + 演算) を選び, 法則 (結合律と単位律) を課す**. 変わるのは台に何を据えるかだけです. [第10章](fp10.html)では, この階段の最上段で **モノイドのレシピをもう一度回します**. 台に自己関手を据え, 演算に関手の合成を, 単位に恒等関手からの自然変換を選ぶ — そうして得られる構造が **モナド (monad)** です. 本章で手にした関手・関手の合成・恒等関手・自然変換が, そのまま素材になります.
