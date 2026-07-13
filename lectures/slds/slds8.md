@@ -70,13 +70,75 @@ import seaborn as sns
 ~~~
 
 
+## グラフの選び方:データの次元と種別 {#choose-graph}
+
+グラフを作る前に, まず **どのグラフを使うか** を決めましょう. 使うべきグラフは, 同時に見る観測項目の数 (データの **次元**) と, 各項目が **質的データ** か **量的データ** かで, おおよそ決まります.
+
+下の早見表は, データの次元と種別から代表的なグラフを選ぶための地図です. 各グラフ名をクリックすると, 本章の対応する解説に移動します.
+
+<div class="graph-flowchart" role="group" aria-label="データの次元と種別からグラフを選ぶ早見表">
+<style>
+.graph-flowchart{margin:28px 0;padding:20px 20px 16px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-soft);max-width:100%;box-sizing:border-box}
+.graph-flowchart p{margin:0}
+.graph-flowchart .gf-root{width:max-content;max-width:100%;margin:0 auto;padding:6px 22px;background:var(--accent-color);color:#fff;font-weight:700;border-radius:6px;text-align:center}
+.graph-flowchart .gf-stem{width:2px;height:16px;margin:0 auto;background:var(--border-color)}
+.graph-flowchart .gf-cols{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;align-items:flex-start;margin-top:0}
+.graph-flowchart .gf-col{flex:1 1 210px;min-width:0;max-width:360px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-color);overflow:hidden}
+.graph-flowchart .gf-dim{padding:8px 12px;background:var(--accent-color);color:#fff;font-weight:700;text-align:center;font-size:.98em}
+.graph-flowchart .gf-branch{padding:2px 14px 6px}
+.graph-flowchart .gf-row{display:flex;align-items:baseline;flex-wrap:wrap;gap:2px 8px;padding:8px 0;border-bottom:1px dashed var(--border-color)}
+.graph-flowchart .gf-row:last-child{border-bottom:none}
+.graph-flowchart .gf-type{flex:0 0 auto;font-size:.85em;font-weight:600;color:var(--text-soft)}
+.graph-flowchart .gf-arrow{flex:0 0 auto;color:var(--text-soft)}
+.graph-flowchart .gf-graph{flex:1 1 60%;font-weight:600}
+</style>
+<div class="gf-root">データ</div>
+<div class="gf-stem"></div>
+<div class="gf-cols">
+<div class="gf-col">
+<div class="gf-dim">1次元データ</div>
+<div class="gf-branch">
+<div class="gf-row"><span class="gf-type">量的</span><span class="gf-arrow">→</span><span class="gf-graph"><a href="#histogram">ヒストグラム</a></span></div>
+<div class="gf-row"><span class="gf-type">質的</span><span class="gf-arrow">→</span><span class="gf-graph"><a href="#bar">棒グラフ</a> ・ <a href="#pie">円グラフ</a></span></div>
+</div>
+</div>
+<div class="gf-col">
+<div class="gf-dim">2次元データ</div>
+<div class="gf-branch">
+<div class="gf-row"><span class="gf-type">質的 × 質的</span><span class="gf-arrow">→</span><span class="gf-graph"><a href="#heatmap">ヒートマップ</a></span></div>
+<div class="gf-row"><span class="gf-type">質的 × 量的</span><span class="gf-arrow">→</span><span class="gf-graph"><a href="#bar">棒グラフ</a> ・ <a href="#boxplot">箱ひげ図</a></span></div>
+<div class="gf-row"><span class="gf-type">時系列 (時間 × 量的)</span><span class="gf-arrow">→</span><span class="gf-graph"><a href="#line">折れ線グラフ</a></span></div>
+<div class="gf-row"><span class="gf-type">量的 × 量的</span><span class="gf-arrow">→</span><span class="gf-graph"><a href="#scatter">散布図</a></span></div>
+</div>
+</div>
+<div class="gf-col">
+<div class="gf-dim">多次元データ</div>
+<div class="gf-branch">
+<div class="gf-row"><span class="gf-type">量的が多数</span><span class="gf-arrow">→</span><span class="gf-graph"><a href="#scatter-matrix">散布図行列</a></span></div>
+<div class="gf-row"><span class="gf-type">3変数</span><span class="gf-arrow">→</span><span class="gf-graph"><a href="#scatter-3d">3次元プロット・色/大きさ付き散布図</a></span></div>
+</div>
+</div>
+</div>
+</div>
+
+::: note
+
+- ヒストグラムと棒グラフの違い
+---
+
+1次元データでは, **量的データ** (身長・気温など連続した数値) は階級に区切って **ヒストグラム** で, **質的データ** (種類・順位などのカテゴリ) はカテゴリごとに **棒グラフ** で表します (構成比を一般向けに伝えるなら **円グラフ**).
+
+ヒストグラムは連続量を階級に区切ったものなので棒を隙間なく並べ, 棒グラフはカテゴリを比較するものなので棒を離して並べます. 「質的データのヒストグラム」という言い回しは正確ではないので注意しましょう.
+
+:::
+
 ## 基礎的なグラフ(棒グラフ,円グラフ,折れ線グラフ)
 
 `matplotlib`を利用して,グラフを作成する大まかな手順は以下のようになります.
 
 ::: note
 1. データを準備する.
-    BOMなしのCSVを作りましょう
+    CSVを作りましょう
 
 2. `pandas`でプログラムでCSVを読み込みましょう
 
@@ -179,7 +241,7 @@ plt.close()
 
 
 
-### 棒グラフの作成
+### 棒グラフの作成 {#bar}
 
 [こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/bar_pie.csv)からデータをダウンロードし,棒グラフを作成してみましょう.
 
@@ -312,10 +374,18 @@ Python 3.12.3 (main, Jun  3 2024, 08:31:31) [Clang 15.0.0 (clang-1500.3.9.4)] on
 Type "help", "copyright", "credits" or "license" for more information.
 >>> import matplotlib.pyplot as plt
 >>> plt.style.available
-['Solarize_Light2', '_classic_test_patch', '_mpl-gallery', '_mpl-gallery-nogrid', 'bmh', 'classic', 'dark_background', 'fast', 'fivethirtyeight', 'ggplot', 'grayscale', 'seaborn-v0_8', 'seaborn-v0_8-bright', 'seaborn-v0_8-colorblind', 'seaborn-v0_8-dark', 'seaborn-v0_8-dark-palette', 'seaborn-v0_8-darkgrid', 'seaborn-v0_8-deep', 'seaborn-v0_8-muted', 'seaborn-v0_8-notebook', 'seaborn-v0_8-paper', 'seaborn-v0_8-pastel', 'seaborn-v0_8-poster', 'seaborn-v0_8-talk', 'seaborn-v0_8-ticks', 'seaborn-v0_8-white', 'seaborn-v0_8-whitegrid', 'tableau-colorblind10']
+['Solarize_Light2', 'bmh', 'classic', 'dark_background', 'fast', 'fivethirtyeight', 'ggplot', 'grayscale', 'petroff10', 'petroff6', 'petroff8', 'seaborn-v0_8', 'seaborn-v0_8-bright', 'seaborn-v0_8-colorblind', 'seaborn-v0_8-dark', 'seaborn-v0_8-dark-palette', 'seaborn-v0_8-darkgrid', 'seaborn-v0_8-deep', 'seaborn-v0_8-muted', 'seaborn-v0_8-notebook', 'seaborn-v0_8-paper', 'seaborn-v0_8-pastel', 'seaborn-v0_8-poster', 'seaborn-v0_8-talk', 'seaborn-v0_8-ticks', 'seaborn-v0_8-white', 'seaborn-v0_8-whitegrid', 'tableau-colorblind10']
 ~~~
 
 それぞれのスタイルのイメージは[こちら](https://matplotlib.org/stable/gallery/style_sheets/style_sheets_reference.html)で確認できます.
+
+::: note
+**`seaborn` という名前のスタイルは削除されています**
+
+`matplotlib`にはかつて`seaborn`や`seaborn-darkgrid`という名前のスタイルが同梱されていましたが, これらは`seaborn`ライブラリ本体のデザイン更新に追随できなくなったため, matplotlib 3.6 で非推奨となり, 3.8 で削除されました. 現在は`seaborn-v0_8`,`seaborn-v0_8-darkgrid`のように **`seaborn-v0_8`で始まる名前** に置き換わっています (末尾の`v0_8`は seaborn 0.8 時代のデザインで固定されていることを表します).
+
+古い解説記事などで`plt.style.use('seaborn')`という記述を見かけても, そのままでは`OSError`になります. `plt.style.use('seaborn-v0_8')`のように読み替えてください. 最新の`seaborn`のデザインを使いたい場合は, スタイルシートではなく`seaborn`を直接読み込み,`sns.set_theme()`を利用します.
+:::
 
 スタイルは`plt.style.use('スタイル名')`で指定し,以降のコード全てに適用されます.
 
@@ -346,8 +416,8 @@ plt.show()
 また, `plt.legend()`によって凡例を追加しています.
 
 ~~~ py
-# スタイル seaborn を使ってみます
-plt.style.use('seaborn')
+# スタイル seaborn-v0_8 を使ってみます
+plt.style.use('seaborn-v0_8')
 # 棒グラフを2つ並べます
 plt.bar(color='red', x=x_position, width=0.3,height=values)
 plt.bar(color='blue',x=x_position+0.3, width=0.3,height=[11,15,14])
@@ -372,7 +442,7 @@ plt.show()
 やりたいことに応じて,
 [matplotlubの公式ドキュメント](https://matplotlib.org/stable/users/index)を確認しましょう.
 
-## 円グラフ
+## 円グラフ {#pie}
 
 先ほどと同じデータ`bar_pie.csv`を利用して円グラフを作成してみます.
 
@@ -421,7 +491,7 @@ plt.show()
 :::
 
 
-## for文を利用したグラフ
+## for文を利用したグラフ {#line}
 
 これまでのように単純な一つのグラフを作成するだけであれば,恐らくExcelなどのほうが手軽ですが,多数のグラフを作成したり, 複数のデータを組み合わせた複雑なグラフを作成する場合にはプログラミングの方が便利になります.
 
@@ -884,7 +954,7 @@ dist.to_csv('frequency_table_qualitative.csv'
 |(54.0, 63.0]    |20      |0.2     |85    |0.85  |
 |(63.0, 72.0]    |9       |0.09    |94    |0.94  |
 
-### 度数分布表の可視化:**ヒストグラム**
+### 度数分布表の可視化:**ヒストグラム** {#histogram}
 
 ここまでで,データの分布,偏りを把握する手段としての度数分布表を学びました. 度数分布表を眺めることである程度データの形は分かりますが,よりわかりやすく可視化する方法として**ヒストグラム**があります.
 
@@ -1126,7 +1196,7 @@ plt.show()
 :::
 
 
-## 箱ひげ図
+## 箱ひげ図 {#boxplot}
 
 データの観測対象が複数のグループに層別可能な場合には, それぞれのヒストグラムを作成して比較することなどが必要です. グループの数が多い場合には, 何個もヒストグラムを作成することになりますし,比較には剥いていない場合があります.
 そのような複数のグループの分布を比較する際に良く用いられるグラフが,箱ひげ図です.
@@ -1183,17 +1253,35 @@ plt.show()
 ヒストグラムと比較して情報量は減りますが, 一覧性と比較においては優れています.それぞれ一長一短なので,用途に応じて使い分けるようにしましょう.
 
 
-## 発展:密度プロット
+## 発展:カーネル密度プロット
 
 データの分布を表現する手法としてヒストグラムは非常に便利ですが,階級数や階級幅を自分で定める必要があり,その設定によって見た目が変わってしまいます. また, データ数が少ないときには正確なデータの分布をつかめないという問題点もあります.
 
-そこで, データを階級で区分せずに,度数ではなく確率分布を直接推定する手法に**カーネル密度推定(Karnel Density Estimation)**があります.
+そこで, データを階級で区分せずに,度数ではなく確率密度を直接推定する手法に**カーネル密度推定(Kernel Density Estimation, KDE)**があります.
 
-## 発展:sinaplot
+カーネル密度推定では, 一つ一つのデータ点の上に**カーネル**と呼ばれる小さな山(多くはガウス関数)を置き, それらをすべて足し合わせて1本のなめらかな曲線をつくります. データ点 $x_1, x_2, \dots, x_n$ に対する密度の推定値 $\hat{f}(x)$ は次の式で表されます.
 
-## 発展:バイオリンプロット
+$$\hat{f}(x) = \frac{1}{nh}\sum_{i=1}^{n} K\!\left(\frac{x - x_i}{h}\right)$$
 
-## 散布図
+ここで $K$ はカーネル関数(山の形)を, $h$ は**バンド幅(bandwidth)**と呼ばれるなめらかさを決めるパラメータを表します. $h$ を小さくするとデータ点ごとの凹凸が強く出て, 大きくするとよりなめらかになります. ヒストグラムにおける階級幅と同じような役割を持つ量です.
+
+`seaborn`では`.histplot()`の引数`kde=True`を指定することで, ヒストグラムに重ねてカーネル密度推定の曲線を描くことができます. ここでは, ヒストグラムの節で用いた[量的データ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/histogram_quantitative.csv)を使ってみましょう.
+
+~~~ py
+df = pd.read_csv('data/histogram_quantitative.csv')
+# stat='density' で縦軸を度数から密度(棒の面積の合計が1)に変換します.
+# kde=True を渡すと, ヒストグラムに重ねてカーネル密度推定の曲線が描かれます.
+sns.histplot(df['Values'], stat='density', kde=True)
+plt.xlabel('Values')
+plt.show()
+plt.close()
+~~~
+
+![カーネル密度プロット](/images/slds/ch8/kde-plot.png)
+
+ヒストグラムの階段状のグラフと異なり, 分布のなめらかな形をつかむことができます. 曲線だけを描きたい場合は`sns.kdeplot(df['Values'])`とします. ただし, カーネル密度推定はあくまで手元のデータからの**推定**であり, バンド幅の取り方によって形が変わる点には注意しましょう.
+
+## 散布図 {#scatter}
 
 これまではデータの各観測項目を独立に可視化してきました. 複数の観測項目の関係性を可視化する代表的な手法に散布図があります.
 
@@ -1238,7 +1326,7 @@ plt.show()
 
 この関係の度合いを数値化する**相関係数**や,関係の仕方を説明する**回帰分析**に関しては後ほど扱います.
 
-### 観測項目が複数ある場合の散布図
+### 観測項目が複数ある場合の散布図 {#scatter-3d}
 
 データが3つある場合には,以下のように3Dで表現することも可能ですがこの講義では,3次元のグラフに関しては深く扱いません.興味のある方は調べてみましょう.
 
@@ -1317,6 +1405,41 @@ plt.show()
 
 ![クラスタリング](/images/slds/ch8/scatter-class.png)
 
+
+## 散布図行列(ペアプロット) {#scatter-matrix}
+
+散布図は2つの量的データの関係を見る手法でしたが, 観測項目が3つ以上あると, どの項目とどの項目の間に関係があるのかを一枚の散布図では表せません. そこで, **すべての量的データの組み合わせについて散布図を一度に並べた**ものが**散布図行列(ペアプロット)**です.
+
+[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/pref_stats.csv)のデータは, 都道府県別の平均身長(`height`), 体重(`weight`), 食費(`food`), 睡眠時間(`sleep`), 運動時間(`sports`)をまとめたものです(`pref`列が都道府県名).
+
+~~~ sh
+      height  weight   food  sleep  sports
+pref
+北海道   170.4    63.7  65739    477      15
+青森県   169.8    62.8  64889    490      13
+岩手県   170.6    63.7  70156    489      13
+..       ...     ...    ...    ...     ...
+鹿児島県  169.7    61.4  65377    479      18
+沖縄県   168.7    60.6  56298    482      20
+~~~
+
+散布図行列は`seaborn`の`.pairplot()`メソッドを使うと, データフレームを渡すだけで作成できます. 数値の列がすべて自動的に対象になります.
+
+~~~ py
+# pref 列を見出し(index)として読み込みます.
+# このファイルはBOM付きUTF-8なので encoding='utf-8-sig' を指定します.
+df = pd.read_csv('data/pref_stats.csv', encoding='utf-8-sig', index_col='pref')
+# データフレームを渡すだけで,全組み合わせの散布図が作成されます.
+sns.pairplot(df)
+plt.show()
+plt.close()
+~~~
+
+![散布図行列](/images/slds/ch8/scatter-matrix.png)
+
+**対角線上**には各項目単体の**ヒストグラム**が, **対角線以外**にはその行と列の項目を軸にした**散布図**が並びます. これによって, 例えば「食費(`food`)が多い都道府県ほど平均身長(`height`)が高い傾向がある」といった項目間の関係を, 一度に見渡すことができます.
+
+各組み合わせの関係の強さを数値で表す方法(**相関係数**)は, [第9章](slds9.html)で詳しく扱います.
 
 ## 同時度数分布表
 
@@ -1425,7 +1548,7 @@ F       0.152174  0.090909  0.09375  0.027778  0.261905
 このようにすると,時限毎にどの程度の割合がSやAなどの良い成績をとっているのかが分かります.
 通常度数分布表を作成したあとには,**χ二乗検定**や,**標準化残渣**を利用した**残渣分析**によって,**偏り**が統計的に存在するかを判定します. しかし,それらは後の検定の章に譲るとして,次の節では更に,これを一目で判断しやすいように可視化することを考えてみます.
 
-## ヒートマップ
+## ヒートマップ {#heatmap}
 
 一つ前の節では,同時度数分布表を利用して2つの質的変数からなる観測項目の関係性を見てみました. しかし, 同時度数分布表のままでは,可視化とは言えません. 同時度数分布表のような表形式の数値を可視化する方法として,ヒートマップがあります.
 
