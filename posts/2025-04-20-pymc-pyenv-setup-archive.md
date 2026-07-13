@@ -37,7 +37,7 @@ conda deactivate
 conda remove --name pymc_env --all
 ~~~
 
-その後,pyenv自体のアンインストールについては [pyenvによるPython環境構築(旧版・備忘録)](/posts/2025-04-20-pyenv-setup-archive) の手順に従ってください.
+その後,pyenv自体のアンインストールについては [pyenvによるPython環境構築(旧版・備忘録)](/posts/2025-04-20-pyenv-setup-archive.html) の手順に従ってください.
 
 ---
 

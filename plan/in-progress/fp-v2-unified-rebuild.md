@@ -247,7 +247,7 @@ fp10 は Phase A1' 完了時点の語彙のままで, 本日確定した原則 1
 - **アーカイブ (DoD 2)**: v1 の fp7/fp8/fp9.md を `archive/fp-v1/` へ `git mv` (README 付き. Hakyll のビルド対象外 = 非公開. AUQ でユーザ選択). 旧 spec `test/Fp7`/`Fp8`/`Fp9` (計 43 本, 244 examples) は削除 — 凍結版の検証は不要, 内容は git 履歴 (`ab6effc` 以前) で参照可能.
 - **rename**: fp7v2→fp7, fp8v2→fp8, fp9v2→fp9 (`git mv`). frontmatter: title の「(v2)」除去 / `featured: true` / previousChapter・nextChapter を fpN.html 系へ. fp1 の章一覧タイトルを新章名に更新. spec は `Fp<N>V2` → `Fp<N>` へ rename (module 行 + コメントの fpNv2.md 参照, 60 本).
 - **検証**: `stack test` **636 examples, 0 failures** (880 − v1 分 244). サイトビルド成功, docs/ の stale 出力 (fpNv2.html × 3) 削除.
-- **リンク・アンカー機械検査 (DoD 3)**: docs/ 全 84 ページの href 存在 + #anchor 解決を検査 — **swap 起因の破損 0 件**. 既存問題 7 件を検出 (swap 無関係: fp3→fp4 の日本語アンカー「変数値の束縛」不在 / slds_c1 内部アンカー / slds3・slds13・pymc post の古いリンク / cv.html / codex post の icons/server.svg). 検査スクリプトは link_check2.py 方式 (query 除去・ルート絶対パス・%デコード対応) — 必要なら再作成可.
+- **リンク・アンカー機械検査 (DoD 3)**: docs/ 全 84 ページの href 存在 + #anchor 解決を検査 — **swap 起因の破損 0 件**. 既存問題 7 件を検出 (swap 無関係) → **同日フォローアップで全解消**: 実リンク切れ 5 件を修正 — fp3 の「変数(値の束縛)」参照は fp4 でなく**第5章**が実体のため付け替え / slds_c1 の内部アンカーを生成 id (`#quota制限と-x-との比較`) に一致 / slds3 の削除済み旧講義リンク → fp1.html / slds13 の `slds.html` → slds2.html / pymc post の拡張子なしリンクに .html 付加. 残り 2 件 (cv.html, codex post の icons/server.svg) は **HTML コメント・`<code>` 内を拾った検査器の誤検出** — 検査器をコメント・code 除外に改良して確認, 全 84 ページ **0 件**. 検査スクリプト方式: href 抽出 (コメント・code 除外) + query 除去 + ルート絶対パス + %デコード + id/name 照合.
 
 ### 新旧対応表 (DoD 1: 演習番号・提出ファイル名の読み替え)
 
