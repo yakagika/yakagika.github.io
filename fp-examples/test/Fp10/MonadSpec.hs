@@ -1,4 +1,4 @@
--- | fp10.md 「Monad — >>= と return」「do 記法 — >>= の脱糖」節のコード例.
+-- | fp10.md 「Monad — 連鎖の型クラス化 (>>= と return)」「do 記法 — >>= の脱糖」節のコード例.
 --   >>= / Kleisli 合成 >=> / do 記法 が同一のものであることを確認する.
 module Fp10.MonadSpec (spec) where
 

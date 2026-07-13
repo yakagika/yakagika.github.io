@@ -1,4 +1,4 @@
--- | fp10.md 「Functor の復習」「Applicative — 複数の関手値を組み合わせる」節のコード例.
+-- | fp10.md 「Functor の復習」「組み合わせを手作りする — 積と両立する関手」「Applicative — 組み合わせの型クラス化」節のコード例.
 module Fp10.ApplicativeSpec (spec) where
 
 import Test.Hspec

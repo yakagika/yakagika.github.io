@@ -11,6 +11,7 @@ katex: true
 date: 2026-07-10
 tableOfContents: true
 previousChapter: fp6.html
+nextChapter: fp8v2.html
 open: true
 ---
 
@@ -34,6 +35,7 @@ Haskell のデータ型はすべて **代数的データ型** です. 代数的�
 | 帰納的に定義された集合 | 再帰的データ型 | 再帰的データ型 |
 | 関係 ($R \subseteq A \times B$) | 判定関数 `a -> b -> Bool` | 関係 |
 | 関数 (全域・右一意な関係) | Haskell の関数 | 関数 |
+| 演算 ($A^n \to A$ = 台の中で閉じた関数) | `a -> a -> a` などの関数 | 演算 |
 
 ::: warn
 Haskell は代数学の一部である **圏論** と強い結びつきがあり, プログラムのデータ構造は圏論的に解釈することも可能となります. 特に Haskell の高度な機能, 多相型 (ポリモーフィズム), モナド, 状態系などは集合論的な理解よりも圏論的な理解のほうが適しています.
@@ -1010,7 +1012,7 @@ data Nat = Zero | Succ Nat deriving (Show, Eq)
 - `Zero` は引数を取らず, それ自体が `Nat` の値を 1 つ作ります. 数学的には **0 項演算** — 引数を 0 個取る演算, すなわち **定数** です.
 - `Succ :: Nat -> Nat` は `Nat` を 1 つ受け取って `Nat` を返します. 数学的には **1 項演算** です.
 
-一般に, $n$ 個の引数を取る構成子は $n$ **項演算** とみなせます. 遡れば, 本章で書いてきた構成子はすべてこの意味の演算でした — `GoldenRetriever` は 0 項演算 (定数), `MkInt :: Int -> IntOrDog` は 1 項演算, `MkDogAge :: MyDogs -> Int -> DogAge` は 2 項演算です. つまり **`data` 宣言とは, 「この型の値をどの演算で生成するか」の宣言** だったのです.
+一般に, $n$ 個の引数を取る構成子は $n$ **項演算** とみなせます (「演算」という言葉の正式な定義は, 本章後半の「演算 — 台の上で閉じた関数」の節で与えます). 遡れば, 本章で書いてきた構成子はすべてこの意味の演算でした — `GoldenRetriever` は 0 項演算 (定数), `MkInt :: Int -> IntOrDog` は 1 項演算, `MkDogAge :: MyDogs -> Int -> DogAge` は 2 項演算です. つまり **`data` 宣言とは, 「この型の値をどの演算で生成するか」の宣言** だったのです.
 
 この見方をすると, `Nat` の定義が数学で自然数を定める **ペアノの公理 (Peano axioms)** とまったく同じ構成であることがはっきりします. ペアノの公理は, 自然数を「台となる集合 $\mathbb{N}$ と, 定数 $0$ と, 1 項演算 $S$ (**後者関数** successor — 「次の数」を返す) の **組** $(\mathbb{N},\ 0,\ S)$」として特徴づけます. `(Zero, Succ)` は, この $(0, S)$ にそのまま対応します.
 
@@ -1061,6 +1063,43 @@ main = do
 ~~~
 
 (`iterate f x` は `[x, f x, f (f x), ...]` という適用列を返す標準関数で, `!! 10` で 10 段目を取り出しています.)
+
+<svg viewBox="0 0 720 150" width="100%" style="max-width: 730px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="生成作用素 Φ による下からの立ち上がりの図. 空集合から始めて Φ を 1 回適用すると Zero だけの集合, 2 回で Succ Zero が加わり, 3 回で Succ (Succ Zero) が加わる. 繰り返しの和集合が Nat になる.">
+  <defs>
+    <marker id="phi-arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="currentColor"/>
+    </marker>
+  </defs>
+  <g fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.75">
+    <rect x="10" y="40" width="60" height="56" rx="8"/>
+    <rect x="128" y="40" width="118" height="56" rx="8"/>
+    <rect x="304" y="40" width="150" height="56" rx="8"/>
+    <rect x="512" y="40" width="196" height="56" rx="8"/>
+  </g>
+  <g fill="currentColor" font-family="monospace" font-size="10" text-anchor="middle">
+    <text x="40" y="72">∅</text>
+    <text x="187" y="72">Zero</text>
+    <text x="379" y="66">Zero,</text>
+    <text x="379" y="80">Succ Zero</text>
+    <text x="610" y="66">Zero, Succ Zero,</text>
+    <text x="610" y="80">Succ (Succ Zero)</text>
+  </g>
+  <g fill="currentColor" font-size="10" text-anchor="middle" opacity="0.8">
+    <text x="40" y="30">出発点</text>
+    <text x="187" y="30">Φ(∅)</text>
+    <text x="379" y="30">Φ²(∅)</text>
+    <text x="610" y="30">Φ³(∅)</text>
+  </g>
+  <g stroke="currentColor" stroke-width="1.2" opacity="0.75">
+    <line x1="74" y1="68" x2="122" y2="68" marker-end="url(#phi-arrow)"/>
+    <line x1="250" y1="68" x2="298" y2="68" marker-end="url(#phi-arrow)"/>
+    <line x1="458" y1="68" x2="506" y2="68" marker-end="url(#phi-arrow)"/>
+  </g>
+  <g fill="currentColor" font-size="9.5" text-anchor="middle" opacity="0.75">
+    <text x="98" y="60">Φ</text><text x="274" y="60">Φ</text><text x="482" y="60">Φ</text>
+  </g>
+  <text x="360" y="130" fill="currentColor" font-size="11.5" text-anchor="middle" font-weight="600">⊆ が 1 段ずつ増えていき, ⋯ すべての和集合が Nat = ⋃ Φⁿ(∅)</text>
+</svg>
 
 ::: note
 発展として, 名前と但し書きを 3 つ添えます.
@@ -1342,6 +1381,58 @@ main = do
 
 ここで ``a `divides` b`` のようにバッククォートで囲むと 2 引数関数を中置で書けるのでした ([第5章](fp5.html)). 数学の中置記法 $a \mid b$ と Haskell の ``a `divides` b`` がきれいに対応します.
 
+<svg viewBox="0 0 460 290" width="100%" style="max-width: 460px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="関係を直積の部分集合として表した図. 4 かける 4 の直積 A×A の格子のうち, a が b を割り切る対 (1,1) から (4,4) までの 8 マスだけが塗られている. 塗られたマスの集合が関係 D = dividesPairs 4 である.">
+  <g>
+    <text x="150" y="30" fill="currentColor" font-size="11" text-anchor="middle">b=1</text>
+    <text x="196" y="30" fill="currentColor" font-size="11" text-anchor="middle">b=2</text>
+    <text x="242" y="30" fill="currentColor" font-size="11" text-anchor="middle">b=3</text>
+    <text x="288" y="30" fill="currentColor" font-size="11" text-anchor="middle">b=4</text>
+    <text x="112" y="64" fill="currentColor" font-size="11" text-anchor="middle">a=1</text>
+    <text x="112" y="110" fill="currentColor" font-size="11" text-anchor="middle">a=2</text>
+    <text x="112" y="156" fill="currentColor" font-size="11" text-anchor="middle">a=3</text>
+    <text x="112" y="202" fill="currentColor" font-size="11" text-anchor="middle">a=4</text>
+  </g>
+  <g>
+    <circle cx="150" cy="60" r="13" fill="rgba(13,148,136,0.30)" stroke="currentColor" stroke-width="1.3"/>
+    <text x="150" y="63.5" fill="currentColor" font-size="8.5" text-anchor="middle">(1,1)</text>
+    <circle cx="196" cy="60" r="13" fill="rgba(13,148,136,0.30)" stroke="currentColor" stroke-width="1.3"/>
+    <text x="196" y="63.5" fill="currentColor" font-size="8.5" text-anchor="middle">(1,2)</text>
+    <circle cx="242" cy="60" r="13" fill="rgba(13,148,136,0.30)" stroke="currentColor" stroke-width="1.3"/>
+    <text x="242" y="63.5" fill="currentColor" font-size="8.5" text-anchor="middle">(1,3)</text>
+    <circle cx="288" cy="60" r="13" fill="rgba(13,148,136,0.30)" stroke="currentColor" stroke-width="1.3"/>
+    <text x="288" y="63.5" fill="currentColor" font-size="8.5" text-anchor="middle">(1,4)</text>
+    <circle cx="150" cy="106" r="13" fill="none" stroke="currentColor" stroke-width="0.8" opacity="0.3"/>
+    <text x="150" y="109.5" fill="currentColor" font-size="8.5" text-anchor="middle" opacity="0.35">(2,1)</text>
+    <circle cx="196" cy="106" r="13" fill="rgba(13,148,136,0.30)" stroke="currentColor" stroke-width="1.3"/>
+    <text x="196" y="109.5" fill="currentColor" font-size="8.5" text-anchor="middle">(2,2)</text>
+    <circle cx="242" cy="106" r="13" fill="none" stroke="currentColor" stroke-width="0.8" opacity="0.3"/>
+    <text x="242" y="109.5" fill="currentColor" font-size="8.5" text-anchor="middle" opacity="0.35">(2,3)</text>
+    <circle cx="288" cy="106" r="13" fill="rgba(13,148,136,0.30)" stroke="currentColor" stroke-width="1.3"/>
+    <text x="288" y="109.5" fill="currentColor" font-size="8.5" text-anchor="middle">(2,4)</text>
+    <circle cx="150" cy="152" r="13" fill="none" stroke="currentColor" stroke-width="0.8" opacity="0.3"/>
+    <text x="150" y="155.5" fill="currentColor" font-size="8.5" text-anchor="middle" opacity="0.35">(3,1)</text>
+    <circle cx="196" cy="152" r="13" fill="none" stroke="currentColor" stroke-width="0.8" opacity="0.3"/>
+    <text x="196" y="155.5" fill="currentColor" font-size="8.5" text-anchor="middle" opacity="0.35">(3,2)</text>
+    <circle cx="242" cy="152" r="13" fill="rgba(13,148,136,0.30)" stroke="currentColor" stroke-width="1.3"/>
+    <text x="242" y="155.5" fill="currentColor" font-size="8.5" text-anchor="middle">(3,3)</text>
+    <circle cx="288" cy="152" r="13" fill="none" stroke="currentColor" stroke-width="0.8" opacity="0.3"/>
+    <text x="288" y="155.5" fill="currentColor" font-size="8.5" text-anchor="middle" opacity="0.35">(3,4)</text>
+    <circle cx="150" cy="198" r="13" fill="none" stroke="currentColor" stroke-width="0.8" opacity="0.3"/>
+    <text x="150" y="201.5" fill="currentColor" font-size="8.5" text-anchor="middle" opacity="0.35">(4,1)</text>
+    <circle cx="196" cy="198" r="13" fill="none" stroke="currentColor" stroke-width="0.8" opacity="0.3"/>
+    <text x="196" y="201.5" fill="currentColor" font-size="8.5" text-anchor="middle" opacity="0.35">(4,2)</text>
+    <circle cx="242" cy="198" r="13" fill="none" stroke="currentColor" stroke-width="0.8" opacity="0.3"/>
+    <text x="242" y="201.5" fill="currentColor" font-size="8.5" text-anchor="middle" opacity="0.35">(4,3)</text>
+    <circle cx="288" cy="198" r="13" fill="rgba(13,148,136,0.30)" stroke="currentColor" stroke-width="1.3"/>
+    <text x="288" y="201.5" fill="currentColor" font-size="8.5" text-anchor="middle">(4,4)</text>
+  </g>
+  <text x="380" y="202" fill="currentColor" font-size="11" text-anchor="middle">⊆ A × A</text>
+  <g fill="currentColor" text-anchor="middle">
+    <text x="230" y="262" font-size="12" font-weight="600">関係 D = 塗られた対の集合 (直積の部分集合)</text>
+    <text x="230" y="280" font-size="10.5" opacity="0.75">塗り = a | b — dividesPairs 4 の 8 対と一致</text>
+  </g>
+</svg>
+
 対応関係を整理します. 集合としての関係 $R \subseteq A \times B$ と, 判定関数 `r :: a -> b -> Bool` は,
 
 $$(a, b) \in R \quad\Longleftrightarrow\quad \texttt{r a b} = \texttt{True}$$
@@ -1444,6 +1535,138 @@ Haskell の型 `A -> B` は, この全域性までは保証してくれません
 
 なお, [第5章](fp5.html)で学んだパターンマッチによる関数定義は, この見方では「グラフのどの部分に対 $(x, f(x))$ を置くか」を場合分けで指定する記法だと読めます. すべての入力パターンを尽くせば全域な関数になり, 尽くさなければ (`head` のように) 部分関数になります.
 
+## 演算 — 台の上で閉じた関数
+
+関数を正式に定義できたので, 本章でここまで非公式に使ってきた **演算 (operation)** という言葉も, ここで整理しておきます. 再帰的データ型の節で構成子を「0 項演算」「1 項演算」と呼びました — その一般定義です.
+
+::: note
+集合 $A$ 上の **$n$ 項演算 ($n$-ary operation)** とは,
+
+$$f : \underbrace{A \times \cdots \times A}_{n \text{ 個}} \to A$$
+
+という形の **関数** のことをいう. $n$ (引数の個数) を演算の **アリティ (arity)** という.
+:::
+
+ポイントは 2 つです.
+
+- **演算は関数の特別な場合** であって, 別種の概念ではありません. 出発点が台 $A$ の直積で, **行き先も同じ $A$** — つまり **台の中で閉じている** — という **形の制約** が付いた関数の呼び名です.
+- 演算は **アリティで種類分け** されます. $n = 2$ が最も身近ですが, $n = 1$, $n = 0$ も演算です.
+
+| アリティ | 呼び名 | 形 | 例 |
+| --- | --- | --- | --- |
+| 2 | 2 項演算 | $A \times A \to A$ | `(+) :: Int -> Int -> Int`, `(++)` |
+| 1 | 1 項演算 | $A \to A$ | `negate :: Int -> Int`, `Succ :: Nat -> Nat` |
+| 0 | 0 項演算 = **定数** | $A^0 \to A$ | `0 :: Int`, `Zero :: Nat`, `[] :: [a]` |
+
+**0 項演算が定数である理由.** $A^0$ (0 個の直積) は空集合ではなく, **空タプル `()` だけを要素とする 1 点集合** です (直和型の数え上げで見た $\lvert () \rvert = 1$ の集合がこれです). したがって $A^0 \to A$ という関数は, 「唯一の入力 `()` に対して $A$ の要素を 1 つ返す」— すなわち **$A$ の要素を 1 つ指定すること** と同じです. 「引数が無い」のではなく「情報を持たない引数が 1 つある」と読むのが正確で, これが「0 項演算 = 定数」の中身です.
+
+**演算でない関数.** 行き先が台の **外** に出る関数は, その台の上の演算ではありません.
+
+~~~ haskell
+-- 2 項演算: 台 Int の中で閉じている
+plus :: Int -> Int -> Int
+plus x y = x + y
+
+-- 1 項演算
+neg :: Int -> Int
+neg x = negate x
+
+-- 0 項演算 = 定数
+zero :: Int
+zero = 0
+
+-- 演算ではない関数: 台 [Int] から外 (Int) へ出ていく
+len :: [Int] -> Int
+len xs = length xs
+
+main :: IO ()
+main = do
+    print (plus 3 4)     -- 7
+    print (neg 5)        -- -5
+    print zero           -- 0
+    print (len [1,2,3])  -- 3
+~~~
+
+`len` (= `length`) はリストの世界から **出ていく** ので, リストの上の演算ではありません — こうした「世界から世界へ渡る関数」は, [第8章](fp8.html)で **準同型 (構造を保つ写像)** として主役になります. また, 関係の判定関数 `divides :: Int -> Int -> Bool` も行き先が `Bool` なので `Int` の上の演算ではありません (ただし `Bool` をもう 1 つの台と認めて「`Bool` への 2 項演算」と読む立場もあり, [第8章](fp8.html)でこの読み替えを使います).
+
+この対比を, 3 枚つづきの図にしておきます. いちばん左の **図0** は, まだ何も載っていない **集合だけの世界** です — 点 (型 = 集合) が 1 つあるだけで, 射はありません. そこに演算を載せたのが **図1** — **演算の世界** です. 点はやはり 1 つ (台) のままで, 射 (矢印) はすべて台自身へ戻ってきます. 図の下に添えた成分の内訳 — 台 $= \mathrm{Type}$, 演算 $= \bullet$ (2 項), $e$ (0 項) — は, この世界を組として書き出したものです. いちばん右の **図2** が **関数の世界** です — 点 (型) は複数あり, 射は型から型へ自由に渡れます. こちらの内訳は $\mathrm{Ob} = \{A, B, C\}$, $\mathrm{Mor} = \{f, g, g \circ f, \mathrm{id}, \dots\}$ — **点の集合と射の集合** の 2 本立てで, 成分の座席に「射の集まり」が入っています (この $\mathrm{Ob}$ / $\mathrm{Mor}$ という成分名は, [第9章](fp9.html)の圏の定義でそのまま登場します). 演算とは, 図2 の射のうち「出発点と行き先が同じ点になるよう制約されたもの」だけを図1 の世界として取り出したものです (図1 のループはアリティを省いて描いています — $\bullet$ の域は $\mathrm{Type} \times \mathrm{Type}$, $e$ の域は $\mathrm{Type}^0$ ですが, 行き先が台に戻る点は同じです).
+
+<svg viewBox="0 0 772 246" width="100%" style="max-width: 780px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="集合・演算・関数の 3 枚つづきの図. 図0: 四角の中に点 Type だけがある集合のみの世界 (台 = Type, 演算はまだ無い). 演算を載せると図1: 代数 — 台 = Type, 演算 = ● と e がループの射として描かれ, 射が台の外へ出ない. 俯瞰 (台を射の集まりに) すると図2: 圏 — Ob = {A, B, C}, Mor = {f, g, g∘f, id, …} — 複数の型の間を射が渡る関数の世界. 演算は行き先が同じ台に制約された特別な関数である.">
+  <defs>
+    <marker id="op-arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M 0 1 L 9 5 L 0 9 z" fill="currentColor"/>
+    </marker>
+  </defs>
+  <!-- 図0: 集合だけの世界 -->
+  <rect x="12" y="26" width="196" height="150" rx="10" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.75"/>
+  <text x="26" y="46" fill="currentColor" font-size="10" opacity="0.8">図0  集合</text>
+  <text x="110" y="106" fill="currentColor" font-family="monospace" font-size="12.5" font-weight="600" text-anchor="middle">Type</text>
+  <g fill="currentColor" text-anchor="middle">
+    <text x="110" y="193" font-size="12" font-weight="600">点 = 集合 (型)</text>
+    <text x="110" y="208" font-size="9.5" opacity="0.85">台 = Type</text>
+    <text x="110" y="222" font-size="9.5" opacity="0.85">演算 = (まだ無い)</text>
+    <text x="110" y="237" font-size="10" opacity="0.7">まだ何も載っていない</text>
+  </g>
+  <line x1="214" y1="100" x2="282" y2="100" stroke="currentColor" stroke-width="1.2" marker-end="url(#op-arrow)" opacity="0.75"/>
+  <g fill="currentColor" text-anchor="middle">
+    <text x="248" y="78" font-size="10" font-weight="600">演算を</text>
+    <text x="248" y="92" font-size="8.5" opacity="0.8">載せる</text>
+  </g>
+  <!-- 図1: 代数 -->
+  <rect x="288" y="26" width="196" height="150" rx="10" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.75"/>
+  <text x="302" y="46" fill="currentColor" font-size="10" opacity="0.8">図1  代数</text>
+  <text x="386" y="106" fill="currentColor" font-family="monospace" font-size="12" font-weight="600" text-anchor="middle">Type</text>
+  <path d="M 400 94 C 452 52, 320 52, 372 94" fill="none" stroke="currentColor" stroke-width="1.3" marker-end="url(#op-arrow)"/>
+  <text x="386" y="79" fill="currentColor"  font-size="11" text-anchor="middle">●</text>
+  <path d="M 400 116 C 452 158, 320 158, 372 116" fill="none" stroke="currentColor" stroke-width="1.3" marker-end="url(#op-arrow)"/>
+  <text x="386" y="142" fill="currentColor" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="11" text-anchor="middle">e</text>
+  <g fill="currentColor" text-anchor="middle">
+    <text x="386" y="193" font-size="12" font-weight="600">点 = 台 (集合), 射 = 演算</text>
+    <text x="386" y="208" font-size="9.5" opacity="0.85">台 = Type</text>
+    <text x="386" y="222" font-size="9.5" opacity="0.85">演算 = ●, e</text>
+    <text x="386" y="237" font-size="10" opacity="0.7">射が台の外へ出ない (閉じている)</text>
+  </g>
+  <line x1="490" y1="100" x2="558" y2="100" stroke="currentColor" stroke-width="1.2" marker-end="url(#op-arrow)" opacity="0.75"/>
+  <g fill="currentColor" text-anchor="middle">
+    <text x="524" y="78" font-size="10" font-weight="600">俯瞰</text>
+    <text x="524" y="92" font-size="8.5" opacity="0.8">台を射の集まりに</text>
+  </g>
+  <!-- 図2: 関数の世界 -->
+  <rect x="564" y="26" width="196" height="150" rx="10" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.75"/>
+  <text x="578" y="46" fill="currentColor" font-size="10" opacity="0.8">図2  圏 Hask</text>
+  <g fill="currentColor" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="13" text-anchor="middle">
+    <text x="604" y="71">A</text>
+    <text x="714" y="71">B</text>
+    <text x="660" y="151">C</text>
+  </g>
+  <g stroke="currentColor" stroke-width="1.3" fill="none">
+    <line x1="620" y1="67" x2="698" y2="67" marker-end="url(#op-arrow)"/>
+    <line x1="708" y1="80" x2="672" y2="136" marker-end="url(#op-arrow)"/>
+    <line x1="608" y1="80" x2="646" y2="136" marker-end="url(#op-arrow)"/>
+  </g>
+  <g fill="currentColor" font-family="Georgia, 'Times New Roman', serif" font-style="italic" font-size="11" text-anchor="middle">
+    <text x="659" y="59">f</text>
+    <text x="704" y="112">g</text>
+    <text x="612" y="112">g∘f</text>
+  </g>
+  <g fill="currentColor" text-anchor="middle">
+    <text x="662" y="193" font-size="12" font-weight="600">点 = 型 (集合), 射 = 関数</text>
+    <text x="662" y="208" font-size="9.5" opacity="0.85">Ob = {A, B, C}</text>
+    <text x="662" y="222" font-size="9.5" opacity="0.85">Mor = {f, g, g∘f, id, …}</text>
+    <text x="662" y="237" font-size="10" opacity="0.7">射は型から型へ渡れる</text>
+  </g>
+</svg>
+
+図1 から図2 へ移る操作 (図のいちばん右の矢印) を **俯瞰** と呼ぶことにします — 台を 1 つの集合に固定して眺めるのをやめ, **射 (関数) の集まりそのもの** を視野に入れる, 見方の転換です. この図の系列はこのあとの章でそのまま再登場します. **図1 の世界に法則を課したものが代数** ([第8章](fp8.html)) であり, **俯瞰した図2 の世界 — 射の集まり — を新しい台とみなしたものが圏** ([第9章](fp9.html)) です.
+
+**カリー化との関係.** 数学では 2 項演算を $A \times A \to A$ (引数はペア 1 つ) と書きますが, Haskell では `a -> a -> a` (カリー化) が普通です. [第5章](fp5.html)のカリー化で見たとおり, 両者は同じ情報の別表現です.
+
+::: note
+再帰的データ型の節では, `MkDogAge :: MyDogs -> Int -> DogAge` のような構成子も「2 項演算」と呼びました. 厳密には出発点の型が行き先と異なるため, これは「台が複数ある (**多ソート**) 世界での演算」です. `Zero` / `Succ` のような再帰型の構成子は, ちょうど単一の台で閉じた演算になっています. Haskell はもともと型 (台) がたくさんある世界なので, 本講義では多ソートの意味でも「演算」と呼びます.
+:::
+
+[第8章](fp8.html)では, この演算を台に載せ, $\forall$ / $\exists$ で書いた法則を課したもの — **構造** — を扱います. 本章の同値関係・順序関係 (関係) と, この節の演算が, そこで「組 + 法則」という 1 つの形に合流します.
+
 ## 同値関係 — 「同じ」の一般化
 
 ここからは, 同じ集合 $A$ の上の関係 $R \subseteq A \times A$ に注目し, 特に重要な 2 種類 — **同値関係** と **順序関係** — を見ます. どちらも「関係が満たすべき法則」を $\forall$ で書くことで定義されます. この「対象に法則を課す」という発想は次章の中心テーマになるので, ここで感触を掴んでおきましょう.
@@ -1493,6 +1716,50 @@ main = do
 対称律・推移律の検査に使った `and [ 結論 | 変数の走査, 仮定 ]` という形に注目してください. ガードを **仮定**, 本体を **結論** とすることで, $\forall x, y.\ (\text{仮定} \implies \text{結論})$ という形の法則が, そのまま全数検査になります.
 
 `nearBy` の例は, 「なんとなく等しさに似ている」だけでは同値関係にならないことを示しています. 「近い」は連鎖させると少しずつずれていくため, 推移律が破れるのです. 法則を $\forall$ で明示して検査できる形にしておくことで, こうした直感の穴を機械的に発見できます.
+
+<svg viewBox="0 0 460 250" width="100%" style="max-width: 470px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="同値関係 congruent7 による類別の図. 整数 0 から 20 が, 7 で割った余りごとに 7 つの互いに素なブロック [0] から [6] に分かれている. 各ブロックが同値類で, 台全体が過不足なく分割される.">
+  <rect x="26" y="30" width="408" height="162" rx="12" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.6"/>
+  <text x="36" y="22" fill="currentColor" font-size="10" opacity="0.7">台 = 整数 (0..20 を図示)</text>
+  <rect x="40" y="60" width="45" height="120" rx="8" fill="rgba(13,148,136,0.12)" stroke="currentColor" stroke-width="1"/>
+  <text x="62.5" y="50" fill="currentColor" font-size="11" text-anchor="middle">[0]</text>
+  <text x="62.5" y="88" fill="currentColor" font-family="monospace" font-size="11" text-anchor="middle">0</text>
+  <text x="62.5" y="120" fill="currentColor" font-family="monospace" font-size="11" text-anchor="middle">7</text>
+  <text x="62.5" y="152" fill="currentColor" font-family="monospace" font-size="11" text-anchor="middle">14</text>
+  <rect x="95" y="60" width="45" height="120" rx="8" fill="rgba(13,148,136,0.12)" stroke="currentColor" stroke-width="1"/>
+  <text x="117.5" y="50" fill="currentColor" font-size="11" text-anchor="middle">[1]</text>
+  <text x="117.5" y="88" fill="currentColor" font-family="monospace" font-size="11" text-anchor="middle">1</text>
+  <text x="117.5" y="120" fill="currentColor" font-family="monospace" font-size="11" text-anchor="middle">8</text>
+  <text x="117.5" y="152" fill="currentColor" font-family="monospace" font-size="11" text-anchor="middle">15</text>
+  <rect x="150" y="60" width="45" height="120" rx="8" fill="rgba(13,148,136,0.12)" stroke="currentColor" stroke-width="1"/>
+  <text x="172.5" y="50" fill="currentColor" font-size="11" text-anchor="middle">[2]</text>
+  <text x="172.5" y="88" fill="currentColor" font-family="monospace" font-size="11" text-anchor="middle">2</text>
+  <text x="172.5" y="120" fill="currentColor" font-family="monospace" font-size="11" text-anchor="middle">9</text>
+  <text x="172.5" y="152" fill="currentColor" font-family="monospace" font-size="11" text-anchor="middle">16</text>
+  <rect x="205" y="60" width="45" height="120" rx="8" fill="rgba(13,148,136,0.12)" stroke="currentColor" stroke-width="1"/>
+  <text x="227.5" y="50" fill="currentColor" font-size="11" text-anchor="middle">[3]</text>
+  <text x="227.5" y="88" fill="currentColor" font-family="monospace" font-size="11" text-anchor="middle">3</text>
+  <text x="227.5" y="120" fill="currentColor" font-family="monospace" font-size="11" text-anchor="middle">10</text>
+  <text x="227.5" y="152" fill="currentColor" font-family="monospace" font-size="11" text-anchor="middle">17</text>
+  <rect x="260" y="60" width="45" height="120" rx="8" fill="rgba(13,148,136,0.12)" stroke="currentColor" stroke-width="1"/>
+  <text x="282.5" y="50" fill="currentColor" font-size="11" text-anchor="middle">[4]</text>
+  <text x="282.5" y="88" fill="currentColor" font-family="monospace" font-size="11" text-anchor="middle">4</text>
+  <text x="282.5" y="120" fill="currentColor" font-family="monospace" font-size="11" text-anchor="middle">11</text>
+  <text x="282.5" y="152" fill="currentColor" font-family="monospace" font-size="11" text-anchor="middle">18</text>
+  <rect x="315" y="60" width="45" height="120" rx="8" fill="rgba(13,148,136,0.12)" stroke="currentColor" stroke-width="1"/>
+  <text x="337.5" y="50" fill="currentColor" font-size="11" text-anchor="middle">[5]</text>
+  <text x="337.5" y="88" fill="currentColor" font-family="monospace" font-size="11" text-anchor="middle">5</text>
+  <text x="337.5" y="120" fill="currentColor" font-family="monospace" font-size="11" text-anchor="middle">12</text>
+  <text x="337.5" y="152" fill="currentColor" font-family="monospace" font-size="11" text-anchor="middle">19</text>
+  <rect x="370" y="60" width="45" height="120" rx="8" fill="rgba(13,148,136,0.12)" stroke="currentColor" stroke-width="1"/>
+  <text x="392.5" y="50" fill="currentColor" font-size="11" text-anchor="middle">[6]</text>
+  <text x="392.5" y="88" fill="currentColor" font-family="monospace" font-size="11" text-anchor="middle">6</text>
+  <text x="392.5" y="120" fill="currentColor" font-family="monospace" font-size="11" text-anchor="middle">13</text>
+  <text x="392.5" y="152" fill="currentColor" font-family="monospace" font-size="11" text-anchor="middle">20</text>
+  <g fill="currentColor" text-anchor="middle">
+    <text x="230" y="218" font-size="12" font-weight="600">同値類 = 互いに素なブロック — 台が過不足なく分割される</text>
+    <text x="230" y="236" font-size="10.5" opacity="0.75">congruent7 x y ⟺ 同じブロック. ブロックの集合 = 商集合 (第8章)</text>
+  </g>
+</svg>
 
 同値関係は, [第8章](fp8.html)で **Eq 型クラス** として Haskell に登場します. `==` を自分のデータ型に定義するとき, それが満たすべき法則が, まさにこの反射・対称・推移の 3 法則です.
 
@@ -1593,6 +1860,34 @@ main = do
     print $ 2 `divides` 3 || 3 `divides` 2                              -- False
 ~~~
 
+<svg viewBox="0 0 460 310" width="100%" style="max-width: 460px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="割り切る関係のハッセ図 (12 の約数). 下から 1, その上に 2 と 3, その上に 4 と 6, 頂上に 12. 線で結ばれた下の数が上の数を割り切る. 2 と 3 の間には上下の道がなく比較不能 — 半順序だが全順序ではない.">
+  <line x1="230" y1="221" x2="140" y2="179" stroke="currentColor" stroke-width="1.3"/>
+  <line x1="230" y1="221" x2="320" y2="179" stroke="currentColor" stroke-width="1.3"/>
+  <line x1="140" y1="151" x2="140" y2="109" stroke="currentColor" stroke-width="1.3"/>
+  <line x1="140" y1="151" x2="320" y2="109" stroke="currentColor" stroke-width="1.3"/>
+  <line x1="320" y1="151" x2="320" y2="109" stroke="currentColor" stroke-width="1.3"/>
+  <line x1="140" y1="81" x2="230" y2="44" stroke="currentColor" stroke-width="1.3"/>
+  <line x1="320" y1="81" x2="230" y2="44" stroke="currentColor" stroke-width="1.3"/>
+  <circle cx="230" cy="235" r="15" fill="rgba(13,148,136,0.18)" stroke="currentColor" stroke-width="1.4"/>
+  <text x="230" y="239" fill="currentColor" font-family="monospace" font-size="12" font-weight="600" text-anchor="middle">1</text>
+  <circle cx="140" cy="165" r="15" fill="rgba(13,148,136,0.18)" stroke="currentColor" stroke-width="1.4"/>
+  <text x="140" y="169" fill="currentColor" font-family="monospace" font-size="12" font-weight="600" text-anchor="middle">2</text>
+  <circle cx="320" cy="165" r="15" fill="rgba(13,148,136,0.18)" stroke="currentColor" stroke-width="1.4"/>
+  <text x="320" y="169" fill="currentColor" font-family="monospace" font-size="12" font-weight="600" text-anchor="middle">3</text>
+  <circle cx="140" cy="95" r="15" fill="rgba(13,148,136,0.18)" stroke="currentColor" stroke-width="1.4"/>
+  <text x="140" y="99" fill="currentColor" font-family="monospace" font-size="12" font-weight="600" text-anchor="middle">4</text>
+  <circle cx="320" cy="95" r="15" fill="rgba(13,148,136,0.18)" stroke="currentColor" stroke-width="1.4"/>
+  <text x="320" y="99" fill="currentColor" font-family="monospace" font-size="12" font-weight="600" text-anchor="middle">6</text>
+  <circle cx="230" cy="30" r="15" fill="rgba(13,148,136,0.18)" stroke="currentColor" stroke-width="1.4"/>
+  <text x="230" y="34" fill="currentColor" font-family="monospace" font-size="12" font-weight="600" text-anchor="middle">12</text>
+  <line x1="162" y1="165" x2="298" y2="165" stroke="currentColor" stroke-width="1" stroke-dasharray="4 4" opacity="0.5"/>
+  <text x="230" y="158" fill="currentColor" font-size="9.5" text-anchor="middle" opacity="0.75">比較不能 (どちらも割り切らない)</text>
+  <g fill="currentColor" text-anchor="middle">
+    <text x="230" y="278" font-size="12" font-weight="600">半順序 (割り切る関係) のハッセ図 — 線 = 割り切る (下 → 上)</text>
+    <text x="230" y="296" font-size="10.5" opacity="0.75">2 と 3 のような比較不能な対がある = 全順序ではない</text>
+  </g>
+</svg>
+
 順序関係は, [第8章](fp8.html)で **Ord 型クラス** として Haskell に登場します. `compare` や `<=` を自分のデータ型に定義するとき, それが満たすべき法則が全順序の法則です. [第5章](fp5.html)で書いた挿入ソートのような並べ替えが常に意味を持つのは, 比較が全順序だからです — 比較不能な対があると「正しい並び順」が定まりません.
 
 ::: note
@@ -1672,191 +1967,10 @@ main = do
 | 構成子 = 型を生成する $n$ 項演算 | データ構築子 (`Zero` = 0 項, `Succ` = 1 項, …) | 再帰的データ型 |
 | 関係 $R \subseteq A \times B$ | 判定関数 `a -> b -> Bool` | 関係 |
 | 関数 = 全域・右一意な関係 | (全域な) 関数. 部分関数は実行時エラーの源 | 関数 |
+| 演算 = 台の中で閉じた関数 ($n$ 項, 0 項 = 定数) | `(+)`, `negate`, `0` | 演算 |
 | 同値関係 (反射・対称・推移) | `Eq` の法則 ([第8章](fp8.html)) | 同値関係 |
 | 全順序 (半順序 + 全域比較可能) | `Ord` の法則 ([第8章](fp8.html)) | 順序関係 |
 
 後半で繰り返し現れた形に注目してください. 同値関係も順序関係も, 「**関係という対象** に, $\forall$ で書かれた **法則** を課したもの」として定義されました. そして法則は, 有限の範囲なら `and` とリスト内包表記で機械的に検査できました.
 
 [第8章](fp8.html)では, この「対象に法則を課す」という組み立てを, 関係だけでなく **演算** に対して行います. 集合 (台) の上に演算を載せ, 結合律や単位元の存在といった法則を課したものが **代数構造** であり, Haskell では **型クラス** がその受け皿になります. 本章の同値関係と全順序は, それぞれ `Eq` と `Ord` の法則として, 型クラスの世界にそのまま再登場します.
-
-<!-- ==== エラー修正演習 (集合部) ==== -->
-
-## エラー修正演習
-
-ここからは本章で扱った **代数的データ型** (列挙型 / 直積型 / 直和型 / レコード構文) に関わる典型エラーの解決演習です. データ型を自前で定義すると, [第5章](fp5.html)で扱った関数のエラーに加えて **構築子・パターンマッチ・レコード** に関わるエラーが頻出します. 実エラーを読み, 原因を答えて修正してください.
-
-::: note
-
-### Exercise CH7-8
-
-**Data constructor not in scope (コンストラクタのタイポ)**
-
-以下のコードは `Color` 列挙型を定義して使っていますが, コンパイルが通りません. 原因を答えて修正してください.
-
-~~~ haskell
--- ch7-8.hs (誤りあり)
-data Color = Red | Blue | Green deriving Show
-
-main :: IO ()
-main = print Yellow
-~~~
-
-実エラー:
-
-~~~ sh
-app/Main.hs:4:14: error: [GHC-88464]
-    Data constructor not in scope: Yellow
-  |
-4 | main = print Yellow
-  |              ^^^^^^
-~~~
-
-<details class="protected" data-pass="yakagika">
-    <summary> 回答例 </summary>
-
-**原因**: `Color` のコンストラクタとして `Red | Blue | Green` の 3 つしか定義していないのに, `Yellow` を使おうとした. Haskell は大文字始まりの識別子を「データ構築子 (コンストラクタ)」として扱うため, 定義していない `Yellow` は `Data constructor not in scope` になる.
-
-修正方針は 2 通り.
-
-**修正 A**: 既存コンストラクタを使う.
-
-~~~ haskell
-data Color = Red | Blue | Green deriving Show
-
-main = print Green   -- Green
-~~~
-
-**修正 B**: `Yellow` も型に加える.
-
-~~~ haskell
-data Color = Red | Blue | Green | Yellow deriving Show
-
-main = print Yellow   -- Yellow
-~~~
-
-`Variable not in scope` と `Data constructor not in scope` は **識別子の頭文字** が小文字か大文字かで使い分けられる. エラーメッセージのどちらが出るかで「変数を間違えた」のか「コンストラクタを間違えた」のかが分かる.
-
-</details>
-
-:::
-
-::: note
-
-### Exercise CH7-9
-
-**型の取り違え (異なるデータ型を渡してしまう)**
-
-以下のコードは 2 つの独立したデータ型 `Color` と `Animal` を扱っていますが, コンパイルが通りません. 原因を答えて修正してください.
-
-~~~ haskell
--- ch7-9.hs (誤りあり)
-data Color = Red | Blue deriving Show
-data Animal = Cat | Dog deriving Show
-
-isRed :: Color -> Bool
-isRed Red  = True
-isRed Blue = False
-
-main :: IO ()
-main = print (isRed Cat)
-~~~
-
-実エラー:
-
-~~~ sh
-app/Main.hs:8:21: error: [GHC-83865]
-    • Couldn't match expected type ‘Color’ with actual type ‘Animal’
-    • In the first argument of ‘isRed’, namely ‘Cat’
-      In the first argument of ‘print’, namely ‘(isRed Cat)’
-      In the expression: print (isRed Cat)
-  |
-8 | main = print (isRed Cat)
-  |                     ^^^
-~~~
-
-<details class="protected" data-pass="yakagika">
-    <summary> 回答例 </summary>
-
-**原因**: `isRed :: Color -> Bool` は **`Color` 型** を期待しているのに, `Cat` は **`Animal` 型** のコンストラクタ. 型不一致でコンパイルエラー.
-
-代数的データ型は **タグ (コンストラクタ) を伴う独立した型** であり, 別のデータ型のコンストラクタとは交換不可能. 型システムが「全く別の集合」として両者を区別してくれる, というのが代数的データ型の大きな利点.
-
-修正: `isRed` には `Color` の値 (`Red` か `Blue`) を渡す.
-
-~~~ haskell
-data Color = Red | Blue deriving Show
-data Animal = Cat | Dog deriving Show
-
-isRed :: Color -> Bool
-isRed Red  = True
-isRed Blue = False
-
-main = do
-    print (isRed Red)    -- True
-    print (isRed Blue)   -- False
-~~~
-
-</details>
-
-:::
-
-::: note
-
-### Exercise CH7-10
-
-**レコードセレクタの部分関数 (実行時エラー)**
-
-以下は直和型 + レコード構文で図形を表現したコードです. コンパイルは通りますが, 実行すると停止します. 原因を答えて修正してください.
-
-~~~ haskell
--- ch7-10.hs (誤りあり)
-data Shape = Circle { radius :: Double }
-           | Square { side   :: Double }
-           deriving Show
-
-main :: IO ()
-main = do
-    let s = Square 4.0
-    print (radius s)
-~~~
-
-実行時出力:
-
-~~~ sh
-ch7-10: No match in record selector radius
-~~~
-
-<details class="protected" data-pass="yakagika">
-    <summary> 回答例 </summary>
-
-**原因**: `radius` は `Circle` コンストラクタにしか定義されていないアクセサだが, `s` は `Square` で構築されている. 異なるコンストラクタの値に対してアクセサを呼ぶと `No match in record selector` (実行時エラー) になる. これは **直和型 + レコード構文** で生じる古典的な落とし穴で, 本章「レコード構文」節の警告でも触れた **部分関数のアクセサ** の典型例. 「関数 — 特別な関係」の節の言葉で言えば, 全域性を欠く関係をそのまま関数として使ったことによる破綻である.
-
-修正方針は複数ある.
-
-**修正 A**: パターンマッチで取り出す (どのコンストラクタかで分岐).
-
-~~~ haskell
-area :: Shape -> Double
-area (Circle r) = 3.14159 * r * r
-area (Square s) = s * s
-
-main = do
-    print (area (Square 4.0))   -- 16.0
-    print (area (Circle 2.0))   -- 12.56636
-~~~
-
-**修正 B**: アクセサ呼び出し前にコンストラクタを確認する (推奨度低).
-
-~~~ haskell
-main = do
-    let s = Square 4.0
-    case s of
-      Circle _ -> print (radius s)
-      Square _ -> putStrLn "Not a Circle"
-~~~
-
-**根本的に安全にするには**: `Circle` と `Square` を **別のデータ型** にする, あるいは異なるフィールド名 (`circleRadius`, `squareSide`) を使ってアクセサ衝突を避ける, または後の章で扱う `Maybe` を返す独自ラッパ関数を定義する.
-
-</details>
-
-:::
