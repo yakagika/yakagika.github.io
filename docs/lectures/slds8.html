@@ -28,7 +28,7 @@
     <title>yakagika - 特別講義DS Ch8 データの可視化</title>
 
     <!-- Stylesheets. -->
-    <link rel="stylesheet" type="text/css" href="../style.css?v=1784018461">
+    <link rel="stylesheet" type="text/css" href="../style.css?v=1784090318">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -100,7 +100,7 @@
     <p class="article-description">資料</p>
     <div class="article-meta">
         <span class="meta-item">公開: 2024-03-29</span>
-        <span class="meta-item">更新: 2026-07-10</span>
+        <span class="meta-item">更新: 2026-07-14</span>
     </div>
     <div class="tag-chips"><a href="../tags/datascience.html">datascience</a><a href="../tags/statistics.html">statistics</a><a href="../tags/python.html">python</a></div>
 </header>
@@ -235,8 +235,18 @@
 <ul>
 <li><h3 id="ヒストグラムと棒グラフの違い">ヒストグラムと棒グラフの違い</h3></li>
 </ul>
-<p>1次元データでは, <strong>量的データ</strong> (身長・気温など連続した数値) は階級に区切って <strong>ヒストグラム</strong> で, <strong>質的データ</strong> (種類・順位などのカテゴリ) はカテゴリごとに <strong>棒グラフ</strong> で表します (構成比を一般向けに伝えるなら <strong>円グラフ</strong>).</p>
-<p>ヒストグラムは連続量を階級に区切ったものなので棒を隙間なく並べ, 棒グラフはカテゴリを比較するものなので棒を離して並べます. 「質的データのヒストグラム」という言い回しは正確ではないので注意しましょう.</p>
+<p>1次元データをどちらのグラフで表すかは, 「質的か量的か」だけでは決まりません. 効いてくるのは次の 2 点です.</p>
+<ul>
+<li><strong>順序があるか</strong>: 累積度数・中央値・分布の歪みといった「並び方から読み取る情報」は, カテゴリに順序が無いと意味を持ちません.</li>
+<li><strong>連続量を階級 (階級幅) に区切ったものか</strong>: 面積が度数に比例する, というヒストグラム本来の読み方は, 連続量を区間に分けて初めて成り立ちます.</li>
+</ul>
+<p>この 2 点で整理すると, 次のようになります.</p>
+<ul>
+<li><strong>名義尺度</strong> (血液型・職業など順序の無いカテゴリ) は <strong>棒グラフ</strong> で表し, 棒を離して並べます. 並び順は任意で, 棒を入れ替えても中身は変わらないので, 「形」を読んではいけません.</li>
+<li><strong>順序尺度</strong> (満足度・成績・難易度など順序のあるカテゴリ) は順序があるので累積度数や歪みが読め, 棒を隙間なく詰めて <strong>ヒストグラムのように</strong> 描いても構いません. ただしカテゴリは離散的で階級幅の概念が無いため, <strong>厳密な意味でのヒストグラムではありません</strong>.</li>
+<li><strong>量的データ</strong> (身長・気温など連続した数値) は階級に区切って <strong>ヒストグラム</strong> で表します. 棒を隙間なく並べ, 階級幅・面積=度数 といった本来の読み方ができます.</li>
+</ul>
+<p>構成比を一般向けに伝えたいときは <strong>円グラフ</strong> も使えます. 要するに, 棒を離すか詰めるかは「連続量を階級に区切ったか」で決まり, 質的データでも順序尺度なら詰めて (ヒストグラム風に) 描いてよい, というのが要点です.</p>
 </div>
 <h3 id="基礎的なグラフ棒グラフ円グラフ折れ線グラフ">基礎的なグラフ(棒グラフ,円グラフ,折れ線グラフ)</h3>
 <p><code>matplotlib</code>を利用して,グラフを作成する大まかな手順は以下のようになります.</p>
@@ -1182,9 +1192,9 @@ CSVを作りましょう</p></li>
 <figcaption aria-hidden="true">外れ値のあるヒストグラム</figcaption>
 </figure>
 </div>
-<p>それでは,Pythonでヒストグラムを作成してみましょう. 度数分布表を作成している場合は,棒グラフを作成し,棒の幅を<code>0</code>にすることで,ヒストグラムが作成できます.</p>
+<p>それでは,Pythonで度数分布表をグラフにしてみましょう. 度数分布表がある場合は,棒グラフを作り棒の間隔を<code>0</code>にすることで,棒を詰めたグラフ (量的データならヒストグラム) が作成できます.</p>
 <p><code>plt.bar()</code>では,引数<code>width=1</code>を与えることで,棒の太さを<code>1</code>(棒の間を0)にすることができます.</p>
-<p>まずは,以前扱った<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/diff_class.csv">質的データ</a>の例におけるヒストグラムを作成してみましょう.</p>
+<p>まずは,以前扱った<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/diff_class.csv">順序尺度の質的データ</a>の例を描いてみましょう. 前述のとおり順序尺度には階級幅の概念が無いため, これは厳密にはヒストグラムではありませんが, 順序があるので棒を詰めて描くと分布の歪みなどを読み取れます.</p>
 <div class="sourceCode" id="cb31"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co">#データの読み込み</span></span>
 <span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'Data/diff_class.csv'</span>)</span>
 <span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
@@ -1225,8 +1235,8 @@ CSVを作りましょう</p></li>
 <span id="cb31-38"><a href="#cb31-38" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
 <p>以下のように,単峰で右に歪んだグラフが作成されるはずです.</p>
 <figure>
-<img src="../images/slds/ch8/histogram-qualitative.png" alt="質的データのヒストグラム" />
-<figcaption aria-hidden="true">質的データのヒストグラム</figcaption>
+<img src="../images/slds/ch8/histogram-qualitative.png" alt="順序尺度データをヒストグラム風に描いたグラフ" />
+<figcaption aria-hidden="true">順序尺度データをヒストグラム風に描いたグラフ</figcaption>
 </figure>
 <p>同様に<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/histogram_quantitative.csv">量的データ</a>についても作成してみます.</p>
 <div class="sourceCode" id="cb32"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co">#ヒストグラムを作りたいデータの列名を指定</span></span>
