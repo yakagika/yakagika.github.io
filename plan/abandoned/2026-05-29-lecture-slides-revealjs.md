@@ -1,3 +1,9 @@
+---
+plan_id: lecture-slides-revealjs
+status: abandoned
+created: 2026-05-29
+updated: 2026-05-29
+---
 # 講義スライドの reveal.js 化 (Pandoc 経由)
 
 ## メタ情報
