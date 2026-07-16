@@ -5169,7 +5169,7 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 <li><a href="#maybe-either-モナド">Maybe / Either モナド</a>と<a href="#リストモナド">リストモナド</a>: 失敗の連鎖と, for 文としての非決定性. <a href="#exercise-ch10-3">Exercise CH10-3</a></li>
 <li><a href="#io-モナド">IO モナド</a>と<a href="#標準入出力">標準入出力</a>: 純粋コアと IO の殻. <a href="#exercise-ch10-4">Exercise CH10-4</a></li>
 </ol>
-<p>必要になったときに本文へ戻る節: 緩モノイド関手, 自己関手と <span class="math inline">\eta</span> / <span class="math inline">\mu</span>, モナドは自己関手の圏におけるモノイド対象, Kleisli 圏, モナド則の 3 つの定式化, <code>interact</code> の発展演習.</p>
+<p>必要になったときに本文へ戻る節: 緩モノイド関手, Applicative 則, 自己関手と <span class="math inline">\eta</span> / <span class="math inline">\mu</span>, モナドは自己関手の圏におけるモノイド対象, Kleisli 圏, モナド則の 3 つの定式化, <code>interact</code> の発展演習.</p>
 </div>
 <p>本章の地図を先に渡しておきます (各行は対応する部で実物になります).</p>
 <table>
@@ -5237,7 +5237,47 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 <li><strong>乗法</strong> <span class="math inline">\mu : f\,a \times f\,b \to f\,(a \times b)</span>: <code>f a</code> と <code>f b</code> を組の <code>f (a, b)</code> にまとめる. これを畳み込めば, <span class="math inline">n</span> 引数ぶんの材料が 1 つの組にまとまります.</li>
 <li><strong>単位</strong> <span class="math inline">\varepsilon : 1 \to f\,1</span>: 0 引数 (素の値) を世界へ入れる写像.</li>
 </ul>
-<p>この 2 つの部品を関手に足したものが, Applicative の数学的な実態です.</p>
+<p>この 2 つの部品を, まず <code>Maybe</code> とリストで手作りしてみます.</p>
+<h2 id="独立な計算の組み合わせ">独立な計算の組み合わせ</h2>
+<p>部品を手作りします. 最初の部品は乗法 <span class="math inline">\mu</span>, すなわち「<code>Maybe a</code> と <code>Maybe b</code> を組の <code>Maybe (a, b)</code> にまとめる」関数です. <code>Maybe</code> の意味 (失敗しうる計算) を考えれば, 実装は 1 通りしかありません. <strong>両方そろったときだけ</strong> 組にできます.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 2 つの独立な計算結果を, 両方そろったときだけ組にする</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ot">both ::</span> <span class="dt">Maybe</span> a <span class="ot">-&gt;</span> <span class="dt">Maybe</span> b <span class="ot">-&gt;</span> <span class="dt">Maybe</span> (a, b)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>both (<span class="dt">Just</span> x) (<span class="dt">Just</span> y) <span class="ot">=</span> <span class="dt">Just</span> (x, y)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>both _        _        <span class="ot">=</span> <span class="dt">Nothing</span>        <span class="co">-- どちらかが欠ければ失敗</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (both (<span class="dt">Just</span> <span class="dv">2</span>) (<span class="dt">Just</span> <span class="ch">&#39;a&#39;</span>))                <span class="co">-- Just (2,&#39;a&#39;)</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (both (<span class="dt">Just</span> <span class="dv">2</span>) (<span class="dt">Nothing</span><span class="ot"> ::</span> <span class="dt">Maybe</span> <span class="dt">Char</span>))   <span class="co">-- Nothing</span></span></code></pre></div>
+<p>この <code>both</code> と <code>fmap</code> があれば, 欲しかった 2 引数の持ち上げが組み立てられます. 前節の設計図どおり, <code>uncurry</code> (<a href="fp5.html">第5章</a>) で 2 引数関数を組からの 1 引数関数に直し, <code>both</code> でまとめた組に <code>fmap</code> で適用するだけです.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- (both は上の定義をそのまま使う)</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ot">lift2 ::</span> (a <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> c) <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a <span class="ot">-&gt;</span> <span class="dt">Maybe</span> b <span class="ot">-&gt;</span> <span class="dt">Maybe</span> c</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>lift2 g x y <span class="ot">=</span> <span class="fu">fmap</span> (<span class="fu">uncurry</span> g) (both x y)</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (lift2 (<span class="op">+</span>) (<span class="dt">Just</span> <span class="dv">2</span>) (<span class="dt">Just</span> <span class="dv">3</span>))   <span class="co">-- Just 5</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (lift2 (<span class="op">+</span>) (<span class="dt">Just</span> <span class="dv">2</span>) <span class="dt">Nothing</span>)    <span class="co">-- Nothing</span></span></code></pre></div>
+<p>冒頭の需要「<code>Just 2</code> と <code>Just 3</code> を <code>(+)</code> で足したい」が, これで回収できました. 3 引数以上も設計図どおり, 組を入れ子に畳み込めば届きます.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- (both は上の定義をそのまま使う)</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="ot">lift3 ::</span> (a <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> c <span class="ot">-&gt;</span> d) <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a <span class="ot">-&gt;</span> <span class="dt">Maybe</span> b <span class="ot">-&gt;</span> <span class="dt">Maybe</span> c <span class="ot">-&gt;</span> <span class="dt">Maybe</span> d</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>lift3 g x y z <span class="ot">=</span> <span class="fu">fmap</span> (\((a, b), c) <span class="ot">-&gt;</span> g a b c) (both (both x y) z)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (lift3 (\a b c <span class="ot">-&gt;</span> a <span class="op">+</span> b <span class="op">+</span> c) (<span class="dt">Just</span> <span class="dv">1</span>) (<span class="dt">Just</span> <span class="dv">2</span>) (<span class="dt">Just</span> <span class="dv">3</span>))   <span class="co">-- Just 6</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (lift3 (\a b c <span class="ot">-&gt;</span> a <span class="op">+</span> b <span class="op">+</span> c) (<span class="dt">Just</span> <span class="dv">1</span>) <span class="dt">Nothing</span>  (<span class="dt">Just</span> <span class="dv">3</span>))   <span class="co">-- Nothing</span></span></code></pre></div>
+<p>リストでも同じ部品が作れます. 「独立な計算の組み合わせ」のリスト版は, <a href="fp7.html">第7章</a>の内包表記による <strong>直積</strong> (すべての組合せ) です.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ot">bothList ::</span> [a] <span class="ot">-&gt;</span> [b] <span class="ot">-&gt;</span> [(a, b)]</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>bothList xs ys <span class="ot">=</span> [ (x, y) <span class="op">|</span> x <span class="ot">&lt;-</span> xs, y <span class="ot">&lt;-</span> ys ]</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (bothList [<span class="dv">1</span>, <span class="dv">2</span><span class="ot"> ::</span> <span class="dt">Int</span>] <span class="st">&quot;ab&quot;</span>)</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- [(1,&#39;a&#39;),(1,&#39;b&#39;),(2,&#39;a&#39;),(2,&#39;b&#39;)]</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="fu">fmap</span> (<span class="fu">uncurry</span> (<span class="op">+</span>)) (bothList [<span class="dv">1</span>, <span class="dv">2</span>] [<span class="dv">10</span>, <span class="dv">20</span><span class="ot"> ::</span> <span class="dt">Int</span>]))</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- [11,21,12,22]</span></span></code></pre></div>
+<p><code>both</code> と <code>bothList</code> は型の形も組み立て方も同じで, 違いは「組にする」の中身 (失敗の伝播か, 候補の掛け合わせか) だけです. 残る部品は 0 引数の持ち上げ, すなわち素の値を余計な分岐なしに包む単位 <span class="math inline">\varepsilon</span> です (<code>Maybe</code> なら <code>Just ()</code>, リストなら <code>[()]</code>). この「関手 + 組にする乗法 + 単位」という装備一式には, 数学の名前が付いています.</p>
 <h2 id="緩モノイド関手-lax-monoidal-functor">緩モノイド関手 (lax monoidal functor)</h2>
 <p>Applicative の数学的実態は, <strong>緩モノイド関手 (lax monoidal functor)</strong> です.</p>
 <p>土台は<a href="fp7.html">第7章</a>の <strong>直積</strong> です. Hask の型たちは, 積 <span class="math inline">A \times B</span> と 1 点集合 <span class="math inline">1</span> (Haskell の <code>()</code> 型) について</p>
@@ -5349,32 +5389,8 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 </tr>
 </tbody>
 </table>
-<h2 id="型クラス-applicative">型クラス Applicative</h2>
-<p>Haskell は, 前節の数学の組 <span class="math inline">(f, \varepsilon, \mu)</span> を <strong>そのままの形ではクラスにしていません</strong>. 書きやすさのための <strong>利用上の変換 (カリー化)</strong> を 1 枚挟んだものが, <strong>Applicative</strong> (適用可能関手) クラスです.</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> <span class="dt">Functor</span> f <span class="ot">=&gt;</span> <span class="dt">Applicative</span> f <span class="kw">where</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ot">  pure  ::</span> a <span class="ot">-&gt;</span> f a</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="ot">  (&lt;*&gt;) ::</span> f (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> f a <span class="ot">-&gt;</span> f b</span></code></pre></div>
-<p>2 つのメソッドは, パターンの言葉で次のように読めます.</p>
-<ul>
-<li><code>pure</code> は「素の値に, 分岐のない素直なパターンを付けて関手の世界へ持ち上げる」ものです. <code>Maybe</code> なら <code>pure 3 = Just 3</code>, リストなら <code>pure 3 = [3]</code>. <code>fmap</code> が 1 引数, <code>&lt;*&gt;</code> の連鎖が <span class="math inline">n</span> 引数の持ち上げだとすれば, <code>pure</code> は <strong>0 引数の持ち上げ</strong> にあたります. 数学の単位 <span class="math inline">\varepsilon</span> (たった 1 個の値 <code>f ()</code>) との関係は <code>pure a = fmap (\() -&gt; a) ε</code>, 逆に <span class="math inline">\varepsilon =</span> <code>pure ()</code> で, つまり <strong><span class="math inline">\varepsilon</span> を <code>fmap</code> で全型に広げた利用形</strong> です.</li>
-<li><code>(&lt;*&gt;)</code> (「apply」と読む) は「<strong><code>f</code> の世界の中の関数を, <code>f</code> の世界の中の引数に適用する</strong>」ものです. これは乗法 <span class="math inline">\mu</span> の <strong>カリー化した利用形</strong> です. 組にまとめて剥がして適用する代わりに, 1 引数ずつ受け取ってその場で適用します. superclass 制約 <code>Functor f =&gt;</code> があるので Applicative は必ず Functor でもあります.</li>
-</ul>
-<p>では, この 2 つのメソッドは <code>Maybe</code> とリストで <strong>何をする</strong> のか. 標準ライブラリのインスタンス宣言を見るのが早道です.</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- Maybe: 標準ライブラリの定義を場合分けの形に開いたもの (等価)</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Applicative</span> <span class="dt">Maybe</span> <span class="kw">where</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pure</span> <span class="ot">=</span> <span class="dt">Just</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Just</span> f <span class="op">&lt;*&gt;</span> <span class="dt">Just</span> x <span class="ot">=</span> <span class="dt">Just</span> (f x)   <span class="co">-- 両方そろったときだけ適用</span></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>  _      <span class="op">&lt;*&gt;</span> _      <span class="ot">=</span> <span class="dt">Nothing</span>      <span class="co">-- どちらかが欠ければ失敗</span></span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="co">-- リスト: 標準ライブラリの定義そのまま</span></span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Applicative</span> [] <span class="kw">where</span></span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pure</span> x    <span class="ot">=</span> [x]</span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>  fs <span class="op">&lt;*&gt;</span> xs <span class="ot">=</span> [ f x <span class="op">|</span> f <span class="ot">&lt;-</span> fs, x <span class="ot">&lt;-</span> xs ]   <span class="co">-- すべての組合せ (直積)</span></span></code></pre></div>
-<p>どちらの実装も, 組の言葉で読めます. <code>pure</code> は <code>Maybe</code> では <code>Just</code>, リストでは 1 要素リストで, どちらも <span class="math inline">\varepsilon</span> を <code>fmap</code> で広げた「余計なパターンの分岐を持ち込まずに包む」の実装です. <code>&lt;*&gt;</code> は分業で読めます: <code>ax &lt;*&gt; bx = fmap (\(g, x) -&gt; g x) (liftA2 (,) ax bx)</code>. まず <span class="math inline">\mu</span> (= <code>liftA2 (,)</code>) で組み, <code>fmap</code> で剥がして適用します. では乗法 <span class="math inline">\mu</span> が実装ごとにどう違うかを, 図で確かめましょう.</p>
-<div class="warn">
-<p>この 2 つのインスタンスは標準ライブラリ (<code>base</code>) で定義済みです. <strong>同じ宣言を自分のファイルに書くと重複インスタンスのエラーになる</strong>ので, 上のコードは読むための抜粋です (自作の型にインスタンスを書く練習は, <a href="fp9.html">第9章</a>の <code>Box</code>・<code>Tree</code> で経験済みです).</p>
-</div>
-<p><strong>Maybe の乗法</strong> は「両方そろったときだけ組にする」です. どちらかが <code>Nothing</code> なら全体が <code>Nothing</code> になります (失敗の伝播). <code>&lt;*&gt;</code> はその場合分けをカリー化のまま実行しています.</p>
+<p>この定義を, 手作りの部品で確かめます.</p>
+<p><strong>Maybe の乗法</strong> は「両方そろったときだけ組にする」, すなわち手作りした <code>both</code> です. どちらかが <code>Nothing</code> なら全体が <code>Nothing</code> になります (失敗の伝播).</p>
 <svg viewBox="0 0 560 470" width="100%" style="max-width: 570px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Maybe Applicative の乗法 μ の図. 対の世界の型の対 (a, b) から, 成分ごとに持ち上げる関手 (a, b) ↦ (Maybe a, Maybe b) と, 組んでから持ち上げる関手 (a, b) ↦ Maybe (a, b) が 2 本走り, その間を二重矢印 μ が渡る. μ の成分は, 両方 Just のときだけ Just (x, y), どちらかが Nothing なら Nothing. 単位 ε は Just ().">
 <defs>
 <marker id="apm-arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
@@ -5411,15 +5427,7 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 <text x="280" y="463" font-size="9.5" opacity="0.85">μ (Just x, Just y) = Just (x, y). どちらかが Nothing なら結果も Nothing (失敗の伝播). ε = Just ()</text>
 </g>
 </svg>
-<p><code>Maybe</code> で試します. <code>&lt;$&gt;</code> は <code>fmap</code> の中置別名 (<a href="fp9.html">第9章</a>) であることを思い出すと, 次のイディオムが読めます.</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="dt">Just</span> (<span class="op">+</span> <span class="dv">1</span>) <span class="op">&lt;*&gt;</span> <span class="dt">Just</span> <span class="dv">3</span>)            <span class="co">-- Just 4</span></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="fu">pure</span> (<span class="op">+</span>) <span class="op">&lt;*&gt;</span> <span class="dt">Just</span> <span class="dv">2</span> <span class="op">&lt;*&gt;</span> <span class="dt">Just</span> <span class="dv">3</span>)   <span class="co">-- Just 5</span></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> ((<span class="op">+</span>) <span class="op">&lt;$&gt;</span> <span class="dt">Just</span> <span class="dv">2</span> <span class="op">&lt;*&gt;</span> <span class="dt">Just</span> <span class="dv">3</span>)        <span class="co">-- Just 5   (&lt;$&gt; は fmap)</span></span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> ((<span class="op">+</span>) <span class="op">&lt;$&gt;</span> <span class="dt">Just</span> <span class="dv">2</span> <span class="op">&lt;*&gt;</span> <span class="dt">Nothing</span>)       <span class="co">-- Nothing  (一方でも欠ければ全体が失敗)</span></span></code></pre></div>
-<p><code>(+) &lt;$&gt; Just 2 &lt;*&gt; Just 3</code> は次のように読みます. まず <code>&lt;$&gt;</code> (= <code>fmap</code>) が <code>(+)</code> を <code>Maybe</code> に持ち上げ <code>Just ((+) 2)</code> を作ります. 次に <code>&lt;*&gt;</code> がその <code>Maybe</code> の中の関数を <code>Just 3</code> に適用して <code>Just 5</code> を得ます. これが「<strong>n 引数関数を n 個の関手値に一斉に適用する</strong>」定石で, どれか一つでも <code>Nothing</code> なら全体が <code>Nothing</code> に短絡します.</p>
-<p><strong>リストの乗法</strong> は<a href="fp7.html">第7章</a>の内包表記による <strong>直積</strong> (すべての組合せ) です.</p>
+<p><strong>リストの乗法</strong> は<a href="fp7.html">第7章</a>の内包表記による <strong>直積</strong> (すべての組合せ), すなわち手作りした <code>bothList</code> です.</p>
 <svg viewBox="0 0 560 470" width="100%" style="max-width: 570px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="リスト Applicative の乗法 μ の図. 対の世界の型の対 (a, b) から, 成分ごとに持ち上げる関手 (a, b) ↦ ([a], [b]) と, 組んでから持ち上げる関手 (a, b) ↦ [(a, b)] が 2 本走り, その間を二重矢印 μ が渡る. μ の成分は内包表記の直積 (すべての組合せのリスト). 単位 ε は [()].">
 <defs>
 <marker id="apl-arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
@@ -5456,25 +5464,60 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 <text x="280" y="463" font-size="9.5" opacity="0.85">μ (as, bs) = [ (a, b) | a &lt;- as, b &lt;- bs ] (第7章の内包表記). ε = [()]</text>
 </g>
 </svg>
-<p>したがってリストの <code>&lt;*&gt;</code> は「関数のリストと引数のリストの <strong>すべての組合せ</strong>」を作ります.</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> ([(<span class="op">+</span> <span class="dv">1</span>), (<span class="op">*</span> <span class="dv">10</span>)] <span class="op">&lt;*&gt;</span> [<span class="dv">1</span>, <span class="dv">2</span><span class="ot"> ::</span> <span class="dt">Int</span>])   <span class="co">-- [2,3,10,20]</span></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> ((,) <span class="op">&lt;$&gt;</span> [<span class="dv">1</span>, <span class="dv">2</span>] <span class="op">&lt;*&gt;</span> <span class="st">&quot;ab&quot;</span>)             <span class="co">-- [(1,&#39;a&#39;),(1,&#39;b&#39;),(2,&#39;a&#39;),(2,&#39;b&#39;)]</span></span></code></pre></div>
+<h2 id="型クラス-applicative">型クラス Applicative</h2>
+<p>Haskell は, 前節の数学の組 <span class="math inline">(f, \varepsilon, \mu)</span> を <strong>そのままの形ではクラスにしていません</strong>. 書きやすさのための <strong>利用上の変換 (カリー化)</strong> を 1 枚挟んだものが, <strong>Applicative</strong> (適用可能関手) クラスです.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> <span class="dt">Functor</span> f <span class="ot">=&gt;</span> <span class="dt">Applicative</span> f <span class="kw">where</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ot">  pure  ::</span> a <span class="ot">-&gt;</span> f a</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="ot">  (&lt;*&gt;) ::</span> f (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> f a <span class="ot">-&gt;</span> f b</span></code></pre></div>
+<p>2 つのメソッドは, パターンの言葉で次のように読めます.</p>
+<ul>
+<li><code>pure</code> は「素の値に, 分岐のない素直なパターンを付けて関手の世界へ持ち上げる」ものです. <code>Maybe</code> なら <code>pure 3 = Just 3</code>, リストなら <code>pure 3 = [3]</code>. <code>fmap</code> が 1 引数, <code>&lt;*&gt;</code> の連鎖が <span class="math inline">n</span> 引数の持ち上げだとすれば, <code>pure</code> は <strong>0 引数の持ち上げ</strong> にあたります. 数学の単位 <span class="math inline">\varepsilon</span> (たった 1 個の値 <code>f ()</code>) との関係は <code>pure a = fmap (\() -&gt; a) ε</code>, 逆に <span class="math inline">\varepsilon =</span> <code>pure ()</code> で, つまり <strong><span class="math inline">\varepsilon</span> を <code>fmap</code> で全型に広げた利用形</strong> です.</li>
+<li><code>(&lt;*&gt;)</code> (「apply」と読む) は「<strong><code>f</code> の世界の中の関数を, <code>f</code> の世界の中の引数に適用する</strong>」ものです. これは乗法 <span class="math inline">\mu</span> の <strong>カリー化した利用形</strong> です. 組にまとめて剥がして適用する代わりに, 1 引数ずつ受け取ってその場で適用します. superclass 制約 <code>Functor f =&gt;</code> があるので Applicative は必ず Functor でもあります.</li>
+</ul>
+<p>では, この 2 つのメソッドは <code>Maybe</code> とリストで <strong>何をする</strong> のか. 標準ライブラリのインスタンス宣言を見るのが早道です.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- Maybe: 標準ライブラリの定義を場合分けの形に開いたもの (等価)</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Applicative</span> <span class="dt">Maybe</span> <span class="kw">where</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pure</span> <span class="ot">=</span> <span class="dt">Just</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Just</span> f <span class="op">&lt;*&gt;</span> <span class="dt">Just</span> x <span class="ot">=</span> <span class="dt">Just</span> (f x)   <span class="co">-- 両方そろったときだけ適用</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>  _      <span class="op">&lt;*&gt;</span> _      <span class="ot">=</span> <span class="dt">Nothing</span>      <span class="co">-- どちらかが欠ければ失敗</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="co">-- リスト: 標準ライブラリの定義そのまま</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Applicative</span> [] <span class="kw">where</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pure</span> x    <span class="ot">=</span> [x]</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>  fs <span class="op">&lt;*&gt;</span> xs <span class="ot">=</span> [ f x <span class="op">|</span> f <span class="ot">&lt;-</span> fs, x <span class="ot">&lt;-</span> xs ]   <span class="co">-- すべての組合せ (直積)</span></span></code></pre></div>
+<p>どちらの実装も, 組の言葉で読めます. <code>pure</code> は <code>Maybe</code> では <code>Just</code>, リストでは 1 要素リストで, どちらも <span class="math inline">\varepsilon</span> を <code>fmap</code> で広げた「余計なパターンの分岐を持ち込まずに包む」の実装です. <code>&lt;*&gt;</code> は分業で読めます: <code>ax &lt;*&gt; bx = fmap (\(g, x) -&gt; g x) (both ax bx)</code>. まず手作りした <code>both</code> (<span class="math inline">\mu</span>) で組み, <code>fmap</code> で剥がして適用します.</p>
+<div class="warn">
+<p>この 2 つのインスタンスは標準ライブラリ (<code>base</code>) で定義済みです. <strong>同じ宣言を自分のファイルに書くと重複インスタンスのエラーになる</strong>ので, 上のコードは読むための抜粋です (自作の型にインスタンスを書く練習は, <a href="fp9.html">第9章</a>の <code>Box</code>・<code>Tree</code> で経験済みです).</p>
+</div>
+<p><code>Maybe</code> で試します. <code>&lt;$&gt;</code> は <code>fmap</code> の中置別名 (<a href="fp9.html">第9章</a>) であることを思い出すと, 次のイディオムが読めます.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="dt">Just</span> (<span class="op">+</span> <span class="dv">1</span>) <span class="op">&lt;*&gt;</span> <span class="dt">Just</span> <span class="dv">3</span>)            <span class="co">-- Just 4</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="fu">pure</span> (<span class="op">+</span>) <span class="op">&lt;*&gt;</span> <span class="dt">Just</span> <span class="dv">2</span> <span class="op">&lt;*&gt;</span> <span class="dt">Just</span> <span class="dv">3</span>)   <span class="co">-- Just 5</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> ((<span class="op">+</span>) <span class="op">&lt;$&gt;</span> <span class="dt">Just</span> <span class="dv">2</span> <span class="op">&lt;*&gt;</span> <span class="dt">Just</span> <span class="dv">3</span>)        <span class="co">-- Just 5   (&lt;$&gt; は fmap)</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> ((<span class="op">+</span>) <span class="op">&lt;$&gt;</span> <span class="dt">Just</span> <span class="dv">2</span> <span class="op">&lt;*&gt;</span> <span class="dt">Nothing</span>)       <span class="co">-- Nothing  (一方でも欠ければ全体が失敗)</span></span></code></pre></div>
+<p><code>(+) &lt;$&gt; Just 2 &lt;*&gt; Just 3</code> は次のように読みます. まず <code>&lt;$&gt;</code> (= <code>fmap</code>) が <code>(+)</code> を <code>Maybe</code> に持ち上げ <code>Just ((+) 2)</code> を作ります. 次に <code>&lt;*&gt;</code> がその <code>Maybe</code> の中の関数を <code>Just 3</code> に適用して <code>Just 5</code> を得ます. これが「<strong>n 引数関数を n 個の関手値に一斉に適用する</strong>」定石で, どれか一つでも <code>Nothing</code> なら全体が <code>Nothing</code> に短絡します.</p>
+<p>リストの <code>&lt;*&gt;</code> も同じ分業で, 「関数のリストと引数のリストの <strong>すべての組合せ</strong>」(<code>bothList</code> で組んで剥がした形) を作ります.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> ([(<span class="op">+</span> <span class="dv">1</span>), (<span class="op">*</span> <span class="dv">10</span>)] <span class="op">&lt;*&gt;</span> [<span class="dv">1</span>, <span class="dv">2</span><span class="ot"> ::</span> <span class="dt">Int</span>])   <span class="co">-- [2,3,10,20]</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> ((,) <span class="op">&lt;$&gt;</span> [<span class="dv">1</span>, <span class="dv">2</span>] <span class="op">&lt;*&gt;</span> <span class="st">&quot;ab&quot;</span>)             <span class="co">-- [(1,&#39;a&#39;),(1,&#39;b&#39;),(2,&#39;a&#39;),(2,&#39;b&#39;)]</span></span></code></pre></div>
 <p><code>(,)</code> はペアを作る構築子で, <code>(,) &lt;$&gt; [1,2] &lt;*&gt; "ab"</code> は 2 つのリストの直積 (デカルト積), すなわち乗法 <span class="math inline">\mu</span> の結果そのものを与えます. リストでは, <code>&lt;*&gt;</code> が「非決定的にすべての候補を試す」というパターンの掛け合わせを表します.</p>
-<p>乗法 <span class="math inline">\mu</span> の実物は, 標準ライブラリでは <code>liftA2 (,)</code> です. 動機の節で欲しがった多引数の持ち上げも, <code>liftA2</code>・<code>liftA3</code> としてそのまま揃っています.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Control.Applicative</span> (liftA2)</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- liftA2 (,) が自然変換 f a × f b -&gt; f (a, b) そのもの</span></span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (liftA2 (,) (<span class="dt">Just</span> <span class="dv">1</span>) (<span class="dt">Just</span> <span class="ch">&#39;a&#39;</span>))     <span class="co">-- Just (1,&#39;a&#39;)</span></span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (liftA2 (,) (<span class="dt">Just</span> <span class="dv">1</span>) (<span class="dt">Nothing</span><span class="ot"> ::</span> <span class="dt">Maybe</span> <span class="dt">Char</span>))  <span class="co">-- Nothing</span></span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (liftA2 (,) [<span class="dv">1</span>, <span class="dv">2</span><span class="ot"> ::</span> <span class="dt">Int</span>] <span class="st">&quot;ab&quot;</span>)      <span class="co">-- [(1,&#39;a&#39;),(1,&#39;b&#39;),(2,&#39;a&#39;),(2,&#39;b&#39;)]</span></span></code></pre></div>
+<p>手作りした <code>lift2</code> の総称版は, 標準ライブラリに <code>liftA2</code> として揃っています (<code>liftA3</code> 以降も同様). とくに <code>liftA2 (,)</code> は乗法 <span class="math inline">\mu</span> の実物そのものです.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Control.Applicative</span> (liftA2)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- liftA2 (,) が自然変換 f a × f b -&gt; f (a, b) そのもの</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (liftA2 (,) (<span class="dt">Just</span> <span class="dv">1</span>) (<span class="dt">Just</span> <span class="ch">&#39;a&#39;</span>))     <span class="co">-- Just (1,&#39;a&#39;)</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (liftA2 (,) (<span class="dt">Just</span> <span class="dv">1</span>) (<span class="dt">Nothing</span><span class="ot"> ::</span> <span class="dt">Maybe</span> <span class="dt">Char</span>))  <span class="co">-- Nothing</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (liftA2 (,) [<span class="dv">1</span>, <span class="dv">2</span><span class="ot"> ::</span> <span class="dt">Int</span>] <span class="st">&quot;ab&quot;</span>)      <span class="co">-- [(1,&#39;a&#39;),(1,&#39;b&#39;),(2,&#39;a&#39;),(2,&#39;b&#39;)]</span></span></code></pre></div>
 <p><code>&lt;*&gt;</code> とこの積は互いに定義し合え, <code>f &lt;*&gt; x = liftA2 ($) f x</code>, 逆に <code>liftA2 g x y = g &lt;$&gt; x &lt;*&gt; y</code> です. つまり <code>Applicative</code> クラスとは, 数学の組 <span class="math inline">(f, \varepsilon, \mu)</span> をカリー化して型クラス化した <strong>利用形</strong> です. <code>&lt;*&gt;</code> ⇄ <span class="math inline">\mu</span>, <code>pure</code> ⇄ <span class="math inline">\varepsilon</span> の往復は, いまの 2 本の等式でいつでもできます.</p>
 <p>Functor との関係も明快で, <code>fmap</code> は Applicative の特別な場合になっています.</p>
 <p><span class="math display">\mathrm{fmap}\ f\ x \;=\; \mathrm{pure}\ f \mathbin{&lt;\!\!*\!\!&gt;} x</span></p>
-<p>Applicative が満たすべき <strong>Applicative 則</strong> は次の 4 つで, 前節の <strong>結合律・単位律 (と <span class="math inline">\mu</span> の自然性) をカリー化の言葉に翻訳したもの</strong> です.</p>
+<p>これで冒頭の需要は回収できました. 多引数の持ち上げは, <code>lift2</code> / <code>lift3</code> を型ごとに手書きしなくても, 引数の数だけ <code>&lt;*&gt;</code> を並べる <code>g &lt;$&gt; x &lt;*&gt; y &lt;*&gt; z</code> の形でいつでも手に入ります.</p>
+<h2 id="applicative-則">Applicative 則</h2>
+<p><a href="fp8.html">第8章</a>の代数則・<a href="fp9.html">第9章</a>の関手則と同じく, この構造にも守るべき法則があります. <strong>Applicative 則</strong> は次の 4 つで, 「緩モノイド関手」の節の <strong>結合律・単位律 (と <span class="math inline">\mu</span> の自然性) をカリー化の言葉に翻訳したもの</strong> です.</p>
 <p><span class="math display">
 \begin{aligned}
 \text{恒等:} &amp;\quad \mathrm{pure}\ \mathrm{id} \mathbin{&lt;\!\!*\!\!&gt;} v = v \\
@@ -5495,105 +5538,109 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 <h3>Exercise CH10-1</h3>
 <p><strong><code>&lt;*&gt;</code> で 2 つの <code>Maybe</code> を掛け合わせる</strong></p>
 <p>2 つの <code>Maybe Int</code> を受け取り, 両方が <code>Just</code> なら中身の積を <code>Just</code> で返し, 一方でも <code>Nothing</code> なら <code>Nothing</code> を返す関数 <code>mulMaybe :: Maybe Int -&gt; Maybe Int -&gt; Maybe Int</code> を, <code>if</code> やパターンマッチを使わず <code>&lt;$&gt;</code> と <code>&lt;*&gt;</code> だけで実装してください.</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 実行例</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (mulMaybe (<span class="dt">Just</span> <span class="dv">6</span>) (<span class="dt">Just</span> <span class="dv">7</span>))       <span class="co">-- Just 42</span></span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (mulMaybe (<span class="dt">Just</span> <span class="dv">6</span>) <span class="dt">Nothing</span>)        <span class="co">-- Nothing</span></span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (mulMaybe <span class="dt">Nothing</span>  (<span class="dt">Just</span> <span class="dv">7</span>))       <span class="co">-- Nothing</span></span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 実行例</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (mulMaybe (<span class="dt">Just</span> <span class="dv">6</span>) (<span class="dt">Just</span> <span class="dv">7</span>))       <span class="co">-- Just 42</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (mulMaybe (<span class="dt">Just</span> <span class="dv">6</span>) <span class="dt">Nothing</span>)        <span class="co">-- Nothing</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (mulMaybe <span class="dt">Nothing</span>  (<span class="dt">Just</span> <span class="dv">7</span>))       <span class="co">-- Nothing</span></span></code></pre></div>
 <details class="protected" data-pass="yakagika">
 <summary>
 回答例
 </summary>
-<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ot">mulMaybe ::</span> <span class="dt">Maybe</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Int</span></span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>mulMaybe x y <span class="ot">=</span> (<span class="op">*</span>) <span class="op">&lt;$&gt;</span> x <span class="op">&lt;*&gt;</span> y</span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (mulMaybe (<span class="dt">Just</span> <span class="dv">6</span>) (<span class="dt">Just</span> <span class="dv">7</span>))   <span class="co">-- Just 42</span></span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (mulMaybe (<span class="dt">Just</span> <span class="dv">6</span>) <span class="dt">Nothing</span>)    <span class="co">-- Nothing</span></span>
-<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (mulMaybe <span class="dt">Nothing</span>  (<span class="dt">Just</span> <span class="dv">7</span>))   <span class="co">-- Nothing</span></span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="ot">mulMaybe ::</span> <span class="dt">Maybe</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Int</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>mulMaybe x y <span class="ot">=</span> (<span class="op">*</span>) <span class="op">&lt;$&gt;</span> x <span class="op">&lt;*&gt;</span> y</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (mulMaybe (<span class="dt">Just</span> <span class="dv">6</span>) (<span class="dt">Just</span> <span class="dv">7</span>))   <span class="co">-- Just 42</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (mulMaybe (<span class="dt">Just</span> <span class="dv">6</span>) <span class="dt">Nothing</span>)    <span class="co">-- Nothing</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (mulMaybe <span class="dt">Nothing</span>  (<span class="dt">Just</span> <span class="dv">7</span>))   <span class="co">-- Nothing</span></span></code></pre></div>
 <p><code>(*) &lt;$&gt; x</code> で <code>Maybe (Int -&gt; Int)</code> を作り, <code>&lt;*&gt; y</code> でそれを <code>y</code> に適用します. <code>x</code> か <code>y</code> が <code>Nothing</code> なら <code>&lt;*&gt;</code> が自動的に <code>Nothing</code> へ短絡するので, 場合分けを一切書かずに済みます. これが Applicative の「複数の関手値を組み合わせる」力です.</p>
 </details>
 </section>
 <h1 id="モナド-monad">モナド (Monad)</h1>
 <p>拡張の 1 つ目, <strong>パターン付き計算の複数化</strong> (独立な計算の組み合わせ) は Applicative で手に入りました. 本部で扱うのは 2 つ目, <strong>1 つの計算結果を引き継いで次の計算へ移る「結果に応じた」計算の連鎖</strong> です.</p>
-<p><code>fmap :: (a -&gt; b) -&gt; f a -&gt; f b</code> は <code>f a</code> の値 <code>a</code> に何かしらの計算 <code>a -&gt; b</code> を適用することで <code>f b</code> という結果を得ます.</p>
-<p>Haskell では <code>Functor f</code> は <code>Maybe a</code> や <code>[a]</code> などの多相データ型として表されますが, これは値 <code>a</code> に対して何かしらの <strong><code>Functor</code> 固有のパターンと, 値 <code>a</code> の計算結果</strong> を表現します.</p>
+<p><code>fmap :: (a -&gt; b) -&gt; m a -&gt; m b</code> は <code>m a</code> の値 <code>a</code> に何かしらの計算 <code>a -&gt; b</code> を適用することで <code>m b</code> という結果を得ます (ここからはモナドの文脈なので, 関手の型変数を <code>f</code> ではなく Monad の慣習どおり <code>m</code> と書きます).</p>
+<p>Haskell では <code>Functor m</code> は <code>Maybe a</code> や <code>[a]</code> などの多相データ型として表されますが, これは値 <code>a</code> に対して何かしらの <strong><code>Functor</code> 固有のパターンと, 値 <code>a</code> の計算結果</strong> を表現します.</p>
 <p><code>x :: Maybe a</code> の <code>a</code> に何かしらの計算 <code>a -&gt; b</code> を適用した <code>fmap f x</code> は <code>Just z</code> (計算成功パターンの結果 <code>z</code>) または <code>Nothing</code> (計算失敗パターン, 結果なし) のいずれかが, パターン + 結果の組み合わせとして返ってきます.</p>
 <p><code>y :: [a]</code> の <code>a</code> に何かしらの計算 <code>a -&gt; b</code> を適用した <code>fmap f y</code> は <code>[]</code> であったり, <code>[z]</code>, <code>z:zs</code> などのパターン別の結果が返ってきます.</p>
-<p>Functor における「データ構築子 (<code>Just :: a -&gt; Maybe a</code> など) を, 単なる値に何かしらのパターンを付与するもの」,「<code>fmap :: (a -&gt; b) -&gt; f a -&gt; f b</code> を, パターン付きの値に計算を適用しパターン付きで結果を返すもの」とみなすと, <code>Applicative</code> における <code>liftA2 :: (a -&gt; b -&gt; c) -&gt; f a -&gt; f b -&gt; f c</code> などは, 2 引数の場合でも計算を可能にするための拡張でした.</p>
-<p><code>fmap :: (a -&gt; b) -&gt; f a -&gt; f b</code> は, パターンのない世界における計算 <code>a -&gt; b</code> を引数に取り, パターンのある世界での計算 <code>f a -&gt; f b</code> に変換する関数であり, <code>fmap</code> を定めた時点で, パターン別にどのように計算を扱うかは決まっています.</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- Maybe: 標準ライブラリの定義 (読むための抜粋)</span></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Functor</span> <span class="dt">Maybe</span> <span class="kw">where</span></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">fmap</span> _ <span class="dt">Nothing</span>  <span class="ot">=</span> <span class="dt">Nothing</span></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">fmap</span> f (<span class="dt">Just</span> x) <span class="ot">=</span> <span class="dt">Just</span> (f x)</span></code></pre></div>
+<p>Functor における「データ構築子 (<code>Just :: a -&gt; Maybe a</code> など) を, 単なる値に何かしらのパターンを付与するもの」,「<code>fmap :: (a -&gt; b) -&gt; m a -&gt; m b</code> を, パターン付きの値に計算を適用しパターン付きで結果を返すもの」とみなすと, <code>Applicative</code> における <code>liftA2 :: (a -&gt; b -&gt; c) -&gt; m a -&gt; m b -&gt; m c</code> などは, 2 引数の場合でも計算を可能にするための拡張でした.</p>
+<p><code>fmap :: (a -&gt; b) -&gt; m a -&gt; m b</code> は, パターンのない世界における計算 <code>a -&gt; b</code> を引数に取り, パターンのある世界での計算 <code>m a -&gt; m b</code> に変換する関数であり, <code>fmap</code> を定めた時点で, パターン別にどのように計算を扱うかは決まっています.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- Maybe: 標準ライブラリの定義 (読むための抜粋)</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Functor</span> <span class="dt">Maybe</span> <span class="kw">where</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">fmap</span> _ <span class="dt">Nothing</span>  <span class="ot">=</span> <span class="dt">Nothing</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">fmap</span> f (<span class="dt">Just</span> x) <span class="ot">=</span> <span class="dt">Just</span> (f x)</span></code></pre></div>
 <p>このとき「<code>Nothing</code> の場合は次に何をやる」「<code>Just (f x)</code> の値に応じて何をやる」といった <strong>パターンや値別の分岐処理</strong> を, 利用側があとから指定することはできません.</p>
-<p>これは <code>liftA2 :: (a -&gt; b -&gt; c) -&gt; f a -&gt; f b -&gt; f c</code> でも同様で,</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- Maybe の場合の liftA2 (等価形)</span></span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="ot">liftA2 ::</span> (a <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> c) <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a <span class="ot">-&gt;</span> <span class="dt">Maybe</span> b <span class="ot">-&gt;</span> <span class="dt">Maybe</span> c</span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>liftA2 f (<span class="dt">Just</span> x) (<span class="dt">Just</span> y) <span class="ot">=</span> <span class="dt">Just</span> (f x y)</span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>liftA2 _ _        _        <span class="ot">=</span> <span class="dt">Nothing</span></span></code></pre></div>
+<p>これは <code>liftA2 :: (a -&gt; b -&gt; c) -&gt; m a -&gt; m b -&gt; m c</code> でも同様で,</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- Maybe の場合の liftA2 (等価形)</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="ot">liftA2 ::</span> (a <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> c) <span class="ot">-&gt;</span> <span class="dt">Maybe</span> a <span class="ot">-&gt;</span> <span class="dt">Maybe</span> b <span class="ot">-&gt;</span> <span class="dt">Maybe</span> c</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>liftA2 f (<span class="dt">Just</span> x) (<span class="dt">Just</span> y) <span class="ot">=</span> <span class="dt">Just</span> (f x y)</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>liftA2 _ _        _        <span class="ot">=</span> <span class="dt">Nothing</span></span></code></pre></div>
 <p>2 引数関数の挙動も, <code>liftA2</code> を定めた時点で決まっています.</p>
 <p>「<code>safeDiv 100 x</code> が成功したら, <strong>その商で</strong> さらに次の割り算をする」のように, 次の計算を前の結果の値から <strong>作る</strong> ことは, <code>&lt;*&gt;</code> の形にはめられません.</p>
 <p>ここで欲しい関数は,</p>
 <ul>
-<li>前のパターン付き計算結果(<code>f a</code>)を受け取って,</li>
-<li>その結果に応じてまたパターン付きの結果を返す関数<code>(a -&gt; f b)</code>を適用する</li>
+<li>前のパターン付き計算結果 (<code>m a</code>) を受け取って,</li>
+<li>その結果に応じてまたパターン付きの結果を返す関数 (<code>a -&gt; m b</code>) を適用する</li>
 </ul>
-<p>ような関数 <code>(&gt;&gt;=) :: f a -&gt; (a -&gt; f b) -&gt; f b</code> です.</p>
-<p>中置演算子として使うと</p>
-<p><code>f a &gt;&gt;= g</code>となり, パターン付きの計算結果<code>f a</code>からパターンに応じて結果と, 結果に適用する関数 (<code>g:: a -&gt; f b</code>)をつなげる(<code>bind</code>する)関数となります.</p>
+<p>ような関数 <code>(&gt;&gt;=) :: m a -&gt; (a -&gt; m b) -&gt; m b</code> です.</p>
+<p>中置演算子として使うと <code>mx &gt;&gt;= f</code> (前の計算結果を <code>mx :: m a</code>, つなげる関数を <code>f :: a -&gt; m b</code> と書きます) となり, パターン付きの計算結果 <code>mx</code> に, パターンに応じて次の計算 <code>f</code> をつなげる (<code>bind</code> する) 演算子となります.</p>
+<p>このような関数 <code>(&gt;&gt;=)</code> を構成するのに, 足りない部品は何でしょうか?</p>
+<p>手元にある適用の道具は <code>fmap</code> だけです. <code>fmap :: (a -&gt; b) -&gt; m a -&gt; m b</code> に <code>f :: a -&gt; m b</code> を渡すと (<code>fmap</code> の型の <code>b</code> に <code>m b</code> を当てはめる形になり), <code>fmap f :: m a -&gt; m (m b)</code> となります. したがって前の計算結果 <code>mx :: m a</code> に適用した <code>fmap f mx</code> の型は <code>m (m b)</code> です. 外側の <code>m</code> は前の計算 <code>mx</code> が持っていたパターン, 内側の <code>m</code> は <code>f</code> が新しく作ったパターンで, <code>fmap</code> はパターンに触らず中身だけを変換するため, <code>f</code> の返すパターンが入れ子のまま残ります.</p>
+<p>欲しかったのは <code>mx &gt;&gt;= f :: m b</code> でした. <code>fmap f mx :: m (m b)</code> と見比べると, 足りないのは <strong>二重になったパターンをひと重に潰す関数</strong> だけです. もし <code>join :: m (m b) -&gt; m b</code> があれば,</p>
+<p><code>mx &gt;&gt;= f = join (fmap f mx)</code></p>
+<p>という定義が書けます. 事実, モナドとはまさに, この <code>join :: m (m b) -&gt; m b</code> という自然変換を (素の値を持ち上げる <code>pure</code> とともに) 法則つきで備えた関手にほかなりません.</p>
 <h2 id="結果に応じた計算">結果に応じた計算</h2>
 <p>具体的に <code>safeDiv 100 x</code> の結果が <code>Just 20</code> か <code>Nothing</code> かによって, その先の計算にどのようにつなげるかを指定した関数を考えてみましょう.
 次のプログラムは「前の結果が <code>Just</code> のときだけ, 中身を次の計算へつなげる」関数(<code>bind</code>)を実装しています.</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ot">safeDiv ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Int</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>safeDiv _ <span class="dv">0</span> <span class="ot">=</span> <span class="dt">Nothing</span></span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>safeDiv x y <span class="ot">=</span> <span class="dt">Just</span> (x <span class="ot">`div`</span> y)</span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co">-- 前の結果が Just のときだけ, 中身を次の計算へつなげる</span></span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="ot">bind ::</span> <span class="dt">Maybe</span> a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> <span class="dt">Maybe</span> b) <span class="ot">-&gt;</span> <span class="dt">Maybe</span> b</span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>bind <span class="dt">Nothing</span>  _ <span class="ot">=</span> <span class="dt">Nothing</span> <span class="co">-- 次の計算を実施せず終了</span></span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>bind (<span class="dt">Just</span> x) f <span class="ot">=</span> f x     <span class="co">-- 前の計算結果を次の計算に渡す</span></span>
-<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="ot">calc ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Int</span></span>
-<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>calc x <span class="ot">=</span> safeDiv <span class="dv">100</span> x <span class="ot">`bind`</span> \r <span class="ot">-&gt;</span> safeDiv r <span class="dv">2</span></span>
-<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (calc <span class="dv">5</span>)   <span class="co">-- Just 10   (100/5 = 20, 20/2 = 10)</span></span>
-<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (calc <span class="dv">0</span>)   <span class="co">-- Nothing   (最初の割り算で失敗 → 連鎖が止まる)</span></span></code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="ot">safeDiv ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Int</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>safeDiv _ <span class="dv">0</span> <span class="ot">=</span> <span class="dt">Nothing</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>safeDiv x y <span class="ot">=</span> <span class="dt">Just</span> (x <span class="ot">`div`</span> y)</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="co">-- 前の結果が Just のときだけ, 中身を次の計算へつなげる</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="ot">bind ::</span> <span class="dt">Maybe</span> a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> <span class="dt">Maybe</span> b) <span class="ot">-&gt;</span> <span class="dt">Maybe</span> b</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>bind <span class="dt">Nothing</span>  _ <span class="ot">=</span> <span class="dt">Nothing</span> <span class="co">-- 次の計算を実施せず終了</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>bind (<span class="dt">Just</span> x) f <span class="ot">=</span> f x     <span class="co">-- 前の計算結果を次の計算に渡す</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a><span class="ot">calc ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Int</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>calc x <span class="ot">=</span> safeDiv <span class="dv">100</span> x <span class="ot">`bind`</span> \r <span class="ot">-&gt;</span> safeDiv r <span class="dv">2</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (calc <span class="dv">5</span>)   <span class="co">-- Just 10   (100/5 = 20, 20/2 = 10)</span></span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (calc <span class="dv">0</span>)   <span class="co">-- Nothing   (最初の割り算で失敗 → 連鎖が止まる)</span></span></code></pre></div>
 <p><code>safeDiv 100 x `bind` \r -&gt; safeDiv r 2</code> を追います. <code>safeDiv 100 x</code> が <code>Just 20</code> なら, <code>bind</code> が中身 <code>20</code> を <code>\r -&gt; safeDiv r 2</code> に渡し, <code>safeDiv 20 2 = Just 10</code> を得ます. もし <code>Nothing</code> なら, <code>bind</code> は <strong>後ろの関数を呼ばずに <code>Nothing</code> を素通し</strong> します. これが「パターンと結果に応じた計算」で, <code>bind</code> でつなげる関数を変えることで, 値に応じた様々な計算を実現できます.</p>
 <p>実際に, つなげる関数を取り替えたり, 連鎖を伸ばしたりしてみます. 部品を 2 つ足します.</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 部品 1: 偶数なら半分にし, 奇数なら失敗する</span></span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="ot">halve ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Int</span></span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>halve n <span class="ot">=</span> <span class="kw">if</span> <span class="fu">even</span> n <span class="kw">then</span> <span class="dt">Just</span> (n <span class="ot">`div`</span> <span class="dv">2</span>) <span class="kw">else</span> <span class="dt">Nothing</span></span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="co">-- 部品 2: 非負ならそのまま通し, 負なら失敗する</span></span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="ot">assertNonNeg ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Int</span></span>
-<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>assertNonNeg n <span class="ot">=</span> <span class="kw">if</span> n <span class="op">&gt;=</span> <span class="dv">0</span> <span class="kw">then</span> <span class="dt">Just</span> n <span class="kw">else</span> <span class="dt">Nothing</span></span>
-<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- 同じ 1 段目でも, つなげる関数しだいで分岐が変わる</span></span>
-<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (safeDiv <span class="dv">100</span> <span class="dv">4</span> <span class="ot">`bind`</span> assertNonNeg)  <span class="co">-- Just 25</span></span>
-<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (safeDiv <span class="dv">100</span> <span class="dv">4</span> <span class="ot">`bind`</span> halve)         <span class="co">-- Nothing  (25 は奇数)</span></span>
-<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (safeDiv <span class="dv">100</span> <span class="dv">5</span> <span class="ot">`bind`</span> halve)         <span class="co">-- Just 10  (20 は偶数)</span></span></code></pre></div>
+<div class="sourceCode" id="cb16"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 部品 1: 偶数なら半分にし, 奇数なら失敗する</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="ot">halve ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Int</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>halve n <span class="ot">=</span> <span class="kw">if</span> <span class="fu">even</span> n <span class="kw">then</span> <span class="dt">Just</span> (n <span class="ot">`div`</span> <span class="dv">2</span>) <span class="kw">else</span> <span class="dt">Nothing</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="co">-- 部品 2: 非負ならそのまま通し, 負なら失敗する</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="ot">assertNonNeg ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Int</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>assertNonNeg n <span class="ot">=</span> <span class="kw">if</span> n <span class="op">&gt;=</span> <span class="dv">0</span> <span class="kw">then</span> <span class="dt">Just</span> n <span class="kw">else</span> <span class="dt">Nothing</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- 同じ 1 段目でも, つなげる関数しだいで分岐が変わる</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (safeDiv <span class="dv">100</span> <span class="dv">4</span> <span class="ot">`bind`</span> assertNonNeg)  <span class="co">-- Just 25</span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (safeDiv <span class="dv">100</span> <span class="dv">4</span> <span class="ot">`bind`</span> halve)         <span class="co">-- Nothing  (25 は奇数)</span></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (safeDiv <span class="dv">100</span> <span class="dv">5</span> <span class="ot">`bind`</span> halve)         <span class="co">-- Just 10  (20 は偶数)</span></span></code></pre></div>
 <p>1 段目の <code>safeDiv 100 4</code> はどれも <code>Just 25</code> を返しますが, その先は <code>assertNonNeg</code> なら通り, <code>halve</code> なら失敗します. <strong>次にどう分岐するかは, つなげる関数 <code>a -&gt; Maybe b</code> が丸ごと持っています</strong>. <code>bind</code> はどの関数が来ても, パターンに応じて「中身を渡すか, 止めるか」を判断するだけです.</p>
 <p>連鎖は何段でも伸ばせます. しかも後ろの段は, それまでに束縛した <strong>すべての結果</strong> を使えます.</p>
-<div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 3 段の連鎖: 割ってから, 半分にして, 両方の結果を足す</span></span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="co">-- (safeDiv, bind, halve は上の定義をそのまま使う)</span></span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="ot">calc3 ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Int</span></span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>calc3 x y <span class="ot">=</span></span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>  safeDiv x y <span class="ot">`bind`</span> \r <span class="ot">-&gt;</span></span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>  halve r     <span class="ot">`bind`</span> \s <span class="ot">-&gt;</span></span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Just</span> (r <span class="op">+</span> s)</span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (calc3 <span class="dv">100</span> <span class="dv">5</span>)   <span class="co">-- Just 30   (r = 20, s = 10)</span></span>
-<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (calc3 <span class="dv">100</span> <span class="dv">4</span>)   <span class="co">-- Nothing   (r = 25 が奇数で halve が失敗)</span></span>
-<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (calc3 <span class="dv">100</span> <span class="dv">0</span>)   <span class="co">-- Nothing   (最初の割り算で失敗)</span></span></code></pre></div>
+<div class="sourceCode" id="cb17"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 3 段の連鎖: 割ってから, 半分にして, 両方の結果を足す</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="co">-- (safeDiv, bind, halve は上の定義をそのまま使う)</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="ot">calc3 ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Int</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>calc3 x y <span class="ot">=</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>  safeDiv x y <span class="ot">`bind`</span> \r <span class="ot">-&gt;</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>  halve r     <span class="ot">`bind`</span> \s <span class="ot">-&gt;</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Just</span> (r <span class="op">+</span> s)</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (calc3 <span class="dv">100</span> <span class="dv">5</span>)   <span class="co">-- Just 30   (r = 20, s = 10)</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (calc3 <span class="dv">100</span> <span class="dv">4</span>)   <span class="co">-- Nothing   (r = 25 が奇数で halve が失敗)</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (calc3 <span class="dv">100</span> <span class="dv">0</span>)   <span class="co">-- Nothing   (最初の割り算で失敗)</span></span></code></pre></div>
 <p>最後の段 <code>\s -&gt; Just (r + s)</code> の中から, 1 段目の結果 <code>r</code> も見えていることに注目してください. ラムダが入れ子になっているので, 内側の段ほど使える名前が増えます. その代わり, 連鎖が深くなるほど <code>\r -&gt;</code>, <code>\s -&gt;</code>, … の入れ子が積み重なり, 読みにくくなっていきます.</p>
 <p>この <code>bind</code> を備えた構造は, 数学的には <strong>モナド (monad)</strong> と呼ばれています. モナドは Applicative と同じく <strong>関手 + 自然変換 2 本</strong> からなります.</p>
 <p><code>class Functor f =&gt; Applicative f</code>, <code>class Applicative m =&gt; Monad m</code>. モナドは Applicative の <strong>拡張</strong> であり, <code>pure</code> は共有されます (のちに出てくる <code>return</code> はその別名です). できることの広がりは Functor ⊂ Applicative ⊂ Monad の一直線です. 数学の側も同じで, このあと取り出すモナドの正体 <span class="math inline">(T, \eta, \mu)</span> からは, 緩モノイド関手の単位 <span class="math inline">\varepsilon</span> と乗法 <span class="math inline">\mu</span> が導けます. 従って, どんな Monad からも <code>&lt;*&gt;</code> は導けます: <code>mf &lt;*&gt; mx = mf &gt;&gt;= \f -&gt; mx &gt;&gt;= \x -&gt; pure (f x)</code> (標準ライブラリの <code>ap</code>). <strong>連鎖が書ければ, 組み合わせは自動で付いてきます</strong>.</p>
@@ -5703,14 +5750,14 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 <text x="280" y="563" font-size="9.5" opacity="0.7">箱は 3 つとも同じ Hask の部分圏. T の矢印は Hask→Hask の T の制限 (行き先は本当はどれも外枠全体)</text>
 </g>
 </svg>
-<div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Control.Monad</span> (join)</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (join (<span class="dt">Just</span> (<span class="dt">Just</span> <span class="dv">3</span>)))                      <span class="co">-- Just 3   (μ: m (m a) -&gt; m a)</span></span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (join (<span class="dt">Just</span> <span class="dt">Nothing</span><span class="ot"> ::</span> <span class="dt">Maybe</span> (<span class="dt">Maybe</span> <span class="dt">Int</span>)))  <span class="co">-- Nothing</span></span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (join (<span class="dt">Nothing</span><span class="ot"> ::</span> <span class="dt">Maybe</span> (<span class="dt">Maybe</span> <span class="dt">Int</span>)))       <span class="co">-- Nothing</span></span>
-<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (join [[<span class="dv">1</span>, <span class="dv">2</span>], [<span class="dv">3</span><span class="ot"> ::</span> <span class="dt">Int</span>]])                 <span class="co">-- [1,2,3]  (リストの join は concat)</span></span></code></pre></div>
+<div class="sourceCode" id="cb18"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Control.Monad</span> (join)</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (join (<span class="dt">Just</span> (<span class="dt">Just</span> <span class="dv">3</span>)))                      <span class="co">-- Just 3   (μ: m (m a) -&gt; m a)</span></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (join (<span class="dt">Just</span> <span class="dt">Nothing</span><span class="ot"> ::</span> <span class="dt">Maybe</span> (<span class="dt">Maybe</span> <span class="dt">Int</span>)))  <span class="co">-- Nothing</span></span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (join (<span class="dt">Nothing</span><span class="ot"> ::</span> <span class="dt">Maybe</span> (<span class="dt">Maybe</span> <span class="dt">Int</span>)))       <span class="co">-- Nothing</span></span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (join [[<span class="dv">1</span>, <span class="dv">2</span>], [<span class="dv">3</span><span class="ot"> ::</span> <span class="dt">Int</span>]])                 <span class="co">-- [1,2,3]  (リストの join は concat)</span></span></code></pre></div>
 <p><span class="math inline">\eta</span> (<code>pure</code>) と <span class="math inline">\mu</span> (<code>join</code>) さえあれば, 手作りの <code>bind</code> は導けます. 「<code>m a</code> に <code>f :: a -&gt; m b</code> を施す」とは, まず <code>fmap f</code> で <code>m (m b)</code> を作り, <code>join</code> でひと重に潰すことだからです.</p>
 <p><span class="math display">\texttt{bind}\ m\ f \;=\; \underbrace{\texttt{join}}_{\mu}\ (\texttt{fmap}\ f\ m), \qquad \texttt{join}\ m \;=\; \texttt{bind}\ m\ \texttt{id}</span></p>
 <h2 id="モナドは自己関手の圏におけるモノイド対象">モナドは自己関手の圏におけるモノイド対象</h2>
@@ -5975,34 +6022,34 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 </div>
 <h2 id="型クラス-monad">型クラス Monad</h2>
 <p>Haskell は, いま取り出した構造 <span class="math inline">(T, \eta, \mu)</span> を <strong>Monad</strong> クラスとして型クラス化しています. ただし, 利用するのは <span class="math inline">\mu</span> を変換した <code>&gt;&gt;= (bind)</code>です.</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> <span class="dt">Applicative</span> m <span class="ot">=&gt;</span> <span class="dt">Monad</span> m <span class="kw">where</span></span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="ot">  return ::</span> a <span class="ot">-&gt;</span> m a</span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="ot">  (&gt;&gt;=)  ::</span> m a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> m b) <span class="ot">-&gt;</span> m b</span></code></pre></div>
+<div class="sourceCode" id="cb19"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> <span class="dt">Applicative</span> m <span class="ot">=&gt;</span> <span class="dt">Monad</span> m <span class="kw">where</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="ot">  return ::</span> a <span class="ot">-&gt;</span> m a</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="ot">  (&gt;&gt;=)  ::</span> m a <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> m b) <span class="ot">-&gt;</span> m b</span></code></pre></div>
 <ul>
 <li><code>return</code> は <code>pure</code> と同じです (<code>return = pure</code>. 歴史的経緯で別名が残っています). つまり <span class="math inline">\eta</span> <strong>そのもの</strong> で, こちらは無変換です.</li>
 <li><code>(&gt;&gt;=)</code> (bind) が主役です. ただしこれは乗法 <span class="math inline">\mu</span> <strong>そのものではなく</strong>, その <strong>Kleisli 化した利用形</strong> <span class="math inline">\mu \circ T(-)</span> です. Haskell で書けば <code>m &gt;&gt;= f = join (fmap f m)</code>, つまり <strong>手作りした <code>bind</code> の一般形</strong> です. 分業に注意してください: 依存を注入するのは <code>fmap f</code> (中身 <code>a</code> を次の計算に渡して <code>m (m b)</code> を作る) で, <span class="math inline">\mu</span> (<code>join</code>) は入れ子を潰すだけです.</li>
 </ul>
 <p><code>Maybe</code> と<code>[]</code>のインスタンス宣言で, <code>&gt;&gt;=</code> の中身も確かめておきます (標準ライブラリで定義済みなので, 読むための抜粋です).</p>
-<div class="sourceCode" id="cb16"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- Maybe: 標準ライブラリの定義そのまま (return は既定で pure)</span></span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Monad</span> <span class="dt">Maybe</span> <span class="kw">where</span></span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Nothing</span> <span class="op">&gt;&gt;=</span> _ <span class="ot">=</span> <span class="dt">Nothing</span>        <span class="co">-- 失敗は素通し</span></span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Just</span> x  <span class="op">&gt;&gt;=</span> f <span class="ot">=</span> f x            <span class="co">-- 中身を次の計算へ渡す</span></span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="co">-- リスト: 内包表記に開いた等価な形</span></span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Monad</span> [] <span class="kw">where</span></span>
-<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>  xs <span class="op">&gt;&gt;=</span> f <span class="ot">=</span> [ y <span class="op">|</span> x <span class="ot">&lt;-</span> xs, y <span class="ot">&lt;-</span> f x ]   <span class="co">-- 各要素に f を試して, 全部つなぐ</span></span></code></pre></div>
+<div class="sourceCode" id="cb20"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- Maybe: 標準ライブラリの定義そのまま (return は既定で pure)</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Monad</span> <span class="dt">Maybe</span> <span class="kw">where</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Nothing</span> <span class="op">&gt;&gt;=</span> _ <span class="ot">=</span> <span class="dt">Nothing</span>        <span class="co">-- 失敗は素通し</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Just</span> x  <span class="op">&gt;&gt;=</span> f <span class="ot">=</span> f x            <span class="co">-- 中身を次の計算へ渡す</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="co">-- リスト: 内包表記に開いた等価な形</span></span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Monad</span> [] <span class="kw">where</span></span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>  xs <span class="op">&gt;&gt;=</span> f <span class="ot">=</span> [ y <span class="op">|</span> x <span class="ot">&lt;-</span> xs, y <span class="ot">&lt;-</span> f x ]   <span class="co">-- 各要素に f を試して, 全部つなぐ</span></span></code></pre></div>
 <p><code>Maybe</code> の <code>&gt;&gt;=</code> は, 手作りした <code>bind</code> と <strong>同じ場合分けそのもの</strong> です (中置記法になっただけ). リストの <code>&gt;&gt;=</code> は「各要素 <code>x</code> に次の計算 <code>f</code> を試し, 出てきたリストを全部つなぐ」で, <code>concat (map f xs)</code>, すなわち <code>join</code> と <code>fmap</code> の組 (<span class="math inline">\mu \circ T\,f</span>) の形がそのまま見えています. 先ほどの <code>calc</code> は, <code>bind</code> を <code>&gt;&gt;=</code> に置き換えるだけでそのまま動きます.</p>
-<div class="sourceCode" id="cb17"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="ot">safeDiv ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Int</span></span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>safeDiv _ <span class="dv">0</span> <span class="ot">=</span> <span class="dt">Nothing</span></span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>safeDiv x y <span class="ot">=</span> <span class="dt">Just</span> (x <span class="ot">`div`</span> y)</span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="ot">calc ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Int</span></span>
-<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>calc x <span class="ot">=</span> safeDiv <span class="dv">100</span> x <span class="op">&gt;&gt;=</span> \r <span class="ot">-&gt;</span> safeDiv r <span class="dv">2</span></span>
-<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (calc <span class="dv">5</span>)   <span class="co">-- Just 10   (100/5 = 20, 20/2 = 10)</span></span>
-<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (calc <span class="dv">0</span>)   <span class="co">-- Nothing   (最初の割り算で失敗 → 連鎖が止まる)</span></span></code></pre></div>
+<div class="sourceCode" id="cb21"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="ot">safeDiv ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Int</span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a>safeDiv _ <span class="dv">0</span> <span class="ot">=</span> <span class="dt">Nothing</span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>safeDiv x y <span class="ot">=</span> <span class="dt">Just</span> (x <span class="ot">`div`</span> y)</span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a><span class="ot">calc ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Int</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>calc x <span class="ot">=</span> safeDiv <span class="dv">100</span> x <span class="op">&gt;&gt;=</span> \r <span class="ot">-&gt;</span> safeDiv r <span class="dv">2</span></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (calc <span class="dv">5</span>)   <span class="co">-- Just 10   (100/5 = 20, 20/2 = 10)</span></span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (calc <span class="dv">0</span>)   <span class="co">-- Nothing   (最初の割り算で失敗 → 連鎖が止まる)</span></span></code></pre></div>
 <p>なお, 前の結果の値を使わずただ順に繋ぎたいときのために <code>(&gt;&gt;)</code> があり, <code>m &gt;&gt; k = m &gt;&gt;= \_ -&gt; k</code> と定義されます.</p>
 <p>これで 2 つのクラスが出揃いました. どちらも, 数学の組の <strong>直接の対応物そのものではなく, 利用上の変換を 1 枚挟んだ利用形</strong> です. 章冒頭の地図を, ここで回収できます.</p>
 <table>
@@ -6039,11 +6086,11 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 <p>数学とクラスを行き来するときは, この変換を 1 枚剥がすと対応が見えます.</p>
 <h2 id="kleisli-圏">Kleisli 圏</h2>
 <p><span class="math inline">\eta</span>・<span class="math inline">\mu</span> による定義と <strong>等価</strong> な, もう一つの見方があります. 返り値が <code>m b</code> 型になる関数 <code>a -&gt; m b</code> を <strong>Kleisli 射 (Kleisli arrow)</strong> といいます. 通常の関数 <code>a -&gt; b</code> は <a href="fp9.html">第9章</a> の圏 Hask の射でしたが, Kleisli 射は返り値が <code>m b</code> なので, そのままでは <code>(.)</code> で繋げません. そこで <strong>Kleisli 合成</strong> <code>(&gt;=&gt;)</code> (<code>Control.Monad</code>) を使います.</p>
-<div class="sourceCode" id="cb18"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="ot">(&gt;=&gt;) ::</span> <span class="dt">Monad</span> m <span class="ot">=&gt;</span> (a <span class="ot">-&gt;</span> m b) <span class="ot">-&gt;</span> (b <span class="ot">-&gt;</span> m c) <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> m c</span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>f <span class="op">&gt;=&gt;</span> g <span class="ot">=</span> \x <span class="ot">-&gt;</span> f x <span class="op">&gt;&gt;=</span> g</span></code></pre></div>
+<div class="sourceCode" id="cb22"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="ot">(&gt;=&gt;) ::</span> <span class="dt">Monad</span> m <span class="ot">=&gt;</span> (a <span class="ot">-&gt;</span> m b) <span class="ot">-&gt;</span> (b <span class="ot">-&gt;</span> m c) <span class="ot">-&gt;</span> a <span class="ot">-&gt;</span> m c</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>f <span class="op">&gt;=&gt;</span> g <span class="ot">=</span> \x <span class="ot">-&gt;</span> f x <span class="op">&gt;&gt;=</span> g</span></code></pre></div>
 <p><code>safeDiv 100 :: Int -&gt; Maybe Int</code> も <code>\r -&gt; safeDiv r 2</code> も Kleisli 射なので, <code>&gt;=&gt;</code> で合成できて先ほどの <code>calc</code> と同じものになります.</p>
-<div class="sourceCode" id="cb19"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="ot">calc&#39; ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Int</span></span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>calc&#39; <span class="ot">=</span> safeDiv <span class="dv">100</span> <span class="op">&gt;=&gt;</span> \r <span class="ot">-&gt;</span> safeDiv r <span class="dv">2</span>   <span class="co">-- calc とまったく同じ</span></span></code></pre></div>
+<div class="sourceCode" id="cb23"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="ot">calc&#39; ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Int</span></span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>calc&#39; <span class="ot">=</span> safeDiv <span class="dv">100</span> <span class="op">&gt;=&gt;</span> \r <span class="ot">-&gt;</span> safeDiv r <span class="dv">2</span>   <span class="co">-- calc とまったく同じ</span></span></code></pre></div>
 <p>Kleisli 射を <strong>射</strong>, <code>&gt;=&gt;</code> を <strong>合成</strong>, <code>return</code> を <strong>恒等射</strong> とみると, これらは <a href="fp9.html">第9章</a> で定義した <strong>圏の公理</strong> (結合律 + 恒等律) をちょうど満たします. こうしてできる圏を <strong>Kleisli 圏</strong> といい, モナドとは「圏 Hask の上に Kleisli 圏を載せられる構造」とも言えます. 「<span class="math inline">&gt;=&gt;</span> が結合的で <code>return</code> が恒等射」という Kleisli 圏の公理は, 後述の <strong>モナド則</strong> そのものです.</p>
 <svg viewBox="0 0 220 246" width="100%" style="max-width: 230px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Kleisli 圏の図. 点は型 A, B, C. 射は返り値が m に包まれた関数 (f : A から m B, g : B から m C, その合成 f &gt;=&gt; g : A から m C). 合成が &gt;=&gt;, 恒等射が return で, 圏の公理 (結合律と恒等律) はモナド則にあたる.">
 <defs>
@@ -6102,19 +6149,19 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 </div>
 <h2 id="do-記法">do 記法</h2>
 <p>「結果に応じた計算」の <code>calc3</code> で見たとおり, <code>&gt;&gt;=</code> とラムダを重ねると, 連鎖が長くなるほど入れ子が深くなって読みにくくなります. Haskell は同じことを <strong><code>do</code> 記法</strong> で書けます. <code>do</code> は <code>&gt;&gt;=</code> / <code>&gt;&gt;</code> への <strong>糖衣構文 (syntactic sugar)</strong> にすぎず, コンパイラが機械的に脱糖 (desugar) します.</p>
-<div class="sourceCode" id="cb20"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- do 記法で書いた calc3 (safeDiv, halve は「結果に応じた計算」の定義)</span></span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="ot">calc3 ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Int</span></span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>calc3 x y <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  r <span class="ot">&lt;-</span> safeDiv x y       <span class="co">-- x &lt;- e : e の結果を x に束縛</span></span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>  s <span class="ot">&lt;-</span> halve r           <span class="co">-- 前の束縛 r は, ここから先でずっと使える</span></span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pure</span> (r <span class="op">+</span> s)           <span class="co">-- 純粋な値は pure で包む. ブロック最後の式が全体の値</span></span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a><span class="co">-- 上は次の &gt;&gt;= 版とまったく同じ (機械的にこう脱糖される)</span></span>
-<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a><span class="ot">calc3&#39; ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Int</span></span>
-<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a>calc3&#39; x y <span class="ot">=</span></span>
-<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>  safeDiv x y <span class="op">&gt;&gt;=</span> \r <span class="ot">-&gt;</span></span>
-<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>  halve r     <span class="op">&gt;&gt;=</span> \s <span class="ot">-&gt;</span></span>
-<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pure</span> (r <span class="op">+</span> s)</span></code></pre></div>
+<div class="sourceCode" id="cb24"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- do 記法で書いた calc3 (safeDiv, halve は「結果に応じた計算」の定義)</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="ot">calc3 ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Int</span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>calc3 x y <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>  r <span class="ot">&lt;-</span> safeDiv x y       <span class="co">-- x &lt;- e : e の結果を x に束縛</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>  s <span class="ot">&lt;-</span> halve r           <span class="co">-- 前の束縛 r は, ここから先でずっと使える</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pure</span> (r <span class="op">+</span> s)           <span class="co">-- 純粋な値は pure で包む. ブロック最後の式が全体の値</span></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a><span class="co">-- 上は次の &gt;&gt;= 版とまったく同じ (機械的にこう脱糖される)</span></span>
+<span id="cb24-9"><a href="#cb24-9" aria-hidden="true" tabindex="-1"></a><span class="ot">calc3&#39; ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Int</span></span>
+<span id="cb24-10"><a href="#cb24-10" aria-hidden="true" tabindex="-1"></a>calc3&#39; x y <span class="ot">=</span></span>
+<span id="cb24-11"><a href="#cb24-11" aria-hidden="true" tabindex="-1"></a>  safeDiv x y <span class="op">&gt;&gt;=</span> \r <span class="ot">-&gt;</span></span>
+<span id="cb24-12"><a href="#cb24-12" aria-hidden="true" tabindex="-1"></a>  halve r     <span class="op">&gt;&gt;=</span> \s <span class="ot">-&gt;</span></span>
+<span id="cb24-13"><a href="#cb24-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pure</span> (r <span class="op">+</span> s)</span></code></pre></div>
 <p>脱糖規則は 3 つだけです.</p>
 <ul>
 <li><code>do { x &lt;- e; rest }</code> → <code>e &gt;&gt;= \x -&gt; do { rest }</code> (結果を <code>x</code> に束縛して続ける)</li>
@@ -6126,172 +6173,172 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 <h3>Exercise CH10-2</h3>
 <p><strong><code>do</code> 記法で連想リストを 2 回引く</strong></p>
 <p>キーと値の連想リスト <code>[(String, Int)]</code> を受け取り, キー <code>"x"</code> と <code>"y"</code> の値を <code>lookup</code> (返り値は <code>Maybe</code>) で引いて, 両方あれば和を <code>Just</code> で, 片方でも無ければ <code>Nothing</code> を返す関数 <code>addLookup :: [(String, Int)] -&gt; Maybe Int</code> を, <code>do</code> 記法で実装してください.</p>
-<div class="sourceCode" id="cb21"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 実行例</span></span>
-<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (addLookup [(<span class="st">&quot;x&quot;</span>, <span class="dv">3</span>), (<span class="st">&quot;y&quot;</span>, <span class="dv">4</span>)])   <span class="co">-- Just 7</span></span>
-<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (addLookup [(<span class="st">&quot;x&quot;</span>, <span class="dv">3</span>)])             <span class="co">-- Nothing</span></span>
-<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (addLookup [(<span class="st">&quot;y&quot;</span>, <span class="dv">4</span>)])             <span class="co">-- Nothing</span></span></code></pre></div>
+<div class="sourceCode" id="cb25"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 実行例</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (addLookup [(<span class="st">&quot;x&quot;</span>, <span class="dv">3</span>), (<span class="st">&quot;y&quot;</span>, <span class="dv">4</span>)])   <span class="co">-- Just 7</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (addLookup [(<span class="st">&quot;x&quot;</span>, <span class="dv">3</span>)])             <span class="co">-- Nothing</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (addLookup [(<span class="st">&quot;y&quot;</span>, <span class="dv">4</span>)])             <span class="co">-- Nothing</span></span></code></pre></div>
 <details class="protected" data-pass="yakagika">
 <summary>
 回答例
 </summary>
-<div class="sourceCode" id="cb22"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="ot">addLookup ::</span> [(<span class="dt">String</span>, <span class="dt">Int</span>)] <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Int</span></span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>addLookup env <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>  x <span class="ot">&lt;-</span> <span class="fu">lookup</span> <span class="st">&quot;x&quot;</span> env</span>
-<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a>  y <span class="ot">&lt;-</span> <span class="fu">lookup</span> <span class="st">&quot;y&quot;</span> env</span>
-<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span> (x <span class="op">+</span> y)</span>
-<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (addLookup [(<span class="st">&quot;x&quot;</span>, <span class="dv">3</span>), (<span class="st">&quot;y&quot;</span>, <span class="dv">4</span>)])   <span class="co">-- Just 7</span></span>
-<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (addLookup [(<span class="st">&quot;x&quot;</span>, <span class="dv">3</span>)])             <span class="co">-- Nothing</span></span>
-<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (addLookup [(<span class="st">&quot;y&quot;</span>, <span class="dv">4</span>)])             <span class="co">-- Nothing</span></span></code></pre></div>
+<div class="sourceCode" id="cb26"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="ot">addLookup ::</span> [(<span class="dt">String</span>, <span class="dt">Int</span>)] <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Int</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>addLookup env <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>  x <span class="ot">&lt;-</span> <span class="fu">lookup</span> <span class="st">&quot;x&quot;</span> env</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>  y <span class="ot">&lt;-</span> <span class="fu">lookup</span> <span class="st">&quot;y&quot;</span> env</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">return</span> (x <span class="op">+</span> y)</span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (addLookup [(<span class="st">&quot;x&quot;</span>, <span class="dv">3</span>), (<span class="st">&quot;y&quot;</span>, <span class="dv">4</span>)])   <span class="co">-- Just 7</span></span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (addLookup [(<span class="st">&quot;x&quot;</span>, <span class="dv">3</span>)])             <span class="co">-- Nothing</span></span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (addLookup [(<span class="st">&quot;y&quot;</span>, <span class="dv">4</span>)])             <span class="co">-- Nothing</span></span></code></pre></div>
 <p><code>x &lt;- lookup "x" env</code> は「<code>lookup</code> が <code>Just</code> を返せば中身を <code>x</code> に束縛して続け, <code>Nothing</code> なら全体を <code>Nothing</code> にして止める」ものです. <code>y</code> も同様で, どちらか一方でも見つからなければ <code>return (x + y)</code> に到達しません. 脱糖すれば <code>lookup "x" env &gt;&gt;= \x -&gt; lookup "y" env &gt;&gt;= \y -&gt; return (x + y)</code> で, <code>Maybe</code> モナドの <code>&gt;&gt;=</code> がすべての失敗を短絡させています.</p>
 </details>
 </section>
 <h2 id="maybe-either-モナド">Maybe / Either モナド</h2>
 <p>ここまでの <code>Maybe</code> モナドは「失敗が一つでもあれば全体が失敗」という短絡を <code>&gt;&gt;=</code> に埋め込んだものでした. 便利ですが, <code>Maybe</code> は「<strong>失敗した</strong>」ことしか伝えられません. <code>Nothing</code> に理由は載りません.</p>
 <p><strong>なぜ失敗したか</strong> を運ぶには <code>Either e a</code> を使います. 慣習として <code>Left</code> に <strong>エラーを表す専用の列挙型</strong> を, <code>Right</code> に成功値を置きます (エラーを <code>String</code> で表すこともできますが, 型で場合分けできる専用の列挙型のほうが安全で, どんな失敗があり得るかがシグネチャから読めます).</p>
-<div class="sourceCode" id="cb23"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- なぜ失敗したかを型で表す (String でなく専用の列挙型)</span></span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">CalcError</span></span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>  <span class="ot">=</span> <span class="dt">DivByZero</span>   <span class="co">-- 0 で割ろうとした</span></span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="dt">Negative</span>    <span class="co">-- 負の入力は許さない</span></span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>)</span>
-<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a><span class="ot">safeDivE ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">CalcError</span> <span class="dt">Int</span></span>
-<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>safeDivE _ <span class="dv">0</span> <span class="ot">=</span> <span class="dt">Left</span> <span class="dt">DivByZero</span></span>
-<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>safeDivE x y <span class="ot">=</span> <span class="dt">Right</span> (x <span class="ot">`div`</span> y)</span>
-<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a><span class="ot">checkPos ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">CalcError</span> <span class="dt">Int</span></span>
-<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>checkPos n</span>
-<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> n <span class="op">&lt;</span> <span class="dv">0</span>     <span class="ot">=</span> <span class="dt">Left</span> <span class="dt">Negative</span></span>
-<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="fu">otherwise</span> <span class="ot">=</span> <span class="dt">Right</span> n</span>
-<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a><span class="co">-- 2 つの入力を検査してから割る. どこで失敗しても, 最初のエラーが返る.</span></span>
-<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a><span class="ot">calcE ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">CalcError</span> <span class="dt">Int</span></span>
-<span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a>calcE x y <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb23-19"><a href="#cb23-19" aria-hidden="true" tabindex="-1"></a>  x&#39; <span class="ot">&lt;-</span> checkPos x</span>
-<span id="cb23-20"><a href="#cb23-20" aria-hidden="true" tabindex="-1"></a>  y&#39; <span class="ot">&lt;-</span> checkPos y</span>
-<span id="cb23-21"><a href="#cb23-21" aria-hidden="true" tabindex="-1"></a>  safeDivE x&#39; y&#39;</span>
-<span id="cb23-22"><a href="#cb23-22" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb23-23"><a href="#cb23-23" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb23-24"><a href="#cb23-24" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb23-25"><a href="#cb23-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (calcE <span class="dv">100</span> <span class="dv">5</span>)    <span class="co">-- Right 20</span></span>
-<span id="cb23-26"><a href="#cb23-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (calcE <span class="dv">100</span> <span class="dv">0</span>)    <span class="co">-- Left DivByZero</span></span>
-<span id="cb23-27"><a href="#cb23-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (calcE (<span class="op">-</span><span class="dv">1</span>) <span class="dv">5</span>)   <span class="co">-- Left Negative</span></span></code></pre></div>
+<div class="sourceCode" id="cb27"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- なぜ失敗したかを型で表す (String でなく専用の列挙型)</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">CalcError</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>  <span class="ot">=</span> <span class="dt">DivByZero</span>   <span class="co">-- 0 で割ろうとした</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="dt">Negative</span>    <span class="co">-- 負の入力は許さない</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>)</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a><span class="ot">safeDivE ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">CalcError</span> <span class="dt">Int</span></span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>safeDivE _ <span class="dv">0</span> <span class="ot">=</span> <span class="dt">Left</span> <span class="dt">DivByZero</span></span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>safeDivE x y <span class="ot">=</span> <span class="dt">Right</span> (x <span class="ot">`div`</span> y)</span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a><span class="ot">checkPos ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">CalcError</span> <span class="dt">Int</span></span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a>checkPos n</span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> n <span class="op">&lt;</span> <span class="dv">0</span>     <span class="ot">=</span> <span class="dt">Left</span> <span class="dt">Negative</span></span>
+<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="fu">otherwise</span> <span class="ot">=</span> <span class="dt">Right</span> n</span>
+<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a><span class="co">-- 2 つの入力を検査してから割る. どこで失敗しても, 最初のエラーが返る.</span></span>
+<span id="cb27-17"><a href="#cb27-17" aria-hidden="true" tabindex="-1"></a><span class="ot">calcE ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">CalcError</span> <span class="dt">Int</span></span>
+<span id="cb27-18"><a href="#cb27-18" aria-hidden="true" tabindex="-1"></a>calcE x y <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb27-19"><a href="#cb27-19" aria-hidden="true" tabindex="-1"></a>  x&#39; <span class="ot">&lt;-</span> checkPos x</span>
+<span id="cb27-20"><a href="#cb27-20" aria-hidden="true" tabindex="-1"></a>  y&#39; <span class="ot">&lt;-</span> checkPos y</span>
+<span id="cb27-21"><a href="#cb27-21" aria-hidden="true" tabindex="-1"></a>  safeDivE x&#39; y&#39;</span>
+<span id="cb27-22"><a href="#cb27-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-23"><a href="#cb27-23" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb27-24"><a href="#cb27-24" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb27-25"><a href="#cb27-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (calcE <span class="dv">100</span> <span class="dv">5</span>)    <span class="co">-- Right 20</span></span>
+<span id="cb27-26"><a href="#cb27-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (calcE <span class="dv">100</span> <span class="dv">0</span>)    <span class="co">-- Left DivByZero</span></span>
+<span id="cb27-27"><a href="#cb27-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (calcE (<span class="op">-</span><span class="dv">1</span>) <span class="dv">5</span>)   <span class="co">-- Left Negative</span></span></code></pre></div>
 <p><code>Either e</code> の <code>&gt;&gt;=</code> は, <code>Left e</code> が出た時点で後続を素通しして その <code>Left e</code> を返し, <code>Right</code> の間はふつうに値を繋ぎます. <code>Maybe</code> の「失敗の連鎖」に <strong>失敗理由を添えた</strong> ものが <code>Either</code> モナドです. <a href="fp12.html">第12章</a> の式評価器も, この <code>Either</code> モナドで 0 除算エラーを伝播させています.</p>
 <section id="exercise-ch10-3" class="note">
 <h3>Exercise CH10-3</h3>
 <p><strong>専用エラー型での検証チェーン (口座からの連続引き出し)</strong></p>
 <p>残高 <code>balance</code> から <code>amount</code> を引く関数 <code>withdraw :: Int -&gt; Int -&gt; Either BankError Int</code> を考えます. <code>amount</code> が負なら <code>Left Negative</code>, 残高不足なら <code>Left NotEnough</code>, それ以外は引いた後の残高を <code>Right</code> で返します. これを使って, 初期残高から 2 回続けて引き出す <code>twice :: Int -&gt; Int -&gt; Int -&gt; Either BankError Int</code> を <code>do</code> 記法で実装してください (1 回目の引き出し後の残高から 2 回目を引きます).</p>
-<div class="sourceCode" id="cb24"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">BankError</span> <span class="ot">=</span> <span class="dt">NotEnough</span> <span class="op">|</span> <span class="dt">Negative</span> <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>)</span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="co">-- 実行例</span></span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (twice <span class="dv">100</span> <span class="dv">30</span> <span class="dv">50</span>)    <span class="co">-- Right 20</span></span>
-<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (twice <span class="dv">100</span> <span class="dv">30</span> <span class="dv">80</span>)    <span class="co">-- Left NotEnough</span></span>
-<span id="cb24-8"><a href="#cb24-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (twice <span class="dv">100</span> (<span class="op">-</span><span class="dv">1</span>) <span class="dv">0</span>)   <span class="co">-- Left Negative</span></span></code></pre></div>
+<div class="sourceCode" id="cb28"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">BankError</span> <span class="ot">=</span> <span class="dt">NotEnough</span> <span class="op">|</span> <span class="dt">Negative</span> <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>)</span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a><span class="co">-- 実行例</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (twice <span class="dv">100</span> <span class="dv">30</span> <span class="dv">50</span>)    <span class="co">-- Right 20</span></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (twice <span class="dv">100</span> <span class="dv">30</span> <span class="dv">80</span>)    <span class="co">-- Left NotEnough</span></span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (twice <span class="dv">100</span> (<span class="op">-</span><span class="dv">1</span>) <span class="dv">0</span>)   <span class="co">-- Left Negative</span></span></code></pre></div>
 <details class="protected" data-pass="yakagika">
 <summary>
 回答例
 </summary>
-<div class="sourceCode" id="cb25"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">BankError</span> <span class="ot">=</span> <span class="dt">NotEnough</span> <span class="op">|</span> <span class="dt">Negative</span> <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>)</span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="ot">withdraw ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">BankError</span> <span class="dt">Int</span></span>
-<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a>withdraw balance amount</span>
-<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> amount <span class="op">&lt;</span> <span class="dv">0</span>       <span class="ot">=</span> <span class="dt">Left</span> <span class="dt">Negative</span></span>
-<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> amount <span class="op">&gt;</span> balance <span class="ot">=</span> <span class="dt">Left</span> <span class="dt">NotEnough</span></span>
-<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="fu">otherwise</span>        <span class="ot">=</span> <span class="dt">Right</span> (balance <span class="op">-</span> amount)</span>
-<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a><span class="ot">twice ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">BankError</span> <span class="dt">Int</span></span>
-<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>twice balance a b <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>  b1 <span class="ot">&lt;-</span> withdraw balance a</span>
-<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>  withdraw b1 b</span>
-<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (twice <span class="dv">100</span> <span class="dv">30</span> <span class="dv">50</span>)    <span class="co">-- Right 20   (100-30=70, 70-50=20)</span></span>
-<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (twice <span class="dv">100</span> <span class="dv">30</span> <span class="dv">80</span>)    <span class="co">-- Left NotEnough  (2 回目で 70&lt;80)</span></span>
-<span id="cb25-18"><a href="#cb25-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (twice <span class="dv">100</span> (<span class="op">-</span><span class="dv">1</span>) <span class="dv">0</span>)   <span class="co">-- Left Negative   (1 回目で負の額)</span></span></code></pre></div>
+<div class="sourceCode" id="cb29"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">BankError</span> <span class="ot">=</span> <span class="dt">NotEnough</span> <span class="op">|</span> <span class="dt">Negative</span> <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>)</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a><span class="ot">withdraw ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">BankError</span> <span class="dt">Int</span></span>
+<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>withdraw balance amount</span>
+<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> amount <span class="op">&lt;</span> <span class="dv">0</span>       <span class="ot">=</span> <span class="dt">Left</span> <span class="dt">Negative</span></span>
+<span id="cb29-6"><a href="#cb29-6" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> amount <span class="op">&gt;</span> balance <span class="ot">=</span> <span class="dt">Left</span> <span class="dt">NotEnough</span></span>
+<span id="cb29-7"><a href="#cb29-7" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="fu">otherwise</span>        <span class="ot">=</span> <span class="dt">Right</span> (balance <span class="op">-</span> amount)</span>
+<span id="cb29-8"><a href="#cb29-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-9"><a href="#cb29-9" aria-hidden="true" tabindex="-1"></a><span class="ot">twice ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Either</span> <span class="dt">BankError</span> <span class="dt">Int</span></span>
+<span id="cb29-10"><a href="#cb29-10" aria-hidden="true" tabindex="-1"></a>twice balance a b <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb29-11"><a href="#cb29-11" aria-hidden="true" tabindex="-1"></a>  b1 <span class="ot">&lt;-</span> withdraw balance a</span>
+<span id="cb29-12"><a href="#cb29-12" aria-hidden="true" tabindex="-1"></a>  withdraw b1 b</span>
+<span id="cb29-13"><a href="#cb29-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb29-14"><a href="#cb29-14" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb29-15"><a href="#cb29-15" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb29-16"><a href="#cb29-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (twice <span class="dv">100</span> <span class="dv">30</span> <span class="dv">50</span>)    <span class="co">-- Right 20   (100-30=70, 70-50=20)</span></span>
+<span id="cb29-17"><a href="#cb29-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (twice <span class="dv">100</span> <span class="dv">30</span> <span class="dv">80</span>)    <span class="co">-- Left NotEnough  (2 回目で 70&lt;80)</span></span>
+<span id="cb29-18"><a href="#cb29-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (twice <span class="dv">100</span> (<span class="op">-</span><span class="dv">1</span>) <span class="dv">0</span>)   <span class="co">-- Left Negative   (1 回目で負の額)</span></span></code></pre></div>
 <p><code>b1 &lt;- withdraw balance a</code> が 1 回目の引き出し後の残高を <code>b1</code> に束縛し, <code>withdraw b1 b</code> がそこから 2 回目を引きます. どちらかで <code>Left</code> が出れば, 続く引き出しは実行されずにその理由がそのまま返ります. <code>Maybe</code> では「失敗した」しか言えませんが, <code>BankError</code> により「残高不足なのか負の額なのか」を型で区別できます.</p>
 </details>
 </section>
 <h2 id="リストモナド">リストモナド</h2>
 <p><code>Maybe</code> / <code>Either</code> のパターンが「失敗の伝播」だったのに対し, リストのパターンは「<strong>候補の分岐 (非決定性)</strong>」です. 型クラス Monad の節で見たとおり, リストの <code>&gt;&gt;=</code> は「各要素 <code>x</code> に次の計算 <code>f</code> を試し, 出てきたリストを全部つなぐ」でした. この節では, これが手続き型言語の <strong>for 文</strong> にあたる道具になることを見ます.</p>
 <p><strong>for 文の形をした関数: forM.</strong> まず<a href="fp6.html">第6章</a>の伏線を回収します. <code>flip map xs $ \x -&gt; ...</code> を「手続き型言語における for 文に近い記法」として紹介しました.</p>
-<div class="sourceCode" id="cb26"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- 第6章: flip map による for 文風の書き方</span></span>
-<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> <span class="op">$</span> <span class="fu">flip</span> <span class="fu">map</span> [<span class="op">-</span><span class="dv">3</span> <span class="op">..</span> <span class="dv">3</span><span class="ot"> ::</span> <span class="dt">Int</span>] <span class="op">$</span> \x <span class="ot">-&gt;</span></span>
-<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> x <span class="op">&gt;=</span> <span class="dv">0</span> <span class="kw">then</span> <span class="dv">1</span> <span class="kw">else</span> <span class="dv">0</span></span>
-<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- [0,0,0,1,1,1,1]</span></span></code></pre></div>
-<p>1 行目が「<code>x</code> に各要素を順に束縛する」というループのヘッダ, 改行した本体が 1 周ぶんの計算, という見た目です. この「各要素を純粋な関数で変換する for」を「各要素を<strong>モナドの計算</strong>で処理する for」へ広げたものが, 第6章で名前だけ予告した <code>forM</code> / <code>forM_</code> です (リストに特殊化した型で掲げます).</p>
-<div class="sourceCode" id="cb27"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Control.Monad</span> (forM, forM_)</span>
-<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a><span class="co">-- リストに特殊化した型:</span></span>
-<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="co">-- forM  :: Monad m =&gt; [a] -&gt; (a -&gt; m b) -&gt; m [b]</span></span>
-<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a><span class="co">-- forM_ :: Monad m =&gt; [a] -&gt; (a -&gt; m b) -&gt; m ()   (結果を捨てる)</span></span>
-<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a><span class="ot">halve ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Int</span></span>
-<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>halve n <span class="ot">=</span> <span class="kw">if</span> <span class="fu">even</span> n <span class="kw">then</span> <span class="dt">Just</span> (n <span class="ot">`div`</span> <span class="dv">2</span>) <span class="kw">else</span> <span class="dt">Nothing</span></span>
-<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- for x in [1, 2, 3]: print(x * 10) とほぼ同じ見た目</span></span>
-<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a>  forM_ [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>] <span class="op">$</span> \x <span class="ot">-&gt;</span></span>
-<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> (x <span class="op">*</span> <span class="dv">10</span>)               <span class="co">-- 10, 20, 30 を順に表示</span></span>
-<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (forM [<span class="dv">2</span>, <span class="dv">4</span>, <span class="dv">6</span>] halve)   <span class="co">-- Just [1,2,3]  (全部成功したときだけ)</span></span>
-<span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (forM [<span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">6</span>] halve)   <span class="co">-- Nothing       (3 で失敗すると全体が失敗)</span></span></code></pre></div>
-<p><code>flip map</code> の「各要素に <code>a -&gt; b</code>」が「各要素に <code>a -&gt; m b</code>」になり, 返りが <code>m [b]</code> にまとまります. リストを for で回しながら, 各周のパターン (<code>Maybe</code> の失敗や <code>IO</code> の作用) をモナドが処理してくれるわけです.</p>
-<p><strong>同じループは do でも簡潔に書けます.</strong> <code>fmap f xs = xs &gt;&gt;= (pure . f)</code> なので, さきほどの <code>flip map</code> は「<code>x &lt;- xs</code> と束縛して, 結果を <code>pure</code> で返すだけの連鎖」にほかなりません.</p>
-<div class="sourceCode" id="cb28"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> <span class="op">$</span> <span class="kw">do</span></span>
-<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>    x <span class="ot">&lt;-</span> [<span class="op">-</span><span class="dv">3</span> <span class="op">..</span> <span class="dv">3</span><span class="ot"> ::</span> <span class="dt">Int</span>]             <span class="co">-- for x in [-3 .. 3]</span></span>
-<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pure</span> (<span class="kw">if</span> x <span class="op">&gt;=</span> <span class="dv">0</span> <span class="kw">then</span> <span class="dv">1</span> <span class="kw">else</span> <span class="dv">0</span>)    <span class="co">--   1 周ぶんの計算</span></span>
-<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- [0,0,0,1,1,1,1] (flip map 版と同じ)</span></span></code></pre></div>
-<p>そして <code>do</code> は, 束縛を並べるだけで <strong>多重ループ</strong> へ素直に伸びます.</p>
-<div class="sourceCode" id="cb29"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="ot">pairs ::</span> [(<span class="dt">Int</span>, <span class="dt">Char</span>)]</span>
-<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>pairs <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb29-3"><a href="#cb29-3" aria-hidden="true" tabindex="-1"></a>  x <span class="ot">&lt;-</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>]   <span class="co">-- for x in [1,2,3]</span></span>
-<span id="cb29-4"><a href="#cb29-4" aria-hidden="true" tabindex="-1"></a>  c <span class="ot">&lt;-</span> <span class="st">&quot;ab&quot;</span>        <span class="co">--   for c in &quot;ab&quot;</span></span>
-<span id="cb29-5"><a href="#cb29-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pure</span> (x, c)      <span class="co">--     1 周ぶんの結果</span></span></code></pre></div>
 <div class="sourceCode" id="cb30"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
 <span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> pairs</span>
-<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- [(1,&#39;a&#39;),(1,&#39;b&#39;),(2,&#39;a&#39;),(2,&#39;b&#39;),(3,&#39;a&#39;),(3,&#39;b&#39;)]</span></span></code></pre></div>
+<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- 第6章: flip map による for 文風の書き方</span></span>
+<span id="cb30-4"><a href="#cb30-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> <span class="op">$</span> <span class="fu">flip</span> <span class="fu">map</span> [<span class="op">-</span><span class="dv">3</span> <span class="op">..</span> <span class="dv">3</span><span class="ot"> ::</span> <span class="dt">Int</span>] <span class="op">$</span> \x <span class="ot">-&gt;</span></span>
+<span id="cb30-5"><a href="#cb30-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> x <span class="op">&gt;=</span> <span class="dv">0</span> <span class="kw">then</span> <span class="dv">1</span> <span class="kw">else</span> <span class="dv">0</span></span>
+<span id="cb30-6"><a href="#cb30-6" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- [0,0,0,1,1,1,1]</span></span></code></pre></div>
+<p>1 行目が「<code>x</code> に各要素を順に束縛する」というループのヘッダ, 改行した本体が 1 周ぶんの計算, という見た目です. この「各要素を純粋な関数で変換する for」を「各要素を<strong>モナドの計算</strong>で処理する for」へ広げたものが, 第6章で名前だけ予告した <code>forM</code> / <code>forM_</code> です (リストに特殊化した型で掲げます).</p>
+<div class="sourceCode" id="cb31"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Control.Monad</span> (forM, forM_)</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a><span class="co">-- リストに特殊化した型:</span></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a><span class="co">-- forM  :: Monad m =&gt; [a] -&gt; (a -&gt; m b) -&gt; m [b]</span></span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a><span class="co">-- forM_ :: Monad m =&gt; [a] -&gt; (a -&gt; m b) -&gt; m ()   (結果を捨てる)</span></span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a><span class="ot">halve ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Int</span></span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>halve n <span class="ot">=</span> <span class="kw">if</span> <span class="fu">even</span> n <span class="kw">then</span> <span class="dt">Just</span> (n <span class="ot">`div`</span> <span class="dv">2</span>) <span class="kw">else</span> <span class="dt">Nothing</span></span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- for x in [1, 2, 3]: print(x * 10) とほぼ同じ見た目</span></span>
+<span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a>  forM_ [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>] <span class="op">$</span> \x <span class="ot">-&gt;</span></span>
+<span id="cb31-14"><a href="#cb31-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> (x <span class="op">*</span> <span class="dv">10</span>)               <span class="co">-- 10, 20, 30 を順に表示</span></span>
+<span id="cb31-15"><a href="#cb31-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (forM [<span class="dv">2</span>, <span class="dv">4</span>, <span class="dv">6</span>] halve)   <span class="co">-- Just [1,2,3]  (全部成功したときだけ)</span></span>
+<span id="cb31-16"><a href="#cb31-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (forM [<span class="dv">2</span>, <span class="dv">3</span>, <span class="dv">6</span>] halve)   <span class="co">-- Nothing       (3 で失敗すると全体が失敗)</span></span></code></pre></div>
+<p><code>flip map</code> の「各要素に <code>a -&gt; b</code>」が「各要素に <code>a -&gt; m b</code>」になり, 返りが <code>m [b]</code> にまとまります. リストを for で回しながら, 各周のパターン (<code>Maybe</code> の失敗や <code>IO</code> の作用) をモナドが処理してくれるわけです.</p>
+<p><strong>同じループは do でも簡潔に書けます.</strong> <code>fmap f xs = xs &gt;&gt;= (pure . f)</code> なので, さきほどの <code>flip map</code> は「<code>x &lt;- xs</code> と束縛して, 結果を <code>pure</code> で返すだけの連鎖」にほかなりません.</p>
+<div class="sourceCode" id="cb32"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> <span class="op">$</span> <span class="kw">do</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>    x <span class="ot">&lt;-</span> [<span class="op">-</span><span class="dv">3</span> <span class="op">..</span> <span class="dv">3</span><span class="ot"> ::</span> <span class="dt">Int</span>]             <span class="co">-- for x in [-3 .. 3]</span></span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pure</span> (<span class="kw">if</span> x <span class="op">&gt;=</span> <span class="dv">0</span> <span class="kw">then</span> <span class="dv">1</span> <span class="kw">else</span> <span class="dv">0</span>)    <span class="co">--   1 周ぶんの計算</span></span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- [0,0,0,1,1,1,1] (flip map 版と同じ)</span></span></code></pre></div>
+<p>そして <code>do</code> は, 束縛を並べるだけで <strong>多重ループ</strong> へ素直に伸びます.</p>
+<div class="sourceCode" id="cb33"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="ot">pairs ::</span> [(<span class="dt">Int</span>, <span class="dt">Char</span>)]</span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>pairs <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>  x <span class="ot">&lt;-</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>]   <span class="co">-- for x in [1,2,3]</span></span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>  c <span class="ot">&lt;-</span> <span class="st">&quot;ab&quot;</span>        <span class="co">--   for c in &quot;ab&quot;</span></span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pure</span> (x, c)      <span class="co">--     1 周ぶんの結果</span></span></code></pre></div>
+<div class="sourceCode" id="cb34"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> pairs</span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- [(1,&#39;a&#39;),(1,&#39;b&#39;),(2,&#39;a&#39;),(2,&#39;b&#39;),(3,&#39;a&#39;),(3,&#39;b&#39;)]</span></span></code></pre></div>
 <p>結果は全組み合わせ (直積) です. <a href="fp7.html">第7章</a>の内包表記 <code>[ (x, c) | x &lt;- [1, 2, 3], c &lt;- "ab" ]</code> と同じものであり, 内包表記とリストモナドの <code>do</code> は同じ計算の 2 つの書き方です.</p>
 <p><strong>bind でつなげると, 依存する 2 重ループが書けます.</strong> リストが <code>&lt;*&gt;</code> (固定の直積) と分かれるのはここです. 内側のループの範囲を, 外側の結果に<strong>応じて</strong>変えられます.</p>
-<div class="sourceCode" id="cb31"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 内側の範囲が外側の結果 x に依存する 2 重ループ</span></span>
-<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a><span class="ot">trianglePairs ::</span> [(<span class="dt">Int</span>, <span class="dt">Int</span>)]</span>
-<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>trianglePairs <span class="ot">=</span> [<span class="dv">1</span> <span class="op">..</span> <span class="dv">4</span>] <span class="op">&gt;&gt;=</span> \x <span class="ot">-&gt;</span> [x <span class="op">..</span> <span class="dv">4</span>] <span class="op">&gt;&gt;=</span> \y <span class="ot">-&gt;</span> <span class="fu">pure</span> (x, y)</span>
-<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a><span class="co">-- do 版 (同じもの)</span></span>
-<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a><span class="ot">trianglePairs&#39; ::</span> [(<span class="dt">Int</span>, <span class="dt">Int</span>)]</span>
-<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>trianglePairs&#39; <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>  x <span class="ot">&lt;-</span> [<span class="dv">1</span> <span class="op">..</span> <span class="dv">4</span>]</span>
-<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a>  y <span class="ot">&lt;-</span> [x <span class="op">..</span> <span class="dv">4</span>]   <span class="co">-- 前の結果 x が, 次の候補集合を決める</span></span>
-<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pure</span> (x, y)</span>
-<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb31-14"><a href="#cb31-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> trianglePairs</span>
-<span id="cb31-15"><a href="#cb31-15" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- [(1,1),(1,2),(1,3),(1,4),(2,2),(2,3),(2,4),(3,3),(3,4),(4,4)]</span></span></code></pre></div>
+<div class="sourceCode" id="cb35"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 内側の範囲が外側の結果 x に依存する 2 重ループ</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a><span class="ot">trianglePairs ::</span> [(<span class="dt">Int</span>, <span class="dt">Int</span>)]</span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>trianglePairs <span class="ot">=</span> [<span class="dv">1</span> <span class="op">..</span> <span class="dv">4</span>] <span class="op">&gt;&gt;=</span> \x <span class="ot">-&gt;</span> [x <span class="op">..</span> <span class="dv">4</span>] <span class="op">&gt;&gt;=</span> \y <span class="ot">-&gt;</span> <span class="fu">pure</span> (x, y)</span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a><span class="co">-- do 版 (同じもの)</span></span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a><span class="ot">trianglePairs&#39; ::</span> [(<span class="dt">Int</span>, <span class="dt">Int</span>)]</span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a>trianglePairs&#39; <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a>  x <span class="ot">&lt;-</span> [<span class="dv">1</span> <span class="op">..</span> <span class="dv">4</span>]</span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a>  y <span class="ot">&lt;-</span> [x <span class="op">..</span> <span class="dv">4</span>]   <span class="co">-- 前の結果 x が, 次の候補集合を決める</span></span>
+<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pure</span> (x, y)</span>
+<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb35-13"><a href="#cb35-13" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> trianglePairs</span>
+<span id="cb35-15"><a href="#cb35-15" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- [(1,1),(1,2),(1,3),(1,4),(2,2),(2,3),(2,4),(3,3),(3,4),(4,4)]</span></span></code></pre></div>
 <p><code>[x .. 4]</code> の中に前の結果 <code>x</code> が現れています. これは「パターンと結果に応じた計算」のリスト版で, 次に試す候補集合そのものを前の結果から作っています. さらに, 途中で候補を捨てたければ <code>Maybe</code> の <code>Nothing</code> にあたる「候補なし」= <strong>空リスト</strong> を返します.</p>
-<div class="sourceCode" id="cb32"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 三平方の定理を満たす組だけを残す</span></span>
-<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="ot">pythagorean ::</span> [(<span class="dt">Int</span>, <span class="dt">Int</span>, <span class="dt">Int</span>)]</span>
-<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>pythagorean <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>  x <span class="ot">&lt;-</span> [<span class="dv">1</span> <span class="op">..</span> <span class="dv">20</span>]</span>
-<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>  y <span class="ot">&lt;-</span> [x <span class="op">..</span> <span class="dv">20</span>]</span>
-<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>  z <span class="ot">&lt;-</span> [y <span class="op">..</span> <span class="dv">20</span>]</span>
-<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>  <span class="kw">if</span> x <span class="op">*</span> x <span class="op">+</span> y <span class="op">*</span> y <span class="op">==</span> z <span class="op">*</span> z <span class="kw">then</span> <span class="fu">pure</span> (x, y, z) <span class="kw">else</span> []</span>
-<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb32-11"><a href="#cb32-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> pythagorean</span>
-<span id="cb32-12"><a href="#cb32-12" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- [(3,4,5),(5,12,13),(6,8,10),(8,15,17),(9,12,15),(12,16,20)]</span></span></code></pre></div>
+<div class="sourceCode" id="cb36"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 三平方の定理を満たす組だけを残す</span></span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="ot">pythagorean ::</span> [(<span class="dt">Int</span>, <span class="dt">Int</span>, <span class="dt">Int</span>)]</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>pythagorean <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a>  x <span class="ot">&lt;-</span> [<span class="dv">1</span> <span class="op">..</span> <span class="dv">20</span>]</span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a>  y <span class="ot">&lt;-</span> [x <span class="op">..</span> <span class="dv">20</span>]</span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a>  z <span class="ot">&lt;-</span> [y <span class="op">..</span> <span class="dv">20</span>]</span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a>  <span class="kw">if</span> x <span class="op">*</span> x <span class="op">+</span> y <span class="op">*</span> y <span class="op">==</span> z <span class="op">*</span> z <span class="kw">then</span> <span class="fu">pure</span> (x, y, z) <span class="kw">else</span> []</span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb36-11"><a href="#cb36-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> pythagorean</span>
+<span id="cb36-12"><a href="#cb36-12" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- [(3,4,5),(5,12,13),(6,8,10),(8,15,17),(9,12,15),(12,16,20)]</span></span></code></pre></div>
 <p>失敗の伝播 (<code>Maybe</code>) も, 候補の分岐と絞り込み (リスト) も, <code>IO</code> の作用も, すべて同じ <code>&gt;&gt;=</code> と <code>do</code> の上に乗っています. 変わるのはパターンの中身だけです.</p>
 <div class="note">
 <p><strong>モナドと圏論の対応 (まとめ)</strong></p>
@@ -6348,13 +6395,13 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 <li><code>getLine :: IO String</code>: 実行すると入力を 1 行読み, その文字列を返す手順書.</li>
 </ul>
 <p>大事なのは, <strong>手順書はただの値</strong>だということです. 名前を付けられ, 関数から返せ, そして <strong>定義しただけでは何も起きません</strong>.</p>
-<div class="sourceCode" id="cb33"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="ot">greetAction ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>greetAction <span class="ot">=</span> <span class="fu">putStrLn</span> <span class="st">&quot;こんにちは&quot;</span>   <span class="co">-- 定義しただけでは何も表示されない</span></span>
-<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>  greetAction   <span class="co">-- main に組み込まれてはじめて実行される</span></span>
-<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>  greetAction   <span class="co">-- 2 回組み込めば 2 回実行される</span></span></code></pre></div>
+<div class="sourceCode" id="cb37"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="ot">greetAction ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>greetAction <span class="ot">=</span> <span class="fu">putStrLn</span> <span class="st">&quot;こんにちは&quot;</span>   <span class="co">-- 定義しただけでは何も表示されない</span></span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a>  greetAction   <span class="co">-- main に組み込まれてはじめて実行される</span></span>
+<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a>  greetAction   <span class="co">-- 2 回組み込めば 2 回実行される</span></span></code></pre></div>
 <p>そして <strong><code>IO</code> はモナドです</strong>. <code>return :: a -&gt; IO a</code> は「外の世界に何もせず, ただ値 <code>a</code> を返す手順書」, <code>(&gt;&gt;=) :: IO a -&gt; (a -&gt; IO b) -&gt; IO b</code> は「手順書を実行し, その結果を次の手順書に手渡す」連結です. モナドの部で見た骨格 (自己関手 + <span class="math inline">\eta</span> + <span class="math inline">\mu</span>) がそのまま当てはまり, パターンの中身だけが違います.</p>
 <table>
 <thead>
@@ -6397,21 +6444,21 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 <h2 id="標準入出力">標準入出力</h2>
 <p>基本の道具は 3 つです. <code>getLine :: IO String</code> (1 行読む), <code>putStrLn :: String -&gt; IO ()</code> (1 行書く), そして <code>print</code>. 実は <code>print = putStrLn . show</code> であり, これまで全章の実行例で使ってきた <code>print</code> は「<a href="fp8.html">第8章</a> の <code>show</code> で文字列にして表示する」IO アクションでした. つまり, みなさんは第4章からずっと IO モナドを使っていたのです.</p>
 <p>名前を尋ねて挨拶するプログラムを書いてみます. <strong>ロジックは純粋関数に, IO は薄い殻に</strong>分けるのが Haskell の基本設計です.</p>
-<div class="sourceCode" id="cb34"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 純粋コア: ロジックはただの関数</span></span>
-<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a><span class="ot">greet ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span></span>
-<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>greet name <span class="ot">=</span> <span class="st">&quot;こんにちは, &quot;</span> <span class="op">++</span> name <span class="op">++</span> <span class="st">&quot; さん!&quot;</span></span>
-<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStrLn</span> <span class="st">&quot;お名前は?&quot;</span></span>
-<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a>  name <span class="ot">&lt;-</span> <span class="fu">getLine</span>          <span class="co">-- アクションの実行結果を name に束縛</span></span>
-<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStrLn</span> (greet name)    <span class="co">-- 純粋関数は IO の中で自由に使える</span></span></code></pre></div>
+<div class="sourceCode" id="cb38"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 純粋コア: ロジックはただの関数</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a><span class="ot">greet ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span></span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>greet name <span class="ot">=</span> <span class="st">&quot;こんにちは, &quot;</span> <span class="op">++</span> name <span class="op">++</span> <span class="st">&quot; さん!&quot;</span></span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStrLn</span> <span class="st">&quot;お名前は?&quot;</span></span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a>  name <span class="ot">&lt;-</span> <span class="fu">getLine</span>          <span class="co">-- アクションの実行結果を name に束縛</span></span>
+<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStrLn</span> (greet name)    <span class="co">-- 純粋関数は IO の中で自由に使える</span></span></code></pre></div>
 <p><code>name &lt;- getLine</code> は, モナドの部の <code>do</code> とまったく同じ「<code>&gt;&gt;=</code> の糖衣」です. <code>Maybe</code> の <code>do</code> では「<code>Just</code> の中身」を取り出しましたが, ここでは「アクションの実行結果」を取り出します.</p>
 <p>入力全体を一括で変換するなら <code>interact :: (String -&gt; String) -&gt; IO ()</code> が便利です. 標準入力の全文を純粋関数に渡し, その返り値を標準出力に書き出します. 「純粋コア + IO の殻」という設計をそのまま 1 つの関数にしたような道具です.</p>
-<div class="sourceCode" id="cb35"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Data.Char</span> (toUpper)</span>
-<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">interact</span> (<span class="fu">map</span> <span class="fu">toUpper</span>)   <span class="co">-- 入力をすべて大文字にして出力する</span></span></code></pre></div>
+<div class="sourceCode" id="cb39"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Data.Char</span> (toUpper)</span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">interact</span> (<span class="fu">map</span> <span class="fu">toUpper</span>)   <span class="co">-- 入力をすべて大文字にして出力する</span></span></code></pre></div>
 <p>行ごとの処理は <code>lines</code> / <code>unlines</code> と組み合わせて <code>interact (unlines . map f . lines)</code> の形にします (<a href="fp6.html">第6章</a> の関数合成が, そのまま設計図になります).</p>
 <section id="exercise-ch10-4" class="note">
 <h3>Exercise CH10-4</h3>
@@ -6428,16 +6475,16 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 <summary>
 回答例
 </summary>
-<div class="sourceCode" id="cb37"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Text.Read</span> (readMaybe)</span>
-<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a><span class="ot">addInputs ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Int</span></span>
-<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>addInputs s t <span class="ot">=</span> (<span class="op">+</span>) <span class="op">&lt;$&gt;</span> readMaybe s <span class="op">&lt;*&gt;</span> readMaybe t</span>
-<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a>  s <span class="ot">&lt;-</span> <span class="fu">getLine</span></span>
-<span id="cb37-9"><a href="#cb37-9" aria-hidden="true" tabindex="-1"></a>  t <span class="ot">&lt;-</span> <span class="fu">getLine</span></span>
-<span id="cb37-10"><a href="#cb37-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStrLn</span> (<span class="fu">maybe</span> <span class="st">&quot;数値を入力してください&quot;</span> <span class="fu">show</span> (addInputs s t))</span></code></pre></div>
+<div class="sourceCode" id="cb41"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Text.Read</span> (readMaybe)</span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a><span class="ot">addInputs ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Int</span></span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>addInputs s t <span class="ot">=</span> (<span class="op">+</span>) <span class="op">&lt;$&gt;</span> readMaybe s <span class="op">&lt;*&gt;</span> readMaybe t</span>
+<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a>  s <span class="ot">&lt;-</span> <span class="fu">getLine</span></span>
+<span id="cb41-9"><a href="#cb41-9" aria-hidden="true" tabindex="-1"></a>  t <span class="ot">&lt;-</span> <span class="fu">getLine</span></span>
+<span id="cb41-10"><a href="#cb41-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStrLn</span> (<span class="fu">maybe</span> <span class="st">&quot;数値を入力してください&quot;</span> <span class="fu">show</span> (addInputs s t))</span></code></pre></div>
 <p><code>readMaybe</code> が失敗を <code>Maybe</code> で返し, <code>&lt;$&gt;</code> / <code>&lt;*&gt;</code> が「両方成功したときだけ足す」を場合分けなしで実現します (Exercise CH10-1 と同じ形です). IO の殻は「読む・読む・表示する」の 3 行だけで, 判断はすべて純粋コア側にあります. 純粋コアは IO 抜きで ghci からテストできます. これが「純粋コア + IO の殻」設計の利点です.</p>
 </details>
 </section>
@@ -6445,24 +6492,24 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 <p>最後に, <a href="fp2.html">第2章</a> 以来「おまじない」としてきた <code>main = do ...</code> の種明かしです.</p>
 <p>Haskell のプログラムとは, つまるところ <strong><code>main :: IO ()</code> という 1 つのアクション (手順書) を組み立てるもの</strong>です. 処理系はプログラムから <code>main</code> という名前の手順書を探し出し, それを実行します. ほかの関数や定義は, <code>main</code> から直接・間接に組み込まれた分だけ働きます.</p>
 <p>そして <code>main = do ...</code> の <code>do</code> は, モナドの部の「do 記法」で見た <strong><code>&gt;&gt;=</code> / <code>&gt;&gt;</code> の糖衣そのもの</strong>です. 先ほどの挨拶プログラムを脱糖すると, こうなります.</p>
-<div class="sourceCode" id="cb38"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="ot">greet ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span></span>
-<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>greet name <span class="ot">=</span> <span class="st">&quot;こんにちは, &quot;</span> <span class="op">++</span> name <span class="op">++</span> <span class="st">&quot; さん!&quot;</span></span>
-<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a><span class="co">-- do を &gt;&gt;= / &gt;&gt; に脱糖した形. do 版とまったく同じプログラム.</span></span>
-<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span></span>
-<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStrLn</span> <span class="st">&quot;お名前は?&quot;</span> <span class="op">&gt;&gt;</span></span>
-<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">getLine</span> <span class="op">&gt;&gt;=</span> \name <span class="ot">-&gt;</span></span>
-<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStrLn</span> (greet name)</span></code></pre></div>
+<div class="sourceCode" id="cb42"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="ot">greet ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span></span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>greet name <span class="ot">=</span> <span class="st">&quot;こんにちは, &quot;</span> <span class="op">++</span> name <span class="op">++</span> <span class="st">&quot; さん!&quot;</span></span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a><span class="co">-- do を &gt;&gt;= / &gt;&gt; に脱糖した形. do 版とまったく同じプログラム.</span></span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span></span>
+<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStrLn</span> <span class="st">&quot;お名前は?&quot;</span> <span class="op">&gt;&gt;</span></span>
+<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">getLine</span> <span class="op">&gt;&gt;=</span> \name <span class="ot">-&gt;</span></span>
+<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStrLn</span> (greet name)</span></code></pre></div>
 <p><a href="fp4.html">第4章</a> からずっと書いてきた <code>main = do ...</code> は <code>IO</code> モナドの <code>do</code> であり, モナドの部の <code>Maybe</code> の <code>do</code> と同じ規則で動いていました. これで本章の伏線はすべて回収です. なお, <code>do</code> の中では「アクションの結果の束縛」と「純粋な計算の名前付け」を区別します.</p>
-<div class="sourceCode" id="cb39"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="ot">greet ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span></span>
-<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>greet name <span class="ot">=</span> <span class="st">&quot;こんにちは, &quot;</span> <span class="op">++</span> name <span class="op">++</span> <span class="st">&quot; さん!&quot;</span></span>
-<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a>  name <span class="ot">&lt;-</span> <span class="fu">getLine</span>          <span class="co">-- &lt;-  : アクションを実行して結果を束縛する</span></span>
-<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> msg <span class="ot">=</span> greet name     <span class="co">-- let : 純粋な計算に名前を付ける (実行するものはない)</span></span>
-<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStrLn</span> msg</span></code></pre></div>
+<div class="sourceCode" id="cb43"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="ot">greet ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span></span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>greet name <span class="ot">=</span> <span class="st">&quot;こんにちは, &quot;</span> <span class="op">++</span> name <span class="op">++</span> <span class="st">&quot; さん!&quot;</span></span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>  name <span class="ot">&lt;-</span> <span class="fu">getLine</span>          <span class="co">-- &lt;-  : アクションを実行して結果を束縛する</span></span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> msg <span class="ot">=</span> greet name     <span class="co">-- let : 純粋な計算に名前を付ける (実行するものはない)</span></span>
+<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStrLn</span> msg</span></code></pre></div>
 <p>本章では, <code>fmap</code> の限界から出発して Applicative → Monad と道具を強め, <code>do</code> の正体を明かし, <code>Maybe</code>・<code>Either</code> で固めた骨格が <code>IO</code> にもそのまま当てはまることを見ました. <a href="fp11.html">第11章</a> では, この道具立ての上で <strong>可変状態</strong> (<a href="fp5.html">第5章</a>で予告した <code>State</code> や <code>ST</code>) を扱います.</p>
 <section id="exercise-ch10-5" class="note">
 <h3>Exercise CH10-5</h3>
@@ -6480,11 +6527,11 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 <summary>
 回答例
 </summary>
-<div class="sourceCode" id="cb41"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="ot">revLines ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span></span>
-<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>revLines <span class="ot">=</span> <span class="fu">unlines</span> <span class="op">.</span> <span class="fu">map</span> <span class="fu">reverse</span> <span class="op">.</span> <span class="fu">lines</span></span>
-<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">interact</span> revLines</span></code></pre></div>
+<div class="sourceCode" id="cb45"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="ot">revLines ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span></span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>revLines <span class="ot">=</span> <span class="fu">unlines</span> <span class="op">.</span> <span class="fu">map</span> <span class="fu">reverse</span> <span class="op">.</span> <span class="fu">lines</span></span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">interact</span> revLines</span></code></pre></div>
 <p><code>lines</code> で行のリストに分け, <code>map reverse</code> で各行を逆順にし, <code>unlines</code> で 1 つの文字列に戻します. 純粋コア <code>revLines</code> は普通の関数なので, ghci で <code>revLines "abc\ndef\n"</code> のように IO 抜きで試せます. <code>main</code> は殻の 1 行だけです.</p>
 </details>
 </section>]]></description>
