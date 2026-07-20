@@ -1032,39 +1032,56 @@
 <div class="sourceCode" id="cb4"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>API_KEY <span class="op">=</span> os.environ.get(<span class="st">&quot;EDINET_API_KEY&quot;</span>, <span class="st">&quot;&quot;</span>)  <span class="co"># 各自取得したキーを設定する</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>BASE_URL <span class="op">=</span> <span class="st">&quot;https://api.edinet-fsa.go.jp/api/v2&quot;</span></span>
 <span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fetch_document_list(day: datetime.date) <span class="op">-&gt;</span> <span class="bu">list</span>[<span class="bu">dict</span>]:</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;書類一覧 API (type=2) で 1 日分の提出書類メタデータを取得する.&quot;&quot;&quot;</span></span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    resp <span class="op">=</span> requests.get(</span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f&quot;</span><span class="sc">{</span>BASE_URL<span class="sc">}</span><span class="ss">/documents.json&quot;</span>,</span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>        params<span class="op">=</span>{</span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;date&quot;</span>: day.isoformat(),</span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;type&quot;</span>: <span class="dv">2</span>,  <span class="co"># 2 = 提出書類一覧およびメタデータ</span></span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;Subscription-Key&quot;</span>: API_KEY,</span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>        },</span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>        timeout<span class="op">=</span><span class="dv">30</span>,</span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    resp.raise_for_status()</span>
-<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> resp.json().get(<span class="st">&quot;results&quot;</span>, [])</span>
-<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> is_annual_securities_report(doc: <span class="bu">dict</span>) <span class="op">-&gt;</span> <span class="bu">bool</span>:</span>
-<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;有価証券報告書 (内国会社) かどうかを様式コードで判定する.&quot;&quot;&quot;</span></span>
-<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (</span>
-<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>        doc.get(<span class="st">&quot;ordinanceCode&quot;</span>) <span class="op">==</span> <span class="st">&quot;010&quot;</span></span>
-<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>        <span class="kw">and</span> doc.get(<span class="st">&quot;formCode&quot;</span>) <span class="op">==</span> <span class="st">&quot;030000&quot;</span></span>
-<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>        <span class="kw">and</span> doc.get(<span class="st">&quot;csvFlag&quot;</span>) <span class="op">==</span> <span class="st">&quot;1&quot;</span>  <span class="co"># CSV が提供されている書類のみ</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> check_api_status(payload: <span class="bu">dict</span>) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;body 内のエラー通知を確認する.&quot;&quot;&quot;</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    status <span class="op">=</span> payload.get(<span class="st">&quot;StatusCode&quot;</span>, payload.get(<span class="st">&quot;metadata&quot;</span>, {}).get(<span class="st">&quot;status&quot;</span>))</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> status <span class="kw">in</span> (<span class="va">None</span>, <span class="dv">200</span>, <span class="st">&quot;200&quot;</span>):</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    message <span class="op">=</span> payload.get(<span class="st">&quot;message&quot;</span>, <span class="st">&quot;&quot;</span>)</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> status <span class="kw">in</span> (<span class="dv">401</span>, <span class="st">&quot;401&quot;</span>):</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">raise</span> <span class="pp">SystemExit</span>(<span class="ss">f&quot;API キーが無効です: </span><span class="sc">{</span>message<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">raise</span> requests.RequestException(<span class="ss">f&quot;API エラー </span><span class="sc">{</span>status<span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>message<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fetch_document_list(day: datetime.date) <span class="op">-&gt;</span> <span class="bu">list</span>[<span class="bu">dict</span>]:</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;書類一覧 API (type=2) で 1 日分の提出書類メタデータを取得する.&quot;&quot;&quot;</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    resp <span class="op">=</span> requests.get(</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f&quot;</span><span class="sc">{</span>BASE_URL<span class="sc">}</span><span class="ss">/documents.json&quot;</span>,</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>        params<span class="op">=</span>{</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;date&quot;</span>: day.isoformat(),</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;type&quot;</span>: <span class="dv">2</span>,  <span class="co"># 2 = 提出書類一覧およびメタデータ</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;Subscription-Key&quot;</span>: API_KEY,</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>        },</span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>        timeout<span class="op">=</span><span class="dv">30</span>,</span>
 <span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> download_csv_zip(doc_id: <span class="bu">str</span>, dest: Path) <span class="op">-&gt;</span> <span class="bu">bool</span>:</span>
-<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;書類取得 API (type=5) で CSV 一式の zip を保存する.&quot;&quot;&quot;</span></span>
-<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>    resp <span class="op">=</span> requests.get(</span>
-<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f&quot;</span><span class="sc">{</span>BASE_URL<span class="sc">}</span><span class="ss">/documents/</span><span class="sc">{</span>doc_id<span class="sc">}</span><span class="ss">&quot;</span>,</span>
-<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>        params<span class="op">=</span>{<span class="st">&quot;type&quot;</span>: <span class="dv">5</span>, <span class="st">&quot;Subscription-Key&quot;</span>: API_KEY},  <span class="co"># 5 = CSV</span></span>
-<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>        timeout<span class="op">=</span><span class="dv">60</span>,</span>
-<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> resp.status_code <span class="op">!=</span> <span class="dv">200</span>:</span>
-<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">False</span></span>
-<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a>    dest.write_bytes(resp.content)</span>
-<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="va">True</span></span></code></pre></div>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>    resp.raise_for_status()</span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>    payload <span class="op">=</span> resp.json()</span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>    check_api_status(payload)</span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> payload.get(<span class="st">&quot;results&quot;</span>, [])</span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> is_annual_securities_report(doc: <span class="bu">dict</span>) <span class="op">-&gt;</span> <span class="bu">bool</span>:</span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;有価証券報告書 (内国会社) かどうかを様式コードで判定する.&quot;&quot;&quot;</span></span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (</span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a>        doc.get(<span class="st">&quot;ordinanceCode&quot;</span>) <span class="op">==</span> <span class="st">&quot;010&quot;</span></span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>        <span class="kw">and</span> doc.get(<span class="st">&quot;formCode&quot;</span>) <span class="op">==</span> <span class="st">&quot;030000&quot;</span></span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a>        <span class="kw">and</span> doc.get(<span class="st">&quot;csvFlag&quot;</span>) <span class="op">==</span> <span class="st">&quot;1&quot;</span>  <span class="co"># CSV が提供されている書類のみ</span></span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> download_csv_zip(doc_id: <span class="bu">str</span>, dest: Path) <span class="op">-&gt;</span> <span class="bu">bool</span>:</span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;書類取得 API (type=5) で CSV 一式の zip を保存する.&quot;&quot;&quot;</span></span>
+<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a>    resp <span class="op">=</span> requests.get(</span>
+<span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a>        <span class="ss">f&quot;</span><span class="sc">{</span>BASE_URL<span class="sc">}</span><span class="ss">/documents/</span><span class="sc">{</span>doc_id<span class="sc">}</span><span class="ss">&quot;</span>,</span>
+<span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a>        params<span class="op">=</span>{<span class="st">&quot;type&quot;</span>: <span class="dv">5</span>, <span class="st">&quot;Subscription-Key&quot;</span>: API_KEY},  <span class="co"># 5 = CSV</span></span>
+<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a>        timeout<span class="op">=</span><span class="dv">60</span>,</span>
+<span id="cb4-44"><a href="#cb4-44" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb4-45"><a href="#cb4-45" aria-hidden="true" tabindex="-1"></a>    <span class="co"># zip でなく JSON が返るのはエラー (無効キーなら中断, それ以外は再トライへ)</span></span>
+<span id="cb4-46"><a href="#cb4-46" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="st">&quot;application/json&quot;</span> <span class="kw">in</span> resp.headers.get(<span class="st">&quot;Content-Type&quot;</span>, <span class="st">&quot;&quot;</span>):</span>
+<span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a>        check_api_status(resp.json())</span>
+<span id="cb4-48"><a href="#cb4-48" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">False</span></span>
+<span id="cb4-49"><a href="#cb4-49" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> resp.status_code <span class="op">!=</span> <span class="dv">200</span>:</span>
+<span id="cb4-50"><a href="#cb4-50" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">False</span></span>
+<span id="cb4-51"><a href="#cb4-51" aria-hidden="true" tabindex="-1"></a>    dest.write_bytes(resp.content)</span>
+<span id="cb4-52"><a href="#cb4-52" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="va">True</span></span></code></pre></div>
+<p>一つ注意として, EDINET API はキーが無効な場合でも HTTP エラーではなく <strong>HTTP 200 のまま body の JSON でエラーを返します</strong> (<code>"StatusCode": 401</code>). この場合 <code>results</code> が無いだけなので, body を確認しないと「提出 0 件」として静かに成功したように見えてしまいます. <code>check_api_status</code> はこれを検出し, キーが無効ならその場で中断, それ以外のエラーなら再トライに回します.</p>
 <p>このスクリプトの一番重要な設計は, zip と同時に<strong>書類の索引 (<code>documents_index.csv</code>) を保存する</strong>ことです.</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>index_rows.append({</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;docID&quot;</span>: doc_id,</span>
@@ -1077,9 +1094,10 @@
 <p>メタデータには<strong>証券コード</strong> (<code>secCode</code>) と<strong>決算期末</strong> (<code>periodEnd</code>) が含まれています. この 2 つを最初に確保しておくと, 後の工程 (株価との結合, 業種との結合) がすべて「コードによる正確な結合」になります. 後述しますが, ここで企業名しか保存しないと, 後段のすべての結合が「文字列のあいまい一致」になり, パイプライン全体が脆くなります.</p>
 <div class="note">
 <ul>
-<li><h2 id="サーバへの配慮">サーバへの配慮</h2></li>
+<li><h2 id="サーバへの配慮とリトライ">サーバへの配慮とリトライ</h2></li>
 </ul>
 <p>API は便利ですが, 相手のサーバに負荷をかける行為でもあります. 取得期間は必要な範囲に絞り, リクエストの間に <code>time.sleep()</code> を入れ, 一度取得したファイルは再取得しない (スクリプトでは取得済み zip をスキップしています) ようにしましょう. 利用規約も必ず確認してください.</p>
+<p>間隔が短すぎると, サーバが応答を返さなくなり途中でエラーになることがあります. <code>fetch_documents.py</code> は失敗した日・書類をその場で諦めず, いったん失敗 queue に積んでおき, 期間全体を回し終えてからサーバを休ませ (<code>RETRY_PAUSE</code> 秒, ラウンドごとに倍増), リクエスト間隔も倍に伸ばした上で queue の中身だけ再トライします (<code>MAX_RETRY_ROUNDS</code> 回まで). それでも取得できなかった分は最後に警告として表示されるので, 時間をおいてスクリプトを再実行してください. 取得済みの zip はスキップされるので, 足りない分だけが再取得されます.</p>
 </div>
 <h1 id="csvの構造と整形">CSVの構造と整形</h1>
 <h2 id="edinetのcsvを読む">EDINETのCSVを読む</h2>

@@ -171,14 +171,14 @@
 <div class="note">
 <p><a href="fp7.html">第7章</a>冒頭の警告で「Haskell の高度な機能は集合論的な理解よりも圏論的な理解のほうが適している. 一旦集合論的に概要を把握し, 後の章で圏論的な解釈を試みる」と述べました. 本章がその「後の章」にあたります. ただし圏論そのものを体系的に扱うのではなく, <a href="fp8.html">第8章</a>までに作った「組 + 法則」の道具立てを, そのままもう一度使う程度に留めます.</p>
 </div>
-<p>本章は 3 部構成です. 前半 <strong>圏</strong> では, 圏を定義し, Haskell の型と関数がそのまま圏をなすこと, そして圏の準同型 = <strong>関手</strong> までを扱います. 中盤 <strong>多相データ型</strong> (関手のモデルたち) では, 関手のモデル (実例) として多相データ型を一つずつ増やします. 失敗を表す <code>Maybe</code>, 二者択一の <code>Either</code> (<a href="fp7.html">第7章</a>で「後の章で扱う」と先送りした型), 既習のリスト, 実務で頻出の辞書 <code>Map</code>, その内部構造を確かめるツリーです. それぞれが <strong>なぜ実用で必要になるか</strong> も, ここで一つずつ語ります. 後半では <strong>自然変換</strong> を導入し, 上の対応表を完成させます.</p>
+<p>本章は 4 部構成です. <strong>圏</strong> では, 圏を定義し, Haskell の型と関数がそのまま圏をなすことを確かめます. <strong>関手</strong> では, 圏の準同型 = 関手を手作りの実例から一般定義へ進め, Haskell の型クラス <code>Functor</code> と関手則に接続します. <strong>多相データ型</strong> (関手のモデルたち) では, 関手のモデル (実例) として多相データ型を一つずつ増やします. 失敗を表す <code>Maybe</code>, 二者択一の <code>Either</code> (<a href="fp7.html">第7章</a>で「後の章で扱う」と先送りした型), 既習のリスト, 実務で頻出の辞書 <code>Map</code>, その内部構造を確かめるツリーです. それぞれが <strong>なぜ実用で必要になるか</strong> も, ここで一つずつ語ります. <strong>自然変換</strong> で, 上の対応表を完成させます.</p>
 <div class="note">
 <p><strong>講義で辿る道筋</strong></p>
 <p><strong>今日の到達点:</strong> 関数の合成を法則として読む圏の見方から, <code>fmap</code> を「関数を別の世界でも使える関数へ移す対応」として理解する. <code>Maybe</code> / <code>Either</code> を, 失敗を型で表す実用的な関手として使える.</p>
 <p>板書と本文では, 次の順に進みます.</p>
 <ol type="1">
 <li><a href="#圏の定義">圏の定義</a>と<a href="#圏-hask">Hask</a>: 型, 関数, 合成, <code>id</code>.</li>
-<li><a href="#関手">関手</a>と<a href="#リスト関手と-fmap">リスト関手と <code>fmap</code></a>: 射の対応と Haskell の <code>Functor</code>.</li>
+<li><a href="#関手">関手</a>と<a href="#リスト関手と型クラス-functor">型クラス Functor</a>: 射の対応と Haskell の <code>Functor</code>.</li>
 <li><a href="#maybe">Maybe</a>, <a href="#either">Either</a>, <a href="#maybe-either-の基本操作">基本操作</a>: 失敗を明示した計算. <a href="#exercise-ch9-2">Exercise CH9-2</a>, <a href="#exercise-ch9-3">Exercise CH9-3</a></li>
 <li><a href="#自然変換">自然変換</a>: 型によらない一様な変換. <a href="#exercise-ch9-5">Exercise CH9-5</a></li>
 </ol>
@@ -186,7 +186,7 @@
 </div>
 <h1 id="圏">圏</h1>
 <h2 id="圏の定義">圏の定義</h2>
-<p>この節で作る道具が, どんな計算の需要に応えるのかを先に述べます. <a href="fp4.html">第4章</a>以来, 私たちは <code>g . f</code> と書けば関数がつながり, <code>id</code> を挟んでも何も変わらないことを当たり前に使ってきました. プログラムを「小さな関数の合成」として設計するこのやり方を支えているのは, 結合律と恒等律という 2 つの法則です. 本節は, この「当たり前」を組 + 法則として明文化した構造に名前を与えます. それが圏です.</p>
+<p><a href="fp4.html">第4章</a>以来, 私たちは <code>g . f</code> と書けば関数がつながり, <code>id</code> を挟んでも何も変わらないことを当たり前に使ってきました. プログラムを「小さな関数の合成」として設計するこのやり方を支えているのは, 結合律と恒等律という 2 つの法則です. 圏とは, この「当たり前」を組 + 法則として明文化した構造です.</p>
 <p><a href="fp8.html">第8章</a>では, モノイドを「組 <span class="math inline">(S, \bullet, e)</span> であって, 結合律・単位元律という法則を満たすもの」として定義しました. 圏もまったく同じ流儀で定義します. 変わるのは <strong>演算が乗る台</strong> です. モノイドでは「値の集まり <span class="math inline">S</span>」の上に演算 <span class="math inline">\bullet</span> を載せましたが, 圏では <strong>「射 (写像) の集まり」の上に合成という演算を載せます</strong>. <a href="fp7.html">第7章</a>で型を集合とみなしたときの「集合のあいだの写像」たち, それ自体を今度は材料 (台) にするわけです.</p>
 <p><strong>圏 (category)</strong> とは, 組</p>
 <p><span class="math display">(\mathrm{Ob},\ \mathrm{Mor};\ \mathrm{dom},\ \mathrm{cod},\ \circ)</span></p>
@@ -455,12 +455,13 @@
 <li><strong>カリー化</strong> (<a href="fp5.html">第5章</a>) はこの積形のもう 1 つの顔で, <code>(a, a) -&gt; a</code> と <code>a -&gt; a -&gt; a</code> を行き来させます. 数学の一般論では積形 <span class="math inline">A^n \to A</span> を使うのが標準です.</li>
 <li><strong>関係</strong> (<span class="math inline">R \subseteq A \times A</span>, <a href="fp7.html">第7章</a>) は「<code>Bool</code> への射」<span class="math inline">A \times A \to \mathrm{Bool}</span> として表せます. <a href="fp8.html">第8章</a>の「関係 = <code>Bool</code> への 2 項演算」の読み替えは, <code>Bool</code> という対象が圏の中に実在することを使った表現でした.</li>
 </ul>
-<p>仕上げに 1 つ予告を. <a href="fp7.html">第7章</a>の再帰的データ型では, 構成子の束 (たとえば <code>Nat</code> の 0 項演算 <code>Zero</code> と 1 項演算 <code>Succ</code>) を生成作用素 <span class="math inline">\Phi</span> に畳み込みました. 圏論ではこれをさらに進め, アリティのばらばらな演算たちを直和で束ねて <strong>たった 1 本の射</strong> <span class="math inline">\alpha : F(A) \to A</span> にします (<code>Nat</code> なら <span class="math inline">\alpha = [\texttt{Zero}, \texttt{Succ}] : () + \mathrm{Nat} \to \mathrm{Nat}</span>). この <span class="math inline">F</span> は本節の次に学ぶ <strong>関手</strong> であり, この形の組 <span class="math inline">(A, \alpha)</span> は <strong><span class="math inline">F</span>-代数</strong>, その中で最初に出来上がるものは <strong>始代数 (initial algebra)</strong> と呼ばれます. 「再帰的データ型 = 生成作用素の最小不動点」の圏論版です (名前だけ挙げておきます. <a href="fp10.html">第10章</a>のモナドの単位 <span class="math inline">\eta : \mathrm{Id} \Rightarrow T</span> も, 実は「単位対象からの射としての 0 項演算」パターンの再演です).</p>
+<p><a href="fp7.html">第7章</a>の再帰的データ型では, 構成子の束 (たとえば <code>Nat</code> の 0 項演算 <code>Zero</code> と 1 項演算 <code>Succ</code>) を生成作用素 <span class="math inline">\Phi</span> に畳み込みました. 圏論ではこれをさらに進め, アリティのばらばらな演算たちを直和で束ねて <strong>たった 1 本の射</strong> <span class="math inline">\alpha : F(A) \to A</span> にします (<code>Nat</code> なら <span class="math inline">\alpha = [\texttt{Zero}, \texttt{Succ}] : () + \mathrm{Nat} \to \mathrm{Nat}</span>). この <span class="math inline">F</span> は本節の次に学ぶ <strong>関手</strong> であり, この形の組 <span class="math inline">(A, \alpha)</span> は <strong><span class="math inline">F</span>-代数</strong>, その中で最初に出来上がるものは <strong>始代数 (initial algebra)</strong> と呼ばれます. 「再帰的データ型 = 生成作用素の最小不動点」の圏論版です (名前だけ挙げておきます. <a href="fp10.html">第10章</a>のモナドの単位 <span class="math inline">\eta : \mathrm{Id} \Rightarrow T</span> も, 実は「単位対象からの射としての 0 項演算」パターンの再演です).</p>
 </div>
-<h2 id="関手">関手</h2>
-<p>まず需要側から入ります. <a href="fp4.html">第4章</a>の <code>map f</code> は「リストの中身にだけ <code>f</code> を当てる」操作でした. 同じことを <code>Maybe</code> の中身にも, ツリーの中身にもしたい. しかも容器ごとに別々の書き方を覚えるのではなく, 「中身への適用」を 1 つの共通の操作として持ちたい. この需要に応える道具が, 本節の関手です.</p>
-<p><a href="fp8.html">第8章</a>の準同型の章では, 構造を保つ写像を「集合の対応であって, <strong>構造の成分を対応先の成分に写すもの</strong>」として一般化し, モノイド準同型 (演算と単位元を保つ)・単調写像 (順序を保つ) などを 1 つの表に並べました. 圏も「組 + 法則」で定義された構造ですから, 同じ発想で「圏の構造 (<strong>合成と恒等射</strong>) を保つ写像」が考えられるはずです. それが <strong>関手 (functor)</strong> で, 冒頭の階段の 3 段目にあたります. ただし, いきなり一般の定義や Haskell の型クラスから入るのはやめて, まず <strong>関手そのものを具体的に 2 つ, 手で構成して</strong> みます. あとで見るとおり, Haskell に型クラスとして用意されているのは関手のうち特殊なケースだけ (<a href="fp8.html">第8章</a>でマグマや群に標準クラスが無かったのと同じ事情) だからです.</p>
-<h3 id="最初の関手">最初の関手</h3>
+<h1 id="関手">関手</h1>
+<h2 id="中身への適用を共通化したい">中身への適用を共通化したい</h2>
+<p><a href="fp4.html">第4章</a>の <code>map f</code> は「リストの中身にだけ <code>f</code> を当てる」操作でした. 同じことを <code>Maybe</code> の中身にも, ツリーの中身にもしたい. しかも容器ごとに別々の書き方を覚えるのではなく, 「中身への適用」を 1 つの共通の操作として持ちたい. この需要に応える道具が関手です.</p>
+<p><a href="fp8.html">第8章</a>の準同型の章では, 構造を保つ写像を「集合の対応であって, <strong>構造の成分を対応先の成分に写すもの</strong>」として一般化し, モノイド準同型 (演算と単位元を保つ)・単調写像 (順序を保つ) などを 1 つの表に並べました. 圏も「組 + 法則」で定義された構造ですから, 同じ発想で「圏の構造 (<strong>合成と恒等射</strong>) を保つ写像」が考えられるはずです. それが <strong>関手 (functor)</strong> で, 冒頭の階段の 3 段目にあたります. Haskell に型クラスとして用意されているのは関手のうち特殊なケースだけ (<a href="fp8.html">第8章</a>でマグマや群に標準クラスが無かったのと同じ事情) なので, 一般の定義や型クラスからではなく, まず <strong>関手そのものを具体的に 2 つ, 手で構成する</strong> ところから入ります.</p>
+<h2 id="最初の関手">最初の関手</h2>
 <p>1 つ目の材料は, 前節で作ったばかりの <strong>リストの一点圏</strong> です. 行き先として, もう 1 つモノイドを一点圏に読み替えておきます. <a href="fp8.html">第8章</a>の加算モノイド <span class="math inline">(\mathrm{Int}, +, 0)</span> です (<span class="math inline">\mathrm{Ob} = \{\star\}</span>, <span class="math inline">\mathrm{Mor} =</span> 各整数, 合成 <span class="math inline">= +</span>, 恒等射 <span class="math inline">= 0</span>).</p>
 <p>この 2 つの圏の間の対応 <span class="math inline">F</span> を定めます.</p>
 <ul>
@@ -520,7 +521,7 @@
 <li>もう 1 つの法則 (<code>stats [] = mempty</code>) は, <code>stats</code> が <strong>恒等射を保つ</strong> こと.</li>
 </ul>
 <p>つまり <strong>モノイド準同型とは, 一点圏どうしの間の関手</strong> にほかなりません. <a href="fp8.html">第8章</a>で「構造を保つ写像」と呼んでいたものの正体が, これです. <code>mkZ7</code> も, そして <code>fromEnum</code> も, モノイド <span class="math inline">(\mathrm{Bool}, \wedge, \mathrm{True})</span> から <span class="math inline">(\mathrm{Int}, \times, 1)</span> への準同型と読めば (<span class="math inline">\mathrm{fromEnum}\,(x \wedge y) = \mathrm{fromEnum}\,x \times \mathrm{fromEnum}\,y</span> と <span class="math inline">\mathrm{fromEnum}\,\mathrm{True} = 1</span> が成り立ちます. <code>Bool</code> は有限なので全数検査できます), みなこの意味の関手です.</p>
-<h3 id="リストの世界への複写">リストの世界への複写</h3>
+<h2 id="リストの世界への複写">リストの世界への複写</h2>
 <p>一点圏どうしでは, 対象の対応が自明でした. 今度は <strong>対象が複数ある圏</strong> を使って, 対象の対応が本気で働く例を作ります. 出発点は, 「圏 Hask」の節で使った小さな圏 <span class="math inline">\mathcal{C}</span> (対象は <code>Bool</code>, <code>Int</code>, <code>String</code> の 3 つ, 射は <code>fromEnum</code>, <code>show</code>, その合成 <code>show . fromEnum</code>, そして各対象の恒等射 <code>id</code>) です (図2 の世界の一部です). 行き先は, それぞれの型の <strong>リスト版</strong> の世界 <span class="math inline">\mathcal{D}</span> (対象が <code>[Bool]</code>, <code>[Int]</code>, <code>[String]</code> で, 射がその間の関数) とします. どちらも Hask の一部を切り出した圏です.</p>
 <p><span class="math inline">\mathcal{C}</span> から <span class="math inline">\mathcal{D}</span> への対応 <span class="math inline">F</span> を, 2 本立てで定めます. まず <strong>対象の対応</strong> です. 各型に, そのリスト型を割り当てます.</p>
 <table>
@@ -644,7 +645,7 @@
 <span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="fu">map</span> (<span class="fu">show</span> <span class="op">.</span> <span class="fu">fromEnum</span>) [<span class="dt">False</span>, <span class="dt">True</span>])      <span class="co">-- [&quot;0&quot;,&quot;1&quot;]</span></span>
 <span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> ((<span class="fu">map</span> <span class="fu">show</span> <span class="op">.</span> <span class="fu">map</span> <span class="fu">fromEnum</span>) [<span class="dt">False</span>, <span class="dt">True</span>])  <span class="co">-- [&quot;0&quot;,&quot;1&quot;]  (一致)</span></span></code></pre></div>
 <p>一致しました. 各対象に「そのリスト版」を, 各射に「各要素への適用」を割り当てる. これで, 圏 <span class="math inline">\mathcal{C}</span> から圏 <span class="math inline">\mathcal{D}</span> への <strong>関手が 1 つ, 手の中にできました</strong>.</p>
-<h3 id="一般の定義">一般の定義</h3>
+<h2 id="関手の一般定義">関手の一般定義</h2>
 <p>いまの 2 つの構成から個別の事情を取り除くと, そのまま関手の一般定義になります.</p>
 <p>圏は <span class="math inline">\mathrm{Ob}</span> と <span class="math inline">\mathrm{Mor}</span> という <strong>2 つのソート</strong> (2 種類の台) を持つ構造でした. だから, 構造を保つ写像も <strong>ソートごとに 1 本ずつ</strong> 用意するのが筋です. これは<a href="fp8.html">第8章</a>の準同型 (台の対応 1 本 + 保存則) の, 2 ソート版にあたります.</p>
 <p><strong>関手 (functor)</strong> とは, 圏 <span class="math inline">\mathcal{C}</span> から圏 <span class="math inline">\mathcal{D}</span> への <strong>写像の組</strong></p>
@@ -782,8 +783,8 @@
 <text x="356" y="237" font-size="10" opacity="0.7">図2 全体が 1 つの点に潰れる</text>
 </g>
 </svg>
-<h3 id="圏の圏-cat">圏の圏 Cat</h3>
-<p>この節の道具の需要は<a href="fp10.html">第10章</a>で現れます. リストのリスト <code>[[a]]</code> や <code>Maybe (Maybe a)</code> のような「関手を 2 回適用した形」を, それ自体 1 つの対象として扱いたいのです (モナドの乗法 <span class="math inline">\mu : T \circ T \Rightarrow T</span> の材料になります). そのためには「関手どうしを合成する」演算が要ります. その演算が住む場所を, ここで作ります.</p>
+<h2 id="圏の圏-cat">圏の圏 Cat</h2>
+<p>リストのリスト <code>[[a]]</code> や <code>Maybe (Maybe a)</code> のような「関手を 2 回適用した形」は, <a href="fp10.html">第10章</a>で, それ自体 1 つの対象として扱いたくなります (モナドの乗法 <span class="math inline">\mu : T \circ T \Rightarrow T</span> の材料になります). そのためには「関手どうしを合成する」演算が要ります. その演算が住む場所を, ここで作ります.</p>
 <p>図3 のラベルには <strong>圏 Cat</strong> と書きました. 「圏」と名乗るからには, この図の世界自身が圏の定義 (組 + 法則) を満たしていなければなりません. 点 = 圏, 射 = 関手, までは決まっています. 足りない成分は <strong>射の合成</strong> と <strong>恒等射</strong> の 2 つで, どちらもいま手元にある材料から作れます.</p>
 <p><strong>関手は合成できます.</strong> 関手 <span class="math inline">F : \mathcal{C} \to \mathcal{D}</span> と <span class="math inline">G : \mathcal{D} \to \mathcal{E}</span> があれば, 対象の対応どうし・射の対応どうしをそのまま継いだ対応</p>
 <p><span class="math display">G \circ F : \mathcal{C} \to \mathcal{E}, \qquad A \mapsto G\,(F\,A), \qquad f \mapsto G\,(F\,f)</span></p>
@@ -793,7 +794,7 @@
 <p>この「同じ形の関手を重ねた合成」は, <a href="fp10.html">第10章</a>で <code>m (m a)</code> (モナドの演算の材料 <span class="math inline">T \circ T</span>) として主役になります.</p>
 <p><strong>恒等関手 (identity functor).</strong> 各対象を自分自身に (<span class="math inline">A \mapsto A</span>), 各射を自分自身に (<span class="math inline">f \mapsto f</span>) 対応させる対応 <span class="math inline">\mathrm{Id}_{\mathcal{C}} : \mathcal{C} \to \mathcal{C}</span> は, 何もしないがゆえに関手則を自明に満たす関手です. そして関手の合成に対して <span class="math inline">G \circ \mathrm{Id}_{\mathcal{C}} = G</span>, <span class="math inline">\mathrm{Id}_{\mathcal{D}} \circ F = F</span>. つまり <strong>合成の単位</strong> として振る舞います. 恒等関数 <code>id</code> が合成 <code>(.)</code> の単位だったことの, 1 段上での再演です.</p>
 <p>これで成分が揃ったので, 圏の定義と照合できます. <span class="math inline">\mathrm{Ob} = \{\mathcal{C}, \mathcal{D}, \dots\}</span> (圏たち), <span class="math inline">\mathrm{Mor} = \{F,\ G,\ G \circ F,\ \mathrm{Id}_{\mathcal{C}}, \dots\}</span> (関手たち), 合成 = 関手の合成, 恒等射 = 恒等関手. 結合律は「対応を順に継ぐだけ」なので関数合成と同じ理屈で成り立ち, 恒等律はいま確かめたとおりです. つまり <strong>図3 の世界は, それ自身が圏の定義を満たす 1 つの圏</strong> です. 対象が圏, 射が関手の <strong>圏の圏 (category of categories) Cat</strong> です (集合の大きさに関わる厳密な但し書きは, Hask の発展 note と同じく理想化して省きます). 冒頭の階段の 3 段目「圏 Cat: 台 = 関手, 単位 = 恒等関手」は, これで回収されました. 圏を調べるために作った道具 (関手) が, そのまま一段上の圏の射になる. この入れ子こそ, 同じレシピで台を持ち上げ続けられる理由です.</p>
-<h3 id="リスト関手と-fmap">リスト関手と fmap</h3>
+<h2 id="リスト関手と型クラス-functor">リスト関手と型クラス Functor</h2>
 <p>2 つ目に手作りした <span class="math inline">F</span> は, 対象 3 つ・射 4 本に制限した, いわば <strong>ミニチュアのリスト関手</strong> でした. この制限を外し, <strong>すべての型</strong> <code>a</code> に <code>[a]</code> を, <strong>すべての関数</strong> <code>f :: a -&gt; b</code> に <code>map f</code> を割り当てると, Hask から Hask 自身への関手 (<strong>リスト関手</strong>) になります.</p>
 <ul>
 <li><strong>対象の対応</strong>: 型 <code>a</code> を型 <code>[a]</code> へ. これを担うのが型構築子 <code>[]</code> です.</li>
@@ -804,9 +805,7 @@
 <p>Haskell では, この「射の対応」の部分を型クラスにしています. それが <code>Functor</code> クラスで, 射の対応の名前が <code>fmap</code> です. 注意してほしいのは抽象度の段差です. <strong><code>fmap</code> は個々の関手そのものではなく, あらゆる関手の「射の対応」を同じ名前で呼べるようにした一般化</strong> であり, 関手より 1 段抽象的な道具です. 先に関手そのもの (手作りの <span class="math inline">F</span>) を持っているからこそ, この一般化を「何の一般化か」を見失わずに読めます.</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> <span class="dt">Functor</span> f <span class="kw">where</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ot">  fmap ::</span> (a <span class="ot">-&gt;</span> b) <span class="ot">-&gt;</span> f a <span class="ot">-&gt;</span> f b</span></code></pre></div>
-<p><code>fmap</code> は「<code>a</code> から <code>b</code> への関数」を「<code>f a</code> から <code>f b</code> への関数」に持ち上げます. これがまさに「射 <span class="math inline">f : a \to b</span> を <span class="math inline">F\,f : f\,a \to f\,b</span> に対応させる」操作です. 関手が満たすべき <strong>関手則</strong> は, 圏の恒等射と合成を保つことを Haskell の言葉に直したものです.</p>
-<p><span class="math display">\mathrm{fmap}\ \mathrm{id} = \mathrm{id}, \qquad \mathrm{fmap}\ (g \circ h) = \mathrm{fmap}\ g \circ \mathrm{fmap}\ h</span></p>
-<p>つまり <code>fmap</code> は, リスト専用だった <code>map</code> を <strong>任意の関手に一般化</strong> したものです. <code>map</code> の型 <code>(a -&gt; b) -&gt; [a] -&gt; [b]</code> の <code>[]</code> を一般の型構築子 <code>f</code> で置き換えると, ちょうど <code>fmap :: (a -&gt; b) -&gt; f a -&gt; f b</code> になります.</p>
+<p><code>fmap</code> は「<code>a</code> から <code>b</code> への関数」を「<code>f a</code> から <code>f b</code> への関数」に持ち上げます. これがまさに「射 <span class="math inline">f : a \to b</span> を <span class="math inline">F\,f : f\,a \to f\,b</span> に対応させる」操作です. つまり <code>fmap</code> は, リスト専用だった <code>map</code> を <strong>任意の関手に一般化</strong> したものです. <code>map</code> の型 <code>(a -&gt; b) -&gt; [a] -&gt; [b]</code> の <code>[]</code> を一般の型構築子 <code>f</code> で置き換えると, ちょうど <code>fmap :: (a -&gt; b) -&gt; f a -&gt; f b</code> になります.</p>
 <p><span class="math display">\underbrace{(a \to b) \to [a] \to [b]}_{\text{map (リスト専用)}} \;\;\Longrightarrow\;\; \underbrace{(a \to b) \to f\,a \to f\,b}_{\text{fmap (任意の関手)}}</span></p>
 <p>読み方はここまでと同じで, <strong><code>fmap</code> は「<code>f</code> を適用する前の世界で使う関数 <code>a -&gt; b</code> を, 適用した後の世界で使える関数 <code>f a -&gt; f b</code> に変換する」道具</strong> です. 最初の例と見比べてください. <code>length</code> が「リストの世界の射」を「整数の世界の射」に写したように, <code>fmap</code> は「<code>a</code> の世界の射」を「<code>f a</code> の世界の射」に写します. 射の対応 = 関数の変換です. 変換のしかたは関手ごとに決まります. リストなら「各要素に適用する関数」へ, 後で見る <code>Maybe</code> なら「<code>Just</code> の中身には適用し <code>Nothing</code> は素通しする関数」へ, 木なら「各ノードに適用する関数」へ.</p>
 <p>リストの <code>fmap</code> の中身は, <a href="fp4.html">第4章</a> の <code>map</code> の再帰定義をそのまま書いたものです. 組込みのインスタンスと同じ定義を <code>fmapList</code> として書き下し, <code>fmap</code>・<code>map</code> と一致することを確かめます.</p>
@@ -876,11 +875,15 @@
 <div class="note">
 <p><strong>よく見る「<code>f</code> は箱」という説明について.</strong> 入門記事ではしばしば, <code>Functor</code> を「箱 (容器) の中身に関数を適用するもの」という比喩で説明します. 本講義ではこの比喩を <strong>採用しません</strong>. 理由は 2 つあります. (1) 比喩が成り立たないインスタンスがあるからです. たとえば <code>f a = r -&gt; a</code> (「<code>r</code> を読んで <code>a</code> を返す関数」を包んだ型. <code>fmap</code> は関数合成) は立派な <code>Functor</code> ですが箱ではありませんし, 「任意の値を箱に入れる操作」<code>a -&gt; f a</code> は <code>Functor</code> の要件ですらありません (それが要求されるのは<a href="fp10.html">第10章</a>の <code>pure</code> (モナドの単位 <span class="math inline">\eta</span>) からです). (2) より一貫した読み方がすでに手元にあるからです. 関手とは <strong>射の対応</strong> であり, <code>fmap</code> は「適用前の世界の関数を, 適用後の世界で使える関数へ変換するもの」. この読み方なら, <code>length</code> (一点圏どうし) にも <code>Maybe</code> にも <code>r -&gt; a</code> にも, 同じ言葉がそのまま通ります.</p>
 </div>
-<div class="warn">
-<p><code>Functor</code> クラスも, <code>Semigroup</code> などと同様に <strong>関手則をコンパイラは検査しません</strong>. 関手則を破る <code>fmap</code> (たとえば木の形を変えてしまうもの) を書いてもコンパイルは通ります. 法則を守るのはプログラマの責任です (<a href="fp8.html">第8章</a>のコラムで触れた QuickCheck で, <code>fmap id == id</code> などを性質として確認できます).</p>
-</div>
 <div class="note">
 <p><code>fmap</code> には中置演算子 <code>(&lt;$&gt;)</code> という別名があり, <code>(&lt;$&gt;) = fmap</code> です. <code>(+1) &lt;$&gt; Just 3</code> は <code>fmap (+1) (Just 3)</code> と同じで <code>Just 4</code> を返します. 関数適用 <code>$</code> の関手版という見立てで, 実務ではこちらもよく使われます.</p>
+</div>
+<h2 id="関手則">関手則</h2>
+<p><a href="fp8.html">第8章</a>の代数則と同じく, <code>Functor</code> インスタンスにも守るべき法則があります. <strong>関手則 (functor laws)</strong> といい, 「関手の一般定義」の節の保存則 (恒等射と合成を保つ) を <code>fmap</code> の言葉に直したものです.</p>
+<p><span class="math display">\mathrm{fmap}\ \mathrm{id} = \mathrm{id}, \qquad \mathrm{fmap}\ (g \circ h) = \mathrm{fmap}\ g \circ \mathrm{fmap}\ h</span></p>
+<p><code>fmap id = id</code> は「各中身に何もしなければ全体も変わらない」, <code>fmap (g . h) = fmap g . fmap h</code> は「持ち上げてから合成しても, 合成してから持ち上げても同じ」という要請です. リスト関手では, <code>map</code> について検査した 2 つの等式がちょうどこの形でした. この後の節で <code>Maybe</code> やツリーのインスタンスを与えるたびに, この 2 本が成り立つことを確認していきます.</p>
+<div class="warn">
+<p><code>Functor</code> クラスも, <code>Semigroup</code> などと同様に <strong>関手則をコンパイラは検査しません</strong>. 関手則を破る <code>fmap</code> (たとえば木の形を変えてしまうもの) を書いてもコンパイルは通ります. 法則を守るのはプログラマの責任です (<a href="fp8.html">第8章</a>のコラムで触れた QuickCheck で, <code>fmap id == id</code> などを性質として確認できます).</p>
 </div>
 <h1 id="多相データ型">多相データ型</h1>
 <p>圏・関手という骨組みは手に入りました. ここからは主役を <strong>モデル (実例)</strong> に移します. <a href="fp8.html">第8章</a>で「モノイド」という 1 つの構造に対して数の加算・リスト連結・<code>Stats</code> という複数のモデルを並べたように, 本部では <strong>「Hask から Hask への関手」のモデル</strong> を一つずつ増やしていきます. 素材は <strong>多相データ型</strong> です. まず型引数を持つデータ型の文法を整え, そのうえで <code>Maybe</code> / <code>Either</code> / リスト / <code>Map</code> / ツリーを順に見ます.</p>
@@ -1578,7 +1581,7 @@
 </details>
 </section>
 <h2 id="関手圏">関手圏</h2>
-<p>需要を先に述べます. <code>maybeToList</code> のような一様変換は, 部品として合成したくなります (変換した結果をさらに別の一様変換へ渡す). 変換どうしの合成が圏の公理を満たすなら, 変換の等式変形 (<a href="fp10.html">第10章</a>のモナド則がその実例です) を圏の言葉で安全に行えます. それを確かめるのが本節です.</p>
+<p><code>maybeToList</code> のような一様変換は, 部品として合成したくなります (変換した結果をさらに別の一様変換へ渡す). 変換どうしの合成が圏の公理を満たすなら, 変換の等式変形 (<a href="fp10.html">第10章</a>のモナド則がその実例です) を圏の言葉で安全に行えます.</p>
 <p>図4 に <strong>関手圏 (functor category)</strong> と名前を付けたからには, Cat のときと同じ宿題が残っています. この世界も本当に圏なのか. 成分は同じ手順で揃います.</p>
 <p><strong>自然変換は合成できます.</strong> <span class="math inline">\alpha : F \Rightarrow G</span> と <span class="math inline">\beta : G \Rightarrow H</span> があれば, 続けて適用する <span class="math inline">\beta \circ \alpha : F \Rightarrow H</span> も自然変換です. Haskell では多相関数どうしの, ただの関数合成です. 実物も手元にあります. <code>listToMaybe</code> (<code>[] ⇒ Maybe</code>) と <code>maybeToList</code> (<code>Maybe ⇒ []</code>) を継ぐと, 「先頭 1 要素だけ残す」という <code>[]</code> から <code>[]</code> への自然変換になります.</p>
 <div class="sourceCode" id="cb49"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>ghci<span class="op">&gt;</span> (maybeToList <span class="op">.</span> listToMaybe) [<span class="dv">10</span>, <span class="dv">20</span>, <span class="dv">30</span>]</span>
@@ -3144,7 +3147,7 @@ stats []         = mempty                     -- 空リストを単位元に写�
     <description><![CDATA[<h1 id="代数的データ型と関係-集合論">代数的データ型と関係 (集合論)</h1>
 <p>Haskell のデータ型はすべて <strong>代数的データ型</strong> です. 代数的データ型には, <strong>列挙型</strong>, <strong>直積型</strong>, <strong>直和型</strong> があり, 構文として <strong>レコード構文</strong> などが存在します.</p>
 <p>代数的データ型は文字通り, 数学における代数の構造を参照したデータ型であり, 代数的な定義と対応させることで様々なことが可能となります. 代数学を理解するためにはまず, 集合論の基礎を理解している必要があります. 本章では, 集合論と対応させる形で, 代数的データ型とは何であるかを理解することを目指します.</p>
-<p>本章は 2 部構成です. <strong>前半</strong> では型を集合とみなし, 集合を <strong>作る</strong> 道具 (列挙・直積・直和・再帰) と Haskell のデータ型定義を対応させます. <strong>後半</strong> では集合の <strong>間</strong> のつながり — <strong>関係</strong>, そしてその特別な場合としての関数・同値関係・順序関係 — を扱います. 後半は次章の型クラス (Eq・Ord) の数学的な土台になります.</p>
+<p>本章は 2 部構成です. <strong>前半</strong> では型を集合とみなし, 集合を <strong>作る</strong> 道具 (列挙・直積・直和・再帰) と Haskell のデータ型定義を対応させます. <strong>後半</strong> では集合の <strong>間</strong> のつながり, すなわち <strong>関係</strong> と, その特別な場合としての関数・同値関係・順序関係を扱います. 後半は次章の型クラス (Eq・Ord) の数学的な土台になります.</p>
 <p>本章の地図として, 集合論と Haskell の対応をまとめておきます (それぞれ対応する節で説明します).</p>
 <table>
 <colgroup>
@@ -3212,10 +3215,10 @@ stats []         = mempty                     -- 空リストを単位元に写�
 <p><strong>今日の到達点:</strong> 型を「値の集まり」として読み, 直積・直和・再帰で対象の構造を記述できる. さらに, 対象間の関係を法則で区別できる.</p>
 <p>板書と本文では, 次の順に進みます.</p>
 <ol type="1">
-<li><a href="#集合と列挙型">集合と列挙型</a> — 型・値・パターンマッチ. <a href="#exercise-ch7-1">Exercise CH7-1</a></li>
-<li><a href="#直積型">直積型</a>と<a href="#直和型">直和型</a> — フィールドを併せ持つ対象と, 場合によって形が異なる対象.</li>
-<li><a href="#再帰的データ型">再帰的データ型</a> — 有限の定義から列や木のように大きくなれる対象を作る.</li>
-<li><a href="#関係-直積の部分集合">関係</a>・<a href="#同値関係-同じの一般化">同値関係</a>・<a href="#順序関係-並べるの一般化">順序関係</a> — <code>Eq</code> / <code>Ord</code> の数学的な前提. <a href="#exercise-ch7-6">Exercise CH7-6</a>, <a href="#exercise-ch7-7">Exercise CH7-7</a></li>
+<li><a href="#集合と列挙型">集合と列挙型</a>: 型・値・パターンマッチ. <a href="#exercise-ch7-1">Exercise CH7-1</a></li>
+<li><a href="#直積型">直積型</a>と<a href="#直和型">直和型</a>: フィールドを併せ持つ対象と, 場合によって形が異なる対象.</li>
+<li><a href="#再帰的データ型">再帰的データ型</a>: 有限の定義から列や木のように大きくなれる対象を作る.</li>
+<li><a href="#関係-直積の部分集合">関係</a>・<a href="#同値関係-同じの一般化">同値関係</a>・<a href="#順序関係-並べるの一般化">順序関係</a>: <code>Eq</code> / <code>Ord</code> の数学的な前提. <a href="#exercise-ch7-6">Exercise CH7-6</a>, <a href="#exercise-ch7-7">Exercise CH7-7</a></li>
 </ol>
 <p>必要になったときに本文へ戻る節: <a href="#述語と量化-集合を条件で語る">述語と量化</a>, <a href="#内包表記-述語で部分集合を切り出す">内包表記</a>, レコードの細部, <code>type</code> / <code>newtype</code>, スマートコンストラクタ, 演算の一般のアリティ.</p>
 </div>
@@ -3360,7 +3363,7 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 <p>列挙型では各コンストラクタを直接パターンマッチで場合分けでき, <code>_</code>(ワイルドカード)を使うと残り全てをまとめて扱えます.</p>
 </details>
 </section>
-<h2 id="述語と量化-集合を条件で語る">述語と量化 — 集合を条件で語る</h2>
+<h2 id="述語と量化-集合を条件で語る">述語と量化: 集合を条件で語る</h2>
 <p>外延表記は, 要素を書き並べる方法でした. しかし「1 以上 10 以下の偶数」のように, 要素を <strong>条件</strong> で指定したいことも多くあります. その基礎になるのが <strong>述語</strong> です.</p>
 <p>要素 <span class="math inline">x</span> について真偽が定まる主張を <strong>述語(predicate)</strong> といいます. たとえば「<span class="math inline">x</span> は偶数である」「<span class="math inline">x \leq 5</span> である」は, <span class="math inline">x</span> が決まれば真偽の定まる述語です. 述語 <span class="math inline">p(x)</span> は <span class="math inline">x</span> が決まらなければ真偽が定まりませんが, 集合 <span class="math inline">X</span> の要素すべて / いずれかについて述べると, 真偽の定まる <strong>命題</strong> になります. その作り方が次の 2 つです.</p>
 <ul>
@@ -3399,16 +3402,16 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 <text x="330" y="128">z</text>
 </g>
 <g fill="currentColor" font-size="12" text-anchor="middle">
-<text x="230" y="228">T の要素 (x, y) はどれも自動的に S の要素 — T ⊂ S</text>
+<text x="230" y="228">T の要素 (x, y) はどれも自動的に S の要素 (T ⊂ S)</text>
 <text x="230" y="246" opacity="0.72">z のように「S にはあるが T にはない」要素があってもよい</text>
 </g>
 </svg>
 <p>集合 <span class="math inline">X</span> と述語 <span class="math inline">p</span> が与えられると, ｢<span class="math inline">X</span> の要素のうち <span class="math inline">p</span> を満たすもの｣という部分集合がひとつ定まります. この部分集合を書き下すための記法が, 次節の <strong>内包表記</strong> です.</p>
-<h2 id="内包表記-述語で部分集合を切り出す">内包表記 — 述語で部分集合を切り出す</h2>
+<h2 id="内包表記-述語で部分集合を切り出す">内包表記: 述語で部分集合を切り出す</h2>
 <p>列挙型において見た <strong>外延表記</strong> に対して, <strong>内包表記</strong> とは, 集合を述語によって指定する方法です.</p>
 <p><span class="math inline">x</span> の属する集合を <span class="math inline">X</span>, 条件式 (述語) を <span class="math inline">p(x)</span> とすると, 内包表記では</p>
 <p><span class="math display">S = \{x \mid x \in X, p(x)\}</span></p>
-<p>という記法で, ｢<strong><span class="math inline">X</span> の要素のうち <span class="math inline">p(x)</span> を満たす要素のみからなる集合 <span class="math inline">S</span></strong>｣ — すなわち述語 <span class="math inline">p</span> で切り出した <span class="math inline">X</span> の部分集合 — を定義します.</p>
+<p>という記法で, ｢<strong><span class="math inline">X</span> の要素のうち <span class="math inline">p(x)</span> を満たす要素のみからなる集合 <span class="math inline">S</span></strong>｣, すなわち述語 <span class="math inline">p</span> で切り出した <span class="math inline">X</span> の部分集合を定義します.</p>
 <p>例として, <span class="math inline">\mathbb{R}^+</span> を非負の実数としたとき, <span class="math inline">5</span> 以下の非負の実数は</p>
 <p><span class="math display">\{x \mid x \in \mathbb{R}^+, x \leq 5\}</span></p>
 <p>と書けます.</p>
@@ -3433,7 +3436,7 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 <p>ただし, リスト内包表記は <strong>値のレベル</strong> での構成であり, 得られるのはあくまで <code>[Int]</code> などのリストです. 「型として偶数のみからなる新しいデータ型」を定義しているわけではない点に注意してください.</p>
 <div class="warn">
 <p>ここではリスト内包表記を集合の内包表記の <strong>比喩</strong> として紹介していますが, リストと集合は別物です. リストには <strong>順序があり, 同じ要素を重複して含むことができ, 要素の等価性も個別に比較する必要があります</strong>. 一方, 数学における集合は順序を持たず, 同じ要素を重複して含むこともありません. リストが <strong>再帰的データ型</strong> としてどう定義されるかは本章の「<a href="#再帰的データ型">再帰的データ型</a>」で, それを任意の要素型へ一般化し代数構造 (モノイド) を載せる話は <a href="fp9.html">第9章</a> で扱います.</p>
-<p>したがって, 実際に <strong>集合としての操作</strong> (要素の存在判定, 和集合 <span class="math inline">\cup</span>, 積集合 <span class="math inline">\cap</span>, 差集合 <span class="math inline">\setminus</span>, 重複の自動排除など) が必要な場合は, リストではなく <code>containers</code> パッケージの提供する <code>Data.Set</code> の <code>Set</code> 型を利用するほうが適切であり, 計算量の面でも有利です (リストの要素検索は <span class="math inline">O(n)</span>, <code>Set</code> は <span class="math inline">O(\log n)</span> — この差の読み方は <a href="fp_a1.html">補足A</a> 参照).</p>
+<p>したがって, 実際に <strong>集合としての操作</strong> (要素の存在判定, 和集合 <span class="math inline">\cup</span>, 積集合 <span class="math inline">\cap</span>, 差集合 <span class="math inline">\setminus</span>, 重複の自動排除など) が必要な場合は, リストではなく <code>containers</code> パッケージの提供する <code>Data.Set</code> の <code>Set</code> 型を利用するほうが適切であり, 計算量の面でも有利です (リストの要素検索は <span class="math inline">O(n)</span>, <code>Set</code> は <span class="math inline">O(\log n)</span> であり, この差の読み方は <a href="fp_a1.html">補足A</a> 参照).</p>
 <div class="sourceCode" id="cb13"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="kw">qualified</span> <span class="dt">Data.Set</span> <span class="kw">as</span> <span class="dt">Set</span></span>
 <span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>a,<span class="ot"> b ::</span> <span class="dt">Set.Set</span> <span class="dt">Int</span></span>
@@ -3490,8 +3493,8 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 <h3 id="有限集合での-の機械検査">有限集合での ∀・∃ の機械検査</h3>
 <p>述語と量化の節で導入した <span class="math inline">\forall</span> / <span class="math inline">\exists</span> は, 集合が <strong>有限</strong> であれば Haskell で機械的に検査できます. 道具は 2 つの標準関数です.</p>
 <ul>
-<li><code>and :: [Bool] -&gt; Bool</code> — リストの要素が <strong>すべて</strong> <code>True</code> のとき <code>True</code></li>
-<li><code>or  :: [Bool] -&gt; Bool</code> — リストの要素の <strong>どれかが</strong> <code>True</code> のとき <code>True</code></li>
+<li><code>and :: [Bool] -&gt; Bool</code>: リストの要素が <strong>すべて</strong> <code>True</code> のとき <code>True</code></li>
+<li><code>or  :: [Bool] -&gt; Bool</code>: リストの要素の <strong>どれかが</strong> <code>True</code> のとき <code>True</code></li>
 </ul>
 <p><a href="fp6.html">第6章</a>の fold の言葉で言えば <code>and = foldr (&amp;&amp;) True</code>, <code>or = foldr (||) False</code> です. これをリスト内包表記と組み合わせると, 全称命題と存在命題の有限版がそのまま書けます.</p>
 <p><span class="math display">\forall x \in X.\ p(x) \;\approx\; \texttt{and [ p x | x &lt;- xs ]}, \qquad \exists x \in X.\ p(x) \;\approx\; \texttt{or [ p x | x &lt;- xs ]}</span></p>
@@ -3560,8 +3563,8 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 <text x="425" y="186">(y,2)</text>
 <text x="510" y="186">(z,2)</text>
 </g>
-<text x="425" y="205" fill="currentColor" font-size="11" text-anchor="middle" opacity="0.72">A = {x, y, z} と B = {1, 2} の組 — |A × B| = 3 × 2 = 6</text>
-<text x="280" y="240" fill="currentColor" font-size="12" text-anchor="middle">字面は似ているが別物 — 積集合は「共通の要素」の集合, 直積は「組 (ペア)」の集合</text>
+<text x="425" y="205" fill="currentColor" font-size="11" text-anchor="middle" opacity="0.72">A = {x, y, z} と B = {1, 2} の組 (|A × B| = 3 × 2 = 6)</text>
+<text x="280" y="240" fill="currentColor" font-size="12" text-anchor="middle">字面は似ているが別物 (積集合は「共通の要素」の集合, 直積は「組 (ペア)」の集合)</text>
 </svg>
 <p>事例として <span class="math inline">\mathrm{MyDogs}</span> と整数の集合 <span class="math inline">\mathbb{Z}</span> の直積を考えると,</p>
 <p><span class="math display">\mathrm{MyDogs} \times \mathbb{Z} = \{(d, n) \mid d \in \mathrm{MyDogs}, n \in \mathbb{Z}\}</span></p>
@@ -3594,7 +3597,7 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 <p>となります. <code>MkDogAge</code> は2つの集合の要素を一組にまとめる対応</p>
 <p><span class="math display">\mathrm{MkDogAge} : \mathrm{MyDogs} \times \mathrm{Int} \to \mathrm{DogAge}, \quad (d, n) \mapsto \mathrm{MkDogAge}\,d\,n</span></p>
 <p>に対応します.</p>
-<h3 id="数え上げ-代数的の意味-その1">数え上げ — 「代数的」の意味 (その1)</h3>
+<h3 id="数え上げ-代数的の意味-その1">数え上げ: 「代数的」の意味 (その1)</h3>
 <p>列挙型は要素を数えられます. 型 <span class="math inline">A</span> の要素数 (集合の大きさ) を <span class="math inline">|A|</span> と書くと, <span class="math inline">|\mathrm{MyDogs}| = 5</span>, <span class="math inline">|\mathrm{Bool}| = 2</span> です. では直積の大きさはどうなるでしょうか. 組 <span class="math inline">(a, b)</span> の作り方は「<span class="math inline">a</span> の選び方 <span class="math inline">|A|</span> 通り × <span class="math inline">b</span> の選び方 <span class="math inline">|B|</span> 通り」なので,</p>
 <p><span class="math display">|A \times B| = |A| \cdot |B|</span></p>
 <p>となります. <strong>直積の大きさは掛け算</strong> です. 実際に Haskell で確かめてみましょう. 全要素の列挙には, リスト内包表記のジェネレータ 2 本 (= 直積の走査) がそのまま使えます.</p>
@@ -3620,7 +3623,7 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 </div>
 <h3 id="パターンマッチによる更新と-as-パターン">パターンマッチによる更新と as パターン</h3>
 <p>直積型の値から <strong>一部だけを変えた値</strong> が欲しいことはよくあります. Haskell では値は不変 (再代入できない) なので, ここでの「更新」とは元の値を書き換えることではなく, <strong>一部を変えた新しい値を作って返す</strong> ことを指します.</p>
-<p>レコード構文を導入する前に, まず素朴な方法 — <strong>パターンマッチで全フィールドを取り出し, コンストラクタで組み立て直す</strong> — を見ておきましょう. <code>DogAge</code> の年齢を 1 増やす関数は次のように書けます.</p>
+<p>レコード構文を導入する前に, まず素朴な方法を見ておきましょう. <strong>パターンマッチで全フィールドを取り出し, コンストラクタで組み立て直す</strong> やり方です. <code>DogAge</code> の年齢を 1 増やす関数は次のように書けます.</p>
 <div class="sourceCode" id="cb20"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="ot">growOlder ::</span> <span class="dt">DogAge</span> <span class="ot">-&gt;</span> <span class="dt">DogAge</span></span>
 <span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>growOlder (<span class="dt">MkDogAge</span> b n) <span class="ot">=</span> <span class="dt">MkDogAge</span> b (n <span class="op">+</span> <span class="dv">1</span>)</span></code></pre></div>
 <p>変えたいのは年齢 <code>n</code> だけですが, <strong>変えないフィールド <code>b</code> まで明示的に取り出して並べ直す</strong> 必要があります. フィールド数が増えるほど記述は長くなり, さらに <code>MkDogAge b (n + 1)</code> は <strong>フィールドの順序に依存する</strong> ため, 将来 <code>data</code> 定義のフィールドを並べ替えると意味が静かに壊れます. この「全部書き直す」「順序に縛られる」という弱点は, 次節の <strong>レコード更新構文</strong> で解消されます.</p>
@@ -3707,7 +3710,7 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 <span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>ghci<span class="op">&gt;</span> dogAge (<span class="dt">JustBreed</span> <span class="dt">GoldenRetriever</span>)</span>
 <span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a><span class="op">***</span> <span class="dt">Exception</span><span class="op">:</span> <span class="dt">No</span> match <span class="kw">in</span> record selector dogAge</span></code></pre></div>
-<p><code>dogAge</code> は <code>WithAge</code> のコンストラクタにしか定義されていないため, <code>JustBreed</code> の値に適用すると実行時エラーになります. 直和型でレコード構文を使う場合は, アクセサで直接取り出すのではなく <strong>パターンマッチで取り出す</strong> か, 後の章で扱う <code>Maybe</code> を返す形に包み直すのが安全です. この「一部の入力で結果が定義されない関数」については, 本章後半の「関数 — 特別な関係」の節でもう一度立ち返ります.</p>
+<p><code>dogAge</code> は <code>WithAge</code> のコンストラクタにしか定義されていないため, <code>JustBreed</code> の値に適用すると実行時エラーになります. 直和型でレコード構文を使う場合は, アクセサで直接取り出すのではなく <strong>パターンマッチで取り出す</strong> か, 後の章で扱う <code>Maybe</code> を返す形に包み直すのが安全です. この「一部の入力で結果が定義されない関数」については, 本章後半の「関数: 特別な関係」の節でもう一度立ち返ります.</p>
 </div>
 <section id="exercise-ch7-3" class="note">
 <h3>Exercise CH7-3</h3>
@@ -3831,7 +3834,7 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 <p>という <strong>直和</strong> になります. 一般に, 代数的データ型の <code>|</code> で分けたコンストラクタは必ずタグで区別されるため, Haskell の直和型は常に直和の構造を持ちます.</p>
 <p>なお, データ構築子は任意個の引数を取ることができ, <code>MkPair Int MyDogs</code> のように複数の型を並べると, その部分は <strong>直積</strong> になります. つまり直和型の各コンストラクタは「いくつかの直積をタグ付きで合流させたもの」として解釈できます.</p>
 <p>このように, 直和にすることで互いに異なる型の値を一つの型に集約でき, 型安全性を保ったまま「複数の型のいずれかをとる値」を表現できるようになります. 動的型付け言語におけるダックタイピングに似た柔軟さを, 型システムの保証を壊さずに実現する手段と考えることができます.</p>
-<h3 id="数え上げ-代数的の意味-その2">数え上げ — 「代数的」の意味 (その2)</h3>
+<h3 id="数え上げ-代数的の意味-その2">数え上げ: 「代数的」の意味 (その2)</h3>
 <p>直和の大きさも数えてみましょう. タグで区別されるため要素が重複することはなく, 選び方は「<span class="math inline">A</span> から選ぶ <span class="math inline">|A|</span> 通り, または <span class="math inline">B</span> から選ぶ <span class="math inline">|B|</span> 通り」なので,</p>
 <p><span class="math display">|A + B| = |A| + |B|</span></p>
 <p>となります (直和を <span class="math inline">A + B</span> とも書きます). <strong>直和の大きさは足し算</strong> です.</p>
@@ -3845,7 +3848,7 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 <span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
 <span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> <span class="op">$</span> <span class="fu">length</span> allDogOrSize   <span class="co">-- 8  (= 5 + 3)</span></span></code></pre></div>
-<p>さらに, 本章冒頭で見た <code>Unit</code> 型 <code>()</code> は要素がちょうど 1 つ (<span class="math inline">|()| = 1</span>), <code>Void</code> は要素が 0 個 (<span class="math inline">|\mathrm{Void}| = 0</span>) でした. これで型の世界に <strong>0, 1, 足し算 (直和), 掛け算 (直積)</strong> が揃ったことになります. これが「<strong>代数的</strong> データ型」という名前の由来です — 型は数のように「計算」できる対象なのです.</p>
+<p>さらに, 本章冒頭で見た <code>Unit</code> 型 <code>()</code> は要素がちょうど 1 つ (<span class="math inline">|()| = 1</span>), <code>Void</code> は要素が 0 個 (<span class="math inline">|\mathrm{Void}| = 0</span>) でした. これで型の世界に <strong>0, 1, 足し算 (直和), 掛け算 (直積)</strong> が揃ったことになります. これが「<strong>代数的</strong> データ型」という名前の由来です. 型は数のように「計算」できる対象なのです.</p>
 <div class="note">
 <p>発展として, 関数型 <code>A -&gt; B</code> の要素数は <span class="math inline">|B|^{|A|}</span> (指数) になります. たとえば <code>Bool -&gt; Bool</code> の関数は <span class="math inline">2^2 = 4</span> 通りしかありません (恒等, 反転, 常に <code>True</code>, 常に <code>False</code>). また <span class="math inline">|A \times ()| = |A| \cdot 1 = |A|</span>, <span class="math inline">|A + \mathrm{Void}| = |A| + 0 = |A|</span> のように, 数の代数法則 (1 を掛けても 0 を足しても変わらない) がそのまま型の対応として現れます.</p>
 </div>
@@ -3899,22 +3902,22 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 </details>
 </section>
 <h2 id="再帰的データ型">再帰的データ型</h2>
-<p>ここまでのデータ型 (直積・直和) は, <strong>すでにある型を有限個組み合わせる</strong> ものでした. もう 1 つ強力な作り方があります. <strong>データ型が自分自身を使って定義される</strong> —— これを <strong>再帰的データ型 (recursive data type)</strong> といいます. 有限の定義で, いくらでも大きくなりうるデータ (列や木など) を表せます.</p>
+<p>ここまでのデータ型 (直積・直和) は, <strong>すでにある型を有限個組み合わせる</strong> ものでした. もう 1 つ強力な作り方があります. <strong>データ型が自分自身を使って定義される</strong> もので, これを <strong>再帰的データ型 (recursive data type)</strong> といいます. 有限の定義で, いくらでも大きくなりうるデータ (列や木など) を表せます.</p>
 <p>代表例として <strong>自然数</strong> を作ってみます. 「自然数とは, <span class="math inline">0</span> であるか, またはある自然数の <strong>次の数 (successor)</strong> である」と定義できます. これをそのまま直和型にすると, 次のようになります.</p>
 <div class="sourceCode" id="cb36"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Nat</span> <span class="ot">=</span> <span class="dt">Zero</span> <span class="op">|</span> <span class="dt">Succ</span> <span class="dt">Nat</span> <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>)</span></code></pre></div>
 <p>コンストラクタ <code>Succ</code> が引数に <strong><code>Nat</code> 自身</strong> を取っている点が再帰です. 値は <code>Zero</code>, <code>Succ Zero</code>, <code>Succ (Succ Zero)</code>, … と続き, それぞれ <span class="math inline">0, 1, 2, \dots</span> を表します. たとえば <span class="math inline">3</span> は <code>Succ (Succ (Succ Zero))</code> です. (<code>Succ</code> を何段も重ねるのは煩雑ですが, <a href="fp8.html">第8章</a>で <code>Nat</code> に数値リテラルを使えるようにし, <code>3 :: Nat</code> と書けるようにします.)</p>
 <h3 id="構成子は型を生成する演算">構成子は「型を生成する演算」</h3>
 <p>この <code>Zero</code> と <code>Succ</code> を, 数学の目で見直してみましょう.</p>
 <ul>
-<li><code>Zero</code> は引数を取らず, それ自体が <code>Nat</code> の値を 1 つ作ります. 数学的には <strong>0 項演算</strong> — 引数を 0 個取る演算, すなわち <strong>定数</strong> です.</li>
+<li><code>Zero</code> は引数を取らず, それ自体が <code>Nat</code> の値を 1 つ作ります. 数学的には <strong>0 項演算</strong> (引数を 0 個取る演算), すなわち <strong>定数</strong> です.</li>
 <li><code>Succ :: Nat -&gt; Nat</code> は <code>Nat</code> を 1 つ受け取って <code>Nat</code> を返します. 数学的には <strong>1 項演算</strong> です.</li>
 </ul>
-<p>一般に, <span class="math inline">n</span> 個の引数を取る構成子は <span class="math inline">n</span> <strong>項演算</strong> とみなせます (「演算」という言葉の正式な定義は, 本章後半の「演算 — 台の上で閉じた関数」の節で与えます). 遡れば, 本章で書いてきた構成子はすべてこの意味の演算でした — <code>GoldenRetriever</code> は 0 項演算 (定数), <code>MkInt :: Int -&gt; IntOrDog</code> は 1 項演算, <code>MkDogAge :: MyDogs -&gt; Int -&gt; DogAge</code> は 2 項演算です. つまり <strong><code>data</code> 宣言とは, 「この型の値をどの演算で生成するか」の宣言</strong> だったのです.</p>
-<p>この見方をすると, <code>Nat</code> の定義が数学で自然数を定める <strong>ペアノの公理 (Peano axioms)</strong> とまったく同じ構成であることがはっきりします. ペアノの公理は, 自然数を「台となる集合 <span class="math inline">\mathbb{N}</span> と, 定数 <span class="math inline">0</span> と, 1 項演算 <span class="math inline">S</span> (<strong>後者関数</strong> successor — 「次の数」を返す) の <strong>組</strong> <span class="math inline">(\mathbb{N},\ 0,\ S)</span>」として特徴づけます. <code>(Zero, Succ)</code> は, この <span class="math inline">(0, S)</span> にそのまま対応します.</p>
-<p>ここで 1 つ, 取り違えやすい点に注意します. 演算が働く土台の集合 (<strong>台集合</strong> といいます) は <strong>型 <code>Nat</code> 全体 = 無限集合</strong> であって, <code>Zero</code> はその中の <strong>1 要素</strong> にすぎません. <code>Nat</code> のすべての値は <code>Zero</code> という唯一の <strong>素材</strong> から <code>Succ</code> で生成されますが, 「素材が 1 個であること」と「集合が 1 点であること」は別物です. 前節の数え上げの言葉で言えば <span class="math inline">|\mathrm{Nat}|</span> は無限 — <strong>有限の規則 (0 項演算 1 つと 1 項演算 1 つ) だけで, 無限個の要素をもつ集合を記述できる</strong> のが再帰的データ型の力です.</p>
+<p>一般に, <span class="math inline">n</span> 個の引数を取る構成子は <span class="math inline">n</span> <strong>項演算</strong> とみなせます (「演算」という言葉の正式な定義は, 本章後半の「演算: 台の上で閉じた関数」の節で与えます). 遡れば, 本章で書いてきた構成子はすべてこの意味の演算でした. <code>GoldenRetriever</code> は 0 項演算 (定数), <code>MkInt :: Int -&gt; IntOrDog</code> は 1 項演算, <code>MkDogAge :: MyDogs -&gt; Int -&gt; DogAge</code> は 2 項演算です. つまり <strong><code>data</code> 宣言とは, 「この型の値をどの演算で生成するか」の宣言</strong> だったのです.</p>
+<p>この見方をすると, <code>Nat</code> の定義が数学で自然数を定める <strong>ペアノの公理 (Peano axioms)</strong> とまったく同じ構成であることがはっきりします. ペアノの公理は, 自然数を「台となる集合 <span class="math inline">\mathbb{N}</span> と, 定数 <span class="math inline">0</span> と, 1 項演算 <span class="math inline">S</span> (<strong>後者関数</strong> successor, 「次の数」を返す) の <strong>組</strong> <span class="math inline">(\mathbb{N},\ 0,\ S)</span>」として特徴づけます. <code>(Zero, Succ)</code> は, この <span class="math inline">(0, S)</span> にそのまま対応します.</p>
+<p>ここで 1 つ, 取り違えやすい点に注意します. 演算が働く土台の集合 (<strong>台集合</strong> といいます) は <strong>型 <code>Nat</code> 全体 = 無限集合</strong> であって, <code>Zero</code> はその中の <strong>1 要素</strong> にすぎません. <code>Nat</code> のすべての値は <code>Zero</code> という唯一の <strong>素材</strong> から <code>Succ</code> で生成されますが, 「素材が 1 個であること」と「集合が 1 点であること」は別物です. 前節の数え上げの言葉で言えば <span class="math inline">|\mathrm{Nat}|</span> は無限です. <strong>有限の規則 (0 項演算 1 つと 1 項演算 1 つ) だけで, 無限個の要素をもつ集合を記述できる</strong> のが再帰的データ型の力です.</p>
 <p>「集合とその上の演算の <strong>組</strong>」というこの見方は, 次章の主役になります (<a href="fp8.html">第8章</a>では, 組にさらに <strong>法則</strong> を課したものとして代数構造を定義します).</p>
-<h3 id="どこにも循環はない-集合を下から立ち上げる">どこにも循環はない — 集合を下から立ち上げる</h3>
-<p>ところで, <code>Nat</code> の定義には気になる点があります. 定義の右辺に, <strong>定義しようとしている <code>Nat</code> 自身</strong> が現れている — これは循環ではないのでしょうか.</p>
+<h3 id="どこにも循環はない-集合を下から立ち上げる">どこにも循環はない: 集合を下から立ち上げる</h3>
+<p>ところで, <code>Nat</code> の定義には気になる点があります. 定義の右辺に, <strong>定義しようとしている <code>Nat</code> 自身</strong> が現れています. これは循環ではないのでしょうか.</p>
 <p>集合論的に見ると, <code>Nat</code> は</p>
 <ul>
 <li><span class="math inline">\text{Zero} \in \mathrm{Nat}</span></li>
@@ -3927,7 +3930,7 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 <p><span class="math display">\Phi(\emptyset) = \{\texttt{Zero}\},\qquad \Phi^2(\emptyset) = \{\texttt{Zero},\ \texttt{Succ Zero}\},\qquad \Phi^3(\emptyset) = \{\texttt{Zero},\ \texttt{Succ Zero},\ \texttt{Succ (Succ Zero)}\},\ \dots</span></p>
 <p>と 1 段ごとに新しい値が 1 つずつ加わり, 集合が下から育っていきます.</p>
 <p><span class="math display">\emptyset \;\subseteq\; \Phi(\emptyset) \;\subseteq\; \Phi^2(\emptyset) \;\subseteq\; \cdots, \qquad \mathrm{Nat} \;=\; \bigcup_{n \ge 0} \Phi^n(\emptyset)</span></p>
-<p>どの値も <strong>有限ステップ目で必ず現れます</strong>. 定義が使っているのは「出来上がった <code>Nat</code> 全体」ではなく「<strong>前の段までに作れた値</strong>」だけ — 見かけは自己言及でも, 実際は完全にボトムアップの構成であり, 循環はどこにもありません.</p>
+<p>どの値も <strong>有限ステップ目で必ず現れます</strong>. 定義が使っているのは「出来上がった <code>Nat</code> 全体」ではなく「<strong>前の段までに作れた値</strong>」だけです. 見かけは自己言及でも, 実際は完全にボトムアップの構成であり, 循環はどこにもありません.</p>
 <p>この立ち上がりは, Haskell でそのまま実行できます. 集合をリストで表せば, <span class="math inline">\Phi</span> はリスト内包表記そのものです.</p>
 <div class="sourceCode" id="cb37"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Nat</span> <span class="ot">=</span> <span class="dt">Zero</span> <span class="op">|</span> <span class="dt">Succ</span> <span class="dt">Nat</span> <span class="kw">deriving</span> (<span class="dt">Show</span>, <span class="dt">Eq</span>)</span>
 <span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a></span>
@@ -3981,8 +3984,8 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 <div class="note">
 <p>発展として, 名前と但し書きを 3 つ添えます.</p>
 <ul>
-<li><span class="math inline">\Phi(X) = X</span> を満たす最小の <span class="math inline">X</span> (それが <span class="math inline">\bigcup_n \Phi^n(\emptyset)</span> です) を <span class="math inline">\Phi</span> の <strong>最小不動点 (least fixed point)</strong> といいます. 「再帰的データ型 = 生成作用素の最小不動点」— これが <code>data</code> 宣言の <code>=</code> の数学的な中身です.</li>
-<li>この構成が安全なのは, 自己言及が <strong>正</strong> の形で現れているからです (<span class="math inline">X</span> を大きくすると <span class="math inline">\Phi(X)</span> も大きくなる). 負の自己言及は本当に壊れます — 有名な <strong>ラッセルのパラドックス</strong> <span class="math inline">\{x \mid x \notin x\}</span> が矛盾を起こすのは, <span class="math inline">\notin</span> という負の形の自己言及のためです. 型の言葉では <strong>関数矢印の左側</strong> が負の位置にあたり, <code>data Bad = MkBad (Bad -&gt; Bool)</code> のように矢印の左に自分自身を書く宣言は, 集合の方程式 <span class="math inline">X \cong (X \to \mathrm{Bool})</span> を要求する危険な形です (Haskell はこれを受理しますが, 矛盾は「停まらない計算」として現れます).</li>
+<li><span class="math inline">\Phi(X) = X</span> を満たす最小の <span class="math inline">X</span> (それが <span class="math inline">\bigcup_n \Phi^n(\emptyset)</span> です) を <span class="math inline">\Phi</span> の <strong>最小不動点 (least fixed point)</strong> といいます. 「再帰的データ型 = 生成作用素の最小不動点」です. これが <code>data</code> 宣言の <code>=</code> の数学的な中身です.</li>
+<li>この構成が安全なのは, 自己言及が <strong>正</strong> の形で現れているからです (<span class="math inline">X</span> を大きくすると <span class="math inline">\Phi(X)</span> も大きくなる). 負の自己言及は本当に壊れます. 有名な <strong>ラッセルのパラドックス</strong> <span class="math inline">\{x \mid x \notin x\}</span> が矛盾を起こすのは, <span class="math inline">\notin</span> という負の形の自己言及のためです. 型の言葉では <strong>関数矢印の左側</strong> が負の位置にあたり, <code>data Bad = MkBad (Bad -&gt; Bool)</code> のように矢印の左に自分自身を書く宣言は, 集合の方程式 <span class="math inline">X \cong (X \to \mathrm{Bool})</span> を要求する危険な形です (Haskell はこれを受理しますが, 矛盾は「停まらない計算」として現れます).</li>
 <li>但し書き: 遅延評価の Haskell では, 実は <code>ones = 1 : ones</code> のような <strong>無限の値</strong> も書けてしまうため, 「型 = 有限ステップで作れる値の集合」は理想化した読みです. なお, この「構成子で生成される最小の集合」という構造は, <a href="fp9.html">第9章</a>で関手を学んだ先の言葉では <strong>始代数 (initial algebra)</strong> と呼ばれます (ここでは名前だけ挙げておきます).</li>
 </ul>
 </div>
@@ -4005,7 +4008,7 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 <span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a>      two   <span class="ot">=</span> <span class="dt">Succ</span> (<span class="dt">Succ</span> <span class="dt">Zero</span>)</span>
 <span id="cb38-17"><a href="#cb38-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="fu">toInt</span> three)            <span class="co">-- 3</span></span>
 <span id="cb38-18"><a href="#cb38-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="fu">toInt</span> (add three two))  <span class="co">-- 5</span></span></code></pre></div>
-<p><code>toInt</code> も <code>add</code> も, <strong>基底ケース (<code>Zero</code>)</strong> と <strong>再帰ケース (<code>Succ n</code>)</strong> に分けて書かれており, 関数の再帰構造が型の再帰構造をそのままなぞっています. これが再帰的データ型を扱うときの基本パターンです. 見方を変えると, <code>toInt</code> は <strong>構成子の置き換え</strong> です — 値の中の <code>Zero</code> を <code>0</code> に, <code>Succ</code> を <code>(+1)</code> に置き換えると結果が得られます (<code>add n m</code> は <code>Zero</code> を <code>m</code> に置き換え, <code>Succ</code> はそのまま). この「構成子を別の演算で置き換える」という読み方は, <a href="fp8.html">第8章</a>の準同型 (構造を保つ写像) につながる伏線です.</p>
+<p><code>toInt</code> も <code>add</code> も, <strong>基底ケース (<code>Zero</code>)</strong> と <strong>再帰ケース (<code>Succ n</code>)</strong> に分けて書かれており, 関数の再帰構造が型の再帰構造をそのままなぞっています. これが再帰的データ型を扱うときの基本パターンです. 見方を変えると, <code>toInt</code> は <strong>構成子の置き換え</strong> です. 値の中の <code>Zero</code> を <code>0</code> に, <code>Succ</code> を <code>(+1)</code> に置き換えると結果が得られます (<code>add n m</code> は <code>Zero</code> を <code>m</code> に置き換え, <code>Succ</code> はそのまま). この「構成子を別の演算で置き換える」という読み方は, <a href="fp8.html">第8章</a>の準同型 (構造を保つ写像) につながる伏線です.</p>
 <p>実は, これまで使ってきた <strong>リストも再帰的データ型</strong> です. 「リストとは, 空リスト <code>[]</code> であるか, または先頭要素 <code>x</code> と残りのリスト <code>xs</code> をつないだ <code>x : xs</code> である」という再帰的な構造を持ち, 概念的には <code>[] | x : xs</code> と定義されます. 構成子の言葉で言えば, <code>[]</code> が 0 項演算, <code>(:)</code> が 2 項演算です. <a href="fp5.html">第5章</a>以降で <code>(x : xs)</code> をパターンマッチして再帰処理してきたのは, まさにこの再帰型をたどる操作でした. リストや木を <strong>任意の要素型</strong> について扱えるようにする一般化 (型引数) と, それらに代数構造 (モノイド) を載せる話は <a href="fp9.html">第9章</a> で扱います.</p>
 <h2 id="type">type</h2>
 <p>これまで新しいデータを作成するためには <code>data</code> を利用してきました. しかし, 新しい型を作るほどではないものの, <strong>同じ表現型 (たとえば <code>Double</code>) に文脈上の意味を持つ名前を与えて, 可読性を高めたい</strong> 場合があります.
@@ -4131,9 +4134,9 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 <p>スマートコンストラクタは, 代数的データ型そのものの機能ではなく, <strong>代数的データ型とモジュールシステムの組み合わせ</strong> によって間接的に内包表記的な絞り込みを実現する実用的なイディオムです. 型システムそのものにもっと踏み込んだ絞り込みを型レベルで与えたい場合は, GADTs や Refinement Types (Liquid Haskell) などの拡張機能がありますが, 本講義の範囲では扱いません.</p>
 </div>
 <!-- ==== 関係部 ==== -->
-<h2 id="関係-直積の部分集合">関係 — 直積の部分集合</h2>
-<p>ここまでは, 集合 (型) を <strong>作る</strong> 道具 — 列挙, 述語による部分集合, 直積, 直和, 再帰 — を見てきました. 本章の残りでは, 集合の <strong>間</strong> のつながりを扱います.</p>
-<p>「3 は 12 を割り切る」「<span class="math inline">x</span> は <span class="math inline">y</span> 以下である」「文字列 <span class="math inline">s</span> と <span class="math inline">t</span> は同じ長さである」— これらはどれも, <strong>2 つのものの間で</strong> 真偽が定まる主張です. 述語と量化の節で見た述語 <span class="math inline">p(x)</span> は変数が 1 つでしたが, これらは変数を 2 つ持つ述語 <span class="math inline">p(x, y)</span> とみなせます. こうした「2 つのものの間の結びつき」を数学では <strong>関係 (relation)</strong> と呼び, 集合論では次のように定義します.</p>
+<h2 id="関係-直積の部分集合">関係: 直積の部分集合</h2>
+<p>ここまでは, 集合 (型) を <strong>作る</strong> 道具 (列挙, 述語による部分集合, 直積, 直和, 再帰) を見てきました. 本章の残りでは, 集合の <strong>間</strong> のつながりを扱います.</p>
+<p>「3 は 12 を割り切る」「<span class="math inline">x</span> は <span class="math inline">y</span> 以下である」「文字列 <span class="math inline">s</span> と <span class="math inline">t</span> は同じ長さである」. これらはどれも, <strong>2 つのものの間で</strong> 真偽が定まる主張です. 述語と量化の節で見た述語 <span class="math inline">p(x)</span> は変数が 1 つでしたが, これらは変数を 2 つ持つ述語 <span class="math inline">p(x, y)</span> とみなせます. こうした「2 つのものの間の結びつき」を数学では <strong>関係 (relation)</strong> と呼び, 集合論では次のように定義します.</p>
 <div class="note">
 <p>集合 <span class="math inline">A</span> と <span class="math inline">B</span> の間の (2 項) <strong>関係 (relation)</strong> <span class="math inline">R</span> とは, 直積 <span class="math inline">A \times B</span> の <strong>部分集合</strong> のことである: <span class="math inline">R \subseteq A \times B</span>.</p>
 </div>
@@ -4207,7 +4210,7 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 <text x="380" y="202" fill="currentColor" font-size="11" text-anchor="middle">⊆ A × A</text>
 <g fill="currentColor" text-anchor="middle">
 <text x="230" y="262" font-size="12" font-weight="600">関係 D = 塗られた対の集合 (直積の部分集合)</text>
-<text x="230" y="280" font-size="10.5" opacity="0.75">塗り = a | b — dividesPairs 4 の 8 対と一致</text>
+<text x="230" y="280" font-size="10.5" opacity="0.75">塗り = a | b (dividesPairs 4 の 8 対と一致)</text>
 </g>
 </svg>
 <p>対応関係を整理します. 集合としての関係 <span class="math inline">R \subseteq A \times B</span> と, 判定関数 <code>r :: a -&gt; b -&gt; Bool</code> は,</p>
@@ -4216,7 +4219,7 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 <p>なお, 変数を 3 つ以上持つ関係も同様に定義できます (<span class="math inline">n</span> 項関係 = <span class="math inline">A_1 \times \dots \times A_n</span> の部分集合) が, 本章では最もよく使う 2 項関係のみを扱います.</p>
 <section id="exercise-ch7-5" class="note">
 <h3>Exercise CH7-5</h3>
-<p><strong>互いに素 — 関係を内包表記で計算する</strong></p>
+<p><strong>互いに素: 関係を内包表記で計算する</strong></p>
 <p>正の整数 <span class="math inline">a, b</span> が <strong>互いに素 (coprime)</strong> であるとは, <span class="math inline">a</span> と <span class="math inline">b</span> の最大公約数が <span class="math inline">1</span> であることをいいます (最大公約数は標準関数 <code>gcd</code> で計算できます).</p>
 <ol type="1">
 <li><p>判定関数 <code>coprime :: Int -&gt; Int -&gt; Bool</code> を実装してください.</p></li>
@@ -4251,11 +4254,11 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 </details>
 <p>提出ファイル名: <code>ch7-5.hs</code></p>
 </section>
-<h2 id="関数-特別な関係">関数 — 特別な関係</h2>
+<h2 id="関数-特別な関係">関数: 特別な関係</h2>
 <p>関係を定義すると, 実は <strong>関数も関係の一種</strong> として捉え直せます.</p>
 <p>関数 <span class="math inline">f : A \to B</span> が与えられたとき, 「入力と出力の対」をすべて集めた集合</p>
 <p><span class="math display">G_f = \{(x, f(x)) \mid x \in A\} \subseteq A \times B</span></p>
-<p>を <span class="math inline">f</span> の <strong>グラフ (graph)</strong> といいます. グラフは直積の部分集合なので, まさに関係です. 中学・高校で <span class="math inline">y = x^2</span> の「グラフ」を座標平面 (= <span class="math inline">\mathbb{R} \times \mathbb{R}</span> の直積) に描いてきたのは, 文字通りこの意味のグラフ — 関係 <span class="math inline">\{(x, y) \mid y = x^2\}</span> の図示 — でした.</p>
+<p>を <span class="math inline">f</span> の <strong>グラフ (graph)</strong> といいます. グラフは直積の部分集合なので, まさに関係です. 中学・高校で <span class="math inline">y = x^2</span> の「グラフ」を座標平面 (= <span class="math inline">\mathbb{R} \times \mathbb{R}</span> の直積) に描いてきたのは, 文字通りこの意味のグラフ, すなわち関係 <span class="math inline">\{(x, y) \mid y = x^2\}</span> の図示でした.</p>
 <p>Haskell でも, 有限の範囲なら関数のグラフをリスト内包表記で作れます.</p>
 <div class="sourceCode" id="cb54"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a><span class="ot">square ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
 <span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a>square x <span class="ot">=</span> x <span class="op">*</span> x</span>
@@ -4274,15 +4277,15 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 <span class="math display">\forall x \in A.\ \forall y, y&#39; \in B.\ \big((x, y) \in G \land (x, y&#39;) \in G\big) \implies y = y&#39;</span></li>
 </ul>
 <p>この 2 条件を満たす関係は, ちょうど 1 つの関数 <span class="math inline">f : A \to B</span> を定めます. すなわち, <strong>関数とは全域かつ右一意な関係</strong> のことです. ここでも <span class="math inline">\forall</span> と <span class="math inline">\exists</span> が定義の骨格を担っていることに注目してください.</p>
-<p>この見方の効用の 1 つは, 「関数になりそこねた関係」— <strong>部分関数 (partial function)</strong> — を正確に語れることです. 部分関数とは, 右一意だが <strong>全域性を欠く</strong> 関係, つまり「出力が定義されない入力がある」対応のことです. 実は, 既にいくつも登場しています.</p>
+<p>この見方の効用の 1 つは, 「関数になりそこねた関係」, すなわち <strong>部分関数 (partial function)</strong> を正確に語れることです. 部分関数とは, 右一意だが <strong>全域性を欠く</strong> 関係, つまり「出力が定義されない入力がある」対応のことです. 実は, 既にいくつも登場しています.</p>
 <ul>
-<li><code>head :: [a] -&gt; a</code> — 空リスト <code>[]</code> に対する出力がありません (<a href="fp5.html">第5章</a>で見た実行時エラーの代表例).</li>
-<li>直和型のレコードアクセサ — 「レコード構文」節の警告で見た <code>dogAge</code> は, <code>WithAge</code> の値にしか出力を持たず, <code>JustBreed</code> の値に適用すると <code>No match in record selector</code> になります.</li>
+<li><code>head :: [a] -&gt; a</code>: 空リスト <code>[]</code> に対する出力がありません (<a href="fp5.html">第5章</a>で見た実行時エラーの代表例).</li>
+<li>直和型のレコードアクセサ: 「レコード構文」節の警告で見た <code>dogAge</code> は, <code>WithAge</code> の値にしか出力を持たず, <code>JustBreed</code> の値に適用すると <code>No match in record selector</code> になります.</li>
 </ul>
-<p>Haskell の型 <code>A -&gt; B</code> は, この全域性までは保証してくれません. <code>head</code> のような部分関数も型検査は通り, 定義されていない入力に出会ったときに <strong>実行時エラー</strong> として破綻します. 対処の方向は 2 つあります. (1) <strong>定義域を型で絞る</strong> — 「空でないリスト」のような型を作り, 危険な入力をそもそも渡せなくする (スマートコンストラクタはその道具の 1 つでした). (2) <strong>出力を広げる</strong> — 「出力が無いかもしれない」ことを型で表す <code>Maybe</code> を使う (詳しくは <a href="fp9.html">第9章</a>で扱います).</p>
+<p>Haskell の型 <code>A -&gt; B</code> は, この全域性までは保証してくれません. <code>head</code> のような部分関数も型検査は通り, 定義されていない入力に出会ったときに <strong>実行時エラー</strong> として破綻します. 対処の方向は 2 つあります. (1) <strong>定義域を型で絞る</strong>: 「空でないリスト」のような型を作り, 危険な入力をそもそも渡せなくします (スマートコンストラクタはその道具の 1 つでした). (2) <strong>出力を広げる</strong>: 「出力が無いかもしれない」ことを型で表す <code>Maybe</code> を使います (詳しくは <a href="fp9.html">第9章</a>で扱います).</p>
 <p>なお, <a href="fp5.html">第5章</a>で学んだパターンマッチによる関数定義は, この見方では「グラフのどの部分に対 <span class="math inline">(x, f(x))</span> を置くか」を場合分けで指定する記法だと読めます. すべての入力パターンを尽くせば全域な関数になり, 尽くさなければ (<code>head</code> のように) 部分関数になります.</p>
-<h2 id="演算-台の上で閉じた関数">演算 — 台の上で閉じた関数</h2>
-<p>関数を正式に定義できたので, 本章でここまで非公式に使ってきた <strong>演算 (operation)</strong> という言葉も, ここで整理しておきます. 再帰的データ型の節で構成子を「0 項演算」「1 項演算」と呼びました — その一般定義です.</p>
+<h2 id="演算-台の上で閉じた関数">演算: 台の上で閉じた関数</h2>
+<p>関数を正式に定義できたので, 本章でここまで非公式に使ってきた <strong>演算 (operation)</strong> という言葉も, ここで整理しておきます. 再帰的データ型の節で構成子を「0 項演算」「1 項演算」と呼びました. ここでその一般定義を与えます.</p>
 <div class="note">
 <p>集合 <span class="math inline">A</span> 上の <strong><span class="math inline">n</span> 項演算 (<span class="math inline">n</span>-ary operation)</strong> とは,</p>
 <p><span class="math display">f : \underbrace{A \times \cdots \times A}_{n \text{ 個}} \to A</span></p>
@@ -4290,7 +4293,7 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 </div>
 <p>ポイントは 2 つです.</p>
 <ul>
-<li><strong>演算は関数の特別な場合</strong> であって, 別種の概念ではありません. 出発点が台 <span class="math inline">A</span> の直積で, <strong>行き先も同じ <span class="math inline">A</span></strong> — つまり <strong>台の中で閉じている</strong> — という <strong>形の制約</strong> が付いた関数の呼び名です.</li>
+<li><strong>演算は関数の特別な場合</strong> であって, 別種の概念ではありません. 出発点が台 <span class="math inline">A</span> の直積で, <strong>行き先も同じ <span class="math inline">A</span></strong> (つまり <strong>台の中で閉じている</strong>) という <strong>形の制約</strong> が付いた関数の呼び名です.</li>
 <li>演算は <strong>アリティで種類分け</strong> されます. <span class="math inline">n = 2</span> が最も身近ですが, <span class="math inline">n = 1</span>, <span class="math inline">n = 0</span> も演算です.</li>
 </ul>
 <table>
@@ -4329,7 +4332,7 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 </tr>
 </tbody>
 </table>
-<p><strong>0 項演算が定数である理由.</strong> <span class="math inline">A^0</span> (0 個の直積) は空集合ではなく, <strong>空タプル <code>()</code> だけを要素とする 1 点集合</strong> です (直和型の数え上げで見た <span class="math inline">\lvert () \rvert = 1</span> の集合がこれです). したがって <span class="math inline">A^0 \to A</span> という関数は, 「唯一の入力 <code>()</code> に対して <span class="math inline">A</span> の要素を 1 つ返す」— すなわち <strong><span class="math inline">A</span> の要素を 1 つ指定すること</strong> と同じです. 「引数が無い」のではなく「情報を持たない引数が 1 つある」と読むのが正確で, これが「0 項演算 = 定数」の中身です.</p>
+<p><strong>0 項演算が定数である理由.</strong> <span class="math inline">A^0</span> (0 個の直積) は空集合ではなく, <strong>空タプル <code>()</code> だけを要素とする 1 点集合</strong> です (直和型の数え上げで見た <span class="math inline">\lvert () \rvert = 1</span> の集合がこれです). したがって <span class="math inline">A^0 \to A</span> という関数は, 「唯一の入力 <code>()</code> に対して <span class="math inline">A</span> の要素を 1 つ返す」, すなわち <strong><span class="math inline">A</span> の要素を 1 つ指定すること</strong> と同じです. 「引数が無い」のではなく「情報を持たない引数が 1 つある」と読むのが正確で, これが「0 項演算 = 定数」の中身です.</p>
 <p><strong>演算でない関数.</strong> 行き先が台の <strong>外</strong> に出る関数は, その台の上の演算ではありません.</p>
 <div class="sourceCode" id="cb55"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb55-1"><a href="#cb55-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 2 項演算: 台 Int の中で閉じている</span></span>
 <span id="cb55-2"><a href="#cb55-2" aria-hidden="true" tabindex="-1"></a><span class="ot">plus ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
@@ -4353,9 +4356,9 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 <span id="cb55-20"><a href="#cb55-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> (neg <span class="dv">5</span>)        <span class="co">-- -5</span></span>
 <span id="cb55-21"><a href="#cb55-21" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> zero           <span class="co">-- 0</span></span>
 <span id="cb55-22"><a href="#cb55-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> (len [<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>])  <span class="co">-- 3</span></span></code></pre></div>
-<p><code>len</code> (= <code>length</code>) はリストの世界から <strong>出ていく</strong> ので, リストの上の演算ではありません — こうした「世界から世界へ渡る関数」は, <a href="fp8.html">第8章</a>で <strong>準同型 (構造を保つ写像)</strong> として主役になります. また, 関係の判定関数 <code>divides :: Int -&gt; Int -&gt; Bool</code> も行き先が <code>Bool</code> なので <code>Int</code> の上の演算ではありません (ただし <code>Bool</code> をもう 1 つの台と認めて「<code>Bool</code> への 2 項演算」と読む立場もあり, <a href="fp8.html">第8章</a>でこの読み替えを使います).</p>
-<p>この対比を, 3 枚つづきの図にしておきます. いちばん左の <strong>図0</strong> は, まだ何も載っていない <strong>集合だけの世界</strong> です — 点 (型 = 集合) が 1 つあるだけで, 射はありません. そこに演算を載せたのが <strong>図1</strong> — <strong>演算の世界</strong> です. 点はやはり 1 つ (台) のままで, 射 (矢印) はすべて台自身へ戻ってきます. 図の下に添えた成分の内訳 — 台 <span class="math inline">= \mathrm{Type}</span>, 演算 <span class="math inline">= \bullet</span> (2 項), <span class="math inline">e</span> (0 項) — は, この世界を組として書き出したものです. いちばん右の <strong>図2</strong> が <strong>関数の世界</strong> です — 点 (型) は複数あり, 射は型から型へ自由に渡れます. こちらの内訳は <span class="math inline">\mathrm{Ob} = \{A, B, C\}</span>, <span class="math inline">\mathrm{Mor} = \{f, g, g \circ f, \mathrm{id}, \dots\}</span> — <strong>点の集合と射の集合</strong> の 2 本立てで, 成分の座席に「射の集まり」が入っています (この <span class="math inline">\mathrm{Ob}</span> / <span class="math inline">\mathrm{Mor}</span> という成分名は, <a href="fp9.html">第9章</a>の圏の定義でそのまま登場します). 演算とは, 図2 の射のうち「出発点と行き先が同じ点になるよう制約されたもの」だけを図1 の世界として取り出したものです (図1 のループはアリティを省いて描いています — <span class="math inline">\bullet</span> の域は <span class="math inline">\mathrm{Type} \times \mathrm{Type}</span>, <span class="math inline">e</span> の域は <span class="math inline">\mathrm{Type}^0</span> ですが, 行き先が台に戻る点は同じです).</p>
-<svg viewBox="0 0 772 246" width="100%" style="max-width: 780px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="集合・演算・関数の 3 枚つづきの図. 図0: 四角の中に点 Type だけがある集合のみの世界 (台 = Type, 演算はまだ無い). 演算を載せると図1: 代数 — 台 = Type, 演算 = ● と e がループの射として描かれ, 射が台の外へ出ない. 俯瞰 (台を射の集まりに) すると図2: 圏 — Ob = {A, B, C}, Mor = {f, g, g∘f, id, …} — 複数の型の間を射が渡る関数の世界. 演算は行き先が同じ台に制約された特別な関数である.">
+<p><code>len</code> (= <code>length</code>) はリストの世界から <strong>出ていく</strong> ので, リストの上の演算ではありません. こうした「世界から世界へ渡る関数」は, <a href="fp8.html">第8章</a>で <strong>準同型 (構造を保つ写像)</strong> として主役になります. また, 関係の判定関数 <code>divides :: Int -&gt; Int -&gt; Bool</code> も行き先が <code>Bool</code> なので <code>Int</code> の上の演算ではありません (ただし <code>Bool</code> をもう 1 つの台と認めて「<code>Bool</code> への 2 項演算」と読む立場もあり, <a href="fp8.html">第8章</a>でこの読み替えを使います).</p>
+<p>この対比を, 3 枚つづきの図にしておきます. いちばん左の <strong>図0</strong> は, まだ何も載っていない <strong>集合だけの世界</strong> です. 点 (型 = 集合) が 1 つあるだけで, 射はありません. そこに演算を載せたのが <strong>図1</strong>, すなわち <strong>演算の世界</strong> です. 点はやはり 1 つ (台) のままで, 射 (矢印) はすべて台自身へ戻ってきます. 図の下には, この世界を組として書き出した成分の内訳を添えています. 台 <span class="math inline">= \mathrm{Type}</span>, 演算 <span class="math inline">= \bullet</span> (2 項), <span class="math inline">e</span> (0 項) です. いちばん右の <strong>図2</strong> が <strong>関数の世界</strong> です. 点 (型) は複数あり, 射は型から型へ自由に渡れます. こちらの内訳は <span class="math inline">\mathrm{Ob} = \{A, B, C\}</span>, <span class="math inline">\mathrm{Mor} = \{f, g, g \circ f, \mathrm{id}, \dots\}</span> であり, <strong>点の集合と射の集合</strong> の 2 本立てで, 成分の座席に「射の集まり」が入っています (この <span class="math inline">\mathrm{Ob}</span> / <span class="math inline">\mathrm{Mor}</span> という成分名は, <a href="fp9.html">第9章</a>の圏の定義でそのまま登場します). 演算とは, 図2 の射のうち「出発点と行き先が同じ点になるよう制約されたもの」だけを図1 の世界として取り出したものです (図1 のループはアリティを省いて描いています. <span class="math inline">\bullet</span> の域は <span class="math inline">\mathrm{Type} \times \mathrm{Type}</span>, <span class="math inline">e</span> の域は <span class="math inline">\mathrm{Type}^0</span> ですが, 行き先が台に戻る点は同じです).</p>
+<svg viewBox="0 0 772 246" width="100%" style="max-width: 780px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="集合・演算・関数の 3 枚つづきの図. 図0: 四角の中に点 Type だけがある集合のみの世界 (台 = Type, 演算はまだ無い). 演算を載せると図1: 代数. 台 = Type, 演算 = ● と e がループの射として描かれ, 射が台の外へ出ない. 俯瞰 (台を射の集まりに) すると図2: 圏. Ob = {A, B, C}, Mor = {f, g, g∘f, id, …} をもつ, 複数の型の間を射が渡る関数の世界. 演算は行き先が同じ台に制約された特別な関数である.">
 <defs>
 <marker id="op-arrow" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
 <path d="M 0 1 L 9 5 L 0 9 z" fill="currentColor"/>
@@ -4420,25 +4423,25 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 <text x="662" y="237" font-size="10" opacity="0.7">射は型から型へ渡れる</text>
 </g>
 </svg>
-<p>図1 から図2 へ移る操作 (図のいちばん右の矢印) を <strong>俯瞰</strong> と呼ぶことにします — 台を 1 つの集合に固定して眺めるのをやめ, <strong>射 (関数) の集まりそのもの</strong> を視野に入れる, 見方の転換です. この図の系列はこのあとの章でそのまま再登場します. <strong>図1 の世界に法則を課したものが代数</strong> (<a href="fp8.html">第8章</a>) であり, <strong>俯瞰した図2 の世界 — 射の集まり — を新しい台とみなしたものが圏</strong> (<a href="fp9.html">第9章</a>) です.</p>
+<p>図1 から図2 へ移る操作 (図のいちばん右の矢印) を <strong>俯瞰</strong> と呼ぶことにします. 台を 1 つの集合に固定して眺めるのをやめ, <strong>射 (関数) の集まりそのもの</strong> を視野に入れる, 見方の転換です. この図の系列はこのあとの章でそのまま再登場します. <strong>図1 の世界に法則を課したものが代数</strong> (<a href="fp8.html">第8章</a>) であり, <strong>俯瞰した図2 の世界 (射の集まり) を新しい台とみなしたものが圏</strong> (<a href="fp9.html">第9章</a>) です.</p>
 <p><strong>カリー化との関係.</strong> 数学では 2 項演算を <span class="math inline">A \times A \to A</span> (引数はペア 1 つ) と書きますが, Haskell では <code>a -&gt; a -&gt; a</code> (カリー化) が普通です. <a href="fp5.html">第5章</a>のカリー化で見たとおり, 両者は同じ情報の別表現です.</p>
 <div class="note">
 <p>再帰的データ型の節では, <code>MkDogAge :: MyDogs -&gt; Int -&gt; DogAge</code> のような構成子も「2 項演算」と呼びました. 厳密には出発点の型が行き先と異なるため, これは「台が複数ある (<strong>多ソート</strong>) 世界での演算」です. <code>Zero</code> / <code>Succ</code> のような再帰型の構成子は, ちょうど単一の台で閉じた演算になっています. Haskell はもともと型 (台) がたくさんある世界なので, 本講義では多ソートの意味でも「演算」と呼びます.</p>
 </div>
-<p><a href="fp8.html">第8章</a>では, この演算を台に載せ, <span class="math inline">\forall</span> / <span class="math inline">\exists</span> で書いた法則を課したもの — <strong>構造</strong> — を扱います. 本章の同値関係・順序関係 (関係) と, この節の演算が, そこで「組 + 法則」という 1 つの形に合流します.</p>
-<h2 id="同値関係-同じの一般化">同値関係 — 「同じ」の一般化</h2>
-<p>ここからは, 同じ集合 <span class="math inline">A</span> の上の関係 <span class="math inline">R \subseteq A \times A</span> に注目し, 特に重要な 2 種類 — <strong>同値関係</strong> と <strong>順序関係</strong> — を見ます. どちらも「関係が満たすべき法則」を <span class="math inline">\forall</span> で書くことで定義されます. この「対象に法則を課す」という発想は次章の中心テーマになるので, ここで感触を掴んでおきましょう.</p>
+<p><a href="fp8.html">第8章</a>では, この演算を台に載せ, <span class="math inline">\forall</span> / <span class="math inline">\exists</span> で書いた法則を課したもの, すなわち <strong>構造</strong> を扱います. 本章の同値関係・順序関係 (関係) と, この節の演算が, そこで「組 + 法則」という 1 つの形に合流します.</p>
+<h2 id="同値関係-同じの一般化">同値関係: 「同じ」の一般化</h2>
+<p>ここからは, 同じ集合 <span class="math inline">A</span> の上の関係 <span class="math inline">R \subseteq A \times A</span> に注目し, 特に重要な 2 種類 (<strong>同値関係</strong> と <strong>順序関係</strong>) を見ます. どちらも「関係が満たすべき法則」を <span class="math inline">\forall</span> で書くことで定義されます. この「対象に法則を課す」という発想は次章の中心テーマになるので, ここで感触を掴んでおきましょう.</p>
 <p>まず「等しい」の一般化から始めます. 集合 <span class="math inline">A</span> 上の関係 <span class="math inline">R</span> が次の 3 つの法則を満たすとき, <span class="math inline">R</span> を <strong>同値関係 (equivalence relation)</strong> といいます.</p>
 <ul>
-<li><strong>反射律 (reflexivity)</strong>: <span class="math inline">\forall x \in A.\ x \mathrel{R} x</span> — どの要素も自分自身と関係にある.</li>
-<li><strong>対称律 (symmetry)</strong>: <span class="math inline">\forall x, y \in A.\ x \mathrel{R} y \implies y \mathrel{R} x</span> — 向きを入れ替えても成り立つ.</li>
-<li><strong>推移律 (transitivity)</strong>: <span class="math inline">\forall x, y, z \in A.\ (x \mathrel{R} y \land y \mathrel{R} z) \implies x \mathrel{R} z</span> — 関係が連鎖する.</li>
+<li><strong>反射律 (reflexivity)</strong>: <span class="math inline">\forall x \in A.\ x \mathrel{R} x</span> (どの要素も自分自身と関係にある).</li>
+<li><strong>対称律 (symmetry)</strong>: <span class="math inline">\forall x, y \in A.\ x \mathrel{R} y \implies y \mathrel{R} x</span> (向きを入れ替えても成り立つ).</li>
+<li><strong>推移律 (transitivity)</strong>: <span class="math inline">\forall x, y, z \in A.\ (x \mathrel{R} y \land y \mathrel{R} z) \implies x \mathrel{R} z</span> (関係が連鎖する).</li>
 </ul>
 <p>もっとも基本的な例は「等しい」(<span class="math inline">=</span>) そのものです: <span class="math inline">x = x</span> (反射), <span class="math inline">x = y \implies y = x</span> (対称), <span class="math inline">x = y \land y = z \implies x = z</span> (推移).</p>
 <p>面白いのは, 「完全に等しい」わけではないのに同値関係になる例です. 整数の間の, <strong>7 で割った余りが等しい</strong> という関係を考えます.</p>
 <p><span class="math display">x \equiv y \pmod 7 \quad\Longleftrightarrow\quad x \bmod 7 = y \bmod 7</span></p>
-<p>たとえば <span class="math inline">0 \equiv 7 \equiv 14 \pmod 7</span> です. 「0 日目と 7 日目と 14 日目は同じ曜日」と読めば, これは「<strong>同じ曜日である</strong>」という関係にほかなりません. 日付として等しくなくても, 曜日という観点では「同じ」— 同値関係とは, このように <strong>何かの観点で「同じ」とみなす</strong> ことの数学的な定式化です.</p>
-<p>3 つの法則が本当に成り立つか, 有限範囲の全数検査で確かめてみましょう (<code>forallOn</code> は内包表記の節で定義したものです). 比較のために, 同値関係に <strong>ならない</strong> 例 — 「差が 1 以下」という関係 — も検査します.</p>
+<p>たとえば <span class="math inline">0 \equiv 7 \equiv 14 \pmod 7</span> です. 「0 日目と 7 日目と 14 日目は同じ曜日」と読めば, これは「<strong>同じ曜日である</strong>」という関係にほかなりません. 日付として等しくなくても, 曜日という観点では「同じ」です. 同値関係とは, このように <strong>何かの観点で「同じ」とみなす</strong> ことの数学的な定式化です.</p>
+<p>3 つの法則が本当に成り立つか, 有限範囲の全数検査で確かめてみましょう (<code>forallOn</code> は内包表記の節で定義したものです). 比較のために, 同値関係に <strong>ならない</strong> 例 (「差が 1 以下」という関係) も検査します.</p>
 <div class="sourceCode" id="cb56"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ∀x ∈ xs. p x の有限版 (内包表記の節より)</span></span>
 <span id="cb56-2"><a href="#cb56-2" aria-hidden="true" tabindex="-1"></a><span class="ot">forallOn ::</span> [a] <span class="ot">-&gt;</span> (a <span class="ot">-&gt;</span> <span class="dt">Bool</span>) <span class="ot">-&gt;</span> <span class="dt">Bool</span></span>
 <span id="cb56-3"><a href="#cb56-3" aria-hidden="true" tabindex="-1"></a>forallOn xs p <span class="ot">=</span> <span class="fu">and</span> [ p x <span class="op">|</span> x <span class="ot">&lt;-</span> xs ]</span>
@@ -4503,7 +4506,7 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 <text x="392.5" y="120" fill="currentColor" font-family="monospace" font-size="11" text-anchor="middle">13</text>
 <text x="392.5" y="152" fill="currentColor" font-family="monospace" font-size="11" text-anchor="middle">20</text>
 <g fill="currentColor" text-anchor="middle">
-<text x="230" y="218" font-size="12" font-weight="600">同値類 = 互いに素なブロック — 台が過不足なく分割される</text>
+<text x="230" y="218" font-size="12" font-weight="600">同値類 = 互いに素なブロック (台が過不足なく分割される)</text>
 <text x="230" y="236" font-size="10.5" opacity="0.75">congruent7 x y ⟺ 同じブロック. ブロックの集合 = 商集合 (第8章)</text>
 </g>
 </svg>
@@ -4553,22 +4556,22 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 </details>
 <p>提出ファイル名: <code>ch7-6.hs</code></p>
 </section>
-<h2 id="順序関係-並べるの一般化">順序関係 — 「並べる」の一般化</h2>
+<h2 id="順序関係-並べるの一般化">順序関係: 「並べる」の一般化</h2>
 <p>同値関係が「等しい」の一般化だったのに対し, <strong>順序関係</strong> は「大小で並べる」(<span class="math inline">\leq</span>) の一般化です. 集合 <span class="math inline">A</span> 上の関係 <span class="math inline">R</span> が次の 3 つの法則を満たすとき, <span class="math inline">R</span> を <strong>半順序 (partial order)</strong> といいます.</p>
 <ul>
 <li><strong>反射律</strong>: <span class="math inline">\forall x \in A.\ x \mathrel{R} x</span></li>
-<li><strong>反対称律 (antisymmetry)</strong>: <span class="math inline">\forall x, y \in A.\ (x \mathrel{R} y \land y \mathrel{R} x) \implies x = y</span> — 両向きに成り立つのは同じ要素どうしだけ.</li>
+<li><strong>反対称律 (antisymmetry)</strong>: <span class="math inline">\forall x, y \in A.\ (x \mathrel{R} y \land y \mathrel{R} x) \implies x = y</span> (両向きに成り立つのは同じ要素どうしだけ).</li>
 <li><strong>推移律</strong>: <span class="math inline">\forall x, y, z \in A.\ (x \mathrel{R} y \land y \mathrel{R} z) \implies x \mathrel{R} z</span></li>
 </ul>
-<p>同値関係の定義と見比べてください. 反射律・推移律は共通で, <strong>対称律が反対称律に置き換わった</strong> だけです. 対称的なら「同じとみなす」方向に, 反対称的なら「並べる」方向に関係の性格が決まる — <strong>どの法則を課すかが構造の性格を決める</strong> わけです.</p>
+<p>同値関係の定義と見比べてください. 反射律・推移律は共通で, <strong>対称律が反対称律に置き換わった</strong> だけです. 対称的なら「同じとみなす」方向に, 反対称的なら「並べる」方向に関係の性格が決まります. <strong>どの法則を課すかが構造の性格を決める</strong> わけです.</p>
 <p>半順序の例は, 数の <span class="math inline">\leq</span> だけではありません.</p>
 <ul>
-<li><strong>部分集合関係 <span class="math inline">\subseteq</span></strong>: <span class="math inline">A \subseteq A</span> (反射), <span class="math inline">A \subseteq B \land B \subseteq A \implies A = B</span> (反対称 — これは述語と量化の節で見た集合の等しさの定義そのものです), <span class="math inline">A \subseteq B \land B \subseteq C \implies A \subseteq C</span> (推移).</li>
+<li><strong>部分集合関係 <span class="math inline">\subseteq</span></strong>: <span class="math inline">A \subseteq A</span> (反射), <span class="math inline">A \subseteq B \land B \subseteq A \implies A = B</span> (反対称. これは述語と量化の節で見た集合の等しさの定義そのものです), <span class="math inline">A \subseteq B \land B \subseteq C \implies A \subseteq C</span> (推移).</li>
 <li><strong>割り切る関係 <span class="math inline">\mid</span></strong> (正の整数上): <span class="math inline">a \mid a</span> (反射), <span class="math inline">a \mid b \land b \mid a \implies a = b</span> (反対称), <span class="math inline">a \mid b \land b \mid c \implies a \mid c</span> (推移).</li>
 </ul>
 <p>ここで, <span class="math inline">\leq</span> と, <span class="math inline">\subseteq</span> や <span class="math inline">\mid</span> の間には大きな違いが 1 つあります. <span class="math inline">\leq</span> では <strong>どの 2 要素も比較できます</strong>:</p>
 <p><span class="math display">\forall x, y \in A.\ (x \mathrel{R} y \lor y \mathrel{R} x)</span></p>
-<p>この性質を <strong>全域比較可能性 (totality)</strong> といい, これも満たす半順序を <strong>全順序 (total order)</strong> といいます. 一方 <span class="math inline">\mid</span> では, たとえば <span class="math inline">2</span> と <span class="math inline">3</span> は <strong>どちらも他方を割り切りません</strong> — 比較不能な対が存在するため, 半順序ではあっても全順序ではありません.</p>
+<p>この性質を <strong>全域比較可能性 (totality)</strong> といい, これも満たす半順序を <strong>全順序 (total order)</strong> といいます. 一方 <span class="math inline">\mid</span> では, たとえば <span class="math inline">2</span> と <span class="math inline">3</span> は <strong>どちらも他方を割り切りません</strong>. 比較不能な対が存在するため, 半順序ではあっても全順序ではありません.</p>
 <p>割り切る関係で確かめてみましょう.</p>
 <div class="sourceCode" id="cb59"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="ot">divides ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Bool</span></span>
 <span id="cb59-2"><a href="#cb59-2" aria-hidden="true" tabindex="-1"></a>divides a b <span class="ot">=</span> b <span class="ot">`mod`</span> a <span class="op">==</span> <span class="dv">0</span></span>
@@ -4583,7 +4586,7 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 <span id="cb59-11"><a href="#cb59-11" aria-hidden="true" tabindex="-1"></a>                , a <span class="ot">`divides`</span> b, b <span class="ot">`divides`</span> c ]                        <span class="co">-- True (推移律)</span></span>
 <span id="cb59-12"><a href="#cb59-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">-- しかし全順序ではない: 2 と 3 は比較不能</span></span>
 <span id="cb59-13"><a href="#cb59-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> <span class="dv">2</span> <span class="ot">`divides`</span> <span class="dv">3</span> <span class="op">||</span> <span class="dv">3</span> <span class="ot">`divides`</span> <span class="dv">2</span>                              <span class="co">-- False</span></span></code></pre></div>
-<svg viewBox="0 0 460 310" width="100%" style="max-width: 460px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="割り切る関係のハッセ図 (12 の約数). 下から 1, その上に 2 と 3, その上に 4 と 6, 頂上に 12. 線で結ばれた下の数が上の数を割り切る. 2 と 3 の間には上下の道がなく比較不能 — 半順序だが全順序ではない.">
+<svg viewBox="0 0 460 310" width="100%" style="max-width: 460px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="割り切る関係のハッセ図 (12 の約数). 下から 1, その上に 2 と 3, その上に 4 と 6, 頂上に 12. 線で結ばれた下の数が上の数を割り切る. 2 と 3 の間には上下の道がなく比較不能で, 半順序だが全順序ではない.">
 <line x1="230" y1="221" x2="140" y2="179" stroke="currentColor" stroke-width="1.3"/>
 <line x1="230" y1="221" x2="320" y2="179" stroke="currentColor" stroke-width="1.3"/>
 <line x1="140" y1="151" x2="140" y2="109" stroke="currentColor" stroke-width="1.3"/>
@@ -4606,14 +4609,14 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 <line x1="162" y1="165" x2="298" y2="165" stroke="currentColor" stroke-width="1" stroke-dasharray="4 4" opacity="0.5"/>
 <text x="230" y="158" fill="currentColor" font-size="9.5" text-anchor="middle" opacity="0.75">比較不能 (どちらも割り切らない)</text>
 <g fill="currentColor" text-anchor="middle">
-<text x="230" y="278" font-size="12" font-weight="600">半順序 (割り切る関係) のハッセ図 — 線 = 割り切る (下 → 上)</text>
+<text x="230" y="278" font-size="12" font-weight="600">半順序 (割り切る関係) のハッセ図. 線 = 割り切る (下 → 上)</text>
 <text x="230" y="296" font-size="10.5" opacity="0.75">2 と 3 のような比較不能な対がある = 全順序ではない</text>
 </g>
 </svg>
-<p>順序関係は, <a href="fp8.html">第8章</a>で <strong>Ord 型クラス</strong> として Haskell に登場します. <code>compare</code> や <code>&lt;=</code> を自分のデータ型に定義するとき, それが満たすべき法則が全順序の法則です. <a href="fp5.html">第5章</a>で書いた挿入ソートのような並べ替えが常に意味を持つのは, 比較が全順序だからです — 比較不能な対があると「正しい並び順」が定まりません.</p>
+<p>順序関係は, <a href="fp8.html">第8章</a>で <strong>Ord 型クラス</strong> として Haskell に登場します. <code>compare</code> や <code>&lt;=</code> を自分のデータ型に定義するとき, それが満たすべき法則が全順序の法則です. <a href="fp5.html">第5章</a>で書いた挿入ソートのような並べ替えが常に意味を持つのは, 比較が全順序だからです. 比較不能な対があると「正しい並び順」が定まりません.</p>
 <section id="exercise-ch7-7" class="note">
 <h3>Exercise CH7-7</h3>
-<p><strong>部分集合関係は半順序 — しかし全順序ではない</strong></p>
+<p><strong>部分集合関係は半順序だが全順序ではない</strong></p>
 <p><code>Int</code> のリストで有限集合を表すことにします (重複はないものとします).</p>
 <ol type="1">
 <li><p>「<code>xs</code> のすべての要素が <code>ys</code> にも属する」(<span class="math inline">xs \subseteq ys</span>) を判定する関数 <code>subsetOf :: [Int] -&gt; [Int] -&gt; Bool</code> を, リスト内包表記と <code>and</code> を用いて実装してください (<code>x `elem` ys</code> で「<code>x</code> が <code>ys</code> に含まれるか」を判定できます).</p></li>
@@ -4658,7 +4661,7 @@ Haskell では空集合を表すデータ型として <code>Data.Void</code> に
 </details>
 <p>提出ファイル名: <code>ch7-7.hs</code></p>
 </section>
-<h2 id="まとめ-集合から構造へ">まとめ — 集合から構造へ</h2>
+<h2 id="まとめ-集合から構造へ">まとめ: 集合から構造へ</h2>
 <p>本章では, 型を集合とみなす見方を軸に, 集合を作る道具と, 集合の間・上の関係を整理しました.</p>
 <table>
 <colgroup>
