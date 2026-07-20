@@ -237,6 +237,16 @@ EDINET API には大きく 2 つのエンドポイントがあります.
 API_KEY = os.environ.get("EDINET_API_KEY", "")  # 各自取得したキーを設定する
 BASE_URL = "https://api.edinet-fsa.go.jp/api/v2"
 
+def check_api_status(payload: dict) -> None:
+    """body 内のエラー通知を確認する."""
+    status = payload.get("StatusCode", payload.get("metadata", {}).get("status"))
+    if status in (None, 200, "200"):
+        return
+    message = payload.get("message", "")
+    if status in (401, "401"):
+        raise SystemExit(f"API キーが無効です: {message}")
+    raise requests.RequestException(f"API エラー {status}: {message}")
+
 def fetch_document_list(day: datetime.date) -> list[dict]:
     """書類一覧 API (type=2) で 1 日分の提出書類メタデータを取得する."""
     resp = requests.get(
@@ -249,7 +259,9 @@ def fetch_document_list(day: datetime.date) -> list[dict]:
         timeout=30,
     )
     resp.raise_for_status()
-    return resp.json().get("results", [])
+    payload = resp.json()
+    check_api_status(payload)
+    return payload.get("results", [])
 
 def is_annual_securities_report(doc: dict) -> bool:
     """有価証券報告書 (内国会社) かどうかを様式コードで判定する."""
@@ -266,11 +278,17 @@ def download_csv_zip(doc_id: str, dest: Path) -> bool:
         params={"type": 5, "Subscription-Key": API_KEY},  # 5 = CSV
         timeout=60,
     )
+    # zip でなく JSON が返るのはエラー (無効キーなら中断, それ以外は再トライへ)
+    if "application/json" in resp.headers.get("Content-Type", ""):
+        check_api_status(resp.json())
+        return False
     if resp.status_code != 200:
         return False
     dest.write_bytes(resp.content)
     return True
 ~~~
+
+一つ注意として, EDINET API はキーが無効な場合でも HTTP エラーではなく **HTTP 200 のまま body の JSON でエラーを返します** (`"StatusCode": 401`). この場合 `results` が無いだけなので, body を確認しないと「提出 0 件」として静かに成功したように見えてしまいます. `check_api_status` はこれを検出し, キーが無効ならその場で中断, それ以外のエラーなら再トライに回します.
 
 このスクリプトの一番重要な設計は, zip と同時に**書類の索引 (`documents_index.csv`) を保存する**ことです.
 
@@ -288,10 +306,12 @@ index_rows.append({
 メタデータには**証券コード** (`secCode`) と**決算期末** (`periodEnd`) が含まれています. この 2 つを最初に確保しておくと, 後の工程 (株価との結合, 業種との結合) がすべて「コードによる正確な結合」になります. 後述しますが, ここで企業名しか保存しないと, 後段のすべての結合が「文字列のあいまい一致」になり, パイプライン全体が脆くなります.
 
 ::: note
-- サーバへの配慮
+- サーバへの配慮とリトライ
 ---
 
 API は便利ですが, 相手のサーバに負荷をかける行為でもあります. 取得期間は必要な範囲に絞り, リクエストの間に `time.sleep()` を入れ, 一度取得したファイルは再取得しない (スクリプトでは取得済み zip をスキップしています) ようにしましょう. 利用規約も必ず確認してください.
+
+間隔が短すぎると, サーバが応答を返さなくなり途中でエラーになることがあります. `fetch_documents.py` は失敗した日・書類をその場で諦めず, いったん失敗 queue に積んでおき, 期間全体を回し終えてからサーバを休ませ (`RETRY_PAUSE` 秒, ラウンドごとに倍増), リクエスト間隔も倍に伸ばした上で queue の中身だけ再トライします (`MAX_RETRY_ROUNDS` 回まで). それでも取得できなかった分は最後に警告として表示されるので, 時間をおいてスクリプトを再実行してください. 取得済みの zip はスキップされるので, 足りない分だけが再取得されます.
 :::
 
 # CSVの構造と整形
