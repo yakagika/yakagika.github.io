@@ -37,7 +37,7 @@ nextChapter: slds10.html
 | :---:    | :---:        | :---:     | :---:              |
 | 1        | 量的変数     | 基本統計量              |データの特徴を知る  |
 | 2        | 量的変数     | ピアソンの積率相関係数  | データの関係を知る |
-| 2        | 質的変数     | ピアソンのΧ二乗統計量 <br> スピアマンの順位相関係数| データの関係を知る |
+| 2        | 質的変数     | ピアソンのχ二乗統計量 <br> スピアマンの順位相関係数| データの関係を知る |
 | 2        | 混在         | 寄与率,相関比           | データの関係を知る |
 | 3以上    |              | 次元削減,多変量解析など多数| |
 
@@ -63,7 +63,7 @@ nextChapter: slds10.html
 
 :::
 
-Pythonでは, pandasのDataFrameに対して, `.describe()`メソッドを適用すると, データ数(`count`),平均値(`mean`),中央値(`50%`),四分位数(`24%,75%`),標準偏差(`std`),最大値(`max`),最小値(`min`)などが求まります.
+Pythonでは, pandasのDataFrameに対して, `.describe()`メソッドを適用すると, データ数(`count`),平均値(`mean`),中央値(`50%`),四分位数(`25%,75%`),標準偏差(`std`),最大値(`max`),最小値(`min`)などが求まります.
 
 ~~~ py
 df = pd.read_csv('data/histogram_A_B_data.csv')
@@ -97,7 +97,7 @@ max     117.790972    81.931076
 算術平均は対象とするデータを足し合わせることによって基準となる値が算出される場合に使用します.
 
 ::: note
-n個の観測値 $ x_1, x_2, ..., x_n $ の時,平均値 $ \bar{x} $ は
+$n$個の観測値 $x_1, x_2, ..., x_n$ の時,平均値 $\bar{x}$ は
 
 $$ \bar{x} = \frac{1}{n} (x_1 + ... + x_n) = \frac{1}{n} \sum_{i=1}^{n} x_i $$
 :::
@@ -137,15 +137,15 @@ $$ x_G = \sqrt[n]{x_1 \cdot x_2 \cdot ... \cdot x_n} = (\prod_{i}^{n} x_i)^{\fra
 |4    | 1000  | 167%   |
 
 このとき算術平均を用いると,
-$$ 算術平均 = \frac{1.17 + 1.71 + 1.67}{3} \approx 1.52 $$ となり,
+$$ \text{算術平均} = \frac{1.17 + 1.71 + 1.67}{3} \approx 1.52 $$ となり,
 
 $$ 300 \cdot 1.52^3 \approx 1045 $$
 
-平均的な伸び率を3回乗じても4年目の売上の値になりません. これは,毎年度の値に増加率を**掛ける**ことで次の年度の値が求まるのに対して,算術平均は毎年度足す操作をしたばあいの平均値を求めているからです.
+平均的な伸び率を3回乗じても4年目の売上の値になりません. これは,毎年度の値に増加率を**掛ける**ことで次の年度の値が求まるのに対して,算術平均は毎年度足す操作をした場合の平均値を求めているからです.
 
 そこで,幾何平均を求めてみると.
 
-$$ 幾何平均 = \sqrt[3]{1.17 \cdot 1.71 \cdot 1.67} \approx 1.49, \\
+$$ \text{幾何平均} = \sqrt[3]{1.17 \cdot 1.71 \cdot 1.67} \approx 1.49, \\
 300 \cdot 1.49^3 \approx 1000 $$
 となり, 正確に4年目の値が計算できていることが分かります.
 
@@ -167,15 +167,15 @@ $$ \frac{1}{x_H} = \frac{1}{n} \left( \frac{1}{x_1} + ... + \frac{1}{x_n} \right
 
 100kmの道のりを行きは車 (60km/h),帰りは自転車 (30km/h) で移動した場合,算術平均は 45km/hとなります. しかし,
 
-かかった時間は $\frac{距離}{速度}$で求まるので,
-車は $\frac{100}{60}$, 自転車 は $\frac{100}{30}$ となり,速度は $\frac{距離}{時間}$ で求まるので
+かかった時間は $\frac{\text{距離}}{\text{速度}}$ で求まるので,
+車は $\frac{100}{60}$, 自転車 は $\frac{100}{30}$ となり,速度は $\frac{\text{距離}}{\text{時間}}$ で求まるので
 
 平均速度は,
-$$ \frac{200}{\frac{200}{60} + \frac{200}{30}} = \frac{2}{\frac{1}{30} + \frac{1}{60}} = 40 $$
+$$ \frac{200}{\frac{100}{60} + \frac{100}{30}} = \frac{2}{\frac{1}{60} + \frac{1}{30}} = 40 $$
 
 となります. 算術平均では正確に計算できていないことが分かります.
 
-この $$\frac{200}{\frac{200}{60} + \frac{200}{30}} $$
+この $$\frac{200}{\frac{100}{60} + \frac{100}{30}}$$
 が調和平均です.
 
 
@@ -191,8 +191,8 @@ $n$個の観測値を大きさの順に並べ替えて $x_1, x_2, ..., x_n$ と�
 
 $$ \tilde{x} =
 \begin{cases}
-x_{\frac{n+1}{2}}, ~~& if ~~ n \mod 2 \neq 0 \\
-\frac{x_{ \frac{n}{2}} + x_{\frac{n}{2} + 1 }}{2}, ~~ & if~~ n \mod 2 = 0
+x_{\frac{n+1}{2}}, ~~& \text{if} ~~ n \bmod 2 \neq 0 \\
+\frac{x_{ \frac{n}{2}} + x_{\frac{n}{2} + 1 }}{2}, ~~ & \text{if}~~ n \bmod 2 = 0
 \end{cases}
 $$
 
@@ -244,7 +244,7 @@ print(df['x'].median()) #8.0
 
 |引数        |効果       |25%点の場合の計算                      |
 |:---        |:---       | :---                                  |
-|`'linear'`   | 線形補間  | `xs[2] + (xs[2] - xs[3]) * 0.5 = 8.5` |
+|`'linear'`   | 線形補間  | `xs[2] + (xs[3] - xs[2]) * 0.5 = 8.5` |
 |`'lower'`   | 小さい方  | `xs[2] = 8`                           |
 |`'higher'`  | 大きい方  | `xs[3] = 9`                           |
 |`'midpoint'`| 中間      | `(xs[2] + xs[3])/2 = 8.5`             |
@@ -288,7 +288,7 @@ print('75%点:',df['x'].quantile(q=0.75, interpolation='nearest'))
 
 :::
 
-`pandas`で最頻値を求める方法は色々ありますが, 単純に同じデータが最も多い値を探す場合には`.mode()`が利用できます. `.mode()`は最頻値が複数ある場合に対応するために`DataSeries`Objectを返すので,`[0]`で最初の値を取っています.
+`pandas`で最頻値を求める方法は色々ありますが, 単純に同じデータが最も多い値を探す場合には`.mode()`が利用できます. `.mode()`は最頻値が複数ある場合に対応するために`Series` Objectを返すので,`[0]`で最初の値を取っています.
 
 
 ~~~ py
@@ -356,9 +356,7 @@ Name: count, dtype: int64
 
 例えば,以下の図は,日本人の平均所得を表したヒストグラムです.
 
-![[https://www.mhlw.go.jp/toukei/saikin/hw/k-tyosa/k-tyosa09/2-2.html
-](https://www.mhlw.go.jp/toukei/saikin/hw/k-tyosa/k-tyosa09/2-2.html
-)](/images/mean_median_mode2.png)
+![[厚生労働省 平成21年 国民生活基礎調査](https://www.mhlw.go.jp/toukei/saikin/hw/k-tyosa/k-tyosa09/2-2.html)](/images/slds/ch9/mean-median-mode2.png)
 
 この図では,分布が大きく右に歪んでいるため平均値,中央値,最頻値の値が異なっています.それぞれの値が何を意味するのかを考えてみましょう.
 
@@ -618,7 +616,7 @@ Google Trendの `AI`と`Python`の検索数から散布図を作成すると, AI
 |:---:                      |:---:                       |
 |量的変数 $\times$ 量的変数 | ピアソンの積率相関係数     |
 |順位尺度 $\times$ 順位尺度 | スピアマンの順位相関係数   |
-|名義尺度 $\times$ 質的変数 | ピアソンの $\Chi^2$ 統計量 |
+|名義尺度 $\times$ 質的変数 | ピアソンの $\chi^2$ 統計量 |
 
 :::
 
@@ -640,19 +638,18 @@ $$
 $$
 \quad s_{xy} = \frac{1}{n} \sum (x_i - \bar{x})(y_i - \bar{y})
 $$
-を $x$ と $y$ の共分散といい,相関係数は $\frac{xとyの共分散}{xの標準偏差 \times yの標準偏差}$の形で表されます.
+を $x$ と $y$ の共分散といい,相関係数は $\frac{x \text{と} y \text{の共分散}}{x \text{の標準偏差} \times y \text{の標準偏差}}$ の形で表されます.
 
 ![ピアソンの積率相関係数のイメージ](/images/slds/ch9/corre2.png)
 ![ピアソンの積率相関係数のイメージ](/images/slds/ch9/corre3.png)
 ![ピアソンの積率相関係数のイメージ](/images/slds/ch9/corre4.png)
 
 
-$x_i, y_i$ を標準化し $z_i = \frac{x_i - \bar{x}}{s_x}, w_i = \frac{y_i - \bar{y}}{s_y}$ とすると,
+$x_i, y_i$ を標準化し $z_i = \frac{x_i - \bar{x}}{S_x}, w_i = \frac{y_i - \bar{y}}{S_y}$ とすると,
 
 $$
 \begin{align*}
 r_{zw} &= \frac{1}{n} \sum z_i w_i \\
-&= \frac{1}{n S_z S_w} \sum (x_i - \bar{x})(y_i - \bar{y}) \\
 &= \frac{1}{n} \sum \left( \frac{x_i - \bar{x}}{S_x} \right) \left( \frac{y_i - \bar{y}}{S_y} \right) \\
 &= \frac{\sum (x_i - \bar{x})(y_i - \bar{y})}{n S_x S_y} \\
 &= r_{xy}
@@ -667,7 +664,7 @@ $$
 \frac{1}{n} \sum (z_i^2 \pm 2z_i w_i + w_i^2) &\geq 0 \\
 \frac{1}{n} \sum z_i^2 \pm \frac{2}{n} \sum z_i w_i + \frac{1}{n} \sum w_i^2 &\geq 0 \\
 \frac{1}{n S_x^2} \sum (x_i - \bar{x})^2 \pm \frac{2}{n} \sum z_i w_i + \frac{1}{n S_y^2} \sum (y_i - \bar{y})^2 &\geq 0  \\
-\frac{S_x^2}{S_x^2} + \frac{2}{n} \sum z_i w_i + \frac{S_y^2}{S_y^2}  &\geq 0 \\
+\frac{S_x^2}{S_x^2} \pm \frac{2}{n} \sum z_i w_i + \frac{S_y^2}{S_y^2}  &\geq 0 \\
 1 \pm \frac{2}{n} \sum z_i w_i + 1 &\geq 0 \\
 2 (1 \pm r_{xy}) &\geq 0 \\
 -1 \leq r_{xy} \leq 1
@@ -676,13 +673,13 @@ $$
 
 このように相関係数は常に $-1 \leq r_{xy} \leq 1$ を取ります.
 
-また, $c$を$c > 0$の定数として$すべての点で $x_i = c y_i$ が成り立つとき, $\bar{x} = c \bar{y_i}$ が成り立ち,
+また, $c$ を $c > 0$ の定数として,すべての点で $y_i = c x_i$ が成り立つとき, $\bar{y} = c \bar{x}$ が成り立ち,
 
 $$
 \begin{align*}
 S_y &= \sqrt{\frac{1}{n} \sum (y_i - \bar{y})^2} \\
-    &= \sqrt{\frac{1}{n} \sum (c x_i  - c \bar{y})^2} \\
-    &= \sqrt{\frac{c^2}{n} \sum (x_i - \bar{x})}
+    &= \sqrt{\frac{1}{n} \sum (c x_i  - c \bar{x})^2} \\
+    &= \sqrt{\frac{c^2}{n} \sum (x_i - \bar{x})^2} = c S_x
 \end{align*}
 $$
 
@@ -693,7 +690,7 @@ $$
 $$
 \begin{align*}
 r &= \frac{\frac{1}{n} \sum (x_i - \bar{x})(y_i - \bar{y})}{S_x \times S_y} \\
-  &= \frac{\frac{c}{n} \sum (x_i - \bar{x})(x_i - \bar{x})}{S_x \times S_x} \\
+  &= \frac{\frac{c}{n} \sum (x_i - \bar{x})^2}{S_x \times c S_x} \\
   &= \frac{c S_x^2}{c S_x^2} = 1
 \end{align*}
 $$
@@ -867,12 +864,18 @@ $$
 9    10    J    J
 ~~~
 
-こちらの順位の相関係数を求めてみましょう.
+こちらの順位の相関係数を求めてみましょう. データは順位ごとに国名が並んでいるので,国(A~J)をキーにしてFIFAの順位とWBSCの順位を対応させてから計算します.
 
 ~~~ py
 df = pd.read_csv('Data/spearman.csv')
-# sciypyで相関係数を求める
-correlation, pvalue = st.spearmanr(df["FIFA"], df["WBSC"])
+
+#国(A~J)をキーにして,FIFA順位とWBSC順位を対応させる
+fifa = df.set_index('FIFA')['rank']
+wbsc = df.set_index('WBSC')['rank']
+wbsc = wbsc.loc[fifa.index] #国の並び順を揃える
+
+# scipyで順位相関係数を求める
+correlation, pvalue = st.spearmanr(fifa, wbsc)
 print("相関係数:",correlation) #0.4545
 ~~~
 
@@ -1024,7 +1027,7 @@ e-statで県別の身長,体重,睡眠時間等のデータを集めます.
 ~~~ py
 # CSVファイルを読み込んでデータフレームに格納
 # Dataフォルダを作成し,そこにデータを入れておきましょう
-df = pd.read_csv('Data/coeff.csv')
+df = pd.read_csv('Data/coeff_multi.csv')
 
 # データの表示
 print(df)
@@ -1041,7 +1044,6 @@ plt.show()
 print(X.corr())
 
 #ヒートマップで確認
-#ヒートマップで確認
 sns.heatmap(X.corr()
            ,vmax=1     #ヒートマップの最大値
            ,vmin=-1    #最小値
@@ -1051,7 +1053,7 @@ plt.show()
 ~~~
 
 ![散布図のペアプロット](/images/slds/ch9/pair-plot.png)
-各項目の組み合わせごとに,散布図が作成されています. 自交点にはヒストグラムが作成されます.
+各項目の組み合わせごとに,散布図が作成されています. 対角線上にはヒストグラムが作成されます.
 
 ![相関係数のヒートマップ](/images/slds/ch9/coeff-multi9.png)
 
@@ -1059,7 +1061,7 @@ plt.show()
 このように複数の観測項目から関係があるデータを探したい場合には,ペアプロットや,相関係数のヒートマップを作成することで,関係性がわかりやすくなります.
 
 
-### $\Chi^2$統計量
+### $\chi^2$統計量
 
 量的データには積率相関係数, 順位尺度データに対しては,順位相関係数を求めることで2つのデータの関連性を確かめることができました. では,名義尺度データの場合はどのようにすれば良いのでしょうか.
 
@@ -1068,28 +1070,28 @@ plt.show()
 ![同時度数分布表](/images/slds/ch9/cross-table2.png)
 
 
-質的変数間の関連度合いは,同時度数分布表の数値を利用した **ピアソンの$\Chi^2$統計量(かいじじょうとうけいりょう)**で表すことができます. 可視化の節では, 同時度数分布表から列相対度数を求めましたが,ここでは相対度数ではなく,度数なので注意してください.
+質的変数間の関連度合いは,同時度数分布表の数値を利用した **ピアソンの$\chi^2$統計量(カイにじょうとうけいりょう)**で表すことができます. 可視化の節では, 同時度数分布表から列相対度数を求めましたが,ここでは相対度数ではなく,度数なので注意してください.
 
 $$
-\Chi_o^2 = \sum_{i=0}^{r} \sum_{j=0}^{c} \frac{(n_{ij} - E_ij)^2}{E_{ij}} (r:行数,c:列数)
+\chi_o^2 = \sum_{i=1}^{r} \sum_{j=1}^{c} \frac{(n_{ij} - E_{ij})^2}{E_{ij}} \quad (r: \text{行数},\ c: \text{列数})
 $$
 
-このとき,$E_{ij}$を期待度数といい, $\frac{行の合計 \times 列の合計}{総数}$
+このとき,$E_{ij}$を期待度数といい, $\frac{\text{行の合計} \times \text{列の合計}}{\text{総数}}$
 
 $$
-E_{ij} = \frac{\sum_{i}^r n_{ij} \times \sum_{j}^c n_{ij}}{\sum_{i}^{r}\sum_{j}^c n_{ij}}
+E_{ij} = \frac{\sum_{l=1}^{c} n_{il} \times \sum_{k=1}^{r} n_{kj}}{\sum_{k=1}^{r}\sum_{l=1}^{c} n_{kl}}
 $$
 
 で求められます.
 
-この$\Chi_o^2$が大きいほど,2つの変数の間の関連が強いと言え,この値を利用して行と列のデータが独立であるかを検定する **$\Chi^2$検定(独立性の検定)** を行うことができます. ** $\Chi^2$ 検定** に関しては後ほど扱うとして,ここではこの値を利用して2つのデータの関連の度合いを判断する方法に関して見ていきましょう.
+この$\chi_o^2$が大きいほど,2つの変数の間の関連が強いと言え,この値を利用して行と列のデータが独立であるかを検定する **$\chi^2$検定(独立性の検定)** を行うことができます. **$\chi^2$検定**に関しては後ほど扱うとして,ここではこの値を利用して2つのデータの関連の度合いを判断する方法に関して見ていきましょう.
 
-$\Chi_o^2$の値は, 同時度数分布表の行数や列数に依存して値が変わるため,相関係数のように,｢特定の値から関連があるといえる｣といった利用方には適しません.
+$\chi_o^2$の値は, 同時度数分布表の行数や列数に依存して値が変わるため,相関係数のように,｢特定の値から関連があるといえる｣といった利用法には適しません.
 
 そこで, 異なるデータを比較するためには, $0 \leq V \leq 1$の値を取る,**クラメールの連関係数V**に変換します.
 
 $$
-V = \sqrt{\frac{\Chi_o^2}{n \times min(r - 1,c - 1)}}
+V = \sqrt{\frac{\chi_o^2}{n \times \min(r - 1,c - 1)}}
 $$
 
 クラメールの連関係数は,相関係数よりも高い値が出にくいので,以下のような基準で判断します.
@@ -1101,8 +1103,8 @@ $$
 |0.25 ~ 0.5 | 関連がある     |
 |0.5 ~ 1.0  | 強い関連がある |
 
-$\Chi_o^2$は `scipy.stats`の`chi2_contingency(度数分布表,correction=False)`で求めることが出来ます.
-返り値が, $\Chi_o^2$,p値,自由度,期待度数の4つあるので,注意しましょう.
+$\chi_o^2$は `scipy.stats`の`chi2_contingency(度数分布表,correction=False)`で求めることが出来ます.
+返り値が, $\chi_o^2$,p値,自由度,期待度数の4つあるので,注意しましょう.
 
 同時度数分布表の節で扱った時限と成績の関係を記録した[データ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/cross_table_data.csv)を利用して,クラメールの連関係数Vを求めてみましょう.
 
@@ -1134,7 +1136,7 @@ import numpy as np
 
 df = pd.read_csv('data/cross_table_data.csv')
 
-#クロス表の作成
+#クロス表(同時度数分布表)の作成
 cross = pd.crosstab(df['Grade'],df['Period'])
 
 #表示順の設定
@@ -1142,29 +1144,31 @@ cross = cross.reindex([1,2,3,4,5],axis='columns')
 cross = cross.reindex(['S','A','B','C','F'],axis='index')
 print(cross)
 
-#列相対度数に変更する
-for c in cross.columns:
-    cross[c] = cross[c] / cross[c].sum()
+#可視化(第8章の復習): 列相対度数のヒートマップ
+cross_rel = cross.copy()
+for c in cross_rel.columns:
+    cross_rel[c] = cross_rel[c] / cross_rel[c].sum()
 
-print(cross)
+print(cross_rel)
 
-sns.heatmap( cross  #ヒートマップを作成したいテーブル
+sns.heatmap( cross_rel  #ヒートマップを作成したいテーブル
            , cmap=plt.get_cmap('Reds') #カラーマップ(省略可)
            , linewidths=.5 #線の太さを指定することでセルを囲う線を表示
            , annot=True  #セルに数値を表示
            )
 plt.show()
 
-#χ二乗統計量を求める
-x2, p, dof, e = st.chi2_contingency(cross,correction=True)
-print(x2) #1.1342960955202308
+#χ二乗統計量は相対度数ではなく度数の分布表から求める
+x2, p, dof, e = st.chi2_contingency(cross,correction=False)
+print(x2) #43.39273272653072
 
 #クラメールの連関係数Vを求める
-v = np.sqrt(x2/(cross.sum().sum() * min(cross.shape[0]-1,cross.shape[1] -1)))
-print(v) #0.2381487030743849
+n = cross.sum().sum() #総度数 200
+v = np.sqrt(x2/(n * min(cross.shape[0]-1,cross.shape[1] -1)))
+print(v) #0.232896792395609
 ~~~
 
-クラメールの連関係数Vの値は,0.28となり,弱い関連があることが分かりました.
+クラメールの連関係数Vの値は約0.23となり,弱い関連があることが分かりました.
 
 
 ### 因果関係と相関
@@ -1178,16 +1182,16 @@ print(v) #0.2381487030743849
 このとき,Aを**十分条件**, Bを**必要条件** といいます.
 
 しかし,統計学における因果関係は,このような関係では表せません.
-例えば, **喫煙をすると肺がんになる**という関係は, 喫煙をしても肺がんにならない場合があるので,倫理学における因果関係ではありません. 統計学における因果関係は, **Aが,Bの一部を説明するための,あるいはBが起きる確率を高めるための十分条件となっている**ことを表します.
+例えば, **喫煙をすると肺がんになる**という関係は, 喫煙をしても肺がんにならない場合があるので,論理学における因果関係ではありません. 統計学における因果関係は, **Aが,Bの一部を説明するための,あるいはBが起きる確率を高めるための十分条件となっている**ことを表します.
 
-したがって,統計学における因果関係は, ** AによってBの一部が説明できる** あるいは, ** AによってBが起きる確率が高まる** という形で示され,これを**統計的因果関係**といいます.
+したがって,統計学における因果関係は, **AによってBの一部が説明できる**,あるいは **AによってBが起きる確率が高まる** という形で示され,これを**統計的因果関係**といいます.
 
 ::: note
 統計的因果関係が認められる条件は,簡単には以下のように示されます.
 
 1. AとBの間に明瞭な関係が認められる
 
-2. Aが時間的に,あるいは意味的にBより選考している
+2. Aが時間的に,あるいは意味的にBより先行している
 
 3. AとBの共通要因となりうる要因を統制して(影響を取り除いて)も,両者に関係が見出される.
 :::
@@ -1196,17 +1200,17 @@ print(v) #0.2381487030743849
 
 このように, 相関関係と因果関係は異なる概念として理解する必要があります.
 
-例えば, 因果関係があっても相関関係がない有名な例として, **チーズの消費量と,ベッドシーツに絡まって死ぬ人の数**や,**プールで溺れた人の数と,ニコラス･ケイジの映画出演数**などがあります(こちらのサイト([https://www.tylervigen.com/spurious-correlations ](https://www.tylervigen.com/spurious-correlations ))にこういった例が沢山まとめられているので興味のある人は見てみましょう.)
+例えば, 相関関係があっても因果関係がない有名な例として, **チーズの消費量と,ベッドシーツに絡まって死ぬ人の数**や,**プールで溺れた人の数と,ニコラス･ケイジの映画出演数**などがあります(こちらのサイト([https://www.tylervigen.com/spurious-correlations ](https://www.tylervigen.com/spurious-correlations ))にこういった例が沢山まとめられているので興味のある人は見てみましょう.)
 
 
 
-![[spurious correlations](https://www.tylervigen.com/spurious-correlations )](/images/cheese_cinsumption.png)
+![[spurious correlations](https://www.tylervigen.com/spurious-correlations )](/images/slds/ch9/cheese-consumption.png)
 
-![[spurious correlations](https://www.tylervigen.com/spurious-correlations )](/images/nicolas_cage.png)
+![[spurious correlations](https://www.tylervigen.com/spurious-correlations )](/images/slds/ch9/nicolas-cage.png)
 
 このように,全く因果関係のないものでも現れる相関関係を**偽相関(Spurious Correlation)**といいます.
 
-また,反対に$ y = (x-8)^2 $ という関係においては, yの値は完全にxによって決まるため,xとyの間に因果関係は認められますが,相関係数は0となります.
+また,反対に $y = (x-8)^2$ という関係においては, yの値は完全にxによって決まるため,xとyの間に因果関係は認められますが,相関係数は0となります.
 
 ![因果があっても相関がない例](/images/slds/ch9/y-x-8.png)
 
@@ -1219,7 +1223,7 @@ print(v) #0.2381487030743849
 変数,$x,y,z$があるとき,$z$の影響を除いた, $x,y$の間の偏相関係数は以下のように求められます.
 
 $$
-r_{xy \dot z} = \frac{r_{xy} - r_{xz}r_yz}{\sqrt{1 - r_{xz}^2}\sqrt{1 - r_{yz}^2}}
+r_{xy \cdot z} = \frac{r_{xy} - r_{xz}r_{yz}}{\sqrt{1 - r_{xz}^2}\sqrt{1 - r_{yz}^2}}
 $$
 
 式を見てみると,分子では, xとyの相関係数から,zに関する相関係数を引いていることが分かります.
@@ -1256,7 +1260,6 @@ ryz = np.corrcoef(y,z)[0, 1]
 print('x-y:',rxy) #x-y: -0.6001681728315631
 print('x-z:',rxz) #x-z: 0.8000777549807391
 print('y-z:',ryz) #y-z: -0.4740072261555343
-print('ryzx:',ryzx)
 ~~~
 
 ![partial_coeff_scatter_matrix.png](/images/slds/ch9/partial-coeff-scatter-matrix.png)
@@ -1294,12 +1297,12 @@ plt.close()
 
 左上に行くほど,xの値を表す色が明るくなっており, xの影響で$r_{yz}$が負の相関となっていることが分かります.
 
-それでは, 小麦の影響を除いた米の肥満への影響 $r_{yz \dor x}$ を計算してみましょう.
+それでは, 小麦の影響を除いた米の肥満への影響 $r_{yz \cdot x}$ を計算してみましょう.
 
 $$
 \begin{align*}
-r_{yz \dot x} &= \frac{r_{yz} - r_{xy}r_xz}{\sqrt{1 - r_{xz}^2}\sqrt{1 - r_{xy}^2}}
-&\approx \frac{-0.47 + 0.8 \times 0.6}{\sqrt{1 - 0.8^2}\sqrt{1 - 0.6^2}}
+r_{yz \cdot x} &= \frac{r_{yz} - r_{xy}r_{xz}}{\sqrt{1 - r_{xy}^2}\sqrt{1 - r_{xz}^2}} \\
+&\approx \frac{-0.47 + 0.6 \times 0.8}{\sqrt{1 - 0.6^2}\sqrt{1 - 0.8^2}} \\
 &\approx 0.02
 \end{align*}
 $$
@@ -1316,17 +1319,16 @@ print('ryzx:',ryzx) #0.012866706738387962
 最後に,xの影響を打ち消した,yとzの関係をプロットしてみましょう. これは,この後扱う回帰を利用していますので, コードは理解できなくても問題ありません.
 
 ~~~ py
-#の影響を除いたyとzの散布図
+#xの影響を除いたyとzの散布図
 from sklearn.linear_model import LinearRegression
-#yとzのxによる回帰式をたてて,その残渣をプロットすることで,
+#yとzのxによる回帰式をたてて,その残差をプロットすることで,
 #xの効果を打ち消したyとzの関係を表現
 model_y = LinearRegression().fit(df[['x']], y)
 residual_y = y - model_y.predict(df[['x']])
 model_z = LinearRegression().fit(df[['x']], z)
 residual_z = z - model_z.predict(df[['x']])
-(-0.47 + 0.8 * 0.6) / (np.sqrt(1 - 0.8**2) * np.sqrt(1 - 0.6**2))
 
-plt.scatter(residual_z,residual_y,c=x)
+plt.scatter(residual_y,residual_z,c=x)
 plt.xlabel('米の消費量')
 plt.ylabel('肥満度')
 plt.grid()
