@@ -361,16 +361,17 @@
 <item>
     <title>AIと連携した個人の学習層 (Learn)</title>
     <link>/posts/2026-06-11-personal-learn-layer.html</link>
-    <description><![CDATA[<p>前回の記事 <a href="/posts/2026-06-03-multi-repo-agent-orchestrator.html">Multi-Repo Agent Orchestrator</a> で, 複数リポの Claude/Codex セッションを束ねる上位レイヤを紹介した. あの構成にはタグ付きの知識層 (自前 RAG) があり, あるリポの Agent が踏んだ gotcha を別リポの Agent が二度踏まない, という横断再利用が回っている.</p>
-<p>Agent の自律運用がある程度回ってくる中で, Agent の成果に対する私の理解と承認が障壁として顕在化してきた. 特に Opus 4.8 までは, 提案の内容を理解して, 課題等の指摘が可能であったが, 昨日公開された Fable 5 を使っていると, 思考の展開が早い, 抽象度が高い, コードと数理の間の横断が自動的に展開していき追いつけない場面が出てきた.</p>
+    <description><![CDATA[<p><em>初出 2026-06-11. 実装の成長に合わせて 2026-07-23 に全面改稿した. 本文の数値と図は改稿時点のもの.</em></p>
+<p>前回の記事 <a href="/posts/2026-06-03-multi-repo-agent-orchestrator.html">Multi-Repo Agent Orchestrator</a> で, 複数リポの Claude / Codex / Cursor セッションを束ねる上位レイヤを紹介した. あの構成にはタグ付きの知識層 (自前 RAG) があり, あるリポの Agent が踏んだ gotcha を別リポの Agent が二度踏まない, という横断再利用が回っている.</p>
+<p>Agent の自律運用がある程度回ってくる中で, Agent の成果に対する私の理解と承認が障壁として顕在化してきた. 特に Opus 4.8 までは, 提案の内容を理解して, 課題等の指摘が可能であったが, 初出の前日に公開された Fable 5 を使っていると, 思考の展開が早い, 抽象度が高い, コードと数理の間の横断が自動的に展開していき追いつけない場面が出てきた.</p>
 <p>対話の中で確認することは可能だが, 人間の理解がボトルネックとなり, また理解してもそれらは会話ログの中に死蔵されることになる. そこで, 人間のための学習キューをセッションから分離することにした (Orchestrator の知識層は <em>Agent のための</em> corpus であって, <em>人間のための</em> 学習キューではない).</p>
 <p>作ったのは, 人間 (私) 自身の学習を, Agent 群と同じ枠組み (queue + 毎時巡回) で回す層である.</p>
-<p>まだ運用を始めたばかりで事例は少ないが, 次のような使い方をしている.</p>
+<p>6 週間運用して, 使い方は次の 2 つに落ち着いている.</p>
 <ul>
 <li>参考文献の候補と bib を管理する paper repo が, 次に読むべき論文を markdown 化して分割し, キューに載せる. あとはスマホで少しずつ読み, メモや質問をその場に書き込む.</li>
 <li>作業中に出てきた実装, 数学, その他の知識について, 教科書的に説明する markdown を作り, 分割してキューに載せる.</li>
 </ul>
-<p>特に 1 つ目は, 論文を隙間時間に読む環境としてかなり良さそうに感じている.</p>
+<p>特に 1 つ目は, 論文を隙間時間に読む環境として定着している.</p>
 <h1 id="要件">要件</h1>
 <p>作る前に, 自分の学習がどこで破綻しているかを整理すると, 要件は次の 4 つになった.</p>
 <ol type="1">
@@ -437,10 +438,10 @@
 </tbody>
 </table>
 <p>決め手は要件 3 (集積) である. 学習の成果物は「読了の記録」ではなく「自分の vault に増えた知識ノート」であってほしい. もともと個人の知識管理を Obsidian でやっているので, 学習 note の正本を Obsidian (iCloud 同期) に置けば, スマホ閲覧も集積も追加実装なしで手に入る.</p>
-<p>Todoist は, 後ほど連携して<strong>通知と Done 入口だけの薄い一方向ミラー</strong>として足す予定. 間隔反復 (Anki 的な復習サイクル) も後の検討項目だが, 正本が plain markdown なのでどの方向にも発展できる. この「アプリ化や高機能化を後回しにしても障害にならない」点が, 正本を plain markdown に置く最大の利点である.</p>
+<p>Todoist は, 通知と Done 入口だけの<strong>薄い一方向ミラー</strong>として後で足す計画 (後述のとおり未着手のまま). 間隔反復 (Anki 的な復習サイクル) も後の検討項目だが, 正本が plain markdown なのでどの方向にも発展できる. この「アプリ化や高機能化を後回しにしても障害にならない」点が, 正本を plain markdown に置く最大の利点である.</p>
 <h1 id="全体像">全体像</h1>
-<p>仕組みは小さい. Python スクリプト数本 (stdlib のみ) + headless Claude + launchd の毎時巡回で構成される.</p>
-<svg viewBox="0 0 720 470" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Learn 層の全体像" font-family="sans-serif" font-size="13">
+<p>仕組みは今も小さい. スクリプト 12 本 (計 1400 行ほど, 外部依存なし) + headless Claude + launchd の毎時巡回 (深夜 0-7 時は休止) で構成される. 初版から増えた大きな構造は 1 つで, 読むための <strong>Learn</strong> の隣に, 読了後の定着先 <strong>Knowledge</strong> のレーンが同じ巡回で回っている (後述).</p>
+<svg viewBox="0 0 720 570" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Learn 層の全体像" font-family="sans-serif" font-size="13">
 <defs>
 <marker id="lah" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
 <path d="M0,0 L7,3 L0,6 Z" fill="#555"/>
@@ -463,49 +464,61 @@
 <line x1="420" y1="48" x2="480" y2="48" stroke="#555" marker-end="url(#lah)"/>
 <line x1="565" y1="76" x2="565" y2="120" stroke="#555" marker-end="url(#lah)"/>
 <!-- vault -->
-<rect x="40" y="122" width="640" height="130" rx="6" fill="#f6f1fb" stroke="#7a5aa5"/>
+<rect x="40" y="122" width="640" height="160" rx="6" fill="#f6f1fb" stroke="#7a5aa5"/>
 <text x="360" y="144" text-anchor="middle" font-weight="bold">Obsidian vault (iCloud) の Learn/ (正本)</text>
-<rect x="60" y="158" width="280" height="74" rx="4" fill="#fff" stroke="#999"/>
-<text x="200" y="178" text-anchor="middle" font-weight="bold">queue/&lt;note&gt;.md</text>
-<text x="200" y="196" text-anchor="middle" fill="#555" font-size="11">ユーザ正本 (checkbox / ##Q / ##A / ##M)</text>
-<text x="200" y="214" text-anchor="middle" fill="#888" font-size="11">Agent はマーカー直下への冪等挿入のみ</text>
-<rect x="370" y="158" width="140" height="74" rx="4" fill="#fff" stroke="#999"/>
-<text x="440" y="182" text-anchor="middle" font-weight="bold">dashboard.md</text>
-<text x="440" y="200" text-anchor="middle" fill="#555" font-size="11">Agent 専有</text>
-<text x="440" y="216" text-anchor="middle" fill="#888" font-size="11">毎巡回で再生成</text>
-<rect x="540" y="158" width="120" height="74" rx="4" fill="#fff" stroke="#999"/>
-<text x="600" y="182" text-anchor="middle" font-weight="bold">assets/</text>
-<text x="600" y="200" text-anchor="middle" fill="#555" font-size="11">画像等の添付</text>
-<text x="600" y="216" text-anchor="middle" fill="#888" font-size="11">note 別フォルダ</text>
+<rect x="60" y="158" width="190" height="74" rx="4" fill="#fff" stroke="#999"/>
+<text x="155" y="178" text-anchor="middle" font-weight="bold">queue/&lt;note&gt;.md</text>
+<text x="155" y="196" text-anchor="middle" fill="#555" font-size="11">ユーザ正本 (checkbox / マーカー)</text>
+<text x="155" y="214" text-anchor="middle" fill="#888" font-size="11">Agent は直下挿入のみ</text>
+<rect x="262" y="158" width="118" height="74" rx="4" fill="#fff" stroke="#999"/>
+<text x="321" y="178" text-anchor="middle" font-weight="bold">read/</text>
+<text x="321" y="196" text-anchor="middle" fill="#555" font-size="11">読了で自動移動</text>
+<text x="321" y="214" text-anchor="middle" fill="#888" font-size="11">✓ が外れたら戻す</text>
+<line x1="250" y1="195" x2="262" y2="195" stroke="#555" marker-end="url(#lah)"/>
+<rect x="392" y="158" width="148" height="74" rx="4" fill="#fff" stroke="#999"/>
+<text x="466" y="178" text-anchor="middle" font-weight="bold">dashboard / updates</text>
+<text x="466" y="196" text-anchor="middle" fill="#555" font-size="11">Agent 専有</text>
+<text x="466" y="214" text-anchor="middle" fill="#888" font-size="11">再生成 / 対応履歴</text>
+<rect x="552" y="158" width="108" height="74" rx="4" fill="#fff" stroke="#999"/>
+<text x="606" y="178" text-anchor="middle" font-weight="bold">assets/</text>
+<text x="606" y="196" text-anchor="middle" fill="#555" font-size="11">画像等の添付</text>
+<text x="606" y="214" text-anchor="middle" fill="#888" font-size="11">note 別フォルダ</text>
 <!-- user -->
-<rect x="20" y="300" width="220" height="70" rx="6" fill="#eef7ee" stroke="#5a9a5a"/>
-<text x="130" y="326" text-anchor="middle" font-weight="bold">ユーザ (スマホ Obsidian)</text>
-<text x="130" y="346" text-anchor="middle" fill="#555" font-size="11">Part を読む / checkbox ✓</text>
-<text x="130" y="362" text-anchor="middle" fill="#555" font-size="11">##Q 質問 / ##A 解答 / ##M メモ</text>
-<line x1="130" y1="300" x2="130" y2="252" stroke="#5a9a5a" marker-end="url(#lahg)"/>
-<text x="142" y="280" fill="#5a9a5a" font-size="11">iCloud 同期</text>
+<rect x="20" y="330" width="220" height="84" rx="6" fill="#eef7ee" stroke="#5a9a5a"/>
+<text x="130" y="354" text-anchor="middle" font-weight="bold">ユーザ (スマホ Obsidian)</text>
+<text x="130" y="374" text-anchor="middle" fill="#555" font-size="11">Part を読む / checkbox ✓</text>
+<text x="130" y="390" text-anchor="middle" fill="#555" font-size="11">##Q 質問 / ##A 解答</text>
+<text x="130" y="406" text-anchor="middle" fill="#555" font-size="11">##M メモ / ##T 依頼</text>
+<line x1="130" y1="330" x2="130" y2="286" stroke="#5a9a5a" marker-end="url(#lahg)"/>
+<text x="142" y="312" fill="#5a9a5a" font-size="11">iCloud 同期</text>
 <!-- patrol -->
-<rect x="300" y="300" width="400" height="150" rx="6" fill="#fbf7ee" stroke="#b58a4a"/>
-<text x="500" y="322" text-anchor="middle" font-weight="bold">毎時巡回 (launchd)</text>
-<rect x="320" y="338" width="110" height="50" rx="4" fill="#fff" stroke="#999"/>
-<text x="375" y="358" text-anchor="middle">patrol</text>
-<text x="375" y="376" text-anchor="middle" fill="#888" font-size="11">読むだけ</text>
-<rect x="450" y="338" width="110" height="50" rx="4" fill="#fff" stroke="#999"/>
-<text x="505" y="358" text-anchor="middle">headless</text>
-<text x="505" y="376" text-anchor="middle" fill="#888" font-size="11">claude -p</text>
-<rect x="580" y="338" width="100" height="50" rx="4" fill="#fff" stroke="#999"/>
-<text x="630" y="358" text-anchor="middle">冪等挿入</text>
-<text x="630" y="376" text-anchor="middle" fill="#888" font-size="11">挿入前 snapshot</text>
-<line x1="430" y1="363" x2="450" y2="363" stroke="#555" marker-end="url(#lah)"/>
-<line x1="560" y1="363" x2="580" y2="363" stroke="#555" marker-end="url(#lah)"/>
-<text x="500" y="416" text-anchor="middle" fill="#888" font-size="11">未回答の ##Q / 未添削の ##A を検出し, 回答をブロック直下へ書き戻す</text>
-<text x="500" y="434" text-anchor="middle" fill="#888" font-size="11">進捗 (M/N) は checkbox から導出して dashboard にのみ反映</text>
-<line x1="375" y1="338" x2="320" y2="252" stroke="#555" marker-end="url(#lah)"/>
-<text x="310" y="290" fill="#333" font-size="11">read</text>
-<line x1="630" y1="338" x2="630" y2="252" stroke="#555" marker-end="url(#lah)"/>
-<text x="642" y="290" fill="#333" font-size="11">write</text>
+<rect x="300" y="330" width="400" height="150" rx="6" fill="#fbf7ee" stroke="#b58a4a"/>
+<text x="500" y="352" text-anchor="middle" font-weight="bold">毎時巡回 (launchd, 0-7 時は休止)</text>
+<rect x="320" y="368" width="110" height="50" rx="4" fill="#fff" stroke="#999"/>
+<text x="375" y="388" text-anchor="middle">patrol</text>
+<text x="375" y="406" text-anchor="middle" fill="#888" font-size="11">読むだけ</text>
+<rect x="450" y="368" width="110" height="50" rx="4" fill="#fff" stroke="#999"/>
+<text x="505" y="388" text-anchor="middle">headless</text>
+<text x="505" y="406" text-anchor="middle" fill="#888" font-size="11">claude -p</text>
+<rect x="580" y="368" width="100" height="50" rx="4" fill="#fff" stroke="#999"/>
+<text x="630" y="388" text-anchor="middle">冪等挿入</text>
+<text x="630" y="406" text-anchor="middle" fill="#888" font-size="10">挿入前 snapshot</text>
+<line x1="430" y1="393" x2="450" y2="393" stroke="#555" marker-end="url(#lah)"/>
+<line x1="560" y1="393" x2="580" y2="393" stroke="#555" marker-end="url(#lah)"/>
+<text x="500" y="442" text-anchor="middle" fill="#888" font-size="10">未回答の ##Q / 未添削の ##A / 未対応の ##T を検出し, ブロック直下へ書き戻す</text>
+<text x="500" y="460" text-anchor="middle" fill="#888" font-size="10">生成は fallback 連鎖 (sonnet → haiku → codex), 進捗は dashboard にのみ導出反映</text>
+<line x1="375" y1="330" x2="330" y2="286" stroke="#555" marker-end="url(#lah)"/>
+<text x="308" y="314" fill="#333" font-size="11">read</text>
+<line x1="630" y1="330" x2="630" y2="286" stroke="#555" marker-end="url(#lah)"/>
+<text x="642" y="314" fill="#333" font-size="11">write</text>
+<!-- knowledge lane -->
+<line x1="270" y1="286" x2="270" y2="500" stroke="#5a9a5a" stroke-dasharray="4 3" marker-end="url(#lahg)"/>
+<text x="264" y="470" text-anchor="end" fill="#5a9a5a" font-size="11">consolidate</text>
+<rect x="40" y="500" width="640" height="52" rx="6" fill="#eef7ee" stroke="#5a9a5a"/>
+<text x="360" y="522" text-anchor="middle" font-weight="bold" fill="#3f7a3f">Knowledge/ (定着レーン): 読了 note を実需 pull でドメイン別に統合</text>
+<text x="360" y="540" text-anchor="middle" fill="#555" font-size="11">同じ巡回・同じ挿入機構 (##Q / ##T). 状態: 未習得 → 学習中 → 定着</text>
 </svg>
-<p>学習 note は次のような形をしている. 入力 markdown を <code>##</code> 見出し単位で Part に割り, 長すぎる節 (1500 字超) は段落単位で再分割, 小さい節は併合する. 各 Part の末尾に読了 checkbox が付く.</p>
+<p>学習 note は次のような形をしている. 入力 markdown を <code>##</code> 見出し単位で Part に割り, 長すぎる節 (1500 字超) は段落単位で再分割, 小さい節は併合する. 各 Part の末尾に読了 checkbox が付く. 論文系の note は冒頭に日本語の「要約 / なぜ自分に関連するか / 読む目的」節を必須にした. この粒度 (1 Part ≈ 1500 字) と冒頭節は, note を書く側 (各リポの Agent) に規約として配布されている.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode markdown"><code class="sourceCode markdown"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> &lt;タイトル&gt;</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="an">status:</span><span class="co"> queued</span></span>
@@ -540,12 +553,12 @@
 </thead>
 <tbody>
 <tr class="odd">
-<td><code>queue/&lt;note&gt;.md</code> (学習 note 本体)</td>
-<td><strong>ユーザ正本</strong>. Agent は後述の冪等挿入のみ</td>
+<td><code>queue/&lt;note&gt;.md</code> <code>read/&lt;note&gt;.md</code> (学習 note 本体)</td>
+<td><strong>ユーザ正本</strong>. Agent は後述の冪等挿入と読了時の移動のみ</td>
 </tr>
 <tr class="even">
-<td><code>dashboard.md</code> (一覧・進捗)</td>
-<td><strong>Agent のみ</strong>. 毎巡回で全再生成</td>
+<td><code>dashboard.md</code> (一覧・進捗) / <code>updates.md</code> (対応履歴)</td>
+<td><strong>Agent のみ</strong>. 毎巡回で全再生成 / 先頭追記</td>
 </tr>
 <tr class="odd">
 <td><code>assets/</code> (画像等の添付)</td>
@@ -560,27 +573,29 @@
 <li>挿入前に note 全文を repo 側へ <strong>snapshot</strong> する (iCloud に上書きされた場合の復元用の安全網).</li>
 <li>書込みは巡回時の数秒のみ (ユーザのオフライン編集と時間が重なる確率を最小化する).</li>
 </ol>
-<p>「同期の衝突はアルゴリズムでなく所有権で避ける」「緩和するときは無条件でなく, 復元手段と確率の低減をセットにする」というのが, この層に限らず iCloud + Agent 構成全般で使っている指針である.</p>
-<h2 id="ユーザの操作は行頭マーカー-3-種だけ">ユーザの操作は行頭マーカー 3 種だけ</h2>
-<p>note への能動的な操作は, 任意の場所に行頭マーカーで書く 3 種類に統一した. スマホのキーボードで打てる記法であることが重要である.</p>
+<p>この 4 条件は初版から変えていない. 初版後に増えた書込み (読了 note の <code>read/</code> への移動, 後述の Knowledge レーン) にも同じ規律を適用していて, rename であっても実行前に必ず snapshot を取る. 「同期の衝突はアルゴリズムでなく所有権で避ける」「緩和するときは無条件でなく, 復元手段と確率の低減をセットにする」というのが, この層に限らず iCloud + Agent 構成全般で使っている指針である.</p>
+<h2 id="ユーザの操作は行頭マーカー-4-種だけ">ユーザの操作は行頭マーカー 4 種だけ</h2>
+<p>note への能動的な操作は, 任意の場所に行頭マーカーで書く 4 種類に統一した (初版は 3 種で, <code>##T</code> を後から足した). スマホのキーボードで打てる記法であることが重要である.</p>
 <ul>
 <li><strong><code>##Q &lt;質問&gt;</code></strong>: 質問. 次の巡回 (≤1h) で<strong>直下に</strong>回答 callout が入る.</li>
 <li><strong><code>##A &lt;自分の解答&gt;</code></strong>: 確認問題への解答. 直下に添削 callout (正誤 + 指導) が入る.</li>
 <li><strong><code>##M &lt;メモ&gt;</code></strong>: 学習メモ. Agent は回答せず, dashboard のメモ欄に集約だけされる (note を汚さず, 後から知識化する時の材料になる).</li>
+<li><strong><code>##T &lt;依頼&gt;</code></strong>: 依頼. 「この節の分布の図を作って」のような作業を巡回が遂行し, 対応内容の callout を直下に入れる. 済んだブロックの削除は人間の操作として残す (Agent は消さない. 何を頼んで何が済んだかの追跡が人間側に残る).</li>
 </ul>
 <p>実際の画面はこうなる. 読んでいる論文 note の途中に <code>##Q</code> で質問を書いておくと, 次の巡回で直下に回答が挿入される.</p>
 <figure>
 <img src="/images/posts/personal-learn-layer/inline-qa.png" alt="##Q で書いた質問の直下に, 巡回が回答 callout を冪等挿入する (スマホの Obsidian)" />
 <figcaption aria-hidden="true">##Q で書いた質問の直下に, 巡回が回答 callout を冪等挿入する (スマホの Obsidian)</figcaption>
 </figure>
-<p>回答の生成は headless の <code>claude -p</code> で行う. 巡回スクリプトが未回答の <code>##Q</code> / 未添削の <code>##A</code> を検出して JSON に吐き, 回答 Agent が note 全文 + 質問 (解答添削の場合は直前の確認問題も) を文脈にして回答を生成し, 専用 CLI がブロック直下へ挿入する. <strong>リアルタイムの対話なし</strong>で「Agent に質問できる」を成立させるのがポイントで, スマホで読んでいる最中に PC の前にいる必要はない.</p>
-<p>地味な gotcha として, マーカーブロックの終端は「空行まで」にしてある. note の任意箇所に書かれるため, 空行を越えて続きを読むと元の本文と機械的に区別できなくなるからである. この種の「どこまでがユーザの書いた質問か」問題は, 自由編集される markdown に機械処理を混ぜる時に出てきやすい.</p>
+<p>回答の生成は headless の <code>claude -p</code> で行う. 巡回スクリプトが未回答の <code>##Q</code> / 未添削の <code>##A</code> / 未対応の <code>##T</code> を検出して JSON に吐き, 回答 Agent が note 全文 + 質問 (解答添削の場合は直前の確認問題も) を文脈にして回答を生成し, 専用 CLI がブロック直下へ挿入する. <strong>リアルタイムの対話なし</strong>で「Agent に質問できる」を成立させるのがポイントで, スマホで読んでいる最中に PC の前にいる必要はない. 生成する日本語散文には文体規範 (句読点の統一や AI 的な言い回しの排除) を prompt で注入していて, 回答や添削が note の地の文と馴染むようにしている.</p>
+<p>地味な gotcha として, マーカーブロックの終端は「空行まで」にしてある. note の任意箇所に書かれるため, 空行を越えて続きを読むと元の本文と機械的に区別できなくなるからである. この種の「どこまでがユーザの書いた質問か」問題は, 自由編集される markdown に機械処理を混ぜる時に出てきやすい. 同じ理由で, <code>## Q</code> のように見出し風にスペースが入る記法揺れも受け付ける. スマホの入力は揺れるものなので, 記法の側を人間に寄せる.</p>
 <h2 id="進捗の導出状態">進捗の導出状態</h2>
 <p>M/N の進捗や queued / learning / done の状態を note の frontmatter に書き戻す設計も考えられるが, やめた. 巡回は checkbox を<strong>数えるだけ</strong>で, 導出した状態を dashboard にのみ表示する. 状態の二重管理 (checkbox と frontmatter が食い違う) を避けるためと, ユーザ正本への書込み経路を増やさないためである. 状態を 1 箇所 (checkbox) に置いて他は導出にする, というのは Orchestrator のタスク層でフィールド単位に真の側を分けたのと同じ思想である.</p>
+<p>初版後の拡張が 1 つある. 全 Part が ✓ になった note は巡回が <code>read/</code> へ移動し, ✓ が外れたら <code>queue/</code> へ戻す. 置き場そのものが導出状態の表示になるので, スマホのフォルダ一覧が「積読」と「読了」の仕切りとして機能する. frontmatter に書き戻さない方針は変えていない.</p>
 <h2 id="launchd-と-icloud-の-tcc-制約">launchd と iCloud の TCC 制約</h2>
-<p>毎時巡回は launchd で回している. ここに macOS 固有の罠があって, launchd から <code>/bin/bash</code> 直起動したスクリプトは, TCC (プライバシー保護) により iCloud 配下 (<code>Mobile Documents</code>) への書込みが拒否される. 対策は, 独立にコンパイルした小さな helper binary を responsible process として立てる方式で, これは以前 backup 機構を作った時に確立した手法の再利用である. ついでに深夜 (0-7 時) は巡回を skip する quiet hours も入れてある (深夜に回答が届いても読まないし, 万一の暴走時の被害も減る).</p>
+<p>毎時巡回は launchd で回している. ここに macOS 固有の罠があって, launchd から <code>/bin/bash</code> 直起動したスクリプトは, TCC (プライバシー保護) により iCloud 配下 (<code>Mobile Documents</code>) への書込みが拒否される. 対策は, 独立にコンパイルした小さな helper binary を responsible process として立てる方式で, これは以前 backup 機構を作った時に確立した手法の再利用である. 後述の Knowledge レーンの巡回も同じ helper の子プロセスとして走らせ, TCC の許可を継承させている. ついでに深夜 (0-7 時) は巡回を skip する quiet hours も入れてある (深夜に回答が届いても読まないし, 万一の暴走時の被害も減る).</p>
 <h1 id="他リポの-agent-からの登録経路">他リポの Agent からの登録経路</h1>
-<p>この層の入口は「Agent が学習を薦める」である. 十数リポで走っている各 Agent が, セッション中に「これはユーザが学ぶ価値がある」と判断した知識を送ってくる. だがここを自由化すると queue がすぐ Agent の善意で溢れる. そこで<strong>承認制</strong>にした.</p>
+<p>この層の入口は「Agent が学習を薦める」である. 二十数リポで走っている各 Agent が, セッション中に「これはユーザが学ぶ価値がある」と判断した知識を送ってくる. だがここを自由化すると queue がすぐ Agent の善意で溢れる. そこで<strong>承認制</strong>にした.</p>
 <ol type="1">
 <li>各リポの Agent は, 学習推奨を Orchestrator 経由のユーザ依頼 (📖 prefix 付き) として送る. <strong>queue への直接書込みはさせない.</strong></li>
 <li>推奨は briefing (毎時の横断レポート) に surface され, 対話セッションが選択肢として提示する.</li>
@@ -602,17 +617,25 @@
 <p>この note は, 初歩的なところから自分の研究までを分割して接続しているので, そのまま他人への説明にもなりうる (まだ全部は読めていないけれど).</p>
 <p>これをスマホで Part ごとに消化していく. モノイドの定義から始まって 1 Part 数分, 確認問題には <code>##A</code> で自分の解答を書くと巡回が添削を返してくる. 「研究に必要な長い数学知識を, 確認問題つきで自分に段階配信する」という体験は, 講義を受けるのとも教科書を読むのとも違う. 自分の研究の文脈だけに最適化された教材が, 隙間時間の粒度かつ初学者レベルまで分解されて届く. そのぶん, 読むときの認知負荷が下がる感覚がある.</p>
 <p>副産物として, 読了後の note はそのまま vault に残る. 論文の改稿で同じ数学に触れる時, Agent も私もこの note を参照できる. 学習の成果物が「読了の記録」でなく「知識ノート」になる, という要件 3 はここで効いている.</p>
-<h1 id="段階導入と今後">段階導入と今後</h1>
-<p>現在 Phase 1 (queue + M/N + 非同期 Q&amp;A, Obsidian plugin ゼロ) が稼働中で, 以後は運用データを見ながら段階導入する.</p>
+<h1 id="読了後の置き場-knowledge-レーン">読了後の置き場: Knowledge レーン</h1>
+<p>初版の Learn は「読む」ための層で, 読了した note は vault に残る, で終わっていた. 運用してみると, 残った note が実際に使われる場面 (講義準備で t 分布の説明が要る, など) では, 論文単位・教材単位の Learn note のままだと粒度が合わない. そこで読了後の定着先として <code>Knowledge/</code> レーンを足した.</p>
+<p>Learn note の内容を, ドメイン別 (現在は統計学だけ) の知識 note に統合し直す. 統合は網羅的な一括変換ではなく<strong>実需 pull</strong> で行う: 使う場面が来た知識だけを昇格させ, note には「未習得 → 学習中 → 定着」の状態を持たせる. 講義スライドからの知識抽出も, この統合の入口に繋いだ. <code>##Q</code> (質問) と <code>##T</code> (依頼) は Knowledge 側の note でも同じ挿入機構で効く.</p>
+<p>Learn が「これから読むもの」の queue だとすると, Knowledge は「使える形に編み直したもの」の棚である. 分けたことで, Learn 側は読み切りの気楽さを保てる.</p>
+<h1 id="耐障害-usage-policy-誤検出と-fallback-連鎖">耐障害: usage policy 誤検出と fallback 連鎖</h1>
+<p>headless の生成には, 初版時に想定していなかった壊れ方があった. ある朝, 統計学 note の <code>##Q</code> への回答生成が, モデル側の usage policy 分類器の誤検出 (良性の統計の質問を拒否) で失敗し続けた. 当時の巡回スクリプトは CLI の実エラーを握り潰していたため, 気づくまで 3 時間かかった.</p>
+<p>対策は生成の成功率より可視化を先にした.</p>
 <ol type="1">
-<li><strong>Phase 1: Obsidian コア</strong> (稼働中): 本記事の内容.</li>
-<li><strong>Phase 2: Todoist 一方向ミラー</strong>: enqueue 時に「📖 タイトル (0/N)」をタスク起票し, 巡回が進捗を reconcile する. 通知と Done 入口だけの薄い層で, 正本は常に vault.</li>
-<li><strong>Phase 3: TTS / 間隔反復</strong>: 読み上げと復習サイクル (FSRS 系) の検討.</li>
-<li><strong>Phase 4: アプリ化判断</strong>: 消化率や Q&amp;A 頻度のデータを見て決める.</li>
+<li><strong>実エラーを必ず記録する</strong>: 拒否も失敗もログに全文残し, 未解決の失敗は dashboard に「自動回答失敗」として表示する (解決すれば自動で消える).</li>
+<li><strong>policy 起因の拒否だけ fallback する</strong>: 拒否はモデル依存の判定なので, 別モデルを試す価値がある. 連鎖は sonnet → haiku → 最終段は別ベンダの codex (この分類器の対象外).</li>
+<li><strong>インフラ起因は fallback しない</strong>: 認証・quota・コンテキスト超過は, モデルを替えても解決しないし, fallback すると原因が隠れる. 即座に可視化だけする.</li>
 </ol>
+<p>導入後も誤検出は実際に再発していて, そのたびに fallback が発火して回答は届いている. この対策は learn に閉じず, Orchestrator 配下の headless 自動化全般の規約として展開した.</p>
+<h1 id="段階導入と今後">段階導入と今後</h1>
+<p>初版で引いたロードマップは, Phase 1 (Obsidian コア) → Phase 2 (Todoist 一方向ミラー) → Phase 3 (TTS / 間隔反復) → Phase 4 (アプリ化判断) だった. 6 週間後の現在地は「Phase 2 以降は未着手のまま, Phase 1 の中身が横に育った」である. マーカーの 4 種化, <code>read/</code> の分離, fallback 連鎖, Knowledge レーンは, どれもロードマップに無かった拡張で, 使っていて足りないものから順に生えた.</p>
+<p>規模は note 26 件 (読了 5), 285 Part のうち消化 64, 質問・添削・依頼への対応 21 件. 消化の速度は正直まだ遅く, queue は供給過多である. Todoist ミラー (通知と Done 入口) や TTS は, この消化側のてこ入れとして検討しているが, 着手は運用データを見てからにしている.</p>
 <p>最初から専用アプリを作らなかったのは意図的で, 「そもそも自分は queue された知識を消化するのか」という一番の不確実性を, 一番安い構成 (plain markdown + 既存の Obsidian) で検証したかったからである. そして正本が plain markdown である限り, どの Phase に進んでもデータの移行が問題にならない. これは Orchestrator の vault を全 markdown にしたのと同じ賭けであり, 今のところ良い賭けだったと思っている.</p>
 <p>AI に何かを教わること自体は, もう誰でもやっている. ただ, 流れて消えるその知識を, 自分の知識基盤に向けて queue し直す層を一枚挟んだ. Agent 群の orchestration の隣に, 人間の learning を置いてみた, という話でした.
-学生に AI の使い方, AI に教わる的な使い方を指導している資料などが多いが, 個人的にも一番しっくり来ている. そのうち, 学生向けの資料としてまとめるためのたたき台にしようかと思っている.</p>]]></description>
+AI に教わる使い方を学生に指導する資料は世に多いが, 個人的にはこの形が一番しっくり来ている. そのうち, 学生向けの資料としてまとめるためのたたき台にしようかと思っている.</p>]]></description>
     <pubDate>Thu, 11 Jun 2026 00:00:00 UT</pubDate>
     <guid>/posts/2026-06-11-personal-learn-layer.html</guid>
     
@@ -623,9 +646,10 @@
 <item>
     <title>Multi-Repo Agent Orchestrator</title>
     <link>/posts/2026-06-03-multi-repo-agent-orchestrator.html</link>
-    <description><![CDATA[<p>近頃よくある取り組みだが, PC 上のあらゆる作業に AI Agent を介入させるように仕事の再構築を進めている. 再構築を進めるうちに, 複数のプロジェクトが同時進行する状況で, CLAUDE.md/AGENT.md, skills の仕様判断, その他の規約やコンテキストの設定を共有し自動化したいという欲求が出てきた.</p>
+    <description><![CDATA[<p><em>初出 2026-06-03. 実装の成長に合わせて 2026-07-23 に全面改稿した. 本文の数値と図は改稿時点のもの. 初出後に書いた続編が 3 本ある: <a href="/posts/2026-06-19-interactive-multi-repo-coordinator.html">対話型 coordinator</a>, <a href="/posts/2026-06-12-cross-repo-handoff-queue.html">repo 間タスク連鎖</a>, <a href="/posts/2026-06-11-personal-learn-layer.html">個人の学習層 (Learn)</a>.</em></p>
+<p>近頃よくある取り組みだが, PC 上のあらゆる作業に AI Agent を介入させるように仕事の再構築を進めている. 再構築を進めるうちに, 複数のプロジェクトが同時進行する状況で, CLAUDE.md/AGENT.md, skills の仕様判断, その他の規約やコンテキストの設定を共有し自動化したいという欲求が出てきた.</p>
 <p>複数 Agent の並行管理自体は, <code>Remote Control</code> や <a href="https://cmux.com/">cmux</a> などの導入で軽くなってきたが, それぞれの repo で独立していると初期設定や知識層の反映に手間がかかる. どの repo で起動しても, 作業目標ごとに知識と規約を引き継ぐのがボトルネックとなってきた.</p>
-<p>そのために, 複数リポで別々に走らせている十数個の Claude/Codex セッションを, 横断で監視, 記録, タスク配分, 知識集約する上位レイヤ(Agent Orchestrator)を自作した. 各リポの Agent は賢いが, それらを束ねる視点 (誰が何を進行中か, 知見の横断再利用, タスクの配分) は別レイヤの問題で, そこを担うのがこの Orchestrator である.</p>
+<p>そのために, 二十数リポで別々に走らせている Claude / Codex / Cursor のセッションを, 横断で監視, 記録, タスク配分, 知識集約する上位レイヤ (Agent Orchestrator) を自作した. 各リポの Agent は賢いが, それらを束ねる視点 (誰が何を進行中か, 知見の横断再利用, タスクの配分) は別レイヤの問題で, そこを担うのがこの Orchestrator である.</p>
 <p>このような用途なら, 既存の AI Assistant tool として有名な <a href="https://pi.ai/">Pi</a> (Inflection) や <a href="https://nousresearch.com/">Hermes Agent</a> (Nous Research) がある. わざわざ車輪の再発明をしなくても, 既存アーキテクチャを採用すれば類似の効果は得られる.</p>
 <p>Pi は製品 / UX 層, Hermes Agent はモデル + 単一 agent 層に当たる. どちらも記憶や知識の集約・反映の仕組みを持ち (Hermes Agent は永続メモリ + skills, Pi は会話文脈), 私の理解では orchestrator 的な役割もある程度こなす一般ツールである.</p>
 <table>
@@ -670,7 +694,7 @@
 自社 Hermes (開 weights)
 </td>
 <td>
-モデル非依存 (Claude/Codex を使う)
+モデル非依存 (Claude / Codex / Cursor を使う)
 </td>
 </tr>
 <tr>
@@ -737,11 +761,11 @@ vault (RAG 知識 + 規約 + タスク) を横断共有
 <li><strong>作業ごとに分人的な役割分担がある</strong>: 研究, 講義, 開発, 私生活で必要な人格・文脈・規約は異なる. すべてを単一 agent に集約するより, <strong>agent ごとの個別コンテキストと, 横断の共通知識とを併存</strong>させたい. 一個の強い agent を作る (Hermes Agent の方向) のではなく, 弱くてもよいので多数の agent をそれぞれの分人として保ちつつ, 共通の知識層で束ねる, という選択である.</li>
 </ul>
 <p>あと単純に, 自分で弄れる範囲が大きい方が楽しい. 普通は Hermes Agent を入れておけばほとんどこと足りると思う.</p>
-<p>なお,以下の構成は最終的には,ネットワーク上の常時稼働Agentに引き継ぐが現在は試験的に,全てローカルで完結させている.</p>
-<h1 id="全体構成-5-層">全体構成: 5 層</h1>
-<p>Orchestrator は管理対象リポの上位に立ち, launchd で毎時巡回するバッチと対話セッションの二面で動く. 処理は 5 層に分かれ, 各リポの Agent とは共有キュー (inbox/outbox) だけで接続する.</p>
-<p>なお, この対話セッションの側は後に, 各リポの Agent を cmux のタブで起動・操舵し, <strong>変更操作だけを承認ゲートに通す対話型 coordinator</strong> へ発展させた. その仕組みは続編 <a href="/posts/2026-06-19-interactive-multi-repo-coordinator.html">cmux で起動した repo agent の変更操作だけを承認ゲートに通す対話型 coordinator</a> に書いた.</p>
-<svg viewBox="0 0 720 430" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="全体アーキテクチャ 5 層" font-family="sans-serif" font-size="13">
+<p>なお, この構成は最終的にはネットワーク上の常時稼働機へ引き継ぐ計画だが, 移行 (後述の Phase 3) は設計だけ済ませて保留しており, 現在も 1 台のローカル Mac で完結している.</p>
+<h1 id="全体構成-核の-5-段と増えた-6-系統">全体構成: 核の 5 段と増えた 6 系統</h1>
+<p>Orchestrator は管理対象リポの上位に立ち, launchd で毎時巡回するバッチと対話セッションの二面で動く. 各リポの Agent とは共有キュー (inbox/outbox) だけで接続する. 巡回 1 周の骨格は初版から変わらず, 「収集 → routing → vault 反映 → MCP 配信 → 通知」の 5 段で読める.</p>
+<p>初版ではこの 5 段を「5 層構成」と呼んだが, 7 週間後の実態の要約としては既に粗い. 巡回の工程は 27 step に増え, 5 段のどれにも収まらない系統が 6 つ育った.</p>
+<svg viewBox="0 0 720 480" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="全体アーキテクチャ: 核の 5 段と増えた 6 系統" font-family="sans-serif" font-size="13">
 <defs>
 <marker id="ah" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
 <path d="M0,0 L7,3 L0,6 Z" fill="#555"/>
@@ -749,20 +773,20 @@ vault (RAG 知識 + 規約 + タスク) を横断共有
 </defs>
 <!-- repos -->
 <rect x="40" y="20" width="640" height="56" rx="6" fill="#eef4fb" stroke="#4a78b5"/>
-<text x="360" y="42" text-anchor="middle" font-weight="bold">各リポの Agent (Claude / Codex) - 十数 repos</text>
-<text x="360" y="62" text-anchor="middle" fill="#555">research / grant / personal / lecture / tooling / chores (作業レイヤ)</text>
+<text x="360" y="42" text-anchor="middle" font-weight="bold">各リポの Agent (Claude / Codex / Cursor) - 25 repos</text>
+<text x="360" y="62" text-anchor="middle" fill="#555">research / lecture / grant / tooling / personal / gamedev (作業レイヤ)</text>
 <!-- push / pull arrows -->
 <line x1="250" y1="76" x2="250" y2="118" stroke="#555" marker-end="url(#ah)"/>
 <text x="200" y="100" text-anchor="end" fill="#333">push</text>
-<text x="200" y="115" text-anchor="end" fill="#888" font-size="11">Stop hook + MCP</text>
+<text x="200" y="115" text-anchor="end" fill="#888" font-size="11">Stop hook + MCP (21 tools)</text>
 <line x1="470" y1="118" x2="470" y2="76" stroke="#555" marker-end="url(#ah)"/>
 <text x="520" y="100" fill="#333">pull</text>
-<text x="520" y="115" fill="#888" font-size="11">context-pack</text>
+<text x="520" y="115" fill="#888" font-size="11">context-pack / feed</text>
 <!-- orchestrator box -->
-<rect x="40" y="120" width="640" height="190" rx="6" fill="#fbf7ee" stroke="#b58a4a"/>
-<text x="360" y="142" text-anchor="middle" font-weight="bold">Orchestrator (launchd 毎時 + 対話セッション)</text>
+<rect x="40" y="120" width="640" height="252" rx="6" fill="#fbf7ee" stroke="#b58a4a"/>
+<text x="360" y="142" text-anchor="middle" font-weight="bold">Orchestrator (launchd 毎時巡回 27 step + 対話セッション)</text>
 <rect x="60" y="158" width="120" height="40" rx="4" fill="#fff" stroke="#999"/>
-<text x="120" y="183" text-anchor="middle">1. inbox</text>
+<text x="120" y="183" text-anchor="middle">1. 収集</text>
 <rect x="200" y="158" width="120" height="40" rx="4" fill="#fff" stroke="#999"/>
 <text x="260" y="183" text-anchor="middle">2. routing</text>
 <rect x="340" y="158" width="140" height="40" rx="4" fill="#fff" stroke="#999"/>
@@ -775,21 +799,41 @@ vault (RAG 知識 + 規約 + タスク) を横断共有
 <line x1="320" y1="178" x2="340" y2="178" stroke="#555" marker-end="url(#ah)"/>
 <line x1="480" y1="178" x2="500" y2="178" stroke="#555" marker-end="url(#ah)"/>
 <line x1="580" y1="178" x2="600" y2="178" stroke="#555" marker-end="url(#ah)"/>
-<rect x="60" y="220" width="600" height="74" rx="4" fill="#f5f5f5" stroke="#bbb"/>
-<text x="360" y="240" text-anchor="middle" fill="#555">vault (全 markdown): projects / tasks / knowledge / agent_ops</text>
-<text x="360" y="262" text-anchor="middle" fill="#888" font-size="12">司令塔兼書記. 判断と記録に徹し, 実作業は各リポの Agent が担う</text>
-<text x="360" y="282" text-anchor="middle" fill="#888" font-size="12">他リポの FS は直接触らない (repo-initiated)</text>
+<!-- grown subsystems -->
+<text x="60" y="220" fill="#8a6a3a" font-size="11">初版以降に増えた系統</text>
+<rect x="60" y="228" width="93" height="36" rx="4" fill="#fdfaf3" stroke="#b58a4a" stroke-dasharray="3 2"/>
+<text x="106" y="250" text-anchor="middle" font-size="11">タスク同期</text>
+<rect x="161" y="228" width="93" height="36" rx="4" fill="#fdfaf3" stroke="#b58a4a" stroke-dasharray="3 2"/>
+<text x="207" y="250" text-anchor="middle" font-size="11">handoff queue</text>
+<rect x="262" y="228" width="93" height="36" rx="4" fill="#fdfaf3" stroke="#b58a4a" stroke-dasharray="3 2"/>
+<text x="308" y="250" text-anchor="middle" font-size="11">知識 curation</text>
+<rect x="363" y="228" width="93" height="36" rx="4" fill="#fdfaf3" stroke="#b58a4a" stroke-dasharray="3 2"/>
+<text x="409" y="250" text-anchor="middle" font-size="11">統治 (規約)</text>
+<rect x="464" y="228" width="93" height="36" rx="4" fill="#fdfaf3" stroke="#b58a4a" stroke-dasharray="3 2"/>
+<text x="510" y="250" text-anchor="middle" font-size="11">自律レーン</text>
+<rect x="565" y="228" width="93" height="36" rx="4" fill="#fdfaf3" stroke="#b58a4a" stroke-dasharray="3 2"/>
+<text x="611" y="250" text-anchor="middle" font-size="11">coordinator</text>
+<rect x="60" y="282" width="600" height="76" rx="4" fill="#f5f5f5" stroke="#bbb"/>
+<text x="360" y="304" text-anchor="middle" fill="#555">vault (markdown 正本): projects / tasks / knowledge 約 350 / agent_ops 規約 60</text>
+<text x="360" y="324" text-anchor="middle" fill="#888" font-size="12">司令塔兼書記. 判断と記録に徹し, 実作業は各リポの Agent が担う</text>
+<text x="360" y="344" text-anchor="middle" fill="#888" font-size="12">他リポの FS は直接触らない (repo-initiated)</text>
 <!-- external -->
-<line x1="630" y1="310" x2="630" y2="350" stroke="#555" marker-end="url(#ah)"/>
-<rect x="300" y="350" width="160" height="40" rx="6" fill="#eef4fb" stroke="#4a78b5"/>
-<text x="380" y="375" text-anchor="middle">Discord (通知)</text>
-<rect x="480" y="350" width="160" height="40" rx="6" fill="#eef4fb" stroke="#4a78b5"/>
-<text x="560" y="375" text-anchor="middle">Todoist (タスク)</text>
+<line x1="630" y1="372" x2="630" y2="412" stroke="#555" marker-end="url(#ah)"/>
+<rect x="300" y="412" width="160" height="40" rx="6" fill="#eef4fb" stroke="#4a78b5"/>
+<text x="380" y="437" text-anchor="middle">Discord (通知)</text>
+<rect x="480" y="412" width="160" height="40" rx="6" fill="#eef4fb" stroke="#4a78b5"/>
+<text x="560" y="437" text-anchor="middle">Todoist (タスク hub)</text>
 </svg>
-<p>Orchestrator 自身は判断と記録に徹し, 各リポでの実作業はそのリポの Agent が担う. Orchestrator は司令塔兼書記であって, 現場では手を動かさない.</p>
-<h1 id="管理対象-複数リポをカテゴリで束ねる">管理対象: 複数リポをカテゴリで束ねる</h1>
-<p>以下は匿名化したリポの構造を表している. 各リポは <code>runtime</code> (claude / codex), <code>cadence</code> (毎時 / 日次 / 週次), <code>category</code>, <code>techs</code> をメタデータに持ち, これが後段の routing と知識索引のキーになる. 設定は 1 枚の YAML に集約し, パーサも 1 本に統一している.</p>
-<p>構造は二段に分かれる. 作業レイヤの頂点に Orchestrator が立って十数リポを束ね, その系全体をさらに外側から評価するのが existential (Vault) である.</p>
+<p>増えた 6 系統のうち, タスク双方向同期・知識キュレーション・統治は本文の後半で扱う. 残る 3 つの位置づけは次のとおり.</p>
+<ul>
+<li><strong>repo 間 handoff queue</strong>: 上流ライブラリの変更を下流の研究リポへ運ぶ, repo から repo への有向タスク連鎖. 中央の immutable queue で運ぶ. 続編 <a href="/posts/2026-06-12-cross-repo-handoff-queue.html">中央 immutable queue で運ぶ repo 間の Agent タスク連鎖</a> に書いた.</li>
+<li><strong>対話型 coordinator</strong>: 各リポの Agent を cmux のタブで起動・操舵し, 走行中の変更操作だけを横取りして人間の承認に上げる. 続編 <a href="/posts/2026-06-19-interactive-multi-repo-coordinator.html">cmux で起動した repo agent の変更操作だけを承認ゲートに通す対話型 coordinator</a> に書いた.</li>
+<li><strong>自律実行レーン</strong>: 人間が 1 件ずつ承認した doc / test 級の小修正を, 隔離 worktree で commit まで自動実行する (merge はしない). kill switch 付きで有効化済みだが, 実行実績はまだ数件で常用には至っていない.</li>
+</ul>
+<p>Orchestrator 自身は今も判断と記録に徹し, 各リポでの実作業はそのリポの Agent が担う. 司令塔兼書記であって, 現場では手を動かさない. 自律実行レーンはこの原則の唯一の緩和だが, 対象は事前承認済みの小修正に限り, merge の権限は渡していない.</p>
+<h1 id="管理対象-26-リポをカテゴリで束ねる">管理対象: 26 リポをカテゴリで束ねる</h1>
+<p>以下は匿名化したリポの構造を表している. 管理対象は現在 26 リポ (稼働 25) で, 各リポは <code>runtime</code> (claude / codex / cursor, 併用可), <code>cadence</code> (毎時 5 / 日次 17 / 週次 3 リポ), <code>category</code>, <code>techs</code>, 依存先リポをメタデータに持ち, これが後段の routing と知識索引のキーになる. 設定は 1 枚の YAML に集約し, パーサも 1 本に統一している. 初版時に十数リポだった管理対象はほぼ倍になったが, リポを増やすときにやることはこの YAML に 1 エントリ足すことだけである.</p>
+<p>構造は二段に分かれる. 作業レイヤの頂点に Orchestrator が立って全リポを束ね, その系全体をさらに外側から評価するのが existential (Vault) である.</p>
 <svg viewBox="0 0 720 600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Orchestrator を頂点とする作業レイヤと existential のメタ評価" font-family="sans-serif" font-size="13">
 <defs>
 <marker id="ahm" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
@@ -816,36 +860,36 @@ vault (RAG 知識 + 規約 + タスク) を横断共有
 <text x="392" y="154" fill="#333" font-size="11">管理 (routing / 知識配信 / タスク配分)</text>
 <!-- work layer container -->
 <rect x="74" y="168" width="572" height="400" rx="6" fill="#f5f5f5" stroke="#bbb"/>
-<text x="360" y="190" text-anchor="middle" fill="#555">作業レイヤ - 十数 repos (category / techs を持つ)</text>
+<text x="360" y="190" text-anchor="middle" fill="#555">作業レイヤ - 25 repos (category / techs を持つ)</text>
 <!-- row 1 -->
 <rect x="90" y="204" width="172" height="64" rx="4" fill="#eef4fb" stroke="#4a78b5"/>
 <text x="176" y="226" text-anchor="middle" font-weight="bold">research</text>
-<text x="176" y="244" text-anchor="middle" fill="#555" font-size="11">Research A / B / C</text>
+<text x="176" y="244" text-anchor="middle" fill="#555" font-size="11">14 repos</text>
 <text x="176" y="260" text-anchor="middle" fill="#888" font-size="11">論文 / ライブラリ / 原稿</text>
 <rect x="274" y="204" width="172" height="64" rx="4" fill="#eef4fb" stroke="#4a78b5"/>
-<text x="360" y="226" text-anchor="middle" font-weight="bold">grant</text>
-<text x="360" y="244" text-anchor="middle" fill="#555" font-size="11">Grant A</text>
-<text x="360" y="260" text-anchor="middle" fill="#888" font-size="11">申請書 (審査待ちが常態)</text>
+<text x="360" y="226" text-anchor="middle" font-weight="bold">lecture</text>
+<text x="360" y="244" text-anchor="middle" fill="#555" font-size="11">2 repos</text>
+<text x="360" y="260" text-anchor="middle" fill="#888" font-size="11">講義資料</text>
 <rect x="458" y="204" width="172" height="64" rx="4" fill="#eef4fb" stroke="#4a78b5"/>
-<text x="544" y="226" text-anchor="middle" font-weight="bold">personal</text>
-<text x="544" y="244" text-anchor="middle" fill="#555" font-size="11">Personal</text>
-<text x="544" y="260" text-anchor="middle" fill="#888" font-size="11">私生活の意思決定 (非公開)</text>
+<text x="544" y="226" text-anchor="middle" font-weight="bold">grant</text>
+<text x="544" y="244" text-anchor="middle" fill="#555" font-size="11">2 repos</text>
+<text x="544" y="260" text-anchor="middle" fill="#888" font-size="11">申請書</text>
 <!-- row 2 -->
 <rect x="90" y="280" width="172" height="64" rx="4" fill="#eef4fb" stroke="#4a78b5"/>
-<text x="176" y="302" text-anchor="middle" font-weight="bold">lecture</text>
-<text x="176" y="320" text-anchor="middle" fill="#555" font-size="11">Lecture A / B</text>
-<text x="176" y="336" text-anchor="middle" fill="#888" font-size="11">講義資料</text>
+<text x="176" y="302" text-anchor="middle" font-weight="bold">tooling</text>
+<text x="176" y="320" text-anchor="middle" fill="#555" font-size="11">3 repos</text>
+<text x="176" y="336" text-anchor="middle" fill="#888" font-size="11">タスク運用基盤ほか</text>
 <rect x="274" y="280" width="172" height="64" rx="4" fill="#eef4fb" stroke="#4a78b5"/>
-<text x="360" y="302" text-anchor="middle" font-weight="bold">tooling</text>
-<text x="360" y="320" text-anchor="middle" fill="#555" font-size="11">Tooling A / B</text>
-<text x="360" y="336" text-anchor="middle" fill="#888" font-size="11">タスク運用基盤</text>
+<text x="360" y="302" text-anchor="middle" font-weight="bold">personal</text>
+<text x="360" y="320" text-anchor="middle" fill="#555" font-size="11">2 repos</text>
+<text x="360" y="336" text-anchor="middle" fill="#888" font-size="11">その他</text>
 <rect x="458" y="280" width="172" height="64" rx="4" fill="#eef4fb" stroke="#4a78b5"/>
-<text x="544" y="302" text-anchor="middle" font-weight="bold">chores</text>
-<text x="544" y="320" text-anchor="middle" fill="#555" font-size="11">Chores</text>
-<text x="544" y="336" text-anchor="middle" fill="#888" font-size="11">その他の雑用</text>
-<!-- row 3: paper layer with PDF -> md -> bib pipeline -->
+<text x="544" y="302" text-anchor="middle" font-weight="bold">gamedev</text>
+<text x="544" y="320" text-anchor="middle" fill="#555" font-size="11">1 repo</text>
+<text x="544" y="336" text-anchor="middle" fill="#888" font-size="11">教育用ゲーム開発</text>
+<!-- row 3: papers layer with PDF -> md -> bib pipeline -->
 <rect x="90" y="356" width="540" height="86" rx="4" fill="#eef4fb" stroke="#4a78b5"/>
-<text x="150" y="392" text-anchor="middle" font-weight="bold">paper</text>
+<text x="150" y="392" text-anchor="middle" font-weight="bold">papers</text>
 <text x="150" y="412" text-anchor="middle" fill="#555" font-size="11">論文文献管理</text>
 <rect x="246" y="376" width="84" height="46" rx="4" fill="#fff" stroke="#999"/>
 <text x="288" y="400" text-anchor="middle" font-weight="bold">PDF</text>
@@ -858,11 +902,11 @@ vault (RAG 知識 + 規約 + タスク) を横断共有
 <rect x="478" y="376" width="100" height="46" rx="4" fill="#fff" stroke="#999"/>
 <text x="528" y="400" text-anchor="middle" font-weight="bold">bib</text>
 <text x="528" y="415" text-anchor="middle" fill="#888" font-size="10">引用 DB</text>
-<text x="360" y="492" text-anchor="middle" fill="#888" font-size="11">各リポは runtime (claude / codex) / cadence (毎時 / 日次 / 週次) / category / techs をメタデータに持つ</text>
-<text x="360" y="512" text-anchor="middle" fill="#888" font-size="11">設定は 1 枚の YAML に集約し, パーサも 1 本に統一. これが routing と知識索引のキーになる</text>
+<text x="360" y="492" text-anchor="middle" fill="#888" font-size="10">各リポは runtime (claude / codex / cursor, 併用可) / cadence (毎時・日次・週次) / category / techs / depends_on を持つ</text>
+<text x="360" y="512" text-anchor="middle" fill="#888" font-size="10">設定は 1 枚の YAML に集約し, パーサも 1 本に統一. これが routing と知識索引のキーになる</text>
 </svg>
-<p>Orchestrator と existential (Vault) は層が違う. Orchestrator は作業レイヤの頂点として十数リポの routing / 知識 / タスクを束ねるが, existential はその Orchestrator を含む系全体を外側から評価する. existential には <code>now.md</code> をはじめ思想 / 現状 / 価値観の single source があり, 個々の作業や routing が自分の価値観と現状に整合しているかを問う. Orchestrator が「何を / どう進めるか」を扱うのに対し, existential は「そもそもその方向で良いか」を扱う. now.md 自体は Orchestrator 経由で必要な agent にも配信される.</p>
-<p>各リポも Orchestrator を通じて連携できるようにしている. 例えば, 最近開発を進めている <strong>paper 層</strong>は, 文献管理に特化したパイプラインを持つ. 論文 PDF を原典として取り込み, それを <strong>md</strong> に抽出・要約 (図表や式の扱いも含む) してから, 引用情報を <strong>bib</strong> (引用データベース) に落とす. この <strong>PDF → md → bib</strong> の流れが research 層の執筆へ供給され, 「読んだ論文がそのまま引用可能な形で原稿に届く」状態が構築されている.</p>
+<p>Orchestrator と existential (Vault) は層が違う. Orchestrator は作業レイヤの頂点として全リポの routing / 知識 / タスクを束ねるが, existential はその Orchestrator を含む系全体を外側から評価する. existential には <code>now.md</code> をはじめ思想 / 現状 / 価値観の single source があり, 個々の作業や routing が自分の価値観と現状に整合しているかを問う. Orchestrator が「何を / どう進めるか」を扱うのに対し, existential は「そもそもその方向で良いか」を扱う. now.md 自体は Orchestrator 経由で必要な agent にも配信される.</p>
+<p>各リポも Orchestrator を通じて連携できるようにしている. 例えば <strong>papers 層</strong>は, 文献管理に特化したパイプラインを持つ. 論文 PDF を原典として取り込み, それを <strong>md</strong> に抽出・要約 (図表や式の扱いも含む) してから, 引用情報を <strong>bib</strong> (引用データベース) に落とす. この <strong>PDF → md → bib</strong> の流れが research 層 (14 リポ) の執筆へ供給され, 「読んだ論文がそのまま引用可能な形で原稿に届く」状態が構築されている. また <code>depends_on</code> を宣言したリポの組 (上流ライブラリと下流の研究リポ) には, 前述の handoff queue によるタスク連鎖が繋がる.</p>
 <h1 id="通信モデル-repo-initiated">通信モデル: repo-initiated</h1>
 <p>Orchestrator は管理対象リポの FS を直接書き換えない. これが一番大事な制約だ. 通信はすべて repo 側から共有キューへの push / pull に固定する.</p>
 <svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="repo-initiated 通信" font-family="sans-serif" font-size="13">
@@ -892,17 +936,17 @@ vault (RAG 知識 + 規約 + タスク) を横断共有
 <path d="M300,190 L210,145" stroke="#555" fill="none" marker-end="url(#ah2)"/>
 <text x="248" y="185" fill="#333">pull</text>
 </svg>
-<p>境界を push/pull のキューに固定すると, <strong>どちらが何を書いたかが常に明確</strong>になり, 片方が壊れてももう片方は動き続ける. 上位が下位のコードを勝手に上書きしない, という規律でもある.</p>
-<p>なお, このハブは repo ↔︎ Orchestrator の汎用レーンであり, repo から repo への有向のタスク連鎖は運ばない. そちらは後日追加した別機構で, 続編 <a href="/posts/2026-06-12-cross-repo-handoff-queue.html">中央 immutable queue で運ぶ repo 間の Agent タスク連鎖</a> に書いた.</p>
-<h1 id="データ表現-今のところすべて-markdown">データ表現: (今のところ)すべて markdown</h1>
-<p>状態, タスク, 知識, 規約 - Orchestrator が扱うデータは全部 <a href="https://obsidian.md/">Obsidian</a> による markdown + frontmatter で持つ. DB も独自フォーマットも使わない. 狙いは移行容易性で, 別マシン (常時起動の Mac mini を想定) へ移すとき, データ表現が markdown のままなら<strong>差し替えるのは通信層だけ</strong>で済む.</p>
-<p><span class="math display">
-\text{Phase 1 (file)} \;\longrightarrow\; \text{Phase 2 (MCP)} \;\longrightarrow\; \text{Phase 3 (LAN MCP)}
-</span></p>
-<p>通信を進化させても vault の中身は変わらない. markdown のままなので, そのまま人間が読める利点も大きい.</p>
-<p>markdown / Obsidian を選んだ主な理由は, もともと個人の知識管理を Obsidian で行っていたことにある. 設計として一から選んだというより, 既存資産 (過去の日記やメモ) をそのまま agent に読ませられる連続性が大きい. 実際 existential (Vault) では過去の日記やメモを文脈として読ませている. そのため, <strong>人間が文章を読む面は当面 Obsidian 固定</strong>で行く予定だ. 一方, 人間が読まない orchestrator 層の内部表現 (state や中間データ) は markdown に縛る必然がなく, より効率的な手段があれば置き換える. markdown は人間も読む層の共通項として残す.</p>
+<p>境界を push/pull のキューに固定すると, <strong>どちらが何を書いたかが常に明確</strong>になり, 片方が壊れてももう片方は動き続ける. 上位が下位のコードを勝手に上書きしない, という規律でもある. この原則は初版から一度も緩めていない. 例外は 1 つだけで, briefing と context-pack を作るとき他リポの計画文書を read-only で参照する. 読みはするが書かない.</p>
+<p>repo 側の窓口は MCP server で, 現在 21 tool を提供する (知見の報告, タスクの取得と完了, 規約の pull, 知識検索など). Claude / Codex / Cursor の 3 runtime が同じ tool 群を呼び, 違うのは呼び出し名の形式だけである. runtime を足すことと通信モデルを変えることが独立になっている.</p>
+<p>なお, このハブは repo ↔︎ Orchestrator の汎用レーンであり, repo から repo への有向のタスク連鎖は運ばない. そちらは前述のとおり別機構で, 続編 <a href="/posts/2026-06-12-cross-repo-handoff-queue.html">中央 immutable queue で運ぶ repo 間の Agent タスク連鎖</a> に書いた.</p>
+<h1 id="データ表現-人が読む正本は-markdown-機械状態は-jsonl">データ表現: 人が読む正本は markdown, 機械状態は JSONL</h1>
+<p>状態, タスク, 知識, 規約. Orchestrator が扱う正本データは <a href="https://obsidian.md/">Obsidian</a> による markdown + frontmatter で持つ. DB エンジンも独自フォーマットも使わない. 狙いは移行容易性で, 別マシン (常時稼働の Mac mini を想定) へ移すとき, データ表現が markdown のままなら<strong>差し替えるのは通信層だけ</strong>で済む.</p>
+<pre><code>Phase 1 (file) → Phase 2 (MCP) → Phase 3 (LAN MCP)</code></pre>
+<p>通信を進化させても vault の中身は変わらない. 現在は Phase 2 で, Phase 3 は移行先のトポロジ設計だけ済ませて保留している.</p>
+<p>markdown / Obsidian を選んだ主な理由は, もともと個人の知識管理を Obsidian で行っていたことにある. 設計として一から選んだというより, 既存資産 (過去の日記やメモ) をそのまま agent に読ませられる連続性が大きい. 実際 existential (Vault) では過去の日記やメモを文脈として読ませている. そのため, <strong>人間が文章を読む面は当面 Obsidian 固定</strong>で行く予定だ.</p>
+<p>一方で, 初版に「効率的な手段があれば置き換える」と書いた内部表現の置き換えは実際に起きた. 初版時は文字通りすべてが markdown だったが, 現在は人間が読まない機械状態 (tool 呼び出しログ, 知識の使用シグナル, 委譲実績, セッションのレジストリ, embedding キャッシュ) を JSONL / JSON に分けている. markdown は人間も読む層の共通項として残し, 機械だけが読む層は追記と集計に向いた表現を選ぶ, という分化である.</p>
 <h1 id="知識層-自前-rag">知識層 = 自前 RAG</h1>
-<p>このプロジェクトで一番効いている知識層は, 実質 RAG (Retrieval-Augmented Generation) の自前運用である. ただし主眼は “貯める” ことより “腐らせない” ことにある.</p>
+<p>このプロジェクトで一番効いている知識層は, 実質 RAG (Retrieval-Augmented Generation) の自前運用である. ただし主眼は “貯める” ことより “腐らせない” ことにある. 規模は現在約 350 note (昇格済み 165, 受け入れ待ち 10, 巡回が掘った検証前候補 142, 隔離 28) になった.</p>
 <svg viewBox="0 0 720 270" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="知識 RAG ライフサイクル" font-family="sans-serif" font-size="13">
 <defs>
 <marker id="ah3" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
@@ -911,7 +955,7 @@ vault (RAG 知識 + 規約 + タスク) を横断共有
 </defs>
 <rect x="20" y="110" width="130" height="56" rx="6" fill="#eef4fb" stroke="#4a78b5"/>
 <text x="85" y="135" text-anchor="middle" font-weight="bold">ingestion</text>
-<text x="85" y="153" text-anchor="middle" fill="#555" font-size="11">Agent がタグ付き報告</text>
+<text x="85" y="153" text-anchor="middle" fill="#555" font-size="11">報告 + 巡回の採掘</text>
 <rect x="200" y="110" width="130" height="56" rx="6" fill="#fff" stroke="#999"/>
 <text x="265" y="135" text-anchor="middle" font-weight="bold">_staging</text>
 <text x="265" y="153" text-anchor="middle" fill="#555" font-size="11">tag + メタデータ索引</text>
@@ -920,7 +964,7 @@ vault (RAG 知識 + 規約 + タスク) を横断共有
 <text x="455" y="153" text-anchor="middle" fill="#555" font-size="11">promote / decay</text>
 <rect x="580" y="110" width="120" height="56" rx="6" fill="#eef4fb" stroke="#4a78b5"/>
 <text x="640" y="135" text-anchor="middle" font-weight="bold">retrieval</text>
-<text x="640" y="153" text-anchor="middle" fill="#555" font-size="11">pull / search</text>
+<text x="640" y="153" text-anchor="middle" fill="#555" font-size="11">hybrid 検索 (語 + 意味)</text>
 <line x1="150" y1="138" x2="200" y2="138" stroke="#555" marker-end="url(#ah3)"/>
 <line x1="330" y1="138" x2="380" y2="138" stroke="#555" marker-end="url(#ah3)"/>
 <line x1="530" y1="138" x2="580" y2="138" stroke="#555" marker-end="url(#ah3)"/>
@@ -936,20 +980,15 @@ vault (RAG 知識 + 規約 + タスク) を横断共有
 <text x="360" y="262" text-anchor="middle" fill="#888" font-size="11">usage signal が次の curation を駆動</text>
 </svg>
 <ul>
-<li><strong>ingestion</strong>: Agent が知見を <code>[pattern]</code> <code>[gotcha]</code> <code>[howto]</code> <code>[reference]</code> <code>[domain]</code> のタグ付きで報告 → 1 件 1 markdown を <code>_staging/&lt;tag&gt;/</code> に保存. source repo, category, techs, confidence をメタデータに持つ.</li>
-<li><strong>index</strong>: 埋め込みベクトルではなく, タグ + メタデータ + 全文キーワードの軽量索引. <code>by-category/</code> <code>by-tech/</code> の逆引きで横断取得 (ベクトル化は移行後の検討).</li>
-<li><strong>retrieval</strong>: 必要時に <code>pull_relevant_knowledge</code> / <code>search_knowledge</code>. スコアは自リポとの親和度, 新しさ, 過去の使用回数の重み付き和:</li>
+<li><strong>ingestion</strong>: Agent が知見を <code>[pattern]</code> <code>[gotcha]</code> <code>[howto]</code> <code>[reference]</code> <code>[domain]</code> のタグ付きで報告 → 1 件 1 markdown を <code>_staging/&lt;tag&gt;/</code> に保存. source repo, category, techs, confidence をメタデータに持つ. これとは別に, 巡回がセッションログから知見候補を採掘して検証前の候補置き場に貯める.</li>
+<li><strong>retrieval</strong>: 必要時に <code>pull_relevant_knowledge</code> / <code>search_knowledge</code>. 検索は初版のタグ + キーワード索引から進み, 多言語の文 embedding による意味的近接を併用した <strong>hybrid 検索</strong>になった (embedding ライブラリが無い環境ではキーワード検索へ自動フォールバック). 日本語で書いた note が英語の問いにも掛かる.</li>
+<li><strong>curation (本題)</strong>: corpus をただ増やすとノイズで検索精度が落ちる. 昇格は使用シグナルで決める: 他リポでの採用実績と agent の明示評価 (<code>mark_knowledge_useful</code>) の重み付き合算 (<code>adopted + 3*useful &gt;= 3</code>), または高 confidence のまま 10 日間覆らなかったもの. context-pack に載って読まれただけの受動露出は昇格の根拠にしない. 使われた証明にならないからだ. 逆に検証から 180 日 (候補は 30 日) 引かれなかった note と撤回された note は <code>_stale/</code> へ隔離する. 黙って消さないので追跡可能である. 昇格は監査ログに 1 件 1 行で残り, 人間が差し戻せる.</li>
 </ul>
-<p><span class="math display">
-\mathrm{score}(n) \;=\; w_c\,[\,c_n = c_q\,] \;+\; w_t\,\lvert T_n \cap T_q \rvert \;+\; w_r\,\mathrm{recency}(n) \;+\; w_u\,\mathrm{usage}(n)
-</span></p>
-<ul>
-<li><strong>curation (本題)</strong>: corpus をただ増やすとノイズで検索精度が落ちる. 引かれた note は本フォルダへ<strong>昇格</strong>, 古い / 撤回された note は <code>_stale/</code> へ<strong>隔離</strong> (黙って消さないので追跡可). retrieval のログ (usage signal) が次の curation を駆動する. 一度踏んだ gotcha を別リポの Agent が二度踏まないのは, corpus が増えるからでなく手入れされているからだ.</li>
-</ul>
+<p>一度踏んだ gotcha を別リポの Agent が二度踏まないのは, corpus が増えるからでなく手入れされているからだ.</p>
 <p>なお, ここで扱っているのはあくまで <em>Agent のための</em> 知識層である. 人間 (私) 自身の学習を同じ枠組み (queue + 巡回) で回す層は, 続編 <a href="/posts/2026-06-11-personal-learn-layer.html">AIと連携した個人の学習層 (Learn)</a> に書いた.</p>
-<h1 id="タスク管理層-todoist">タスク管理層: Todoist</h1>
+<h1 id="タスク層-vault-と-todoist-の双方向同期">タスク層: vault と Todoist の双方向同期</h1>
 <p>知識層と並ぶもう一つの管理層がタスクで, ここは <a href="https://todoist.com/">Todoist</a> を hub にしている. <strong>人間と agent が同じタスクを同じ場所で見る</strong>ための層である.</p>
-<svg viewBox="0 0 720 170" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="タスク管理層 Todoist" font-family="sans-serif" font-size="13">
+<svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="タスク管理層 Todoist" font-family="sans-serif" font-size="13">
 <defs>
 <marker id="ah5" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
 <path d="M0,0 L7,3 L0,6 Z" fill="#555"/>
@@ -957,22 +996,30 @@ vault (RAG 知識 + 規約 + タスク) を横断共有
 </defs>
 <rect x="20" y="60" width="150" height="56" rx="6" fill="#fbf7ee" stroke="#b58a4a"/>
 <text x="95" y="84" text-anchor="middle" font-weight="bold">vault/tasks</text>
-<text x="95" y="102" text-anchor="middle" fill="#555" font-size="11">git 追跡 (source of truth)</text>
+<text x="95" y="102" text-anchor="middle" fill="#555" font-size="11">git 追跡 (本文の正本)</text>
 <rect x="280" y="60" width="170" height="56" rx="6" fill="#eef4fb" stroke="#4a78b5"/>
 <text x="365" y="84" text-anchor="middle" font-weight="bold">Todoist</text>
 <text x="365" y="102" text-anchor="middle" fill="#555" font-size="11">repo ごとの project</text>
 <rect x="560" y="60" width="140" height="56" rx="6" fill="#eef4fb" stroke="#4a78b5"/>
 <text x="630" y="84" text-anchor="middle" font-weight="bold">各リポの Agent</text>
-<text x="630" y="102" text-anchor="middle" fill="#555" font-size="11">pull_my_tasks</text>
+<text x="630" y="102" text-anchor="middle" fill="#555" font-size="11">pull_inbox</text>
 <line x1="170" y1="78" x2="280" y2="78" stroke="#555" marker-end="url(#ah5)"/>
-<text x="225" y="70" text-anchor="middle" fill="#333" font-size="11">sync (push)</text>
+<text x="225" y="70" text-anchor="middle" fill="#333" font-size="11">sync (作成 / close)</text>
+<path d="M280,104 L170,104" stroke="#5a9a5a" fill="none" marker-end="url(#ah5)"/>
+<text x="225" y="124" text-anchor="middle" fill="#5a9a5a" font-size="11">人間の完了 / 追加</text>
 <line x1="450" y1="78" x2="560" y2="78" stroke="#555" marker-end="url(#ah5)"/>
 <text x="505" y="70" text-anchor="middle" fill="#333" font-size="11">pull</text>
-<path d="M560,104 L450,104" stroke="#5a9a5a" fill="none" marker-end="url(#ah5)"/>
-<text x="505" y="124" text-anchor="middle" fill="#5a9a5a" font-size="11">完了状態</text>
-<text x="365" y="148" text-anchor="middle" fill="#888" font-size="11">人間はここで全 repo のタスクを横断俯瞰 / 完了操作</text>
+<path d="M630,116 C630,162 95,162 95,116" stroke="#5a9a5a" fill="none" marker-end="url(#ah5)"/>
+<text x="365" y="148" text-anchor="middle" fill="#5a9a5a" font-size="11">完了報告 (MCP)</text>
+<text x="365" y="188" text-anchor="middle" fill="#888" font-size="11">人間はここで全 repo のタスクを横断俯瞰 / 完了操作</text>
 </svg>
-<p>設計は単純で, source of truth は git 追跡の <code>vault/tasks</code> 側に置く. <code>sync_tasks</code> がそれを各リポの Todoist project に push し, agent は <code>pull_my_tasks</code> で自分宛てを取得する. <strong>どの project に置くかで担当 repo が決まる</strong> (置き場所で routing するので, ラベル付けは最小限). フィールド単位で真の側を分けており, 本文 / 詳細 / リンクは vault が真, 完了状態 / 期限は Todoist が真 (モバイルで完了する運用が多いため). 人間から見ると, Todoist が<strong>全リポのタスクを横断で俯瞰し操作する一枚の窓</strong>になる.</p>
+<p>正本の置き方はフィールド単位で決めている. 本文・詳細・リンクは git 追跡の vault 側が正本で, 巡回がそれを各リポの Todoist project へ push する. 完了はどちらで起きても収束する: agent が MCP で完了を報告すると vault 側が先に done になり, 次の巡回が Todoist を close する. 人間がモバイルで完了・追加した分は逆方向に巡回が拾い, repo 側へ展開する. 初版では完了状態を Todoist 側だけの真としていたが, 双方向の収束に変えた. 人間から見ると, Todoist が<strong>全リポのタスクを横断で俯瞰し操作する一枚の窓</strong>になる.</p>
+<p>routing はラベルでなく置き場所で決める. <strong>どの project に置くかで担当 repo が決まる</strong>. 当初は repo 名のラベルも併用していたが, 全 project でラベル体系を維持するのは非現実的で, 初版から 2 週間後に全廃した. 現在ラベルは機械マーカー (agent 向け / agent 発 / 同期済み / 保留) 専用である.</p>
+<p>agent が人間に依頼したタスク (書類の記入, 外部サービスの操作など) は別枠で追跡し, open のものと直近完了したものを必ず agent の視界に入れる. この別枠が無かった頃, ユーザが完了させたタスクを agent が検出できず, 送信済みのメールを「未送信」と誤判断して再送を推奨する事故が起きた. タスクを配る仕組みと同じだけ, 「人間がやってくれたこと」を拾う仕組みが要る.</p>
+<p>研究のポートフォリオ (どの論文がどの stage にあり, どの順で投稿するか) は vault の 1 枚 note を正本にし, Todoist の board へ片方向反映してスマホで見えるようにしている.</p>
+<h1 id="統治-規約とプールの使い分け">統治: 規約とプールの使い分け</h1>
+<p>初版の時点で, agent の振舞いの規範は各リポの CLAUDE.md に書き散らされていた. 現在は <strong>agent_ops</strong> という独立の層に集約し, 提案から承認までを一つの経路に固定している. agent は「今後も同じ判断に直面する」一般則に出会うと規約案として提出し, 人間が承認したものだけが規約に昇格する. どのリポの agent もセッション冒頭にこの規約群を pull し, 巡回が矛盾や重複を lint する. 初版から 7 週間で 60 本になった. 複数ステップの手順 (2 回以上繰り返したもの) は同じ経路で skill として登録し, こちらは 20 本ある.</p>
+<p>もう一つの統治は計算資源の使い分けである. 定額の課金枠が Claude / Cursor / Codex の 3 プールあり, 重い作業をどの枠で実行するかを規約で決めている. 実装委譲や独立レビューは主戦の枠の外へ逃がして温存し, 委譲の実績はログに記録して配分を見直す. 相互検証は「作った者と別のベンダのモデルが review する」形に固定している. 同系のモデルは同じ見落としを再生産しやすいからだ.</p>
 <h1 id="耐障害ルーティング">耐障害ルーティング</h1>
 <p>Agent のセッションで MCP server が一時的に繋がらないと, Agent は submit 系ツールを呼べず共有 inbox に素のファイルでフォールバックしてくる. これを要約に溶かさず, 種別ごとに振り分ける.</p>
 <svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="耐障害ルーティング" font-family="sans-serif" font-size="13">
@@ -997,8 +1044,10 @@ vault (RAG 知識 + 規約 + タスク) を横断共有
 <path d="M390,98 L460,55" stroke="#555" fill="none" marker-end="url(#ah4)"/>
 <path d="M390,112 L460,150" stroke="#555" fill="none" marker-end="url(#ah4)"/>
 </svg>
-<p>ツールが落ちても, 依頼は種別に応じて確実に拾われる. 賢いコンポーネントほど, 正常時の動作だけでなく壊れ方まで設計しておく必要がある.</p>
-<p>という感じで色々やってみているが, なんとなく機能してきたのでまとめました記事でした. 毎日変わっているのであくまで暫定版ですが.</p>]]></description>
+<p>ツールが落ちても, 依頼は種別に応じて確実に拾われる.</p>
+<p>初版後に足した耐障害がもう一つある. headless の自動化では, モデル側の usage policy 誤検出により生成が refuse されることがあり, 実害も出た: 巡回スクリプトが CLI の実エラーを握り潰していたため, 定例の生成が 3 時間黙って止まった. 対策は 3 点で, (1) 実エラーを必ずログと dashboard に可視化する, (2) policy 起因の refusal に限り別モデル (最終段は別ベンダ) へフォールバックする, (3) 認証や quota などインフラ起因の失敗はフォールバックせず即座に可視化する (フォールバックすると原因が隠れる). ツールが落ちても依頼が拾われるのと同様に, モデルが断っても巡回は沈黙しない.</p>
+<p>賢いコンポーネントほど, 正常時の動作だけでなく壊れ方まで設計しておく必要がある.</p>
+<p>初版から 7 週間で, 管理対象は 26 リポ, 規約 60 本, 知識約 350 note, MCP 21 tool, 巡回 27 step になった. 増築が続いた割に, 初版で決めた原則 (repo-initiated の境界, markdown の正本, 変更は人間の承認ゲートを通す) は崩れていない. 崩れたのは「5 層」「すべて markdown」という初版の要約の側で, それを直すのがこの改稿である. 相変わらず毎日変わっているので, これも暫定版ですが.</p>]]></description>
     <pubDate>Wed, 03 Jun 2026 00:00:00 UT</pubDate>
     <guid>/posts/2026-06-03-multi-repo-agent-orchestrator.html</guid>
     

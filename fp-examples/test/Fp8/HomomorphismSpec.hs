@@ -3,7 +3,13 @@ module Fp8.HomomorphismSpec (spec) where
 
 import Test.Hspec
 
-data Frac = Frac Int Int deriving Show
+data Frac = Frac Integer Integer deriving Show
+
+mkFrac :: Integer -> Integer -> Maybe Frac
+mkFrac _ 0 = Nothing
+mkFrac a b
+  | b < 0     = Just (Frac (-a) (-b))
+  | otherwise = Just (Frac a b)
 
 instance Eq Frac where
   Frac a b == Frac c d  =  a * d == c * b
@@ -14,7 +20,7 @@ fracs = [ Frac a b | a <- [-2..2], b <- [1..3] ]
 double :: Frac -> Frac
 double (Frac a b) = Frac (2 * a) b
 
-num :: Frac -> Int
+num :: Frac -> Integer
 num (Frac a _) = a
 
 xss :: [String]
@@ -22,6 +28,8 @@ xss = ["", "a", "ab", "abc"]
 
 spec :: Spec
 spec = describe "Fp8.Homomorphism (Exercise CH8-6)" $ do
+  it "Frac の公開コンストラクタは分母 0 を拒否する" $
+    mkFrac 1 0 `shouldBe` Nothing
   describe "length はモノイド準同型 ([a],++,[]) → (Int,+,0)" $ do
     it "演算を保つ: length (xs ++ ys) == length xs + length ys" $
       and [ length (xs ++ ys) == length xs + length ys

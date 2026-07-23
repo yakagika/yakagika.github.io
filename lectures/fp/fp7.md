@@ -17,7 +17,7 @@ open: true
 
 # 代数的データ型と関係 (集合論)
 
-Haskell のデータ型はすべて **代数的データ型** です. 代数的データ型には, **列挙型**, **直積型**, **直和型** があり, 構文として **レコード構文** などが存在します.
+本章では, Haskell の `data` 宣言で作る **代数的データ型** を扱います. 代数的データ型には, **列挙型**, **直積型**, **直和型** があり, 構文として **レコード構文** などが存在します.
 
 代数的データ型は文字通り, 数学における代数の構造を参照したデータ型であり, 代数的な定義と対応させることで様々なことが可能となります. 代数学を理解するためにはまず, 集合論の基礎を理解している必要があります. 本章では, 集合論と対応させる形で, 代数的データ型とは何であるかを理解することを目指します.
 
@@ -67,14 +67,14 @@ Haskell ではデータ型を集合と **みなすこと** ができます. Hask
 しかし, Haskell を集合とみなすことで, 関数型プログラミングや, 代数的データ型の意味がより直感的に理解できるようになります. しばらく, 集合論と Haskell の対応について考えてみましょう.
 
 ::: note
-特定のモノがそこに｢属するか判定可能なモノの集まり｣を｢集合｣という.
+特定の対象がそこに属するかどうかが明確に定められた, 対象の集まりを集合という.
 :::
 
-集合の細かな定義は置いておいて, この講義では取り敢えずこのくらいの認識で問題ありません. しかし, ただのモノの集まりではなく, 特定のモノがそこに属するかどうかを判定できる必要があるので注意が必要です.
+集合の細かな定義は置いておいて, この講義では取り敢えずこのくらいの認識で問題ありません. ここで「明確に定められた」とは, 所属を判定するアルゴリズムが必要だという意味ではなく, 何を要素とするかが定義によって定まっているという意味です.
 
 例えば, ｢頭の良い人の集合｣のようなものは, ｢頭が良い基準｣が人によって異なるので, 集合とはみなせません.
 
-ノーベル賞受賞者の集合, フィールズ賞受賞者の集合, メンサ会員の集合, XX模試の偏差値が70以上の人の集合, 特定の科目で85点以上取った人の集合, など, 誰でも判別可能な定義が必要です.
+ノーベル賞受賞者の集合, フィールズ賞受賞者の集合, メンサ会員の集合, XX模試の偏差値が70以上の人の集合, 特定の科目で85点以上取った人の集合などは, 何を要素とするかを基準によって定められます.
 
 集合の表記法には, **外延(的)表記** 及び **内包(的)表記** という2通りが存在します.
 
@@ -164,10 +164,10 @@ print x = putStrLn (show x)
 となっています.
 
 
-要素が一つも属さない集合を `空集合` といい, 記号 $\phi$ または $\{\}$ によって表されます.
-Haskell では空集合を表すデータ型として `Data.Void` に定義された `Void` が存在します. データ型として `ボトム型`, 記号では `⊥` で表される場合もあります.
+要素が一つも属さない集合を `空集合` といい, 記号 $\varnothing$ または $\{\}$ によって表されます.
+Haskell では, 値を持たない型として `Data.Void` に定義された `Void` があります. `Void` は空集合に対応する型です. 一方, 記号 $\bot$ で表す **ボトム** は型ではなく, 停止しない計算や実行時エラーを表す意味論上の値です. `undefined` のように, ボトムはどの型にも現れ得ます.
 
-`Void` と同じ値を持たないデータ型は, コンストラクタを記述しないことで自分で実装することもできます. 例えばある人が犬を今までに一匹もかったことがない場合を想定し, その人の飼った犬の集合を `EmptyDogs` と呼ぶことにすると, $$ \mathrm{EmptyDogs} = \phi $$ となり, データ型としては以下のように定義されます. 値が存在しない空集合と対応していることが分かります.
+`Void` と同じ値を持たないデータ型は, コンストラクタを記述しないことで自分で実装することもできます. 例えばある人が犬を今までに一匹もかったことがない場合を想定し, その人の飼った犬の集合を `EmptyDogs` と呼ぶことにすると, $$ \mathrm{EmptyDogs} = \varnothing $$ となり, データ型としては以下のように定義されます. 値が存在しない空集合と対応していることが分かります.
 
 ~~~ haskell
 data EmptyDogs
@@ -190,7 +190,7 @@ main = print (someFunc 1)   -- 実行時エラー: Prelude.undefined
 「値が無い場合」の実用的な扱い (空リストに対する先頭要素など) は, `error` によるエラー送出や, 後の章で扱う `Maybe` 型を使うのが一般的です.
 :::
 
-単一の要素だけが存在するデータ型として `Unit` 型も準備されており, `()` のような空のタプルとして表されます.
+単一の値だけを持つ **ユニット型** `()` も用意されています. 型の名前と唯一の値がどちらも `()` です.
 
 ::: note
 
@@ -277,21 +277,21 @@ $$A = B \quad\Longleftrightarrow\quad \forall x.\ (x \in A \iff x \in B)$$
 
 ### 部分集合
 
-集合には集合が属することも可能で, 集合 $S$ が $T$ に属するとき $S \in T$ が成り立ちます. また, 集合 $S$ の要素を幾つか取り出した集合 $T$ を $S$ の **部分集合** といい, $T \subset S$ と表記します. いま導入した全称命題を使うと, これは ｢$T$ のすべての要素が $S$ にも属する｣こと, すなわち
+集合には集合が属することも可能で, 集合 $S$ が $T$ に属するとき $S \in T$ が成り立ちます. また, 集合 $S$ の要素を幾つか取り出した集合 $T$ を $S$ の **部分集合** といい, $T \subseteq S$ と表記します. いま導入した全称命題を使うと, これは ｢$T$ のすべての要素が $S$ にも属する｣こと, すなわち
 
-$$T \subset S \quad\Longleftrightarrow\quad \forall x.\ (x \in T \implies x \in S)$$
+$$T \subseteq S \quad\Longleftrightarrow\quad \forall x.\ (x \in T \implies x \in S)$$
 
-と厳密に定義できます. この定義では, 空集合 $\phi$ と $S$ 自身も $S$ の部分集合に含まれます.
+と厳密に定義できます. この定義では, 空集合 $\varnothing$ と $S$ 自身も $S$ の部分集合に含まれます.
 
 $S = \{x, y, z\}$ のとき, $S$ の部分集合は
 
-$$\{x\},\ \{y\},\ \{z\},\ \{x, y\},\ \{x, z\},\ \{y, z\},\ \{x, y, z\},\ \phi$$
+$$\{x\},\ \{y\},\ \{z\},\ \{x, y\},\ \{x, z\},\ \{y, z\},\ \{x, y, z\},\ \varnothing$$
 
 となります.
 
 この包含関係を **ベン図** で見ると次のようになります. たとえば $T = \{x, y\}$ は $S = \{x, y, z\}$ の部分集合の 1 つです.
 
-<svg viewBox="0 0 460 252" width="100%" style="max-width: 460px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="部分集合のベン図. 大きな楕円 S の内側に小さな楕円 T が完全に含まれている. T の中に要素 x と y があり, T の外だが S の中に要素 z がある. T のすべての要素は S にも属するので T ⊂ S となる.">
+<svg viewBox="0 0 460 252" width="100%" style="max-width: 460px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="部分集合のベン図. 大きな楕円 S の内側に小さな楕円 T が完全に含まれている. T の中に要素 x と y があり, T の外だが S の中に要素 z がある. T のすべての要素は S にも属するので T ⊆ S となる.">
   <g stroke="currentColor" stroke-width="1.5">
     <ellipse cx="230" cy="112" rx="172" ry="90" fill="currentColor" fill-opacity="0.03"/>
     <ellipse cx="172" cy="124" rx="88" ry="52" fill="currentColor" fill-opacity="0.10"/>
@@ -311,7 +311,7 @@ $$\{x\},\ \{y\},\ \{z\},\ \{x, y\},\ \{x, z\},\ \{y, z\},\ \{x, y, z\},\ \phi$$
     <text x="330" y="128">z</text>
   </g>
   <g fill="currentColor" font-size="12" text-anchor="middle">
-    <text x="230" y="228">T の要素 (x, y) はどれも自動的に S の要素 (T ⊂ S)</text>
+    <text x="230" y="228">T の要素 (x, y) はどれも自動的に S の要素 (T ⊆ S)</text>
     <text x="230" y="246" opacity="0.72">z のように「S にはあるが T にはない」要素があってもよい</text>
   </g>
 </svg>
@@ -829,7 +829,7 @@ $$A \cup B = \{x \mid x \in A \lor x \in B\}$$
 
 $$A \cap B = \{x \mid x \in A \land x \in B\}$$
 
-$A \cap B = \phi$ のとき, $A \cup B$ を $A$ と $B$ の **直和(Direct sum)** といいます.
+$A \cap B = \varnothing$ のとき, $A \cup B$ を $A$ と $B$ の **直和(Direct sum)** といいます.
 
 3 つの概念をベン図で並べると次のとおりです.
 
@@ -875,13 +875,13 @@ $A \cap B = \phi$ のとき, $A \cup B$ を $A$ と $B$ の **直和(Direct sum)
   <text x="280" y="216" fill="currentColor" font-size="12" text-anchor="middle">Haskell の直和型 = タグ (コンストラクタ) で共通部分を強制的に無くした和集合 (常に直和)</text>
 </svg>
 
-事例として $A, B \subset \mathrm{MyDogs}$, $A = \{\mathrm{GoldenRetriever}, \mathrm{BlackRetriever}, \mathrm{ShetlandSheepdog}\}$, $B = \{\mathrm{BlackRetriever}, \mathrm{StandardPoodle}\}$ のとき, 和集合 $A \cup B$ と積集合 $A \cap B$ はそれぞれ
+事例として $A, B \subseteq \mathrm{MyDogs}$, $A = \{\mathrm{GoldenRetriever}, \mathrm{BlackRetriever}, \mathrm{ShetlandSheepdog}\}$, $B = \{\mathrm{BlackRetriever}, \mathrm{StandardPoodle}\}$ のとき, 和集合 $A \cup B$ と積集合 $A \cap B$ はそれぞれ
 
 $$A \cup B = \{\mathrm{GoldenRetriever}, \mathrm{BlackRetriever}, \mathrm{ShetlandSheepdog}, \mathrm{StandardPoodle}\}$$
 
 $$A \cap B = \{\mathrm{BlackRetriever}\}$$
 
-となります. 和集合は「$A$ または $B$ のいずれかに属する要素」を集めた集合, 積集合は「$A$ と $B$ の両方に属する要素」のみを集めた集合です. このとき $A \cap B = \{\mathrm{BlackRetriever}\} \neq \phi$ なので, $A$ と $B$ は直和にはなりません. 一方, $A = \{\mathrm{GoldenRetriever}, \mathrm{ShetlandSheepdog}\}$, $B = \{\mathrm{BlackRetriever}, \mathrm{StandardPoodle}\}$ のように共通要素がない場合は $A \cap B = \phi$ となり, $A \cup B$ は $A$ と $B$ の直和となります.
+となります. 和集合は「$A$ または $B$ のいずれかに属する要素」を集めた集合, 積集合は「$A$ と $B$ の両方に属する要素」のみを集めた集合です. このとき $A \cap B = \{\mathrm{BlackRetriever}\} \neq \varnothing$ なので, $A$ と $B$ は直和にはなりません. 一方, $A = \{\mathrm{GoldenRetriever}, \mathrm{ShetlandSheepdog}\}$, $B = \{\mathrm{BlackRetriever}, \mathrm{StandardPoodle}\}$ のように共通要素がない場合は $A \cap B = \varnothing$ となり, $A \cup B$ は $A$ と $B$ の直和となります.
 
 Haskell では既に定義した `Int` と `MyDogs` の直和に相当する型を, 次のように定義できます. ここでは「整数または `MyDogs` のいずれかの値を持てるデータ型 `IntOrDog`」を定義します.
 
@@ -912,7 +912,7 @@ main = do
 
 集合論的に解釈すると, `MkInt` と `MkDog` という互いに異なるタグでくるむことで `Int` と `MyDogs` が **互いに素** な形で一つの型に合流するため,
 
-$$\mathrm{IntOrDog} = \mathrm{Int} \cup \mathrm{MyDogs} \quad (\mathrm{Int} \cap \mathrm{MyDogs} = \phi)$$
+$$\mathrm{IntOrDog} = \mathrm{Int} \cup \mathrm{MyDogs} \quad (\mathrm{Int} \cap \mathrm{MyDogs} = \varnothing)$$
 
 という **直和** になります. 一般に, 代数的データ型の `|` で分けたコンストラクタは必ずタグで区別されるため, Haskell の直和型は常に直和の構造を持ちます.
 
@@ -942,7 +942,7 @@ main :: IO ()
 main = print $ length allDogOrSize   -- 8  (= 5 + 3)
 ~~~
 
-さらに, 本章冒頭で見た `Unit` 型 `()` は要素がちょうど 1 つ ($|()| = 1$), `Void` は要素が 0 個 ($|\mathrm{Void}| = 0$) でした. これで型の世界に **0, 1, 足し算 (直和), 掛け算 (直積)** が揃ったことになります. これが「**代数的** データ型」という名前の由来です. 型は数のように「計算」できる対象なのです.
+さらに, 本章冒頭で見たユニット型 `()` は要素がちょうど 1 つ ($|()| = 1$), `Void` は要素が 0 個 ($|\mathrm{Void}| = 0$) でした. これで型の世界に **0, 1, 足し算 (直和), 掛け算 (直積)** が揃ったことになります. これが「**代数的** データ型」という名前の由来です. 型は数のように「計算」できる対象なのです.
 
 ::: note
 発展として, 関数型 `A -> B` の要素数は $|B|^{|A|}$ (指数) になります. たとえば `Bool -> Bool` の関数は $2^2 = 4$ 通りしかありません (恒等, 反転, 常に `True`, 常に `False`). また $|A \times ()| = |A| \cdot 1 = |A|$, $|A + \mathrm{Void}| = |A| + 0 = |A|$ のように, 数の代数法則 (1 を掛けても 0 を足しても変わらない) がそのまま型の対応として現れます.

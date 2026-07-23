@@ -332,27 +332,34 @@ $$(a, b) \sim (c, d) \quad\Longleftrightarrow\quad a \cdot d = c \cdot b$$
 
 という同値関係で割った **商集合** $\mathbb{Q} = (\mathbb{Z} \times \mathbb{Z}^{+})/\!\sim$ です. $\frac{1}{2}$ という「数」の正体は, 同値類 $[(1,2)] = \{(1,2), (2,4), (3,6), \dots\}$ という**塊**なのです.
 
-これを Haskell に写してみます. データとしては分子・分母のペア, 等しさは上の関係を **`Eq` インスタンスとして手書き** します.
+これを Haskell に写してみます. データとしては分子・分母のペア, 等しさは上の関係を **`Eq` インスタンスとして手書き** します. 分母が正であるという条件は `mkFrac` で保証し, 固定幅整数の overflow を避けるために `Integer` を使います. 実際のモジュールでは `Frac` のデータ構築子を公開せず, `mkFrac` だけを公開します. なお `mkFrac` の返り値に現れる `Maybe` 型は[第9章](fp9.html)で本格的に扱います. ここでは「失敗すると `Nothing`, 成功すると `Just 値` が返る」とだけ読んでください.
 
 ~~~ haskell
--- 分数: Frac 分子 分母 (分母は正の整数とする)
-data Frac = Frac Int Int deriving Show
+-- 分数: Frac 分子 分母 (データ構築子 Frac はモジュール外に公開しない)
+data Frac = Frac Integer Integer deriving Show
+
+mkFrac :: Integer -> Integer -> Maybe Frac
+mkFrac _ 0 = Nothing
+mkFrac a b
+  | b < 0     = Just (Frac (-a) (-b))
+  | otherwise = Just (Frac a b)
 
 instance Eq Frac where
   Frac a b == Frac c d  =  a * d == c * b
 
 main :: IO ()
 main = do
-  print (Frac 1 2 == Frac 2 4)   -- True   (1/2 = 2/4)
-  print (Frac 1 2 == Frac 2 3)   -- False
-  print (Frac 3 6 == Frac 1 2)   -- True
+  print (mkFrac 1 2 == mkFrac 2 4)   -- True   (1/2 = 2/4)
+  print (mkFrac 1 2 == mkFrac 2 3)   -- False
+  print (mkFrac 3 6 == mkFrac 1 2)   -- True
+  print (mkFrac 1 0)                 -- Nothing
 ~~~
 
 `deriving Eq` にしていたら `Frac 1 2 == Frac 2 4` は `False` です (データ表現としては別物だから). 手書きの `==` はそれを `True` に変えました. つまり:
 
 > **`Eq` インスタンスを自分で書くことは, 「この型をどの同値関係で割った商集合として使うか」を選ぶことです.** `deriving Eq` = 「表現がそのまま等しさ」という選択, 手書き = 「表現の違いを同一視する」という選択.
 
-なお, 分母が正であることは `Frac` の定義だけでは守られません (Frac 1 0 も書けてしまいます). こういう不変条件を型で守りたければ, [第7章](fp7.html)のスマートコンストラクタの出番です.
+交差積による比較が同値関係になるのは, 分母が 0 でない分数の上です. `mkFrac` は分母 0 を拒否し, 負の符号を分子側へ移すことで, `Eq` の前提を守ります. データ構築子 `Frac` を隠すのは, モジュール外からこの前提を破れなくするためです.
 
 <svg viewBox="0 0 460 320" width="100%" style="max-width: 470px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Frac の同値類の図. 横軸を分母, 縦軸を分子として整数のペアを点で描くと, 1/2, 2/4, 3/6 は原点を通る同じ直線に乗る. 1/1 の類や 1/3 の類も別の直線になる. 同値類 = 原点を通る直線上の点すべてで, 手書きの == は同じ直線上にあるかの判定である.">
   <line x1="90" y1="250" x2="90" y2="40" stroke="currentColor" stroke-width="1" opacity="0.5"/>
@@ -416,7 +423,7 @@ main = do
 
 **分数型 `Frac`: 商集合としての有理数**
 
-1. 本文の `Frac` (分子・分母のペア, 分母は正とする) と, その手書き `Eq` インスタンス (`Frac a b == Frac c d` $\iff$ $ad = cb$) を定義してください.
+1. 本文の `Frac` (分子・分母のペア) と, 分母 0 を拒否して分母を正に揃える `mkFrac`, 手書きの `Eq` インスタンス (`Frac a b == Frac c d` $\iff$ $ad = cb$) を定義してください. 分子と分母には `Integer` を使います.
 
 2. この `==` が **同値関係** であること (反射律・対称律・推移律) を, 有限の集合 `fracs = [ Frac a b | a <- [-2..2], b <- [1..3] ]` の上で全数検査してください ([第7章](fp7.html)の `and` + リスト内包表記 + ガードの形).
 
@@ -437,7 +444,13 @@ main = do
     <summary> 回答例 </summary>
 
 ~~~ haskell
-data Frac = Frac Int Int deriving Show
+data Frac = Frac Integer Integer deriving Show
+
+mkFrac :: Integer -> Integer -> Maybe Frac
+mkFrac _ 0 = Nothing
+mkFrac a b
+  | b < 0     = Just (Frac (-a) (-b))
+  | otherwise = Just (Frac a b)
 
 instance Eq Frac where
   Frac a b == Frac c d  =  a * d == c * b
@@ -451,6 +464,8 @@ normalize (Frac a b) = Frac (a `div` g) (b `div` g)
 
 main :: IO ()
 main = do
+  print (mkFrac 1 0)             -- Nothing
+  print (mkFrac 1 (-2))          -- Just (Frac (-1) 2)
   print (Frac 1 2 == Frac 2 4)   -- True
   -- 同値関係の全数検査
   print (and [ x == x | x <- fracs ])                                   -- True (反射律)
@@ -1103,6 +1118,7 @@ main = do
 
 - **両演算がモノイド (可換)**: $\wedge$ は単位元 `T`, $\vee$ は単位元 `F`.
 - **分配律**: $x \wedge (y \vee z) = (x \wedge y) \vee (x \wedge z)$, および $\vee$ と $\wedge$ を入れ替えたもの.
+- **吸収律**: $x \wedge (x \vee y) = x$, $x \vee (x \wedge y) = x$.
 - **補元律**: $x \wedge \neg x = \text{F}$, $x \vee \neg x = \text{T}$.
 
 ブール代数は, このように **2 つのモノイドが対になって協調する** 代数構造の代表例です. 真偽値の論理だけでなく, [第7章](fp7.html)で扱った **集合演算** (積集合 $\cap$ が $\wedge$, 和集合 $\cup$ が $\vee$, 補集合が $\neg$ に対応) も同じ法則を満たすブール代数になっています.
@@ -1429,7 +1445,13 @@ main = do
     <summary> 回答例 </summary>
 
 ~~~ haskell
-data Frac = Frac Int Int deriving Show
+data Frac = Frac Integer Integer deriving Show
+
+mkFrac :: Integer -> Integer -> Maybe Frac
+mkFrac _ 0 = Nothing
+mkFrac a b
+  | b < 0     = Just (Frac (-a) (-b))
+  | otherwise = Just (Frac a b)
 
 instance Eq Frac where
   Frac a b == Frac c d  =  a * d == c * b
@@ -1440,7 +1462,7 @@ fracs = [ Frac a b | a <- [-2..2], b <- [1..3] ]
 double :: Frac -> Frac
 double (Frac a b) = Frac (2 * a) b
 
-num :: Frac -> Int
+num :: Frac -> Integer
 num (Frac a _) = a
 
 main :: IO ()
@@ -1649,7 +1671,7 @@ variance m@(Moments n _ q) = q / fromIntegral n - mu * mu
 --   variance -> 4.0
 ~~~
 
-件数・合計・二乗和を 1 つの型に束ねてよいことにも代数的な裏付けがあります. **モノイドの直積はまたモノイド** であり (各成分を独立に `<>` する), **準同型 `f`, `g` の組 $x \mapsto (f\,x,\ g\,x)$ もまた準同型** になります. `Moments` は実質 3 つの加算モノイドの直積, `moment` はそれらの準同型を束ねた組です. だからこそ 1 回の走査で 3 つを同時に集計しても結果が正しく, 束ねる成分を増やしても (例えば三乗和を足して歪度へ) 同じ理屈で 1 パスのまま拡張できます.
+件数・合計・二乗和を 1 つの型に束ねてよいことにも代数的な裏付けがあります. **モノイドの直積はまたモノイド** であり (各成分を独立に `<>` する), **準同型 `f`, `g` の組 $x \mapsto (f\,x,\ g\,x)$ もまた準同型** になります. `Moments` は実質 3 つの加算モノイドの直積です. `moment` は各入力を 1 要素分の集計値へ変換し, `foldMap moment :: [Double] -> Moments` がリストの連結を `(<>)` に写すモノイド準同型になります. だからこそ 1 回の走査で 3 つを同時に集計しても結果が正しく, 束ねる成分を増やしても (例えば三乗和を足して歪度へ) 同じ理屈で 1 パスのまま拡張できます.
 
 このように, モノイドと準同型を設計しておくと, 「何を集計するか」を 1 つの型に束ね, 走査も中間データも最小化できます (Haskell の `Control.Foldl` などはこの考え方を一般化したライブラリです).
 

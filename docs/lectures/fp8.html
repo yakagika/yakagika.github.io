@@ -28,7 +28,7 @@
     <title>yakagika - 関数型プログラミング Ch8 型クラスと代数構造</title>
 
     <!-- Stylesheets. -->
-    <link rel="stylesheet" type="text/css" href="../style.css?v=1784519404">
+    <link rel="stylesheet" type="text/css" href="../style.css?v=1784793974">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -100,7 +100,7 @@
     <p class="article-description">資料</p>
     <div class="article-meta">
         <span class="meta-item">公開: 2026-07-13</span>
-        <span class="meta-item">更新: 2026-07-14</span>
+        <span class="meta-item">更新: 2026-07-23</span>
     </div>
     <div class="tag-chips"><a href="../tags/algebra.html">algebra</a><a href="../tags/lecture.html">lecture</a><a href="../tags/statistics.html">statistics</a><a href="../tags/haskell.html">haskell</a></div>
 </header>
@@ -362,23 +362,30 @@
 <p>抽象的に聞こえますが, 実はよく知っているものがこの形をしています. <strong>有理数</strong> です. <span class="math inline">\frac{1}{2}</span> と <span class="math inline">\frac{2}{4}</span> は, データ (分子と分母のペア) としては違いますが, 数としては同じです. つまり有理数とは, 整数のペア <span class="math inline">(a, b)</span> (<span class="math inline">b &gt; 0</span>) の集合を</p>
 <p><span class="math display">(a, b) \sim (c, d) \quad\Longleftrightarrow\quad a \cdot d = c \cdot b</span></p>
 <p>という同値関係で割った <strong>商集合</strong> <span class="math inline">\mathbb{Q} = (\mathbb{Z} \times \mathbb{Z}^{+})/\!\sim</span> です. <span class="math inline">\frac{1}{2}</span> という「数」の正体は, 同値類 <span class="math inline">[(1,2)] = \{(1,2), (2,4), (3,6), \dots\}</span> という<strong>塊</strong>なのです.</p>
-<p>これを Haskell に写してみます. データとしては分子・分母のペア, 等しさは上の関係を <strong><code>Eq</code> インスタンスとして手書き</strong> します.</p>
-<div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 分数: Frac 分子 分母 (分母は正の整数とする)</span></span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Frac</span> <span class="ot">=</span> <span class="dt">Frac</span> <span class="dt">Int</span> <span class="dt">Int</span> <span class="kw">deriving</span> <span class="dt">Show</span></span>
+<p>これを Haskell に写してみます. データとしては分子・分母のペア, 等しさは上の関係を <strong><code>Eq</code> インスタンスとして手書き</strong> します. 分母が正であるという条件は <code>mkFrac</code> で保証し, 固定幅整数の overflow を避けるために <code>Integer</code> を使います. 実際のモジュールでは <code>Frac</code> のデータ構築子を公開せず, <code>mkFrac</code> だけを公開します. なお <code>mkFrac</code> の返り値に現れる <code>Maybe</code> 型は<a href="fp9.html">第9章</a>で本格的に扱います. ここでは「失敗すると <code>Nothing</code>, 成功すると <code>Just 値</code> が返る」とだけ読んでください.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 分数: Frac 分子 分母 (データ構築子 Frac はモジュール外に公開しない)</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Frac</span> <span class="ot">=</span> <span class="dt">Frac</span> <span class="dt">Integer</span> <span class="dt">Integer</span> <span class="kw">deriving</span> <span class="dt">Show</span></span>
 <span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Eq</span> <span class="dt">Frac</span> <span class="kw">where</span></span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Frac</span> a b <span class="op">==</span> <span class="dt">Frac</span> c d  <span class="ot">=</span>  a <span class="op">*</span> d <span class="op">==</span> c <span class="op">*</span> b</span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="dt">Frac</span> <span class="dv">1</span> <span class="dv">2</span> <span class="op">==</span> <span class="dt">Frac</span> <span class="dv">2</span> <span class="dv">4</span>)   <span class="co">-- True   (1/2 = 2/4)</span></span>
-<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="dt">Frac</span> <span class="dv">1</span> <span class="dv">2</span> <span class="op">==</span> <span class="dt">Frac</span> <span class="dv">2</span> <span class="dv">3</span>)   <span class="co">-- False</span></span>
-<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="dt">Frac</span> <span class="dv">3</span> <span class="dv">6</span> <span class="op">==</span> <span class="dt">Frac</span> <span class="dv">1</span> <span class="dv">2</span>)   <span class="co">-- True</span></span></code></pre></div>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="ot">mkFrac ::</span> <span class="dt">Integer</span> <span class="ot">-&gt;</span> <span class="dt">Integer</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Frac</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>mkFrac _ <span class="dv">0</span> <span class="ot">=</span> <span class="dt">Nothing</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>mkFrac a b</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> b <span class="op">&lt;</span> <span class="dv">0</span>     <span class="ot">=</span> <span class="dt">Just</span> (<span class="dt">Frac</span> (<span class="op">-</span>a) (<span class="op">-</span>b))</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="fu">otherwise</span> <span class="ot">=</span> <span class="dt">Just</span> (<span class="dt">Frac</span> a b)</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Eq</span> <span class="dt">Frac</span> <span class="kw">where</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Frac</span> a b <span class="op">==</span> <span class="dt">Frac</span> c d  <span class="ot">=</span>  a <span class="op">*</span> d <span class="op">==</span> c <span class="op">*</span> b</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (mkFrac <span class="dv">1</span> <span class="dv">2</span> <span class="op">==</span> mkFrac <span class="dv">2</span> <span class="dv">4</span>)   <span class="co">-- True   (1/2 = 2/4)</span></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (mkFrac <span class="dv">1</span> <span class="dv">2</span> <span class="op">==</span> mkFrac <span class="dv">2</span> <span class="dv">3</span>)   <span class="co">-- False</span></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (mkFrac <span class="dv">3</span> <span class="dv">6</span> <span class="op">==</span> mkFrac <span class="dv">1</span> <span class="dv">2</span>)   <span class="co">-- True</span></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (mkFrac <span class="dv">1</span> <span class="dv">0</span>)                 <span class="co">-- Nothing</span></span></code></pre></div>
 <p><code>deriving Eq</code> にしていたら <code>Frac 1 2 == Frac 2 4</code> は <code>False</code> です (データ表現としては別物だから). 手書きの <code>==</code> はそれを <code>True</code> に変えました. つまり:</p>
 <blockquote>
 <p><strong><code>Eq</code> インスタンスを自分で書くことは, 「この型をどの同値関係で割った商集合として使うか」を選ぶことです.</strong> <code>deriving Eq</code> = 「表現がそのまま等しさ」という選択, 手書き = 「表現の違いを同一視する」という選択.</p>
 </blockquote>
-<p>なお, 分母が正であることは <code>Frac</code> の定義だけでは守られません (Frac 1 0 も書けてしまいます). こういう不変条件を型で守りたければ, <a href="fp7.html">第7章</a>のスマートコンストラクタの出番です.</p>
+<p>交差積による比較が同値関係になるのは, 分母が 0 でない分数の上です. <code>mkFrac</code> は分母 0 を拒否し, 負の符号を分子側へ移すことで, <code>Eq</code> の前提を守ります. データ構築子 <code>Frac</code> を隠すのは, モジュール外からこの前提を破れなくするためです.</p>
 <svg viewBox="0 0 460 320" width="100%" style="max-width: 470px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Frac の同値類の図. 横軸を分母, 縦軸を分子として整数のペアを点で描くと, 1/2, 2/4, 3/6 は原点を通る同じ直線に乗る. 1/1 の類や 1/3 の類も別の直線になる. 同値類 = 原点を通る直線上の点すべてで, 手書きの == は同じ直線上にあるかの判定である.">
 <line x1="90" y1="250" x2="90" y2="40" stroke="currentColor" stroke-width="1" opacity="0.5"></line>
 <line x1="90" y1="250" x2="430" y2="250" stroke="currentColor" stroke-width="1" opacity="0.5"></line>
@@ -437,7 +444,7 @@
 <h4>Exercise CH8-2</h4>
 <p><strong>分数型 <code>Frac</code>: 商集合としての有理数</strong></p>
 <ol type="1">
-<li><p>本文の <code>Frac</code> (分子・分母のペア, 分母は正とする) と, その手書き <code>Eq</code> インスタンス (<code>Frac a b == Frac c d</code> <span class="math inline">\iff</span> <span class="math inline">ad = cb</span>) を定義してください.</p></li>
+<li><p>本文の <code>Frac</code> (分子・分母のペア) と, 分母 0 を拒否して分母を正に揃える <code>mkFrac</code>, 手書きの <code>Eq</code> インスタンス (<code>Frac a b == Frac c d</code> <span class="math inline">\iff</span> <span class="math inline">ad = cb</span>) を定義してください. 分子と分母には <code>Integer</code> を使います.</p></li>
 <li><p>この <code>==</code> が <strong>同値関係</strong> であること (反射律・対称律・推移律) を, 有限の集合 <code>fracs = [ Frac a b | a &lt;- [-2..2], b &lt;- [1..3] ]</code> の上で全数検査してください (<a href="fp7.html">第7章</a>の <code>and</code> + リスト内包表記 + ガードの形).</p></li>
 <li><p>分数を <strong>既約分数</strong> (それ以上約分できない形) に直す関数 <code>normalize :: Frac -&gt; Frac</code> を実装してください (<code>gcd</code> と <code>abs</code> が使えます. 分母は正のままとします). そして <code>normalize (Frac 2 4) == Frac 1 2</code> が成り立つこと, さらに任意の <code>x &lt;- fracs</code> で <code>normalize x == x</code> (<strong>正規化しても同じ同値類に留まる</strong>) ことを全数検査してください.</p></li>
 </ol>
@@ -453,29 +460,37 @@
 <summary>
 回答例
 </summary>
-<div class="sourceCode" id="cb16"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Frac</span> <span class="ot">=</span> <span class="dt">Frac</span> <span class="dt">Int</span> <span class="dt">Int</span> <span class="kw">deriving</span> <span class="dt">Show</span></span>
+<div class="sourceCode" id="cb16"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Frac</span> <span class="ot">=</span> <span class="dt">Frac</span> <span class="dt">Integer</span> <span class="dt">Integer</span> <span class="kw">deriving</span> <span class="dt">Show</span></span>
 <span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Eq</span> <span class="dt">Frac</span> <span class="kw">where</span></span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Frac</span> a b <span class="op">==</span> <span class="dt">Frac</span> c d  <span class="ot">=</span>  a <span class="op">*</span> d <span class="op">==</span> c <span class="op">*</span> b</span>
-<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="ot">fracs ::</span> [<span class="dt">Frac</span>]</span>
-<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>fracs <span class="ot">=</span> [ <span class="dt">Frac</span> a b <span class="op">|</span> a <span class="ot">&lt;-</span> [<span class="op">-</span><span class="dv">2</span><span class="op">..</span><span class="dv">2</span>], b <span class="ot">&lt;-</span> [<span class="dv">1</span><span class="op">..</span><span class="dv">3</span>] ]</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="ot">mkFrac ::</span> <span class="dt">Integer</span> <span class="ot">-&gt;</span> <span class="dt">Integer</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Frac</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>mkFrac _ <span class="dv">0</span> <span class="ot">=</span> <span class="dt">Nothing</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>mkFrac a b</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> b <span class="op">&lt;</span> <span class="dv">0</span>     <span class="ot">=</span> <span class="dt">Just</span> (<span class="dt">Frac</span> (<span class="op">-</span>a) (<span class="op">-</span>b))</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="fu">otherwise</span> <span class="ot">=</span> <span class="dt">Just</span> (<span class="dt">Frac</span> a b)</span>
 <span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a><span class="ot">normalize ::</span> <span class="dt">Frac</span> <span class="ot">-&gt;</span> <span class="dt">Frac</span></span>
-<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>normalize (<span class="dt">Frac</span> a b) <span class="ot">=</span> <span class="dt">Frac</span> (a <span class="ot">`div`</span> g) (b <span class="ot">`div`</span> g)</span>
-<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>  <span class="kw">where</span> g <span class="ot">=</span> <span class="fu">gcd</span> (<span class="fu">abs</span> a) b   <span class="co">-- b &gt; 0 なので gcd は正, 符号は分子に残る</span></span>
-<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="dt">Frac</span> <span class="dv">1</span> <span class="dv">2</span> <span class="op">==</span> <span class="dt">Frac</span> <span class="dv">2</span> <span class="dv">4</span>)   <span class="co">-- True</span></span>
-<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- 同値関係の全数検査</span></span>
-<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="fu">and</span> [ x <span class="op">==</span> x <span class="op">|</span> x <span class="ot">&lt;-</span> fracs ])                                   <span class="co">-- True (反射律)</span></span>
-<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="fu">and</span> [ y <span class="op">==</span> x <span class="op">|</span> x <span class="ot">&lt;-</span> fracs, y <span class="ot">&lt;-</span> fracs, x <span class="op">==</span> y ])               <span class="co">-- True (対称律)</span></span>
-<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="fu">and</span> [ x <span class="op">==</span> z <span class="op">|</span> x <span class="ot">&lt;-</span> fracs, y <span class="ot">&lt;-</span> fracs, z <span class="ot">&lt;-</span> fracs</span>
-<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>             , x <span class="op">==</span> y, y <span class="op">==</span> z ])                                        <span class="co">-- True (推移律)</span></span>
-<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (normalize (<span class="dt">Frac</span> <span class="dv">2</span> <span class="dv">4</span>))      <span class="co">-- Frac 1 2</span></span>
-<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (normalize (<span class="dt">Frac</span> (<span class="op">-</span><span class="dv">2</span>) <span class="dv">4</span>))   <span class="co">-- Frac (-1) 2</span></span>
-<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="fu">and</span> [ normalize x <span class="op">==</span> x <span class="op">|</span> x <span class="ot">&lt;-</span> fracs ])                         <span class="co">-- True</span></span></code></pre></div>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Eq</span> <span class="dt">Frac</span> <span class="kw">where</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Frac</span> a b <span class="op">==</span> <span class="dt">Frac</span> c d  <span class="ot">=</span>  a <span class="op">*</span> d <span class="op">==</span> c <span class="op">*</span> b</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a><span class="ot">fracs ::</span> [<span class="dt">Frac</span>]</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>fracs <span class="ot">=</span> [ <span class="dt">Frac</span> a b <span class="op">|</span> a <span class="ot">&lt;-</span> [<span class="op">-</span><span class="dv">2</span><span class="op">..</span><span class="dv">2</span>], b <span class="ot">&lt;-</span> [<span class="dv">1</span><span class="op">..</span><span class="dv">3</span>] ]</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a><span class="ot">normalize ::</span> <span class="dt">Frac</span> <span class="ot">-&gt;</span> <span class="dt">Frac</span></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>normalize (<span class="dt">Frac</span> a b) <span class="ot">=</span> <span class="dt">Frac</span> (a <span class="ot">`div`</span> g) (b <span class="ot">`div`</span> g)</span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>  <span class="kw">where</span> g <span class="ot">=</span> <span class="fu">gcd</span> (<span class="fu">abs</span> a) b   <span class="co">-- b &gt; 0 なので gcd は正, 符号は分子に残る</span></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (mkFrac <span class="dv">1</span> <span class="dv">0</span>)             <span class="co">-- Nothing</span></span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (mkFrac <span class="dv">1</span> (<span class="op">-</span><span class="dv">2</span>))          <span class="co">-- Just (Frac (-1) 2)</span></span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="dt">Frac</span> <span class="dv">1</span> <span class="dv">2</span> <span class="op">==</span> <span class="dt">Frac</span> <span class="dv">2</span> <span class="dv">4</span>)   <span class="co">-- True</span></span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- 同値関係の全数検査</span></span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="fu">and</span> [ x <span class="op">==</span> x <span class="op">|</span> x <span class="ot">&lt;-</span> fracs ])                                   <span class="co">-- True (反射律)</span></span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="fu">and</span> [ y <span class="op">==</span> x <span class="op">|</span> x <span class="ot">&lt;-</span> fracs, y <span class="ot">&lt;-</span> fracs, x <span class="op">==</span> y ])               <span class="co">-- True (対称律)</span></span>
+<span id="cb16-27"><a href="#cb16-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="fu">and</span> [ x <span class="op">==</span> z <span class="op">|</span> x <span class="ot">&lt;-</span> fracs, y <span class="ot">&lt;-</span> fracs, z <span class="ot">&lt;-</span> fracs</span>
+<span id="cb16-28"><a href="#cb16-28" aria-hidden="true" tabindex="-1"></a>             , x <span class="op">==</span> y, y <span class="op">==</span> z ])                                        <span class="co">-- True (推移律)</span></span>
+<span id="cb16-29"><a href="#cb16-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (normalize (<span class="dt">Frac</span> <span class="dv">2</span> <span class="dv">4</span>))      <span class="co">-- Frac 1 2</span></span>
+<span id="cb16-30"><a href="#cb16-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (normalize (<span class="dt">Frac</span> (<span class="op">-</span><span class="dv">2</span>) <span class="dv">4</span>))   <span class="co">-- Frac (-1) 2</span></span>
+<span id="cb16-31"><a href="#cb16-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="fu">and</span> [ normalize x <span class="op">==</span> x <span class="op">|</span> x <span class="ot">&lt;-</span> fracs ])                         <span class="co">-- True</span></span></code></pre></div>
 <p>推移律が成り立つ理由を式で確かめておきます: <span class="math inline">ad = cb</span> かつ <span class="math inline">cf = ed</span> のとき, 両辺に掛け合わせて <span class="math inline">adf = cbf = edb</span>, 分母 <span class="math inline">d &gt; 0</span> で割れば <span class="math inline">af = eb</span>. <strong>分母を正に限った</strong> ことが推移律の証明で効いている点に注意してください (0 を許すと壊れます). <code>normalize</code> は各同値類の中から <strong>代表元</strong> (既約分数) を 1 つ選ぶ関数で, <code>normalize x == x</code> は「代表元は元と同じ塊に属する」ことの確認です.</p>
 </details>
 <p>提出ファイル名: <code>ch8-2.hs</code></p>
@@ -997,6 +1012,7 @@
 <ul>
 <li><strong>両演算がモノイド (可換)</strong>: <span class="math inline">\wedge</span> は単位元 <code>T</code>, <span class="math inline">\vee</span> は単位元 <code>F</code>.</li>
 <li><strong>分配律</strong>: <span class="math inline">x \wedge (y \vee z) = (x \wedge y) \vee (x \wedge z)</span>, および <span class="math inline">\vee</span> と <span class="math inline">\wedge</span> を入れ替えたもの.</li>
+<li><strong>吸収律</strong>: <span class="math inline">x \wedge (x \vee y) = x</span>, <span class="math inline">x \vee (x \wedge y) = x</span>.</li>
 <li><strong>補元律</strong>: <span class="math inline">x \wedge \neg x = \text{F}</span>, <span class="math inline">x \vee \neg x = \text{T}</span>.</li>
 </ul>
 <p>ブール代数は, このように <strong>2 つのモノイドが対になって協調する</strong> 代数構造の代表例です. 真偽値の論理だけでなく, <a href="fp7.html">第7章</a>で扱った <strong>集合演算</strong> (積集合 <span class="math inline">\cap</span> が <span class="math inline">\wedge</span>, 和集合 <span class="math inline">\cup</span> が <span class="math inline">\vee</span>, 補集合が <span class="math inline">\neg</span> に対応) も同じ法則を満たすブール代数になっています.</p>
@@ -1278,33 +1294,39 @@ stats []         = mempty                     -- 空リストを単位元に写�
 <summary>
 回答例
 </summary>
-<div class="sourceCode" id="cb46"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Frac</span> <span class="ot">=</span> <span class="dt">Frac</span> <span class="dt">Int</span> <span class="dt">Int</span> <span class="kw">deriving</span> <span class="dt">Show</span></span>
+<div class="sourceCode" id="cb46"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">Frac</span> <span class="ot">=</span> <span class="dt">Frac</span> <span class="dt">Integer</span> <span class="dt">Integer</span> <span class="kw">deriving</span> <span class="dt">Show</span></span>
 <span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Eq</span> <span class="dt">Frac</span> <span class="kw">where</span></span>
-<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Frac</span> a b <span class="op">==</span> <span class="dt">Frac</span> c d  <span class="ot">=</span>  a <span class="op">*</span> d <span class="op">==</span> c <span class="op">*</span> b</span>
-<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb46-6"><a href="#cb46-6" aria-hidden="true" tabindex="-1"></a><span class="ot">fracs ::</span> [<span class="dt">Frac</span>]</span>
-<span id="cb46-7"><a href="#cb46-7" aria-hidden="true" tabindex="-1"></a>fracs <span class="ot">=</span> [ <span class="dt">Frac</span> a b <span class="op">|</span> a <span class="ot">&lt;-</span> [<span class="op">-</span><span class="dv">2</span><span class="op">..</span><span class="dv">2</span>], b <span class="ot">&lt;-</span> [<span class="dv">1</span><span class="op">..</span><span class="dv">3</span>] ]</span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a><span class="ot">mkFrac ::</span> <span class="dt">Integer</span> <span class="ot">-&gt;</span> <span class="dt">Integer</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Frac</span></span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>mkFrac _ <span class="dv">0</span> <span class="ot">=</span> <span class="dt">Nothing</span></span>
+<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a>mkFrac a b</span>
+<span id="cb46-6"><a href="#cb46-6" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> b <span class="op">&lt;</span> <span class="dv">0</span>     <span class="ot">=</span> <span class="dt">Just</span> (<span class="dt">Frac</span> (<span class="op">-</span>a) (<span class="op">-</span>b))</span>
+<span id="cb46-7"><a href="#cb46-7" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="fu">otherwise</span> <span class="ot">=</span> <span class="dt">Just</span> (<span class="dt">Frac</span> a b)</span>
 <span id="cb46-8"><a href="#cb46-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb46-9"><a href="#cb46-9" aria-hidden="true" tabindex="-1"></a><span class="ot">double ::</span> <span class="dt">Frac</span> <span class="ot">-&gt;</span> <span class="dt">Frac</span></span>
-<span id="cb46-10"><a href="#cb46-10" aria-hidden="true" tabindex="-1"></a>double (<span class="dt">Frac</span> a b) <span class="ot">=</span> <span class="dt">Frac</span> (<span class="dv">2</span> <span class="op">*</span> a) b</span>
+<span id="cb46-9"><a href="#cb46-9" aria-hidden="true" tabindex="-1"></a><span class="kw">instance</span> <span class="dt">Eq</span> <span class="dt">Frac</span> <span class="kw">where</span></span>
+<span id="cb46-10"><a href="#cb46-10" aria-hidden="true" tabindex="-1"></a>  <span class="dt">Frac</span> a b <span class="op">==</span> <span class="dt">Frac</span> c d  <span class="ot">=</span>  a <span class="op">*</span> d <span class="op">==</span> c <span class="op">*</span> b</span>
 <span id="cb46-11"><a href="#cb46-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb46-12"><a href="#cb46-12" aria-hidden="true" tabindex="-1"></a><span class="ot">num ::</span> <span class="dt">Frac</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
-<span id="cb46-13"><a href="#cb46-13" aria-hidden="true" tabindex="-1"></a>num (<span class="dt">Frac</span> a _) <span class="ot">=</span> a</span>
+<span id="cb46-12"><a href="#cb46-12" aria-hidden="true" tabindex="-1"></a><span class="ot">fracs ::</span> [<span class="dt">Frac</span>]</span>
+<span id="cb46-13"><a href="#cb46-13" aria-hidden="true" tabindex="-1"></a>fracs <span class="ot">=</span> [ <span class="dt">Frac</span> a b <span class="op">|</span> a <span class="ot">&lt;-</span> [<span class="op">-</span><span class="dv">2</span><span class="op">..</span><span class="dv">2</span>], b <span class="ot">&lt;-</span> [<span class="dv">1</span><span class="op">..</span><span class="dv">3</span>] ]</span>
 <span id="cb46-14"><a href="#cb46-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb46-15"><a href="#cb46-15" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb46-16"><a href="#cb46-16" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb46-17"><a href="#cb46-17" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- 1. length はモノイド準同型</span></span>
-<span id="cb46-18"><a href="#cb46-18" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> xss <span class="ot">=</span> [<span class="st">&quot;&quot;</span>, <span class="st">&quot;a&quot;</span>, <span class="st">&quot;ab&quot;</span>, <span class="st">&quot;abc&quot;</span>]</span>
-<span id="cb46-19"><a href="#cb46-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="fu">and</span> [ <span class="fu">length</span> (xs <span class="op">++</span> ys) <span class="op">==</span> <span class="fu">length</span> xs <span class="op">+</span> <span class="fu">length</span> ys</span>
-<span id="cb46-20"><a href="#cb46-20" aria-hidden="true" tabindex="-1"></a>             <span class="op">|</span> xs <span class="ot">&lt;-</span> xss, ys <span class="ot">&lt;-</span> xss ])                          <span class="co">-- True (演算を保つ)</span></span>
-<span id="cb46-21"><a href="#cb46-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="fu">length</span> ([]<span class="ot"> ::</span> <span class="dt">String</span>) <span class="op">==</span> <span class="dv">0</span>)                            <span class="co">-- True (単位元を保つ)</span></span>
-<span id="cb46-22"><a href="#cb46-22" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- 2. double は同値を保つ (well-defined)</span></span>
-<span id="cb46-23"><a href="#cb46-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="fu">and</span> [ double x <span class="op">==</span> double y</span>
-<span id="cb46-24"><a href="#cb46-24" aria-hidden="true" tabindex="-1"></a>             <span class="op">|</span> x <span class="ot">&lt;-</span> fracs, y <span class="ot">&lt;-</span> fracs, x <span class="op">==</span> y ])                <span class="co">-- True</span></span>
-<span id="cb46-25"><a href="#cb46-25" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- 3. num は同値を保たない</span></span>
-<span id="cb46-26"><a href="#cb46-26" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="dt">Frac</span> <span class="dv">1</span> <span class="dv">2</span> <span class="op">==</span> <span class="dt">Frac</span> <span class="dv">2</span> <span class="dv">4</span>)                                  <span class="co">-- True</span></span>
-<span id="cb46-27"><a href="#cb46-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (num (<span class="dt">Frac</span> <span class="dv">1</span> <span class="dv">2</span>) <span class="op">==</span> num (<span class="dt">Frac</span> <span class="dv">2</span> <span class="dv">4</span>))                      <span class="co">-- False (1 /= 2)</span></span></code></pre></div>
+<span id="cb46-15"><a href="#cb46-15" aria-hidden="true" tabindex="-1"></a><span class="ot">double ::</span> <span class="dt">Frac</span> <span class="ot">-&gt;</span> <span class="dt">Frac</span></span>
+<span id="cb46-16"><a href="#cb46-16" aria-hidden="true" tabindex="-1"></a>double (<span class="dt">Frac</span> a b) <span class="ot">=</span> <span class="dt">Frac</span> (<span class="dv">2</span> <span class="op">*</span> a) b</span>
+<span id="cb46-17"><a href="#cb46-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-18"><a href="#cb46-18" aria-hidden="true" tabindex="-1"></a><span class="ot">num ::</span> <span class="dt">Frac</span> <span class="ot">-&gt;</span> <span class="dt">Integer</span></span>
+<span id="cb46-19"><a href="#cb46-19" aria-hidden="true" tabindex="-1"></a>num (<span class="dt">Frac</span> a _) <span class="ot">=</span> a</span>
+<span id="cb46-20"><a href="#cb46-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-21"><a href="#cb46-21" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb46-22"><a href="#cb46-22" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb46-23"><a href="#cb46-23" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- 1. length はモノイド準同型</span></span>
+<span id="cb46-24"><a href="#cb46-24" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> xss <span class="ot">=</span> [<span class="st">&quot;&quot;</span>, <span class="st">&quot;a&quot;</span>, <span class="st">&quot;ab&quot;</span>, <span class="st">&quot;abc&quot;</span>]</span>
+<span id="cb46-25"><a href="#cb46-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="fu">and</span> [ <span class="fu">length</span> (xs <span class="op">++</span> ys) <span class="op">==</span> <span class="fu">length</span> xs <span class="op">+</span> <span class="fu">length</span> ys</span>
+<span id="cb46-26"><a href="#cb46-26" aria-hidden="true" tabindex="-1"></a>             <span class="op">|</span> xs <span class="ot">&lt;-</span> xss, ys <span class="ot">&lt;-</span> xss ])                          <span class="co">-- True (演算を保つ)</span></span>
+<span id="cb46-27"><a href="#cb46-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="fu">length</span> ([]<span class="ot"> ::</span> <span class="dt">String</span>) <span class="op">==</span> <span class="dv">0</span>)                            <span class="co">-- True (単位元を保つ)</span></span>
+<span id="cb46-28"><a href="#cb46-28" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- 2. double は同値を保つ (well-defined)</span></span>
+<span id="cb46-29"><a href="#cb46-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="fu">and</span> [ double x <span class="op">==</span> double y</span>
+<span id="cb46-30"><a href="#cb46-30" aria-hidden="true" tabindex="-1"></a>             <span class="op">|</span> x <span class="ot">&lt;-</span> fracs, y <span class="ot">&lt;-</span> fracs, x <span class="op">==</span> y ])                <span class="co">-- True</span></span>
+<span id="cb46-31"><a href="#cb46-31" aria-hidden="true" tabindex="-1"></a>  <span class="co">-- 3. num は同値を保たない</span></span>
+<span id="cb46-32"><a href="#cb46-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (<span class="dt">Frac</span> <span class="dv">1</span> <span class="dv">2</span> <span class="op">==</span> <span class="dt">Frac</span> <span class="dv">2</span> <span class="dv">4</span>)                                  <span class="co">-- True</span></span>
+<span id="cb46-33"><a href="#cb46-33" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> (num (<span class="dt">Frac</span> <span class="dv">1</span> <span class="dv">2</span>) <span class="op">==</span> num (<span class="dt">Frac</span> <span class="dv">2</span> <span class="dv">4</span>))                      <span class="co">-- False (1 /= 2)</span></span></code></pre></div>
 <p><code>double</code> が同値を保つ理由: <span class="math inline">ad = cb</span> なら <span class="math inline">(2a)d = (2c)b</span>. つまり「2 倍する」は商集合 <span class="math inline">\mathbb{Q}</span> の上の関数として意味を持ちます (実際, 有理数の 2 倍です). 一方 <code>num</code> は表現 (代表元) の選び方で答えが変わるため, <span class="math inline">\mathbb{Q}</span> の関数にはなりません. 「同値を保つ」は, 商集合の上で関数を定義してよいかの資格審査です.</p>
 </details>
 <p>提出ファイル名: <code>ch8-6.hs</code></p>
@@ -1433,7 +1455,7 @@ stats []         = mempty                     -- 空リストを単位元に写�
 <span id="cb54-22"><a href="#cb54-22" aria-hidden="true" tabindex="-1"></a><span class="co">-- foldMap moment [2,4,4,4,5,5,7,9] を 1 回走査するだけで</span></span>
 <span id="cb54-23"><a href="#cb54-23" aria-hidden="true" tabindex="-1"></a><span class="co">--   mean     -&gt; 5.0</span></span>
 <span id="cb54-24"><a href="#cb54-24" aria-hidden="true" tabindex="-1"></a><span class="co">--   variance -&gt; 4.0</span></span></code></pre></div>
-<p>件数・合計・二乗和を 1 つの型に束ねてよいことにも代数的な裏付けがあります. <strong>モノイドの直積はまたモノイド</strong> であり (各成分を独立に <code>&lt;&gt;</code> する), <strong>準同型 <code>f</code>, <code>g</code> の組 <span class="math inline">x \mapsto (f\,x,\ g\,x)</span> もまた準同型</strong> になります. <code>Moments</code> は実質 3 つの加算モノイドの直積, <code>moment</code> はそれらの準同型を束ねた組です. だからこそ 1 回の走査で 3 つを同時に集計しても結果が正しく, 束ねる成分を増やしても (例えば三乗和を足して歪度へ) 同じ理屈で 1 パスのまま拡張できます.</p>
+<p>件数・合計・二乗和を 1 つの型に束ねてよいことにも代数的な裏付けがあります. <strong>モノイドの直積はまたモノイド</strong> であり (各成分を独立に <code>&lt;&gt;</code> する), <strong>準同型 <code>f</code>, <code>g</code> の組 <span class="math inline">x \mapsto (f\,x,\ g\,x)</span> もまた準同型</strong> になります. <code>Moments</code> は実質 3 つの加算モノイドの直積です. <code>moment</code> は各入力を 1 要素分の集計値へ変換し, <code>foldMap moment :: [Double] -&gt; Moments</code> がリストの連結を <code>(&lt;&gt;)</code> に写すモノイド準同型になります. だからこそ 1 回の走査で 3 つを同時に集計しても結果が正しく, 束ねる成分を増やしても (例えば三乗和を足して歪度へ) 同じ理屈で 1 パスのまま拡張できます.</p>
 <p>このように, モノイドと準同型を設計しておくと, 「何を集計するか」を 1 つの型に束ね, 走査も中間データも最小化できます (Haskell の <code>Control.Foldl</code> などはこの考え方を一般化したライブラリです).</p>
 <h3 id="さらに先の利点-予告">さらに先の利点 (予告)</h3>
 <p>モノイドの恩恵は後の章でも繰り返し現れます.</p>

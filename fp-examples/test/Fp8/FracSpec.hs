@@ -3,7 +3,13 @@ module Fp8.FracSpec (spec) where
 
 import Test.Hspec
 
-data Frac = Frac Int Int deriving Show
+data Frac = Frac Integer Integer deriving Show
+
+mkFrac :: Integer -> Integer -> Maybe Frac
+mkFrac _ 0 = Nothing
+mkFrac a b
+  | b < 0     = Just (Frac (-a) (-b))
+  | otherwise = Just (Frac a b)
 
 instance Eq Frac where
   Frac a b == Frac c d  =  a * d == c * b
@@ -16,17 +22,23 @@ normalize (Frac a b) = Frac (a `div` g) (b `div` g)
   where g = gcd (abs a) b
 
 -- 表現 (代表元) そのものを比較するための補助 (== は商の等しさなので)
-repr :: Frac -> (Int, Int)
+repr :: Frac -> (Integer, Integer)
 repr (Frac a b) = (a, b)
 
 spec :: Spec
 spec = describe "Fp8.Frac (商集合としての有理数, Exercise CH8-2)" $ do
+  it "mkFrac は分母 0 を拒否する" $
+    mkFrac 1 0 `shouldBe` Nothing
+  it "mkFrac は分母を正に揃える" $
+    fmap repr (mkFrac 1 (-2)) `shouldBe` Just (-1, 2)
   it "Frac 1 2 == Frac 2 4 (1/2 = 2/4)" $
     (Frac 1 2 == Frac 2 4) `shouldBe` True
   it "Frac 1 2 /= Frac 2 3" $
     (Frac 1 2 == Frac 2 3) `shouldBe` False
   it "Frac 3 6 == Frac 1 2" $
     (Frac 3 6 == Frac 1 2) `shouldBe` True
+  it "Integer なので交差積が固定幅整数の overflow を起こさない" $
+    (Frac (2 ^ (100 :: Int)) 2 == Frac (2 ^ (99 :: Int)) 1) `shouldBe` True
 
   describe "手書き == は同値関係 (fracs 上の全数検査)" $ do
     it "反射律" $
