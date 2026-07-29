@@ -383,10 +383,10 @@ YouTube Data API と補足B で扱った X (Twitter) API を比較すると, 研
 
 | 項目 | YouTube Data API v3 | X (Twitter) API v2 |
 |---|---|---|
-| 無料枠 | **10,000 ユニット/日** (継続更新) | Basic プランは月 200 USD〜, 無料版は月 100 件のみ |
+| 無料枠 | **10,000 ユニット/日** (継続更新) | 無し (2026 年 2 月に廃止) |
 | 認証方式 | API キー (公開データ) / OAuth (個人データ) | Bearer Token (取得に英文 250 字の目的申請が必要) |
-| 主なコスト | `search` = 100 U, `videos.list` = 1 U, `channels.list` = 1 U | リクエスト数・月次ツイート取得数で課金 |
-| 過去データ | 投稿日 (`publishedAfter` 等) で絞り込み可能 | Free/Basic は直近 7 日のみ (全期間取得は Pro = 月 5,000 USD) |
+| 主なコスト | `search` = 100 U, `videos.list` = 1 U, `channels.list` = 1 U | 前払いクレジットからの従量課金 (投稿の取得 = 1 件 0.005 USD) |
+| 過去データ | 投稿日 (`publishedAfter` 等) で絞り込み可能 | `search/recent` は直近 7 日のみ (全期間検索は別契約) |
 | 利用規約の安定性 | Google の方針変更は少ない | 頻繁に改定・値上げが行われている (2023〜) |
 
 ::: note

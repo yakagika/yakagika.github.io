@@ -12,196 +12,296 @@ previousChapter: slds_a1.html
 nextChapter: slds_c1.html
 ---
 
-本資料は章番号外の補足資料です. X(旧:Twitter)のAPIを利用して呟きデータを取得する手順を扱います. 取得したデータを利用した分析 (ワードクラウド, トピックモデルなど) は[Ch15 自然言語処理](slds15.html)で扱っています.
+本資料は章番号外の補足資料です. X(旧:Twitter)のAPIを利用して投稿データを取得する手順を扱います. 取得したデータを利用した分析 (ワードクラウド, トピックモデルなど) は[Ch15 自然言語処理](slds15.html)で扱っています.
 
 APIという仕組み自体の説明 (REST, HTTPメソッド, JSONなど) は[補足A](slds_a1.html#apiとは)にまとめてあるので, 馴染みのない人は先にそちらを読んでください. `X.API`も`REST`アーキテクチャで提供されており, 本資料ではGETメソッドだけを使います.
 
+関連する章・補足:
+
+- [補足A EDINET APIによる財務データの取得](slds_a1.html): APIの基礎 (REST/HTTP/JSON) とAPIキーの取り扱い方
+- [補足C YouTube Data APIによる動画・チャンネルデータの取得](slds_c1.html): 無料の割り当てで使える別のREST API. 料金と用途の比較は[後の節](#youtube-data-apiとの使い分け)で扱います
+- [Ch15 自然言語処理](slds15.html): 取得した投稿テキストのワードクラウド・トピックモデル分析
+
 # 利用上の注意 (料金と制限)
 
-これから`X.API`にGETメソッドを利用し呟きを取得します. APIから返答されるデータはJSONですが,今回はJSONを直接触らず,これまでに扱ってきた`CSV`に変換します.
+X APIは2026年2月6日の改定で料金体系が全面的に変わりました. **新規の開発者が使えるのは前払いクレジットによる従量課金 (pay-per-use) だけ**です. 無料の取得枠は廃止され, 月200ドルのBasicプランと月5,000ドルのProプランは既存契約者専用となり新規受付を終了しました. 2025年以前に書かれた解説記事にある「無料枠で月100件」「15分に1回」といった記述は, 現在のAPIには存在しません.
 
-以下の処理はX APIの無料の範囲で行っていますので,誰でも再現できますが, アカウントの登録など手間が多く,また無料版のAPIでは15分に一回しかリクエストが送れないため,データの取得には最低でも15分かかります.
-社長と社名が変わってからAPI機能が物凄く使いにくくなっており,値段も高額になっています.まともに研究で利用しようと思うと月5000ドルのAPI使用料を払う必要があります.2000ドルはこの講義のために払うのが難しいので,月200ドルのBasicプランであれば利用できるアカウントは準備しますが,Basicプランでは**過去7日間の呟きしか取得できない**ので注意しましょう.
+従量課金では, 先にクレジットを購入し, リクエストのたびに残高から差し引かれます. 月額の最低料金はありません. 主な操作の単価は次のとおりです.
 
-![](/images/slds/ch15/xapiv2products.png)
+| 操作 | 単価 |
+|---|---|
+| 投稿の取得 (post read) | 1件あたり0.005ドル |
+| 投稿の作成 (post write) | 1件あたり0.015ドル (リンクを含む投稿は0.20ドル) |
+| ユーザ情報の取得 (user lookup) | 1件あたり0.010ドル |
 
-研究で利用する人以外は完成した[こちらのデータ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch15/tweets.csv)をダウンロードして利用しましょう ([Ch15](slds15.html)の分析はこのデータで進められます).
+取得は月200万件で上限に達し, それを超えるにはEnterprise契約 (月4万ドル規模) が必要ですが, 講義や卒業研究の規模でこの上限に届くことはありません. 実際にかかる費用は取得件数から直接計算できます.
+
+| 用途 | 取得件数 | 概算費用 |
+|---|---|---|
+| 授業中のデモ | 50件 | 0.25ドル |
+| 演習1回 (1人あたり) | 500件 | 2.50ドル |
+| 卒業研究のデータセット (1人あたり) | 5,000件 | 25ドル |
+
+**前払いした金額がそのまま支出の上限になります.** プログラムの誤りでループが止まらなくなっても, 残高を使い切った時点でリクエストが失敗するだけで, 請求が青天井に膨らむことはありません. 少額 (10〜25ドル程度) をチャージして使うのが安全です.
+
+::: note
+本講義では**教員が契約したアカウントの認証トークンを配布**します. 受講生が各自でアカウントを登録する必要はありません. 配布されたトークンは共有の前払い残高に直結しているので, 後述する取得件数の上限を必ず守ってください.
+:::
+
+取得できる期間にも制限があります. 本資料で使う`search/recent`エンドポイントは**直近7日間の投稿**しか返しません. それ以前の投稿を取得するには全期間検索 (full-archive search) に対応した契約が必要です.
+
+研究でデータを集める予定がない人は, 取得済みの[こちらのデータ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch15/tweets.csv)をダウンロードして利用してください. [Ch15](slds15.html)の分析はこのデータで進められます.
 
 # 認証トークンの発行
 
-XのAPIを利用するには,認証トークン(`Bearer Token`)を発行する必要があります.認証トークンとは`X.API`にアクセスするための認証情報です.
+ここからは自分でアカウントを契約する場合の手順です. 教員からトークンを受け取る受講生は[次の節](#トークンの受け渡し)まで読み飛ばして構いません.
 
-[Xのデベロッパー用ページ](https://x.com/i/flow/login?input_flow_data=%7B%22requested_variant%22%3A%22eyJyZWRpcmVjdF9hZnRlcl9sb2dpbiI6Imh0dHBzOi8vZGV2ZWxvcGVyLnguY29tL2VuL3BvcnRhbC9wcm9qZWN0cy1hbmQtYXBwcyJ9%22%7D)からまずはサインアップします.
+XのAPIを利用するには, 認証トークン(`Bearer Token`)を発行します. 認証トークンとは`X.API`にアクセスするための認証情報です.
 
-今回は無料版を利用するので, `Sign up for Free Account`をクリックしましょう.
+**1. 開発者アカウントを登録する.** [Xのデベロッパー用ページ](https://developer.x.com/en/portal/dashboard)からサインアップします. 利用目的を尋ねられるので, **250文字以上の英文で**回答します. 研究・教育目的であれば, その内容をそのまま書けば通ります.
 
-![](/images/slds/ch15/x-sign-up.png)
+![利用目的の記入欄](/images/slds/ch15/x-reason.png)
 
-利用目的を尋ねられるので,**250文字以上の英文で**回答しましょう. その他のチェックを入れて,次に進みます.
+**2. クレジットをチャージする.** 従量課金は前払い制なので, ダッシュボードの課金設定からクレジットを購入します. 前節のとおりチャージ額が支出の上限になるため, まずは10〜25ドル程度から始めます.
 
-![](/images/slds/ch15/x-reason.png)
+**3. トークンを発行する.** 左のメニューの`Dashboard`に表示されている`Project APP`の`Keys and Tokens`(鍵)ボタンを押します.
 
-左のメニューの`Dashboard`に表示されている`Project APP`の`Keys and Tokens`(鍵)ボタンを押します.
+![ダッシュボードのKeys and Tokens](/images/slds/ch15/xapi-dashbooard.png)
 
-![](/images/slds/ch15/xapi-dashbooard.png)
+`Bearer Token`の`Regenerate`をクリックすると`Bearer Token`が表示されます. クリップボードにコピーして安全な場所に保存しましょう. このトークンは一度しか表示されません. 忘れた場合は別のトークンを再生成する必要があります.
 
-`Bearer Token`の`Regenerate`をクリックすると`Bearer Token`が表示されます. クリップボードにコピーしてどこかに保存しましょう.このトークンは一度しか表示されません.忘れた場合は別のトークンを再生成する必要があるので注意しましょう.
+![Bearer Tokenの発行画面](/images/slds/ch15/xapi-token.png)
 
-![](/images/slds/ch15/xapi-token.png)
+::: warn
+認証トークンは[補足A](slds_a1.html#apiキーの取得)のAPIキーと同様に**パスワードと同じ扱い**をしてください. 従量課金では漏洩の被害が課金に直結し, 第三者に前払い残高を使い切られます. 漏洩した場合はただちに`Regenerate`で再生成しましょう.
+:::
 
-::: note
-認証トークンは[補足A](slds_a1.html#apiキーの取得)のAPIキーと同様に**パスワードと同じ扱い**をしてください. ソースコードに書いたままファイルを提出・共有・公開すると漏洩します. 漏洩した場合は`Regenerate`で再生成しましょう.
+# トークンの受け渡し
+
+配布されたトークンは環境変数`X_BEARER_TOKEN`に入れて使います. ソースコードに直接書かず環境変数に置くことで, プログラムを提出・共有してもトークンは漏れません.
+
+macOS・Linuxのターミナルでは次のように設定します.
+
+~~~ sh
+export X_BEARER_TOKEN='配布されたトークン'
+~~~
+
+WindowsのPowerShellでは次のように設定します.
+
+~~~ sh
+$env:X_BEARER_TOKEN = '配布されたトークン'
+~~~
+
+Python側では`os.environ`から読み出します.
+
+~~~ py
+import os
+
+BEARER_TOKEN = os.environ.get('X_BEARER_TOKEN', '')
+~~~
+
+::: warn
+`BEARER_TOKEN = 'AAAA...'`のようにトークンを直接書いたファイルは, 提出・共有・GitHubへの公開のいずれでも漏洩します. 課題として提出するプログラムでは必ず環境変数から読む形にしてください.
 :::
 
 # 取得プログラム
 
-取得したトークンを利用してプログラムを書いていきます. APIを操作するためのライブラリ`requests`をインストールしておきましょう.
+APIを操作するためのライブラリ`requests`と, CSVを扱う`pandas`をインストールしておきましょう.
 
 ~~~ sh
 uv add requests pandas
 ~~~
 
-まずは認証トークンを設定します.先ほど取得した認証トークンを`bearer_token`という変数に格納し,API呼び出し時に利用します(`YOUR_BEARER_TOKEN`の部分を書き換えましょう.)
+## 検索の設定
+
+取得の設定を定数として書き出します. `search/recent`は直近7日間の投稿を検索するエンドポイントで, 1回のリクエストで最大100件まで返します.
 
 ~~~ py
-import requests #HTTPリクエストを送るためのライブラリです.このライブラリを使ってAPIにアクセスします.
-import pandas as pd
-# 認証トークン
-bearer_token = 'YOUR_BEARER_TOKEN'
+SEARCH_URL         = 'https://api.x.com/2/tweets/search/recent'
+QUERIES            = ['国民民主党', '自民党']   # 検索ワード (1 語につき 1 リクエスト)
+MAX_RESULTS        = 50                        # 1 語あたりの取得件数
+HARD_CAP           = 100                       # 1 語あたりの上限 (安全装置)
+PRICE_PER_POST_USD = 0.005                     # 投稿 1 件あたりの単価 (2026-02 改定)
+OUTPUT_CSV         = 'posts.csv'
 ~~~
 
-`X.API`の「検索」機能にアクセスするためのURLを指定します. ここでは,最近のツイートを取得するエンドポイント`search/recent`を指定しています. `search/recent`では直近7日間のつぶやきを取得できます. それ以上過去のつぶやきは`Pro`アカウントでしか取得することができません.
+`HARD_CAP`は誤って大きな`MAX_RESULTS`を書いたときの安全装置です. 取得件数はこの値で頭打ちにし, APIが要求する下限10件も同時に満たすようにします.
 
 ~~~ py
-# Twitter APIのエンドポイントURL
-search_url = "https://api.x.com/2/tweets/search/recent"
+def clamp(n: int) -> int:
+    """1 リクエストあたりの取得件数を API の範囲 (10〜100) と HARD_CAP に収める."""
+    return max(10, min(int(n), HARD_CAP))
 ~~~
 
-取得対象のキーワード（検索ワード）を指定します.このコードでは「国民民主党」に関するツイートを検索します.一つのプログラムで複数のワードを取得することも可能ですが,`X.API`の無料版では,**15分に1回しかリクエストが送れない**ため,複数のワードで検索するにはコード内で15分間待機する機能を入れる必要があるので今回は一つだけ検索してみましょう.
+## 実行前に費用を見積もる
 
-`tweet_count`で各検索で取得するツイート数の上限です.無料版のAPI機能では, **1ヶ月あたり100ツイートのみアクセスできる**ので,50にすると1ヶ月に2回アクセスできます. 1度失敗すると数を大幅に減らすか,1ヶ月待つか,課金する必要があるので注意して下さい.
+従量課金では取得件数がそのまま費用になるので, リクエストを送る前に何件取得していくらかかるかを表示します. 単価に件数を掛けるだけです.
 
-~~~py
-# 検索ワード
-word = "国民民主党"
-tweet_count = 50
+~~~ py
+def estimate(queries: list, max_results: int) -> tuple:
+    """取得予定件数と概算費用 (USD) を返す."""
+    total = len(queries) * clamp(max_results)
+    return total, total * PRICE_PER_POST_USD
+
+
+def print_plan(queries: list, max_results: int) -> None:
+    """課金の前に, 何件取得していくらかかるかを表示する."""
+    total, cost = estimate(queries, max_results)
+    print('=== 取得計画 ===')
+    print(f'検索ワード   : {", ".join(queries)} ({len(queries)} 語)')
+    print(f'1 語あたり   : {clamp(max_results)} 件 (上限 {HARD_CAP} 件)')
+    print(f'合計取得件数 : {total} 件')
+    print(f'概算費用     : {total} 件 x ${PRICE_PER_POST_USD} = ${cost:.2f}')
 ~~~
 
-認証トークンをリクエストヘッダーに追加するための関数`bearer_oauth()`を作成します.この関数で設定されたヘッダーを使って,`X.API`へのリクエストが認証されます.
+配布している`fetch_posts.py`は`--dry-run`を付けるとこの計画だけを表示して終了します. 認証トークンもネットワーク接続も使わないので, **課金される前に検索ワードと件数を確かめられます**. 付けずに実行した場合は計画を表示したうえで実行の可否を尋ね, `y`と答えたときだけAPIにリクエストを送ります.
+
+~~~ sh
+python fetch_posts.py --dry-run
+~~~
+
+## リクエストの送信
+
+認証トークンをリクエストヘッダーに追加する関数`bearer_oauth()`を作ります. この関数で設定されたヘッダーによって`X.API`へのリクエストが認証されます.
 
 ~~~ py
 def bearer_oauth(r):
-    r.headers["Authorization"] = f"Bearer {bearer_token}"
-    r.headers["User-Agent"] = "v2RecentSearchPython"
+    """Bearer Token 認証に必要なヘッダーを付ける."""
+    r.headers['Authorization'] = f'Bearer {BEARER_TOKEN}'
+    r.headers['User-Agent'] = 'v2RecentSearchPython'
     return r
 ~~~
 
-指定されたURLにGETリクエストを送信し,APIのレスポンスを取得します.`response.status_code != 200`でAPIからエラーが返された場合,例外を発生させます.正常なレスポンスを受け取った場合,JSON形式でデータを返します.
+指定されたURLにGETリクエストを送り, レスポンスを取得します. `response.status_code != 200`のときは例外を発生させます. 正常なレスポンスならJSONを辞書として返します.
 
 ~~~ py
-def connect_to_endpoint(url, params):
+def connect_to_endpoint(url: str, params: dict) -> dict:
+    """GET リクエストを送り, レスポンスの JSON を返す."""
     response = requests.get(url, auth=bearer_oauth, params=params)
     response.encoding = response.apparent_encoding
     if response.status_code != 200:
-        raise Exception(response.status_code, response.text)
+        # 401 = トークンが誤っている, 403 = 残高不足, 429 = リクエスト過多
+        raise RuntimeError(f'{response.status_code}: {response.text}')
     return response.json()
 ~~~
 
-特定の検索ワードに関するツイートを取得します. 検索パラメータを`lang:ja`に設定し,日本語のツイートに限定しています.
+::: note
+エラーの本文にはどの理由で失敗したかが書かれています. 残高が尽きた場合は`403`, 認証トークンが誤っている場合は`401`, 短時間にリクエストを送りすぎた場合は`429`が返るので, 失敗したらまず本文を読んでください.
+:::
+
+検索ワードを1つ受け取り, その投稿を取得します. `query`パラメータに`lang:ja -is:retweet`を付けて, 日本語かつリツイート以外に絞っています. リツイートは本文が重複するため, 分析対象からは外すのが普通です. `tweet.fields`には投稿日時といいね数などの指標を指定します. これらは投稿の取得料金に含まれており, 追加の課金は発生しません.
 
 ~~~ py
-def fetch_tweets(word):
-    query_params = {
-        "query": f"{word} lang:ja",
-        "max_results": tweet_count
+def fetch_posts(query: str, max_results: int) -> list:
+    """検索ワード 1 語ぶんの投稿を取得し, JSON の data 部分を返す."""
+    params = {
+        'query'       : f'{query} lang:ja -is:retweet',   # 日本語かつリツイート以外
+        'max_results' : clamp(max_results),
+        'tweet.fields': 'created_at,public_metrics,author_id,lang',
     }
-    json_response = connect_to_endpoint(search_url, query_params)
-    tweets_data = json_response.get("data", [])
-    return [tweet["text"] for tweet in tweets_data]
+    return connect_to_endpoint(SEARCH_URL, params).get('data', [])
 ~~~
 
-作成した関数を利用して,つぶやきを取得します.
+## CSVへの変換
+
+取得したJSONを**1行 = 1投稿**のCSVに変換します. 列名は[補足C](slds_c1.html)の`ichikawa_youtube.csv`と揃えてあり, 補足Cの感情分析プログラムをそのまま流用できます. 対応は次のとおりです.
+
+| 列名 | 補足C (YouTube) での意味 | 本資料 (X) での中身 |
+|---|---|---|
+| `video_id` | 動画ID (集計の単位) | 検索ワード (集計の単位) |
+| `title` | 動画タイトル | 検索ワード |
+| `view_count` | 動画の再生数 | そのワードで取得した投稿の表示回数の合計 |
+| `like_count` | 動画の高評価数 | そのワードで取得した投稿のいいね数の合計 |
+| `comment_count` | 動画のコメント数 | そのワードで取得した投稿数 |
+| `comment` | コメント本文 | 投稿本文 |
+| `comment_like_count` | コメントのいいね数 | 投稿のいいね数 |
+| `comment_published_at` | コメントの投稿日時 | 投稿日時 |
+
+YouTube版では動画1本が集計の単位でしたが, X版では**検索ワード1語が集計の単位**になります. `view_count`・`like_count`・`comment_count`はワード単位で集計した値なので, 同じワードの行にはすべて同じ値が入ります. これによって`groupby('video_id')`でワードごとに集約したときの動きが補足Cと一致します.
+
+投稿1件を1行の辞書に変換します. `impression_count` (表示回数) は自分以外の投稿では返らないことがあるので, 既定値を0にしておきます.
 
 ~~~ py
-def main():
-    all_tweets = []
-    print(f"{word}のツイートを取得中...")
-    tweets = fetch_tweets(word)
-    for tweet in tweets:
-        all_tweets.append({"Word": word, "Tweet": tweet})
-
-    if all_tweets:
-        df = pd.DataFrame(all_tweets)
-        df.to_csv("tweets.csv", index=False, encoding="utf-8-sig")
-        print("tweets.csvにデータを書き出しました。")
-    else:
-        print("取得したデータがありません。")
-~~~
-
-コード全体は以下のようになります.
-
-~~~ py
-import requests
-import pandas as pd
-
-# 認証トークン
-bearer_token = 'YOUR_BEARER_TOKEN'
-
-# Twitter APIのエンドポイントURL
-search_url = "https://api.x.com/2/tweets/search/recent"
-
-# 検索ワード
-word = "国民民主党"
-
-# 取得する件数
-tweet_count = 50
-
-def bearer_oauth(r):
-    """
-    Method required by bearer token authentication.
-    """
-    r.headers["Authorization"] = f"Bearer {bearer_token}"
-    r.headers["User-Agent"] = "v2RecentSearchPython"
-    return r
-
-def connect_to_endpoint(url, params):
-    response = requests.get(url, auth=bearer_oauth, params=params)
-    response.encoding = response.apparent_encoding
-    if response.status_code != 200:
-        raise Exception(response.status_code, response.text)
-    return response.json()
-
-def fetch_tweets(word):
-    # パラメータの設定
-    query_params = {
-        "query": f"{word} lang:ja",
-        "max_results": tweet_count  # APIの制限で一度に取得できるのは最大100件まで
+def to_row(query: str, post: dict) -> dict:
+    """投稿 1 件を CSV の 1 行に変換する."""
+    m = post.get('public_metrics', {})
+    return {
+        'video_id'            : query,   # 集計の単位 (補足C の動画 ID に相当)
+        'title'               : query,
+        'comment'             : post.get('text', ''),
+        'comment_like_count'  : int(m.get('like_count', 0)),
+        'comment_published_at': post.get('created_at', ''),
+        'post_id'             : post.get('id', ''),
+        'author_id'           : post.get('author_id', ''),
+        'retweet_count'       : int(m.get('retweet_count', 0)),
+        'reply_count'         : int(m.get('reply_count', 0)),
+        'impression_count'    : int(m.get('impression_count', 0)),   # 取れない場合は 0
     }
-
-    # エンドポイントに接続してデータを取得
-    json_response = connect_to_endpoint(search_url, query_params)
-    tweets_data = json_response.get("data", [])
-    return [tweet["text"] for tweet in tweets_data]
-
-def main():
-    all_tweets = []
-
-    # 検索ワードのツイートを取得してデータを集約
-    print(f"{word}のツイートを取得中...")
-    tweets = fetch_tweets(word)
-    for tweet in tweets:
-        all_tweets.append({"Word": word, "Tweet": tweet})
-
-    # データをDataFrameに変換してCSVに書き出し
-    if all_tweets:
-        df = pd.DataFrame(all_tweets)
-        df.to_csv("tweets.csv", index=False, encoding="utf-8-sig")
-        print("tweets.csvにデータを書き出しました。")
-    else:
-        print("取得したデータがありません。")
-
-if __name__ == "__main__":
-    main()
 ~~~
 
-このコードで取得した50件の呟きをまとめたデータが[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch15/tweets.csv)になります. このデータを利用した分析は[Ch15 自然言語処理](slds15.html)に進んでください.
+ワード単位の集計列は, 全ワードを取得したあとに`groupby`と`transform`で埋めます. `transform`は集計結果を元の行数に戻して返すので, 同じワードの行に同じ値が入ります.
+
+~~~ py
+def add_group_columns(df):
+    """検索ワード単位の集計列を付け, 補足C と同じ列順に並べ替える."""
+    g = df.groupby('video_id')
+    df['view_count']    = g['impression_count'].transform('sum')
+    df['like_count']    = g['comment_like_count'].transform('sum')
+    df['comment_count'] = g['comment'].transform('size')
+    return df[['video_id', 'title', 'view_count', 'like_count', 'comment_count',
+               'comment', 'comment_like_count', 'comment_published_at',
+               'post_id', 'author_id', 'retweet_count', 'reply_count',
+               'impression_count']]
+~~~
+
+## 全体の流れ
+
+検索ワードを順に取得し, 集計列を付けてCSVに書き出します.
+
+~~~ py
+rows = []
+for query in QUERIES:
+    print(f'{query} の投稿を取得中...')
+    for post in fetch_posts(query, MAX_RESULTS):
+        rows.append(to_row(query, post))
+
+df = add_group_columns(pd.DataFrame(rows))
+df.to_csv(OUTPUT_CSV, index=False, encoding='utf-8-sig')
+print(f'{OUTPUT_CSV} に {len(df)} 行 ({df["video_id"].nunique()} ワード) を保存しました.')
+~~~
+
+::: note
+このプログラムの完成版は[配布ページ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_code/b1/)の`fetch_posts.py`にあります. `--dry-run`による費用の事前確認と, 実行前の確認プロンプトが入っています. 取得済みの[tweets.csv](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch15/tweets.csv)も配布しているので, トークンが無くても[Ch15](slds15.html)の分析は再現できます.
+:::
+
+## 取得したデータの分析
+
+出力した`posts.csv`は補足Cの`ichikawa_youtube.csv`と同じ列を持つので, [補足Cの配布コード](https://github.com/yakagika/yakagika.github.io/blob/main/slds_code/c1/)の`sentiment_analysis.py`は入力ファイル名を書き換えるだけで動きます.
+
+~~~ py
+INPUT_CSV = 'posts.csv'    # ichikawa_youtube.csv から変更する
+~~~
+
+集計の単位が検索ワードになるので, 出力の意味も変わります. 円グラフは1つの検索ワードに対する投稿の感情比率を, 散布図はワードごとのポジティブ比率といいね数の合計の関係を表します. 検索ワードを3語以上にすると散布図の点が増え, ワード間の比較ができます.
+
+ワードクラウドとトピックモデルによる分析は[Ch15 自然言語処理](slds15.html)で扱います.
+
+# YouTube Data APIとの使い分け
+
+[補足C](slds_c1.html)で扱うYouTube Data APIと比べると, 費用と取得できるデータの範囲が大きく異なります.
+
+| 項目 | X API v2 | YouTube Data API v3 |
+|---|---|---|
+| 費用 | 従量課金のみ (取得1件0.005ドル) | 無料の割り当て1日10,000ユニット |
+| 無料枠 | 無し (2026年2月に廃止) | 有り (毎日リセット) |
+| 認証方式 | Bearer Token (英文250字の目的申請が必要) | APIキー (Googleアカウントがあれば即日発行) |
+| 取得できる期間 | 直近7日 (全期間検索は別契約) | 投稿日で絞り込み可能 |
+| 料金体系の安定性 | 2023年以降たびたび改定されている | 変更は少ない |
+
+受講生が各自でキーを取って手を動かす演習にはYouTube Data APIが向いています. Xを使うのは, 短文の集合という形式そのものが分析対象になる場合や, 特定の話題への反応を追う場合です. その場合も費用が取得件数に比例するので, 検索ワードと件数を決めてから実行してください.
+
+# 発展: Grok (xAI) のX検索
+
+xAIのAPIには, XをLLM経由で検索する`x_search`という機能があります. 1,000回の呼び出しで5ドルと単価は安く, 「あるトピックについてXでどう言われているか」を対話的に調べる用途には向いています.
+
+ただし`x_search`が返すのは検索結果の要約と引用であり, いいね数・投稿日時・返信関係といった**構造化されたデータは取得できません**. 本資料のように1行 = 1投稿のCSVを作る用途の代わりにはならないので, データセットの作成にはX API v2を使ってください.

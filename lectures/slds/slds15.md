@@ -353,7 +353,7 @@ LDAでは,各文書のトピック分布と各トピックの単語分布にデ�
 ## X(Twitter) APIを用いたデータの取得
 自然言語解析では,ワードクラウドの事例のように,まとまった文章を分析する場合もありますが,X(旧:Twitter)のつぶやきのように,短い文章の集合を扱う場合もあります. ここでは,TwitterのAPIを利用して取得したつぶやきを分析してみましょう.
 
-APIという仕組みの説明と,X APIによる取得手順 (アカウント登録, 認証トークンの発行, 取得コード) は[補足B X(Twitter) APIによるデータの取得](slds_b1.html)にまとめてあります (API一般の説明は[補足A](slds_a1.html#apiとは)). X APIの無料枠には強い制限があるため,研究で利用する人以外は取得済みの50件の呟きをまとめた[こちらのデータ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch15/tweets.csv)をダウンロードして利用しましょう.
+APIという仕組みの説明と,X APIによる取得手順 (認証トークンの発行, 環境変数での受け渡し, 取得コード) は[補足B X(Twitter) APIによるデータの取得](slds_b1.html)にまとめてあります (API一般の説明は[補足A](slds_a1.html#apiとは)). X APIは2026年2月の改定で無料の取得枠が廃止され,投稿1件0.005ドルの従量課金だけになりました. 研究で利用する人以外は取得済みの50件の呟きをまとめた[こちらのデータ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch15/tweets.csv)をダウンロードして利用しましょう.
 
 以下,このデータを利用して分析を行ってみましょう.
 
