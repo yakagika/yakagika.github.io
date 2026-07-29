@@ -234,59 +234,42 @@ def fetch_posts(query: str, max_results: int) -> list:
 
 ## CSVへの変換
 
-取得したJSONを**1行 = 1投稿**のCSVに変換します. 列名は[補足C](slds_c1.html)の`ichikawa_youtube.csv`と揃えてあり, 補足Cの感情分析プログラムをそのまま流用できます. 対応は次のとおりです.
+取得したJSONを**1行 = 1投稿**のCSVに変換します. 列名はXの投稿の意味をそのまま表すものにします.
 
-| 列名 | 補足C (YouTube) での意味 | 本資料 (X) での中身 |
-|---|---|---|
-| `video_id` | 動画ID (集計の単位) | 検索ワード (集計の単位) |
-| `title` | 動画タイトル | 検索ワード |
-| `view_count` | 動画の再生数 | そのワードで取得した投稿の表示回数の合計 |
-| `like_count` | 動画の高評価数 | そのワードで取得した投稿のいいね数の合計 |
-| `comment_count` | 動画のコメント数 | そのワードで取得した投稿数 |
-| `comment` | コメント本文 | 投稿本文 |
-| `comment_like_count` | コメントのいいね数 | 投稿のいいね数 |
-| `comment_published_at` | コメントの投稿日時 | 投稿日時 |
+| 列名 | 中身 |
+|---|---|
+| `query` | 検索ワード |
+| `text` | 投稿本文 |
+| `like_count` | いいね数 |
+| `retweet_count` | リツイート数 |
+| `reply_count` | 返信数 |
+| `impression_count` | 表示回数 (自分以外の投稿では返らないことがあり, その場合は0) |
+| `created_at` | 投稿日時 |
+| `post_id` | 投稿ID |
+| `author_id` | 投稿者ID |
 
-YouTube版では動画1本が集計の単位でしたが, X版では**検索ワード1語が集計の単位**になります. `view_count`・`like_count`・`comment_count`はワード単位で集計した値なので, 同じワードの行にはすべて同じ値が入ります. これによって`groupby('video_id')`でワードごとに集約したときの動きが補足Cと一致します.
-
-投稿1件を1行の辞書に変換します. `impression_count` (表示回数) は自分以外の投稿では返らないことがあるので, 既定値を0にしておきます.
+投稿1件を1行の辞書に変換します.
 
 ~~~ py
 def to_row(query: str, post: dict) -> dict:
     """投稿 1 件を CSV の 1 行に変換する."""
     m = post.get('public_metrics', {})
     return {
-        'video_id'            : query,   # 集計の単位 (補足C の動画 ID に相当)
-        'title'               : query,
-        'comment'             : post.get('text', ''),
-        'comment_like_count'  : int(m.get('like_count', 0)),
-        'comment_published_at': post.get('created_at', ''),
-        'post_id'             : post.get('id', ''),
-        'author_id'           : post.get('author_id', ''),
-        'retweet_count'       : int(m.get('retweet_count', 0)),
-        'reply_count'         : int(m.get('reply_count', 0)),
-        'impression_count'    : int(m.get('impression_count', 0)),   # 取れない場合は 0
+        'query'           : query,                     # 検索ワード
+        'text'            : post.get('text', ''),      # 投稿本文
+        'like_count'      : int(m.get('like_count', 0)),
+        'retweet_count'   : int(m.get('retweet_count', 0)),
+        'reply_count'     : int(m.get('reply_count', 0)),
+        'impression_count': int(m.get('impression_count', 0)),   # 取れない場合は 0
+        'created_at'      : post.get('created_at', ''),
+        'post_id'         : post.get('id', ''),
+        'author_id'       : post.get('author_id', ''),
     }
-~~~
-
-ワード単位の集計列は, 全ワードを取得したあとに`groupby`と`transform`で埋めます. `transform`は集計結果を元の行数に戻して返すので, 同じワードの行に同じ値が入ります.
-
-~~~ py
-def add_group_columns(df):
-    """検索ワード単位の集計列を付け, 補足C と同じ列順に並べ替える."""
-    g = df.groupby('video_id')
-    df['view_count']    = g['impression_count'].transform('sum')
-    df['like_count']    = g['comment_like_count'].transform('sum')
-    df['comment_count'] = g['comment'].transform('size')
-    return df[['video_id', 'title', 'view_count', 'like_count', 'comment_count',
-               'comment', 'comment_like_count', 'comment_published_at',
-               'post_id', 'author_id', 'retweet_count', 'reply_count',
-               'impression_count']]
 ~~~
 
 ## 全体の流れ
 
-検索ワードを順に取得し, 集計列を付けてCSVに書き出します.
+検索ワードを順に取得し, CSVに書き出します.
 
 ~~~ py
 rows = []
@@ -295,21 +278,61 @@ for query in QUERIES:
     for post in fetch_posts(query, MAX_RESULTS):
         rows.append(to_row(query, post))
 
-df = add_group_columns(pd.DataFrame(rows))
+df = pd.DataFrame(rows)
 df.to_csv(OUTPUT_CSV, index=False, encoding='utf-8-sig')
-print(f'{OUTPUT_CSV} に {len(df)} 行 ({df["video_id"].nunique()} ワード) を保存しました.')
+print(f'{OUTPUT_CSV} に {len(df)} 行 ({df["query"].nunique()} ワード) を保存しました.')
 ~~~
+
+この`posts.csv`は[Ch15 自然言語処理](slds15.html)のコードがそのまま読める構造です (Ch15の配布データ`tweets.csv`も同じ`query`・`text`列を持ちます).
 
 ::: note
 このプログラムの完成版は[配布ページ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_code/b1/)の`fetch_posts.py`にあります. `--dry-run`による費用の事前確認と, 実行前の確認プロンプトが入っています. 取得済みの[tweets.csv](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch15/tweets.csv)も配布しているので, トークンが無くても[Ch15](slds15.html)の分析は再現できます.
 :::
 
-## 取得したデータの分析
+## 補足C形式への変換
 
-出力した`posts.csv`は補足Cの`ichikawa_youtube.csv`と同じ列を持つので, [補足Cの配布コード](https://github.com/yakagika/yakagika.github.io/blob/main/slds_code/c1/)の`sentiment_analysis.py`は入力ファイル名を書き換えるだけで動きます.
+`posts.csv`の列名はXの投稿として素直に付けたので, そのままでは[補足C](slds_c1.html)の感情分析プログラムでは動きません. 補足Cの`ichikawa_youtube.csv`は**動画1本**を集計の単位にしており, X版ではそれに**検索ワード1語**が対応します. 同じコードを動かす場合の対応関係と変換規則は次のとおりです.
+
+| 補足Cの列 | 補足C (YouTube) での意味 | 変換規則 (`posts.csv`から) |
+|---|---|---|
+| `video_id` | 動画ID (集計の単位) | `query`をそのまま入れる |
+| `title` | 動画タイトル | `query`をそのまま入れる |
+| `view_count` | 動画の再生数 | `impression_count`のワード単位の合計 |
+| `like_count` | 動画の高評価数 | `like_count`のワード単位の合計 |
+| `comment_count` | 動画のコメント数 | ワード単位の行数 |
+| `comment` | コメント本文 | `text`を改名 |
+| `comment_like_count` | コメントのいいね数 | `like_count`を改名 |
+| `comment_published_at` | コメントの投稿日時 | `created_at`を改名 |
+
+ワード単位の集計列は`groupby`と`transform`で埋めます. `transform`は集計結果を元の行数に戻して返すので, 同じワードの行に同じ値が入ります. これによって`groupby('video_id')`でワードごとに集約したときの動きが補足Cと一致します.
 
 ~~~ py
-INPUT_CSV = 'posts.csv'    # ichikawa_youtube.csv から変更する
+import pandas as pd
+
+df = pd.read_csv('posts.csv')
+g = df.groupby('query')
+
+converted = pd.DataFrame({
+    'video_id'            : df['query'],
+    'title'               : df['query'],
+    'view_count'          : g['impression_count'].transform('sum'),
+    'like_count'          : g['like_count'].transform('sum'),
+    'comment_count'       : g['query'].transform('size'),
+    'comment'             : df['text'],
+    'comment_like_count'  : df['like_count'],
+    'comment_published_at': df['created_at'],
+})
+converted.to_csv('posts_youtube_format.csv', index=False, encoding='utf-8-sig')
+~~~
+
+この変換は[配布ページ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_code/b1/)の`to_youtube_format.py`としても置いてあります.
+
+## 取得したデータの分析
+
+変換した`posts_youtube_format.csv`は補足Cの`ichikawa_youtube.csv`と同じ列を持つので, [補足Cの配布コード](https://github.com/yakagika/yakagika.github.io/blob/main/slds_code/c1/)の`sentiment_analysis.py`は入力ファイル名を書き換えるだけで動きます.
+
+~~~ py
+INPUT_CSV = 'posts_youtube_format.csv'    # ichikawa_youtube.csv から変更する
 ~~~
 
 集計の単位が検索ワードになるので, 出力の意味も変わります. 円グラフは1つの検索ワードに対する投稿の感情比率を, 散布図はワードごとのポジティブ比率といいね数の合計の関係を表します. 検索ワードを3語以上にすると散布図の点が増え, ワード間の比較ができます.

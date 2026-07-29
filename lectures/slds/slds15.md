@@ -353,7 +353,7 @@ LDAでは,各文書のトピック分布と各トピックの単語分布にデ�
 ## X(Twitter) APIを用いたデータの取得
 自然言語解析では,ワードクラウドの事例のように,まとまった文章を分析する場合もありますが,X(旧:Twitter)のつぶやきのように,短い文章の集合を扱う場合もあります. ここでは,TwitterのAPIを利用して取得したつぶやきを分析してみましょう.
 
-APIという仕組みの説明と,X APIによる取得手順 (認証トークンの発行, 環境変数での受け渡し, 取得コード) は[補足B X(Twitter) APIによるデータの取得](slds_b1.html)にまとめてあります (API一般の説明は[補足A](slds_a1.html#apiとは)). X APIは2026年2月の改定で無料の取得枠が廃止され,投稿1件0.005ドルの従量課金だけになりました. 研究で利用する人以外は取得済みの50件の呟きをまとめた[こちらのデータ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch15/tweets.csv)をダウンロードして利用しましょう.
+APIという仕組みの説明と,X APIによる取得手順 (認証トークンの発行, 環境変数での受け渡し, 取得コード) は[補足B X(Twitter) APIによるデータの取得](slds_b1.html)にまとめてあります (API一般の説明は[補足A](slds_a1.html#apiとは)). X APIは2026年2月の改定で無料の取得枠が廃止され,投稿1件0.005ドルの従量課金だけになりました. 研究で利用する人以外は取得済みの50件の呟きをまとめた[こちらのデータ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch15/tweets.csv)をダウンロードして利用しましょう. このデータは補足Bの`posts.csv`と同じ列構造 (`query` = 検索ワード, `text` = 投稿本文) なので,以下のコードは自分で取得した`posts.csv`でもファイル名の変更だけで動きます.
 
 以下,このデータを利用して分析を行ってみましょう.
 
@@ -425,11 +425,11 @@ def remove_urls(text):
 形態素解析の前に`remove_urls()`を適用していることに注意して下さい.
 
 ~~~ py
-#データの読み込み
+#データの読み込み (補足Bの posts.csv と同じ列構造: query, text)
 df = pd.read_csv('data/tweets.csv')
 
-#国民民主党のリアクションシートだけのデータを作る
-akagi = df['Tweet']
+#投稿本文の列を取り出す
+akagi = df['text']
 
 #トークナイズ
 txt = [mecab_wakati(strip_CRLF_from_Text(remove_urls(x)),["名詞","動詞"]).split(' ') for x in akagi]
@@ -570,11 +570,11 @@ def remove_urls(text):
 # ↓ ここから,データ処理
 #------------------------------------------------------------------
 
-#データの読み込み
+#データの読み込み (補足Bの posts.csv と同じ列構造: query, text)
 df = pd.read_csv('data/tweets.csv')
 
-#国民民主党のリアクションシートだけのデータを作る
-akagi = df[df['Word'] == '自民党']['Tweet']
+#検索ワードが「国民民主党」の投稿本文を取り出す (複数ワードを取得したデータでも動く形)
+akagi = df[df['query'] == '国民民主党']['text']
 
 #トークナイズ
 txt = [mecab_wakati(strip_CRLF_from_Text(remove_urls(x)),["名詞","動詞"]).split(' ') for x in akagi]

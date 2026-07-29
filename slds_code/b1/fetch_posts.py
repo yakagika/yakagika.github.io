@@ -3,8 +3,9 @@
 特別講義DS 補足B「X(Twitter) API によるデータの取得」の配布コード.
 
 検索ワードごとに X API v2 の recent search (直近 7 日) で投稿を取得し, 1 行 = 1 投稿の
-CSV (posts.csv) にまとめる. 列名は補足C の ichikawa_youtube.csv に揃えてあるので, 補足C の
-sentiment_analysis.py は INPUT_CSV を書き換えるだけで流用できる.
+CSV (posts.csv) にまとめる. 列名は X の投稿の意味そのまま (query, text, like_count, ...)。
+補足C の sentiment_analysis.py を流用する場合は, to_youtube_format.py で補足C と同じ
+列構成 (posts_youtube_format.csv) に変換してから使う.
 
 X API は 2026-02 の改定で従量課金のみになった (投稿の取得 = 1 件 0.005 USD). 取得件数が
 そのまま費用になるので, 実行前に必ず --dry-run で件数と概算費用を確認すること.
@@ -86,29 +87,16 @@ def to_row(query: str, post: dict) -> dict:
     """投稿 1 件を CSV の 1 行に変換する."""
     m = post.get('public_metrics', {})
     return {
-        'video_id'            : query,   # 集計の単位 (補足C の動画 ID に相当)
-        'title'               : query,
-        'comment'             : post.get('text', ''),
-        'comment_like_count'  : int(m.get('like_count', 0)),
-        'comment_published_at': post.get('created_at', ''),
-        'post_id'             : post.get('id', ''),
-        'author_id'           : post.get('author_id', ''),
-        'retweet_count'       : int(m.get('retweet_count', 0)),
-        'reply_count'         : int(m.get('reply_count', 0)),
-        'impression_count'    : int(m.get('impression_count', 0)),   # 取れない場合は 0
+        'query'           : query,                     # 検索ワード
+        'text'            : post.get('text', ''),      # 投稿本文
+        'like_count'      : int(m.get('like_count', 0)),
+        'retweet_count'   : int(m.get('retweet_count', 0)),
+        'reply_count'     : int(m.get('reply_count', 0)),
+        'impression_count': int(m.get('impression_count', 0)),   # 取れない場合は 0
+        'created_at'      : post.get('created_at', ''),
+        'post_id'         : post.get('id', ''),
+        'author_id'       : post.get('author_id', ''),
     }
-
-
-def add_group_columns(df):
-    """検索ワード単位の集計列を付け, 補足C と同じ列順に並べ替える."""
-    g = df.groupby('video_id')
-    df['view_count']    = g['impression_count'].transform('sum')
-    df['like_count']    = g['comment_like_count'].transform('sum')
-    df['comment_count'] = g['comment'].transform('size')
-    return df[['video_id', 'title', 'view_count', 'like_count', 'comment_count',
-               'comment', 'comment_like_count', 'comment_published_at',
-               'post_id', 'author_id', 'retweet_count', 'reply_count',
-               'impression_count']]
 
 
 def main():
@@ -145,9 +133,9 @@ def main():
         print('取得できた投稿がありません.')
         return
 
-    df = add_group_columns(pd.DataFrame(rows))
+    df = pd.DataFrame(rows)
     df.to_csv(OUTPUT_CSV, index=False, encoding='utf-8-sig')
-    print(f'{OUTPUT_CSV} に {len(df)} 行 ({df["video_id"].nunique()} ワード) を保存しました.')
+    print(f'{OUTPUT_CSV} に {len(df)} 行 ({df["query"].nunique()} ワード) を保存しました.')
     print(f'実際の取得件数 {len(df)} 件 = 約 ${len(df) * PRICE_PER_POST_USD:.2f}')
 
 
