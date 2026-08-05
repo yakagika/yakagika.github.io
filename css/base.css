@@ -1,66 +1,78 @@
-/* CSS変数: アクセントカラー等 */
+/* ============================================================
+   base.css — mono + 罫線デザイン
+
+   設計方針:
+     1. 面でなく線で分ける (地色は「別種のブロック」にだけ許す)
+     2. 角丸ゼロ・影ゼロ
+     3. 地の文はモノクロ. 色を持つのは callout の罫線とコード内部だけ
+     4. 全面等幅 (M PLUS 1 Code) — 階層は罫線の太さ + 字間 + 大文字で表す
+
+   地色を使う例外は 3 種:
+     - コードブロック  : 濃い地 + シンタックスハイライト (css/syntax.css)
+     - inline code     : 淡い地 + hairline 枠 (本文と同じ書体のため枠で区別)
+     - 演習ボックスの見出し行
+
+   style.css は css/*.css の単純連結で, 連結順は保証されない.
+   そのためファイル間で競合するルールを書かないこと:
+     - 本文・コンポーネントの見た目 → base.css (このファイル)
+     - 構造 (ヘッダ/サイドバー/レスポンシブ) → layout.css
+     - コードの配色 → syntax.css (src/Main.hs の pandocCodeStyle が生成)
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   トークン
+   ------------------------------------------------------------ */
 :root {
-    --accent-color: #3a6699;
-    --accent-color-hover: #2d5180;
-    --text-color: #1b232e;
-    --text-soft: #5a6675;
-    --bg-color: #ffffff;
-    --bg-soft: #f5f7f9;
-    --border-color: #e2e7ec;
+    --paper:      #ffffff;
+    --ink:        #111111;
+    --ink-soft:   #6a6a6a;
+    --rule:       #111111;   /* 主罫線: 見出し, 囲み, 表ヘッダ */
+    --rule-hair:  #d2d2d2;   /* 従罫線: 行区切り, 表本体 */
+    --fill-soft:  #f4f4f4;   /* 演習見出し行などの淡い地 */
+    --fill-code:  #f0f0f0;   /* inline code の地 */
+
+    /* callout の罫線色 — 地は白のまま, 線とラベルだけに色を持たせる */
+    --note-rule:  #7a9cc0;   /* 薄い青 */
+    --warn-rule:  #c4756f;   /* 薄い赤 */
+
+    /* コードブロックの地. src/Main.hs の pandocCodeStyle と同じ値にしておく
+       (言語指定の無い pre は syntax.css の対象外なので, ここが効く) */
+    --code-bg:    #1e1e1e;
+    --code-fg:    #d6d6d6;
+    --code-dim:   #767676;   /* コメント相当. Copy ボタンの枠にも使う */
+
+    /* M PLUS 1 Code は和文も等幅. 未収録の稀な字だけ Noto Sans JP へ落とす */
+    --font-mono:  "M PLUS 1 Code", "Noto Sans JP", "Hiragino Sans", monospace;
+
+    --measure:    58rem;     /* 本文の測度 */
+    --header-h:   56px;
+    --side-w:     232px;
 }
 
 html.dark {
-    --accent-color: #82a9d1;
-    --accent-color-hover: #a5c3e0;
-    --text-color: #e5e9ef;
-    --text-soft: #94a0b0;
-    --bg-color: #0d1218;
-    --bg-soft: #161d27;
-    --border-color: #27303c;
+    --paper:      #0b0b0b;
+    --ink:        #e8e8e8;
+    --ink-soft:   #949494;
+    --rule:       #e8e8e8;
+    --rule-hair:  #333333;
+    --fill-soft:  #1a1a1a;
+    --fill-code:  #1c1c1c;
+    --note-rule:  #7f9fbf;
+    --warn-rule:  #c4817b;
 }
 
-h1, h2, h3, h4 {
-    margin: 0 0 18px 0;
-    padding: 24px 0 0 0;
-}
-
-p, ul {
-    margin: 18px 0;
-}
-
-img {
-    max-width: 80%;
-    display: block;
-    margin: 0 auto;
-}
-
-/* 透過図のダークモード対策:
-   実際に透過している (背景が透明で暗い線・文字を持つ) 図は暗い地に沈むため,
-   JS が判定して付ける .figure-alpha にだけ明色の「図版カード」を敷く.
-   不透明なスクリーンショット等は判定から外れ, 従来どおり枠は付かない. */
-html.dark #content img.figure-alpha {
-    background-color: #f8f9fb;
-    padding: 12px;
-    border-radius: 8px;
-    box-sizing: border-box;
-    box-shadow: 0 1px 8px rgba(0, 0, 0, 0.35);
-}
-
-ul {
-    padding-left: 18px;
-}
-
-div#footer {
-    margin: 60px 0 36px 0;
-}
-
+/* ------------------------------------------------------------
+   ベース
+   ------------------------------------------------------------ */
 html {
-    background-color: var(--bg-color);
-    font-size: 16px;
-    font-family: "Inter", "Noto Sans JP", -apple-system, BlinkMacSystemFont, sans-serif;
-    line-height: 1.7;
-    /* 固定ヘッダ (60px) の下にアンカー先が隠れないようオフセット + 円滑スクロール */
-    scroll-padding-top: 76px;
+    background-color: var(--paper);
+    font-family: var(--font-mono);
+    font-size: 15px;
+    line-height: 1.85;
+    font-variant-ligatures: none;
+    font-feature-settings: "calt" 0, "liga" 0;
+    /* 固定ヘッダの下にアンカー先が隠れないようオフセット */
+    scroll-padding-top: calc(var(--header-h) + 20px);
     scroll-behavior: smooth;
 }
 
@@ -68,1362 +80,985 @@ html {
     html { scroll-behavior: auto; }
 }
 
-body {
-    color: var(--text-color);
+body { color: var(--ink); }
+
+p, ul, ol { margin: 1.15em 0; }
+ul, ol { padding-left: 1.6em; }
+li { margin: 0.2em 0; }
+
+/* 本文リストのマーカーは記号で統一する (色に頼らない).
+   class の付いた ul/ol はコンポーネントなので対象外にする. */
+ul:not([class]) { list-style: none; padding-left: 1.4em; }
+ul:not([class]) > li { position: relative; }
+ul:not([class]) > li::before {
+    content: "-";
+    position: absolute;
+    left: -1.4em;
+    color: var(--ink-soft);
+}
+ol:not([class]) > li::marker { color: var(--ink-soft); }
+
+li > p { margin: 0.4em 0; }
+
+img { max-width: 100%; display: block; margin: 1.6em auto; }
+
+/* 透過図のダークモード対策: 実際に透過している図にだけ JS が .figure-alpha を
+   付ける. 暗い地に沈むのを防ぐため明色の図版カードを敷く. */
+html.dark #content img.figure-alpha {
+    background-color: #f8f8f8;
+    padding: 12px;
+    border: 1px solid var(--rule-hair);
+    box-sizing: border-box;
 }
 
+video, iframe { max-width: 100%; height: auto; }
+
+/* ------------------------------------------------------------
+   リンク — 色でなく下線と反転で示す
+   ------------------------------------------------------------ */
 a {
-    color: var(--accent-color);
+    color: inherit;
     text-decoration: none;
-    border-bottom: 1.5px solid var(--accent-color);
-    font-weight: 500;
-    transition: color 0.2s ease, border-bottom-color 0.2s ease, background-color 0.2s ease;
+    border-bottom: 1px solid var(--ink);
+    transition: background-color 0.12s linear, color 0.12s linear;
 }
 
 a:hover {
-    color: var(--accent-color-hover);
-    border-bottom-color: var(--accent-color-hover);
-    border-bottom-width: 2px;
-    background-color: rgba(58, 102, 153, 0.08);
+    background-color: var(--ink);
+    color: var(--paper);
+    border-bottom-color: var(--ink);
 }
 
-html.dark a:hover {
-    background-color: rgba(130, 169, 209, 0.12);
-}
+/* コードブロック内の行リンク・図のリンクには下線を引かない */
+code a, div.photograph a, a img { border-bottom: none; }
+div.photograph { margin: 48px 0 60px; }
 
-/* Pandoc 2 puts 'a' elements inside code blocks for linking to lines.
-   We don't want to underline those. */
-code a {
-    border-bottom: none;
-}
-
-div.photograph a {
-    border: none;
-}
-
-div.photograph {
-    margin-top:    48px;
-    margin-bottom: 60px;
-}
-
-a img {
-    margin-bottom: 0px;
-}
-
-pre {
-    min-height: 3em;
-    margin-left: 18px;
-    overflow-x: auto;
-}
-
-pre code {
-    /* 等幅フォントを複数指定、無い場合は最後の monospace が使われる。
-       Consolas (Windows 標準) 等を入れて、Web フォント未読込時に
-       MS ゴシックへ落ちて '\' が '¥' 表示になるのを防ぐ。 */
-    font-family: "Fira Code", "Cascadia Code", "Consolas", "Roboto Mono",
-                 "SFMono-Regular", Menlo, "DejaVu Sans Mono", monospace;
-    font-size: 14px;
-    /* Fira Code の合字を無効化。font-variant-ligatures が正式プロパティで
-       Safari も確実に従う。font-feature-settings は古い実装向けの保険。 */
-    font-variant-ligatures: none;
-    font-feature-settings: "calt" 0, "liga" 0;
-    margin: 1px;
-    padding: 0px;
-}
-
-
-code {
-    color: #3f6491;
-    /* インラインの code も等幅にする。本文フォント (Noto Sans JP 等) を
-       継承すると '\' が '¥' 表示になるため、等幅フォントを明示する。 */
-    font-family: "Fira Code", "Cascadia Code", "Consolas", "Roboto Mono",
-                 "SFMono-Regular", Menlo, "DejaVu Sans Mono", monospace;
-    /* コードブロック (pre code) とリガチャ設定を揃える。これが無いと
-       Fira Code の合字 (-> => >>= <$> :: 等) がインラインだけ有効になり、
-       同じフォントでも別物に見えてしまう。font-variant-ligatures が正式
-       プロパティで Safari も確実に従う。font-feature-settings は保険。 */
-    font-variant-ligatures: none;
-    font-feature-settings: "calt" 0, "liga" 0;
-}
+/* ------------------------------------------------------------
+   見出し — 等幅ではサイズ差が効きにくいので罫線の太さで階層を作る
+   ------------------------------------------------------------ */
+h1, h2, h3, h4, h5 { font-weight: 700; }
 
 h1 {
-    font-size: 32px;
-    font-weight: 700;
-    border: none;
-    line-height: 1.3;
+    font-size: 26px;
+    line-height: 1.45;
+    margin: 0 0 24px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid var(--rule);
 }
 
 h2 {
-    font-size: 24px;
-    font-weight: 600;
-    border: none;
-    line-height: 1.4;
-    padding-left: 12px;
-    border-left: 4px solid var(--accent-color);
-}
-
-/*
- * article 内の h2 は章境界として強調する.
- * - 上余白を拡大してマクロな章間距離を確保
- * - 左 4px ボーダー + accent の極淡 wash で見出し帯を形成
- * - 下罫線で配下コンテンツとの分離を明示
- * 設計詳細: plans/in-progress/h2-section-grouping.md (Phase 1)
- */
-article h2 {
-    margin-top: 56px;
-    margin-bottom: 24px;
-    padding: 14px 14px 14px 16px;
-    background: linear-gradient(
-        to right,
-        rgba(58, 102, 153, 0.07),
-        transparent 70%
-    );
-    border-bottom: 1px solid var(--border-color);
-}
-
-article h2 + * {
-    margin-top: 14px;
-}
-
-/*
- * 2 つ目以降の h2 の前に dashed 区切り線を入れて章末を視覚化する
- * (Phase 1.5: writerSectionDivs を有効化せず構造変更ゼロで章境界を明示)
- */
-article h2 ~ h2 {
-    margin-top: 72px;
+    font-size: 20px;
+    line-height: 1.5;
+    margin: 64px 0 22px;
+    padding-top: 16px;
+    border-top: 2px solid var(--rule);
     position: relative;
 }
 
-article h2 ~ h2::before {
-    content: "";
-    display: block;
-    border-top: 1px dashed var(--border-color);
-    margin: -36px 0 28px 0;
-}
-
-@media print {
-    article h2 ~ h2::before {
-        border-top-color: #999;
-    }
-}
-
-html.dark article h2 {
-    background: linear-gradient(
-        to right,
-        rgba(130, 169, 209, 0.10),
-        transparent 70%
-    );
-}
-
-@media print {
-    article h2 {
-        background: none;
-        border-bottom: 1px solid #000;
-    }
-}
-
 h3 {
-    font-size: 18px;
-    font-weight: 600;
-    border: none;
-    line-height: 1.5;
-}
-
-article h3 {
+    font-size: 16px;
+    line-height: 1.6;
+    margin: 40px 0 14px;
     padding-bottom: 6px;
-    border-bottom: 1px solid var(--border-color);
-}
-
-article h3::before {
-    content: "";
-    display: inline-block;
-    width: 6px;
-    height: 6px;
-    margin-right: 10px;
-    vertical-align: middle;
-    background-color: var(--accent-color);
-    border-radius: 50%;
+    border-bottom: 1px solid var(--rule-hair);
 }
 
 h4 {
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 15px;
+    line-height: 1.6;
+    margin: 28px 0 10px;
+}
+h4::before { content: "// "; color: var(--ink-soft); font-weight: 400; }
+
+h5 {
+    font-size: 14px;
+    line-height: 1.6;
+    margin: 22px 0 8px;
+    color: var(--ink-soft);
+}
+
+/* article 冒頭の h2 は直前が article-header の 2px 罫なので上罫を重ねない */
+article > h2:first-child,
+article > .article-header + h2 { margin-top: 8px; }
+
+/* 見出しのアンカーリンク (hover で # を表示) */
+.heading-anchor {
+    margin-left: 10px;
     border: none;
-    line-height: 1.5;
+    font-weight: 400;
+    color: var(--ink-soft);
+    opacity: 0;
+    transition: opacity 0.12s linear;
+}
+h2:hover > .heading-anchor,
+h3:hover > .heading-anchor { opacity: 1; }
+.heading-anchor:hover { background: none; color: var(--ink); }
+
+/* ------------------------------------------------------------
+   コード
+     - inline : 淡い地 + hairline 枠 (本文が等幅なので枠で区別する)
+     - block  : 濃い地 + シンタックスハイライト
+   配色は css/syntax.css (pandocCodeStyle 生成) が持つ. ここは geometry のみ.
+   ------------------------------------------------------------ */
+code {
+    font-family: inherit;
+    background-color: var(--fill-code);
+    border: 1px solid var(--rule-hair);
+    padding: 0 0.35em;
+    font-size: 0.94em;
 }
 
-article h4 {
-    padding-left: 12px;
-    border-left: 2px solid var(--border-color);
+pre {
+    position: relative;
+    min-height: 3em;
+    background-color: var(--code-bg);
+    color: var(--code-fg);
+    border: none;
+    border-radius: 0;
+    padding: 18px 20px;
+    margin: 26px 0;
+    overflow-x: auto;
+    line-height: 1.7;
 }
 
-/* 記事内リストは CSS marker (アクセント色) にする — ラスタ bullet 画像は
-   ダーク/パレットに追従しないため廃止 */
-article ul {
-    list-style-type: disc;
-}
-article ul li::marker,
-article ol li::marker {
-    color: var(--accent-color);
+pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 13px;
+    color: inherit;
 }
 
-article li, article ol li {
-    line-height: 1.5;
-    margin: 2px 0;
+/* pandoc は言語指定つきコードを div.sourceCode で包む.
+   余白は pre 側に持たせ, 二重の余白を作らない. */
+div.sourceCode { margin: 0; background: none; }
+
+.copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    padding: 2px 8px;
+    background-color: transparent;
+    color: var(--code-dim);
+    border: 1px solid var(--code-dim);
+    border-radius: 0;
+    cursor: pointer;
+    line-height: 1.6;
+}
+.copy-btn:hover {
+    background-color: var(--code-fg);
+    color: var(--code-bg);
+    border-color: var(--code-fg);
 }
 
-article li > p {
-    margin: 4px 0;
-}
-
+/* ------------------------------------------------------------
+   引用 / 区切り / 補助テキスト
+   ------------------------------------------------------------ */
 blockquote {
-    background-color: var(--bg-soft);
-    border-left: 4px solid var(--border-color);
-    border-radius: 0 6px 6px 0;
-    font-style: italic;
-    color: var(--text-soft);
     margin: 24px 0;
-    padding: 12px 18px;
+    padding: 4px 0 4px 18px;
+    border-left: 2px solid var(--rule);
+    color: var(--ink-soft);
+    background: none;
+    font-style: normal;
 }
+blockquote p { margin: 0.5em 0; }
 
 hr {
     border: none;
-    height: 1px;
-    background: linear-gradient(
-        to right,
-        transparent,
-        var(--border-color) 20%,
-        var(--border-color) 80%,
-        transparent
-    );
-    margin: 36px auto;
+    border-top: 1px solid var(--rule-hair);
+    height: 0;
+    margin: 40px 0;
 }
 
-span.soft, figcaption {
-    font-style: italic;
-    color: var(--text-soft);
-}
+span.soft, figcaption { color: var(--ink-soft); }
+
+div.figure { text-align: center; }
+div.figure p { margin-top: 6px; color: var(--ink-soft); font-size: 13px; }
 
 .draft-title {
-    color: var(--text-soft);
-    font-style: italic;
+    color: var(--ink-soft);
     text-decoration: line-through;
     text-decoration-thickness: 1px;
 }
 
 .badge {
     display: inline-block;
-    padding: 1px 8px;
-    font-size: 0.75em;
-    line-height: 1.6;
-    border-radius: 10px;
+    border: 1px solid var(--rule-hair);
+    padding: 0 6px;
+    margin-left: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    line-height: 1.7;
     vertical-align: middle;
-    margin-left: 4px;
-    font-style: normal;
-    font-weight: 500;
+    color: var(--ink-soft);
 }
+.badge-draft { color: var(--ink-soft); }
 
-.badge-draft {
-    background: #e9e9e9;
-    color: #666;
-    border: 1px solid #d0d0d0;
-}
-
-html.dark .badge-draft {
-    background: #2a2a2a;
-    color: #bbb;
-    border-color: #444;
-}
-
-#lecture-toc .toc-series-item.draft > .toc-row .draft-title {
-    opacity: 0.7;
-}
-
-.placeholder {
-    padding: 40px 0;
-    text-align: center;
-}
-
+.placeholder { padding: 40px 0; }
 .placeholder .placeholder-body {
     margin-top: 24px;
-    color: var(--text-soft);
+    padding: 22px 20px;
+    border: 1px solid var(--rule-hair);
+    color: var(--ink-soft);
 }
 
-div.figure {
-    text-align: center;
+/* 一覧ページ冒頭のリード文 */
+.page-lead {
+    color: var(--ink-soft);
+    font-size: 13px;
+    line-height: 1.85;
+    margin: 14px 0 8px;
+    max-width: 60ch;
 }
 
-div.figure p {
-    margin-top: 6px;
-}
-
-a.footnote-ref {
-    border: none;
-}
-
-a.footnote-ref sup:before {
-    content: "(";
-}
-
-a.footnote-ref sup:after {
-    content: ")";
-}
-
-a.footnote-ref sup {
-    padding: 2px;
-}
-
-a.footnote-back {
-    border: none;
-    padding: 0px 6px 0px 6px;
-}
-
-section.footnotes:before {
-    content: "Footnotes";
-    font-size: 18px;
-    padding-left: 18px;
-}
-
+/* 脚注 */
 section.footnotes {
-    border-left: 1px dashed #555;
-    color: #555;
-    margin-top: 36px;
+    margin-top: 48px;
+    padding-top: 14px;
+    border-top: 1px solid var(--rule-hair);
+    color: var(--ink-soft);
+    font-size: 13px;
 }
-
-section.footnotes hr {
-    display: none;
+section.footnotes::before {
+    content: "FOOTNOTES";
+    display: block;
+    margin-bottom: 8px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
 }
+section.footnotes hr { display: none; }
 
-div.photoblog div.pagination {
-    font-size: 14px;
-    padding: 12px 0px;
-}
+a.footnote-ref { border: none; }
+a.footnote-ref sup { padding: 2px; }
+a.footnote-ref sup::before { content: "("; }
+a.footnote-ref sup::after  { content: ")"; }
+a.footnote-back { border: none; padding: 0 6px; }
 
-/*
- * callout: note / warn
- * Pandoc は `::: note` 内に見出しがあると <div class="note"> ではなく
- * <section class="note"> を出力するため, section.note にも同じスタイルを当てる.
- *
- * 設計:
- *   - 左 4px の濃色ボーダー + 淡い背景 + 左 padding 内のアイコン
- *   - 前後 24px のブロック余白で本文との分離を確保
- *   - warn は note (青) と明確に区別できる暖色 (オレンジ) に変更
- */
-div.note, section.note {
-    margin: 24px 0;
-    padding: 14px 18px 14px 48px;
-    background-color: #eef3fa;
-    border-left: 4px solid #3a6699;
-    border-radius: 4px;
+.twitter-tweet { margin-left: auto; margin-right: auto; display: block; }
+
+/* ------------------------------------------------------------
+   callout — 地は白のまま, 罫線とラベルだけで区別する
+     NOTE    : 薄い青の 1px 枠
+     CAUTION : 薄い赤の 2px 枠
+   ラベルは上罫に載せる (fieldset の legend 方式).
+
+   pandoc は `::: note` 内に見出しがあると div でなく section を出すため
+   両方のセレクタを書く.
+   ------------------------------------------------------------ */
+div.note, section.note,
+div.warn, section.warn {
     position: relative;
+    margin: 32px 0;
+    padding: 22px 20px 16px;
+    background: none;
+    border-radius: 0;
+}
+
+div.note, section.note { border: 1px solid var(--note-rule); }
+div.warn, section.warn { border: 2px solid var(--warn-rule); }
+
+div.note::before, section.note::before,
+div.warn::before, section.warn::before {
+    position: absolute;
+    left: 14px;
+    padding: 0 8px;
+    background-color: var(--paper);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    line-height: 1.6;
 }
 div.note::before, section.note::before {
-    content: "i";
-    position: absolute;
-    left: 14px;
-    top: 12px;
-    width: 22px;
-    height: 22px;
-    line-height: 22px;
-    text-align: center;
-    background-color: #3a6699;
-    color: #fff;
-    font-family: "Inter", "Noto Sans JP", serif;
-    font-weight: 700;
-    font-style: italic;
-    border-radius: 50%;
-    font-size: 14px;
-}
-
-div.warn, section.warn {
-    margin: 24px 0;
-    padding: 14px 18px 14px 48px;
-    background-color: #faf4e8;
-    border-left: 4px solid #b0842f;
-    border-radius: 4px;
-    position: relative;
+    content: "NOTE";
+    top: -9px;
+    color: var(--note-rule);
 }
 div.warn::before, section.warn::before {
-    content: "!";
-    position: absolute;
-    left: 14px;
-    top: 12px;
-    width: 22px;
-    height: 22px;
-    line-height: 22px;
-    text-align: center;
-    background-color: #b0842f;
-    color: #fff;
-    font-weight: 700;
-    border-radius: 50%;
-    font-size: 14px;
+    content: "CAUTION";
+    top: -10px;
+    color: var(--warn-rule);
 }
 
-/* callout 内の最初/最後の子要素のマージンを詰めて余白を均一化 */
+/* callout 内の余白を均一化 */
 div.note > *:first-child, section.note > *:first-child,
-div.warn > *:first-child, section.warn > *:first-child {
-    margin-top: 0;
-    padding-top: 0;
-}
+div.warn > *:first-child, section.warn > *:first-child { margin-top: 0; }
 div.note > *:last-child, section.note > *:last-child,
-div.warn > *:last-child, section.warn > *:last-child {
-    margin-bottom: 0;
-}
+div.warn > *:last-child, section.warn > *:last-child { margin-bottom: 0; }
 
-/* callout 内の見出しは外側より密に, article h4 の左ボーダーも打ち消す */
+/* callout 内の見出しは外側より密に */
 div.note h3, div.note h4, section.note h3, section.note h4,
 div.warn h3, div.warn h4, section.warn h3, section.warn h4 {
-    padding-top: 8px;
-    padding-left: 0;
-    margin-top: 0;
-    border-left: none;
-}
-div.note h3::before, section.note h3::before,
-div.warn h3::before, section.warn h3::before {
-    display: none;
-}
-article div.note h3, article section.note h3,
-article div.warn h3, article section.warn h3 {
-    border-bottom: none;
-    padding-bottom: 0;
-}
-
-/*
- * 演習ボックス: section[id^="exercise-"]
- * Pandoc の `::: note` で書かれているが演習は概念的に「課題」であり
- * 情報補足の note とは別カテゴリにするため独立スタイルで上書きする.
- */
-section[id^="exercise-"] {
-    margin: 32px 0;
+    margin-top: 12px;
     padding: 0;
-    background-color: var(--bg-color);
-    border: 1px solid var(--border-color);
-    border-left: 4px solid var(--accent-color);
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+    border: none;
+    font-size: 14px;
 }
-section[id^="exercise-"]::before {
-    content: none;
+div.note h4::before, section.note h4::before,
+div.warn h4::before, section.warn h4::before { content: none; }
+
+/* ------------------------------------------------------------
+   演習ボックス — 情報補足の callout とは別カテゴリなので独立スタイル
+   ------------------------------------------------------------ */
+section[id^="exercise-"] {
+    margin: 36px 0;
+    padding: 0;
+    background: none;
+    border: 2px solid var(--rule);
+    border-radius: 0;
+    box-shadow: none;
 }
+section[id^="exercise-"]::before { content: none; }
+
 section[id^="exercise-"] > h4 {
     margin: 0;
-    padding: 12px 18px;
-    background-color: rgba(58, 102, 153, 0.08);
-    border-bottom: 1px solid var(--border-color);
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--accent-color);
-    letter-spacing: 0.02em;
-    border-left: none;
+    padding: 10px 18px;
+    background-color: var(--fill-soft);
+    border-bottom: 2px solid var(--rule);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink);
 }
-section[id^="exercise-"] > h4::before {
-    content: "✎";
-    margin-right: 8px;
-    display: inline-block;
-}
-section[id^="exercise-"] > *:not(h4) {
-    margin-left: 18px;
-    margin-right: 18px;
-}
-section[id^="exercise-"] > h4 + * {
-    margin-top: 14px;
-}
-section[id^="exercise-"] > *:last-child:not(h4) {
-    margin-bottom: 14px;
-}
+section[id^="exercise-"] > h4::before { content: none; }
+section[id^="exercise-"] > *:not(h4) { margin-left: 18px; margin-right: 18px; }
+section[id^="exercise-"] > h4 + * { margin-top: 16px; }
+section[id^="exercise-"] > *:last-child:not(h4) { margin-bottom: 16px; }
 
-div#footer {
+/* ------------------------------------------------------------
+   パスワード保護つき details (回答例)
+   ------------------------------------------------------------ */
+details.protected {
+    margin: 16px 0;
+    padding-top: 12px;
+    border-top: 1px solid var(--rule-hair);
+}
+section[id^="exercise-"] details.protected { margin: 16px 18px; }
+
+details.protected > summary {
+    cursor: pointer;
     font-size: 12px;
+    letter-spacing: 0.06em;
+    color: var(--ink-soft);
+    list-style: none;
 }
+details.protected > summary::-webkit-details-marker { display: none; }
+details.protected > summary::before { content: "[+] "; }
+details.protected[open] > summary::before { content: "[-] "; }
+details.protected > summary::after { content: " [LOCKED]"; opacity: 0.7; }
+details.protected.unlocked > summary::after { content: " [UNLOCKED]"; }
 
-/* ホームページ セクション */
-.home-section {
-    margin-bottom: 56px;
-}
+details.protected > *:not(summary):not(.pass-gate) { display: none; }
+details.protected.unlocked > *:not(summary):not(.pass-gate) { display: revert; }
+details.protected.unlocked > .pass-gate { display: none; }
 
-.home-section:last-child {
-    margin-bottom: 0;
-}
-
-/* About chips (タグ風表示) */
-.about-chips {
+.pass-gate {
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: 8px;
-    list-style: none;
-    padding: 0;
-    margin: 18px 0;
+    margin: 12px 0;
+    padding: 10px 12px;
+    background-color: var(--fill-soft);
+    border: 1px solid var(--rule-hair);
+    border-radius: 0;
+    font-size: 12px;
 }
-
-.about-chips li {
-    display: inline-block;
-    padding: 6px 14px;
-    background-color: var(--bg-soft);
-    border: 1px solid var(--border-color);
-    border-radius: 999px;
-    font-size: 14px;
-    color: var(--text-color);
+.pass-gate label { display: inline-flex; align-items: center; gap: 6px; }
+.pass-gate input[type="password"] {
+    font-family: inherit;
+    font-size: 12px;
+    padding: 3px 8px;
+    border: 1px solid var(--rule-hair);
+    border-radius: 0;
+    background: var(--paper);
+    color: inherit;
 }
-
-/* プロフィールカード */
-.profile-card {
-    background-color: var(--bg-soft);
-    border: 1px solid var(--border-color);
-    border-left: 4px solid var(--accent-color);
-    border-radius: 8px;
-    padding: 24px 32px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.profile-card h3 {
-    font-size: 14px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--accent-color);
-    margin-bottom: 8px;
-    padding-top: 16px;
-}
-
-.profile-card .profile-name {
-    font-size: 24px;
+.pass-gate button {
+    font-family: inherit;
+    font-size: 10px;
     font-weight: 700;
-    margin: 0 0 12px 0;
-    color: var(--text-color);
+    letter-spacing: 0.14em;
+    padding: 4px 10px;
+    border: 1px solid var(--rule);
+    border-radius: 0;
+    background: var(--paper);
+    color: var(--ink);
+    cursor: pointer;
+}
+.pass-gate button:hover { background: var(--ink); color: var(--paper); }
+.pass-gate .pass-error { color: var(--warn-rule); font-size: 11px; }
+
+/* ------------------------------------------------------------
+   表 — 横罫のみ. 等幅なので桁が自然に揃う
+   ------------------------------------------------------------ */
+table {
+    display: block;
+    overflow-x: auto;
+    max-width: 100%;
+    border-collapse: collapse;
+    margin: 26px 0;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
 }
 
-.profile-card ul {
-    list-style: none;
-    padding-left: 0;
-    margin: 0 0 8px 0;
+th, td {
+    border: none;
+    border-bottom: 1px solid var(--rule-hair);
+    padding: 7px 16px 7px 0;
+    text-align: left;
+    vertical-align: top;
 }
 
-.profile-card ul li {
-    position: relative;
-    padding-left: 18px;
-    margin: 4px 0;
+thead th, table tr:first-child th {
+    border-top: 2px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    background: none;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
 }
 
-.profile-card ul li::before {
-    content: "▸";
-    position: absolute;
-    left: 0;
-    color: var(--accent-color);
-}
+tbody tr:last-child td { border-bottom: 2px solid var(--rule); }
 
-/* ============================================
-   記事/講義 ヘッダーカード
-   ============================================ */
+/* ------------------------------------------------------------
+   記事 / 講義 ヘッダ
+   ------------------------------------------------------------ */
 .article-header {
-    margin-bottom: 48px;
-    padding-bottom: 24px;
-    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 44px;
+    padding-bottom: 18px;
+    border-bottom: 2px solid var(--rule);
 }
 
 .category-badge {
     display: inline-block;
-    padding: 4px 12px;
-    background-color: var(--accent-color);
-    color: #fff;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.05em;
+    margin-bottom: 14px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
-    border-radius: 999px;
-    margin-bottom: 12px;
+    color: var(--ink-soft);
 }
+.category-badge::before { content: "["; }
+.category-badge::after  { content: "]"; }
 
 .article-title {
-    font-size: 36px;
+    font-size: 30px;
     font-weight: 700;
-    line-height: 1.3;
-    margin: 0 0 12px 0;
+    line-height: 1.45;
+    letter-spacing: -0.01em;
+    margin: 0 0 14px;
     padding: 0;
     border: none;
 }
 
 .article-description {
-    color: var(--text-soft);
-    font-size: 16px;
-    margin: 8px 0 16px 0;
+    color: var(--ink-soft);
+    font-size: 14px;
+    margin: 0 0 18px;
 }
 
 .article-meta {
     display: flex;
     flex-wrap: wrap;
-    gap: 16px;
-    margin: 12px 0;
-    color: var(--text-soft);
-    font-size: 14px;
-}
-
-.article-meta .meta-item {
-    display: inline-flex;
-    align-items: center;
-}
-
-/* ============================================
-   タグチップ
-   ============================================ */
-.tag-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-top: 12px;
-}
-
-.tag-chips a {
-    display: inline-block;
-    padding: 4px 12px;
-    background-color: var(--bg-soft);
-    border: 1px solid var(--border-color);
-    border-radius: 999px;
+    gap: 0 18px;
+    margin: 0 0 14px;
     font-size: 12px;
-    color: var(--text-soft);
-    text-decoration: none;
-    transition: all 0.2s ease;
+    color: var(--ink-soft);
+    font-variant-numeric: tabular-nums;
+}
+.article-meta .meta-item { display: inline-flex; align-items: center; }
+
+/* タグ — 角ゼロの hairline 枠 */
+.tag-chips, .pc-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag-chips a, .pc-tags a {
+    display: inline-block;
+    border: 1px solid var(--rule-hair);
+    padding: 1px 8px;
+    font-size: 11px;
+    line-height: 1.7;
+    color: var(--ink-soft);
+}
+.tag-chips a::before, .pc-tags a::before { content: "#"; }
+.tag-chips a:hover, .pc-tags a:hover {
+    background-color: var(--ink);
+    border-color: var(--ink);
+    color: var(--paper);
 }
 
-.tag-chips a:hover {
-    background-color: var(--accent-color);
-    border-color: var(--accent-color);
-    color: #fff;
-}
-
-/* Dark theme: 多くは CSS変数で自動対応 */
-html.dark code {
-  color: #8fb2d6;
-}
-
-html.dark blockquote {
-  background-color: var(--bg-soft);
-  border-left-color: var(--border-color);
-  color: var(--text-soft);
-}
-
-html.dark div.note, html.dark section.note {
-  background-color: #16202c;
-  border-left-color: #82a9d1;
-  color: var(--text-color);
-}
-html.dark div.note::before, html.dark section.note::before {
-  background-color: #82a9d1;
-  color: #0f172a;
-}
-
-html.dark div.warn, html.dark section.warn {
-  background-color: #271d10;
-  border-left-color: #cfa85f;
-  color: var(--text-color);
-}
-html.dark div.warn::before, html.dark section.warn::before {
-  background-color: #cfa85f;
-  color: #0f172a;
-}
-
-html.dark section[id^="exercise-"] {
-  background-color: var(--bg-soft);
-  border-color: var(--border-color);
-}
-html.dark section[id^="exercise-"] > h4 {
-  background-color: rgba(130, 169, 209, 0.10);
-  border-bottom-color: var(--border-color);
-}
-
-html.dark span.soft, html.dark figcaption {
-  color: var(--text-soft);
-}
-
-html.dark section.footnotes {
-  border-left-color: var(--border-color);
-  color: var(--text-soft);
-}
-
-html.dark hr {
-  border-top-color: var(--border-color);
-}
-
-html.dark th, html.dark td {
-  border-color: var(--border-color);
-}
-
-video, iframe {
-    max-width: 100%;
-    height: auto;
-}
-
-
-.katex-display {
-    font-family: "KaTeX_Main", sans-serif;
-    display: block;
-    margin: 1em 0;
-    text-align: center;
-    max-width: 100%;
-}
-
-.katex {
-    font-family: "KaTeX_Main", sans-serif;
-    display: ;
-}
-
-.katex .frac {
-    vertical-align: baseline;
-    -webkit-vertical-align: baseline;
-}
-.katex .sqrt {
-    vertical-align: baseline;
-    -webkit-vertical-align: baseline;
-}
-.katex .strut {
-    height: 1em;
-    -webkit-height: 1em;
-}
-
-
-@media screen and (-webkit-min-device-pixel-ratio:0) {
-    .katex {
-        line-height: normal !important;
-    }
-}
-
-@media not all and (min-resolution: .001dpcm) {
-    @supports (-webkit-appearance:none) {
-      .katex {
-        line-height: normal !important;
-      }
-    }
-}
-
-.twitter-tweet {
-    margin-left: auto;
-    margin-right: auto;
-    display: block;
-}
-
-/* ============================================
-   一覧カード (Blog / Lectures / タグページ 共通)
-   ============================================ */
-.card-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 18px;
+/* ------------------------------------------------------------
+   一覧 (Blog / Lecture / Research / タグページ)
+   罫線区切りの縦リスト
+   ------------------------------------------------------------ */
+.post-list {
     list-style: none;
     padding: 0;
-    margin: 24px 0;
+    margin: 28px 0 0;
+    border-top: 2px solid var(--rule);
 }
 
-.post-card {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    background-color: var(--bg-soft);
-    border: 1px solid var(--border-color);
-    border-radius: 10px;
-    padding: 18px 20px 16px;
-    transition: transform 0.2s ease, box-shadow 0.2s ease,
-                border-color 0.2s ease, background-color 0.2s ease;
-}
-
-.post-card:hover {
-    border-color: var(--accent-color);
-    transform: translateY(-3px);
-    background-color: rgba(58, 102, 153, 0.05);
-    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.10);
-}
-
-html.dark .post-card:hover {
-    background-color: rgba(130, 169, 209, 0.08);
-}
-
-.pc-top {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-}
-
-.pc-cat {
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    color: var(--accent-color);
-    background-color: rgba(58, 102, 153, 0.10);
-    border-radius: 999px;
-    padding: 2px 9px;
-}
-
-html.dark .pc-cat {
-    background-color: rgba(130, 169, 209, 0.14);
-}
-
-.pc-date {
-    font-family: "Fira Code", "Cascadia Code", "Consolas", "Roboto Mono", monospace;
-    font-size: 11px;
-    color: var(--text-soft);
-    letter-spacing: 0.02em;
-    font-variant-numeric: tabular-nums;
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.pc-date::before {
-    content: "";
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background-color: var(--accent-color);
-    display: inline-block;
-}
-
-.post-card .pc-title {
-    font-size: 16px;
-    font-weight: 600;
-    line-height: 1.45;
-    color: var(--text-color);
-    text-decoration: none;
-    border: none;
-}
-
-a.pc-title:hover {
-    color: var(--accent-color);
-    background: none;
-    border: none;
-}
-
-.post-card:hover a.pc-title {
-    color: var(--accent-color);
-}
-
-.pc-desc {
-    font-size: 13px;
-    color: var(--text-soft);
-    line-height: 1.6;
+.post-row {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 0 24px;
     margin: 0;
-    flex: 1;
-    display: -webkit-box;
-    -webkit-line-clamp: 3;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--rule-hair);
 }
+.post-row:last-child { border-bottom: 2px solid var(--rule); }
+.post-row::before { content: none; }
 
-.pc-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    margin-top: 2px;
-}
-
-.pc-tags a {
-    font-size: 11px;
-    color: var(--text-soft);
-    background-color: var(--bg-color);
-    border: 1px solid var(--border-color);
-    border-radius: 999px;
-    padding: 2px 10px;
-    text-decoration: none;
-    font-weight: 500;
-    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-}
-
-.pc-tags a:hover {
-    background-color: var(--accent-color);
-    border: 1px solid var(--accent-color);
-    color: #fff;
-}
-
-html.dark .pc-tags a:hover {
-    color: #0d1520;
-}
-
-/* 準備中 (open: false) のカード */
-.post-card.draft {
-    opacity: 0.72;
-}
-
-.post-card.draft:hover {
-    transform: none;
-    box-shadow: none;
-    border-color: var(--border-color);
-    background-color: var(--bg-soft);
-}
-
-/* ============================================
-   Featured lead カード (ホーム Blog 最上部)
-   ============================================ */
-.featured-lead {
+.pr-side {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    background: linear-gradient(135deg, rgba(58, 102, 153, 0.07), var(--bg-soft) 62%);
-    border: 1px solid var(--border-color);
-    border-left: 4px solid var(--accent-color);
-    border-radius: 12px;
-    padding: 24px 28px;
-    margin: 24px 0;
-    text-decoration: none;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    align-items: flex-start;
+    gap: 5px;
+    padding-top: 3px;
+}
+.pr-cat {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+}
+.pr-date {
+    font-size: 12px;
+    color: var(--ink-soft);
+    font-variant-numeric: tabular-nums;
+}
+.pr-side .badge { margin-left: 0; }
+
+.pr-title {
+    display: inline;
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.55;
+    border-bottom: 1px solid transparent;
+}
+a.pr-title:hover { background-color: var(--ink); color: var(--paper); }
+
+.pr-desc {
+    font-size: 13px;
+    color: var(--ink-soft);
+    line-height: 1.75;
+    margin: 6px 0 10px;
 }
 
-html.dark .featured-lead {
-    background: linear-gradient(135deg, rgba(130, 169, 209, 0.10), var(--bg-soft) 62%);
-}
+.post-row.draft .pr-title { color: var(--ink-soft); }
 
-.featured-lead:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.10);
-    border-color: var(--accent-color);
+/* ------------------------------------------------------------
+   Featured lead — 上下 2px 罫で挟む
+   ブロック全体が <a> なので, ネイティブのリンクドラッグを止めないと
+   文字を選ぼうとしたときにゴースト画像で表示が崩れる.
+   ------------------------------------------------------------ */
+.featured-lead {
+    display: block;
+    border: none;
+    border-top: 2px solid var(--rule);
+    border-bottom: 2px solid var(--rule);
+    padding: 24px 0;
+    margin: 26px 0;
+    -webkit-user-drag: none;
+    user-select: text;
 }
+.featured-lead:hover { background: none; color: inherit; }
 
 .fl-eyebrow {
+    display: block;
     font-size: 11px;
     font-weight: 700;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    color: var(--accent-color);
+    color: var(--ink-soft);
 }
-
+/* hover で display や余白を変えると行送りがずれるので,
+   透明の罫線をあらかじめ確保して色だけ変える */
 .fl-title {
-    font-size: 21px;
+    display: inline-block;
+    font-size: 22px;
     font-weight: 700;
-    line-height: 1.35;
-    color: var(--text-color);
+    line-height: 1.5;
+    margin: 10px 0 8px;
+    border-bottom: 2px solid transparent;
 }
+.featured-lead:hover .fl-title { border-bottom-color: var(--ink); }
+.fl-desc { display: block; font-size: 13px; color: var(--ink-soft); margin: 0 0 10px; }
+.fl-meta { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--ink-soft); }
 
-.featured-lead:hover .fl-title {
-    color: var(--accent-color);
-}
-
-.fl-desc {
-    font-size: 14px;
-    color: var(--text-soft);
-    line-height: 1.65;
-    margin: 0;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.fl-meta {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 2px;
-}
-
-/* ============================================
+/* ------------------------------------------------------------
    セクション見出し + すべて見るリンク
-   ============================================ */
+   ------------------------------------------------------------ */
+.home-section { margin-bottom: 8px; }
+.home-section:last-child { margin-bottom: 0; }
+
 .section-head {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     gap: 12px;
     flex-wrap: wrap;
+    margin: 60px 0 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--rule);
 }
-
-.section-more {
-    font-size: 13px;
-    white-space: nowrap;
+.section-head h2 {
+    margin: 0;
+    padding: 0;
     border: none;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+.section-more {
+    font-size: 12px;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--ink);
 }
 
-/* ============================================
-   ホーム ミニ hero
-   ============================================ */
+/* ------------------------------------------------------------
+   ホーム — マストヘッド
+   ------------------------------------------------------------ */
 .home-hero {
-    margin-bottom: 48px;
-    padding-bottom: 32px;
-    border-bottom: 1px solid var(--border-color);
+    border-top: 3px solid var(--rule);
+    border-bottom: 3px solid var(--rule);
+    padding: 26px 0 20px;
+    margin: 0 0 8px;
 }
-
 .hero-name {
     font-size: 30px;
     font-weight: 700;
-    line-height: 1.2;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
     margin: 0 0 6px;
-    color: var(--text-color);
 }
-
 .hero-name-en {
-    font-size: 18px;
-    font-weight: 500;
-    color: var(--text-soft);
-    margin-left: 10px;
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--ink-soft);
+    margin-left: 12px;
+    letter-spacing: 0.06em;
 }
-
 .hero-role {
-    font-size: 15px;
-    color: var(--text-soft);
-    line-height: 1.6;
-    margin: 0 0 14px;
-}
-
-.hero-lead {
-    font-size: 16px;
-    margin: 0 0 6px;
-}
-
-.hero-links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 18px;
-}
-
-.hero-links a {
-    font-size: 14px;
-    padding: 7px 16px;
-    border-radius: 999px;
-    background-color: var(--bg-soft);
-    border: 1px solid var(--border-color);
-    color: var(--text-color);
-    text-decoration: none;
-    font-weight: 500;
-    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-}
-
-.hero-links a:hover {
-    background-color: var(--accent-color);
-    border-color: var(--accent-color);
-    color: #fff;
-}
-
-html.dark .hero-links a:hover {
-    color: #0d1520;
-}
-
-/* ============================================
-   タグ雲 (ホーム下部, 件数で濃淡)
-   ============================================ */
-.tag-cloud {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    align-items: center;
-    margin: 18px 0;
-}
-
-.tag-cloud-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 12px;
-    border-radius: 999px;
-    background-color: var(--bg-soft);
-    border: 1px solid var(--border-color);
-    color: var(--text-color);
-    text-decoration: none;
-    line-height: 1.4;
-    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
-}
-
-.tag-cloud-chip:hover {
-    background-color: var(--accent-color);
-    border-color: var(--accent-color);
-    color: #fff;
-}
-
-html.dark .tag-cloud-chip:hover {
-    color: #0d1520;
-}
-
-.tag-cloud-chip .tc-count {
-    font-family: "Fira Code", "Consolas", "Roboto Mono", monospace;
-    font-size: 10px;
-    color: var(--text-soft);
-    font-variant-numeric: tabular-nums;
-}
-
-.tag-cloud-chip:hover .tc-count {
-    color: rgba(255, 255, 255, 0.85);
-}
-
-html.dark .tag-cloud-chip:hover .tc-count {
-    color: rgba(6, 35, 31, 0.7);
-}
-
-/* 件数 tier: 小 → 大で字重・強調を上げる */
-.tag-cloud-chip.tier-1 { font-size: 12px; opacity: 0.8; }
-.tag-cloud-chip.tier-2 { font-size: 13px; }
-.tag-cloud-chip.tier-3 { font-size: 14px; font-weight: 500; }
-.tag-cloud-chip.tier-4 { font-size: 15px; font-weight: 600; border-color: var(--accent-color); }
-.tag-cloud-chip.tier-5 {
-    font-size: 16px;
-    font-weight: 700;
-    border-color: var(--accent-color);
-    background-color: rgba(58, 102, 153, 0.08);
-}
-
-html.dark .tag-cloud-chip.tier-5 {
-    background-color: rgba(130, 169, 209, 0.12);
-}
-
-/* 一覧ページ冒頭のリード文 (Research 等) */
-.page-lead {
-    color: var(--text-soft);
-    font-size: 15px;
+    font-size: 13px;
+    color: var(--ink-soft);
     line-height: 1.7;
-    margin: 12px 0 8px;
-    max-width: 60ch;
+    margin: 0 0 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--rule-hair);
+}
+.hero-lead { font-size: 14px; margin: 0 0 12px; }
+
+.about-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    list-style: none;
+    padding: 0;
+    margin: 0 0 18px;
+}
+.about-chips li {
+    margin: 0;
+    padding: 2px 10px;
+    border: 1px solid var(--rule-hair);
+    font-size: 12px;
+    color: var(--ink-soft);
 }
 
-/* ============================================
-   講義シリーズカード (/lectures.html)
-   ============================================ */
+.hero-links { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; }
+.hero-links a {
+    font-size: 12px;
+    padding: 5px 14px;
+    border: 1px solid var(--rule);
+    border-radius: 0;
+}
+.hero-links a:hover { background-color: var(--ink); color: var(--paper); }
+
+/* ------------------------------------------------------------
+   著者情報 — カードでなく罫線の定義表
+   ------------------------------------------------------------ */
+.profile-table {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    border-top: 2px solid var(--rule);
+    border-bottom: 2px solid var(--rule);
+    margin: 26px 0 0;
+    font-size: 13px;
+}
+.profile-table > dt {
+    padding: 14px 16px 14px 0;
+    border-bottom: 1px solid var(--rule-hair);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+}
+.profile-table > dd {
+    margin: 0;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--rule-hair);
+}
+.profile-table > dt:last-of-type,
+.profile-table > dd:last-of-type { border-bottom: none; }
+
+.profile-list { list-style: none; padding-left: 0; margin: 0; }
+.profile-list li { margin: 0 0 2px; line-height: 1.7; }
+.profile-name { font-size: 18px; font-weight: 700; margin: 0; }
+
+/* ------------------------------------------------------------
+   講義シリーズ — 罫線で仕切った 2 列グリッド (カードでなく升目)
+   pages/lectures.markdown が使う
+   ------------------------------------------------------------ */
 .lecture-series-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 18px;
-    margin: 28px 0;
+    grid-template-columns: 1fr 1fr;
+    border-top: 2px solid var(--rule);
+    border-bottom: 2px solid var(--rule);
+    margin: 28px 0 0;
 }
-
+/* 行の区切りは border-top で入れる. 2 列なので「先頭 2 件 = 最初の行」が
+   常に成り立ち, 件数が奇数でも罫線が欠けない (border-bottom + nth-last-child
+   だと最終行の判定が件数の偶奇に依存して崩れる). */
 .series-card {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    background-color: var(--bg-soft);
-    border: 1px solid var(--border-color);
-    border-left: 4px solid var(--accent-color);
-    border-radius: 12px;
-    padding: 22px 24px;
-    text-decoration: none;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    gap: 8px;
+    padding: 20px 22px;
+    border: none;
+    border-top: 1px solid var(--rule-hair);
+    -webkit-user-drag: none;
+    user-select: text;
 }
-
-.series-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.10);
-    border-color: var(--accent-color);
-}
+.series-card:nth-child(-n+2) { border-top: none; }
+.series-card:nth-child(odd) { border-right: 1px solid var(--rule-hair); padding-left: 0; }
+.series-card:nth-child(even) { padding-right: 0; }
+.series-card:hover { background-color: var(--fill-soft); color: inherit; }
 
 .series-badge {
-    align-self: flex-start;
     font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--accent-color);
-    background-color: rgba(58, 102, 153, 0.10);
-    border-radius: 999px;
-    padding: 3px 10px;
-}
-
-html.dark .series-badge {
-    background-color: rgba(130, 169, 209, 0.14);
-}
-
-.series-title {
-    font-size: 18px;
     font-weight: 700;
-    line-height: 1.4;
-    color: var(--text-color);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+}
+.series-title {
+    align-self: flex-start;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.5;
+    border-bottom: 2px solid transparent;
+}
+.series-card:hover .series-title { border-bottom-color: var(--ink); }
+.series-desc { font-size: 12.5px; color: var(--ink-soft); line-height: 1.7; margin: 0; flex: 1; }
+.series-cta { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: var(--ink-soft); }
+
+/* ------------------------------------------------------------
+   タグ雲 — 濃淡でなく字重と枠の太さで tier を表す
+   ------------------------------------------------------------ */
+.tag-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    align-items: center;
+    margin: 20px 0 0;
+}
+.tag-cloud-chip {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 7px;
+    padding: 3px 10px;
+    border: 1px solid var(--rule-hair);
+    border-radius: 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--ink);
+}
+.tag-cloud-chip:hover { background-color: var(--ink); color: var(--paper); }
+.tag-cloud-chip .tc-count {
+    font-size: 10px;
+    color: var(--ink-soft);
+    font-variant-numeric: tabular-nums;
+}
+.tag-cloud-chip:hover .tc-count { color: var(--paper); }
+
+.tag-cloud-chip.tier-1 { opacity: 0.72; }
+.tag-cloud-chip.tier-3 { font-weight: 500; }
+.tag-cloud-chip.tier-4 { font-weight: 700; border-color: var(--ink-soft); }
+.tag-cloud-chip.tier-5 { font-weight: 700; border: 2px solid var(--rule); }
+
+/* ------------------------------------------------------------
+   章ナビゲーション
+   ------------------------------------------------------------ */
+.chapter-nav-card {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    margin: 48px 0 28px;
+}
+.chapter-nav-card > a,
+.chapter-nav-card > span {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    min-height: 66px;
+    padding: 16px 18px;
+    border: none;
+}
+.chapter-nav-card > a:first-child,
+.chapter-nav-card > span:first-child { border-right: 1px solid var(--rule-hair); }
+.chapter-nav-card > a:hover { background-color: var(--ink); color: var(--paper); }
+.chapter-nav-card .nav-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+}
+.chapter-nav-card > a:hover .nav-label { color: var(--paper); }
+.chapter-nav-card .nav-title { font-size: 13px; line-height: 1.5; }
+.chapter-nav-card a.next { text-align: right; align-items: flex-end; }
+
+.chapter-nav-compact {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 16px 0 32px;
+    font-size: 12px;
+}
+.chapter-nav-compact a { border: none; color: var(--ink-soft); padding: 4px 8px; }
+.chapter-nav-compact a:hover { background-color: var(--ink); color: var(--paper); }
+.chapter-nav-compact a:only-child.next { margin-left: auto; }
+
+/* ------------------------------------------------------------
+   数式 — KaTeX は serif のまま
+   (LaTeX 文書でも本文と数式は別書体なのでここは統一しない)
+   ------------------------------------------------------------ */
+.katex-display {
+    display: block;
+    margin: 1.4em 0;
+    text-align: center;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
 }
 
-.series-card:hover .series-title {
-    color: var(--accent-color);
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+    .katex { line-height: normal !important; }
 }
 
-.series-desc {
-    font-size: 13.5px;
-    color: var(--text-soft);
-    line-height: 1.65;
-    margin: 0;
-    flex: 1;
-}
-
-.series-cta {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--accent-color);
-    margin-top: 4px;
-}
-
-@media all and (max-width: 821px) {
-    .card-grid {
-        grid-template-columns: 1fr;
-    }
-    .lecture-series-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-/* ============================================
-   読みやすさ: 本文の測度 (max-width) キャップ
-   article 全体を可読な 1 カラムに収め, 幅広の要素は
-   カラム内で横スクロールさせる (段落が全幅に広がるのを防ぐ)
-   ============================================ */
-article {
-    max-width: 50rem;
+/* ------------------------------------------------------------
+   本文の測度 — article も静的ページの素の要素も同じ幅に収める
+   ------------------------------------------------------------ */
+#content > * {
+    max-width: var(--measure);
     margin-left: auto;
     margin-right: auto;
 }
+article { max-width: var(--measure); margin-left: auto; margin-right: auto; }
+article pre, article table, article .katex-display { max-width: 100%; }
 
-article pre,
-article .katex-display {
-    max-width: 100%;
-    overflow-x: auto;
-}
-
-/* ============================================
-   見出しのアンカーリンク (hover で # を表示)
-   ============================================ */
-article h2,
-article h3 {
-    position: relative;
-}
-
-.heading-anchor {
-    margin-left: 8px;
-    border: none;
-    font-weight: 400;
-    color: var(--text-soft);
-    text-decoration: none;
-    opacity: 0;
-    transition: opacity 0.15s ease, color 0.15s ease;
-}
-
-article h2:hover .heading-anchor,
-article h3:hover .heading-anchor {
-    opacity: 0.65;
-}
-
-.heading-anchor:hover {
-    color: var(--accent-color);
-    opacity: 1;
-    background: none;
-}
-
-/* ============================================
-   表 (統計・講義向け): 柔らかい罫線 + ヘッダ地色 + zebra
-   ============================================ */
-article table {
-    display: block;
-    overflow-x: auto;
-    max-width: 100%;
-    border-collapse: collapse;
-    margin: 24px 0;
-    font-size: 0.95em;
-}
-
-article th,
-article td {
-    border: 1px solid var(--border-color);
-    padding: 8px 13px;
-    text-align: left;
-    vertical-align: top;
-}
-
-article thead th,
-article table tr:first-child th {
-    background-color: var(--bg-soft);
-    font-weight: 600;
-    border-bottom: 2px solid var(--border-color);
-}
-
-article tbody tr:nth-child(even),
-article table tr:nth-child(even) {
-    background-color: rgba(58, 102, 153, 0.04);
-}
-
-html.dark article tbody tr:nth-child(even),
-html.dark article table tr:nth-child(even) {
-    background-color: rgba(130, 169, 209, 0.06);
-}
-
-/* ============================================
-   キーボードフォーカス (a11y): 一貫した可視リング
-   ============================================ */
+/* ------------------------------------------------------------
+   キーボードフォーカス (a11y)
+   ------------------------------------------------------------ */
 a:focus-visible,
 button:focus-visible,
 summary:focus-visible,
 input:focus-visible,
 [tabindex]:focus-visible {
-    outline: 2px solid var(--accent-color);
+    outline: 2px solid var(--ink);
     outline-offset: 2px;
-    border-radius: 3px;
+    border-radius: 0;
 }
 
-/* ============================================
-   フッター
-   ============================================ */
+/* ------------------------------------------------------------
+   フッタ
+   ------------------------------------------------------------ */
 div#footer {
-    max-width: 50rem;
-    margin: 64px auto 40px;
-    padding-top: 20px;
-    border-top: 1px solid var(--border-color);
-    color: var(--text-soft);
+    max-width: var(--measure);
+    margin: 72px auto 48px;
+    padding-top: 16px;
+    border-top: 2px solid var(--rule);
+    font-size: 12px;
+    color: var(--ink-soft);
 }
+.footer-nav { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 10px; }
+.footer-nav a { border: none; }
+.footer-copy { margin: 0; }
+.footer-copy a { border-bottom: 1px solid var(--rule-hair); }
 
-.footer-nav {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-    margin-bottom: 10px;
-}
-
-.footer-nav a {
-    border: none;
-    font-weight: 500;
-    color: var(--text-soft);
-}
-
-.footer-nav a:hover {
-    color: var(--accent-color);
-    background: none;
-}
-
-.footer-copy {
-    margin: 0;
-}
-
-.footer-copy a {
-    border: none;
-    color: var(--text-soft);
-}
-
-.footer-copy a:hover {
-    color: var(--accent-color);
-    background: none;
-}
-
-/* ============================================
-   Back to top (長いページの浮動ボタン)
-   ============================================ */
+/* ------------------------------------------------------------
+   Back to top — 正方形
+   ------------------------------------------------------------ */
 .back-to-top {
     position: fixed;
     top: auto;
-    bottom: 24px;
-    right: 24px;
-    width: 44px;
-    height: 44px;
+    bottom: 22px;
+    right: 22px;
+    width: 38px;
+    height: 38px;
     margin: 0;
     padding: 0;
-    border: none;
-    border-radius: 50%;
-    background-color: var(--accent-color);
-    color: #fff;
-    font-size: 20px;
-    line-height: 44px;
+    border: 1px solid var(--rule);
+    border-radius: 0;
+    background-color: var(--paper);
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 15px;
+    line-height: 1;
     text-align: center;
     cursor: pointer;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
     opacity: 0;
     visibility: hidden;
-    transform: translateY(8px);
-    transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease, background-color 0.2s ease;
+    transition: opacity 0.15s linear, visibility 0.15s linear;
     z-index: 9000;
 }
+.back-to-top.visible { opacity: 1; visibility: visible; }
+.back-to-top:hover { background-color: var(--ink); color: var(--paper); }
 
-.back-to-top.visible {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0);
+/* ------------------------------------------------------------
+   小画面
+   ------------------------------------------------------------ */
+@media all and (max-width: 821px) {
+    .post-row { grid-template-columns: 1fr; gap: 8px; }
+    .pr-side { flex-direction: row; align-items: center; gap: 14px; }
+    .chapter-nav-card { grid-template-columns: 1fr; }
+    .chapter-nav-card > a:first-child,
+    .chapter-nav-card > span:first-child {
+        border-right: none;
+        border-bottom: 1px solid var(--rule-hair);
+    }
+    .chapter-nav-card a.next { text-align: left; align-items: flex-start; }
+    .lecture-series-grid { grid-template-columns: 1fr; }
+    .series-card {
+        padding-left: 0;
+        padding-right: 0;
+        border-right: none;
+        border-top: 1px solid var(--rule-hair);
+    }
+    .series-card:first-child { border-top: none; }
+    .series-card:nth-child(2) { border-top: 1px solid var(--rule-hair); }
+    .profile-table { grid-template-columns: 1fr; }
+    .profile-table > dt { border-bottom: none; padding-bottom: 0; }
 }
 
-.back-to-top:hover {
-    background-color: var(--accent-color-hover);
+/* ------------------------------------------------------------
+   印刷
+   ------------------------------------------------------------ */
+@media print {
+    .back-to-top, .copy-btn { display: none; }
+    pre { background: none; color: #000; border: 1px solid #999; }
+    a { border-bottom-color: #999; }
 }

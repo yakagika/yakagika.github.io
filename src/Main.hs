@@ -26,6 +26,7 @@ import           Hakyll
 
 import qualified Data.Map as M
 import Text.Pandoc.Highlighting
+import Skylighting.Types (Style(..), TokenStyle(..), TokenType(..), defStyle, toColor)
 
 --------------------------------------------------------------------------------
 -- KaTeX context
@@ -41,8 +42,61 @@ mathCtx = field "katex" $ \item -> do
       \<script defer src=\"https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js\" integrity=\"sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR\" crossorigin=\"anonymous\" onload=\"renderMathInElement(document.body);\"></script>"
 --------------------------------------------------------------------------------
 -- Pandoc styling
+--
+-- サイト全体が白地 + 黒罫のモノクロ設計なので, コードブロックだけが色を持つ.
+-- 彩度の高い配色は本文の白黒と喧嘩するため, breezeDark をベースに全トークンを
+-- 低彩度へ差し替える. 背景色は css/base.css の --code-bg と同じ値にしておくこと
+-- (言語指定の無い pre は syntax.css の対象外で base.css 側が効くため).
 pandocCodeStyle :: Style
 pandocCodeStyle = breezeDark
+    { backgroundColor           = toColor codeBg
+    , defaultColor              = toColor codeFg
+    , lineNumberColor           = toColor codeDim
+    , lineNumberBackgroundColor = toColor codeBg
+    , tokenStyles               = M.fromList
+        [ (KeywordTok,        bold   "#ffffff")   -- class / data / instance
+        , (ControlFlowTok,    bold   "#e6d3a3")   -- do / if / case
+        , (DataTypeTok,       plain  "#9fb8cc")   -- 型
+        , (BuiltInTok,        plain  "#9fb8cc")
+        , (ExtensionTok,      plain  "#9fb8cc")
+        , (AttributeTok,      plain  "#9fb8cc")
+        , (FunctionTok,       plain  "#c3b0d8")   -- 関数
+        , (StringTok,         plain  "#a9bd8c")   -- 文字列
+        , (VerbatimStringTok, plain  "#a9bd8c")
+        , (SpecialStringTok,  plain  "#a9bd8c")
+        , (CharTok,           plain  "#a9bd8c")
+        , (SpecialCharTok,    plain  "#a9bd8c")
+        , (DecValTok,         plain  "#d0a45c")   -- 数値
+        , (BaseNTok,          plain  "#d0a45c")
+        , (FloatTok,          plain  "#d0a45c")
+        , (ConstantTok,       plain  "#8fc0c0")
+        , (VariableTok,       plain  "#8fc0c0")
+        , (ImportTok,         plain  "#9ec49e")
+        , (PreprocessorTok,   plain  "#9ec49e")
+        , (OtherTok,          plain  "#8f9d95")   -- :: -> => は背景へ退かせる
+        , (OperatorTok,       plain  "#8f9d95")
+        , (RegionMarkerTok,   plain  "#8f9d95")
+        , (CommentTok,        italic codeDim)
+        , (DocumentationTok,  italic codeDim)
+        , (AnnotationTok,     italic codeDim)
+        , (CommentVarTok,     italic codeDim)
+        , (InformationTok,    italic codeDim)
+        , (WarningTok,        bold   "#c4756f")
+        , (AlertTok,          bold   "#c4756f")
+        , (ErrorTok,          bold   "#c4756f")
+        , (NormalTok,         plain  codeFg)
+        ]
+    }
+  where
+    codeBg, codeFg, codeDim :: String
+    codeBg  = "#1e1e1e"
+    codeFg  = "#d6d6d6"
+    codeDim = "#767676"
+
+    plain, bold, italic :: String -> TokenStyle
+    plain  c = defStyle { tokenColor = toColor c }
+    bold   c = defStyle { tokenColor = toColor c, tokenBold   = True }
+    italic c = defStyle { tokenColor = toColor c, tokenItalic = True }
 
 --------------------------------------------------------------------------------
 -- Custom ReaderOptions: disable `$...$` math, enable fenced_divs, plus TOC etc.
