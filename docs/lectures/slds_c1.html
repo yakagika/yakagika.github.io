@@ -6,32 +6,62 @@
     <meta name="color-scheme" content="light dark">
 
     <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
-         localStorage['theme'] に手動選択があればそちらを優先.
-         描画前に <html> へ .dark を付けるため <head> の早い位置で同期実行する
-         (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
     <script>
       (function () {
         var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
-        function apply() {
+
+        function stored() {
           var t = null;
           try { t = localStorage.getItem('theme'); } catch (e) {}
-          var dark = t === 'dark' || (t !== 'light' && mq && mq.matches);
-          document.documentElement.classList.toggle('dark', dark);
+          return (t === 'dark' || t === 'light') ? t : null;
         }
-        apply();
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
         if (mq) {
-          if (mq.addEventListener) mq.addEventListener('change', apply);
-          else if (mq.addListener) mq.addListener(apply);
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
         }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
       })();
     </script>
     <title>yakagika - 特別講義DS 補足C YouTube Data APIによる動画・チャンネルデータの取得</title>
 
     <!-- Stylesheets. -->
-    <link rel="stylesheet" type="text/css" href="../style.css?v=1784881886">
+    <link rel="stylesheet" type="text/css" href="../style.css?v=1785895039">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
     <!-- RSS. -->
     <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
 
@@ -59,11 +89,17 @@
     <header class="site-header">
       <div class="site-title">
         <a href="../" class="site-brand" aria-label="Home">
-          <span class="site-mark" aria-hidden="true"></span>
+          <span class="site-mark" aria-hidden="true">▮</span>
           <span class="site-word">yakagika</span>
         </a>
       </div>
-      <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
     </header>
 
     <!-- メニュー展開時のオーバーレイ -->
@@ -100,7 +136,7 @@
     <p class="article-description">資料</p>
     <div class="article-meta">
         <span class="meta-item">公開: 2026-06-21</span>
-        <span class="meta-item">更新: 2026-07-13</span>
+        <span class="meta-item">更新: 2026-07-29</span>
     </div>
     <div class="tag-chips"><a href="../tags/datascience.html">datascience</a><a href="../tags/statistics.html">statistics</a><a href="../tags/python.html">python</a></div>
 </header>
@@ -475,7 +511,7 @@
 <tr class="odd">
 <td>無料枠</td>
 <td><strong>10,000 ユニット/日</strong> (継続更新)</td>
-<td>Basic プランは月 200 USD〜, 無料版は月 100 件のみ</td>
+<td>無し (2026 年 2 月に廃止)</td>
 </tr>
 <tr class="even">
 <td>認証方式</td>
@@ -485,12 +521,12 @@
 <tr class="odd">
 <td>主なコスト</td>
 <td><code>search</code> = 100 U, <code>videos.list</code> = 1 U, <code>channels.list</code> = 1 U</td>
-<td>リクエスト数・月次ツイート取得数で課金</td>
+<td>前払いクレジットからの従量課金 (投稿の取得 = 1 件 0.005 USD)</td>
 </tr>
 <tr class="even">
 <td>過去データ</td>
 <td>投稿日 (<code>publishedAfter</code> 等) で絞り込み可能</td>
-<td>Free/Basic は直近 7 日のみ (全期間取得は Pro = 月 5,000 USD)</td>
+<td><code>search/recent</code> は直近 7 日のみ (全期間検索は別契約)</td>
 </tr>
 <tr class="odd">
 <td>利用規約の安定性</td>
@@ -1061,25 +1097,14 @@
     // すべての <pre><code> 要素を走査
     const codeBlocks = document.querySelectorAll('pre code');
     codeBlocks.forEach(function(codeBlock) {
-      // 親<pre>要素を取得
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
       const pre = codeBlock.parentNode;
-
-      // <pre> を相対配置にし、子要素を絶対配置できるようにする
-      pre.style.position = 'relative';
 
       // コピーボタンを作成
       const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
       copyButton.textContent = 'Copy';
-      // ボタンのデザインはCSSで指定するのが望ましいが、簡易的にスタイルを直接指定する例:
-      copyButton.style.position = 'absolute';
-      copyButton.style.top = '8px';
-      copyButton.style.right = '8px';
-      copyButton.style.backgroundColor = '#add8e6'; // 水色
-      copyButton.style.color = '#fff';             // 白文字
-      copyButton.style.border = 'none';
-      copyButton.style.padding = '6px 10px';
-      copyButton.style.borderRadius = '4px';
-      copyButton.style.cursor = 'pointer';
 
       // クリックされたらクリップボードにコピー
       copyButton.addEventListener('click', function() {

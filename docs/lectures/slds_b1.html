@@ -6,32 +6,62 @@
     <meta name="color-scheme" content="light dark">
 
     <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
-         localStorage['theme'] に手動選択があればそちらを優先.
-         描画前に <html> へ .dark を付けるため <head> の早い位置で同期実行する
-         (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
     <script>
       (function () {
         var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
-        function apply() {
+
+        function stored() {
           var t = null;
           try { t = localStorage.getItem('theme'); } catch (e) {}
-          var dark = t === 'dark' || (t !== 'light' && mq && mq.matches);
-          document.documentElement.classList.toggle('dark', dark);
+          return (t === 'dark' || t === 'light') ? t : null;
         }
-        apply();
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
         if (mq) {
-          if (mq.addEventListener) mq.addEventListener('change', apply);
-          else if (mq.addListener) mq.addListener(apply);
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
         }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
       })();
     </script>
     <title>yakagika - 特別講義DS 補足B X(Twitter) APIによるデータの取得</title>
 
     <!-- Stylesheets. -->
-    <link rel="stylesheet" type="text/css" href="../style.css?v=1784881886">
+    <link rel="stylesheet" type="text/css" href="../style.css?v=1785895039">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
     <!-- RSS. -->
     <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
 
@@ -59,11 +89,17 @@
     <header class="site-header">
       <div class="site-title">
         <a href="../" class="site-brand" aria-label="Home">
-          <span class="site-mark" aria-hidden="true"></span>
+          <span class="site-mark" aria-hidden="true">▮</span>
           <span class="site-word">yakagika</span>
         </a>
       </div>
-      <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
     </header>
 
     <!-- メニュー展開時のオーバーレイ -->
@@ -100,7 +136,7 @@
     <p class="article-description">資料</p>
     <div class="article-meta">
         <span class="meta-item">公開: 2026-06-12</span>
-        <span class="meta-item">更新: 2026-06-22</span>
+        <span class="meta-item">更新: 2026-07-29</span>
     </div>
     <div class="tag-chips"><a href="../tags/datascience.html">datascience</a><a href="../tags/statistics.html">statistics</a><a href="../tags/python.html">python</a></div>
 </header>
@@ -121,142 +157,385 @@
     
 </nav>
 
-<p>本資料は章番号外の補足資料です. X(旧:Twitter)のAPIを利用して呟きデータを取得する手順を扱います. 取得したデータを利用した分析 (ワードクラウド, トピックモデルなど) は<a href="slds15.html">Ch15 自然言語処理</a>で扱っています.</p>
+<p>本資料は章番号外の補足資料です. X(旧:Twitter)のAPIを利用して投稿データを取得する手順を扱います. 取得したデータを利用した分析 (ワードクラウド, トピックモデルなど) は<a href="slds15.html">Ch15 自然言語処理</a>で扱っています.</p>
 <p>APIという仕組み自体の説明 (REST, HTTPメソッド, JSONなど) は<a href="slds_a1.html#apiとは">補足A</a>にまとめてあるので, 馴染みのない人は先にそちらを読んでください. <code>X.API</code>も<code>REST</code>アーキテクチャで提供されており, 本資料ではGETメソッドだけを使います.</p>
+<p>関連する章・補足:</p>
+<ul>
+<li><a href="slds_a1.html">補足A EDINET APIによる財務データの取得</a>: APIの基礎 (REST/HTTP/JSON) とAPIキーの取り扱い方</li>
+<li><a href="slds_c1.html">補足C YouTube Data APIによる動画・チャンネルデータの取得</a>: 無料の割り当てで使える別のREST API. 料金と用途の比較は<a href="#youtube-data-apiとの使い分け">後の節</a>で扱います</li>
+<li><a href="slds15.html">Ch15 自然言語処理</a>: 取得した投稿テキストのワードクラウド・トピックモデル分析</li>
+</ul>
 <h2 id="利用上の注意-料金と制限">利用上の注意 (料金と制限)</h2>
-<p>これから<code>X.API</code>にGETメソッドを利用し呟きを取得します. APIから返答されるデータはJSONですが,今回はJSONを直接触らず,これまでに扱ってきた<code>CSV</code>に変換します.</p>
-<p>以下の処理はX APIの無料の範囲で行っていますので,誰でも再現できますが, アカウントの登録など手間が多く,また無料版のAPIでは15分に一回しかリクエストが送れないため,データの取得には最低でも15分かかります.
-社長と社名が変わってからAPI機能が物凄く使いにくくなっており,値段も高額になっています.まともに研究で利用しようと思うと月5000ドルのAPI使用料を払う必要があります.2000ドルはこの講義のために払うのが難しいので,月200ドルのBasicプランであれば利用できるアカウントは準備しますが,Basicプランでは<strong>過去7日間の呟きしか取得できない</strong>ので注意しましょう.</p>
-<p><img src="../images/slds/ch15/xapiv2products.png" /></p>
-<p>研究で利用する人以外は完成した<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch15/tweets.csv">こちらのデータ</a>をダウンロードして利用しましょう (<a href="slds15.html">Ch15</a>の分析はこのデータで進められます).</p>
-<h2 id="認証トークンの発行">認証トークンの発行</h2>
-<p>XのAPIを利用するには,認証トークン(<code>Bearer Token</code>)を発行する必要があります.認証トークンとは<code>X.API</code>にアクセスするための認証情報です.</p>
-<p><a href="https://x.com/i/flow/login?input_flow_data=%7B%22requested_variant%22%3A%22eyJyZWRpcmVjdF9hZnRlcl9sb2dpbiI6Imh0dHBzOi8vZGV2ZWxvcGVyLnguY29tL2VuL3BvcnRhbC9wcm9qZWN0cy1hbmQtYXBwcyJ9%22%7D">Xのデベロッパー用ページ</a>からまずはサインアップします.</p>
-<p>今回は無料版を利用するので, <code>Sign up for Free Account</code>をクリックしましょう.</p>
-<p><img src="../images/slds/ch15/x-sign-up.png" /></p>
-<p>利用目的を尋ねられるので,<strong>250文字以上の英文で</strong>回答しましょう. その他のチェックを入れて,次に進みます.</p>
-<p><img src="../images/slds/ch15/x-reason.png" /></p>
-<p>左のメニューの<code>Dashboard</code>に表示されている<code>Project APP</code>の<code>Keys and Tokens</code>(鍵)ボタンを押します.</p>
-<p><img src="../images/slds/ch15/xapi-dashbooard.png" /></p>
-<p><code>Bearer Token</code>の<code>Regenerate</code>をクリックすると<code>Bearer Token</code>が表示されます. クリップボードにコピーしてどこかに保存しましょう.このトークンは一度しか表示されません.忘れた場合は別のトークンを再生成する必要があるので注意しましょう.</p>
-<p><img src="../images/slds/ch15/xapi-token.png" /></p>
+<p>X APIは2026年2月6日の改定で料金体系が全面的に変わりました. <strong>新規の開発者が使えるのは前払いクレジットによる従量課金 (pay-per-use) だけ</strong>です. 無料の取得枠は廃止され, 月200ドルのBasicプランと月5,000ドルのProプランは既存契約者専用となり新規受付を終了しました. 2025年以前に書かれた解説記事にある「無料枠で月100件」「15分に1回」といった記述は, 現在のAPIには存在しません.</p>
+<p>従量課金では, 先にクレジットを購入し, リクエストのたびに残高から差し引かれます. 月額の最低料金はありません. 主な操作の単価は次のとおりです.</p>
+<table>
+<thead>
+<tr class="header">
+<th>操作</th>
+<th>単価</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>投稿の取得 (post read)</td>
+<td>1件あたり0.005ドル</td>
+</tr>
+<tr class="even">
+<td>投稿の作成 (post write)</td>
+<td>1件あたり0.015ドル (リンクを含む投稿は0.20ドル)</td>
+</tr>
+<tr class="odd">
+<td>ユーザ情報の取得 (user lookup)</td>
+<td>1件あたり0.010ドル</td>
+</tr>
+</tbody>
+</table>
+<p>取得は月200万件で上限に達し, それを超えるにはEnterprise契約 (月4万ドル規模) が必要ですが, 講義や卒業研究の規模でこの上限に届くことはありません. 実際にかかる費用は取得件数から直接計算できます.</p>
+<table>
+<thead>
+<tr class="header">
+<th>用途</th>
+<th>取得件数</th>
+<th>概算費用</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>授業中のデモ</td>
+<td>50件</td>
+<td>0.25ドル</td>
+</tr>
+<tr class="even">
+<td>演習1回 (1人あたり)</td>
+<td>500件</td>
+<td>2.50ドル</td>
+</tr>
+<tr class="odd">
+<td>卒業研究のデータセット (1人あたり)</td>
+<td>5,000件</td>
+<td>25ドル</td>
+</tr>
+</tbody>
+</table>
+<p><strong>前払いした金額がそのまま支出の上限になります.</strong> プログラムの誤りでループが止まらなくなっても, 残高を使い切った時点でリクエストが失敗するだけで, 請求が青天井に膨らむことはありません. 少額 (10〜25ドル程度) をチャージして使うのが安全です.</p>
 <div class="note">
-<p>認証トークンは<a href="slds_a1.html#apiキーの取得">補足A</a>のAPIキーと同様に<strong>パスワードと同じ扱い</strong>をしてください. ソースコードに書いたままファイルを提出・共有・公開すると漏洩します. 漏洩した場合は<code>Regenerate</code>で再生成しましょう.</p>
+<p>本講義では<strong>教員が契約したアカウントの認証トークンを配布</strong>します. 受講生が各自でアカウントを登録する必要はありません. 配布されたトークンは共有の前払い残高に直結しているので, 後述する取得件数の上限を必ず守ってください.</p>
+</div>
+<p>取得できる期間にも制限があります. 本資料で使う<code>search/recent</code>エンドポイントは<strong>直近7日間の投稿</strong>しか返しません. それ以前の投稿を取得するには全期間検索 (full-archive search) に対応した契約が必要です.</p>
+<p>研究でデータを集める予定がない人は, 取得済みの<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch15/tweets.csv">こちらのデータ</a>をダウンロードして利用してください. <a href="slds15.html">Ch15</a>の分析はこのデータで進められます.</p>
+<h2 id="発展-grok-xai-のx検索">発展: Grok (xAI) のX検索</h2>
+<p>xAIのAPIには, XをLLM経由で検索する<code>x_search</code>という機能があります. 1,000回の呼び出しで5ドルと単価は安く, 「あるトピックについてXでどう言われているか」を対話的に調べる用途には向いています.</p>
+<p>ただし<code>x_search</code>が返すのは検索結果の要約と引用であり, いいね数・投稿日時・返信関係といった<strong>構造化されたデータは取得できません</strong>. 本資料のように1行 = 1投稿のCSVを作る用途の代わりにはならないので, データセットの作成にはX API v2を使ってください.</p>
+<h2 id="認証トークンの発行">認証トークンの発行</h2>
+<p>ここからは自分でアカウントを契約する場合の手順です. 教員からトークンを受け取る受講生は<a href="#トークンの受け渡し">次の節</a>まで読み飛ばして構いません.</p>
+<p>XのAPIを利用するには, 認証トークン(<code>Bearer Token</code>)を発行します. 認証トークンとは<code>X.API</code>にアクセスするための認証情報です.</p>
+<p><strong>1. 開発者アカウントを登録する.</strong> <a href="https://developer.x.com/en/portal/dashboard">Xのデベロッパー用ページ</a>からサインアップします. 利用目的を尋ねられるので, <strong>250文字以上の英文で</strong>回答します. 研究・教育目的であれば, その内容をそのまま書けば通ります.</p>
+<figure>
+<img src="../images/slds/ch15/x-reason.png" alt="利用目的の記入欄" />
+<figcaption aria-hidden="true">利用目的の記入欄</figcaption>
+</figure>
+<p><strong>2. クレジットをチャージする.</strong> 従量課金は前払い制なので, ダッシュボードの課金設定からクレジットを購入します. 前節のとおりチャージ額が支出の上限になるため, まずは10〜25ドル程度から始めます.</p>
+<p><strong>3. トークンを発行する.</strong> 左のメニューの<code>Dashboard</code>に表示されている<code>Project APP</code>の<code>Keys and Tokens</code>(鍵)ボタンを押します.</p>
+<figure>
+<img src="../images/slds/ch15/xapi-dashbooard.png" alt="ダッシュボードのKeys and Tokens" />
+<figcaption aria-hidden="true">ダッシュボードのKeys and Tokens</figcaption>
+</figure>
+<p><code>Bearer Token</code>の<code>Regenerate</code>をクリックすると<code>Bearer Token</code>が表示されます. クリップボードにコピーして安全な場所に保存しましょう. このトークンは一度しか表示されません. 忘れた場合は別のトークンを再生成する必要があります.</p>
+<figure>
+<img src="../images/slds/ch15/xapi-token.png" alt="Bearer Tokenの発行画面" />
+<figcaption aria-hidden="true">Bearer Tokenの発行画面</figcaption>
+</figure>
+<div class="warn">
+<p>認証トークンは<a href="slds_a1.html#apiキーの取得">補足A</a>のAPIキーと同様に<strong>パスワードと同じ扱い</strong>をしてください. 従量課金では漏洩の被害が課金に直結し, 第三者に前払い残高を使い切られます. 漏洩した場合はただちに<code>Regenerate</code>で再生成しましょう.</p>
+</div>
+<h2 id="トークンの受け渡し">トークンの受け渡し</h2>
+<p>配布されたトークンは環境変数<code>X_BEARER_TOKEN</code>に入れて使います. ソースコードに直接書かず環境変数に置くことで, プログラムを提出・共有してもトークンは漏れません.</p>
+<p>macOS・Linuxのターミナルでは次のように設定します.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">X_BEARER_TOKEN</span><span class="op">=</span><span class="st">'配布されたトークン'</span></span></code></pre></div>
+<p>WindowsのPowerShellでは次のように設定します.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="va">$env</span><span class="ex">:X_BEARER_TOKEN</span> = <span class="st">'配布されたトークン'</span></span></code></pre></div>
+<p>Python側では<code>os.environ</code>から読み出します.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>BEARER_TOKEN <span class="op">=</span> os.environ.get(<span class="st">'X_BEARER_TOKEN'</span>, <span class="st">''</span>)</span></code></pre></div>
+<div class="warn">
+<p><code>BEARER_TOKEN = 'AAAA...'</code>のようにトークンを直接書いたファイルは, 提出・共有・GitHubへの公開のいずれでも漏洩します. 課題として提出するプログラムでは必ず環境変数から読む形にしてください.</p>
+</div>
+<h2 id="利用後のトークンの削除">利用後のトークンの削除</h2>
+<p><code>export</code>で設定したトークンは, そのターミナルを閉じれば消えますが, 開いたまま使い続けている間は残ります. データの取得が終わったら, その場で環境変数から削除します.</p>
+<p>macOS・Linuxのターミナルでは次のように削除します. 2行目は確認用で, 何も表示されなければ削除できています.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="bu">unset</span> <span class="va">X_BEARER_TOKEN</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="va">$X_BEARER_TOKEN</span></span></code></pre></div>
+<p>WindowsのPowerShellでは次のように削除します.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">Remove-Item</span> Env:X_BEARER_TOKEN</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="va">$env</span>:X_BEARER_TOKEN</span></code></pre></div>
+<p><code>~/.zshrc</code>や<code>$PROFILE</code>などシェルの設定ファイルに<code>export X_BEARER_TOKEN=...</code>を書いた場合, 上のコマンドで消えるのは現在のシェルだけで, 新しいターミナルを開くたびに再設定されます. 設定ファイルからその行も削除してください. また, ターミナルに直接打った<code>export</code>の行はコマンド履歴に平文で残るので, 共有PCでは履歴からも削除してください.</p>
+<div class="warn">
+<p>配布したトークンは講義終了後に教員側で無効化 (再生成) しますが, <strong>教員から削除の指示があったら, 各自すみやかに上記の手順で環境変数と設定ファイルからトークンを削除してください.</strong> 有効なトークンが残った環境は, そのまま共有残高への支出経路になります.</p>
 </div>
 <h2 id="取得プログラム">取得プログラム</h2>
-<p>取得したトークンを利用してプログラムを書いていきます. APIを操作するためのライブラリ<code>requests</code>をインストールしておきましょう.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> add requests pandas</span></code></pre></div>
-<p>まずは認証トークンを設定します.先ほど取得した認証トークンを<code>bearer_token</code>という変数に格納し,API呼び出し時に利用します(<code>YOUR_BEARER_TOKEN</code>の部分を書き換えましょう.)</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> requests <span class="co">#HTTPリクエストを送るためのライブラリです.このライブラリを使ってAPIにアクセスします.</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co"># 認証トークン</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>bearer_token <span class="op">=</span> <span class="st">'YOUR_BEARER_TOKEN'</span></span></code></pre></div>
-<p><code>X.API</code>の「検索」機能にアクセスするためのURLを指定します. ここでは,最近のツイートを取得するエンドポイント<code>search/recent</code>を指定しています. <code>search/recent</code>では直近7日間のつぶやきを取得できます. それ以上過去のつぶやきは<code>Pro</code>アカウントでしか取得することができません.</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Twitter APIのエンドポイントURL</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>search_url <span class="op">=</span> <span class="st">&quot;https://api.x.com/2/tweets/search/recent&quot;</span></span></code></pre></div>
-<p>取得対象のキーワード（検索ワード）を指定します.このコードでは「国民民主党」に関するツイートを検索します.一つのプログラムで複数のワードを取得することも可能ですが,<code>X.API</code>の無料版では,<strong>15分に1回しかリクエストが送れない</strong>ため,複数のワードで検索するにはコード内で15分間待機する機能を入れる必要があるので今回は一つだけ検索してみましょう.</p>
-<p><code>tweet_count</code>で各検索で取得するツイート数の上限です.無料版のAPI機能では, <strong>1ヶ月あたり100ツイートのみアクセスできる</strong>ので,50にすると1ヶ月に2回アクセスできます. 1度失敗すると数を大幅に減らすか,1ヶ月待つか,課金する必要があるので注意して下さい.</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 検索ワード</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>word <span class="op">=</span> <span class="st">&quot;国民民主党&quot;</span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>tweet_count <span class="op">=</span> <span class="dv">50</span></span></code></pre></div>
-<p>認証トークンをリクエストヘッダーに追加するための関数<code>bearer_oauth()</code>を作成します.この関数で設定されたヘッダーを使って,<code>X.API</code>へのリクエストが認証されます.</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> bearer_oauth(r):</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    r.headers[<span class="st">&quot;Authorization&quot;</span>] <span class="op">=</span> <span class="ss">f&quot;Bearer </span><span class="sc">{</span>bearer_token<span class="sc">}</span><span class="ss">&quot;</span></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    r.headers[<span class="st">&quot;User-Agent&quot;</span>] <span class="op">=</span> <span class="st">&quot;v2RecentSearchPython&quot;</span></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> r</span></code></pre></div>
-<p>指定されたURLにGETリクエストを送信し,APIのレスポンスを取得します.<code>response.status_code != 200</code>でAPIからエラーが返された場合,例外を発生させます.正常なレスポンスを受け取った場合,JSON形式でデータを返します.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> connect_to_endpoint(url, params):</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    response <span class="op">=</span> requests.get(url, auth<span class="op">=</span>bearer_oauth, params<span class="op">=</span>params)</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    response.encoding <span class="op">=</span> response.apparent_encoding</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> response.status_code <span class="op">!=</span> <span class="dv">200</span>:</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">raise</span> <span class="pp">Exception</span>(response.status_code, response.text)</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> response.json()</span></code></pre></div>
-<p>特定の検索ワードに関するツイートを取得します. 検索パラメータを<code>lang:ja</code>に設定し,日本語のツイートに限定しています.</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fetch_tweets(word):</span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    query_params <span class="op">=</span> {</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;query&quot;</span>: <span class="ss">f&quot;</span><span class="sc">{</span>word<span class="sc">}</span><span class="ss"> lang:ja&quot;</span>,</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;max_results&quot;</span>: tweet_count</span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    }</span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    json_response <span class="op">=</span> connect_to_endpoint(search_url, query_params)</span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>    tweets_data <span class="op">=</span> json_response.get(<span class="st">&quot;data&quot;</span>, [])</span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> [tweet[<span class="st">&quot;text&quot;</span>] <span class="cf">for</span> tweet <span class="kw">in</span> tweets_data]</span></code></pre></div>
-<p>作成した関数を利用して,つぶやきを取得します.</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> main():</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    all_tweets <span class="op">=</span> []</span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;</span><span class="sc">{</span>word<span class="sc">}</span><span class="ss">のツイートを取得中...&quot;</span>)</span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    tweets <span class="op">=</span> fetch_tweets(word)</span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> tweet <span class="kw">in</span> tweets:</span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>        all_tweets.append({<span class="st">&quot;Word&quot;</span>: word, <span class="st">&quot;Tweet&quot;</span>: tweet})</span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> all_tweets:</span>
-<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>        df <span class="op">=</span> pd.DataFrame(all_tweets)</span>
-<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>        df.to_csv(<span class="st">&quot;tweets.csv&quot;</span>, index<span class="op">=</span><span class="va">False</span>, encoding<span class="op">=</span><span class="st">&quot;utf-8-sig&quot;</span>)</span>
-<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="st">&quot;tweets.csvにデータを書き出しました。&quot;</span>)</span>
-<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
-<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="st">&quot;取得したデータがありません。&quot;</span>)</span></code></pre></div>
-<p>コード全体は以下のようになります.</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> requests</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 認証トークン</span></span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>bearer_token <span class="op">=</span> <span class="st">'YOUR_BEARER_TOKEN'</span></span>
+<p>APIを操作するためのライブラリ<code>requests</code>と, CSVを扱う<code>pandas</code>をインストールしておきましょう.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> add requests pandas</span></code></pre></div>
+<h3 id="検索の設定">検索の設定</h3>
+<p>取得の設定を定数として書き出します. <code>search/recent</code>は直近7日間の投稿を検索するエンドポイントで, 1回のリクエストで最大100件まで返します.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>SEARCH_URL         <span class="op">=</span> <span class="st">'https://api.x.com/2/tweets/search/recent'</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>QUERIES            <span class="op">=</span> [<span class="st">'国民民主党'</span>, <span class="st">'自民党'</span>]   <span class="co"># 検索ワード (1 語につき 1 リクエスト)</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>MAX_RESULTS        <span class="op">=</span> <span class="dv">50</span>                        <span class="co"># 1 語あたりの取得件数</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>HARD_CAP           <span class="op">=</span> <span class="dv">100</span>                       <span class="co"># 1 語あたりの上限 (安全装置)</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>PRICE_PER_POST_USD <span class="op">=</span> <span class="fl">0.005</span>                     <span class="co"># 投稿 1 件あたりの単価 (2026-02 改定)</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>OUTPUT_CSV         <span class="op">=</span> <span class="st">'posts.csv'</span></span></code></pre></div>
+<p><code>HARD_CAP</code>は誤って大きな<code>MAX_RESULTS</code>を書いたときの安全装置です. 取得件数はこの値で頭打ちにし, APIが要求する下限10件も同時に満たすようにします.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> clamp(n: <span class="bu">int</span>) <span class="op">-&gt;</span> <span class="bu">int</span>:</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;1 リクエストあたりの取得件数を API の範囲 (10〜100) と HARD_CAP に収める.&quot;&quot;&quot;</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">max</span>(<span class="dv">10</span>, <span class="bu">min</span>(<span class="bu">int</span>(n), HARD_CAP))</span></code></pre></div>
+<h3 id="実行前に費用を見積もる">実行前に費用を見積もる</h3>
+<p>従量課金では取得件数がそのまま費用になるので, リクエストを送る前に何件取得していくらかかるかを表示します. 単価に件数を掛けるだけです.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> estimate(queries: <span class="bu">list</span>, max_results: <span class="bu">int</span>) <span class="op">-&gt;</span> <span class="bu">tuple</span>:</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;取得予定件数と概算費用 (USD) を返す.&quot;&quot;&quot;</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    total <span class="op">=</span> <span class="bu">len</span>(queries) <span class="op">*</span> clamp(max_results)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> total, total <span class="op">*</span> PRICE_PER_POST_USD</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Twitter APIのエンドポイントURL</span></span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>search_url <span class="op">=</span> <span class="st">&quot;https://api.x.com/2/tweets/search/recent&quot;</span></span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="co"># 検索ワード</span></span>
-<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>word <span class="op">=</span> <span class="st">&quot;国民民主党&quot;</span></span>
-<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a><span class="co"># 取得する件数</span></span>
-<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>tweet_count <span class="op">=</span> <span class="dv">50</span></span>
-<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> bearer_oauth(r):</span>
-<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;</span></span>
-<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a><span class="co">    Method required by bearer token authentication.</span></span>
-<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a><span class="co">    &quot;&quot;&quot;</span></span>
-<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>    r.headers[<span class="st">&quot;Authorization&quot;</span>] <span class="op">=</span> <span class="ss">f&quot;Bearer </span><span class="sc">{</span>bearer_token<span class="sc">}</span><span class="ss">&quot;</span></span>
-<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>    r.headers[<span class="st">&quot;User-Agent&quot;</span>] <span class="op">=</span> <span class="st">&quot;v2RecentSearchPython&quot;</span></span>
-<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> r</span>
-<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> connect_to_endpoint(url, params):</span>
-<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>    response <span class="op">=</span> requests.get(url, auth<span class="op">=</span>bearer_oauth, params<span class="op">=</span>params)</span>
-<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>    response.encoding <span class="op">=</span> response.apparent_encoding</span>
-<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> response.status_code <span class="op">!=</span> <span class="dv">200</span>:</span>
-<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>        <span class="cf">raise</span> <span class="pp">Exception</span>(response.status_code, response.text)</span>
-<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> response.json()</span>
-<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fetch_tweets(word):</span>
-<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a>    <span class="co"># パラメータの設定</span></span>
-<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>    query_params <span class="op">=</span> {</span>
-<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;query&quot;</span>: <span class="ss">f&quot;</span><span class="sc">{</span>word<span class="sc">}</span><span class="ss"> lang:ja&quot;</span>,</span>
-<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;max_results&quot;</span>: tweet_count  <span class="co"># APIの制限で一度に取得できるのは最大100件まで</span></span>
-<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a>    }</span>
-<span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-38"><a href="#cb9-38" aria-hidden="true" tabindex="-1"></a>    <span class="co"># エンドポイントに接続してデータを取得</span></span>
-<span id="cb9-39"><a href="#cb9-39" aria-hidden="true" tabindex="-1"></a>    json_response <span class="op">=</span> connect_to_endpoint(search_url, query_params)</span>
-<span id="cb9-40"><a href="#cb9-40" aria-hidden="true" tabindex="-1"></a>    tweets_data <span class="op">=</span> json_response.get(<span class="st">&quot;data&quot;</span>, [])</span>
-<span id="cb9-41"><a href="#cb9-41" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> [tweet[<span class="st">&quot;text&quot;</span>] <span class="cf">for</span> tweet <span class="kw">in</span> tweets_data]</span>
-<span id="cb9-42"><a href="#cb9-42" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-43"><a href="#cb9-43" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> main():</span>
-<span id="cb9-44"><a href="#cb9-44" aria-hidden="true" tabindex="-1"></a>    all_tweets <span class="op">=</span> []</span>
-<span id="cb9-45"><a href="#cb9-45" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-46"><a href="#cb9-46" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 検索ワードのツイートを取得してデータを集約</span></span>
-<span id="cb9-47"><a href="#cb9-47" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;</span><span class="sc">{</span>word<span class="sc">}</span><span class="ss">のツイートを取得中...&quot;</span>)</span>
-<span id="cb9-48"><a href="#cb9-48" aria-hidden="true" tabindex="-1"></a>    tweets <span class="op">=</span> fetch_tweets(word)</span>
-<span id="cb9-49"><a href="#cb9-49" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> tweet <span class="kw">in</span> tweets:</span>
-<span id="cb9-50"><a href="#cb9-50" aria-hidden="true" tabindex="-1"></a>        all_tweets.append({<span class="st">&quot;Word&quot;</span>: word, <span class="st">&quot;Tweet&quot;</span>: tweet})</span>
-<span id="cb9-51"><a href="#cb9-51" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-52"><a href="#cb9-52" aria-hidden="true" tabindex="-1"></a>    <span class="co"># データをDataFrameに変換してCSVに書き出し</span></span>
-<span id="cb9-53"><a href="#cb9-53" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> all_tweets:</span>
-<span id="cb9-54"><a href="#cb9-54" aria-hidden="true" tabindex="-1"></a>        df <span class="op">=</span> pd.DataFrame(all_tweets)</span>
-<span id="cb9-55"><a href="#cb9-55" aria-hidden="true" tabindex="-1"></a>        df.to_csv(<span class="st">&quot;tweets.csv&quot;</span>, index<span class="op">=</span><span class="va">False</span>, encoding<span class="op">=</span><span class="st">&quot;utf-8-sig&quot;</span>)</span>
-<span id="cb9-56"><a href="#cb9-56" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="st">&quot;tweets.csvにデータを書き出しました。&quot;</span>)</span>
-<span id="cb9-57"><a href="#cb9-57" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
-<span id="cb9-58"><a href="#cb9-58" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="st">&quot;取得したデータがありません。&quot;</span>)</span>
-<span id="cb9-59"><a href="#cb9-59" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-60"><a href="#cb9-60" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> <span class="va">__name__</span> <span class="op">==</span> <span class="st">&quot;__main__&quot;</span>:</span>
-<span id="cb9-61"><a href="#cb9-61" aria-hidden="true" tabindex="-1"></a>    main()</span></code></pre></div>
-<p>このコードで取得した50件の呟きをまとめたデータが<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch15/tweets.csv">こちら</a>になります. このデータを利用した分析は<a href="slds15.html">Ch15 自然言語処理</a>に進んでください.</p>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> print_plan(queries: <span class="bu">list</span>, max_results: <span class="bu">int</span>) <span class="op">-&gt;</span> <span class="va">None</span>:</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;課金の前に, 何件取得していくらかかるかを表示する.&quot;&quot;&quot;</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    total, cost <span class="op">=</span> estimate(queries, max_results)</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">'=== 取得計画 ==='</span>)</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'検索ワード   : </span><span class="sc">{</span><span class="st">&quot;, &quot;</span><span class="sc">.</span>join(queries)<span class="sc">}</span><span class="ss"> (</span><span class="sc">{</span><span class="bu">len</span>(queries)<span class="sc">}</span><span class="ss"> 語)'</span>)</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'1 語あたり   : </span><span class="sc">{</span>clamp(max_results)<span class="sc">}</span><span class="ss"> 件 (上限 </span><span class="sc">{</span>HARD_CAP<span class="sc">}</span><span class="ss"> 件)'</span>)</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'合計取得件数 : </span><span class="sc">{</span>total<span class="sc">}</span><span class="ss"> 件'</span>)</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'概算費用     : </span><span class="sc">{</span>total<span class="sc">}</span><span class="ss"> 件 x $</span><span class="sc">{</span>PRICE_PER_POST_USD<span class="sc">}</span><span class="ss"> = $</span><span class="sc">{</span>cost<span class="sc">:.2f}</span><span class="ss">'</span>)</span></code></pre></div>
+<p>配布している<code>fetch_posts.py</code>は<code>--dry-run</code>を付けるとこの計画だけを表示して終了します. 認証トークンもネットワーク接続も使わないので, <strong>課金される前に検索ワードと件数を確かめられます</strong>. 付けずに実行した場合は計画を表示したうえで実行の可否を尋ね, <code>y</code>と答えたときだけAPIにリクエストを送ります.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> fetch_posts.py <span class="at">--dry-run</span></span></code></pre></div>
+<h3 id="リクエストの送信">リクエストの送信</h3>
+<p>認証トークンをリクエストヘッダーに追加する関数<code>bearer_oauth()</code>を作ります. この関数で設定されたヘッダーによって<code>X.API</code>へのリクエストが認証されます.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> bearer_oauth(r):</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;Bearer Token 認証に必要なヘッダーを付ける.&quot;&quot;&quot;</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>    r.headers[<span class="st">'Authorization'</span>] <span class="op">=</span> <span class="ss">f'Bearer </span><span class="sc">{</span>BEARER_TOKEN<span class="sc">}</span><span class="ss">'</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    r.headers[<span class="st">'User-Agent'</span>] <span class="op">=</span> <span class="st">'v2RecentSearchPython'</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> r</span></code></pre></div>
+<p>指定されたURLにGETリクエストを送り, レスポンスを取得します. <code>response.status_code != 200</code>のときは例外を発生させます. 正常なレスポンスならJSONを辞書として返します.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> connect_to_endpoint(url: <span class="bu">str</span>, params: <span class="bu">dict</span>) <span class="op">-&gt;</span> <span class="bu">dict</span>:</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;GET リクエストを送り, レスポンスの JSON を返す.&quot;&quot;&quot;</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    response <span class="op">=</span> requests.get(url, auth<span class="op">=</span>bearer_oauth, params<span class="op">=</span>params)</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    response.encoding <span class="op">=</span> response.apparent_encoding</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> response.status_code <span class="op">!=</span> <span class="dv">200</span>:</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 401 = トークンが誤っている, 403 = 残高不足, 429 = リクエスト過多</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">raise</span> <span class="pp">RuntimeError</span>(<span class="ss">f'</span><span class="sc">{</span>response<span class="sc">.</span>status_code<span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>response<span class="sc">.</span>text<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> response.json()</span></code></pre></div>
+<div class="note">
+<p>エラーの本文にはどの理由で失敗したかが書かれています. 残高が尽きた場合は<code>403</code>, 認証トークンが誤っている場合は<code>401</code>, 短時間にリクエストを送りすぎた場合は<code>429</code>が返るので, 失敗したらまず本文を読んでください.</p>
+</div>
+<p>検索ワードを1つ受け取り, その投稿を取得します. <code>query</code>パラメータに<code>lang:ja -is:retweet</code>を付けて, 日本語かつリツイート以外に絞っています. リツイートは本文が重複するため, 分析対象からは外すのが普通です. <code>tweet.fields</code>には投稿日時といいね数などの指標を指定します. これらは投稿の取得料金に含まれており, 追加の課金は発生しません.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fetch_posts(query: <span class="bu">str</span>, max_results: <span class="bu">int</span>) <span class="op">-&gt;</span> <span class="bu">list</span>:</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;検索ワード 1 語ぶんの投稿を取得し, JSON の data 部分を返す.&quot;&quot;&quot;</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    params <span class="op">=</span> {</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>        <span class="st">'query'</span>       : <span class="ss">f'</span><span class="sc">{</span>query<span class="sc">}</span><span class="ss"> lang:ja -is:retweet'</span>,   <span class="co"># 日本語かつリツイート以外</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>        <span class="st">'max_results'</span> : clamp(max_results),</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>        <span class="st">'tweet.fields'</span>: <span class="st">'created_at,public_metrics,author_id,lang'</span>,</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> connect_to_endpoint(SEARCH_URL, params).get(<span class="st">'data'</span>, [])</span></code></pre></div>
+<h3 id="csvへの変換">CSVへの変換</h3>
+<p>取得したJSONを<strong>1行 = 1投稿</strong>のCSVに変換します. 列名はXの投稿の意味をそのまま表すものにします.</p>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>列名</th>
+<th>中身</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>query</code></td>
+<td>検索ワード</td>
+</tr>
+<tr class="even">
+<td><code>text</code></td>
+<td>投稿本文</td>
+</tr>
+<tr class="odd">
+<td><code>like_count</code></td>
+<td>いいね数</td>
+</tr>
+<tr class="even">
+<td><code>retweet_count</code></td>
+<td>リツイート数</td>
+</tr>
+<tr class="odd">
+<td><code>reply_count</code></td>
+<td>返信数</td>
+</tr>
+<tr class="even">
+<td><code>impression_count</code></td>
+<td>表示回数 (自分以外の投稿では返らないことがあり, その場合は0)</td>
+</tr>
+<tr class="odd">
+<td><code>created_at</code></td>
+<td>投稿日時</td>
+</tr>
+<tr class="even">
+<td><code>post_id</code></td>
+<td>投稿ID</td>
+</tr>
+<tr class="odd">
+<td><code>author_id</code></td>
+<td>投稿者ID</td>
+</tr>
+</tbody>
+</table>
+<p>投稿1件を1行の辞書に変換します.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> to_row(query: <span class="bu">str</span>, post: <span class="bu">dict</span>) <span class="op">-&gt;</span> <span class="bu">dict</span>:</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;投稿 1 件を CSV の 1 行に変換する.&quot;&quot;&quot;</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    m <span class="op">=</span> post.get(<span class="st">'public_metrics'</span>, {})</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> {</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>        <span class="st">'query'</span>           : query,                     <span class="co"># 検索ワード</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>        <span class="st">'text'</span>            : post.get(<span class="st">'text'</span>, <span class="st">''</span>),      <span class="co"># 投稿本文</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>        <span class="st">'like_count'</span>      : <span class="bu">int</span>(m.get(<span class="st">'like_count'</span>, <span class="dv">0</span>)),</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>        <span class="st">'retweet_count'</span>   : <span class="bu">int</span>(m.get(<span class="st">'retweet_count'</span>, <span class="dv">0</span>)),</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>        <span class="st">'reply_count'</span>     : <span class="bu">int</span>(m.get(<span class="st">'reply_count'</span>, <span class="dv">0</span>)),</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>        <span class="st">'impression_count'</span>: <span class="bu">int</span>(m.get(<span class="st">'impression_count'</span>, <span class="dv">0</span>)),   <span class="co"># 取れない場合は 0</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>        <span class="st">'created_at'</span>      : post.get(<span class="st">'created_at'</span>, <span class="st">''</span>),</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>        <span class="st">'post_id'</span>         : post.get(<span class="st">'id'</span>, <span class="st">''</span>),</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>        <span class="st">'author_id'</span>       : post.get(<span class="st">'author_id'</span>, <span class="st">''</span>),</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>    }</span></code></pre></div>
+<h3 id="全体の流れ">全体の流れ</h3>
+<p>検索ワードを順に取得し, CSVに書き出します.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>rows <span class="op">=</span> []</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> query <span class="kw">in</span> QUERIES:</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'</span><span class="sc">{</span>query<span class="sc">}</span><span class="ss"> の投稿を取得中...'</span>)</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> post <span class="kw">in</span> fetch_posts(query, MAX_RESULTS):</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>        rows.append(to_row(query, post))</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.DataFrame(rows)</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>df.to_csv(OUTPUT_CSV, index<span class="op">=</span><span class="va">False</span>, encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>)</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'</span><span class="sc">{</span>OUTPUT_CSV<span class="sc">}</span><span class="ss"> に </span><span class="sc">{</span><span class="bu">len</span>(df)<span class="sc">}</span><span class="ss"> 行 (</span><span class="sc">{</span>df[<span class="st">&quot;query&quot;</span>]<span class="sc">.</span>nunique()<span class="sc">}</span><span class="ss"> ワード) を保存しました.'</span>)</span></code></pre></div>
+<p>この<code>posts.csv</code>は<a href="slds15.html">Ch15 自然言語処理</a>のコードがそのまま読める構造です (Ch15の配布データ<code>tweets.csv</code>も同じ<code>query</code>・<code>text</code>列を持ちます).</p>
+<div class="note">
+<p>このプログラムの完成版は<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_code/b1/">配布ページ</a>の<code>fetch_posts.py</code>にあります. <code>--dry-run</code>による費用の事前確認と, 実行前の確認プロンプトが入っています. 取得済みの<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch15/tweets.csv">tweets.csv</a>も配布しているので, トークンが無くても<a href="slds15.html">Ch15</a>の分析は再現できます.</p>
+</div>
+<h3 id="補足c形式への変換">補足C形式への変換</h3>
+<p><code>posts.csv</code>の列名はXの投稿として素直に付けたので, そのままでは<a href="slds_c1.html">補足C</a>の感情分析プログラムでは動きません. 補足Cの<code>ichikawa_youtube.csv</code>は<strong>動画1本</strong>を集計の単位にしており, X版ではそれに<strong>検索ワード1語</strong>が対応します. 同じコードを動かす場合の対応関係と変換規則は次のとおりです.</p>
+<table>
+<thead>
+<tr class="header">
+<th>補足Cの列</th>
+<th>補足C (YouTube) での意味</th>
+<th>変換規則 (<code>posts.csv</code>から)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>video_id</code></td>
+<td>動画ID (集計の単位)</td>
+<td><code>query</code>をそのまま入れる</td>
+</tr>
+<tr class="even">
+<td><code>title</code></td>
+<td>動画タイトル</td>
+<td><code>query</code>をそのまま入れる</td>
+</tr>
+<tr class="odd">
+<td><code>view_count</code></td>
+<td>動画の再生数</td>
+<td><code>impression_count</code>のワード単位の合計</td>
+</tr>
+<tr class="even">
+<td><code>like_count</code></td>
+<td>動画の高評価数</td>
+<td><code>like_count</code>のワード単位の合計</td>
+</tr>
+<tr class="odd">
+<td><code>comment_count</code></td>
+<td>動画のコメント数</td>
+<td>ワード単位の行数</td>
+</tr>
+<tr class="even">
+<td><code>comment</code></td>
+<td>コメント本文</td>
+<td><code>text</code>を改名</td>
+</tr>
+<tr class="odd">
+<td><code>comment_like_count</code></td>
+<td>コメントのいいね数</td>
+<td><code>like_count</code>を改名</td>
+</tr>
+<tr class="even">
+<td><code>comment_published_at</code></td>
+<td>コメントの投稿日時</td>
+<td><code>created_at</code>を改名</td>
+</tr>
+</tbody>
+</table>
+<p>ワード単位の集計列は<code>groupby</code>と<code>transform</code>で埋めます. <code>transform</code>は集計結果を元の行数に戻して返すので, 同じワードの行に同じ値が入ります. これによって<code>groupby('video_id')</code>でワードごとに集約したときの動きが補足Cと一致します.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'posts.csv'</span>)</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>g <span class="op">=</span> df.groupby(<span class="st">'query'</span>)</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>converted <span class="op">=</span> pd.DataFrame({</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">'video_id'</span>            : df[<span class="st">'query'</span>],</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">'title'</span>               : df[<span class="st">'query'</span>],</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">'view_count'</span>          : g[<span class="st">'impression_count'</span>].transform(<span class="st">'sum'</span>),</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>    <span class="st">'like_count'</span>          : g[<span class="st">'like_count'</span>].transform(<span class="st">'sum'</span>),</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">'comment_count'</span>       : g[<span class="st">'query'</span>].transform(<span class="st">'size'</span>),</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>    <span class="st">'comment'</span>             : df[<span class="st">'text'</span>],</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>    <span class="st">'comment_like_count'</span>  : df[<span class="st">'like_count'</span>],</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>    <span class="st">'comment_published_at'</span>: df[<span class="st">'created_at'</span>],</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>converted.to_csv(<span class="st">'posts_youtube_format.csv'</span>, index<span class="op">=</span><span class="va">False</span>, encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>)</span></code></pre></div>
+<p>この変換は<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_code/b1/">配布ページ</a>の<code>to_youtube_format.py</code>としても置いてあります.</p>
+<h3 id="取得したデータの分析">取得したデータの分析</h3>
+<p>変換した<code>posts_youtube_format.csv</code>は補足Cの<code>ichikawa_youtube.csv</code>と同じ列を持つので, <a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_code/c1/">補足Cの配布コード</a>の<code>sentiment_analysis.py</code>は入力ファイル名を書き換えるだけで動きます.</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>INPUT_CSV <span class="op">=</span> <span class="st">'posts_youtube_format.csv'</span>    <span class="co"># ichikawa_youtube.csv から変更する</span></span></code></pre></div>
+<p>集計の単位が検索ワードになるので, 出力の意味も変わります. 円グラフは1つの検索ワードに対する投稿の感情比率を, 散布図はワードごとのポジティブ比率といいね数の合計の関係を表します. 検索ワードを3語以上にすると散布図の点が増え, ワード間の比較ができます.</p>
+<p>ワードクラウドとトピックモデルによる分析は<a href="slds15.html">Ch15 自然言語処理</a>で扱います.</p>
+<h2 id="youtube-data-apiとの使い分け">YouTube Data APIとの使い分け</h2>
+<p><a href="slds_c1.html">補足C</a>で扱うYouTube Data APIと比べると, 費用と取得できるデータの範囲が大きく異なります.</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>項目</th>
+<th>X API v2</th>
+<th>YouTube Data API v3</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>費用</td>
+<td>従量課金のみ (取得1件0.005ドル)</td>
+<td>無料の割り当て1日10,000ユニット</td>
+</tr>
+<tr class="even">
+<td>無料枠</td>
+<td>無し (2026年2月に廃止)</td>
+<td>有り (毎日リセット)</td>
+</tr>
+<tr class="odd">
+<td>認証方式</td>
+<td>Bearer Token (英文250字の目的申請が必要)</td>
+<td>APIキー (Googleアカウントがあれば即日発行)</td>
+</tr>
+<tr class="even">
+<td>取得できる期間</td>
+<td>直近7日 (全期間検索は別契約)</td>
+<td>投稿日で絞り込み可能</td>
+</tr>
+<tr class="odd">
+<td>料金体系の安定性</td>
+<td>2023年以降たびたび改定されている</td>
+<td>変更は少ない</td>
+</tr>
+</tbody>
+</table>
+<p>受講生が各自でキーを取って手を動かす演習にはYouTube Data APIが向いています. Xを使うのは, 短文の集合という形式そのものが分析対象になる場合や, 特定の話題への反応を追う場合です. その場合も費用が取得件数に比例するので, 検索ワードと件数を決めてから実行してください.</p>
 
 <!-- 下部: カード型の章ナビゲーション -->
 <nav class="chapter-nav-card">
@@ -536,25 +815,14 @@
     // すべての <pre><code> 要素を走査
     const codeBlocks = document.querySelectorAll('pre code');
     codeBlocks.forEach(function(codeBlock) {
-      // 親<pre>要素を取得
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
       const pre = codeBlock.parentNode;
-
-      // <pre> を相対配置にし、子要素を絶対配置できるようにする
-      pre.style.position = 'relative';
 
       // コピーボタンを作成
       const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
       copyButton.textContent = 'Copy';
-      // ボタンのデザインはCSSで指定するのが望ましいが、簡易的にスタイルを直接指定する例:
-      copyButton.style.position = 'absolute';
-      copyButton.style.top = '8px';
-      copyButton.style.right = '8px';
-      copyButton.style.backgroundColor = '#add8e6'; // 水色
-      copyButton.style.color = '#fff';             // 白文字
-      copyButton.style.border = 'none';
-      copyButton.style.padding = '6px 10px';
-      copyButton.style.borderRadius = '4px';
-      copyButton.style.cursor = 'pointer';
 
       // クリックされたらクリップボードにコピー
       copyButton.addEventListener('click', function() {

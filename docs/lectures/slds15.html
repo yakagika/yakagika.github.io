@@ -6,32 +6,62 @@
     <meta name="color-scheme" content="light dark">
 
     <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
-         localStorage['theme'] に手動選択があればそちらを優先.
-         描画前に <html> へ .dark を付けるため <head> の早い位置で同期実行する
-         (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
     <script>
       (function () {
         var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
-        function apply() {
+
+        function stored() {
           var t = null;
           try { t = localStorage.getItem('theme'); } catch (e) {}
-          var dark = t === 'dark' || (t !== 'light' && mq && mq.matches);
-          document.documentElement.classList.toggle('dark', dark);
+          return (t === 'dark' || t === 'light') ? t : null;
         }
-        apply();
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
         if (mq) {
-          if (mq.addEventListener) mq.addEventListener('change', apply);
-          else if (mq.addListener) mq.addListener(apply);
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
         }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
       })();
     </script>
     <title>yakagika - 特別講義DS Ch15 自然言語処理</title>
 
     <!-- Stylesheets. -->
-    <link rel="stylesheet" type="text/css" href="../style.css?v=1784881886">
+    <link rel="stylesheet" type="text/css" href="../style.css?v=1785895039">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;700&family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
     <!-- RSS. -->
     <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
 
@@ -59,11 +89,17 @@
     <header class="site-header">
       <div class="site-title">
         <a href="../" class="site-brand" aria-label="Home">
-          <span class="site-mark" aria-hidden="true"></span>
+          <span class="site-mark" aria-hidden="true">▮</span>
           <span class="site-word">yakagika</span>
         </a>
       </div>
-      <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
     </header>
 
     <!-- メニュー展開時のオーバーレイ -->
@@ -100,7 +136,7 @@
     <p class="article-description">資料</p>
     <div class="article-meta">
         <span class="meta-item">公開: 2024-11-12</span>
-        <span class="meta-item">更新: 2026-06-12</span>
+        <span class="meta-item">更新: 2026-07-29</span>
     </div>
     <div class="tag-chips"><a href="../tags/datascience.html">datascience</a><a href="../tags/statistics.html">statistics</a><a href="../tags/python.html">python</a></div>
 </header>
@@ -372,7 +408,7 @@
 <p>LDAでは,各文書のトピック分布と各トピックの単語分布にディリクレ分布を使用します.ディリクレ分布は,確率の分布に対する分布（事前分布）として使われ,特にトピックの混合率が異なる多様な文書集合に対応できます.この過程では「ギブスサンプリング」や「変分ベイズ法」といった推論手法を使い,文書全体のトピックと単語の分布が収束するまで反復的に計算されます.ギブスサンプリングや事後分布,事前分布などに関しては, 一般化線形モデルの章で扱っています.</p>
 <h3 id="xtwitter-apiを用いたデータの取得">X(Twitter) APIを用いたデータの取得</h3>
 <p>自然言語解析では,ワードクラウドの事例のように,まとまった文章を分析する場合もありますが,X(旧:Twitter)のつぶやきのように,短い文章の集合を扱う場合もあります. ここでは,TwitterのAPIを利用して取得したつぶやきを分析してみましょう.</p>
-<p>APIという仕組みの説明と,X APIによる取得手順 (アカウント登録, 認証トークンの発行, 取得コード) は<a href="slds_b1.html">補足B X(Twitter) APIによるデータの取得</a>にまとめてあります (API一般の説明は<a href="slds_a1.html#apiとは">補足A</a>). X APIの無料枠には強い制限があるため,研究で利用する人以外は取得済みの50件の呟きをまとめた<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch15/tweets.csv">こちらのデータ</a>をダウンロードして利用しましょう.</p>
+<p>APIという仕組みの説明と,X APIによる取得手順 (認証トークンの発行, 環境変数での受け渡し, 取得コード) は<a href="slds_b1.html">補足B X(Twitter) APIによるデータの取得</a>にまとめてあります (API一般の説明は<a href="slds_a1.html#apiとは">補足A</a>). X APIは2026年2月の改定で無料の取得枠が廃止され,投稿1件0.005ドルの従量課金だけになりました. 研究で利用する人以外は取得済みの50件の呟きをまとめた<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch15/tweets.csv">こちらのデータ</a>をダウンロードして利用しましょう. このデータは補足Bの<code>posts.csv</code>と同じ列構造 (<code>query</code> = 検索ワード, <code>text</code> = 投稿本文) なので,以下のコードは自分で取得した<code>posts.csv</code>でもファイル名の変更だけで動きます.</p>
 <p>以下,このデータを利用して分析を行ってみましょう.</p>
 <h3 id="トピックモデル実践">トピックモデル実践</h3>
 <p>LDAによるトピックモデルを利用するためにライブラリ<code>gensim</code>と,LDAの可視化用のライブラリ<code>pyLDAvis</code>をインストールしましょう.</p>
@@ -429,11 +465,11 @@ URLは上手く形態素解析できないので,URLを削除する関数も新�
 <p>データを読み込みます(このデータを取得した次の日に国民民主党の党首の不倫騒動があったので,そのつぶやきが取れていれば面白かったのですが,残念です.)</p>
 <p>トークナイズ(形態素解析),と削除文字の指定,削除までをまとめて行います. ここで,指定している削除文字は一度結果を見たあとで追加したものです.実際の分析では,結果とコードを何往復かして,調整する作業が必要になります.</p>
 <p>形態素解析の前に<code>remove_urls()</code>を適用していることに注意して下さい.</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co">#データの読み込み</span></span>
+<div class="sourceCode" id="cb15"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co">#データの読み込み (補足Bの posts.csv と同じ列構造: query, text)</span></span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/tweets.csv'</span>)</span>
 <span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="co">#国民民主党のリアクションシートだけのデータを作る</span></span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>akagi <span class="op">=</span> df[<span class="st">'Tweet'</span>]</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="co">#投稿本文の列を取り出す</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>akagi <span class="op">=</span> df[<span class="st">'text'</span>]</span>
 <span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="co">#トークナイズ</span></span>
 <span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>txt <span class="op">=</span> [mecab_wakati(strip_CRLF_from_Text(remove_urls(x)),[<span class="st">&quot;名詞&quot;</span>,<span class="st">&quot;動詞&quot;</span>]).split(<span class="st">' '</span>) <span class="cf">for</span> x <span class="kw">in</span> akagi]</span>
@@ -552,11 +588,11 @@ URLは上手く形態素解析できないので,URLを削除する関数も新�
 <span id="cb18-52"><a href="#cb18-52" aria-hidden="true" tabindex="-1"></a><span class="co"># ↓ ここから,データ処理</span></span>
 <span id="cb18-53"><a href="#cb18-53" aria-hidden="true" tabindex="-1"></a><span class="co">#------------------------------------------------------------------</span></span>
 <span id="cb18-54"><a href="#cb18-54" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-55"><a href="#cb18-55" aria-hidden="true" tabindex="-1"></a><span class="co">#データの読み込み</span></span>
+<span id="cb18-55"><a href="#cb18-55" aria-hidden="true" tabindex="-1"></a><span class="co">#データの読み込み (補足Bの posts.csv と同じ列構造: query, text)</span></span>
 <span id="cb18-56"><a href="#cb18-56" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/tweets.csv'</span>)</span>
 <span id="cb18-57"><a href="#cb18-57" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb18-58"><a href="#cb18-58" aria-hidden="true" tabindex="-1"></a><span class="co">#国民民主党のリアクションシートだけのデータを作る</span></span>
-<span id="cb18-59"><a href="#cb18-59" aria-hidden="true" tabindex="-1"></a>akagi <span class="op">=</span> df[df[<span class="st">'Word'</span>] <span class="op">==</span> <span class="st">'自民党'</span>][<span class="st">'Tweet'</span>]</span>
+<span id="cb18-58"><a href="#cb18-58" aria-hidden="true" tabindex="-1"></a><span class="co">#検索ワードが「国民民主党」の投稿本文を取り出す (複数ワードを取得したデータでも動く形)</span></span>
+<span id="cb18-59"><a href="#cb18-59" aria-hidden="true" tabindex="-1"></a>akagi <span class="op">=</span> df[df[<span class="st">'query'</span>] <span class="op">==</span> <span class="st">'国民民主党'</span>][<span class="st">'text'</span>]</span>
 <span id="cb18-60"><a href="#cb18-60" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb18-61"><a href="#cb18-61" aria-hidden="true" tabindex="-1"></a><span class="co">#トークナイズ</span></span>
 <span id="cb18-62"><a href="#cb18-62" aria-hidden="true" tabindex="-1"></a>txt <span class="op">=</span> [mecab_wakati(strip_CRLF_from_Text(remove_urls(x)),[<span class="st">&quot;名詞&quot;</span>,<span class="st">&quot;動詞&quot;</span>]).split(<span class="st">' '</span>) <span class="cf">for</span> x <span class="kw">in</span> akagi]</span>
@@ -1629,25 +1665,14 @@ Google Drive上に作業用ディレクトリを作りましょう.</p>
     // すべての <pre><code> 要素を走査
     const codeBlocks = document.querySelectorAll('pre code');
     codeBlocks.forEach(function(codeBlock) {
-      // 親<pre>要素を取得
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
       const pre = codeBlock.parentNode;
-
-      // <pre> を相対配置にし、子要素を絶対配置できるようにする
-      pre.style.position = 'relative';
 
       // コピーボタンを作成
       const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
       copyButton.textContent = 'Copy';
-      // ボタンのデザインはCSSで指定するのが望ましいが、簡易的にスタイルを直接指定する例:
-      copyButton.style.position = 'absolute';
-      copyButton.style.top = '8px';
-      copyButton.style.right = '8px';
-      copyButton.style.backgroundColor = '#add8e6'; // 水色
-      copyButton.style.color = '#fff';             // 白文字
-      copyButton.style.border = 'none';
-      copyButton.style.padding = '6px 10px';
-      copyButton.style.borderRadius = '4px';
-      copyButton.style.cursor = 'pointer';
 
       // クリックされたらクリップボードにコピー
       copyButton.addEventListener('click', function() {
