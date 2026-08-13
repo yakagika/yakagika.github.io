@@ -68,7 +68,7 @@ def connect_to_endpoint(url: str, params: dict) -> dict:
     response = requests.get(url, auth=bearer_oauth, params=params)
     response.encoding = response.apparent_encoding
     if response.status_code != 200:
-        # 401 = トークンが誤っている, 403 = 残高不足, 429 = リクエスト過多
+        # 401 = トークンが誤っている, 403 = 残高不足かアプリが Project に未所属, 429 = リクエスト過多
         raise RuntimeError(f'{response.status_code}: {response.text}')
     return response.json()
 
