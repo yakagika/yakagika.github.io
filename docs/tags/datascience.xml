@@ -756,7 +756,7 @@
 </tr>
 </tbody>
 </table>
-<p><strong>前払いした金額がそのまま支出の上限になります.</strong> プログラムの誤りでループが止まらなくなっても, 残高を使い切った時点でリクエストが失敗するだけで, 請求が青天井に膨らむことはありません. 少額 (10〜25ドル程度) をチャージして使うのが安全です.</p>
+<p>残高が下がったときに自動でクレジットを買い足す設定 (auto-recharge) を無効にしておけば, <strong>前払いした金額がそのまま支出の上限になります.</strong> プログラムの誤りでループが止まらなくなっても, 残高を使い切った時点でリクエストが失敗するだけで, 請求が青天井に膨らむことはありません. 少額 (10〜25ドル程度) をチャージして使うのが安全です.</p>
 <div class="note">
 <p>本講義では<strong>教員が契約したアカウントの認証トークンを配布</strong>します. 受講生が各自でアカウントを登録する必要はありません. 配布されたトークンは共有の前払い残高に直結しているので, 後述する取得件数の上限を必ず守ってください.</p>
 </div>
@@ -768,22 +768,16 @@
 <h1 id="認証トークンの発行">認証トークンの発行</h1>
 <p>ここからは自分でアカウントを契約する場合の手順です. 教員からトークンを受け取る受講生は<a href="#トークンの受け渡し">次の節</a>まで読み飛ばして構いません.</p>
 <p>XのAPIを利用するには, 認証トークン(<code>Bearer Token</code>)を発行します. 認証トークンとは<code>X.API</code>にアクセスするための認証情報です.</p>
-<p><strong>1. 開発者アカウントを登録する.</strong> <a href="https://developer.x.com/en/portal/dashboard">Xのデベロッパー用ページ</a>からサインアップします. 利用目的を尋ねられるので, <strong>250文字以上の英文で</strong>回答します. 研究・教育目的であれば, その内容をそのまま書けば通ります.</p>
+<p><strong>1. 開発者アカウントを登録する.</strong> <a href="https://console.x.com">Developer Console</a>からサインアップし, 開発者規約に同意します. 利用目的を尋ねられた場合は, <strong>250文字以上の英文で</strong>回答します. 研究・教育目的であれば, その内容をそのまま書けば通ります.</p>
 <figure>
 <img src="/images/slds/ch15/x-reason.png" alt="利用目的の記入欄" />
 <figcaption aria-hidden="true">利用目的の記入欄</figcaption>
 </figure>
-<p><strong>2. クレジットをチャージする.</strong> 従量課金は前払い制なので, ダッシュボードの課金設定からクレジットを購入します. 前節のとおりチャージ額が支出の上限になるため, まずは10〜25ドル程度から始めます.</p>
-<p><strong>3. トークンを発行する.</strong> 左のメニューの<code>Dashboard</code>に表示されている<code>Project APP</code>の<code>Keys and Tokens</code>(鍵)ボタンを押します.</p>
-<figure>
-<img src="/images/slds/ch15/xapi-dashbooard.png" alt="ダッシュボードのKeys and Tokens" />
-<figcaption aria-hidden="true">ダッシュボードのKeys and Tokens</figcaption>
-</figure>
-<p><code>Bearer Token</code>の<code>Regenerate</code>をクリックすると<code>Bearer Token</code>が表示されます. クリップボードにコピーして安全な場所に保存しましょう. このトークンは一度しか表示されません. 忘れた場合は別のトークンを再生成する必要があります.</p>
-<figure>
-<img src="/images/slds/ch15/xapi-token.png" alt="Bearer Tokenの発行画面" />
-<figcaption aria-hidden="true">Bearer Tokenの発行画面</figcaption>
-</figure>
+<p><strong>2. クレジットをチャージする.</strong> 従量課金は前払い制なので, Developer Consoleの課金画面からクレジットを購入します. 前節のとおりチャージ額が支出の上限になるため, まずは10〜25ドル程度から始めます. このときauto-rechargeは無効のままにします. 有効にすると残高が下がるたびに自動で買い足され, チャージ額が上限として働かなくなります. 請求サイクルごとの上限額 (spending limit) も併せて設定しておくと, 二重の安全装置になります.</p>
+<p><strong>3. アプリを作成してトークンを発行する.</strong> Developer Consoleの<code>New App</code>でアプリを作成すると<code>Bearer Token</code>が表示されます. クリップボードにコピーして安全な場所に保存しましょう. このトークンは一度しか表示されません. 忘れた場合は別のトークンを再生成する必要があります.</p>
+<div class="note">
+<p>旧デベロッパーポータルの<code>Standalone Apps</code>にあるアプリ, つまりProjectに属していないアプリのトークンは従量課金では使えず, リクエストは<code>403 client-not-enrolled</code>で拒否されます. 同じアプリでトークンを再生成しても解決しないので, Developer Consoleでアプリを新規に作成し, そのトークンを使ってください.</p>
+</div>
 <div class="warn">
 <p>認証トークンは<a href="slds_a1.html#apiキーの取得">補足A</a>のAPIキーと同様に<strong>パスワードと同じ扱い</strong>をしてください. 従量課金では漏洩の被害が課金に直結し, 第三者に前払い残高を使い切られます. 漏洩した場合はただちに<code>Regenerate</code>で再生成しましょう.</p>
 </div>
@@ -858,11 +852,11 @@
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    response <span class="op">=</span> requests.get(url, auth<span class="op">=</span>bearer_oauth, params<span class="op">=</span>params)</span>
 <span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    response.encoding <span class="op">=</span> response.apparent_encoding</span>
 <span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> response.status_code <span class="op">!=</span> <span class="dv">200</span>:</span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 401 = トークンが誤っている, 403 = 残高不足, 429 = リクエスト過多</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 401 = トークンが誤っている, 403 = 残高不足かアプリが Project に未所属, 429 = リクエスト過多</span></span>
 <span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">raise</span> <span class="pp">RuntimeError</span>(<span class="ss">f&#39;</span><span class="sc">{</span>response<span class="sc">.</span>status_code<span class="sc">}</span><span class="ss">: </span><span class="sc">{</span>response<span class="sc">.</span>text<span class="sc">}</span><span class="ss">&#39;</span>)</span>
 <span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> response.json()</span></code></pre></div>
 <div class="note">
-<p>エラーの本文にはどの理由で失敗したかが書かれています. 残高が尽きた場合は<code>403</code>, 認証トークンが誤っている場合は<code>401</code>, 短時間にリクエストを送りすぎた場合は<code>429</code>が返るので, 失敗したらまず本文を読んでください.</p>
+<p>エラーの本文にはどの理由で失敗したかが書かれています. 残高が尽きた場合は<code>403</code>, 認証トークンが誤っている場合は<code>401</code>, 短時間にリクエストを送りすぎた場合は<code>429</code>が返るので, 失敗したらまず本文を読んでください. <code>403</code>はアプリがProjectに属していないときにも返り, その場合は本文に<code>client-not-enrolled</code>と書かれています.</p>
 </div>
 <p>検索ワードを1つ受け取り, その投稿を取得します. <code>query</code>パラメータに<code>lang:ja -is:retweet</code>を付けて, 日本語かつリツイート以外に絞っています. リツイートは本文が重複するため, 分析対象からは外すのが普通です. <code>tweet.fields</code>には投稿日時といいね数などの指標を指定します. これらは投稿の取得料金に含まれており, 追加の課金は発生しません.</p>
 <div class="sourceCode" id="cb13"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fetch_posts(query: <span class="bu">str</span>, max_results: <span class="bu">int</span>) <span class="op">-&gt;</span> <span class="bu">list</span>:</span>
