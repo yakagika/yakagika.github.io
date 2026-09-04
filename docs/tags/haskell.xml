@@ -7,12 +7,154 @@
         <description><![CDATA[Personal blog of yakagika]]></description>
         <atom:link href="/tags/haskell.xml" rel="self"
                    type="application/rss+xml" />
-        <lastBuildDate>Mon, 13 Jul 2026 00:00:00 UT</lastBuildDate>
+        <lastBuildDate>Fri, 04 Sep 2026 00:00:00 UT</lastBuildDate>
         
         <managingEditor>kaya3728@gmail.com (yakagika)</managingEditor>
         <webMaster>kaya3728@gmail.com (yakagika)</webMaster>
         
         <item>
+    <title>exchangealgebra 0.5.0.0 と 0.4 系からの変更点</title>
+    <link>/posts/2026-09-04-exchangealgebra-0-5-0-0.html</link>
+    <description><![CDATA[<h1 id="はじめに">はじめに</h1>
+<p>Haskell ライブラリ <a href="https://hackage.haskell.org/package/exchangealgebra"><code>exchangealgebra</code></a> の 0.5.0.0 を 2026-09-04 に Hackage へ公開しました. <a href="2026-05-26-exchangealgebra-on-hackage.html">前回の記事</a>で告知した 0.4.0.0 (2026-05-18) から約 3 か月ぶりの major 版で, その間に minor の 0.4.1.0 と patch の 0.4.1.1, 0.4.1.2 を出しています. 破壊的変更は 1 つの major に集約する方針を採っているので, 0.5.0.0 には 3 か月分の API 変更がまとめて入っています. 本記事はライブラリ API の差分を 0.4 系の利用者向けに整理します (同梱 examples の監査評価ツール群の変更は扱いません). 代数構造そのもののチュートリアルは前回の予告どおり関連論文の正式公表後に別記事とします.</p>
+<ul>
+<li>Hackage: <a href="https://hackage.haskell.org/package/exchangealgebra-0.5.0.0" class="uri">https://hackage.haskell.org/package/exchangealgebra-0.5.0.0</a></li>
+<li>GitHub Release: <a href="https://github.com/yakagika/ExchangeAlgebra/releases/tag/v0.5.0.0" class="uri">https://github.com/yakagika/ExchangeAlgebra/releases/tag/v0.5.0.0</a></li>
+<li>ChangeLog (全項目): <a href="https://github.com/yakagika/ExchangeAlgebra/blob/master/ChangeLog.md" class="uri">https://github.com/yakagika/ExchangeAlgebra/blob/master/ChangeLog.md</a></li>
+</ul>
+<h1 id="系の-patch-で直したこと">0.4 系の patch で直したこと</h1>
+<p>0.5.0.0 の差分を読む前提として, 0.4.1.x の 3 つの修正はすべて 0.5.0.0 に含まれています. 0.4.1.1 の修正は値の総量 (<code>norm</code>) が保たれたまま基底ごとの内訳が壊れる型の不具合で, 総量だけを見るテストでは検出できませんでした.</p>
+<ul>
+<li><strong>0.4.1.0</strong>: <code>bases</code> が Not 側の列を無視して Hat 側を 2 回走査していました. 同時に, <code>bar</code> や <code>balance</code> の一致判定を固定の絶対許容誤差からスケール付きの許容誤差に変えました.</li>
+<li><strong>0.4.1.1</strong>: 値 0 の単項と非 0 の単項を <code>.+</code> で結合すると, 非 0 の値が 0 側の基底に付け替えられていました. 明示的に <code>0 :@ base</code> を作る疎な入力係数を持つシミュレーションで, 累積順序によって隣の基底に転記が漏れ出し, 同梱の例では長期の run で企業のストックが無視できない幅でずれていました.</li>
+<li><strong>0.4.1.2</strong>: 貸借が完全に一致した元帳に <code>incomeSummaryAccount</code> を適用すると, 純損益 0 のケースを場合分けが取りこぼしてクラッシュしていました.</li>
+</ul>
+<h1 id="値型を選べるようにした">値型を選べるようにした</h1>
+<p>0.4 系では <code>Alg v b</code> の値型 <code>v</code> は事実上 <code>Double</code> に固定されていました. <code>HatVal</code> クラスが <code>RealFloat</code> を上位クラスに持っていたためで, 正確な 10 進数型を値型にする道がありませんでした. 0.5.0.0 では <code>HatVal</code> から <code>RealFloat</code> を外し, 代わりに表示用の <code>showValue</code> メソッドを加えました. これが今回の major の出発点です.</p>
+<p>その上で <code>ExchangeAlgebra.Value</code> に 2 つの newtype を用意しました. <strong><code>MoneyDouble</code></strong> は <code>Double</code> の zero-cost wrapper で, 係数や乱数と同じ型のまま金額を扱う事故を型で防ぎます. <strong><code>MoneyDecimal</code></strong> は 10 進固定小数 (<code>Data.Decimal</code> を包む) で, 加算が正確かつ結合的なので, 転記を足し合わせる順序が <code>norm</code> や <code>bar</code> の結果に影響しません. 非負性は <code>Double</code> と同じく型では保証せず, 負の転記を <code>.@</code> が拒否する形で保ちます. 数値リテラルはどちらでもそのまま書けます.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">ExchangeAlgebra</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">ExchangeAlgebra.Value</span> (<span class="dt">MoneyDecimal</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">ExchangeAlgebra.Algebra.Base</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">Ledger</span> <span class="ot">=</span> <span class="dt">Alg</span> <span class="dt">MoneyDecimal</span> (<span class="dt">HatBase</span> <span class="dt">AccountTitles</span>)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="ot">entry ::</span> <span class="dt">Ledger</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>entry <span class="ot">=</span> <span class="fl">10.5</span> <span class="op">.@</span> <span class="dt">Hat</span> <span class="op">:&lt;</span> <span class="dt">Cash</span> <span class="op">.+</span> <span class="dv">2</span> <span class="op">.@</span> <span class="dt">Not</span> <span class="op">:&lt;</span> <span class="dt">Sales</span> <span class="op">.+</span> <span class="fl">0.1</span> <span class="op">.@</span> <span class="dt">Hat</span> <span class="op">:&lt;</span> <span class="dt">Cash</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co">-- norm entry == 12.6</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co">-- bar  entry == 10.6:@Hat:&lt;Cash .+ 2:@Not:&lt;Sales</span></span></code></pre></div>
+<p><code>Double</code> では 10.5 + 0.1 のような加算が最下位ビットの丸めを含み, 同じ基底の転記を足す順序が変わると <code>norm</code> の末尾桁が動きます. 同梱のシミュレーション例では, 短い run では両型の結果が一致し, 期を重ねると最下位桁で分かれます. 正確さの代償として <code>MoneyDecimal</code> は <code>MoneyDouble</code> より遅く, メモリも多く使います. 用途で選ぶ前提であり, 既定は従来どおり <code>Double</code> です. 期数と規模に対する具体的な計測は別記事で扱います.</p>
+<p>乗除算が要る場面 (税率, 按分) では <code>MoneyDecimal</code> の中間値は正確なまま保たれ, 金額を確定する時点で <code>bankersRound</code> (銀行丸め) か <code>ceilingRound</code> を明示的に呼びます. 丸め規則は法域や会社で異なるため, ライブラリ側で 1 つに固定していません.</p>
+<p>シミュレーションでは, パラメータ・投入係数・乱数は <code>Double</code> のまま持ち, 元帳に入る時点で <code>realToFrac</code> で変換し, 集計値を可視化へ戻すときに <code>Double</code> に戻す境界パターンを推奨しています. 同梱の簿記例とシミュレーション例はこの形に揃えました. Leontief 逆行列や最適化のような数値計算主体の例は <code>Double</code> のままです.</p>
+<h1 id="勘定科目の意味情報と転記の権限">勘定科目の意味情報と転記の権限</h1>
+<p>0.4 系の勘定科目 <code>AccountTitles</code> は列挙型と, 5 区分 (資産・負債・資本・費用・収益) やサイドを返す少数の関数だけを持っていました. 0.5.0.0 では科目ごとの正本となる <strong>registry</strong> を置き, 日商簿記 2 級・3 級の商業簿記の科目を取り込んで 235 の具体科目に拡張しました. 各科目には <strong><code>AccountSemantics</code></strong> として, 科目の役割, 転記できる文脈 (後述), 旧来の 5 区分が何を意味しているか, ホームサイド, 財務諸表への表示可否が付きます. <code>IncomeSummary</code> の区分が <code>Assets</code> になっているような, 方向の符号化を区分に流用していた箇所は, 分類ではなく符号化として説明されるようになりました.</p>
+<p>外部データからの転記を安全にする層も追加しました. <code>ExchangeAlgebra.Convert</code> は借貸・科目名・金額の生データと代数の項を相互変換し, <code>Convert.Csv</code> は固定 schema の仕訳 CSV を読み, <code>Convert.Checked</code> は科目名の解決と転記の妥当性を検査してから <code>Journal</code> を作ります. 日商簿記の B 欄にある「未払金」「借入金」「仮払金」「仮受金」「有価証券」「投資有価証券」の 6 語は複数の科目に対応するので, 一意に解決せず候補付きの <code>AmbiguousAccount</code> を返します.</p>
+<p>転記の権限は <strong>処理文脈</strong> (<code>ProcessingContext</code>) で決まります. 通常仕訳 (<code>OrdinaryJournal</code>) に加えて, 決算処理 (<code>ClosingProcess</code>), 連結精算表 (<code>ConsolidationWorksheet</code>), シミュレーションエンジン (<code>EngineComputation</code>) の 3 つがあり, それぞれが自分専用の転記能力を 1 つだけ追加します. 検査付き変換は文脈を引数に取り, 文脈に合わない科目は <code>PostingNotAllowed</code> で拒否します. 損益勘定 <code>IncomeSummary</code> を通常仕訳で転記しようとすると弾かれ, 決算処理では通ります.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">ExchangeAlgebra.Accounting.PostingPolicy</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>postingCapabilityFor <span class="dt">IncomeSummary</span>                                   <span class="co">-- ClosingOnly</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>postingAllowedIn <span class="dt">OrdinaryJournal</span> (postingCapabilityFor <span class="dt">IncomeSummary</span>) <span class="co">-- False</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>postingAllowedIn <span class="dt">ClosingProcess</span>  (postingCapabilityFor <span class="dt">IncomeSummary</span>) <span class="co">-- True</span></span></code></pre></div>
+<p>代数の構築自体 (<code>.@</code> や <code>.+</code>) はこの検査を通りません. 検査は外部入力が元帳に入る境界にだけ置き, 代数の内部では従来どおり自由に項を作れます.</p>
+<h1 id="評価勘定の扱いと決算仕訳">評価勘定の扱いと決算仕訳</h1>
+<p>0.4 系では減価償却累計額と貸倒引当金を <code>Liability</code> 区分に置いていました. 貸方残高になる資産の控除項目を, 区分の側だけで表現していたためです. 0.5.0.0 では <code>ExBaseClass</code> に <strong><code>isContra</code></strong> を加え, この 2 科目を <code>Assets</code> 区分の評価勘定として表します. ホームサイドと PIMO は <code>(区分, isContra)</code> の組から導出し, 評価勘定では区分の既定サイドを反転します. 観測できる不変条件として <code>whichSide</code>, <code>whatPIMO</code>, <code>fixedCurrent</code> は全科目で従来と同じ値を返し, 変わったのはこの 2 科目の <code>whatDiv</code> だけです.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>isContra  (<span class="dt">Not</span> <span class="op">:&lt;</span> <span class="dt">AccumulatedDepreciation</span>)  <span class="co">-- True</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>whatDiv   (<span class="dt">Not</span> <span class="op">:&lt;</span> <span class="dt">AccumulatedDepreciation</span>)  <span class="co">-- Assets   (0.4 系では Liability)</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>whichSide (<span class="dt">Not</span> <span class="op">:&lt;</span> <span class="dt">AccumulatedDepreciation</span>)  <span class="co">-- Credit   (変わらない)</span></span></code></pre></div>
+<p>この変更は 3 か所に波及します. 第一に, 区分ごとの 6 つの射影 (<code>projCurrentAssets</code>, <code>projFixedLiability</code> など) は評価勘定を含めなくなり, 評価勘定は <code>projContraAssets</code> か汎用の <code>projContra</code> で取り出します. 第二に, 貸借対照表と損益計算書の行を作る <code>bsRows</code> / <code>plRows</code> は, 評価勘定を負債側に置いたり損益の控除科目を落としたりせず, 総額行・控除行・純額行の 3 行で表示します. 格納される値は非負のまま保ち, 負号は行を描画する時点でのみ付きます. 第三に, 区分同士の交換可能性 <code>(&lt;=&gt;)</code> を PIMO から導出するようにした結果, <code>(Assets, Revenue)</code> と <code>(Cost, Revenue)</code> の組 (逆順も同様) が <code>False</code> から <code>True</code> に変わりました. 基底の交換判定には区分でなく <code>whatPIMO</code> を使うのが 0.5.0.0 の作法です.</p>
+<p>決算仕訳の範囲も広げました. 0.4 系の <code>finalStockTransfer</code> は SNA 由来の 17 科目しか締めていませんでしたが, 0.5.0.0 では registry から締め対象を導出し, すべての費用・収益科目を締めます. <code>NetIncome</code> と <code>NetLoss</code> だけは区分が損益計算書の表示側を符号化しているため, 区分由来の規則を適用すると振替の符号が反転します. この 2 科目は明示的に <code>NoClose</code> とし, 専用の純損益振替が受け持ちます.</p>
+<h1 id="試算表から財務諸表までの層">試算表から財務諸表までの層</h1>
+<p>0.4 系にも <code>Write</code> に貸借対照表・損益計算書・試算表の CSV 出力はありましたが, 試算表の検証, 表示への変換, 派生指標はライブラリの外にありました. 0.5.0.0 では次のモジュール群を加えました. <code>Bookkeeping</code> 以外は代数の項に新しい転記を挿入せず, 読み出し専用で動きます.</p>
+<ul>
+<li><strong><code>ExchangeAlgebra.Bookkeeping</code></strong>: 決算整理仕訳 (減価償却, 引当金, 経過勘定, 持分法, 前期誤謬の訂正) を, 外部から与えた金額を明示引数として構築します.</li>
+<li><strong><code>ExchangeAlgebra.TrialBalance.Balance</code></strong>: 借方・貸方の方向を構造として持つ <code>AccountBalance</code> と, (借方, 貸方) の順に固定した相殺の基本演算. 試算表・表示・連結が同じ 1 つの相殺規則を共有します.</li>
+<li><strong><code>ExchangeAlgebra.TrialBalance.Validation</code></strong>: 相互科目・一時科目・異常残高などの所見を報告し, 明示した方針で報告への進行を止めます.</li>
+<li><strong><code>ExchangeAlgebra.Reporting.Presentation</code></strong>: 検証済みの試算表から日本基準 (JGAAP) の表示へ変換します. 変換の出所を追える形で保ちます.</li>
+<li><strong><code>ExchangeAlgebra.Reporting.Metric</code></strong>: 期間損益などの派生指標を型付きで返します. <code>periodResultOf</code> は元帳から期間の損益を導きます.</li>
+<li><strong><code>ExchangeAlgebra.Consolidation.Worksheet</code></strong>: 連結修正仕訳を検証し, 精算表の出所を保持します.</li>
+<li><strong><code>ExchangeAlgebra.Reporting.Group</code></strong>: 前節の表示グループと評価勘定の相殺方針.</li>
+</ul>
+<p><code>Write</code> の CSV 出力は残っていますが, 行を組み立てる純関数 (<code>bsRows</code> など) を切り出したので, CSV を経由せずに行データを取れます. 決算関連の書類 3 種の CSV writer もここに加えました.</p>
+<h1 id="シミュレーション-lite-front-end-方針の宣言-スピルの検証">シミュレーション: Lite front-end, 方針の宣言, スピルの検証</h1>
+<h2 id="新しいモデルは-lite-で書く">新しいモデルは Lite で書く</h2>
+<p>0.4 系のシミュレーションは <code>StateSpace</code> と <code>Updatable</code> インスタンスを手で書く front-end でした. 0.5.0.0 の <strong><code>ExchangeAlgebra.Simulate.Lite</code></strong> はその engine の上に載る別の front-end で, 新しいモデルはこちらで書きます. モデルは 3 つの要素からなります. <code>Generic</code> から導出する product-only の world record (各 field に初期値・可変参照・スナップショットの役割を型族で付ける), 各 agent をスナップショットから <code>Journal</code> (メッセージ) へ写す純関数の stage の列, 期間・seed・元帳 field・stage・並列方針を束ねる <code>SimSpec</code> です.</p>
+<p>意味論は bulk-synchronous parallel (BSP) に固定しました. 1 つの stage の中では全 agent が同じスナップショットを見て, 同じ stage 内の先行 agent が出したメッセージは見えません. メッセージは stage の終わりに一括で元帳へ commit され, 後続の stage と後続の期にだけ見えます. 従来の engine は命令的な step が同じ step 内の変更を読めたので, 移植するモデルは read-then-write の依存を 2 つの stage に分けます. 各 agent の乱数生成器は (seed, 期, stage, agent) の 4 つ組だけから導くので, 逐次実行と chunk 並列実行が同じ元帳を返します. これは同梱のテストで固定しています.</p>
+<p>従来の front-end は公表済み結果の再現のために残し, 新機能は加えません. 併せて, 最上位モジュール <code>ExchangeAlgebra</code> は <code>Simulate</code> を再エクスポートしなくなりました. <code>copy</code>, <code>modify</code>, <code>update</code>, <code>normal</code> のような一般的な名前が簿記の入口を汚していたためで, 使う側は <code>import ExchangeAlgebra.Simulate</code> を 1 行足します.</p>
+<h2 id="長期シミュレーションの方針を宣言する">長期シミュレーションの方針を宣言する</h2>
+<p><strong><code>ExchangeAlgebra.Simulate.Policy</code></strong> は, 元帳の保持・スピル・圧縮を <code>LedgerPolicy</code> として宣言する語彙です. 既定は全転記を保持する <code>FullAudit</code> で, 監査証跡を保ちます. 長期の run では閉じた期の履歴が単調に増えて常駐メモリを支配するので, <code>CompressClosedTerms</code> を明示して閉じた期だけを圧縮できます. 進行中の期は圧縮せず, <code>norm</code> と残高は保たれます. 圧縮を関数の内部で暗黙に呼ぶことは設計上禁じているため, 方針の名前として書かせる形にしました.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ot">longRunPolicy ::</span> <span class="dt">LedgerPolicy</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>longRunPolicy <span class="ot">=</span> <span class="dt">LedgerPolicy</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  { retain     <span class="ot">=</span> <span class="dt">RetainRecent</span> <span class="dv">2</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  , spillTo    <span class="ot">=</span> <span class="dt">Just</span> <span class="st">&quot;ledger.spill&quot;</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  , compaction <span class="ot">=</span> <span class="dt">CompressClosedTerms</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  }</span></code></pre></div>
+<p>この設定 (直近 2 期を常駐, それ以前はディスクへ, 常駐分の閉じた期は圧縮) は, 非圧縮の全保持に比べて常駐メモリを大きく削ります. Lite からは <code>runLiteWithPolicy</code> で適用します.</p>
+<h2 id="スピルファイルを検証してから復元する">スピルファイルを検証してから復元する</h2>
+<p>スピル (ディスク退避) の codec と復元は <strong><code>ExchangeAlgebra.Simulate.Spill</code></strong> に集約しました. 0.4 系の <code>readBinarySpillFile</code> は復号に失敗した chunk 以降を黙って切り捨て, <code>restoreJournalFromBinarySpill</code> は部分的にしか読めないファイルや古いファイルを完全なものとして合流させていました. 最後に読めた chunk までの項が消えても気づけません. 0.5.0.0 では最初の復号失敗で例外を上げ, chunk の範囲が順序違い・重複・欠落・空のいずれかなら復元を拒否します. <code>Either</code> で受けたい場合は <code>Checked</code> 付きの変種を使います.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>readBinarySpillFileChecked</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="ot">  ::</span> (<span class="dt">Binary</span> t, <span class="dt">Binary</span> payload, <span class="dt">Ord</span> t, <span class="dt">Enum</span> t)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="ot">=&gt;</span> <span class="dt">FilePath</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> (<span class="dt">Either</span> (<span class="dt">SpillReadError</span> t) [((t, t), payload)])</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">SpillReadError</span> t</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  <span class="ot">=</span> <span class="dt">SpillDecodeFailure</span> {<span class="ot"> spillErrorOffset ::</span> <span class="dt">Int64</span>,<span class="ot"> spillErrorChunks ::</span> <span class="dt">Int</span>,<span class="ot"> spillErrorMessage ::</span> <span class="dt">String</span> }</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="dt">SpillRangeError</span>    {<span class="ot"> spillRangeIssue ::</span> <span class="dt">SpillRangeIssue</span>,<span class="ot"> spillRangePrevious ::</span> (t, t),<span class="ot"> spillRangeCurrent ::</span> (t, t) }</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="dt">SpillEmptyRange</span>    {<span class="ot"> spillRangeCurrent ::</span> (t, t) }</span></code></pre></div>
+<p>Lite の run はスピルファイルを開くときに切り詰める (<code>WriteMode</code>) ので, 同じパスで再実行しても古い chunk が積み上がりません.</p>
+<h2 id="取引ネットワークと産業連関の生成">取引ネットワークと産業連関の生成</h2>
+<p><strong><code>ExchangeAlgebra.Simulate.Network</code></strong> は, 市場の取引関係 (<code>TradeNetwork</code>) と投入係数 (<code>InputCoefficients</code>) を分けて持ちます. 生成器は決定的で, 完全グラフ, circulant, k-正則, Erdős–Rényi, scale-free, sector block を用意しました. <code>industrialNetwork</code> / <code>industrialFlows</code> は順序付きの CL-SBM (部門で順序づけ, べき乗則で重み付けしたブロック三角のネットワーク) を整数 seed から決定的に生成し, 同梱の <code>industrialEx1</code> がその使い方を示します. 同じ seed から同じネットワークが出ることを前提に, 論文側の再現手順と対応づけています.</p>
+<h2 id="その他の追加">その他の追加</h2>
+<p><code>ExchangeAlgebra.Optimize</code> はソルバの共通インターフェースで, 焼きなまし (<code>Optimize.Annealing</code>) と実数値遺伝的アルゴリズム (<code>Optimize.GA</code>) の 2 実装を持ちます. 代数側では <code>mapBasePart</code> の関手則, <code>foldEntries</code> の普遍性, <code>postFromNetBy</code> の <code>bar</code> を経由する分解をそれぞれ文書化し, property test で固定しました. 基底の一部で商をとる <code>decBy</code> と, 純額から転記へ戻す <code>postFromNetBy</code> はその上に載ります.</p>
+<h1 id="モジュール境界の整理">モジュール境界の整理</h1>
+<p>公開モジュールは 35 になり, 7 つの層 (入口, 科目語彙, 中核代数, 仕訳とシミュレーション, 簿記と報告, 変換と補助, 最適化) に並べました. 依存は層の並びに沿って一方向で, 0.4 系にあった <code>Write</code> から <code>Simulate</code> への依存は無くなりました. スピルの読み書きは <code>Simulate.Spill</code> に置き, <code>Simulate</code> と <code>Write</code> と <code>Policy</code> がそれぞれそこを見ます.</p>
+<p><code>Alg</code>, <code>Journal</code>, <code>TransTable</code> は抽象型にしました. <code>Alg</code> が公開するのは <code>Zero</code>, <code>(:@)</code>, <code>_val</code>, <code>_hatBase</code> だけで, 複数転記の内部表現とキャッシュ field は <code>ExchangeAlgebra.Algebra.Internal</code> に移しました. <code>Journal</code> は内部に軸ごとの索引を持ち, 手で組み立てた値は索引と本体がずれ, ワイルドカード射影が誤った答えを黙って返すことがあります. 抽象化はこの経路を塞ぐためで, 構築には <code>mkJournal</code>, <code>(.|)</code>, <code>fromList</code>, 転記の一対一の写像には型付きの <code>mapPosting</code> / <code>mapMaybePosting</code>, note の付け替えには <code>replaceNotes</code> を使います. <code>Internal</code> は PVP の互換保証の外にあります.</p>
+<p><code>Chart</code> / <code>Chart-cairo</code> による描画は Cabal flag <code>visualize</code> の背後に置きました. 既定は on なので挙動は変わりませんが, cairo や pango を入れたくない環境では flag を切れば <code>ExchangeAlgebra.Simulate.Visualize</code> ごと依存から外れます.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># stack.yaml</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="fu">flags</span><span class="kw">:</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">exchangealgebra</span><span class="kw">:</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">visualize</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span></code></pre></div>
+<h1 id="性能">性能</h1>
+<p><code>Journal.fromList</code> を遅延の右畳み込みから正格の左畳み込みに変えました. 中核ベンチマークでは転記数が増えるほど差が開き, 万単位の入力で桁違いに速くなります. 転記の多重集合は保たれ, 変わるのは同じ note と基底に衝突した転記の列の順序だけです. この順序は <code>Eq</code> / <code>Show</code> / <code>Binary</code> と, <code>Double</code> では <code>norm</code> の最下位桁に現れます. <code>MoneyDecimal</code> では現れません. ほかに, 完全一致の射影の fast path, 仕訳追加の高速化, 試算表の行生成での射影の共有を入れました. いずれも規模に対する具体的な計測は別記事で扱います.</p>
+<p><code>AccountTitles</code> の <code>Binary</code> タグは Word8 から big-endian の Word16 になりました. 256 科目の上限が外れ, 範囲外のタグは <code>Get</code> の失敗として報告されます. 0.4 系で書き出したスピルファイルや <code>Journal</code> のバイナリは 0.5.0.0 では読めません.</p>
+<h1 id="系からの移行">0.4 系からの移行</h1>
+<p><code>Double</code> の元帳を <code>.@</code> と <code>.+</code> で組み立てて <code>norm</code> や <code>bar</code> で読むだけの利用なら, 変更は要りません. 次に該当するときだけ手を入れます.</p>
+<p>影響が広いのは次の 4 つです.</p>
+<ul>
+<li><strong>自前の <code>HatVal</code> インスタンス</strong>: <code>showValue</code> を定義します. <code>HatVal n =&gt; RealFloat n</code> を前提にした signature には <code>RealFloat</code> を明示します.</li>
+<li><strong><code>Liner</code> / <code>Journal</code> / <code>TransTable</code> の構成子を直接使っていた</strong>: <code>Alg</code> の内部表現だけは <code>ExchangeAlgebra.Algebra.Internal</code> から取れます. <code>Journal</code> と <code>TransTable</code> の構成子は公開されないので, <code>mkJournal</code> / <code>(.|)</code> / <code>fromList</code> と <code>table</code> / <code>(.-&gt;)</code> / <code>(|%)</code> に置き換えます.</li>
+<li><strong><code>ExchangeAlgebra</code> 経由で <code>Simulate</code> の名前を使っていた</strong>: <code>import ExchangeAlgebra.Simulate</code> を足します. <code>Base.Element</code> 経由で <code>Data.Hashable</code> / <code>GHC.Generics</code> 全体を使っていた場合も直接 import に変えます.</li>
+<li><strong>スピルファイルを読んでいた</strong>: 壊れたファイルは例外になります. <code>Either</code> が欲しければ <code>Checked</code> 変種へ. 0.4 系のバイナリは Word16 化のため読めません.</li>
+</ul>
+<p>残りは該当する箇所だけ直します.</p>
+<ul>
+<li><strong><code>fromList</code> の出力を <code>Show</code> や <code>Binary</code> でバイト単位に比較していた</strong>: 同じ (note, 基底) 内の順序が変わりえます. <code>norm</code> / <code>bar</code> / <code>balanceBy</code> で比較します. <code>MoneyDecimal</code> にすれば数値結果は順序に依存しなくなりますが, <code>Show</code> / <code>Binary</code> に現れる順序は残ります.</li>
+<li><strong><code>Element</code> のワイルドカード method</strong>: 綴りを <code>wiledcard</code> から <code>wildcard</code> に直しました (<code>haveWiledcard</code> / <code>isWiledcard</code> / <code>ignoreWiledcard</code> も同じ綴りの修正). 互換 alias はありません.</li>
+<li><strong>負のスカラーを <code>(.*)</code> に渡していた</strong>: 例外になります. 値域は非負なので, 減少は Hat 側の転記で表します.</li>
+<li><strong><code>whichSide</code> にワイルドカード基底を渡していた</strong>: 黙って <code>Hat</code> 扱いだったものが例外になります.</li>
+<li><strong>日商簿記 B 欄の 6 語を <code>parseAccountTitle</code> で解決していた</strong>: <code>AmbiguousAccount</code> を受けて候補から選ぶか, 正規の構成子名を使います.</li>
+<li><strong><code>Simulate.Lite</code> の <code>Stage</code> 構成子や <code>GLite*</code> の primed method</strong>: 名前だけの export になりました. <code>stageFor</code> / <code>stage</code> / <code>stageOf</code> で作り, <code>stageName</code> で読みます.</li>
+<li><strong>評価勘定を <code>Liability</code> 側の射影で取っていた</strong>: <code>projContraAssets</code> へ. 区分の交換判定は <code>whatPIMO</code> へ.</li>
+<li><strong><code>AccountInfo</code> の <code>aiDivision</code> / <code>aiHomeSide</code> を読んでいた</strong>: <code>AccountSemantics</code> 由来の意味別の field に置き換わりました.</li>
+<li><strong>振替規則の生のタプルを <code>show</code> していた</strong>: <code>HatVal n =&gt; Show (n -&gt; n)</code> の汎用インスタンスを削除しました.</li>
+<li><strong><code>Journal</code> の <code>_jVersion</code> を参照していた</strong>: どの読み出し経路からも観測されない書き込み専用の counter だったので削除しました.</li>
+<li><strong>重複や包含のある複数パターンで <code>proj</code> / <code>projNorm</code> を呼んでいた</strong>: 集合の意味論になり, 各転記は高々 1 回だけ選ばれます. 以前は重複分を二重に数えていました.</li>
+<li><strong>連結精算表の <code>BalancePosition</code></strong>: 共通の <code>AccountBalance</code> に統合しました.</li>
+<li><strong>非推奨 (0.6 で削除予定)</strong>: <code>projNorm</code> / <code>projWithBaseNorm</code> / <code>projWithNoteNorm</code> は, <code>bar</code> による相殺を名前に出した <code>projNetNorm</code> / <code>projWithBaseNetNorm</code> / <code>projWithNoteBaseNetNorm</code> の別名になりました. <code>Journal.insert</code> は <code>replaceNotes</code> の別名になりました. <code>Number.NonNegative.Double</code> の <code>HatVal</code> インスタンスと <code>rounding</code> も非推奨で, <code>MoneyDouble</code> と <code>Value</code> の丸め関数へ移ります.</li>
+</ul>
+<h1 id="インストール">インストール</h1>
+<div class="sourceCode" id="cb7"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># stack.yaml</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="fu">extra-deps</span><span class="kw">:</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> exchangealgebra-0.5.0.0</span></span></code></pre></div>
+<p>GHC 9.10 (Stackage <code>lts-24.4</code> で検証) が対象で, 0.4 系と同じです. 既定では <code>Chart-cairo</code> を経由して cairo / pango が要るので, 不要なら前節の flag で外します. 同梱の例は GitHub の <code>examples/</code> にあり, 0.5.0.0 では <code>examples/stack.yaml</code> が Hackage 版を指すので, <code>examples/</code> だけを取り出して <code>stack build</code> できます.</p>
+<h1 id="今後">今後</h1>
+<p>非推奨にした API (<code>projNorm</code> 系の旧名, <code>Journal.insert</code>, <code>Number.NonNegative.Double</code> の <code>HatVal</code> インスタンス, <code>rounding</code>) は 0.6 で削除します. 値型・保持方針・並列度を振ったときの計算時間とメモリの scaling は, 本記事では概要にとどめました. 計測条件を揃えた結果は別記事にまとめます. Exchange Algebra の代数構造の解説記事は, 関連論文の正式公表後に改めて書く予定です.</p>]]></description>
+    <pubDate>Fri, 04 Sep 2026 00:00:00 UT</pubDate>
+    <guid>/posts/2026-09-04-exchangealgebra-0-5-0-0.html</guid>
+    
+    <author>kaya3728@gmail.com (yakagika)</author>
+    
+    <dc:creator>yakagika</dc:creator>
+</item>
+<item>
     <title>関数型プログラミング Ch9 圏と多相データ型</title>
     <link>/lectures/fp9.html</link>
     <description><![CDATA[<p><a href="fp8.html">前章 (第8章)</a>では, 型 (= 集合) の上に演算と法則を載せた <strong>代数構造</strong> と, その受け皿としての型クラスを見ました. 章の後半では <strong>準同型 (構造を保つ写像)</strong> が中心になり, 締めくくりで「台が値から関数 (射) へ持ち上がる」と予告しました. 本章はその回収です.</p>
@@ -9009,581 +9151,6 @@ fib(n-1) + fib(n-2),~if~n &gt;=2
 </section>]]></description>
     <pubDate>Fri, 18 Oct 2024 00:00:00 UT</pubDate>
     <guid>/lectures/fp5.html</guid>
-    
-    <author>kaya3728@gmail.com (yakagika)</author>
-    
-    <dc:creator>yakagika</dc:creator>
-</item>
-<item>
-    <title>関数型プログラミング Ch4 スクリプトファイルとエラー対応</title>
-    <link>/lectures/fp4.html</link>
-    <description><![CDATA[<h1 id="スクリプトファイルの実行-復習">スクリプトファイルの実行 (復習)</h1>
-<div class="warn">
-<p><strong>コラム: Windows / VSCode 環境でよくある引っかかり</strong></p>
-<p>Haskell コード自体ではなく <strong>開発環境</strong> の設定が原因で <code>stack ghci</code> や <code>stack build</code> がうまく動かないケースが多発します. 「コードは合っているのに動かない」「エラーメッセージが文字化けして読めない」といった症状が出たら, <strong>Haskell ではなく環境を疑って</strong> 以下を確認してください.</p>
-<h3 id="vscode-で-階層が一つ上のディレクトリ-を開いていないか">1. VSCode で <strong>階層が一つ上のディレクトリ</strong> を開いていないか</h3>
-<p>VSCode の「Open Folder」で例えば <code>~/Projects</code> を開いてしまい, 実際のプロジェクト本体 <code>~/Projects/myproject</code> をターミナルから扱おうとすると, Stack が <code>stack.yaml</code> や <code>package.yaml</code> を見つけられず混乱します.</p>
-<p>→ <strong><code>stack.yaml</code> / <code>package.yaml</code> がある階層を VSCode のルートとして開き直す</strong> こと. ターミナルの <code>pwd</code> で現在地と一致しているかを確認しましょう.</p>
-<p>参考 (VSCode 公式 — 英語): <a href="https://code.visualstudio.com/docs/editor/workspaces">Workspaces in Visual Studio Code</a></p>
-<h3 id="vscode-で-複数のウィンドウから同じディレクトリを開いている-ことはないか">2. VSCode で <strong>複数のウィンドウから同じディレクトリを開いている</strong> ことはないか</h3>
-<p>同一プロジェクトを複数 VSCode ウィンドウで同時に開くと, Haskell Language Server や Stack の状態が二重に走り, ビルドキャッシュの食い違いやメモリ大量消費の原因になります.</p>
-<p>→ <strong>使っていないウィンドウは閉じて 1 つに揃える</strong> こと. 「Window メニュー」や Cmd/Ctrl+` で開いているウィンドウ一覧を確認できます.</p>
-<h3 id="ターミナルの-コードページ-chcp-が-utf-8-になっているか-windows-のみ">3. ターミナルの <strong>コードページ (<code>chcp</code>) が UTF-8 になっているか</strong> (Windows のみ)</h3>
-<p>Windows の PowerShell / cmd は既定で <strong>Shift_JIS (コードページ <code>932</code>)</strong> を使います. Haskell の標準出力は <strong>UTF-8</strong> なので, 日本語を含む文字列を扱うと文字化けや出力エラーが発生することがあります.</p>
-<p>応急処置としては, ターミナルで UTF-8 (<code>65001</code>) に切り替えるコマンドを打てば解消します:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">chcp</span> 65001</span></code></pre></div>
-<p>ただし <code>chcp 65001</code> は <strong>そのターミナル 1 回限り</strong> の効果しか持たないため, ターミナルを開き直すたびに毎回打ち直す必要があります. <strong>VSCode で Haskell を学習するなら, 統合ターミナルが起動した瞬間に UTF-8 になるよう <code>settings.json</code> に書いておくのが圧倒的に楽</strong> です. 以下を推奨します.</p>
-<h4 id="推奨-vscode-の-settings.json-で起動時に自動で-utf-8-にする">推奨: VSCode の <code>settings.json</code> で起動時に自動で UTF-8 にする</h4>
-<ol type="1">
-<li>VSCode で <strong><code>Ctrl + Shift + P</code></strong> → 「<strong>Preferences: Open User Settings (JSON)</strong>」 を選んで <code>settings.json</code> を開く.</li>
-<li>次の内容を追記する (既にある設定とマージする形で OK):</li>
-</ol>
-<div class="sourceCode" id="cb2"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;terminal.integrated.defaultProfile.windows&quot;</span><span class="fu">:</span> <span class="st">&quot;PowerShell (UTF-8)&quot;</span><span class="fu">,</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;terminal.integrated.profiles.windows&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;PowerShell (UTF-8)&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;PowerShell&quot;</span><span class="fu">,</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;args&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;-NoExit&quot;</span><span class="ot">,</span></span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;-Command&quot;</span><span class="ot">,</span></span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;chcp 65001 | Out-Null&quot;</span></span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>            <span class="ot">]</span></span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>        <span class="fu">}</span></span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
-<ol start="3" type="1">
-<li>VSCode の統合ターミナル (<code>Ctrl + `</code>) を一度閉じて開き直す.</li>
-</ol>
-<p>これで, <strong>新しくターミナルを開くたびに自動で UTF-8 に切り替わった状態で立ち上がる</strong> ようになります.</p>
-<p>各引数の役割:</p>
-<table>
-<colgroup>
-<col style="width: 50%" />
-<col style="width: 50%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th>引数</th>
-<th>役割</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><code>-NoExit</code></td>
-<td><code>chcp 65001</code> を実行した後も PowerShell を終了させずに対話モードを継続</td>
-</tr>
-<tr class="even">
-<td><code>-Command "chcp 65001 \| Out-Null"</code></td>
-<td>起動時に <code>chcp 65001</code> を実行. <code>Out-Null</code> で「Active code page: 65001」の出力を消す</td>
-</tr>
-<tr class="odd">
-<td><code>source: "PowerShell"</code></td>
-<td>VSCode が検出した PowerShell 実行ファイルを使う (Windows PowerShell 5.1 / PowerShell 7 のどちらでも OK)</td>
-</tr>
-</tbody>
-</table>
-<h4 id="補足-より恒久的な対処-任意">補足: より恒久的な対処 (任意)</h4>
-<ul>
-<li><strong>OS 全体で UTF-8 にする</strong>: Windows の「地域」設定 → 「管理」タブ → 「システム ロケールの変更」で <strong>「ベータ: ワールドワイド言語サポートで Unicode UTF-8 を使用」</strong> にチェック. これで PowerShell / cmd / 他のアプリすべてが UTF-8 で動作するようになりますが, 一部の旧 Windows アプリで文字化けする可能性があるため <strong>ベータ機能扱い</strong>.</li>
-<li><strong>PowerShell プロファイルに書く</strong>: VSCode 以外のターミナル (Windows Terminal など) でも自動 UTF-8 にしたい場合は, <code>notepad $PROFILE</code> でプロファイルを開いて <code>chcp 65001 | Out-Null</code> を追記する方法もあります.</li>
-</ul>
-<p>参考:</p>
-<ul>
-<li><a href="https://qiita.com/s4i/items/d6d19c24b9d8ff193f72">VSCodeの統合ターミナルでPowerShell起動時、文字コードをUTF-8に変える方法 (Qiita)</a></li>
-<li><a href="https://haskell.jp/blog/posts/2017/windows-gotchas.html">Windowsでのよくある落とし穴 (Haskell-jp ブログ)</a></li>
-</ul>
-<h3 id="smart-app-control-windows-11-が-stack-をブロック-している-windows-のみ">4. <strong>Smart App Control (Windows 11) が Stack をブロック</strong> している (Windows のみ)</h3>
-<p>Windows 11 の <strong>Smart App Control (スマートアプリコントロール, 略 SAC)</strong> が有効になっていると, Stack が GHC のビルドのために内部で起動する <strong><code>Cabal-simple_*.exe</code> (<code>C:\sr\setup-exe-cache\...</code>)</strong> が「未署名」と判定され, 起動自体が阻まれて <code>stack build</code> が以下のような cryptic なエラーで失敗します.</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">PS</span> C:<span class="dt">\U</span>sers<span class="dt">\u</span>ser<span class="dt">\H</span>askell<span class="dt">\t</span>est2<span class="op">&gt;</span> stack build</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">test2</span><span class="op">&gt;</span> configure <span class="er">(</span><span class="ex">lib</span> + exe<span class="kw">)</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="ex">Error:</span> <span class="pp">[</span><span class="ss">S</span><span class="pp">-</span><span class="ss">7282</span><span class="pp">]</span></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>       <span class="ex">Stack</span> failed to execute the build plan.</span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>       <span class="ex">While</span> executing the build plan, Stack encountered the error:</span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>       <span class="ex">C:\sr\setup-exe-cache\x86_64-windows\Cabal-simple_O_vy6YIf_3.12.1.0_ghc-9.10.3.exe:</span> startProcess: invalid argument <span class="er">(</span><span class="ex">Invalid</span> argument<span class="kw">)</span></span></code></pre></div>
-<p>メッセージは <code>startProcess: invalid argument</code> という Haskell 由来の文言で <strong>原因が極めて分かりにくい</strong> のが特徴です. 実体は SAC によるブロックなので, 修正は Windows 側の設定で行います.</p>
-<p>→ <strong>対策: スマートアプリコントロールを OFF にする</strong></p>
-<p><code>設定</code> → <code>プライバシーとセキュリティ</code> → <code>Windows セキュリティ</code> → <code>アプリとブラウザーの制御</code> → <code>スマートアプリコントロールの設定</code> → <strong>オフ</strong></p>
-<div class="warn">
-<p>SAC は本来 Windows 全体のマルウェア防御の一部なので, OFF にすると保護レベルが下がります. それでも本講義では Stack / Haskell 開発を進めるためには現状この方法しか実用解がありません.</p>
-<p>サーベイ結果(2026 年 5 月時点):</p>
-<ul>
-<li><strong>SAC には個別アプリの除外リスト機能が無い</strong>. Microsoft 公式 FAQ で「<strong>There is currently no way to bypass Smart App Control protection for individual apps</strong>」と明記.</li>
-<li><code>Cabal-simple_*.exe</code> のような Stack 内部の補助実行ファイルは Microsoft 署名を持たないため一律ブロックされる.</li>
-<li>イベントログ (<code>Applications and Services Logs &gt; Microsoft &gt; Windows &gt; CodeIntegrity &gt; Operational</code>, Event ID 3076/3077) で具体的にどの exe がブロックされたかは確認できるが, ブロックを解除する手段は無い.</li>
-<li>当初 SAC は「<strong>一度 OFF にするとクリーンインストールしないと再有効化できない</strong>」仕様だったが, 最近の Windows update で <strong>Windows セキュリティアプリから再有効化可能</strong> に改善されている.</li>
-</ul>
-<p>そのため「開発が終わったら再度 ON に戻す」運用も実用可能です. 個別の Stack 関連 exe を whitelist する手段は <strong>2026 年現在も存在しません</strong>.</p>
-</div>
-<p>参考: <a href="https://support.microsoft.com/en-us/windows/smart-app-control-frequently-asked-questions-285ea03d-fa88-4d56-882e-6698afdb7003">Smart App Control Frequently Asked Questions (Microsoft Support)</a></p>
-<hr />
-<p>これらは本章後半で扱う <strong>GHC のエラー</strong> とは別軸の「環境起因の問題」です. エラーメッセージそのものに違和感が無く挙動だけが変な場合は, まず上記 3 点を疑ってみてください.</p>
-</div>
-<div class="warn">
-<p>ここから先は,コードが複数行に渡ることが多くなるので,ghciの利用をやめてスクリプトを書きます.</p>
-<p><code>app</code> フォルダ内に <code>practice.hs</code>を作成しそこで事例の勉強をしましょう.</p>
-</div>
-<p><code>practice.hs</code> ファイルを作成したら,ファイルを以下のように記述しましょう.</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ot">{-# LANGUAGE OverloadedStrings #-}</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Data.Text</span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">putStrLn</span> <span class="st">&quot;practice&quot;</span></span></code></pre></div>
-<div class="warn">
-<p><code>module XXX () where</code></p>
-<p>という記述は,他のファイルからインポート可能なmodule化を行うための宣言です.
-また,Stackでは,<strong>大文字で始まる<code>*.hs</code>ファイルは,moduleとして認識されます.</strong></p>
-<p>したがって,一つのプロジェクトに複数の実行可能ファイルを生成する場合には,</p>
-<p><code>module XXX () where</code></p>
-<p>の記述をなくし, ファイル名を小文字ではじめる必要があります.</p>
-<p>これは,<code>Hello World</code>のために編集した<code>Main.hs</code>も同様であるため,<code>Main.hs</code>を<code>hello.hs</code>に名前を変更し,ファイル内の <code>module Main (main) where</code>の記述も削除し,以下のように変更しましょう.</p>
-<p>cf. <a href="https://www.reddit.com/r/haskell/comments/capuz7/multiple_executable_in_project/">他にもいくつかの方法があるようです</a></p>
-</div>
-<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Lib</span></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> helloWorld</span></code></pre></div>
-<p><code>package.yaml</code>の<code>executables:</code>を以下のように編集して<code>hello.hs</code>と<code>practice.hs</code>を実行可能ファイルとして登録します. <code>Data.Text</code>を利用するために,<code>dependencies:</code>以下に<code>- text</code>を追加しておきましょう.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dependencies</span><span class="kw">:</span></span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> base &gt;= 4.7 &amp;&amp; &lt; 5</span></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> text</span></span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co">#ghc-options:</span></span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span><span class="kw">:</span></span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">source-dirs</span><span class="kw">:</span><span class="at"> src</span></span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="fu">executables</span><span class="kw">:</span></span>
-<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">hello</span><span class="kw">:</span></span>
-<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">main</span><span class="kw">:</span><span class="at">                main.hs</span></span>
-<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">source-dirs</span><span class="kw">:</span><span class="at">         app</span></span>
-<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">ghc-options</span><span class="kw">:</span></span>
-<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -threaded</span></span>
-<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -rtsopts</span></span>
-<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -with-rtsopts=-N</span></span>
-<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">dependencies</span><span class="kw">:</span></span>
-<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> hello-world</span></span>
-<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">practice</span><span class="kw">:</span></span>
-<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">main</span><span class="kw">:</span><span class="at">                practice.hs</span></span>
-<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">source-dirs</span><span class="kw">:</span><span class="at">         app</span></span>
-<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">ghc-options</span><span class="kw">:</span></span>
-<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -threaded</span></span>
-<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -rtsopts</span></span>
-<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -with-rtsopts=-N</span></span>
-<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">dependencies</span><span class="kw">:</span></span>
-<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> hello-world</span></span></code></pre></div>
-<p><code>stack run practice</code> で<code>practice</code>と表示されれば成功です.</p>
-<p>これからスクリプトで実行していくにあたって,<code>practice.hs</code>の中身をもう少し詳しく見てみましょう.</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Lib</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">putStrLn</span> <span class="st">&quot;practice&quot;</span></span></code></pre></div>
-<p>haskellのプログラムを実行すると, <code>main関数</code>のみが実行されます.</p>
-<p>Haskellは関数型言語なので,これから<code>import Lib</code>と<code>main</code>の間に関数を定義していき,<code>main</code>の中で実行していくことになります.</p>
-<p>main 関数で行うことは関数として実行することになりますが,これから学習する通常の関数の定義で記述するのは今は難しいので,<code>do</code>記法を紹介します. main 関数の=以下に<code>do</code>と書くことで,do以下のインデントブロックに記述された内容が手続き型的に1行ずつ実行されます.</p>
-<p>以下のプログラムでは, <code>"practice1"</code>,<code>"practice2"</code>,<code>"practice3"</code>の順に標準出力されます.</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Lib</span></span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> <span class="st">&quot;practice1&quot;</span> <span class="co">-- &quot;practice1&quot;</span></span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> <span class="st">&quot;practice2&quot;</span> <span class="co">-- &quot;practice2&quot;</span></span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> <span class="st">&quot;practice3&quot;</span> <span class="co">-- &quot;practice3&quot;</span></span></code></pre></div>
-<p><code>stack run practice</code>の結果を確認すると以下のようになります.</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> stack <span class="ex">run</span> practice</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="ex">practice1</span></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="ex">practice2</span></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="ex">practice3</span></span></code></pre></div>
-<p>また,ghciと異なって,出力結果が同じ画面に現れないので,
-以降のコード例では, その行の結果をコメントで書くこととします. コメント部分は,記述しなくても結果は変わらないので,省略しても構いません.</p>
-<div class="warn">
-<p>以降, CH3 以降の各練習問題に関しては異なる<code>hs</code>ファイルを作成し, package.yaml に追加,実行するようにして下さい.
-課題として都度提出してもらいます.</p>
-<ul>
-<li>各演習は <strong><code>Exercise CHN-K</code></strong> という見出しで識別されます (例: <code>Exercise CH4-3</code>).
-<ul>
-<li>URL アンカーは <code>#exercise-chN-K</code> (例: <code>fp4.html#exercise-ch4-3</code>).</li>
-<li>提出ファイル名は <code>chN-K.hs</code> (例: 3章 の 練習問題 1 → <code>ch3-1.hs</code>).</li>
-</ul></li>
-<li>package.yaml 上の <code>executables</code> 名称は任意につけて構いません.</li>
-</ul>
-<p>提出先に関しては講義中に指定します.</p>
-</div>
-<h1 id="エラー対応">エラー対応</h1>
-<p>スクリプトを書き始めると, ほぼ確実にエラーに遭遇します. Haskellのエラーメッセージは慣れていないと長く感じられますが, <strong>構造が固定化されている</strong> ため, 読み方さえ覚えれば原因がほぼ自動的に分かります.</p>
-<p>本章では (1) エラーメッセージの基本構造, (2) 典型的な 5 種類のエラーパターン, (3) fp3 までの内容を題材にしたエラー解決演習 を扱います.</p>
-<div class="note">
-<p>本章のエラー例は fp3 までの語彙 (トップレベル束縛, <code>main</code>, <code>let</code>, ghci で見た組込関数) のみで構成しています. 関数定義に伴う典型エラー (関数版 Non-exhaustive patterns / 引数不足など) は <strong>fp5 以降の演習</strong> にも含めていますので, そちらでも実例を確認してください.</p>
-</div>
-<h2 id="エラーメッセージの構造">エラーメッセージの構造</h2>
-<p>GHC のエラーは概ね以下の <strong>4 ブロック構造</strong> で出力されます.</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="op">&lt;</span>ファイルパス<span class="op">&gt;</span>:<span class="op">&lt;</span>行<span class="op">&gt;</span>:<span class="op">&lt;</span>列<span class="op">&gt;</span>: <span class="ex">error:</span> [<span class="op">&lt;</span>エラーコード<span class="op">&gt;</span>]</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="op">&lt;</span>人間向けメッセージ <span class="kw">(`</span><span class="ex">•</span><span class="kw">`</span> 記号で始まる箇条書き<span class="kw">)</span><span class="op">&gt;</span></span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">&lt;</span>文脈情報 <span class="kw">(`</span><span class="ex">In</span> an equation for...<span class="kw">`</span> など<span class="kw">)</span><span class="op">&gt;</span></span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="op">&lt;</span>行番号<span class="op">&gt;</span> <span class="kw">|</span> <span class="op">&lt;</span>該当ソース行<span class="op">&gt;</span></span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>       <span class="kw">|</span> <span class="op">&lt;</span>該当箇所の <span class="ex">^</span> マーク<span class="op">&gt;</span></span></code></pre></div>
-<p>たとえば:</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ex">/path/to/Main.hs:3:14:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">88464</span><span class="pp">]</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Variable</span> not in scope: greeting</span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="ex">3</span> <span class="kw">|</span> <span class="ex">main</span> = print greeting</span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span>              <span class="ex">^^^^^^^^</span></span></code></pre></div>
-<p>各ブロックの読み方:</p>
-<table>
-<thead>
-<tr class="header">
-<th>ブロック</th>
-<th>役割</th>
-<th>着目点</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><strong>ファイル + 行:列</strong></td>
-<td>エラー位置</td>
-<td>まずここで「どこか」を特定</td>
-</tr>
-<tr class="even">
-<td><strong>error: [GHC-xxxxx]</strong></td>
-<td>エラーコード</td>
-<td>検索キーワードとして使える</td>
-</tr>
-<tr class="odd">
-<td><strong><code>•</code> の行</strong></td>
-<td>人間向け要約</td>
-<td>何が間違っているか</td>
-</tr>
-<tr class="even">
-<td><strong><code>In ...</code> の行</strong></td>
-<td>文脈</td>
-<td>どの式・宣言の中で起きたか</td>
-</tr>
-<tr class="odd">
-<td><strong><code>^^^^</code> マーク</strong></td>
-<td>該当箇所</td>
-<td>ソース内の正確な位置</td>
-</tr>
-</tbody>
-</table>
-<p>エラー読解の順序は: <strong>「位置」→「タイプ(要約)」→「ソース上の該当箇所」</strong> の順が最速です. エラーコード (<code>GHC-88464</code> 等) は Google 検索でも有効です.</p>
-<h2 id="典型的なエラーパターン">典型的なエラーパターン</h2>
-<h3 id="variable-not-in-scope-未定義変数">1. <code>Variable not in scope</code> (未定義変数)</h3>
-<p><strong>スコープ(参照可能範囲)に変数が見つからない</strong> ときのエラー. <strong>タイポ</strong> または <strong>大文字小文字の取り違え</strong> が最頻出原因です.</p>
-<p>ソース:</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> greeting</span></code></pre></div>
-<p>実エラー出力:</p>
-<div class="sourceCode" id="cb13"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:2:14:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">88464</span><span class="pp">]</span></span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Variable</span> not in scope: greeting</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="ex">2</span> <span class="kw">|</span> <span class="ex">main</span> = print greeting</span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span>              <span class="ex">^^^^^^^^</span></span></code></pre></div>
-<p>修正: 変数を事前に定義するか, 既存変数のタイポを直す.</p>
-<div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="ot">greeting ::</span> <span class="dt">String</span></span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>greeting <span class="ot">=</span> <span class="st">&quot;hello&quot;</span></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> greeting</span></code></pre></div>
-<div class="warn">
-<p>変数の最初の文字を <strong>大文字で書いた場合</strong> は別のエラーになります.
-Haskell は小文字始まり = 変数, 大文字始まり = 型 / コンストラクタ, と扱うため,
-<code>Greeting</code> と書くと「<code>Data constructor not in scope: Greeting</code>」になります.</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:3:14:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">88464</span><span class="pp">]</span></span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Data</span> constructor not in scope: Greeting</span></code></pre></div>
-</div>
-<h3 id="couldnt-match-type-型不一致">2. <code>Couldn't match type</code> (型不一致)</h3>
-<p>ある型を期待しているところに別の型が来たとき出るエラー. <strong><code>(expected type) と (actual type) が不一致</code></strong> という構造になっています.</p>
-<p>ソース:</p>
-<div class="sourceCode" id="cb16"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> n <span class="ot">=</span> <span class="dv">1</span><span class="ot"> ::</span> <span class="dt">Int</span></span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> (n <span class="op">++</span> <span class="st">&quot;!&quot;</span>)</span></code></pre></div>
-<p>実エラー出力:</p>
-<div class="sourceCode" id="cb17"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:4:12:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">83865</span><span class="pp">]</span></span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> Couldn<span class="st">&#39;t match expected type ‘[Char]’ with actual type ‘Int’</span></span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="st">    • In the first argument of ‘(++)’, namely ‘n’</span></span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="st">      In the first argument of ‘print’, namely ‘(n ++ &quot;!&quot;)’</span></span>
-<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="st">      In a stmt of a &#39;</span>do<span class="st">&#39; block: print (n ++ &quot;!&quot;)</span></span>
-<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="st">  |</span></span>
-<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="st">4 |     print (n ++ &quot;!&quot;)</span></span>
-<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="st">  |            ^</span></span></code></pre></div>
-<p>読み方:</p>
-<ul>
-<li><code>expected type ‘[Char]’</code>: 「<code>[Char]</code> (= <code>String</code>) が来るはずだった」(<code>(++)</code> は両側ともリストを要求)</li>
-<li><code>actual type ‘Int’</code>: 「実際には <code>Int</code> が来た」(<code>n</code> の型)</li>
-</ul>
-<p>修正方針: 文字列同士の連結にするなら <code>show</code> で <code>n</code> を文字列に変換.</p>
-<div class="sourceCode" id="cb18"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> n <span class="ot">=</span> <span class="dv">1</span><span class="ot"> ::</span> <span class="dt">Int</span></span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> (<span class="fu">show</span> n <span class="op">++</span> <span class="st">&quot;!&quot;</span>)    <span class="co">-- &quot;1!&quot;</span></span></code></pre></div>
-<h3 id="no-instance-for-型クラス制約の不満足">3. <code>No instance for</code> (型クラス制約の不満足)</h3>
-<p>ある型に対して要求された機能(<code>Show</code>, <code>Num</code>, <code>Eq</code> など)が定義されていないときのエラー.</p>
-<p>ソース (型不適合: <code>putStrLn</code> に数値を渡す):</p>
-<div class="sourceCode" id="cb19"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">putStrLn</span> <span class="dv">42</span></span></code></pre></div>
-<p>実エラー出力:</p>
-<div class="sourceCode" id="cb20"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:2:17:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">39999</span><span class="pp">]</span></span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> No instance for ‘Num String’ arising from the literal ‘42’</span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> In the first argument of ‘putStrLn’, namely ‘42’</span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>      <span class="ex">In</span> the expression: putStrLn 42</span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>      <span class="ex">In</span> an equation for ‘main’: main = putStrLn 42</span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="ex">2</span> <span class="kw">|</span> <span class="ex">main</span> = putStrLn 42</span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span>                 <span class="ex">^^</span></span></code></pre></div>
-<p>読み方:</p>
-<ul>
-<li><code>No instance for ‘Num String’</code>: 「<code>String</code> 型に <code>Num</code> (数値) のインスタンスがない」</li>
-<li><code>arising from the literal ‘42’</code>: 「リテラル <code>42</code> から要請されている」</li>
-<li>→ <code>putStrLn :: String -&gt; IO ()</code> なので <code>42</code> が <code>String</code> だと思われ, でも <code>42</code> は <code>Num</code> 由来なので不適合</li>
-</ul>
-<p>修正: 文字列にしたいなら <code>show</code> で変換.</p>
-<div class="sourceCode" id="cb21"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">putStrLn</span> (<span class="fu">show</span> <span class="dv">42</span>)</span></code></pre></div>
-<p>別のケース (関数そのものを print してしまう):</p>
-<div class="sourceCode" id="cb22"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> <span class="fu">head</span></span></code></pre></div>
-<p>実エラー出力:</p>
-<div class="sourceCode" id="cb23"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:2:8:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">39999</span><span class="pp">]</span></span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> No instance for ‘Show <span class="er">(</span><span class="ex">[a0]</span> <span class="at">-</span><span class="op">&gt;</span> a0<span class="kw">)</span><span class="ex">’</span> arising from a use of ‘print’</span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>        <span class="kw">(</span><span class="ex">maybe</span> you haven<span class="st">&#39;t applied a function to enough arguments?)</span></span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="st">    • In the expression: print head</span></span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="st">      In an equation for ‘main’: main = print head</span></span>
-<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a><span class="st">  |</span></span>
-<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a><span class="st">2 | main = print head</span></span>
-<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a><span class="st">  |        ^^^^^</span></span></code></pre></div>
-<p><code>(maybe you haven't applied a function to enough arguments?)</code> という GHC のヒントが非常に重要. <strong>関数本体ではなく, 結果を渡したかった</strong> のではないか? と聞いてくれている.</p>
-<p>修正: <code>head</code> に引数 (リスト) を与える.</p>
-<div class="sourceCode" id="cb24"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> (<span class="fu">head</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>])</span></code></pre></div>
-<h3 id="parse-error-構文エラー">4. <code>Parse error</code> (構文エラー)</h3>
-<p>文法として認識できない. <strong>インデント不足</strong> や <strong>括弧の不整合</strong> が代表的.</p>
-<p>ソース (do 内のインデント忘れ):</p>
-<div class="sourceCode" id="cb25"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="fu">putStrLn</span> <span class="st">&quot;hello&quot;</span></span></code></pre></div>
-<p>実エラー出力:</p>
-<div class="sourceCode" id="cb26"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:3:1:</span> error:</span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Parse</span> error: module header, import declaration</span>
-<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    <span class="ex">or</span> top-level declaration expected.</span>
-<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
-<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="ex">3</span> <span class="kw">|</span> <span class="ex">putStrLn</span> <span class="st">&quot;hello&quot;</span></span>
-<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span> <span class="ex">^^^^^^^^^^^^^^^^</span></span></code></pre></div>
-<p><code>do</code> の本体は <strong>1 つ深くインデント</strong> する必要があります.</p>
-<p>修正:</p>
-<div class="sourceCode" id="cb27"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> <span class="st">&quot;hello&quot;</span></span></code></pre></div>
-<h3 id="non-exhaustive-patterns-網羅されていないパターン-実行時">5. <code>Non-exhaustive patterns</code> (網羅されていないパターン, 実行時)</h3>
-<p>パターンマッチで <strong>すべての場合がカバーされていない</strong> とき, コンパイルは通っても (警告は出る) <strong>実行時</strong> に該当しない値が渡されると停止します. fp3 で見せた <code>(x, y) = (1, 2)</code> のような <strong>let パターン束縛</strong> でも同じ事が起きます.</p>
-<p>ソース:</p>
-<div class="sourceCode" id="cb28"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> (c<span class="op">:</span>_) <span class="ot">=</span> <span class="st">&quot;&quot;</span><span class="ot"> ::</span> <span class="dt">String</span></span>
-<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> [c]</span></code></pre></div>
-<p>実行時メッセージ (<code>stack run</code> 等で):</p>
-<div class="sourceCode" id="cb29"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="ex">probe:</span> app/Main.hs:3:9-28: Non-exhaustive patterns in c : _</span></code></pre></div>
-<p><code>(c:_)</code> は「先頭の 1 文字 + 残り」というパターンだが, 右辺が <strong>空文字列</strong> だと該当する文字が無いため失敗する.</p>
-<p>修正 1: 空でないことが確実な値を与える.</p>
-<div class="sourceCode" id="cb30"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> (c<span class="op">:</span>_) <span class="ot">=</span> <span class="st">&quot;hello&quot;</span><span class="ot"> ::</span> <span class="dt">String</span></span>
-<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> [c]       <span class="co">-- &quot;h&quot;</span></span></code></pre></div>
-<p>修正 2: 事前に空判定する.</p>
-<div class="sourceCode" id="cb31"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> xs <span class="ot">=</span> <span class="st">&quot;&quot;</span><span class="ot"> ::</span> <span class="dt">String</span></span>
-<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="fu">null</span> xs <span class="kw">then</span> <span class="fu">putStrLn</span> <span class="st">&quot;empty&quot;</span></span>
-<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>               <span class="kw">else</span> <span class="fu">putStrLn</span> [<span class="fu">head</span> xs]</span></code></pre></div>
-<div class="warn">
-<p>類似に <strong><code>head []</code> などの空リスト操作</strong> があります. これも実行時エラー:</p>
-<div class="sourceCode" id="cb32"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="ex">probe:</span> Prelude.head: empty list</span>
-<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="ex">CallStack</span> <span class="er">(</span><span class="ex">from</span> HasCallStack<span class="kw">)</span><span class="bu">:</span></span>
-<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>  <span class="ex">...</span></span>
-<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">head</span>, called at app/Main.hs:... in main:Main</span></code></pre></div>
-<p>リスト操作前に <code>null</code> で検査するのが安全です. 後の章では <code>Maybe</code> 型でこの種の失敗を <strong>型で表現する</strong> 手法を扱います.</p>
-</div>
-<h2 id="エラー読解のコツ">エラー読解のコツ</h2>
-<ol type="1">
-<li><strong>最初の error: 行だけ見る</strong>. Stack のビルドエラーは複数ブロック表示しますが, 修正すべきは <strong>一番上の error:</strong> がほとんどです.</li>
-<li><strong>エラーコード (<code>GHC-xxxxx</code>) を覚える</strong>. 同じコードは同じ種類の原因.</li>
-<li><strong><code>^^^^</code> の位置を必ず見る</strong>. 行番号だけでなく列までヒントが出ています.</li>
-<li><strong><code>expected</code> / <code>actual</code> の型は逆ではない</strong>. 「期待していたのは expected, 来てしまったのが actual」.</li>
-<li><strong>ghci で <code>:t &lt;式&gt;</code></strong> で局所的に型を確認すると, 型不一致の原因が見えやすい.</li>
-<li><strong>小さく書いて頻繁にビルド</strong>. 100 行書いてからビルドするのではなく, 数行書いたら <code>stack build</code>. エラーが出る場所がすぐ分かります.</li>
-</ol>
-<h2 id="演習">演習</h2>
-<p>ここからは fp1〜fp3 の復習を兼ねた <strong>エラー解決演習</strong> です. 各問題で:</p>
-<ol type="1">
-<li>提示されたコードと <strong>実際の GHC エラー出力</strong> を読む</li>
-<li>エラーの原因を答える</li>
-<li>動くコードに修正する</li>
-</ol>
-<p>提出は <code>ch4-K.hs</code> (修正後の動作するコード) に加え, <strong>何が原因だったか</strong> を 1 〜 2 行のコメントで書いてください.</p>
-<section id="exercise-ch4-1" class="note">
-<h3>Exercise CH4-1</h3>
-<p><strong>未定義変数のエラー (fp3 数値型の復習)</strong></p>
-<p>以下のコードは fp3 「数値型」節で扱った三角形面積の計算ですが, コンパイルが通りません. 出力されるエラーを読んで原因を答え, 動くように修正してください.</p>
-<div class="sourceCode" id="cb33"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-1.hs (誤りあり)</span></span>
-<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a><span class="ot">trianglearea ::</span> <span class="dt">Double</span></span>
-<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>trianglearea <span class="ot">=</span> <span class="dv">5</span> <span class="op">*</span> <span class="dv">4</span> <span class="op">/</span> <span class="dv">2</span></span>
-<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> triangleArea</span></code></pre></div>
-<p>実エラー (<code>stack build</code> の出力):</p>
-<div class="sourceCode" id="cb34"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:5:15:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">88464</span><span class="pp">]</span></span>
-<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Variable</span> not in scope: triangleArea :: Double</span>
-<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Suggested</span> fix: Perhaps use ‘trianglearea’ <span class="er">(</span><span class="ex">line</span> 2<span class="kw">)</span></span>
-<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
-<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a><span class="ex">5</span> <span class="kw">|</span> <span class="ex">main</span> = print triangleArea</span>
-<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span>              <span class="ex">^^^^^^^^^^^^</span></span></code></pre></div>
-<details class="protected" data-pass="yakagika">
-<summary>
-回答例
-</summary>
-<p><strong>原因</strong>: 変数名の <strong>大文字小文字</strong> が定義 (<code>trianglearea</code>) と呼び出し (<code>triangleArea</code>) で食い違っている. Haskell は大文字小文字を区別する.</p>
-<p>GHC が <code>Suggested fix: Perhaps use ‘trianglearea’</code> というヒントまで出してくれているので, それを参考に揃える.</p>
-<p>修正:</p>
-<div class="sourceCode" id="cb35"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-1.hs (修正版)</span></span>
-<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a><span class="ot">triangleArea ::</span> <span class="dt">Double</span></span>
-<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>triangleArea <span class="ot">=</span> <span class="dv">5</span> <span class="op">*</span> <span class="dv">4</span> <span class="op">/</span> <span class="dv">2</span></span>
-<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> triangleArea   <span class="co">-- 10.0</span></span></code></pre></div>
-<p>呼び出し側を揃えるか定義側を揃えるかどちらでも OK. <strong>キャメルケース (<code>triangleArea</code>) が Haskell の慣習</strong>.</p>
-</details>
-</section>
-<section id="exercise-ch4-2" class="note">
-<h3>Exercise CH4-2</h3>
-<p><strong>型不一致のエラー (fp3 リストと数値の復習)</strong></p>
-<p>以下のコードは fp3 「リスト」節で扱ったリスト連結 (<code>++</code>) を使っていますが, 型エラーが出ます. 原因を答えて修正してください.</p>
-<div class="sourceCode" id="cb36"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-2.hs (誤りあり)</span></span>
-<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> ([<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span><span class="ot"> ::</span> <span class="dt">Int</span>] <span class="op">++</span> <span class="dv">5</span>)</span></code></pre></div>
-<p>実エラー:</p>
-<div class="sourceCode" id="cb37"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:2:35:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">39999</span><span class="pp">]</span></span>
-<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> No instance for ‘Num <span class="pp">[</span><span class="ss">Int</span><span class="pp">]</span>’ arising from the literal ‘5’</span>
-<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> In the second argument of ‘<span class="er">(</span><span class="ex">++</span><span class="kw">)</span><span class="ex">’,</span> namely ‘5’</span>
-<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>      <span class="ex">In</span> the first argument of ‘print’, namely ‘<span class="er">(</span><span class="ex">[1,</span> 2, 3 :: Int] ++ 5<span class="kw">)</span><span class="ex">’</span></span>
-<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>      <span class="ex">In</span> the expression: print <span class="er">(</span><span class="ex">[1,</span> 2, 3 :: Int] ++ 5<span class="kw">)</span></span>
-<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
-<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a><span class="ex">2</span> <span class="kw">|</span> <span class="ex">main</span> = print <span class="er">(</span><span class="ex">[1,</span> 2, 3 :: Int] ++ 5<span class="kw">)</span></span>
-<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span>                                   <span class="ex">^</span></span></code></pre></div>
-<details class="protected" data-pass="yakagika">
-<summary>
-回答例
-</summary>
-<p><strong>原因</strong>: <code>(++)</code> は <strong>リスト同士</strong> を連結する演算子 (<code>[a] -&gt; [a] -&gt; [a]</code>) なのに, 右辺の <code>5</code> は <strong><code>Num</code> 型 (<code>Int</code> などの数値)</strong> で, リストではない. そのため GHC は「<code>5</code> も <code>[Int]</code> 型 (= <code>Num [Int]</code>) であってほしいが, <code>Num</code> のインスタンスは <code>[Int]</code> には無い」と訴えている.</p>
-<p>修正 1: 数値をリストに包んで連結する.</p>
-<div class="sourceCode" id="cb38"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> ([<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span><span class="ot"> ::</span> <span class="dt">Int</span>] <span class="op">++</span> [<span class="dv">5</span>])   <span class="co">-- [1,2,3,5]</span></span></code></pre></div>
-<p>修正 2: cons 構築子 <code>(:)</code> で先頭に足す.</p>
-<div class="sourceCode" id="cb39"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> (<span class="dv">5</span> <span class="op">:</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span><span class="ot"> ::</span> <span class="dt">Int</span>])   <span class="co">-- [5,1,2,3]</span></span></code></pre></div>
-</details>
-</section>
-<section id="exercise-ch4-3" class="note">
-<h3>Exercise CH4-3</h3>
-<p><strong>Parse error と論理演算 (fp3 論理型の復習)</strong></p>
-<p>以下は fp3 「論理型」節で見た偶数判定を <code>do</code> の中で実行しようとしたコードです. 構文エラーで止まります. 原因を答えて修正してください.</p>
-<div class="sourceCode" id="cb40"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-3.hs (誤りあり)</span></span>
-<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span> (<span class="dv">101</span> <span class="ot">`mod`</span> <span class="dv">2</span> <span class="op">==</span> <span class="dv">0</span>)</span>
-<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span> (<span class="dv">202</span> <span class="ot">`mod`</span> <span class="dv">2</span> <span class="op">==</span> <span class="dv">0</span>)</span></code></pre></div>
-<p>実エラー:</p>
-<div class="sourceCode" id="cb41"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:4:1:</span> error:</span>
-<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Parse</span> error: module header, import declaration</span>
-<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>    <span class="ex">or</span> top-level declaration expected.</span>
-<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
-<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a><span class="ex">4</span> <span class="kw">|</span> <span class="ex">print</span> <span class="er">(</span><span class="ex">101</span> <span class="kw">`</span><span class="ex">mod</span><span class="kw">`</span> 2 == 0<span class="kw">)</span></span>
-<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span> <span class="ex">^^^^^^^^^^^^^^^^^^^^^^^^</span></span></code></pre></div>
-<details class="protected" data-pass="yakagika">
-<summary>
-回答例
-</summary>
-<p><strong>原因</strong>: <code>do</code> ブロック内の文が <strong>インデントされていない</strong>. Haskell は <strong>オフサイド規則 (offside rule)</strong> によりインデントで構造を判定するため, <code>do</code> の本体は <code>do</code> より深い (= 右側に位置する) 必要がある.</p>
-<p>GHC は「トップレベル宣言が来るはずだった」と判断してしまい, <code>print</code> で始まる行を <strong>新しい関数定義として読もうとして失敗</strong> している. これが「<code>Parse error: ... top-level declaration expected</code>」の正体.</p>
-<p>修正:</p>
-<div class="sourceCode" id="cb42"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-3.hs (修正版)</span></span>
-<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> (<span class="dv">101</span> <span class="ot">`mod`</span> <span class="dv">2</span> <span class="op">==</span> <span class="dv">0</span>)   <span class="co">-- False (奇数)</span></span>
-<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> (<span class="dv">202</span> <span class="ot">`mod`</span> <span class="dv">2</span> <span class="op">==</span> <span class="dv">0</span>)   <span class="co">-- True  (偶数)</span></span></code></pre></div>
-<p><code>do</code> の本体は <strong>同じ列に揃えて</strong> インデントする. 4 スペースが慣習だが揃っていれば 2 でも 6 でも OK.</p>
-</details>
-</section>
-<section id="exercise-ch4-4" class="note">
-<h3>Exercise CH4-4</h3>
-<p><strong>型クラス制約のエラー (fp3 数値型の混在)</strong></p>
-<p>以下のコードは整数と小数を混ぜて使っていますが, 型エラーが出ます. 原因を答えて修正してください.</p>
-<div class="sourceCode" id="cb43"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-4.hs (誤りあり)</span></span>
-<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> bmi <span class="ot">=</span> <span class="dv">60</span> <span class="op">/</span> (<span class="fl">1.75</span> <span class="op">*</span> <span class="fl">1.75</span>)<span class="ot"> ::</span> <span class="dt">Int</span></span>
-<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> bmi</span></code></pre></div>
-<p>実エラー:</p>
-<div class="sourceCode" id="cb44"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:4:25:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">39999</span><span class="pp">]</span></span>
-<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> No instance for ‘Fractional Int’ arising from the literal ‘1.75’</span>
-<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> In the first argument of ‘<span class="er">(</span><span class="ex">*</span><span class="kw">)</span><span class="ex">’,</span> namely ‘1.75’</span>
-<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>      <span class="ex">In</span> the second argument of ‘<span class="er">(</span><span class="ex">/</span><span class="kw">)</span><span class="ex">’,</span> namely ‘<span class="er">(</span><span class="ex">1.75</span> <span class="pp">*</span> 1.75<span class="kw">)</span><span class="ex">’</span></span>
-<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>      <span class="ex">In</span> the expression: 60 / <span class="er">(</span><span class="ex">1.75</span> <span class="pp">*</span> 1.75<span class="kw">)</span> <span class="ex">::</span> Int</span>
-<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
-<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a><span class="ex">4</span> <span class="kw">|</span>     <span class="bu">let</span> <span class="va">bmi</span> <span class="op">=</span> <span class="dv">60</span> <span class="op">/</span> <span class="er">(</span><span class="ex">1.75</span> <span class="pp">*</span> 1.75<span class="kw">)</span> <span class="ex">::</span> Int</span>
-<span id="cb44-8"><a href="#cb44-8" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span>                     <span class="ex">^^^^</span></span></code></pre></div>
-<details class="protected" data-pass="yakagika">
-<summary>
-回答例
-</summary>
-<p><strong>原因</strong>: 結果を <code>:: Int</code> と型注釈で指定しているが, 式の中に小数リテラル <code>1.75</code> が混ざっている. GHC は「結果が <code>Int</code> ならすべての要素も <code>Int</code> のはず → <code>1.75</code> も <code>Int</code> であってほしい → でも <code>1.75</code> は <code>Fractional</code> 制約が要る → <code>Int</code> には <code>Fractional</code> のインスタンスが無い」と推論して <code>No instance for ‘Fractional Int’</code> を出している.</p>
-<p>修正: BMI は小数になるので <strong><code>Double</code> で扱う</strong>.</p>
-<div class="sourceCode" id="cb45"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-4.hs (修正版)</span></span>
-<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> bmi <span class="ot">=</span> <span class="dv">60</span> <span class="op">/</span> (<span class="fl">1.75</span> <span class="op">*</span> <span class="fl">1.75</span>)<span class="ot"> ::</span> <span class="dt">Double</span></span>
-<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> bmi   <span class="co">-- 19.591836734693878</span></span></code></pre></div>
-<p>もし整数結果が欲しい場合は <code>floor</code> などで切り捨てる: <code>print (floor bmi :: Int)</code>.</p>
-</details>
-</section>
-<section id="exercise-ch4-5" class="note">
-<h3>Exercise CH4-5</h3>
-<p><strong>実行時エラー: 網羅されていないパターン (fp3 文字列とリストの復習)</strong></p>
-<p>以下のコードはコンパイルは通りますが, 実行すると途中で止まります. 出力されるエラーを読んで原因を答え, 修正してください.</p>
-<div class="sourceCode" id="cb46"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-5.hs (誤りあり)</span></span>
-<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> (c<span class="op">:</span>_) <span class="ot">=</span> <span class="st">&quot;hello&quot;</span><span class="ot"> ::</span> <span class="dt">String</span></span>
-<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> [c]               <span class="co">-- &#39;h&#39;</span></span>
-<span id="cb46-6"><a href="#cb46-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> (d<span class="op">:</span>_) <span class="ot">=</span> <span class="st">&quot;&quot;</span><span class="ot"> ::</span> <span class="dt">String</span></span>
-<span id="cb46-7"><a href="#cb46-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> [d]               <span class="co">-- 実行時に止まる</span></span></code></pre></div>
-<p>実行時出力 (<code>stack run</code> 等で):</p>
-<div class="sourceCode" id="cb47"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="ex">h</span></span>
-<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a><span class="ex">ch4-5:</span> app/Main.hs:5:9-28: Non-exhaustive patterns in d : _</span></code></pre></div>
-<details class="protected" data-pass="yakagika">
-<summary>
-回答例
-</summary>
-<p><strong>原因</strong>: <code>let (d:_) = ""</code> は「先頭 1 文字 + 残り」というパターン束縛だが, 右辺が <strong>空文字列</strong> で先頭に該当する文字が無いため失敗する. パターン束縛も「網羅されていないパターン」の一種.</p>
-<p>実は <strong>コンパイル時にも警告が出ている</strong> はず (<code>Pattern match(es) are non-exhaustive</code> の warning). <code>stack build</code> のメッセージをよく見ると気づける.</p>
-<p>修正 1: 事前に <strong><code>null</code> で空判定</strong> する.</p>
-<div class="sourceCode" id="cb48"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-5.hs (修正版 A)</span></span>
-<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> xs <span class="ot">=</span> <span class="st">&quot;hello&quot;</span><span class="ot"> ::</span> <span class="dt">String</span></span>
-<span id="cb48-5"><a href="#cb48-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="fu">null</span> xs <span class="kw">then</span> <span class="fu">putStrLn</span> <span class="st">&quot;empty&quot;</span></span>
-<span id="cb48-6"><a href="#cb48-6" aria-hidden="true" tabindex="-1"></a>               <span class="kw">else</span> <span class="fu">putStrLn</span> [<span class="fu">head</span> xs]</span>
-<span id="cb48-7"><a href="#cb48-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb48-8"><a href="#cb48-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> ys <span class="ot">=</span> <span class="st">&quot;&quot;</span><span class="ot"> ::</span> <span class="dt">String</span></span>
-<span id="cb48-9"><a href="#cb48-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="fu">null</span> ys <span class="kw">then</span> <span class="fu">putStrLn</span> <span class="st">&quot;empty&quot;</span></span>
-<span id="cb48-10"><a href="#cb48-10" aria-hidden="true" tabindex="-1"></a>               <span class="kw">else</span> <span class="fu">putStrLn</span> [<span class="fu">head</span> ys]</span></code></pre></div>
-<p>修正 2: パターン束縛ではなく <code>head</code> (こちらも空文字列だと実行時エラーだが, 検査と組み合わせる前提).</p>
-<div class="sourceCode" id="cb49"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> xs <span class="ot">=</span> <span class="st">&quot;hello&quot;</span><span class="ot"> ::</span> <span class="dt">String</span></span>
-<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> (<span class="kw">if</span> <span class="fu">null</span> xs <span class="kw">then</span> <span class="st">&quot;&quot;</span> <span class="kw">else</span> [<span class="fu">head</span> xs])</span></code></pre></div>
-<p><strong>安全な扱いとして</strong> 後の章で <code>Maybe</code> 型を使い「失敗しうる」ことを <strong>型で表現する</strong> 手法を学びます (例: <code>listToMaybe</code>).</p>
-</details>
-</section>]]></description>
-    <pubDate>Fri, 18 Oct 2024 00:00:00 UT</pubDate>
-    <guid>/lectures/fp4.html</guid>
     
     <author>kaya3728@gmail.com (yakagika)</author>
     

@@ -1,35 +1,161 @@
-<?xml version="1.0" encoding="utf-8"?>
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"
-    xmlns:dc="http://purl.org/dc/elements/1.1/">
-    <channel>
-        <title>yakagika - Posts tagged simulation</title>
-        <link></link>
-        <description><![CDATA[Personal blog of yakagika]]></description>
-        <atom:link href="/tags/simulation.xml" rel="self"
-                   type="application/rss+xml" />
-        <lastBuildDate>Fri, 04 Sep 2026 00:00:00 UT</lastBuildDate>
-        
-        <managingEditor>kaya3728@gmail.com (yakagika)</managingEditor>
-        <webMaster>kaya3728@gmail.com (yakagika)</webMaster>
-        
-        <item>
-    <title>exchangealgebra 0.5.0.0 と 0.4 系からの変更点</title>
-    <link>/posts/2026-09-04-exchangealgebra-0-5-0-0.html</link>
-    <description><![CDATA[<h1 id="はじめに">はじめに</h1>
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+    <script>
+      (function () {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+        function stored() {
+          var t = null;
+          try { t = localStorage.getItem('theme'); } catch (e) {}
+          return (t === 'dark' || t === 'light') ? t : null;
+        }
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
+        if (mq) {
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
+        }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
+      })();
+    </script>
+    <title>yakagika - exchangealgebra 0.5.0.0 と 0.4 系からの変更点</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../style.css?v=1788496645">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+      <meta property="og:description" content="Haskell ライブラリ exchangealgebra の 0.5.0.0 を Hackage に公開しました. 0.4 系からの差分を, 値型の選択, 勘定科目の意味情報と転記の権限, 評価勘定の扱い, 試算表から財務諸表までの層, シミュレーション front-end (Lite) とスピル検証, モジュール境界の整理, 移行手順の順に紹介します." />
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../" class="site-brand" aria-label="Home">
+          <span class="site-mark" aria-hidden="true">▮</span>
+          <span class="site-word">yakagika</span>
+        </a>
+      </div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../">Home</a>
+      <a href="../posts.html">Blog</a>
+      <a href="../lectures.html">Lecture</a>
+      <a href="../research.html">Research</a>
+      <a href="../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      
+      <div id="lecture-toc" data-mode="single">
+        <h2>Index</h2>
+        <!-- The TOC will be generated here by JavaScript -->
+      </div>
+      
+    </nav>
+
+    <div id="content">
+    <article>
+<header class="article-header">
+    <span class="category-badge">Research</span>
+    <h1 class="article-title">exchangealgebra 0.5.0.0 と 0.4 系からの変更点</h1>
+    <p class="article-description">Haskell ライブラリ exchangealgebra の 0.5.0.0 を Hackage に公開しました. 0.4 系からの差分を, 値型の選択, 勘定科目の意味情報と転記の権限, 評価勘定の扱い, 試算表から財務諸表までの層, シミュレーション front-end (Lite) とスピル検証, モジュール境界の整理, 移行手順の順に紹介します.</p>
+    <div class="article-meta">
+        <span class="meta-item">公開: 2026-09-04</span>
+        <span class="meta-item">更新: 2026-09-04</span>
+    </div>
+    <div class="tag-chips"><a href="../tags/haskell.html">haskell</a><a href="../tags/hackage.html">hackage</a><a href="../tags/exchangealgebra.html">exchangealgebra</a><a href="../tags/accounting.html">accounting</a><a href="../tags/simulation.html">simulation</a><a href="../tags/release.html">release</a></div>
+</header>
+
+<h2 id="はじめに">はじめに</h2>
 <p>Haskell ライブラリ <a href="https://hackage.haskell.org/package/exchangealgebra"><code>exchangealgebra</code></a> の 0.5.0.0 を 2026-09-04 に Hackage へ公開しました. <a href="2026-05-26-exchangealgebra-on-hackage.html">前回の記事</a>で告知した 0.4.0.0 (2026-05-18) から約 3 か月ぶりの major 版で, その間に minor の 0.4.1.0 と patch の 0.4.1.1, 0.4.1.2 を出しています. 破壊的変更は 1 つの major に集約する方針を採っているので, 0.5.0.0 には 3 か月分の API 変更がまとめて入っています. 本記事はライブラリ API の差分を 0.4 系の利用者向けに整理します (同梱 examples の監査評価ツール群の変更は扱いません). 代数構造そのもののチュートリアルは前回の予告どおり関連論文の正式公表後に別記事とします.</p>
 <ul>
 <li>Hackage: <a href="https://hackage.haskell.org/package/exchangealgebra-0.5.0.0" class="uri">https://hackage.haskell.org/package/exchangealgebra-0.5.0.0</a></li>
 <li>GitHub Release: <a href="https://github.com/yakagika/ExchangeAlgebra/releases/tag/v0.5.0.0" class="uri">https://github.com/yakagika/ExchangeAlgebra/releases/tag/v0.5.0.0</a></li>
 <li>ChangeLog (全項目): <a href="https://github.com/yakagika/ExchangeAlgebra/blob/master/ChangeLog.md" class="uri">https://github.com/yakagika/ExchangeAlgebra/blob/master/ChangeLog.md</a></li>
 </ul>
-<h1 id="系の-patch-で直したこと">0.4 系の patch で直したこと</h1>
+<h2 id="系の-patch-で直したこと">0.4 系の patch で直したこと</h2>
 <p>0.5.0.0 の差分を読む前提として, 0.4.1.x の 3 つの修正はすべて 0.5.0.0 に含まれています. 0.4.1.1 の修正は値の総量 (<code>norm</code>) が保たれたまま基底ごとの内訳が壊れる型の不具合で, 総量だけを見るテストでは検出できませんでした.</p>
 <ul>
 <li><strong>0.4.1.0</strong>: <code>bases</code> が Not 側の列を無視して Hat 側を 2 回走査していました. 同時に, <code>bar</code> や <code>balance</code> の一致判定を固定の絶対許容誤差からスケール付きの許容誤差に変えました.</li>
 <li><strong>0.4.1.1</strong>: 値 0 の単項と非 0 の単項を <code>.+</code> で結合すると, 非 0 の値が 0 側の基底に付け替えられていました. 明示的に <code>0 :@ base</code> を作る疎な入力係数を持つシミュレーションで, 累積順序によって隣の基底に転記が漏れ出し, 同梱の例では長期の run で企業のストックが無視できない幅でずれていました.</li>
 <li><strong>0.4.1.2</strong>: 貸借が完全に一致した元帳に <code>incomeSummaryAccount</code> を適用すると, 純損益 0 のケースを場合分けが取りこぼしてクラッシュしていました.</li>
 </ul>
-<h1 id="値型を選べるようにした">値型を選べるようにした</h1>
+<h2 id="値型を選べるようにした">値型を選べるようにした</h2>
 <p>0.4 系では <code>Alg v b</code> の値型 <code>v</code> は事実上 <code>Double</code> に固定されていました. <code>HatVal</code> クラスが <code>RealFloat</code> を上位クラスに持っていたためで, 正確な 10 進数型を値型にする道がありませんでした. 0.5.0.0 では <code>HatVal</code> から <code>RealFloat</code> を外し, 代わりに表示用の <code>showValue</code> メソッドを加えました. これが今回の major の出発点です.</p>
 <p>その上で <code>ExchangeAlgebra.Value</code> に 2 つの newtype を用意しました. <strong><code>MoneyDouble</code></strong> は <code>Double</code> の zero-cost wrapper で, 係数や乱数と同じ型のまま金額を扱う事故を型で防ぎます. <strong><code>MoneyDecimal</code></strong> は 10 進固定小数 (<code>Data.Decimal</code> を包む) で, 加算が正確かつ結合的なので, 転記を足し合わせる順序が <code>norm</code> や <code>bar</code> の結果に影響しません. 非負性は <code>Double</code> と同じく型では保証せず, 負の転記を <code>.@</code> が拒否する形で保ちます. 数値リテラルはどちらでもそのまま書けます.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">ExchangeAlgebra</span></span>
@@ -46,7 +172,7 @@
 <p><code>Double</code> では 10.5 + 0.1 のような加算が最下位ビットの丸めを含み, 同じ基底の転記を足す順序が変わると <code>norm</code> の末尾桁が動きます. 同梱のシミュレーション例では, 短い run では両型の結果が一致し, 期を重ねると最下位桁で分かれます. 正確さの代償として <code>MoneyDecimal</code> は <code>MoneyDouble</code> より遅く, メモリも多く使います. 用途で選ぶ前提であり, 既定は従来どおり <code>Double</code> です. 期数と規模に対する具体的な計測は別記事で扱います.</p>
 <p>乗除算が要る場面 (税率, 按分) では <code>MoneyDecimal</code> の中間値は正確なまま保たれ, 金額を確定する時点で <code>bankersRound</code> (銀行丸め) か <code>ceilingRound</code> を明示的に呼びます. 丸め規則は法域や会社で異なるため, ライブラリ側で 1 つに固定していません.</p>
 <p>シミュレーションでは, パラメータ・投入係数・乱数は <code>Double</code> のまま持ち, 元帳に入る時点で <code>realToFrac</code> で変換し, 集計値を可視化へ戻すときに <code>Double</code> に戻す境界パターンを推奨しています. 同梱の簿記例とシミュレーション例はこの形に揃えました. Leontief 逆行列や最適化のような数値計算主体の例は <code>Double</code> のままです.</p>
-<h1 id="勘定科目の意味情報と転記の権限">勘定科目の意味情報と転記の権限</h1>
+<h2 id="勘定科目の意味情報と転記の権限">勘定科目の意味情報と転記の権限</h2>
 <p>0.4 系の勘定科目 <code>AccountTitles</code> は列挙型と, 5 区分 (資産・負債・資本・費用・収益) やサイドを返す少数の関数だけを持っていました. 0.5.0.0 では科目ごとの正本となる <strong>registry</strong> を置き, 日商簿記 2 級・3 級の商業簿記の科目を取り込んで 235 の具体科目に拡張しました. 各科目には <strong><code>AccountSemantics</code></strong> として, 科目の役割, 転記できる文脈 (後述), 旧来の 5 区分が何を意味しているか, ホームサイド, 財務諸表への表示可否が付きます. <code>IncomeSummary</code> の区分が <code>Assets</code> になっているような, 方向の符号化を区分に流用していた箇所は, 分類ではなく符号化として説明されるようになりました.</p>
 <p>外部データからの転記を安全にする層も追加しました. <code>ExchangeAlgebra.Convert</code> は借貸・科目名・金額の生データと代数の項を相互変換し, <code>Convert.Csv</code> は固定 schema の仕訳 CSV を読み, <code>Convert.Checked</code> は科目名の解決と転記の妥当性を検査してから <code>Journal</code> を作ります. 日商簿記の B 欄にある「未払金」「借入金」「仮払金」「仮受金」「有価証券」「投資有価証券」の 6 語は複数の科目に対応するので, 一意に解決せず候補付きの <code>AmbiguousAccount</code> を返します.</p>
 <p>転記の権限は <strong>処理文脈</strong> (<code>ProcessingContext</code>) で決まります. 通常仕訳 (<code>OrdinaryJournal</code>) に加えて, 決算処理 (<code>ClosingProcess</code>), 連結精算表 (<code>ConsolidationWorksheet</code>), シミュレーションエンジン (<code>EngineComputation</code>) の 3 つがあり, それぞれが自分専用の転記能力を 1 つだけ追加します. 検査付き変換は文脈を引数に取り, 文脈に合わない科目は <code>PostingNotAllowed</code> で拒否します. 損益勘定 <code>IncomeSummary</code> を通常仕訳で転記しようとすると弾かれ, 決算処理では通ります.</p>
@@ -56,14 +182,14 @@
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>postingAllowedIn <span class="dt">OrdinaryJournal</span> (postingCapabilityFor <span class="dt">IncomeSummary</span>) <span class="co">-- False</span></span>
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>postingAllowedIn <span class="dt">ClosingProcess</span>  (postingCapabilityFor <span class="dt">IncomeSummary</span>) <span class="co">-- True</span></span></code></pre></div>
 <p>代数の構築自体 (<code>.@</code> や <code>.+</code>) はこの検査を通りません. 検査は外部入力が元帳に入る境界にだけ置き, 代数の内部では従来どおり自由に項を作れます.</p>
-<h1 id="評価勘定の扱いと決算仕訳">評価勘定の扱いと決算仕訳</h1>
+<h2 id="評価勘定の扱いと決算仕訳">評価勘定の扱いと決算仕訳</h2>
 <p>0.4 系では減価償却累計額と貸倒引当金を <code>Liability</code> 区分に置いていました. 貸方残高になる資産の控除項目を, 区分の側だけで表現していたためです. 0.5.0.0 では <code>ExBaseClass</code> に <strong><code>isContra</code></strong> を加え, この 2 科目を <code>Assets</code> 区分の評価勘定として表します. ホームサイドと PIMO は <code>(区分, isContra)</code> の組から導出し, 評価勘定では区分の既定サイドを反転します. 観測できる不変条件として <code>whichSide</code>, <code>whatPIMO</code>, <code>fixedCurrent</code> は全科目で従来と同じ値を返し, 変わったのはこの 2 科目の <code>whatDiv</code> だけです.</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>isContra  (<span class="dt">Not</span> <span class="op">:&lt;</span> <span class="dt">AccumulatedDepreciation</span>)  <span class="co">-- True</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>whatDiv   (<span class="dt">Not</span> <span class="op">:&lt;</span> <span class="dt">AccumulatedDepreciation</span>)  <span class="co">-- Assets   (0.4 系では Liability)</span></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>whichSide (<span class="dt">Not</span> <span class="op">:&lt;</span> <span class="dt">AccumulatedDepreciation</span>)  <span class="co">-- Credit   (変わらない)</span></span></code></pre></div>
 <p>この変更は 3 か所に波及します. 第一に, 区分ごとの 6 つの射影 (<code>projCurrentAssets</code>, <code>projFixedLiability</code> など) は評価勘定を含めなくなり, 評価勘定は <code>projContraAssets</code> か汎用の <code>projContra</code> で取り出します. 第二に, 貸借対照表と損益計算書の行を作る <code>bsRows</code> / <code>plRows</code> は, 評価勘定を負債側に置いたり損益の控除科目を落としたりせず, 総額行・控除行・純額行の 3 行で表示します. 格納される値は非負のまま保ち, 負号は行を描画する時点でのみ付きます. 第三に, 区分同士の交換可能性 <code>(&lt;=&gt;)</code> を PIMO から導出するようにした結果, <code>(Assets, Revenue)</code> と <code>(Cost, Revenue)</code> の組 (逆順も同様) が <code>False</code> から <code>True</code> に変わりました. 基底の交換判定には区分でなく <code>whatPIMO</code> を使うのが 0.5.0.0 の作法です.</p>
 <p>決算仕訳の範囲も広げました. 0.4 系の <code>finalStockTransfer</code> は SNA 由来の 17 科目しか締めていませんでしたが, 0.5.0.0 では registry から締め対象を導出し, すべての費用・収益科目を締めます. <code>NetIncome</code> と <code>NetLoss</code> だけは区分が損益計算書の表示側を符号化しているため, 区分由来の規則を適用すると振替の符号が反転します. この 2 科目は明示的に <code>NoClose</code> とし, 専用の純損益振替が受け持ちます.</p>
-<h1 id="試算表から財務諸表までの層">試算表から財務諸表までの層</h1>
+<h2 id="試算表から財務諸表までの層">試算表から財務諸表までの層</h2>
 <p>0.4 系にも <code>Write</code> に貸借対照表・損益計算書・試算表の CSV 出力はありましたが, 試算表の検証, 表示への変換, 派生指標はライブラリの外にありました. 0.5.0.0 では次のモジュール群を加えました. <code>Bookkeeping</code> 以外は代数の項に新しい転記を挿入せず, 読み出し専用で動きます.</p>
 <ul>
 <li><strong><code>ExchangeAlgebra.Bookkeeping</code></strong>: 決算整理仕訳 (減価償却, 引当金, 経過勘定, 持分法, 前期誤謬の訂正) を, 外部から与えた金額を明示引数として構築します.</li>
@@ -75,12 +201,12 @@
 <li><strong><code>ExchangeAlgebra.Reporting.Group</code></strong>: 前節の表示グループと評価勘定の相殺方針.</li>
 </ul>
 <p><code>Write</code> の CSV 出力は残っていますが, 行を組み立てる純関数 (<code>bsRows</code> など) を切り出したので, CSV を経由せずに行データを取れます. 決算関連の書類 3 種の CSV writer もここに加えました.</p>
-<h1 id="シミュレーション-lite-front-end-方針の宣言-スピルの検証">シミュレーション: Lite front-end, 方針の宣言, スピルの検証</h1>
-<h2 id="新しいモデルは-lite-で書く">新しいモデルは Lite で書く</h2>
+<h2 id="シミュレーション-lite-front-end-方針の宣言-スピルの検証">シミュレーション: Lite front-end, 方針の宣言, スピルの検証</h2>
+<h3 id="新しいモデルは-lite-で書く">新しいモデルは Lite で書く</h3>
 <p>0.4 系のシミュレーションは <code>StateSpace</code> と <code>Updatable</code> インスタンスを手で書く front-end でした. 0.5.0.0 の <strong><code>ExchangeAlgebra.Simulate.Lite</code></strong> はその engine の上に載る別の front-end で, 新しいモデルはこちらで書きます. モデルは 3 つの要素からなります. <code>Generic</code> から導出する product-only の world record (各 field に初期値・可変参照・スナップショットの役割を型族で付ける), 各 agent をスナップショットから <code>Journal</code> (メッセージ) へ写す純関数の stage の列, 期間・seed・元帳 field・stage・並列方針を束ねる <code>SimSpec</code> です.</p>
 <p>意味論は bulk-synchronous parallel (BSP) に固定しました. 1 つの stage の中では全 agent が同じスナップショットを見て, 同じ stage 内の先行 agent が出したメッセージは見えません. メッセージは stage の終わりに一括で元帳へ commit され, 後続の stage と後続の期にだけ見えます. 従来の engine は命令的な step が同じ step 内の変更を読めたので, 移植するモデルは read-then-write の依存を 2 つの stage に分けます. 各 agent の乱数生成器は (seed, 期, stage, agent) の 4 つ組だけから導くので, 逐次実行と chunk 並列実行が同じ元帳を返します. これは同梱のテストで固定しています.</p>
 <p>従来の front-end は公表済み結果の再現のために残し, 新機能は加えません. 併せて, 最上位モジュール <code>ExchangeAlgebra</code> は <code>Simulate</code> を再エクスポートしなくなりました. <code>copy</code>, <code>modify</code>, <code>update</code>, <code>normal</code> のような一般的な名前が簿記の入口を汚していたためで, 使う側は <code>import ExchangeAlgebra.Simulate</code> を 1 行足します.</p>
-<h2 id="長期シミュレーションの方針を宣言する">長期シミュレーションの方針を宣言する</h2>
+<h3 id="長期シミュレーションの方針を宣言する">長期シミュレーションの方針を宣言する</h3>
 <p><strong><code>ExchangeAlgebra.Simulate.Policy</code></strong> は, 元帳の保持・スピル・圧縮を <code>LedgerPolicy</code> として宣言する語彙です. 既定は全転記を保持する <code>FullAudit</code> で, 監査証跡を保ちます. 長期の run では閉じた期の履歴が単調に増えて常駐メモリを支配するので, <code>CompressClosedTerms</code> を明示して閉じた期だけを圧縮できます. 進行中の期は圧縮せず, <code>norm</code> と残高は保たれます. 圧縮を関数の内部で暗黙に呼ぶことは設計上禁じているため, 方針の名前として書かせる形にしました.</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ot">longRunPolicy ::</span> <span class="dt">LedgerPolicy</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>longRunPolicy <span class="ot">=</span> <span class="dt">LedgerPolicy</span></span>
@@ -89,7 +215,7 @@
 <span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  , compaction <span class="ot">=</span> <span class="dt">CompressClosedTerms</span></span>
 <span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  }</span></code></pre></div>
 <p>この設定 (直近 2 期を常駐, それ以前はディスクへ, 常駐分の閉じた期は圧縮) は, 非圧縮の全保持に比べて常駐メモリを大きく削ります. Lite からは <code>runLiteWithPolicy</code> で適用します.</p>
-<h2 id="スピルファイルを検証してから復元する">スピルファイルを検証してから復元する</h2>
+<h3 id="スピルファイルを検証してから復元する">スピルファイルを検証してから復元する</h3>
 <p>スピル (ディスク退避) の codec と復元は <strong><code>ExchangeAlgebra.Simulate.Spill</code></strong> に集約しました. 0.4 系の <code>readBinarySpillFile</code> は復号に失敗した chunk 以降を黙って切り捨て, <code>restoreJournalFromBinarySpill</code> は部分的にしか読めないファイルや古いファイルを完全なものとして合流させていました. 最後に読めた chunk までの項が消えても気づけません. 0.5.0.0 では最初の復号失敗で例外を上げ, chunk の範囲が順序違い・重複・欠落・空のいずれかなら復元を拒否します. <code>Either</code> で受けたい場合は <code>Checked</code> 付きの変種を使います.</p>
 <div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>readBinarySpillFileChecked</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="ot">  ::</span> (<span class="dt">Binary</span> t, <span class="dt">Binary</span> payload, <span class="dt">Ord</span> t, <span class="dt">Enum</span> t)</span>
@@ -100,11 +226,11 @@
 <span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="dt">SpillRangeError</span>    {<span class="ot"> spillRangeIssue ::</span> <span class="dt">SpillRangeIssue</span>,<span class="ot"> spillRangePrevious ::</span> (t, t),<span class="ot"> spillRangeCurrent ::</span> (t, t) }</span>
 <span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="dt">SpillEmptyRange</span>    {<span class="ot"> spillRangeCurrent ::</span> (t, t) }</span></code></pre></div>
 <p>Lite の run はスピルファイルを開くときに切り詰める (<code>WriteMode</code>) ので, 同じパスで再実行しても古い chunk が積み上がりません.</p>
-<h2 id="取引ネットワークと産業連関の生成">取引ネットワークと産業連関の生成</h2>
+<h3 id="取引ネットワークと産業連関の生成">取引ネットワークと産業連関の生成</h3>
 <p><strong><code>ExchangeAlgebra.Simulate.Network</code></strong> は, 市場の取引関係 (<code>TradeNetwork</code>) と投入係数 (<code>InputCoefficients</code>) を分けて持ちます. 生成器は決定的で, 完全グラフ, circulant, k-正則, Erdős–Rényi, scale-free, sector block を用意しました. <code>industrialNetwork</code> / <code>industrialFlows</code> は順序付きの CL-SBM (部門で順序づけ, べき乗則で重み付けしたブロック三角のネットワーク) を整数 seed から決定的に生成し, 同梱の <code>industrialEx1</code> がその使い方を示します. 同じ seed から同じネットワークが出ることを前提に, 論文側の再現手順と対応づけています.</p>
-<h2 id="その他の追加">その他の追加</h2>
+<h3 id="その他の追加">その他の追加</h3>
 <p><code>ExchangeAlgebra.Optimize</code> はソルバの共通インターフェースで, 焼きなまし (<code>Optimize.Annealing</code>) と実数値遺伝的アルゴリズム (<code>Optimize.GA</code>) の 2 実装を持ちます. 代数側では <code>mapBasePart</code> の関手則, <code>foldEntries</code> の普遍性, <code>postFromNetBy</code> の <code>bar</code> を経由する分解をそれぞれ文書化し, property test で固定しました. 基底の一部で商をとる <code>decBy</code> と, 純額から転記へ戻す <code>postFromNetBy</code> はその上に載ります.</p>
-<h1 id="モジュール境界の整理">モジュール境界の整理</h1>
+<h2 id="モジュール境界の整理">モジュール境界の整理</h2>
 <p>公開モジュールは 35 になり, 7 つの層 (入口, 科目語彙, 中核代数, 仕訳とシミュレーション, 簿記と報告, 変換と補助, 最適化) に並べました. 依存は層の並びに沿って一方向で, 0.4 系にあった <code>Write</code> から <code>Simulate</code> への依存は無くなりました. スピルの読み書きは <code>Simulate.Spill</code> に置き, <code>Simulate</code> と <code>Write</code> と <code>Policy</code> がそれぞれそこを見ます.</p>
 <p><code>Alg</code>, <code>Journal</code>, <code>TransTable</code> は抽象型にしました. <code>Alg</code> が公開するのは <code>Zero</code>, <code>(:@)</code>, <code>_val</code>, <code>_hatBase</code> だけで, 複数転記の内部表現とキャッシュ field は <code>ExchangeAlgebra.Algebra.Internal</code> に移しました. <code>Journal</code> は内部に軸ごとの索引を持ち, 手で組み立てた値は索引と本体がずれ, ワイルドカード射影が誤った答えを黙って返すことがあります. 抽象化はこの経路を塞ぐためで, 構築には <code>mkJournal</code>, <code>(.|)</code>, <code>fromList</code>, 転記の一対一の写像には型付きの <code>mapPosting</code> / <code>mapMaybePosting</code>, note の付け替えには <code>replaceNotes</code> を使います. <code>Internal</code> は PVP の互換保証の外にあります.</p>
 <p><code>Chart</code> / <code>Chart-cairo</code> による描画は Cabal flag <code>visualize</code> の背後に置きました. 既定は on なので挙動は変わりませんが, cairo や pango を入れたくない環境では flag を切れば <code>ExchangeAlgebra.Simulate.Visualize</code> ごと依存から外れます.</p>
@@ -112,10 +238,10 @@
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="fu">flags</span><span class="kw">:</span></span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">exchangealgebra</span><span class="kw">:</span></span>
 <span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">visualize</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span></code></pre></div>
-<h1 id="性能">性能</h1>
+<h2 id="性能">性能</h2>
 <p><code>Journal.fromList</code> を遅延の右畳み込みから正格の左畳み込みに変えました. 中核ベンチマークでは転記数が増えるほど差が開き, 万単位の入力で桁違いに速くなります. 転記の多重集合は保たれ, 変わるのは同じ note と基底に衝突した転記の列の順序だけです. この順序は <code>Eq</code> / <code>Show</code> / <code>Binary</code> と, <code>Double</code> では <code>norm</code> の最下位桁に現れます. <code>MoneyDecimal</code> では現れません. ほかに, 完全一致の射影の fast path, 仕訳追加の高速化, 試算表の行生成での射影の共有を入れました. いずれも規模に対する具体的な計測は別記事で扱います.</p>
 <p><code>AccountTitles</code> の <code>Binary</code> タグは Word8 から big-endian の Word16 になりました. 256 科目の上限が外れ, 範囲外のタグは <code>Get</code> の失敗として報告されます. 0.4 系で書き出したスピルファイルや <code>Journal</code> のバイナリは 0.5.0.0 では読めません.</p>
-<h1 id="系からの移行">0.4 系からの移行</h1>
+<h2 id="系からの移行">0.4 系からの移行</h2>
 <p><code>Double</code> の元帳を <code>.@</code> と <code>.+</code> で組み立てて <code>norm</code> や <code>bar</code> で読むだけの利用なら, 変更は要りません. 次に該当するときだけ手を入れます.</p>
 <p>影響が広いのは次の 4 つです.</p>
 <ul>
@@ -140,94 +266,430 @@
 <li><strong>連結精算表の <code>BalancePosition</code></strong>: 共通の <code>AccountBalance</code> に統合しました.</li>
 <li><strong>非推奨 (0.6 で削除予定)</strong>: <code>projNorm</code> / <code>projWithBaseNorm</code> / <code>projWithNoteNorm</code> は, <code>bar</code> による相殺を名前に出した <code>projNetNorm</code> / <code>projWithBaseNetNorm</code> / <code>projWithNoteBaseNetNorm</code> の別名になりました. <code>Journal.insert</code> は <code>replaceNotes</code> の別名になりました. <code>Number.NonNegative.Double</code> の <code>HatVal</code> インスタンスと <code>rounding</code> も非推奨で, <code>MoneyDouble</code> と <code>Value</code> の丸め関数へ移ります.</li>
 </ul>
-<h1 id="インストール">インストール</h1>
+<h2 id="インストール">インストール</h2>
 <div class="sourceCode" id="cb7"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># stack.yaml</span></span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="fu">extra-deps</span><span class="kw">:</span></span>
 <span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> exchangealgebra-0.5.0.0</span></span></code></pre></div>
 <p>GHC 9.10 (Stackage <code>lts-24.4</code> で検証) が対象で, 0.4 系と同じです. 既定では <code>Chart-cairo</code> を経由して cairo / pango が要るので, 不要なら前節の flag で外します. 同梱の例は GitHub の <code>examples/</code> にあり, 0.5.0.0 では <code>examples/stack.yaml</code> が Hackage 版を指すので, <code>examples/</code> だけを取り出して <code>stack build</code> できます.</p>
-<h1 id="今後">今後</h1>
-<p>非推奨にした API (<code>projNorm</code> 系の旧名, <code>Journal.insert</code>, <code>Number.NonNegative.Double</code> の <code>HatVal</code> インスタンス, <code>rounding</code>) は 0.6 で削除します. 値型・保持方針・並列度を振ったときの計算時間とメモリの scaling は, 本記事では概要にとどめました. 計測条件を揃えた結果は別記事にまとめます. Exchange Algebra の代数構造の解説記事は, 関連論文の正式公表後に改めて書く予定です.</p>]]></description>
-    <pubDate>Fri, 04 Sep 2026 00:00:00 UT</pubDate>
-    <guid>/posts/2026-09-04-exchangealgebra-0-5-0-0.html</guid>
-    
-    <author>kaya3728@gmail.com (yakagika)</author>
-    
-    <dc:creator>yakagika</dc:creator>
-</item>
-<item>
-    <title>exchangealgebra を Hackage に登録</title>
-    <link>/posts/2026-05-26-exchangealgebra-on-hackage.html</link>
-    <description><![CDATA[<h1 id="はじめに">はじめに</h1>
-<p>自作の Haskell ライブラリ <a href="https://hackage.haskell.org/package/exchangealgebra"><code>exchangealgebra</code></a> を Hackage に登録しました. この投稿はその告知のみで, チュートリアル的な使い方は関連論文を正式公表してから別記事として書く予定です.</p>
-<p>ソースコードと README は GitHub にあります.</p>
-<ul>
-<li>Hackage: <a href="https://hackage.haskell.org/package/exchangealgebra" class="uri">https://hackage.haskell.org/package/exchangealgebra</a></li>
-<li>GitHub: <a href="https://github.com/yakagika/ExchangeAlgebra" class="uri">https://github.com/yakagika/ExchangeAlgebra</a></li>
-</ul>
-<h1 id="exchange-algebra-とは">Exchange Algebra とは</h1>
-<p><code>exchangealgebra</code> は出口 弘 先生が提唱した <a href="https://www.springer.com/gp/book/9784431209850">Exchange Algebra</a> を Haskell で実装したライブラリです. 簿記の仕訳をスケール付きの基底代数の要素として扱うことで, 仕訳・締め・振替・シミュレーションを関数合成と射影で書けるようにします.</p>
-<ul>
-<li>書籍: <a href="https://www.springer.com/gp/book/9784431209850" class="uri">https://www.springer.com/gp/book/9784431209850</a></li>
-<li>原典論文 (PDF): <a href="https://repository.kulib.kyoto-u.ac.jp/dspace/bitstream/2433/82987/1/0809-7.pdf" class="uri">https://repository.kulib.kyoto-u.ac.jp/dspace/bitstream/2433/82987/1/0809-7.pdf</a></li>
-</ul>
-<p>理論の詳細はチュートリアル記事で改めて扱うので, ここではモジュール構成の概観だけ書いておきます.</p>
-<h1 id="モジュール構成">モジュール構成</h1>
-<p>公開モジュールは大きく 3 層に分かれています.</p>
-<p><strong>Algebra 層 (基盤):</strong></p>
-<ul>
-<li><code>ExchangeAlgebra.Algebra</code> — 中核の代数 (<code>Alg</code> 型, 加算 <code>.+</code>, hat <code>.^</code>, bar <code>.-</code>, 射影 <code>proj</code>)</li>
-<li><code>ExchangeAlgebra.Algebra.Base</code> — 基底クラス (<code>BaseClass</code>, <code>HatBaseClass</code>, <code>ExBaseClass</code>)</li>
-<li><code>ExchangeAlgebra.Algebra.Base.Element</code> — <code>Element</code> 型クラス (wildcard 対応の基底要素)</li>
-<li><code>ExchangeAlgebra.Algebra.Transfer</code> — 振替の書換 (<code>TransTable</code>, <code>(.-&gt;)</code>, <code>transfer</code>, <code>finalStockTransfer</code>)</li>
-</ul>
-<p><strong>Journal 層 (メタデータ付き仕訳):</strong></p>
-<ul>
-<li><code>ExchangeAlgebra.Journal</code> — <code>Journal n v b</code> 型 (Note を持つ仕訳), <code>sigmaOn</code>, <code>filterByAxis</code>, <code>projWithNote</code> など</li>
-<li><code>ExchangeAlgebra.Journal.Transfer</code> — Journal 向けの振替 API</li>
-</ul>
-<p><strong>Simulate / IO 層:</strong></p>
-<ul>
-<li><code>ExchangeAlgebra.Simulate</code> — <code>StateSpace</code>, <code>Updatable</code>, <code>runSimulation</code>, ディスクへの spill, 波及効果 (<code>rippleEffect</code>, <code>leontiefInverse</code>)</li>
-<li><code>ExchangeAlgebra.Simulate.Visualize</code> — Chart/Cairo ベースの PNG 描画 (使い分けは README 参照)</li>
-<li><code>ExchangeAlgebra.Write</code> — CSV 出力と spill 復元</li>
-</ul>
-<p>詳細とインポートの典型パターンは <a href="https://github.com/yakagika/ExchangeAlgebra#readme">README</a> を参照してください.</p>
-<h1 id="インストール">インストール</h1>
-<p>Stack の <code>extra-deps</code> に固定します.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># stack.yaml</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">extra-deps</span><span class="kw">:</span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> exchangealgebra-0.4.0.0</span></span></code></pre></div>
-<div class="sourceCode" id="cb2"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># package.yaml</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">dependencies</span><span class="kw">:</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> exchangealgebra</span></span></code></pre></div>
-<p>GHC 9.10 (Stackage <code>lts-24.4</code> でテスト), Cabal 3.0 以降が必要です. <code>Chart</code> / <code>Chart-cairo</code> を経由して cairo / pango / freetype が必要なので, macOS では <code>brew install cairo pango</code> が要ります.</p>
-<p>未リリースのリビジョンを使いたい場合は Git の特定コミットを <code>extra-deps</code> に指す方法もあります (詳細は README).</p>
-<h1 id="サンプルの動かし方">サンプルの動かし方</h1>
-<p><code>examples/</code> ディレクトリ以下に動くサンプルが揃っています. リポジトリ全体を clone してもよく, <a href="https://github.com/Rich-Harris/degit">degit</a> で <code>examples/</code> だけ抜き出すこともできます.</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/yakagika/ExchangeAlgebra.git</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ExchangeAlgebra</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="ex">stack</span> build</span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="ex">stack</span> exec <span class="at">--</span> sim1        <span class="co"># 100 期シミュレーション</span></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="ex">stack</span> exec <span class="at">--</span> ebex1       <span class="co"># 入門用の簿記例</span></span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="ex">stack</span> exec <span class="at">--</span> ripple      <span class="co"># 10 エージェントの波及効果</span></span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="ex">stack</span> exec <span class="at">--</span> cge         <span class="co"># CGE モデル</span></span></code></pre></div>
-<p>サンプルのカタログと前提 (Python プロット用の uv 等) は <a href="https://github.com/yakagika/ExchangeAlgebra/blob/master/examples/README.md">examples/README</a> にまとめてあります.</p>
-<h1 id="このライブラリを使った研究">このライブラリを使った研究</h1>
-<p>本ライブラリはプレプリント <a href="https://doi.org/10.21203/rs.3.rs-8485050/v1"><em>Accounting State Space as the Minimal Unit for Economic Agent-Based Modeling: Advancing Ripple Effect Analysis in Real-Time Economy</em></a> (Akagi, 2026, Research Square preprint v1) で会計計算をベースとした経済ABMを提案しています. 引用情報はリポジトリの <code>CITATION.cff</code> から GitHub の “Cite this repository” 経由で取れます.</p>
-<h1 id="今後">今後</h1>
-<ul>
-<li><strong>チュートリアル記事</strong>: 上記プレプリントを正式公表したタイミングで, Exchange Algebra の代数構造と仕訳・振替・シミュレーションの組み立て方を解説する別記事を予定.</li>
-<li><strong>Haddock</strong>: <a href="https://htmlpreview.github.io/?https://raw.githubusercontent.com/yakagika/ExchangeAlgebra/master/haddock/index.html" class="uri">https://htmlpreview.github.io/?https://raw.githubusercontent.com/yakagika/ExchangeAlgebra/master/haddock/index.html</a></li>
-</ul>
-<h1 id="ライセンス">ライセンス</h1>
-<p>MIT と Open World License (OWL) のデュアルライセンスです. 詳細はリポジトリの <code>LICENSE</code> を参照してください.</p>]]></description>
-    <pubDate>Tue, 26 May 2026 00:00:00 UT</pubDate>
-    <guid>/posts/2026-05-26-exchangealgebra-on-hackage.html</guid>
-    
-    <author>kaya3728@gmail.com (yakagika)</author>
-    
-    <dc:creator>yakagika</dc:creator>
-</item>
+<h2 id="今後">今後</h2>
+<p>非推奨にした API (<code>projNorm</code> 系の旧名, <code>Journal.insert</code>, <code>Number.NonNegative.Double</code> の <code>HatVal</code> インスタンス, <code>rounding</code>) は 0.6 で削除します. 値型・保持方針・並列度を振ったときの計算時間とメモリの scaling は, 本記事では概要にとどめました. 計測条件を揃えた結果は別記事にまとめます. Exchange Algebra の代数構造の解説記事は, 関連論文の正式公表後に改めて書く予定です.</p>
+</article>
 
-    </channel>
-</rss>
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        <nav class="footer-nav" aria-label="フッターナビゲーション">
+            <a href="../">Home</a>
+            <a href="../posts.html">Blog</a>
+            <a href="../lectures.html">Lecture</a>
+            <a href="../research.html">Research</a>
+            <a href="../rss.xml">RSS</a>
+            <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+        </nav>
+        <p class="footer-copy">&copy; yakagika &middot; Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>.</p>
+    </div>
+</div>
+
+
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="ページ先頭へ戻る" title="先頭へ戻る">↑</button>
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level;
+          switch (heading.tagName.toLowerCase()) {
+            case 'h2': level = 0; break;
+            case 'h3': level = 1; break;
+            case 'h4': level = 2; break;
+            default: return;
+          }
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          // Pandoc は `::: note` + 見出し の組み合わせを <section id="..." class="note">
+          // 内の <hN> として出力するため, 見出し自身に id が無い場合は
+          // 親 section の id を辿る.
+          var anchorId = heading.id;
+          if (!anchorId) {
+            var parentSection = heading.closest('section[id]');
+            if (parentSection) anchorId = parentSection.id;
+          }
+          anchor.href = '#' + anchorId;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+
+      // ----------------------------------------
+      // スクロールスパイ: 表示中の見出しを TOC でハイライト
+      // ----------------------------------------
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0 || typeof IntersectionObserver === 'undefined') return;
+
+      var idToTocItem = new Map();
+      headings.forEach(function(h) {
+        if (!h.id) return;
+        var link = tocContainer.querySelector('a[href="#' + CSS.escape(h.id) + '"]');
+        if (link) {
+          var li = link.closest('.toc-item') || link.closest('li');
+          if (li) idToTocItem.set(h.id, li);
+        }
+      });
+
+      var visible = new Set();
+      var lastActive = null;
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+
+        // ドキュメント順で最初に可視な見出しをアクティブに
+        var firstVisible = null;
+        for (var i = 0; i < headings.length; i++) {
+          if (visible.has(headings[i].id)) {
+            firstVisible = headings[i].id;
+            break;
+          }
+        }
+        if (!firstVisible) return;
+
+        var tocItem = idToTocItem.get(firstVisible);
+        if (!tocItem || tocItem === lastActive) return;
+
+        if (lastActive) lastActive.classList.remove('toc-active');
+        tocItem.classList.add('toc-active');
+        lastActive = tocItem;
+
+        // TOC を必要なときだけスクロール
+        tocItem.scrollIntoView({
+          block: 'nearest',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
+      }, {
+        // ヘッダー (60px) を除いた上部 〜 画面下から60% を判定領域とする
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0
+      });
+
+      headings.forEach(function(h) { if (h.id) observer.observe(h); });
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
+      const pre = codeBlock.parentNode;
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
+      copyButton.textContent = 'Copy';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    // パスワード保護付き details (回答例用)
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll('details.protected').forEach(function (det) {
+        var pass = det.getAttribute('data-pass') || '';
+        var summary = det.querySelector('summary');
+        if (!summary) return;
+
+        var gate = document.createElement('div');
+        gate.className = 'pass-gate';
+        gate.innerHTML =
+          '<label>合言葉: <input type="password" autocomplete="off" spellcheck="false"></label>' +
+          '<button type="button">解除</button>' +
+          '<span class="pass-error" hidden>合言葉が違います</span>';
+        summary.insertAdjacentElement('afterend', gate);
+
+        var input = gate.querySelector('input');
+        var button = gate.querySelector('button');
+        var errorMsg = gate.querySelector('.pass-error');
+
+        function tryUnlock() {
+          if (input.value === pass) {
+            det.classList.add('unlocked');
+            errorMsg.hidden = true;
+          } else {
+            errorMsg.hidden = false;
+            input.select();
+          }
+        }
+
+        button.addEventListener('click', tryUnlock);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
+        });
+
+        det.addEventListener('toggle', function () {
+          if (det.open && !det.classList.contains('unlocked')) {
+            input.focus();
+          }
+        });
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            try {
+              katex.render( texText.data
+                          , mathElements[i]
+                          , { displayMode: mathElements[i].classList.contains("display")
+                            , throwOnError: true
+                           }
+                          );
+            } catch (e) {
+              // 1 つの数式のエラーで残り全ての数式が生 TeX のまま残らないようにする
+              console.error('KaTeX render error:', e.message, texText.data);
+            }
+          }
+      }
+    });
+  </script>
+
+  <!-- 見出しアンカーリンク + Back to top -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 記事見出しに hover で現れる # パーマリンクを付与
+      document.querySelectorAll('article h2[id], article h3[id]').forEach(function (h) {
+        var a = document.createElement('a');
+        a.className = 'heading-anchor';
+        a.href = '#' + h.id;
+        a.setAttribute('aria-label', 'このセクションへのリンク');
+        a.textContent = '#';
+        h.appendChild(a);
+      });
+
+      // Back to top: スクロール量に応じて表示
+      var btt = document.getElementById('back-to-top');
+      if (btt) {
+        var onScroll = function () {
+          if (window.pageYOffset > 600) btt.classList.add('visible');
+          else btt.classList.remove('visible');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        btt.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
+    });
+  </script>
+
+  </body>
+</html>

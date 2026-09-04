@@ -7,12 +7,154 @@
         <description><![CDATA[Personal blog of yakagika]]></description>
         <atom:link href="/tags/exchangealgebra.xml" rel="self"
                    type="application/rss+xml" />
-        <lastBuildDate>Tue, 26 May 2026 00:00:00 UT</lastBuildDate>
+        <lastBuildDate>Fri, 04 Sep 2026 00:00:00 UT</lastBuildDate>
         
         <managingEditor>kaya3728@gmail.com (yakagika)</managingEditor>
         <webMaster>kaya3728@gmail.com (yakagika)</webMaster>
         
         <item>
+    <title>exchangealgebra 0.5.0.0 と 0.4 系からの変更点</title>
+    <link>/posts/2026-09-04-exchangealgebra-0-5-0-0.html</link>
+    <description><![CDATA[<h1 id="はじめに">はじめに</h1>
+<p>Haskell ライブラリ <a href="https://hackage.haskell.org/package/exchangealgebra"><code>exchangealgebra</code></a> の 0.5.0.0 を 2026-09-04 に Hackage へ公開しました. <a href="2026-05-26-exchangealgebra-on-hackage.html">前回の記事</a>で告知した 0.4.0.0 (2026-05-18) から約 3 か月ぶりの major 版で, その間に minor の 0.4.1.0 と patch の 0.4.1.1, 0.4.1.2 を出しています. 破壊的変更は 1 つの major に集約する方針を採っているので, 0.5.0.0 には 3 か月分の API 変更がまとめて入っています. 本記事はライブラリ API の差分を 0.4 系の利用者向けに整理します (同梱 examples の監査評価ツール群の変更は扱いません). 代数構造そのもののチュートリアルは前回の予告どおり関連論文の正式公表後に別記事とします.</p>
+<ul>
+<li>Hackage: <a href="https://hackage.haskell.org/package/exchangealgebra-0.5.0.0" class="uri">https://hackage.haskell.org/package/exchangealgebra-0.5.0.0</a></li>
+<li>GitHub Release: <a href="https://github.com/yakagika/ExchangeAlgebra/releases/tag/v0.5.0.0" class="uri">https://github.com/yakagika/ExchangeAlgebra/releases/tag/v0.5.0.0</a></li>
+<li>ChangeLog (全項目): <a href="https://github.com/yakagika/ExchangeAlgebra/blob/master/ChangeLog.md" class="uri">https://github.com/yakagika/ExchangeAlgebra/blob/master/ChangeLog.md</a></li>
+</ul>
+<h1 id="系の-patch-で直したこと">0.4 系の patch で直したこと</h1>
+<p>0.5.0.0 の差分を読む前提として, 0.4.1.x の 3 つの修正はすべて 0.5.0.0 に含まれています. 0.4.1.1 の修正は値の総量 (<code>norm</code>) が保たれたまま基底ごとの内訳が壊れる型の不具合で, 総量だけを見るテストでは検出できませんでした.</p>
+<ul>
+<li><strong>0.4.1.0</strong>: <code>bases</code> が Not 側の列を無視して Hat 側を 2 回走査していました. 同時に, <code>bar</code> や <code>balance</code> の一致判定を固定の絶対許容誤差からスケール付きの許容誤差に変えました.</li>
+<li><strong>0.4.1.1</strong>: 値 0 の単項と非 0 の単項を <code>.+</code> で結合すると, 非 0 の値が 0 側の基底に付け替えられていました. 明示的に <code>0 :@ base</code> を作る疎な入力係数を持つシミュレーションで, 累積順序によって隣の基底に転記が漏れ出し, 同梱の例では長期の run で企業のストックが無視できない幅でずれていました.</li>
+<li><strong>0.4.1.2</strong>: 貸借が完全に一致した元帳に <code>incomeSummaryAccount</code> を適用すると, 純損益 0 のケースを場合分けが取りこぼしてクラッシュしていました.</li>
+</ul>
+<h1 id="値型を選べるようにした">値型を選べるようにした</h1>
+<p>0.4 系では <code>Alg v b</code> の値型 <code>v</code> は事実上 <code>Double</code> に固定されていました. <code>HatVal</code> クラスが <code>RealFloat</code> を上位クラスに持っていたためで, 正確な 10 進数型を値型にする道がありませんでした. 0.5.0.0 では <code>HatVal</code> から <code>RealFloat</code> を外し, 代わりに表示用の <code>showValue</code> メソッドを加えました. これが今回の major の出発点です.</p>
+<p>その上で <code>ExchangeAlgebra.Value</code> に 2 つの newtype を用意しました. <strong><code>MoneyDouble</code></strong> は <code>Double</code> の zero-cost wrapper で, 係数や乱数と同じ型のまま金額を扱う事故を型で防ぎます. <strong><code>MoneyDecimal</code></strong> は 10 進固定小数 (<code>Data.Decimal</code> を包む) で, 加算が正確かつ結合的なので, 転記を足し合わせる順序が <code>norm</code> や <code>bar</code> の結果に影響しません. 非負性は <code>Double</code> と同じく型では保証せず, 負の転記を <code>.@</code> が拒否する形で保ちます. 数値リテラルはどちらでもそのまま書けます.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">ExchangeAlgebra</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">ExchangeAlgebra.Value</span> (<span class="dt">MoneyDecimal</span>)</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">ExchangeAlgebra.Algebra.Base</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">Ledger</span> <span class="ot">=</span> <span class="dt">Alg</span> <span class="dt">MoneyDecimal</span> (<span class="dt">HatBase</span> <span class="dt">AccountTitles</span>)</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="ot">entry ::</span> <span class="dt">Ledger</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>entry <span class="ot">=</span> <span class="fl">10.5</span> <span class="op">.@</span> <span class="dt">Hat</span> <span class="op">:&lt;</span> <span class="dt">Cash</span> <span class="op">.+</span> <span class="dv">2</span> <span class="op">.@</span> <span class="dt">Not</span> <span class="op">:&lt;</span> <span class="dt">Sales</span> <span class="op">.+</span> <span class="fl">0.1</span> <span class="op">.@</span> <span class="dt">Hat</span> <span class="op">:&lt;</span> <span class="dt">Cash</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co">-- norm entry == 12.6</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co">-- bar  entry == 10.6:@Hat:&lt;Cash .+ 2:@Not:&lt;Sales</span></span></code></pre></div>
+<p><code>Double</code> では 10.5 + 0.1 のような加算が最下位ビットの丸めを含み, 同じ基底の転記を足す順序が変わると <code>norm</code> の末尾桁が動きます. 同梱のシミュレーション例では, 短い run では両型の結果が一致し, 期を重ねると最下位桁で分かれます. 正確さの代償として <code>MoneyDecimal</code> は <code>MoneyDouble</code> より遅く, メモリも多く使います. 用途で選ぶ前提であり, 既定は従来どおり <code>Double</code> です. 期数と規模に対する具体的な計測は別記事で扱います.</p>
+<p>乗除算が要る場面 (税率, 按分) では <code>MoneyDecimal</code> の中間値は正確なまま保たれ, 金額を確定する時点で <code>bankersRound</code> (銀行丸め) か <code>ceilingRound</code> を明示的に呼びます. 丸め規則は法域や会社で異なるため, ライブラリ側で 1 つに固定していません.</p>
+<p>シミュレーションでは, パラメータ・投入係数・乱数は <code>Double</code> のまま持ち, 元帳に入る時点で <code>realToFrac</code> で変換し, 集計値を可視化へ戻すときに <code>Double</code> に戻す境界パターンを推奨しています. 同梱の簿記例とシミュレーション例はこの形に揃えました. Leontief 逆行列や最適化のような数値計算主体の例は <code>Double</code> のままです.</p>
+<h1 id="勘定科目の意味情報と転記の権限">勘定科目の意味情報と転記の権限</h1>
+<p>0.4 系の勘定科目 <code>AccountTitles</code> は列挙型と, 5 区分 (資産・負債・資本・費用・収益) やサイドを返す少数の関数だけを持っていました. 0.5.0.0 では科目ごとの正本となる <strong>registry</strong> を置き, 日商簿記 2 級・3 級の商業簿記の科目を取り込んで 235 の具体科目に拡張しました. 各科目には <strong><code>AccountSemantics</code></strong> として, 科目の役割, 転記できる文脈 (後述), 旧来の 5 区分が何を意味しているか, ホームサイド, 財務諸表への表示可否が付きます. <code>IncomeSummary</code> の区分が <code>Assets</code> になっているような, 方向の符号化を区分に流用していた箇所は, 分類ではなく符号化として説明されるようになりました.</p>
+<p>外部データからの転記を安全にする層も追加しました. <code>ExchangeAlgebra.Convert</code> は借貸・科目名・金額の生データと代数の項を相互変換し, <code>Convert.Csv</code> は固定 schema の仕訳 CSV を読み, <code>Convert.Checked</code> は科目名の解決と転記の妥当性を検査してから <code>Journal</code> を作ります. 日商簿記の B 欄にある「未払金」「借入金」「仮払金」「仮受金」「有価証券」「投資有価証券」の 6 語は複数の科目に対応するので, 一意に解決せず候補付きの <code>AmbiguousAccount</code> を返します.</p>
+<p>転記の権限は <strong>処理文脈</strong> (<code>ProcessingContext</code>) で決まります. 通常仕訳 (<code>OrdinaryJournal</code>) に加えて, 決算処理 (<code>ClosingProcess</code>), 連結精算表 (<code>ConsolidationWorksheet</code>), シミュレーションエンジン (<code>EngineComputation</code>) の 3 つがあり, それぞれが自分専用の転記能力を 1 つだけ追加します. 検査付き変換は文脈を引数に取り, 文脈に合わない科目は <code>PostingNotAllowed</code> で拒否します. 損益勘定 <code>IncomeSummary</code> を通常仕訳で転記しようとすると弾かれ, 決算処理では通ります.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">ExchangeAlgebra.Accounting.PostingPolicy</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>postingCapabilityFor <span class="dt">IncomeSummary</span>                                   <span class="co">-- ClosingOnly</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>postingAllowedIn <span class="dt">OrdinaryJournal</span> (postingCapabilityFor <span class="dt">IncomeSummary</span>) <span class="co">-- False</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>postingAllowedIn <span class="dt">ClosingProcess</span>  (postingCapabilityFor <span class="dt">IncomeSummary</span>) <span class="co">-- True</span></span></code></pre></div>
+<p>代数の構築自体 (<code>.@</code> や <code>.+</code>) はこの検査を通りません. 検査は外部入力が元帳に入る境界にだけ置き, 代数の内部では従来どおり自由に項を作れます.</p>
+<h1 id="評価勘定の扱いと決算仕訳">評価勘定の扱いと決算仕訳</h1>
+<p>0.4 系では減価償却累計額と貸倒引当金を <code>Liability</code> 区分に置いていました. 貸方残高になる資産の控除項目を, 区分の側だけで表現していたためです. 0.5.0.0 では <code>ExBaseClass</code> に <strong><code>isContra</code></strong> を加え, この 2 科目を <code>Assets</code> 区分の評価勘定として表します. ホームサイドと PIMO は <code>(区分, isContra)</code> の組から導出し, 評価勘定では区分の既定サイドを反転します. 観測できる不変条件として <code>whichSide</code>, <code>whatPIMO</code>, <code>fixedCurrent</code> は全科目で従来と同じ値を返し, 変わったのはこの 2 科目の <code>whatDiv</code> だけです.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>isContra  (<span class="dt">Not</span> <span class="op">:&lt;</span> <span class="dt">AccumulatedDepreciation</span>)  <span class="co">-- True</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>whatDiv   (<span class="dt">Not</span> <span class="op">:&lt;</span> <span class="dt">AccumulatedDepreciation</span>)  <span class="co">-- Assets   (0.4 系では Liability)</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>whichSide (<span class="dt">Not</span> <span class="op">:&lt;</span> <span class="dt">AccumulatedDepreciation</span>)  <span class="co">-- Credit   (変わらない)</span></span></code></pre></div>
+<p>この変更は 3 か所に波及します. 第一に, 区分ごとの 6 つの射影 (<code>projCurrentAssets</code>, <code>projFixedLiability</code> など) は評価勘定を含めなくなり, 評価勘定は <code>projContraAssets</code> か汎用の <code>projContra</code> で取り出します. 第二に, 貸借対照表と損益計算書の行を作る <code>bsRows</code> / <code>plRows</code> は, 評価勘定を負債側に置いたり損益の控除科目を落としたりせず, 総額行・控除行・純額行の 3 行で表示します. 格納される値は非負のまま保ち, 負号は行を描画する時点でのみ付きます. 第三に, 区分同士の交換可能性 <code>(&lt;=&gt;)</code> を PIMO から導出するようにした結果, <code>(Assets, Revenue)</code> と <code>(Cost, Revenue)</code> の組 (逆順も同様) が <code>False</code> から <code>True</code> に変わりました. 基底の交換判定には区分でなく <code>whatPIMO</code> を使うのが 0.5.0.0 の作法です.</p>
+<p>決算仕訳の範囲も広げました. 0.4 系の <code>finalStockTransfer</code> は SNA 由来の 17 科目しか締めていませんでしたが, 0.5.0.0 では registry から締め対象を導出し, すべての費用・収益科目を締めます. <code>NetIncome</code> と <code>NetLoss</code> だけは区分が損益計算書の表示側を符号化しているため, 区分由来の規則を適用すると振替の符号が反転します. この 2 科目は明示的に <code>NoClose</code> とし, 専用の純損益振替が受け持ちます.</p>
+<h1 id="試算表から財務諸表までの層">試算表から財務諸表までの層</h1>
+<p>0.4 系にも <code>Write</code> に貸借対照表・損益計算書・試算表の CSV 出力はありましたが, 試算表の検証, 表示への変換, 派生指標はライブラリの外にありました. 0.5.0.0 では次のモジュール群を加えました. <code>Bookkeeping</code> 以外は代数の項に新しい転記を挿入せず, 読み出し専用で動きます.</p>
+<ul>
+<li><strong><code>ExchangeAlgebra.Bookkeeping</code></strong>: 決算整理仕訳 (減価償却, 引当金, 経過勘定, 持分法, 前期誤謬の訂正) を, 外部から与えた金額を明示引数として構築します.</li>
+<li><strong><code>ExchangeAlgebra.TrialBalance.Balance</code></strong>: 借方・貸方の方向を構造として持つ <code>AccountBalance</code> と, (借方, 貸方) の順に固定した相殺の基本演算. 試算表・表示・連結が同じ 1 つの相殺規則を共有します.</li>
+<li><strong><code>ExchangeAlgebra.TrialBalance.Validation</code></strong>: 相互科目・一時科目・異常残高などの所見を報告し, 明示した方針で報告への進行を止めます.</li>
+<li><strong><code>ExchangeAlgebra.Reporting.Presentation</code></strong>: 検証済みの試算表から日本基準 (JGAAP) の表示へ変換します. 変換の出所を追える形で保ちます.</li>
+<li><strong><code>ExchangeAlgebra.Reporting.Metric</code></strong>: 期間損益などの派生指標を型付きで返します. <code>periodResultOf</code> は元帳から期間の損益を導きます.</li>
+<li><strong><code>ExchangeAlgebra.Consolidation.Worksheet</code></strong>: 連結修正仕訳を検証し, 精算表の出所を保持します.</li>
+<li><strong><code>ExchangeAlgebra.Reporting.Group</code></strong>: 前節の表示グループと評価勘定の相殺方針.</li>
+</ul>
+<p><code>Write</code> の CSV 出力は残っていますが, 行を組み立てる純関数 (<code>bsRows</code> など) を切り出したので, CSV を経由せずに行データを取れます. 決算関連の書類 3 種の CSV writer もここに加えました.</p>
+<h1 id="シミュレーション-lite-front-end-方針の宣言-スピルの検証">シミュレーション: Lite front-end, 方針の宣言, スピルの検証</h1>
+<h2 id="新しいモデルは-lite-で書く">新しいモデルは Lite で書く</h2>
+<p>0.4 系のシミュレーションは <code>StateSpace</code> と <code>Updatable</code> インスタンスを手で書く front-end でした. 0.5.0.0 の <strong><code>ExchangeAlgebra.Simulate.Lite</code></strong> はその engine の上に載る別の front-end で, 新しいモデルはこちらで書きます. モデルは 3 つの要素からなります. <code>Generic</code> から導出する product-only の world record (各 field に初期値・可変参照・スナップショットの役割を型族で付ける), 各 agent をスナップショットから <code>Journal</code> (メッセージ) へ写す純関数の stage の列, 期間・seed・元帳 field・stage・並列方針を束ねる <code>SimSpec</code> です.</p>
+<p>意味論は bulk-synchronous parallel (BSP) に固定しました. 1 つの stage の中では全 agent が同じスナップショットを見て, 同じ stage 内の先行 agent が出したメッセージは見えません. メッセージは stage の終わりに一括で元帳へ commit され, 後続の stage と後続の期にだけ見えます. 従来の engine は命令的な step が同じ step 内の変更を読めたので, 移植するモデルは read-then-write の依存を 2 つの stage に分けます. 各 agent の乱数生成器は (seed, 期, stage, agent) の 4 つ組だけから導くので, 逐次実行と chunk 並列実行が同じ元帳を返します. これは同梱のテストで固定しています.</p>
+<p>従来の front-end は公表済み結果の再現のために残し, 新機能は加えません. 併せて, 最上位モジュール <code>ExchangeAlgebra</code> は <code>Simulate</code> を再エクスポートしなくなりました. <code>copy</code>, <code>modify</code>, <code>update</code>, <code>normal</code> のような一般的な名前が簿記の入口を汚していたためで, 使う側は <code>import ExchangeAlgebra.Simulate</code> を 1 行足します.</p>
+<h2 id="長期シミュレーションの方針を宣言する">長期シミュレーションの方針を宣言する</h2>
+<p><strong><code>ExchangeAlgebra.Simulate.Policy</code></strong> は, 元帳の保持・スピル・圧縮を <code>LedgerPolicy</code> として宣言する語彙です. 既定は全転記を保持する <code>FullAudit</code> で, 監査証跡を保ちます. 長期の run では閉じた期の履歴が単調に増えて常駐メモリを支配するので, <code>CompressClosedTerms</code> を明示して閉じた期だけを圧縮できます. 進行中の期は圧縮せず, <code>norm</code> と残高は保たれます. 圧縮を関数の内部で暗黙に呼ぶことは設計上禁じているため, 方針の名前として書かせる形にしました.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ot">longRunPolicy ::</span> <span class="dt">LedgerPolicy</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>longRunPolicy <span class="ot">=</span> <span class="dt">LedgerPolicy</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  { retain     <span class="ot">=</span> <span class="dt">RetainRecent</span> <span class="dv">2</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  , spillTo    <span class="ot">=</span> <span class="dt">Just</span> <span class="st">&quot;ledger.spill&quot;</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  , compaction <span class="ot">=</span> <span class="dt">CompressClosedTerms</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  }</span></code></pre></div>
+<p>この設定 (直近 2 期を常駐, それ以前はディスクへ, 常駐分の閉じた期は圧縮) は, 非圧縮の全保持に比べて常駐メモリを大きく削ります. Lite からは <code>runLiteWithPolicy</code> で適用します.</p>
+<h2 id="スピルファイルを検証してから復元する">スピルファイルを検証してから復元する</h2>
+<p>スピル (ディスク退避) の codec と復元は <strong><code>ExchangeAlgebra.Simulate.Spill</code></strong> に集約しました. 0.4 系の <code>readBinarySpillFile</code> は復号に失敗した chunk 以降を黙って切り捨て, <code>restoreJournalFromBinarySpill</code> は部分的にしか読めないファイルや古いファイルを完全なものとして合流させていました. 最後に読めた chunk までの項が消えても気づけません. 0.5.0.0 では最初の復号失敗で例外を上げ, chunk の範囲が順序違い・重複・欠落・空のいずれかなら復元を拒否します. <code>Either</code> で受けたい場合は <code>Checked</code> 付きの変種を使います.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>readBinarySpillFileChecked</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="ot">  ::</span> (<span class="dt">Binary</span> t, <span class="dt">Binary</span> payload, <span class="dt">Ord</span> t, <span class="dt">Enum</span> t)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="ot">=&gt;</span> <span class="dt">FilePath</span> <span class="ot">-&gt;</span> <span class="dt">IO</span> (<span class="dt">Either</span> (<span class="dt">SpillReadError</span> t) [((t, t), payload)])</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="dt">SpillReadError</span> t</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  <span class="ot">=</span> <span class="dt">SpillDecodeFailure</span> {<span class="ot"> spillErrorOffset ::</span> <span class="dt">Int64</span>,<span class="ot"> spillErrorChunks ::</span> <span class="dt">Int</span>,<span class="ot"> spillErrorMessage ::</span> <span class="dt">String</span> }</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="dt">SpillRangeError</span>    {<span class="ot"> spillRangeIssue ::</span> <span class="dt">SpillRangeIssue</span>,<span class="ot"> spillRangePrevious ::</span> (t, t),<span class="ot"> spillRangeCurrent ::</span> (t, t) }</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  <span class="op">|</span> <span class="dt">SpillEmptyRange</span>    {<span class="ot"> spillRangeCurrent ::</span> (t, t) }</span></code></pre></div>
+<p>Lite の run はスピルファイルを開くときに切り詰める (<code>WriteMode</code>) ので, 同じパスで再実行しても古い chunk が積み上がりません.</p>
+<h2 id="取引ネットワークと産業連関の生成">取引ネットワークと産業連関の生成</h2>
+<p><strong><code>ExchangeAlgebra.Simulate.Network</code></strong> は, 市場の取引関係 (<code>TradeNetwork</code>) と投入係数 (<code>InputCoefficients</code>) を分けて持ちます. 生成器は決定的で, 完全グラフ, circulant, k-正則, Erdős–Rényi, scale-free, sector block を用意しました. <code>industrialNetwork</code> / <code>industrialFlows</code> は順序付きの CL-SBM (部門で順序づけ, べき乗則で重み付けしたブロック三角のネットワーク) を整数 seed から決定的に生成し, 同梱の <code>industrialEx1</code> がその使い方を示します. 同じ seed から同じネットワークが出ることを前提に, 論文側の再現手順と対応づけています.</p>
+<h2 id="その他の追加">その他の追加</h2>
+<p><code>ExchangeAlgebra.Optimize</code> はソルバの共通インターフェースで, 焼きなまし (<code>Optimize.Annealing</code>) と実数値遺伝的アルゴリズム (<code>Optimize.GA</code>) の 2 実装を持ちます. 代数側では <code>mapBasePart</code> の関手則, <code>foldEntries</code> の普遍性, <code>postFromNetBy</code> の <code>bar</code> を経由する分解をそれぞれ文書化し, property test で固定しました. 基底の一部で商をとる <code>decBy</code> と, 純額から転記へ戻す <code>postFromNetBy</code> はその上に載ります.</p>
+<h1 id="モジュール境界の整理">モジュール境界の整理</h1>
+<p>公開モジュールは 35 になり, 7 つの層 (入口, 科目語彙, 中核代数, 仕訳とシミュレーション, 簿記と報告, 変換と補助, 最適化) に並べました. 依存は層の並びに沿って一方向で, 0.4 系にあった <code>Write</code> から <code>Simulate</code> への依存は無くなりました. スピルの読み書きは <code>Simulate.Spill</code> に置き, <code>Simulate</code> と <code>Write</code> と <code>Policy</code> がそれぞれそこを見ます.</p>
+<p><code>Alg</code>, <code>Journal</code>, <code>TransTable</code> は抽象型にしました. <code>Alg</code> が公開するのは <code>Zero</code>, <code>(:@)</code>, <code>_val</code>, <code>_hatBase</code> だけで, 複数転記の内部表現とキャッシュ field は <code>ExchangeAlgebra.Algebra.Internal</code> に移しました. <code>Journal</code> は内部に軸ごとの索引を持ち, 手で組み立てた値は索引と本体がずれ, ワイルドカード射影が誤った答えを黙って返すことがあります. 抽象化はこの経路を塞ぐためで, 構築には <code>mkJournal</code>, <code>(.|)</code>, <code>fromList</code>, 転記の一対一の写像には型付きの <code>mapPosting</code> / <code>mapMaybePosting</code>, note の付け替えには <code>replaceNotes</code> を使います. <code>Internal</code> は PVP の互換保証の外にあります.</p>
+<p><code>Chart</code> / <code>Chart-cairo</code> による描画は Cabal flag <code>visualize</code> の背後に置きました. 既定は on なので挙動は変わりませんが, cairo や pango を入れたくない環境では flag を切れば <code>ExchangeAlgebra.Simulate.Visualize</code> ごと依存から外れます.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># stack.yaml</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="fu">flags</span><span class="kw">:</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">exchangealgebra</span><span class="kw">:</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">visualize</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span></code></pre></div>
+<h1 id="性能">性能</h1>
+<p><code>Journal.fromList</code> を遅延の右畳み込みから正格の左畳み込みに変えました. 中核ベンチマークでは転記数が増えるほど差が開き, 万単位の入力で桁違いに速くなります. 転記の多重集合は保たれ, 変わるのは同じ note と基底に衝突した転記の列の順序だけです. この順序は <code>Eq</code> / <code>Show</code> / <code>Binary</code> と, <code>Double</code> では <code>norm</code> の最下位桁に現れます. <code>MoneyDecimal</code> では現れません. ほかに, 完全一致の射影の fast path, 仕訳追加の高速化, 試算表の行生成での射影の共有を入れました. いずれも規模に対する具体的な計測は別記事で扱います.</p>
+<p><code>AccountTitles</code> の <code>Binary</code> タグは Word8 から big-endian の Word16 になりました. 256 科目の上限が外れ, 範囲外のタグは <code>Get</code> の失敗として報告されます. 0.4 系で書き出したスピルファイルや <code>Journal</code> のバイナリは 0.5.0.0 では読めません.</p>
+<h1 id="系からの移行">0.4 系からの移行</h1>
+<p><code>Double</code> の元帳を <code>.@</code> と <code>.+</code> で組み立てて <code>norm</code> や <code>bar</code> で読むだけの利用なら, 変更は要りません. 次に該当するときだけ手を入れます.</p>
+<p>影響が広いのは次の 4 つです.</p>
+<ul>
+<li><strong>自前の <code>HatVal</code> インスタンス</strong>: <code>showValue</code> を定義します. <code>HatVal n =&gt; RealFloat n</code> を前提にした signature には <code>RealFloat</code> を明示します.</li>
+<li><strong><code>Liner</code> / <code>Journal</code> / <code>TransTable</code> の構成子を直接使っていた</strong>: <code>Alg</code> の内部表現だけは <code>ExchangeAlgebra.Algebra.Internal</code> から取れます. <code>Journal</code> と <code>TransTable</code> の構成子は公開されないので, <code>mkJournal</code> / <code>(.|)</code> / <code>fromList</code> と <code>table</code> / <code>(.-&gt;)</code> / <code>(|%)</code> に置き換えます.</li>
+<li><strong><code>ExchangeAlgebra</code> 経由で <code>Simulate</code> の名前を使っていた</strong>: <code>import ExchangeAlgebra.Simulate</code> を足します. <code>Base.Element</code> 経由で <code>Data.Hashable</code> / <code>GHC.Generics</code> 全体を使っていた場合も直接 import に変えます.</li>
+<li><strong>スピルファイルを読んでいた</strong>: 壊れたファイルは例外になります. <code>Either</code> が欲しければ <code>Checked</code> 変種へ. 0.4 系のバイナリは Word16 化のため読めません.</li>
+</ul>
+<p>残りは該当する箇所だけ直します.</p>
+<ul>
+<li><strong><code>fromList</code> の出力を <code>Show</code> や <code>Binary</code> でバイト単位に比較していた</strong>: 同じ (note, 基底) 内の順序が変わりえます. <code>norm</code> / <code>bar</code> / <code>balanceBy</code> で比較します. <code>MoneyDecimal</code> にすれば数値結果は順序に依存しなくなりますが, <code>Show</code> / <code>Binary</code> に現れる順序は残ります.</li>
+<li><strong><code>Element</code> のワイルドカード method</strong>: 綴りを <code>wiledcard</code> から <code>wildcard</code> に直しました (<code>haveWiledcard</code> / <code>isWiledcard</code> / <code>ignoreWiledcard</code> も同じ綴りの修正). 互換 alias はありません.</li>
+<li><strong>負のスカラーを <code>(.*)</code> に渡していた</strong>: 例外になります. 値域は非負なので, 減少は Hat 側の転記で表します.</li>
+<li><strong><code>whichSide</code> にワイルドカード基底を渡していた</strong>: 黙って <code>Hat</code> 扱いだったものが例外になります.</li>
+<li><strong>日商簿記 B 欄の 6 語を <code>parseAccountTitle</code> で解決していた</strong>: <code>AmbiguousAccount</code> を受けて候補から選ぶか, 正規の構成子名を使います.</li>
+<li><strong><code>Simulate.Lite</code> の <code>Stage</code> 構成子や <code>GLite*</code> の primed method</strong>: 名前だけの export になりました. <code>stageFor</code> / <code>stage</code> / <code>stageOf</code> で作り, <code>stageName</code> で読みます.</li>
+<li><strong>評価勘定を <code>Liability</code> 側の射影で取っていた</strong>: <code>projContraAssets</code> へ. 区分の交換判定は <code>whatPIMO</code> へ.</li>
+<li><strong><code>AccountInfo</code> の <code>aiDivision</code> / <code>aiHomeSide</code> を読んでいた</strong>: <code>AccountSemantics</code> 由来の意味別の field に置き換わりました.</li>
+<li><strong>振替規則の生のタプルを <code>show</code> していた</strong>: <code>HatVal n =&gt; Show (n -&gt; n)</code> の汎用インスタンスを削除しました.</li>
+<li><strong><code>Journal</code> の <code>_jVersion</code> を参照していた</strong>: どの読み出し経路からも観測されない書き込み専用の counter だったので削除しました.</li>
+<li><strong>重複や包含のある複数パターンで <code>proj</code> / <code>projNorm</code> を呼んでいた</strong>: 集合の意味論になり, 各転記は高々 1 回だけ選ばれます. 以前は重複分を二重に数えていました.</li>
+<li><strong>連結精算表の <code>BalancePosition</code></strong>: 共通の <code>AccountBalance</code> に統合しました.</li>
+<li><strong>非推奨 (0.6 で削除予定)</strong>: <code>projNorm</code> / <code>projWithBaseNorm</code> / <code>projWithNoteNorm</code> は, <code>bar</code> による相殺を名前に出した <code>projNetNorm</code> / <code>projWithBaseNetNorm</code> / <code>projWithNoteBaseNetNorm</code> の別名になりました. <code>Journal.insert</code> は <code>replaceNotes</code> の別名になりました. <code>Number.NonNegative.Double</code> の <code>HatVal</code> インスタンスと <code>rounding</code> も非推奨で, <code>MoneyDouble</code> と <code>Value</code> の丸め関数へ移ります.</li>
+</ul>
+<h1 id="インストール">インストール</h1>
+<div class="sourceCode" id="cb7"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># stack.yaml</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="fu">extra-deps</span><span class="kw">:</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> exchangealgebra-0.5.0.0</span></span></code></pre></div>
+<p>GHC 9.10 (Stackage <code>lts-24.4</code> で検証) が対象で, 0.4 系と同じです. 既定では <code>Chart-cairo</code> を経由して cairo / pango が要るので, 不要なら前節の flag で外します. 同梱の例は GitHub の <code>examples/</code> にあり, 0.5.0.0 では <code>examples/stack.yaml</code> が Hackage 版を指すので, <code>examples/</code> だけを取り出して <code>stack build</code> できます.</p>
+<h1 id="今後">今後</h1>
+<p>非推奨にした API (<code>projNorm</code> 系の旧名, <code>Journal.insert</code>, <code>Number.NonNegative.Double</code> の <code>HatVal</code> インスタンス, <code>rounding</code>) は 0.6 で削除します. 値型・保持方針・並列度を振ったときの計算時間とメモリの scaling は, 本記事では概要にとどめました. 計測条件を揃えた結果は別記事にまとめます. Exchange Algebra の代数構造の解説記事は, 関連論文の正式公表後に改めて書く予定です.</p>]]></description>
+    <pubDate>Fri, 04 Sep 2026 00:00:00 UT</pubDate>
+    <guid>/posts/2026-09-04-exchangealgebra-0-5-0-0.html</guid>
+    
+    <author>kaya3728@gmail.com (yakagika)</author>
+    
+    <dc:creator>yakagika</dc:creator>
+</item>
+<item>
     <title>exchangealgebra を Hackage に登録</title>
     <link>/posts/2026-05-26-exchangealgebra-on-hackage.html</link>
     <description><![CDATA[<h1 id="はじめに">はじめに</h1>
