@@ -1,3 +1,13 @@
+---
+plan_id: slds-b1-x-api-limit-refresh
+status: proposed
+created: 2026-08-19
+updated: 2026-08-19
+priority: medium
+next_actor: agent
+next_action: "「設計」の 3 点の修正可否をユーザに確認 (AUQ) → 承認された分を lectures/slds/slds_b1.md に反映し, 数値は volatility を織り込んだ書き方に変える"
+---
+
 # 補足B (X API) の取得数制限まわりの記述を最新化する
 
 ## メタ情報
@@ -52,6 +62,10 @@
 - 補足B L27 の「Basic/Pro は新規受付終了」: 2026-02-06 の launch 告知は "Basic and Pro plans remain available"
   と書いており, 現況と食い違う可能性がある. 今回の調査 scope 外なので未検証.
 - 数値の陳腐化: 上限は 5 ヶ月で 2M→3M と変わった. 講義資料に生数値を書く限り再発するので, 書き方の方針を決める.
+- **反映先が未確定 (2026-09-04 追記)**: 本計画は起票時 (2026-08-19) の想定どおり `lectures/slds/slds_b1.md`
+  を対象にしているが, その後 slds は凍結され (CLAUDE.md §dsp 講義, 例外は featured=false と既知の誤記修正のみ),
+  新科目 `lectures/dsp/` へ複製された. 3 点の修正が「既知の誤記」に当たるかは判断が要る.
+  当たらないなら反映先は dsp 側の補足B になる. 着手前にどちらへ当てるかを決める.
 
 ## 関連ファイル
 
