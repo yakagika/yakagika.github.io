@@ -188,8 +188,10 @@ main = do
                 open       <- isOpen underlying
 
                 let postCtxWithChapters = postCtx tags <>
-                        field "previousChapter" (\_ -> return $ maybe "#" toUrl prev) <>
-                        field "nextChapter" (\_ -> return $ maybe "#" toUrl next) <>
+                        field "previousChapter" (\_ -> maybe (noResult "no prev") (return . toUrl) prev) <>
+                        field "nextChapter" (\_ -> maybe (noResult "no next") (return . toUrl) next) <>
+                        field "previousChapterTitle" (\_ -> return "") <>
+                        field "nextChapterTitle" (\_ -> return "") <>
                         field "date" (\_ -> return $ fromMaybe "No Date" date) <>
                         constField "category" "Blog"
 
