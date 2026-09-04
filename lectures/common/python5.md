@@ -1,15 +1,14 @@
 ---
-title: 特別講義DS Ch7 アルゴリズムとPythonの基本構文
+title: プログラミング基礎 5 アルゴリズムとPythonの基本構文
 description: 資料
 tags:
-    - datascience
-    - statistics
     - python
-featured: true
-date: 2024-03-29
+    - lecture
+featured: false
+date: 2026-09-04
+open: false
 tableOfContents: true
-previousChapter: slds6.html
-nextChapter: slds8.html
+previousChapter: python4.html
 ---
 
 

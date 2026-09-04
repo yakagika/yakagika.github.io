@@ -1,15 +1,15 @@
 ---
-title: 特別講義DS Ch4 Pythonことはじめ
+title: プログラミング基礎 2 Pythonことはじめ
 description: 資料
 tags:
-    - datascience
-    - statistics
     - python
-featured: true
-date: 2024-03-29
+    - lecture
+featured: false
+date: 2026-09-04
+open: false
 tableOfContents: true
-previousChapter: slds3.html
-nextChapter: slds5.html
+previousChapter: python1.html
+nextChapter: python3.html
 ---
 
 # Pythonことはじめ
@@ -246,7 +246,7 @@ Pythonでは複数の数値型が混ざった計算に対応しています. 基
 
 ::: note
 
-### Exercise SLDS4-1
+### Exercise PY2-1
 
 **REPL を使った基本計算**
 
@@ -405,7 +405,7 @@ NameError: name 'space' is not defined
 
 ::: note
 
-### Exercise SLDS4-2
+### Exercise PY2-2
 
 **変数を使った BMI 計算**
 
@@ -600,7 +600,7 @@ Pythonの文字列は,最初の文字を`0`番目と数えるので注意しま�
 
 ::: note
 
-### Exercise SLDS4-3
+### Exercise PY2-3
 
 **文字列のスライス操作**
 
@@ -799,7 +799,7 @@ print(x[1] * 3 + x[4] * 3)  # 'bbbeee'
 
 ::: note
 
-### Exercise SLDS4-4
+### Exercise PY2-4
 
 **リスト操作 (`len` / スライス / 更新 / `append`)**
 
@@ -969,7 +969,7 @@ dict_values([11, 9, 10, 12])
 
 ::: note
 
-### Exercise SLDS4-5
+### Exercise PY2-5
 
 **辞書の作成と要素追加**
 
@@ -1103,7 +1103,7 @@ True
 
 ::: note
 
-### Exercise SLDS4-6
+### Exercise PY2-6
 
 **偶数判定と論理演算 (and / or / not)**
 
@@ -1165,7 +1165,7 @@ print((x + y) % 2 != 0)   # True  (x + y = 303 は奇数)
 
 ::: note
 
-### Exercise SLDS4-7
+### Exercise PY2-7
 
 **スクリプトファイルでの出力**
 

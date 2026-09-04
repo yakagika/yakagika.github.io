@@ -1,15 +1,14 @@
 ---
-title: 特別講義DS Ch3 Pythonと環境構築
+title: プログラミング基礎 1 Pythonと環境構築
 description: 資料
 tags:
-    - datascience
-    - statistics
     - python
-featured: true
-date: 2025-03-24
+    - lecture
+featured: false
+date: 2026-09-04
+open: false
 tableOfContents: true
-previousChapter: slds2.html
-nextChapter: slds4.html
+nextChapter: python2.html
 ---
 
 # イントロダクション
@@ -548,7 +547,7 @@ Hello World!
 
 ::: note
 
-### Exercise SLDS3-1
+### Exercise PY1-1
 
 **Shell コマンドとチートシート, `print()` の利用**
 

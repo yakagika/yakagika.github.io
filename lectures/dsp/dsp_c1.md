@@ -1,27 +1,28 @@
 ---
-title: 特別講義DS 補足C YouTube Data APIによる動画・チャンネルデータの取得
+title: データサイエンス実践 補足C YouTube Data APIによる動画・チャンネルデータの取得
 description: 資料
 tags:
     - datascience
     - statistics
     - python
 featured: false
-date: 2026-06-21
+date: 2026-09-04
+open: false
 tableOfContents: true
-previousChapter: slds_b1.html
+previousChapter: dsp_b1.html
 ---
 
 本資料は章番号外の補足資料です. Google が提供する **YouTube Data API v3** を利用して, 動画の統計情報 (再生数・高評価数・コメント数) やチャンネル情報を取得し, pandas DataFrame に整形するまでの流れを扱います.
 
-取得したデータを使ったテキスト分析 (タイトル・説明欄のワードクラウドやトピックモデル) は [Ch15 自然言語処理](slds15.html) で扱っている手法が応用できます. また動画の時系列統計を使った回帰分析は [Ch11 線形回帰分析](slds11.html) が参考になります.
+取得したデータを使ったテキスト分析 (タイトル・説明欄のワードクラウドやトピックモデル) は [Ch10 自然言語処理](dsp10.html) で扱っている手法が応用できます. また動画の時系列統計を使った回帰分析は [Ch5 線形回帰分析](dsp5.html) が参考になります.
 
-API という仕組み自体の説明 (REST, HTTP メソッド, JSON など) は[補足A](slds_a1.html#apiとは)にまとめてあるので, 馴染みのない人は先にそちらを読んでください. YouTube Data API も `REST` アーキテクチャで提供されており, 本資料では `GET` メソッドだけを使います.
+API という仕組み自体の説明 (REST, HTTP メソッド, JSON など) は[補足A](dsp_a1.html#apiとは)にまとめてあるので, 馴染みのない人は先にそちらを読んでください. YouTube Data API も `REST` アーキテクチャで提供されており, 本資料では `GET` メソッドだけを使います.
 
 関連する章・補足:
 
-- [補足A EDINET APIによる財務データの取得](slds_a1.html) — API の基礎 (REST/HTTP/JSON) の説明と API キーの取り扱い方
-- [補足B X(Twitter) APIによるデータの取得](slds_b1.html) — 別の REST API 事例. X との料金・制限の比較は[後の節](#quota制限と-x-との比較)で扱います
-- [Ch15 自然言語処理](slds15.html) — 取得したタイトル・説明欄テキストの分析に利用できます
+- [補足A EDINET APIによる財務データの取得](dsp_a1.html) — API の基礎 (REST/HTTP/JSON) の説明と API キーの取り扱い方
+- [補足B X(Twitter) APIによるデータの取得](dsp_b1.html) — 別の REST API 事例. X との料金・制限の比較は[後の節](#quota制限と-x-との比較)で扱います
+- [Ch10 自然言語処理](dsp10.html) — 取得したタイトル・説明欄テキストの分析に利用できます
 
 # YouTube Data API v3 とは
 
@@ -44,7 +45,7 @@ YouTube Data API v3 は **無料の quota (割り当て)** の範囲内で利用
 
 YouTube Data API の利用に必要な認証方式は **API キー** (公開データの読み取りのみ) と **OAuth 2.0** (ログインユーザ固有のデータ操作) の 2 種類があります. 本資料では公開されている動画・チャンネルデータを取得するだけなので, 手続きが簡単な **API キー** を使います.
 
-API キーは **Google Cloud Console** から無料で発行します. 手順は次のとおりです (API という仕組み自体や API キーの考え方は[補足A](slds_a1.html#apiとは)も参照してください).
+API キーは **Google Cloud Console** から無料で発行します. 手順は次のとおりです (API という仕組み自体や API キーの考え方は[補足A](dsp_a1.html#apiとは)も参照してください).
 
 **1. プロジェクトを作成する.** [Google Cloud Console](https://console.cloud.google.com/) にアクセスし, 上部の「プロジェクトを作成または選択する」を開きます.
 
@@ -77,7 +78,7 @@ API の詳細画面で **「有効にする」** をクリックします.
 **4. キーを保管する.** 作成された API キーをコピーして安全な場所に保管します.
 
 ::: note
-API キーは**パスワードと同じ扱い**をしてください. ソースコードに直接書いたまま提出・共有・公開すると漏洩します. 環境変数やコード外ファイルへの分離を推奨します ([補足B](slds_b1.html) の認証トークンと同じ注意です).
+API キーは**パスワードと同じ扱い**をしてください. ソースコードに直接書いたまま提出・共有・公開すると漏洩します. 環境変数やコード外ファイルへの分離を推奨します ([補足B](dsp_b1.html) の認証トークンと同じ注意です).
 :::
 
 # 取得プログラム
@@ -374,12 +375,12 @@ print(f'{OUTPUT_CSV} に {len(df)} 行 ({df["video_id"].nunique()} 動画) を�
 ~~~
 
 ::: note
-このパイプラインのコード一式は [配布ページ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_code/c1/) の `build_dataset.py` にあります. 出力した `ichikawa_youtube.csv` は [補足B](slds_b1.html) の `tweets.csv` と同様に [GitHub で配布](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/c1/ichikawa_youtube.csv) します. API キーが無い受講生はこの CSV をダウンロードして次の[発展節](#発展-コメントのネガポジ分析)に進んでください.
+このパイプラインのコード一式は [配布ページ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_code/c1/) の `build_dataset.py` にあります. 出力した `ichikawa_youtube.csv` は [補足B](dsp_b1.html) の `tweets.csv` と同様に [GitHub で配布](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/c1/ichikawa_youtube.csv) します. API キーが無い受講生はこの CSV をダウンロードして次の[発展節](#発展-コメントのネガポジ分析)に進んでください.
 :::
 
 # Quota・制限と X との比較
 
-YouTube Data API と補足B で扱った X (Twitter) API を比較すると, 研究・学習での利用しやすさに大きな差があります. X 側の料金・制限の詳細は[補足B](slds_b1.html#利用上の注意-料金と制限)にまとめてあります.
+YouTube Data API と補足B で扱った X (Twitter) API を比較すると, 研究・学習での利用しやすさに大きな差があります. X 側の料金・制限の詳細は[補足B](dsp_b1.html#利用上の注意-料金と制限)にまとめてあります.
 
 | 項目 | YouTube Data API v3 | X (Twitter) API v2 |
 |---|---|---|
@@ -520,7 +521,7 @@ plt.show()
 
 ![ポジ率と高評価数の散布図](/images/slds/c1/sentiment-scatter.png)
 
-このように,「コメントがポジティブな動画ほど高評価が多いか」「再生数とコメントの感情に関係はあるか」といった問いを動画横断で定量的に調べられます. ただし丹波ら (2025) が指摘するように, 感情は時間帯やイベントによっても変動します. より踏み込んだ分析として, 取得したコメントを [Ch15 自然言語処理](slds15.html) のワードクラウド・LDA で語彙レベルに分解したり, [Ch11 線形回帰分析](slds11.html) でポジ率を説明変数とした回帰モデルを組んだりできます.
+このように,「コメントがポジティブな動画ほど高評価が多いか」「再生数とコメントの感情に関係はあるか」といった問いを動画横断で定量的に調べられます. ただし丹波ら (2025) が指摘するように, 感情は時間帯やイベントによっても変動します. より踏み込んだ分析として, 取得したコメントを [Ch10 自然言語処理](dsp10.html) のワードクラウド・LDA で語彙レベルに分解したり, [Ch5 線形回帰分析](dsp5.html) でポジ率を説明変数とした回帰モデルを組んだりできます.
 
 ::: note
 この感情分析のコード一式は [配布ページ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_code/c1/) の `sentiment_analysis.py` にあります. 入力の `ichikawa_youtube.csv` も [GitHub で配布](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/c1/ichikawa_youtube.csv) しているので, API キーが無くても分析を再現できます.
@@ -528,7 +529,7 @@ plt.show()
 
 ---
 
-### Exercise SLDSc-1
+### Exercise DSPc-1
 
 **YouTube Data API による動画統計の取得**
 
@@ -593,7 +594,7 @@ print(df[['view_count', 'like_count', 'comment_count']].corr())
 
 ---
 
-### Exercise SLDSc-2
+### Exercise DSPc-2
 
 **チャンネル比較分析**
 
@@ -647,7 +648,7 @@ print(df)
 
 ---
 
-### Exercise SLDSc-3
+### Exercise DSPc-3
 
 **コメントのネガポジ分析と動画属性の関係**
 

@@ -1,15 +1,15 @@
 ---
-title: 特別講義DS Ch6 データの取得と編集
+title: プログラミング基礎 4 データの取得と編集
 description: 資料
 tags:
-    - datascience
-    - statistics
     - python
-featured: true
-date: 2024-03-29
+    - lecture
+featured: false
+date: 2026-09-04
+open: false
 tableOfContents: true
-previousChapter: slds5.html
-nextChapter: slds7.html
+previousChapter: python3.html
+nextChapter: python5.html
 ---
 
 # データの取得と編集
@@ -127,7 +127,7 @@ nextChapter: slds7.html
 
 ::: note
 
-### Exercise SLDS6-1
+### Exercise PY4-1
 
 **データの尺度判定 (名義 / 順序 / 間隔 / 比例)**
 
@@ -206,7 +206,7 @@ nextChapter: slds7.html
 
 その他にも各種研究機関や企業が提供するデータも利用可能です.
 
-統計ではありませんが, [`EDINET`](https://disclosure2.edinet-fsa.go.jp/WEEK0010.aspx)のWEB APIを利用して有価証券報告書のデータを取得する,Wikipediaのテキストデータを自然言語処理してデータを作成するなどもこの講義における過去の研究事例があります. EDINETからのデータ取得については, APIキーの取得から回帰分析用データの作成までを[補足A EDINET APIによる財務データの取得と回帰分析](slds_a1.html)で実例付きで解説しています.
+統計ではありませんが, [`EDINET`](https://disclosure2.edinet-fsa.go.jp/WEEK0010.aspx)のWEB APIを利用して有価証券報告書のデータを取得する,Wikipediaのテキストデータを自然言語処理してデータを作成するなどもこの講義における過去の研究事例があります. EDINETからのデータ取得については, APIキーの取得から回帰分析用データの作成までを[補足A EDINET APIによる財務データの取得と回帰分析](dsp_a1.html)で実例付きで解説しています.
 
 これらに関しては後ほど, Webページから自動でデータを取得する`Webスクレイピング`やTwitterなどのSNSの提供する`API`を利用してデータを取得する方法も扱います.
 
@@ -730,7 +730,7 @@ print(df.iat[3,1])
 
 ::: note
 
-### Exercise SLDS6-2
+### Exercise PY4-2
 
 **`loc` / `at` による範囲・単独セルの抽出**
 
@@ -872,7 +872,7 @@ Name: Sal, dtype: int64
 
 ::: note
 
-### Exercise SLDS6-3
+### Exercise PY4-3
 
 **真偽値による条件抽出**
 
@@ -1136,7 +1136,7 @@ id df2: 4559223920
 
 ::: note
 
-### Exercise SLDS6-4
+### Exercise PY4-4
 
 **`.copy()` を用いた抽出データの編集**
 
@@ -1353,7 +1353,7 @@ print(df)
 
 ::: note
 
-### Exercise SLDS6-5
+### Exercise PY4-5
 
 **DataFrame の作成とデータ型の変更**
 
@@ -1706,7 +1706,7 @@ pandasで可能なデータの処理のうち,今回紹介したのは基本と�
 
 ::: note
 
-### Exercise SLDS6-6
+### Exercise PY4-6
 
 **pandas DataFrame の作成・編集と外部 Excel の取得**
 

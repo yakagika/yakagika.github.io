@@ -1,26 +1,27 @@
 ---
-title: 特別講義DS 補足B X(Twitter) APIによるデータの取得
+title: データサイエンス実践 補足B X(Twitter) APIによるデータの取得
 description: 資料
 tags:
     - datascience
     - statistics
     - python
 featured: false
-date: 2026-06-12
+date: 2026-09-04
+open: false
 tableOfContents: true
-previousChapter: slds_a1.html
-nextChapter: slds_c1.html
+previousChapter: dsp_a1.html
+nextChapter: dsp_c1.html
 ---
 
-本資料は章番号外の補足資料です. X(旧:Twitter)のAPIを利用して投稿データを取得する手順を扱います. 取得したデータを利用した分析 (ワードクラウド, トピックモデルなど) は[Ch15 自然言語処理](slds15.html)で扱っています.
+本資料は章番号外の補足資料です. X(旧:Twitter)のAPIを利用して投稿データを取得する手順を扱います. 取得したデータを利用した分析 (ワードクラウド, トピックモデルなど) は[Ch10 自然言語処理](dsp10.html)で扱っています.
 
-APIという仕組み自体の説明 (REST, HTTPメソッド, JSONなど) は[補足A](slds_a1.html#apiとは)にまとめてあるので, 馴染みのない人は先にそちらを読んでください. `X.API`も`REST`アーキテクチャで提供されており, 本資料ではGETメソッドだけを使います.
+APIという仕組み自体の説明 (REST, HTTPメソッド, JSONなど) は[補足A](dsp_a1.html#apiとは)にまとめてあるので, 馴染みのない人は先にそちらを読んでください. `X.API`も`REST`アーキテクチャで提供されており, 本資料ではGETメソッドだけを使います.
 
 関連する章・補足:
 
-- [補足A EDINET APIによる財務データの取得](slds_a1.html): APIの基礎 (REST/HTTP/JSON) とAPIキーの取り扱い方
-- [補足C YouTube Data APIによる動画・チャンネルデータの取得](slds_c1.html): 無料の割り当てで使える別のREST API. 料金と用途の比較は[後の節](#youtube-data-apiとの使い分け)で扱います
-- [Ch15 自然言語処理](slds15.html): 取得した投稿テキストのワードクラウド・トピックモデル分析
+- [補足A EDINET APIによる財務データの取得](dsp_a1.html): APIの基礎 (REST/HTTP/JSON) とAPIキーの取り扱い方
+- [補足C YouTube Data APIによる動画・チャンネルデータの取得](dsp_c1.html): 無料の割り当てで使える別のREST API. 料金と用途の比較は[後の節](#youtube-data-apiとの使い分け)で扱います
+- [Ch10 自然言語処理](dsp10.html): 取得した投稿テキストのワードクラウド・トピックモデル分析
 
 # 利用上の注意 (料金と制限)
 
@@ -50,7 +51,7 @@ X APIは2026年2月6日の改定で料金体系が全面的に変わりました
 
 取得できる期間にも制限があります. 本資料で使う`search/recent`エンドポイントは**直近7日間の投稿**しか返しません. それ以前の投稿を取得するには全期間検索 (full-archive search) に対応した契約が必要です.
 
-研究でデータを集める予定がない人は, 取得済みの[こちらのデータ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch15/tweets.csv)をダウンロードして利用してください. [Ch15](slds15.html)の分析はこのデータで進められます.
+研究でデータを集める予定がない人は, 取得済みの[こちらのデータ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch15/tweets.csv)をダウンロードして利用してください. [Ch10](dsp10.html)の分析はこのデータで進められます.
 
 # 発展: Grok (xAI) のX検索
 
@@ -77,7 +78,7 @@ XのAPIを利用するには, 認証トークン(`Bearer Token`)を発行しま�
 :::
 
 ::: warn
-認証トークンは[補足A](slds_a1.html#apiキーの取得)のAPIキーと同様に**パスワードと同じ扱い**をしてください. 従量課金では漏洩の被害が課金に直結し, 第三者に前払い残高を使い切られます. 漏洩した場合はただちに`Regenerate`で再生成しましょう.
+認証トークンは[補足A](dsp_a1.html#apiキーの取得)のAPIキーと同様に**パスワードと同じ扱い**をしてください. 従量課金では漏洩の被害が課金に直結し, 第三者に前払い残高を使い切られます. 漏洩した場合はただちに`Regenerate`で再生成しましょう.
 :::
 
 # トークンの受け渡し
@@ -281,15 +282,15 @@ df.to_csv(OUTPUT_CSV, index=False, encoding='utf-8-sig')
 print(f'{OUTPUT_CSV} に {len(df)} 行 ({df["query"].nunique()} ワード) を保存しました.')
 ~~~
 
-この`posts.csv`は[Ch15 自然言語処理](slds15.html)のコードがそのまま読める構造です (Ch15の配布データ`tweets.csv`も同じ`query`・`text`列を持ちます).
+この`posts.csv`は[Ch10 自然言語処理](dsp10.html)のコードがそのまま読める構造です (Ch15の配布データ`tweets.csv`も同じ`query`・`text`列を持ちます).
 
 ::: note
-このプログラムの完成版は[配布ページ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_code/b1/)の`fetch_posts.py`にあります. `--dry-run`による費用の事前確認と, 実行前の確認プロンプトが入っています. 取得済みの[tweets.csv](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch15/tweets.csv)も配布しているので, トークンが無くても[Ch15](slds15.html)の分析は再現できます.
+このプログラムの完成版は[配布ページ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_code/b1/)の`fetch_posts.py`にあります. `--dry-run`による費用の事前確認と, 実行前の確認プロンプトが入っています. 取得済みの[tweets.csv](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch15/tweets.csv)も配布しているので, トークンが無くても[Ch10](dsp10.html)の分析は再現できます.
 :::
 
 ## 補足C形式への変換
 
-`posts.csv`の列名はXの投稿として素直に付けたので, そのままでは[補足C](slds_c1.html)の感情分析プログラムでは動きません. 補足Cの`ichikawa_youtube.csv`は**動画1本**を集計の単位にしており, X版ではそれに**検索ワード1語**が対応します. 同じコードを動かす場合の対応関係と変換規則は次のとおりです.
+`posts.csv`の列名はXの投稿として素直に付けたので, そのままでは[補足C](dsp_c1.html)の感情分析プログラムでは動きません. 補足Cの`ichikawa_youtube.csv`は**動画1本**を集計の単位にしており, X版ではそれに**検索ワード1語**が対応します. 同じコードを動かす場合の対応関係と変換規則は次のとおりです.
 
 | 補足Cの列 | 補足C (YouTube) での意味 | 変換規則 (`posts.csv`から) |
 |---|---|---|
@@ -335,11 +336,11 @@ INPUT_CSV = 'posts_youtube_format.csv'    # ichikawa_youtube.csv から変更す
 
 集計の単位が検索ワードになるので, 出力の意味も変わります. 円グラフは1つの検索ワードに対する投稿の感情比率を, 散布図はワードごとのポジティブ比率といいね数の合計の関係を表します. 検索ワードを3語以上にすると散布図の点が増え, ワード間の比較ができます.
 
-ワードクラウドとトピックモデルによる分析は[Ch15 自然言語処理](slds15.html)で扱います.
+ワードクラウドとトピックモデルによる分析は[Ch10 自然言語処理](dsp10.html)で扱います.
 
 # YouTube Data APIとの使い分け
 
-[補足C](slds_c1.html)で扱うYouTube Data APIと比べると, 費用と取得できるデータの範囲が大きく異なります.
+[補足C](dsp_c1.html)で扱うYouTube Data APIと比べると, 費用と取得できるデータの範囲が大きく異なります.
 
 | 項目 | X API v2 | YouTube Data API v3 |
 |---|---|---|

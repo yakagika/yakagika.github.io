@@ -1,15 +1,16 @@
 ---
-title: 特別講義DS Ch15 自然言語処理
+title: データサイエンス実践 Ch10 自然言語処理
 description: 資料
 tags:
     - datascience
     - statistics
     - python
-featured: true
-date: 2024-11-12
+featured: false
+date: 2026-09-04
+open: false
 tableOfContents: true
-previousChapter: slds14.html
-nextChapter: slds16.html
+previousChapter: dsp9.html
+nextChapter: dsp11.html
 ---
 
 # 自然言語処理
@@ -353,7 +354,7 @@ LDAでは,各文書のトピック分布と各トピックの単語分布にデ�
 ## X(Twitter) APIを用いたデータの取得
 自然言語解析では,ワードクラウドの事例のように,まとまった文章を分析する場合もありますが,X(旧:Twitter)のつぶやきのように,短い文章の集合を扱う場合もあります. ここでは,TwitterのAPIを利用して取得したつぶやきを分析してみましょう.
 
-APIという仕組みの説明と,X APIによる取得手順 (認証トークンの発行, 環境変数での受け渡し, 取得コード) は[補足B X(Twitter) APIによるデータの取得](slds_b1.html)にまとめてあります (API一般の説明は[補足A](slds_a1.html#apiとは)). X APIは2026年2月の改定で無料の取得枠が廃止され,投稿1件0.005ドルの従量課金だけになりました. 研究で利用する人以外は取得済みの50件の呟きをまとめた[こちらのデータ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch15/tweets.csv)をダウンロードして利用しましょう. このデータは補足Bの`posts.csv`と同じ列構造 (`query` = 検索ワード, `text` = 投稿本文) なので,以下のコードは自分で取得した`posts.csv`でもファイル名の変更だけで動きます.
+APIという仕組みの説明と,X APIによる取得手順 (認証トークンの発行, 環境変数での受け渡し, 取得コード) は[補足B X(Twitter) APIによるデータの取得](dsp_b1.html)にまとめてあります (API一般の説明は[補足A](dsp_a1.html#apiとは)). X APIは2026年2月の改定で無料の取得枠が廃止され,投稿1件0.005ドルの従量課金だけになりました. 研究で利用する人以外は取得済みの50件の呟きをまとめた[こちらのデータ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch15/tweets.csv)をダウンロードして利用しましょう. このデータは補足Bの`posts.csv`と同じ列構造 (`query` = 検索ワード, `text` = 投稿本文) なので,以下のコードは自分で取得した`posts.csv`でもファイル名の変更だけで動きます.
 
 以下,このデータを利用して分析を行ってみましょう.
 
@@ -621,9 +622,9 @@ pyLDAvis.save_html(visualisation, 'result/LDA_Visualization.html')
 
 トピックモデルでは,単語の分布を解釈していましたが,文章自体の意味を扱っているわけでは有りません. 文章や単語の意味を利用した分析手法について見てみましょう.
 
-本節では, 2018年にGoogleが発表したニューラル言語モデルのである**`BERT(Bidirectional Encoder Representations from Transformers)`**を利用して見ましょう(なお,BERTの後継に`ELECTRA`がありますが,資料の更新ができていません.)
+本節では, 2018年にGoogleが発表したニューラル言語モデルである**`BERT(Bidirectional Encoder Representations from Transformers)`**を利用してみましょう(なお,BERTの後継に`ELECTRA`がありますが,資料の更新ができていません.)
 
-BERTはなどのニューラル言語モデルは**事前学習**と**ファインチューニング**という二段階の学習を行うのが一般的です.
+BERTなどのニューラル言語モデルは**事前学習**と**ファインチューニング**という二段階の学習を行うのが一般的です.
 
 ::: note
 - 事前学習
@@ -651,7 +652,7 @@ BERTはコーパスを用いてどのような学習を行っているのでし�
 - 私はりんごを行った ← 確率低い
 - 私はりんごを食べた ← 確率高い
 
-人間は過去の学習から,このような確率をなんとなく判断できますが,BERTはコーパスから教師あり学習をして,あらゆる語彙の連なりやすさの確率を計算しています.
+人間は過去の学習から,このような確率をなんとなく判断できますが,BERTはコーパスの一部を隠して当てさせるという方法で,あらゆる語彙の連なりやすさの確率を計算しています. 正解ラベルを人手で付けるのではなく,元の文章そのものを正解として使うので,これは**自己教師あり学習**と呼ばれます.
 
 $$𝑃(食べた│私はりんごを)=\frac{(コーパス中の頻度(私はりんごを食べた))}{(コーパス中の頻度(私はりんごを))}$$
 

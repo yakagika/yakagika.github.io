@@ -1,15 +1,15 @@
 ---
-title: 特別講義DS Ch5 ライブラリの利用
+title: プログラミング基礎 3 ライブラリの利用
 description: 資料
 tags:
-    - datascience
-    - statistics
     - python
-featured: true
-date: 2024-03-29
+    - lecture
+featured: false
+date: 2026-09-04
+open: false
 tableOfContents: true
-previousChapter: slds4.html
-nextChapter: slds6.html
+previousChapter: python2.html
+nextChapter: python4.html
 ---
 
 

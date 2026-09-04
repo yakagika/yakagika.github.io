@@ -1,21 +1,22 @@
 ---
-title: 特別講義DS Ch12 一般化線形モデル
+title: データサイエンス実践 Ch11 一般化線形モデル (選択)
 description: 資料
 tags:
     - datascience
     - statistics
     - python
-featured: true
-date: 2025-11-04
+featured: false
+date: 2026-09-04
+open: false
 tableOfContents: true
-previousChapter: slds11.html
-nextChapter: slds13.html
+previousChapter: dsp10.html
+nextChapter: dsp12.html
 ---
 
 # 統計モデリング
 
 
-前回(Ch11)では線形の重回帰を利用して,ある程度正確な説明/予測が可能となりました.
+第5章(Ch5)では線形の重回帰を利用して,ある程度正確な説明/予測が可能となりました.
 しかし,これが最善のモデルであるとは限りません.
 また, 線形回帰でうまく表せないからと言って,関係がないと断定することもできません.
 より正確に説明できるより良いモデルが存在する可能性があります.

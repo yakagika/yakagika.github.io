@@ -1,20 +1,21 @@
 ---
-title: 特別講義DS Ch13 機械学習
+title: データサイエンス実践 Ch6 機械学習の枠組みと決定木
 description: 資料
 tags:
     - datascience
     - statistics
     - python
-featured: true
-date: 2024-03-29
+featured: false
+date: 2026-09-04
+open: false
 tableOfContents: true
-previousChapter: slds12.html
-nextChapter: slds14.html
+previousChapter: dsp5.html
+nextChapter: dsp7.html
 ---
 
 # 人工知能の歴史
 
-この講義は,文科省の定める｢数理・AI・データサイエンス教育プログラム｣の一貫ですが,統計,機械学習,AI,データサイエンスなどの違いはそれほどはっきりしていません.このことについては[Ch2](slds2.html)で扱いましたが,ここではAIや機械学習についてもう少し掘り下げてみましょう.
+この講義は,文科省の定める｢数理・AI・データサイエンス教育プログラム｣の一貫ですが,統計,機械学習,AI,データサイエンスなどの違いはそれほどはっきりしていません.このことについては[Ch2](dsp2.html)で扱いましたが,ここではAIや機械学習についてもう少し掘り下げてみましょう.
 
 AIは*Artificial Inteligence (人工知能)*の略語です. 世の中では,様々なものがAIと呼ばれており,
 
@@ -130,7 +131,7 @@ GPSでは, ｢問題｣を｢現在と目標との差異｣と定義して,以�
 
 一方で機械学習は, 得られたデータを利用して, 要約・予測・判別などの｢判断｣を機械に行わせることが目的であり, どのようにデータを利用して判断するか自体は機械が自ら学習します.
 
-機械学習には大きく分けて｢**教師なし学習(Supervised learning)**｣と｢**教師なし学習(Unsupervised Learning)**｣の2種類が存在します.
+機械学習には大きく分けて｢**教師あり学習(Supervised Learning)**｣と｢**教師なし学習(Unsupervised Learning)**｣の2種類が存在します.
 
 ![教師あり/なし学習](/images/slds/ch13/learning-types.png)
 

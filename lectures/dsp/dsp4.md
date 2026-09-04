@@ -1,15 +1,16 @@
 ---
-title: 特別講義DS Ch9 データの数値化
+title: データサイエンス実践 Ch4 データの数値化
 description: 資料
 tags:
     - datascience
     - statistics
     - python
-featured: true
-date: 2024-03-29
+featured: false
+date: 2026-09-04
+open: false
 tableOfContents: true
-previousChapter: slds8.html
-nextChapter: slds10.html
+previousChapter: dsp3.html
+nextChapter: dsp5.html
 ---
 
 
@@ -754,7 +755,7 @@ print(np.corrcoef(df[x_column],df[y_column])[0][1])
 
 #scipy.stats.pearsonr でも計算可能
 # 返り値が (相関係数, p値)の形に成っている
-# p値に関しては, 検定の章で扱います.
+# p値の意味は「データ活用の統計学実践」で扱います.
 r, p = st.pearsonr(df[x_column],df[y_column])
 print(r) #0.8328129378961621
 ~~~
@@ -1144,7 +1145,7 @@ cross = cross.reindex([1,2,3,4,5],axis='columns')
 cross = cross.reindex(['S','A','B','C','F'],axis='index')
 print(cross)
 
-#可視化(第8章の復習): 列相対度数のヒートマップ
+#可視化(第3章の復習): 列相対度数のヒートマップ
 cross_rel = cross.copy()
 for c in cross_rel.columns:
     cross_rel[c] = cross_rel[c] / cross_rel[c].sum()

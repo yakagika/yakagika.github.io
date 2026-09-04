@@ -1,15 +1,16 @@
 ---
-title: 特別講義DS Ch2 データサイエンスを始めよう
+title: データサイエンス実践 Ch2 分析設計 — データ分析の進め方
 description: 資料
 tags:
     - datascience
     - statistics
     - python
-featured: true
-date: 2024-03-29
+featured: false
+date: 2026-09-04
+open: false
 tableOfContents: true
-previousChapter: slds1.html
-nextChapter: slds3.html
+previousChapter: dsp1.html
+nextChapter: dsp3.html
 ---
 
 # はじめに(注意点)

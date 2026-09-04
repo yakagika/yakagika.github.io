@@ -1,14 +1,15 @@
 ---
-title: 特別講義DS Ch1 本資料の読み方
+title: データサイエンス実践 Ch1 本資料の読み方
 description: 資料
 tags:
     - datascience
     - statistics
     - python
-date: 2024-03-29
-featured: true
+featured: false
+date: 2026-09-04
+open: false
 tableOfContents: true
-nextChapter: slds2.html
+nextChapter: dsp2.html
 ---
 
 
@@ -16,7 +17,7 @@ nextChapter: slds2.html
 
 # 本資料の読み方
 
-本資料は,文系学部生向けにデータサイエンスを体験することを目的にした特別講義(データサイエンス)の授業資料です.
+本資料は,文系学部生向けにデータサイエンスを体験することを目的にした**データサイエンス実践**の授業資料です.
 これまでにプログラミングや理数系科目を学習していないことを前提にしているので,
 初歩の初歩から一つずつ扱う科目です.
 
@@ -29,43 +30,59 @@ nextChapter: slds2.html
 本資料の章立ては以下のようになっています
 (クリックすることで各章に飛べます.)
 
-[第1章 本資料の読み方](slds1.html)
+### 必修の章
 
-[第2章 データサイエンスを始めよう](slds2.html)
+[第1章 本資料の読み方](dsp1.html)
 
-[第3章 Pythonと環境構築](slds3.html)
+[第2章 分析設計 — データ分析の進め方](dsp2.html)
 
-[第4章 Pythonことはじめ](slds4.html)
+[第3章 データの可視化](dsp3.html)
 
-[第5章 ライブラリの利用](slds5.html)
+[第4章 データの数値化](dsp4.html)
 
-[第6章 データの取得と編集](slds6.html)
+[第5章 線形回帰分析](dsp5.html)
 
-[第7章 アルゴリズムとPythonの基本構文](slds7.html)
+[第6章 機械学習の枠組みと決定木](dsp6.html)
 
-[第8章 データの可視化](slds8.html)
+[第7章 クラスタリングとパターン発見](dsp7.html)
 
-[第9章 データの数値化](slds9.html)
+[第8章 ニューラルネットワークから生成AIへ](dsp8.html)
 
-[第10章 検定](slds10.html)
+[第9章 画像認識](dsp9.html)
 
-[第11章 線形回帰分析](slds11.html)
+[第10章 自然言語処理](dsp10.html)
 
-[第12章 一般化線形モデル](slds12.html)
+### 選択の章
 
-[第13章 教師あり/なし学習](slds13.html)
+授業では扱いませんが, 課題や研究で必要になったときに読んでください.
 
-[第14章 画像認識](slds14.html)
+[第11章 一般化線形モデル](dsp11.html)
 
-[第15章 自然言語処理](slds15.html)
+[第12章 質問紙調査とカテゴリーデータ](dsp12.html)
 
-[第16章 カテゴリーデータ処理](slds16.html)
+[補足A EDINET APIによる財務データの取得と回帰分析](dsp_a1.html)
 
-[補足A EDINET APIによる財務データの取得と回帰分析](slds_a1.html)
+[補足B X(Twitter) APIによるデータの取得](dsp_b1.html)
 
-[補足B X(Twitter) APIによるデータの取得](slds_b1.html)
+[補足C YouTube Data APIによる動画・チャンネルデータの取得](dsp_c1.html)
 
-[補足C YouTube Data APIによる動画・チャンネルデータの取得](slds_c1.html)
+### 共通資料
+
+プログラミングの基礎と環境構築, LLM の利用方法は, 他の講義とも共通の資料にまとめてあります.
+
+[プログラミング用の設定](setup.html)
+
+[LLM の利用](llm.html)
+
+[プログラミング基礎 1 Pythonと環境構築](python1.html)
+
+[プログラミング基礎 2 Pythonことはじめ](python2.html)
+
+[プログラミング基礎 3 ライブラリの利用](python3.html)
+
+[プログラミング基礎 4 データの取得と編集](python4.html)
+
+[プログラミング基礎 5 アルゴリズムとPythonの基本構文](python5.html)
 
 
 現在執筆中のため,章の構成等は変更される可能性があります.
@@ -93,7 +110,7 @@ nextChapter: slds2.html
 
 ## 演習データ
 
-各章の演習問題は **`### Exercise SLDSn-k`** の形式で本文中に埋め込まれており, 回答例は同ページ内の `<details>` ブロックを開くことで参照できます (パスワードあり).
+各章の演習問題は **`### Exercise DSPn-k`** の形式で本文中に埋め込まれており, 回答例は同ページ内の `<details>` ブロックを開くことで参照できます (パスワードあり).
 
 利用するデータは[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/)からダウンロード可能です. 本資料で扱われるデータは基本的に,ダミーデータです.したがって,分析例として導かれている結論も,現実の事象を表しているわけではないことに注意してください.研究などにも利用することはできません.
 
