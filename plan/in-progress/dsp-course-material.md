@@ -4,15 +4,15 @@ status: in-progress
 created: 2026-09-04
 updated: 2026-09-04
 priority: high
-next_actor: agent
-next_action: "Phase 1 (機械複製と整合修正). 章構成・12 回割付・共通資料分離・誤記修正の方針はすべて 2026-09-04 に承認済み"
+next_actor: user
+next_action: "feat/dsp-phase1 の land 判断 (3 commit). その後 Phase 2 = 監査対応表 dsp-curriculum-matrix.md + Ch7/Ch8 新規節/common/llm.md の骨子"
 ---
 
 # データサイエンス実践 (dsp) 講義資料の新設
 
 ## メタ情報
 
-- **状態**: in-progress (章構成・回割付 承認済み / cross-check 反映済み / Phase 1 未着手)
+- **状態**: in-progress (**Phase 1 完了**, branch `feat/dsp-phase1` に 3 commit. land 待ち)
 - **作成日**: 2026-09-04
 - **最終更新**: 2026-09-04
 - **対象**: `lectures/dsp/` (新設), `lectures/common/` (Python 基礎 5 章 + LLM 利用資料の新設), `pages/lectures.markdown`, `CLAUDE.md`
@@ -266,7 +266,9 @@ AI の開発環境と実行環境 (`common/llm.md`).
 
 ## ロードマップ
 
-### Phase 1: 機械複製と整合修正 (単独 commit)
+### Phase 1: 機械複製と整合修正 — **完了 (2026-09-04)**
+
+branch `feat/dsp-phase1` に 3 commit (plan 起票 / 純複製 / 機械修正).
 
 新規執筆の diff と分けるため, 複製と機械的修正だけで 1 commit にする.
 
@@ -460,3 +462,40 @@ codex (GPT-5.6, リポジトリを直接読ませた) と Cursor-Fable (計画�
   仕組み, 学習と推論・評価・再学習) を Ch8 へ同梱し, LLM の利用は `common/llm.md` として
   第 1〜2 回に環境構築と一緒に扱う形へ. `llm.md` では数理的な内容を扱わない.
   必修は 11 章から 10 章になり, 選択章の番号を 11/12 へ繰り上げ.
+
+## Phase 1 の実施結果 (2026-09-04)
+
+branch `feat/dsp-phase1`, worktree `.claude/worktrees/dsp-phase1`. 3 commit.
+
+| commit | 内容 |
+|---|---|
+| `a3f79f8` | 計画文書の起票 |
+| `f041ec0` | slds から純複製 (19 ファイル, byte 同一を `cmp` で検証) |
+| `97a692a` | 章番号・リンク・frontmatter の機械修正と既知の誤記修正 |
+
+**作成したファイル**
+
+- `lectures/dsp/` — dsp1〜dsp12, dsp_a1, dsp_b1, dsp_c1 (15 ファイル)
+  - dsp7 (クラスタリングとパターン発見) は骨子のみ
+  - dsp8 / dsp9 は slds14 を 373 行目 `# 画像認識` で分割 (359 行 / 2105 行)
+- `lectures/common/python1-5.md` — slds3〜7 から複製
+- `lectures/common/llm.md` — 骨子のみ
+
+**検証**
+
+- `stack exec main -- build` 成功 (executable 名は `main`)
+- 機械検査で NG 0 件: basename 重複なし / `previousChapter`・`nextChapter` の指す先が全て存在 /
+  前後リンクの相互整合 / 本文の内部リンクが全て解決 / dsp1 から dsp_c1 まで到達可能
+- `docs/` に対する dead link チェックで dsp・共通資料由来の切れリンク 0 件
+  (`/cv.html` は `templates/default.html:118` のコメントアウト内で全ページ共通の偽陽性)
+
+**Phase 1 で行わなかったこと (意図的)**
+
+- `docs/` (生成物) は commit しない. Phase 1 は commit のみで公開しない.
+- `pages/lectures.markdown` へのカード追加は open 化 commit へ (未完成コースへの公開導線を作らないため).
+- `featured` の入れ替え (dsp を true, slds を false) も open 化 commit へ.
+- dsp2 の中身はまだ slds2 のまま (研究計画の節を含む). title だけ「分析設計」に変えてあるので,
+  Phase 2 の再編で本文を合わせる. `open: false` なので公開されない.
+- `CLAUDE.md` は gitignore 対象 (`AGENTS.md` はそこへの symlink) なので commit に含まれない.
+  dsp / 共通資料の編集規約を main checkout の `CLAUDE.md` に追記済み
+  (`<!-- ORCHESTRATOR-START -->` マーカーの手前に置いた).
