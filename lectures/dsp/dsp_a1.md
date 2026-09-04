@@ -2,6 +2,7 @@
 title: データサイエンス実践 補足A EDINET APIによる財務データの取得と回帰分析
 description: 資料
 tags:
+    - dsp
     - datascience
     - statistics
     - python

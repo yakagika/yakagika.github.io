@@ -2,6 +2,7 @@
 title: データサイエンス実践 Ch6 機械学習の枠組みと決定木
 description: 資料
 tags:
+    - dsp
     - datascience
     - statistics
     - python

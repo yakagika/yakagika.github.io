@@ -2,6 +2,7 @@
 title: データサイエンス実践 Ch1 本資料の読み方
 description: 資料
 tags:
+    - dsp
     - datascience
     - statistics
     - python

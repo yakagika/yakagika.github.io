@@ -2,6 +2,7 @@
 title: データサイエンス実践 Ch4 データの数値化
 description: 資料
 tags:
+    - dsp
     - datascience
     - statistics
     - python

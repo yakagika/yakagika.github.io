@@ -2,6 +2,7 @@
 title: データサイエンス実践 補足B X(Twitter) APIによるデータの取得
 description: 資料
 tags:
+    - dsp
     - datascience
     - statistics
     - python

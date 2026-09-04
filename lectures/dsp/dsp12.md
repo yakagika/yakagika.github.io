@@ -2,6 +2,7 @@
 title: データサイエンス実践 Ch12 質問紙調査とカテゴリーデータ (選択)
 description: 資料
 tags:
+    - dsp
     - datascience
     - statistics
     - python

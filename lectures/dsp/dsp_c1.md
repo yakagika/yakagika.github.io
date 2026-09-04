@@ -2,6 +2,7 @@
 title: データサイエンス実践 補足C YouTube Data APIによる動画・チャンネルデータの取得
 description: 資料
 tags:
+    - dsp
     - datascience
     - statistics
     - python

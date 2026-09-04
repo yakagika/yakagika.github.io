@@ -2,6 +2,7 @@
 title: データサイエンス実践 Ch5 線形回帰分析
 description: 資料
 tags:
+    - dsp
     - datascience
     - statistics
     - python

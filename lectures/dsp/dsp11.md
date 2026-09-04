@@ -2,6 +2,7 @@
 title: データサイエンス実践 Ch11 一般化線形モデル (選択)
 description: 資料
 tags:
+    - dsp
     - datascience
     - statistics
     - python

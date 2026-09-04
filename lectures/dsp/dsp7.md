@@ -2,6 +2,7 @@
 title: データサイエンス実践 Ch7 クラスタリングとパターン発見
 description: 資料
 tags:
+    - dsp
     - datascience
     - statistics
     - python
