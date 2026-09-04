@@ -5,7 +5,7 @@ created: 2026-09-04
 updated: 2026-09-04
 priority: high
 next_actor: user
-next_action: "feat/dsp-phase1 の land 判断 (3 commit). その後 Phase 2 = 監査対応表 dsp-curriculum-matrix.md + Ch7/Ch8 新規節/common/llm.md の骨子"
+next_action: "feat/dsp-phase1 の land 判断. その後 Phase 3 = common/agent.md の執筆 (common-agent-literacy-material.md 参照), 次いで Ch7 と Ch8 の新規節"
 ---
 
 # データサイエンス実践 (dsp) 講義資料の新設
@@ -51,12 +51,12 @@ next_action: "feat/dsp-phase1 の land 判断 (3 commit). その後 Phase 2 = �
 2. **NN + Transformer を独立章にする** (現 Ch8). 「Transformer 等に関しては 16 章の NN と
    合わせて分離して」の「分離」を, 直前文の「共通資料へ分離」ではなく「画像認識・自然言語処理から
    切り離して独立章にする」と読んだ.
-3. **`lectures/common/llm.md` の作成を本計画の Phase 2 に含める**. プログラミング基礎の共通資料化は
+3. **LLM 利用の共通資料の作成を本計画に含める**. プログラミング基礎の共通資料化は
    「来年度廃止以降」と先送りが明示されたが, LLM 利用資料は生成 AI の章の前提として現に必要になるため,
    本計画で作る (2026-09-04 承認).
 4. **旧 Ch18 (生成 AI) と旧 Ch19 (AI の構築・運用) を独立章にしない**. カリキュラム上これらが
    負うのは 3-10 の 2 項目のみ. 2026-09-04 に解体し, 学術的な概念説明は Ch8 へ, LLM の利用は
-   `common/llm.md` へ振り分けた
+   共通資料へ振り分けた (2026-09-04 の grill-me で `common/git.md` と `common/agent.md` の 2 本に分割)
    (3-5 のキーワード群は AI 概論の担当. 実践の担当はオプション 2 行だけで, これは Ch8 に置いた).
 
 ## 設計
@@ -75,7 +75,7 @@ next_action: "feat/dsp-phase1 の land 判断 (3 commit). その後 Phase 2 = �
 | 旧案の章 | 行き先 | 決定日 |
 |---|---|---|
 | 分類・回帰の評価 | 各手法の章へ分散 (回帰 = Ch5 / 分類 = Ch6 / クラスタリング = Ch7) | 2026-09-04 |
-| 生成 AI と AI の構築・運用 | **学術的な概念説明は Ch8 へ同梱, LLM の利用は共通資料 `common/llm.md` へ** | 2026-09-04 |
+| 生成 AI と AI の構築・運用 | **学術的な概念説明は Ch8 へ同梱, LLM の利用は共通資料 `common/agent.md` へ** | 2026-09-04 |
 
 評価指標の配分:
 
@@ -122,8 +122,8 @@ next_action: "feat/dsp-phase1 の land 判断 (3 commit). その後 Phase 2 = �
 
 | 回 | 教材 | 必修で扱う内容 |
 |---|---|---|
-| 1 | Ch1 + `common/setup.md` + `common/llm.md` | 科目説明, 環境構築, LLM とは何か |
-| 2 | `common/llm.md` + Ch2 | LLM の利用方法, 分析設計と仮説検証サイクル |
+| 1 | Ch1 + `common/setup.md` + `common/agent.md` | 科目説明, 環境構築, ハーネスとは何か, herdr と codex の導入 |
+| 2 | `common/git.md` + `common/agent.md` + Ch2 | git と公開範囲の判断, AGENTS.md と skill, リテラシー, 分析設計と仮説検証サイクル |
 | 3 | Ch3 | 可視化目的に応じた図表化, 軸候補の洗い出し, 誇張表現, 1〜3 次元の図表化 |
 | 4 | Ch4 | 基本統計量, 相関, 距離と類似度 |
 | 5 | Ch5 | 単回帰・重回帰, 回帰の評価 (MSE) |
@@ -165,8 +165,9 @@ Python 基礎 (`common/python1-5.md`) は授業回を持たず, 自習と第 1�
 | 環境構築 (VSCode/CLI) | `lectures/common/setup.md` (既存) | 同じ |
 | Python と環境構築 | `lectures/common/python1.md` (**新規, Phase 1 で複製**) | 同じ |
 | Python の基礎 (文法・ライブラリ・データ操作・制御構文) | `lectures/common/python2-5.md` (**新規, Phase 1 で複製**) | 同じ |
-| **LLM の利用** | `lectures/common/llm.md` (**新規**) | 同じ |
-| AI の開発環境と実行環境 | `lectures/common/llm.md` (環境構築と同居) | 同じ |
+| **git と GitHub** | `lectures/common/git.md` (**新規**) | 同じ |
+| **エージェントの利用** | `lectures/common/agent.md` (**新規**) | 同じ |
+| AI の開発環境と実行環境 | `lectures/common/agent.md` | 同じ |
 
 - プログラミング基礎 (slds3〜7) は **Phase 1 で `lectures/common/python1-5.md` へ複製する**
   (2026-09-04 決定. 当初案は slds を参照するだけだったが, cross-check で codex と Cursor の
@@ -176,11 +177,11 @@ Python 基礎 (`common/python1-5.md`) は授業回を持たず, 自習と第 1�
   - Phase 1 は 13 ファイルを機械複製する手順なので, 5 ファイルを足す限界コストは小さい.
   - 先送りすると来年度の slds 廃止時に dsp 内のリンクをもう一度付け替える二重作業になる.
   - slds3 の「プログラミング言語の種類」「プログラミングの勉強の仕方」も共通資料側へ回す.
-- `lectures/common/llm.md` は本計画で新規に起こし, **第 1〜2 回で環境構築と一緒に扱う**
-  (2026-09-04 決定). fp 講義など他講義からも参照できる形にする.
-- **`llm.md` では数理的な内容を扱わない** (2026-09-04 決定). 「LLM とは何か」「どのように
-  利用するか」の概念説明と操作にとどめる. Transformer・注意機構・自己教師あり学習といった
-  仕組みの説明は dsp Ch8 の担当であり, `llm.md` には書かない.
+- `lectures/common/git.md` と `lectures/common/agent.md` は本計画で新規に起こし,
+  **第 1〜2 回で環境構築と一緒に扱う** (2026-09-04 決定). fp 講義など他講義からも参照できる形にする.
+  設計の詳細は [common-agent-literacy-material.md](common-agent-literacy-material.md) を参照.
+- **これらの資料では数理的な内容を扱わない** (2026-09-04 決定). Transformer・注意機構・
+  自己教師あり学習といった仕組みの説明は dsp Ch8 の担当である.
 
 ### C. 34 項目の着地先と深さ
 
@@ -223,7 +224,7 @@ Python 基礎 (`common/python1-5.md`) は授業回を持たず, 自習と第 1�
 Transformer・注意機構・自己教師あり学習 (Ch8) /
 認識技術の活用事例・パターン認識/特徴抽出/識別・画像認識・**音声認識** (Ch9) /
 自然言語処理の活用事例・かな漢字変換 (Ch10) /
-AI の開発環境と実行環境 (`common/llm.md`).
+AI の開発環境と実行環境 (`common/agent.md`).
 
 音声認識は**概念解説のみ** (2026-09-04 決定). スペクトログラムと CNN/Transformer への入力という
 パターン認識の共通構造を説明するにとどめ, Whisper 等の実習は行わない.
@@ -314,7 +315,8 @@ branch `feat/dsp-phase1` に 3 commit (plan 起票 / 純複製 / 機械修正).
 ### Phase 2: 新規章の骨子
 
 Ch7 (クラスタリングとパターン発見) と Ch8 の新規節 (Transformer 以降) と
-`lectures/common/llm.md`, `lectures/common/python*.md` を `open: false` の見出し骨子として起こす.
+`lectures/common/agent.md` を `open: false` の見出し骨子として起こす (`common/git.md` は執筆済み,
+`common/python*.md` は Phase 1 で複製済み).
 Ch2 の分析設計への再編, Ch8 の Transformer 以降の節の骨子もここ.
 
 ### Phase 3: 章ごとの執筆
@@ -325,7 +327,7 @@ Ch2 の分析設計への再編, Ch8 の Transformer 以降の節の骨子もこ
 
 - Phase 1: 1 セッション (機械作業だが 80 箇所のリンク付け替えとビルド確認がある)
 - Phase 2: 1 セッション
-- Phase 3: 新規執筆が実質 3 章分 (Ch7, Ch8 の新規節, common/llm) + 既存 8 章への加筆 (評価指標の埋め込み,
+- Phase 3: 新規執筆が実質 3 章分 (Ch7, Ch8 の新規節, common/agent) + 既存 8 章への加筆 (評価指標の埋め込み,
   必修/発展の切り分けを含む). 章あたり 1 セッション程度.
 
 ## cross-check の結果 (2026-09-04)
@@ -428,7 +430,7 @@ codex (GPT-5.6, リポジトリを直接読ませた) と Cursor-Fable (計画�
  「研究計画を建てよう」はそちらへ移す内容. slds は保存されるので内容は失われない.
  dspj 起票時に slds2:274- を移設する.
 - `plan/proposed/slds-special-coding-agent-material.md` (コーディングエージェント教材) は
- `lectures/common/llm.md` が着地先になり得る.
+ `lectures/common/agent.md` が着地先になった (2026-09-04 に吸収済み).
  `plan/proposed/slds-special-panel-data-material.md` (パネルデータ) は
  時系列を落としたため dsp の対象外で, 「データ活用の統計学実践」寄り. どちらも本計画では触らない.
 
@@ -459,8 +461,8 @@ codex (GPT-5.6, リポジトリを直接読ませた) と Cursor-Fable (計画�
   Python 基礎を Phase 1 で `lectures/common/python1-5.md` へ複製する方針に変更.
   34 項目の監査対応表を Phase 2 の成果物として作ることを決定. 既存の誤記は dsp と slds の両方を直す.
 - 2026-09-04: 旧 Ch11 (生成 AI と AI の構築・運用) を解体. 学術的な概念説明 (Transformer, 生成 AI の
-  仕組み, 学習と推論・評価・再学習) を Ch8 へ同梱し, LLM の利用は `common/llm.md` として
-  第 1〜2 回に環境構築と一緒に扱う形へ. `llm.md` では数理的な内容を扱わない.
+  仕組み, 学習と推論・評価・再学習) を Ch8 へ同梱し, LLM の利用は共通資料として
+  第 1〜2 回に環境構築と一緒に扱う形へ. 共通資料では数理的な内容を扱わない.
   必修は 11 章から 10 章になり, 選択章の番号を 11/12 へ繰り上げ.
 
 ## Phase 1 の実施結果 (2026-09-04)
@@ -479,7 +481,7 @@ branch `feat/dsp-phase1`, worktree `.claude/worktrees/dsp-phase1`. 3 commit.
   - dsp7 (クラスタリングとパターン発見) は骨子のみ
   - dsp8 / dsp9 は slds14 を 373 行目 `# 画像認識` で分割 (359 行 / 2105 行)
 - `lectures/common/python1-5.md` — slds3〜7 から複製
-- `lectures/common/llm.md` — 骨子のみ
+- `lectures/common/llm.md` — 骨子のみ (2026-09-04 に git.md / agent.md へ分割して削除)
 
 **検証**
 
@@ -499,3 +501,6 @@ branch `feat/dsp-phase1`, worktree `.claude/worktrees/dsp-phase1`. 3 commit.
 - `CLAUDE.md` は gitignore 対象 (`AGENTS.md` はそこへの symlink) なので commit に含まれない.
   dsp / 共通資料の編集規約を main checkout の `CLAUDE.md` に追記済み
   (`<!-- ORCHESTRATOR-START -->` マーカーの手前に置いた).
+- 2026-09-04: grill-me で共通資料の設計を確定. `common/llm.md` を `common/git.md` と
+  `common/agent.md` の 2 本に分割し, `git.md` を執筆. 学生の環境を herdr + codex
+  (ChatGPT Plus $20/月 x 3 ヶ月) に確定. 詳細は common-agent-literacy-material.md.

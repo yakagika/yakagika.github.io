@@ -1,18 +1,18 @@
 ---
 plan_id: slds-special-coding-agent-material
-status: proposed
+status: landed
 created: 2026-06-21
 updated: 2026-07-14
 priority: medium
-next_actor: user
-next_action: "教材の scope 確認 (章立て/配置先: slds 補足? 特別講義用の新チェーン?) と着手時期の承認"
+next_actor: none
+next_action: "なし (common-agent-literacy-material.md へ吸収)"
 ---
 
 # 特別講義DS: 学生向けコーディングエージェントの使い方 (教材)
 
 ## メタ情報
 
-- **状態**: proposed (handoff import, 2026-07-14 処理)
+- **状態**: landed (2026-09-04 に `plan/in-progress/common-agent-literacy-material.md` へ吸収)
 - **由来**: handoff `python-todoist-2026-06-21T16-04-50-360465` (Todoist 6grpJHXHmGhhPrpX, 特別講義DS project)
 - **class**: substantive → ユーザ承認待ち
 
@@ -29,3 +29,13 @@ next_action: "教材の scope 確認 (章立て/配置先: slds 補足? 特別�
 
 - 配置先: `lectures/slds/` の補足章か, 特別講義用の独立ページ/チェーンか.
 - 対象エージェント (無料枠前提か, 大学契約前提か — free-cli-agent ブリーフの結論に依存).
+
+## 吸収 (2026-09-04)
+
+本提案の内容は `plan/in-progress/common-agent-literacy-material.md` が引き継いだ.
+
+- 配置先は `lectures/common/agent.md` (講義横断の共通資料). slds の補足章ではない.
+- 対象エージェントは **codex** (OpenAI Codex CLI), ターミナルは **herdr**.
+  学生は ChatGPT Plus $20/月 を 3 ヶ月契約する.
+  `free-cli-agent-for-univ-course.md` の 2026-06 時点の結論 (Gemini 無料キー + Aider / Cline)
+  は差し替わった.
