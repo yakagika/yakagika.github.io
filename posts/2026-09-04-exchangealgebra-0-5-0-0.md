@@ -28,7 +28,7 @@ Haskell ライブラリ [`exchangealgebra`](https://hackage.haskell.org/package/
 0.5.0.0 の差分を読む前提として, 0.4.1.x の 3 つの修正はすべて 0.5.0.0 に含まれている. 0.4.1.1 の修正は値の総量 (`norm`) が保たれたまま基底ごとの内訳が壊れる型の不具合で, 総量だけを見るテストでは検出できなかった.
 
 - **0.4.1.0**: `bases` が Not 側の列を無視して Hat 側を 2 回走査していた. 同時に, `bar` や `balance` の一致判定を固定の絶対許容誤差からスケール付きの許容誤差に変えた.
-- **0.4.1.1**: 値 0 の単項と非 0 の単項を `.+` で結合すると, 非 0 の値が 0 側の基底に付け替えられていた. 明示的に `0 :@ base` を作る疎な入力係数を持つシミュレーションで, 累積順序によって隣の基底に幽霊のような転記が生まれ, 同梱の例では 100 期で企業のストックが最大 3 割ずれていた.
+- **0.4.1.1**: 値 0 の単項と非 0 の単項を `.+` で結合すると, 非 0 の値が 0 側の基底に付け替えられていた. 明示的に `0 :@ base` を作る疎な入力係数を持つシミュレーションで, 累積順序によって隣の基底に転記が漏れ出し, 同梱の例では長期の run で企業のストックが無視できない幅でずれていた.
 - **0.4.1.2**: 貸借が完全に一致した元帳に `incomeSummaryAccount` を適用すると, 純損益 0 のケースを場合分けが取りこぼしてクラッシュしていた.
 
 # 値型を選べるようにした
@@ -51,7 +51,7 @@ entry = 10.5 .@ Hat :< Cash .+ 2 .@ Not :< Sales .+ 0.1 .@ Hat :< Cash
 -- bar  entry == 10.6:@Hat:<Cash .+ 2:@Not:<Sales
 ```
 
-`Double` では 10.5 + 0.1 のような加算が最下位ビットの丸めを含み, 同じ基底の転記を足す順序が変わると `norm` の末尾桁が動く. README に記録した計測では, 同梱の `sim1` で 1 期目のストックは両型で一致し (30.0), 100 期目では `MoneyDouble` が 767.960563480499, `MoneyDecimal` が 767.9605634804993 と最下位桁で分かれる. 正確さの代償も測ってあり, 全対全の購入を回す `sim2` では `MoneyDecimal` が wall-clock で 5 から 7 倍遅く, メモリを 15% ほど多く使う. 用途で選ぶ前提であり, 既定は従来どおり `Double` である.
+`Double` では 10.5 + 0.1 のような加算が最下位ビットの丸めを含み, 同じ基底の転記を足す順序が変わると `norm` の末尾桁が動く. 同梱のシミュレーション例では, 短い run では両型の結果が一致し, 期を重ねると最下位桁で分かれる. 正確さの代償として `MoneyDecimal` は `MoneyDouble` より遅く, メモリも多く使う. 用途で選ぶ前提であり, 既定は従来どおり `Double` である. 期数と規模に対する具体的な計測は別記事で扱う.
 
 乗除算が要る場面 (税率, 按分) では `MoneyDecimal` の中間値は正確なまま保たれ, 金額を確定する時点で `bankersRound` (銀行丸め) か `ceilingRound` を明示的に呼ぶ. 丸め規則は法域や会社で異なるため, ライブラリ側で 1 つに固定していない.
 
@@ -126,7 +126,7 @@ longRunPolicy = LedgerPolicy
   }
 ```
 
-この設定 (直近 2 期を常駐, それ以前はディスクへ, 常駐分の閉じた期は圧縮) で, 手元の計測では常駐メモリが非圧縮の全保持に比べて約 15 分の 1 になった. Lite からは `runLiteWithPolicy` で適用する.
+この設定 (直近 2 期を常駐, それ以前はディスクへ, 常駐分の閉じた期は圧縮) は, 非圧縮の全保持に比べて常駐メモリを大きく削る. Lite からは `runLiteWithPolicy` で適用する.
 
 ## スピルファイルを検証してから復元する
 
@@ -170,7 +170,7 @@ flags:
 
 # 性能
 
-`Journal.fromList` を遅延の右畳み込みから正格の左畳み込みに変えた. 中核ベンチマークで N=10000 のとき約 15 倍, N=20000 のとき約 40 倍速い. 転記の多重集合は保たれ, 変わるのは同じ note と基底に衝突した転記の列の順序だけである. この順序は `Eq` / `Show` / `Binary` と, `Double` では `norm` の最下位桁に現れる. `MoneyDecimal` では現れない. ほかに, 完全一致の射影の fast path, 仕訳追加の高速化, 試算表の行生成での射影の共有を入れた.
+`Journal.fromList` を遅延の右畳み込みから正格の左畳み込みに変えた. 中核ベンチマークでは転記数が増えるほど差が開き, 万単位の入力で桁違いに速い. 転記の多重集合は保たれ, 変わるのは同じ note と基底に衝突した転記の列の順序だけである. この順序は `Eq` / `Show` / `Binary` と, `Double` では `norm` の最下位桁に現れる. `MoneyDecimal` では現れない. ほかに, 完全一致の射影の fast path, 仕訳追加の高速化, 試算表の行生成での射影の共有を入れた. いずれも規模に対する具体的な計測は別記事で扱う.
 
 `AccountTitles` の `Binary` タグは Word8 から big-endian の Word16 になった. 256 科目の上限が外れ, 範囲外のタグは `Get` の失敗として報告される. 0.4 系で書き出したスピルファイルや `Journal` のバイナリは 0.5.0.0 では読めない.
 
@@ -178,12 +178,17 @@ flags:
 
 `Double` の元帳を `.@` と `.+` で組み立てて `norm` や `bar` で読むだけの利用なら, 変更は要らない. 次に該当するときだけ手を入れる.
 
+影響が広いのは次の 4 つである.
+
 - **自前の `HatVal` インスタンス**: `showValue` を定義する. `HatVal n => RealFloat n` を前提にした signature には `RealFloat` を明示する.
 - **`Liner` / `Journal` / `TransTable` の構成子を直接使っていた**: `Alg` の内部表現だけは `ExchangeAlgebra.Algebra.Internal` から取れる. `Journal` と `TransTable` の構成子は公開されないので, `mkJournal` / `(.|)` / `fromList` と `table` / `(.->)` / `(|%)` に置き換える.
-- **`fromList` の出力を `Show` や `Binary` でバイト単位に比較していた**: 同じ (note, 基底) 内の順序が変わりうる. `norm` / `bar` / `balanceBy` で比較する. `MoneyDecimal` にすれば数値結果は順序に依存しなくなるが, `Show` / `Binary` に現れる順序は残る.
-- **スピルファイルを読んでいた**: 壊れたファイルは例外になる. `Either` が欲しければ `Checked` 変種へ. 0.4 系のバイナリは Word16 化のため読めない.
-- **`Element` のワイルドカード method**: 綴りを `wiledcard` から `wildcard` に直した (`haveWiledcard` / `isWiledcard` / `ignoreWiledcard` も同じ綴りの修正). 互換 alias は無い.
 - **`ExchangeAlgebra` 経由で `Simulate` の名前を使っていた**: `import ExchangeAlgebra.Simulate` を足す. `Base.Element` 経由で `Data.Hashable` / `GHC.Generics` 全体を使っていた場合も直接 import に変える.
+- **スピルファイルを読んでいた**: 壊れたファイルは例外になる. `Either` が欲しければ `Checked` 変種へ. 0.4 系のバイナリは Word16 化のため読めない.
+
+残りは該当する箇所だけ直す.
+
+- **`fromList` の出力を `Show` や `Binary` でバイト単位に比較していた**: 同じ (note, 基底) 内の順序が変わりうる. `norm` / `bar` / `balanceBy` で比較する. `MoneyDecimal` にすれば数値結果は順序に依存しなくなるが, `Show` / `Binary` に現れる順序は残る.
+- **`Element` のワイルドカード method**: 綴りを `wiledcard` から `wildcard` に直した (`haveWiledcard` / `isWiledcard` / `ignoreWiledcard` も同じ綴りの修正). 互換 alias は無い.
 - **負のスカラーを `(.*)` に渡していた**: 例外になる. 値域は非負なので, 減少は Hat 側の転記で表す.
 - **`whichSide` にワイルドカード基底を渡していた**: 黙って `Hat` 扱いだったものが例外になる.
 - **日商簿記 B 欄の 6 語を `parseAccountTitle` で解決していた**: `AmbiguousAccount` を受けて候補から選ぶか, 正規の構成子名を使う.
@@ -208,4 +213,4 @@ GHC 9.10 (Stackage `lts-24.4` で検証) が対象で, 0.4 系と同じである
 
 # 今後
 
-非推奨にした API (`projNorm` 系の旧名, `Journal.insert`, `Number.NonNegative.Double` の `HatVal` インスタンス, `rounding`) は 0.6 で削除する. Exchange Algebra の代数構造の解説記事は, 関連論文の正式公表後に改めて書く予定です.
+非推奨にした API (`projNorm` 系の旧名, `Journal.insert`, `Number.NonNegative.Double` の `HatVal` インスタンス, `rounding`) は 0.6 で削除する. 値型・保持方針・並列度を振ったときの計算時間とメモリの scaling は, 本記事では概要にとどめた. 計測条件を揃えた結果は別記事にまとめる. Exchange Algebra の代数構造の解説記事は, 関連論文の正式公表後に改めて書く予定です.
