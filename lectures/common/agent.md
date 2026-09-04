@@ -23,13 +23,75 @@ previousChapter: git.html
 
 # 環境構築
 
-## herdr のインストール
+この講義では **codex** (エージェント本体) と **herdr** (エージェントを動かすターミナル) の 2 つを入れます. git と GitHub CLI は[共通資料 バージョン管理とGitHub](git.html)で先に入れておいてください.
 
-(執筆中)
+## codex を入れる
 
-## codex のログイン
+codex は OpenAI が配布しているコーディングエージェントです.
 
-(執筆中)
+Windows は [共通資料 バージョン管理とGitHub](git.html)で使った winget で入ります.
+
+~~~ powershell
+winget install -e --id OpenAI.Codex
+~~~
+
+macOS は Homebrew で入ります.
+
+~~~ bash
+brew install codex
+~~~
+
+入ったことを確認します.
+
+~~~ bash
+codex --version
+~~~
+
+## codex にログインする
+
+codex は自前の課金を持たず, ChatGPT のアカウントを使います.
+
+~~~ bash
+codex login
+~~~
+
+ブラウザが開くので, ChatGPT にログインします.
+
+::: warn
+
+**この講義では ChatGPT Plus (月 20 ドル) を 3 ヶ月間契約してもらいます.** 無料プランでも codex は動きますが, 数回のやりとりで上限に達します. 契約の時期は講義中に案内します.
+
+:::
+
+## herdr を入れる
+
+herdr は, エージェントを動かすためのターミナルです. 複数のエージェントを別々の作業場所で同時に動かせます ([共通資料 バージョン管理とGitHub](git.html) の worktree の節を参照).
+
+Windows は PowerShell で次を実行します.
+
+~~~ powershell
+powershell -ExecutionPolicy Bypass -c "irm https://herdr.dev/install.ps1 | iex"
+~~~
+
+macOS と Linux は次を実行します.
+
+~~~ bash
+curl -fsSL https://herdr.dev/install.sh | sh
+~~~
+
+::: note
+
+**herdr は winget では入りません.** winget を検索すると `hdosys.herdr-win` という項目が出てきますが, これは herdr の開発元ではない第三者が配布しているものです. 上のコマンドを使ってください.
+
+Windows のセキュリティ製品が上のコマンドを止めることがあります. その場合は [herdr.dev](https://herdr.dev/docs/install/) から `install.cmd` をダウンロードして実行する手順が用意されています.
+
+:::
+
+入ったことを確認します.
+
+~~~ bash
+herdr --version
+~~~
 
 # 操作の最小セット
 
