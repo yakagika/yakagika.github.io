@@ -12,7 +12,7 @@ next_action: "feat/dsp-phase1 の land 判断. その後 Phase 3 = common/agent.
 
 ## メタ情報
 
-- **状態**: in-progress (**Phase 1 完了**, branch `feat/dsp-phase1` に 3 commit. land 待ち)
+- **状態**: in-progress (**Phase 1 完了**, branch `feat/dsp-phase1` に 7 commit. land 待ち)
 - **作成日**: 2026-09-04
 - **最終更新**: 2026-09-04
 - **対象**: `lectures/dsp/` (新設), `lectures/common/` (Python 基礎 5 章 + LLM 利用資料の新設), `pages/lectures.markdown`, `CLAUDE.md`
@@ -269,7 +269,7 @@ AI の開発環境と実行環境 (`common/agent.md`).
 
 ### Phase 1: 機械複製と整合修正 — **完了 (2026-09-04)**
 
-branch `feat/dsp-phase1` に 3 commit (plan 起票 / 純複製 / 機械修正).
+branch `feat/dsp-phase1` に 7 commit (plan 起票 / 純複製 / 機械修正 / 結果記録 / 必修・発展の節分け / common の git・agent 分割 / git.md 改訂).
 
 新規執筆の diff と分けるため, 複製と機械的修正だけで 1 commit にする.
 
@@ -424,8 +424,8 @@ codex (GPT-5.6, リポジトリを直接読ませた) と Cursor-Fable (計画�
 
 - **Ch8 と Ch10 の前方参照**: Ch8 (Transformer) が Ch10 (NLP の BERT 実習) より前に来るため,
  slds15:624 の BERT 導入文 (「Transformer は…」) を後方参照に書き換える必要がある.
-- **プログラミング基礎の共通資料化**は本計画の scope 外. 来年度の slds 廃止に合わせて別 plan で扱う.
- それまでは dsp から slds3〜7 を参照する形になり, slds を消せない依存が残る.
+- **プログラミング基礎は Phase 1 で `lectures/common/python1-5.md` へ複製済み** (§設計 B).
+ dsp から slds3〜7 への依存は残らないので, 来年度の slds 廃止は slds 側の削除だけで済む.
 - **データサイエンス・プロジェクト (dspj) は本計画に含まない**. slds2:274 以降の
  「研究計画を建てよう」はそちらへ移す内容. slds は保存されるので内容は失われない.
  dspj 起票時に slds2:274- を移設する.
@@ -465,15 +465,19 @@ codex (GPT-5.6, リポジトリを直接読ませた) と Cursor-Fable (計画�
   第 1〜2 回に環境構築と一緒に扱う形へ. 共通資料では数理的な内容を扱わない.
   必修は 11 章から 10 章になり, 選択章の番号を 11/12 へ繰り上げ.
 
-## Phase 1 の実施結果 (2026-09-04)
+## Phase 1 の実施結果 (2026-09-04, 2026-09-06 追記)
 
-branch `feat/dsp-phase1`, worktree `.claude/worktrees/dsp-phase1`. 3 commit.
+branch `feat/dsp-phase1`, worktree `.claude/worktrees/dsp-phase1`. 7 commit.
 
 | commit | 内容 |
 |---|---|
 | `a3f79f8` | 計画文書の起票 |
 | `f041ec0` | slds から純複製 (19 ファイル, byte 同一を `cmp` で検証) |
 | `97a692a` | 章番号・リンク・frontmatter の機械修正と既知の誤記修正 |
+| `3d9bce3` | Phase 1 の実施結果を plan に記録 |
+| `0539a8f` | 科目名, 必修/発展の節分け, 対応表 `dsp-curriculum-matrix.md` の骨格 |
+| `568a3c1` | `common/llm.md` を `git.md` / `agent.md` へ分割し `git.md` を執筆 |
+| `4e768a8` | `git.md` を cross-check の指摘で全面改訂, GitHub 手順の図を収録 |
 
 **作成したファイル**
 
