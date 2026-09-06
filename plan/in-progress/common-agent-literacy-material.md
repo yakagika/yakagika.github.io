@@ -4,15 +4,15 @@ status: in-progress
 created: 2026-09-04
 updated: 2026-09-06
 priority: high
-next_actor: user
-next_action: "第 2 回の分量 (git.md 689 行 + agent.md 4〜7 節 127 行 + Ch2) の割付判断 (AUQ). その後 agent.md を cross-check (Cursor-Fable) し open 化の時期を決める"
+next_actor: agent
+next_action: "agent.md を cross-check (Cursor-Fable, 作者 codex ≠ reviewer) し, 指摘を裁定して反映. open 化は dsp 全体の open 化 commit と同時"
 ---
 
 # 共通資料 - git とエージェント利用のリテラシー
 
 ## メタ情報
 
-- **状態**: in-progress (`git.md` / `agent.md` とも執筆済み, main に land. 第 2 回の割付と cross-check が残り)
+- **状態**: in-progress (`git.md` / `agent.md` とも執筆済み, main に land. agent.md の cross-check が残り)
 - **作成日**: 2026-09-04
 - **対象**: `lectures/common/git.md` (新規), `lectures/common/agent.md` (新規),
   `lectures/common/setup.md` (既存, 前方参照の解決), `lectures/common/llm.md` (骨子 → 上記 2 本へ吸収して削除)
@@ -104,11 +104,12 @@ Ch2 (分析設計, **1-2 ☆**) も入る.
 
 | 回 | 内容 |
 |---|---|
-| 1 | Ch1 科目説明 / `setup.md` VSCode と CLI / `agent.md` 1-3 (ハーネスとは何か, herdr と codex の導入, 最小の操作) |
-| 2 | `git.md` 全体 / `agent.md` 4-7 (AGENTS.md, skill, リテラシー, 開発環境と実行環境) / Ch2 分析設計 |
+| 1 | Ch1 科目説明 / `setup.md` VSCode と CLI / `git.md` (インストール, GitHub 登録, Collaborator 招待, clone, 7 コマンド, 公開範囲の判断) |
+| 2 | `agent.md` 1-7 (ハーネス, herdr と codex の導入, 最小の操作, AGENTS.md, skill, リテラシー, 開発環境と実行環境) / Ch2 分析設計 |
 
-第 2 回が重い. `agent.md` 8 (任意課題) と `git.md` 5 (branch / worktree) は
-資料に置いて自習へ回す前提で組んでいる.
+2026-09-06 に `git.md` を第 1 回へ前倒し (ユーザ裁定. 執筆後の実測で第 2 回が git.md 689 行 +
+agent.md 127 行 + Ch2 となり 90 分に収まらなかったため). codex を動かす前に git が入っている
+順序にもなる. `agent.md` 8 (発展) は資料に置いて自習へ回す.
 
 ## 既存資料との関係
 
@@ -246,7 +247,7 @@ codex (GPT-5.6, リポジトリを直接読ませた) と Cursor-Fable (全文�
 | 配布する `AGENTS.md` に何を書くか | AGENTS.md の扱い | open | - | - | 研究用 repo の規約から採る項目の選定 | - |
 | Windows で herdr + codex が動くか | 学生の環境 | branched | 実機確認 | - | 学生の Windows 機 1 台で疎通 | - |
 | skill をどこに公開するか (原典 `mattpocock/skills` MIT の表示を含む) | agent.md 5 | branched | 別 plan | 未起票 | 別 plan の起票と結論 | - |
-| 第 2 回が重い問題 | 回への割付 | open | - | - | `agent.md` 執筆後の分量実測 | branch/worktree 節を git.md から agent.md の発展節へ移すことを決定 (2026-09-06). 残りは分量実測で判断 |
+| 第 2 回が重い問題 | 回への割付 | resolved | - | - | - | branch/worktree 節を agent.md の発展節へ移し, `git.md` を第 1 回へ前倒し (2026-09-06). 第 1 回 = setup + git, 第 2 回 = agent 1-7 + Ch2 |
 | エージェントの作業モデル (main を触るか worktree を分けるか) | git.md と agent.md の整合 | resolved | - | - | - | 1 ディレクトリ (main) で codex を動かし, 差分は `git diff` と `/diff` で読む. worktree は agent.md の発展節のみ (2026-09-06) |
 | 教員が学生の private repo をどう見るか | 学生が各自で作る | resolved | - | - | - | 学生が教員を Collaborator に招待する. git.md の GitHub 節に小節を追加 (2026-09-06) |
 | GitHub 手順のスクリーンショット | git.md の GitHub 節 | resolved | - | - | - | 8 枚を 2026-09-04 に撮影して収録. 撮影の過程で New repository の UI 記述の誤りが 3 件見つかり修正 |
@@ -291,3 +292,4 @@ codex (GPT-5.6, リポジトリを直接読ませた) と Cursor-Fable (全文�
   git.md の branch/worktree 節を agent.md の発展へ移し, Collaborator 招待の小節を追加. python1.md の
   生成 AI 段落を agent.md への参照に集約. prose-lint は agent.md / git.md とも指摘 0.
   分量実測: 第 1 回 = agent.md 1〜3 節 222 行, 第 2 回 = git.md 689 行 + agent.md 4〜7 節 127 行 + Ch2.
+- 2026-09-06: 割付を確定. `git.md` を第 1 回へ前倒しし, 第 2 回を `agent.md` 1-7 + Ch2 に (ユーザ裁定).

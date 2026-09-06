@@ -122,8 +122,8 @@ next_action: "Phase 2 = Ch7 (クラスタリング) と Ch8 の Transformer 以�
 
 | 回 | 教材 | 必修で扱う内容 |
 |---|---|---|
-| 1 | Ch1 + `common/setup.md` + `common/agent.md` | 科目説明, 環境構築, ハーネスとは何か, herdr と codex の導入 |
-| 2 | `common/git.md` + `common/agent.md` + Ch2 | git と公開範囲の判断, AGENTS.md と skill, リテラシー, 分析設計と仮説検証サイクル |
+| 1 | Ch1 + `common/setup.md` + `common/git.md` | 科目説明, 環境構築, git と GitHub (登録, clone, 7 コマンド, 公開範囲の判断) |
+| 2 | `common/agent.md` + Ch2 | ハーネス, herdr と codex の導入と操作, AGENTS.md と skill, リテラシー, 分析設計と仮説検証サイクル |
 | 3 | Ch3 | 可視化目的に応じた図表化, 軸候補の洗い出し, 誇張表現, 1〜3 次元の図表化 |
 | 4 | Ch4 | 基本統計量, 相関, 距離と類似度 |
 | 5 | Ch5 | 単回帰・重回帰, 回帰の評価 (MSE) |
@@ -466,7 +466,7 @@ codex (GPT-5.6, リポジトリを直接読ませた) と Cursor-Fable (計画�
   必修は 11 章から 10 章になり, 選択章の番号を 11/12 へ繰り上げ.
 
 - 2026-09-06: `feat/dsp-phase1` を main へ rebase → ff-merge で land (recovery tag `recovery/dsp-phase1-land-2026-09-06`).
-  `common/agent.md` を執筆して land. 次は Phase 2 (Ch7 / Ch8 の骨子).
+  `common/agent.md` を執筆して land. 第 1〜2 回の割付を setup + git / agent + Ch2 に確定. 次は Phase 2 (Ch7 / Ch8 の骨子).
 
 ## Phase 1 の実施結果 (2026-09-04, 2026-09-06 追記)
 
