@@ -2,17 +2,17 @@
 plan_id: common-agent-literacy-material
 status: in-progress
 created: 2026-09-04
-updated: 2026-09-04
+updated: 2026-09-06
 priority: high
-next_actor: agent
-next_action: "common/agent.md の執筆. 1 ハーネス → 2 環境構築 → 3 操作の最小セット の順 (第1回で使う範囲から)"
+next_actor: user
+next_action: "第 2 回の分量 (git.md 689 行 + agent.md 4〜7 節 127 行 + Ch2) の割付判断 (AUQ). その後 agent.md を cross-check (Cursor-Fable) し open 化の時期を決める"
 ---
 
 # 共通資料 - git とエージェント利用のリテラシー
 
 ## メタ情報
 
-- **状態**: in-progress (`git.md` 執筆済み / `agent.md` は骨子のみ)
+- **状態**: in-progress (`git.md` / `agent.md` とも執筆済み, main に land. 第 2 回の割付と cross-check が残り)
 - **作成日**: 2026-09-04
 - **対象**: `lectures/common/git.md` (新規), `lectures/common/agent.md` (新規),
   `lectures/common/setup.md` (既存, 前方参照の解決), `lectures/common/llm.md` (骨子 → 上記 2 本へ吸収して削除)
@@ -246,9 +246,9 @@ codex (GPT-5.6, リポジトリを直接読ませた) と Cursor-Fable (全文�
 | 配布する `AGENTS.md` に何を書くか | AGENTS.md の扱い | open | - | - | 研究用 repo の規約から採る項目の選定 | - |
 | Windows で herdr + codex が動くか | 学生の環境 | branched | 実機確認 | - | 学生の Windows 機 1 台で疎通 | - |
 | skill をどこに公開するか (原典 `mattpocock/skills` MIT の表示を含む) | agent.md 5 | branched | 別 plan | 未起票 | 別 plan の起票と結論 | - |
-| 第 2 回が重い問題 | 回への割付 | open | - | - | `agent.md` 執筆後の分量実測 | cross-check でも 90 分に収まらないと指摘. branch/worktree を agent.md へ移す案あり |
-| エージェントの作業モデル (main を触るか worktree を分けるか) | git.md と agent.md の整合 | open | - | - | ユーザ判断 | - |
-| 教員が学生の private repo をどう見るか | 学生が各自で作る | open | - | - | ユーザ判断 | - |
+| 第 2 回が重い問題 | 回への割付 | open | - | - | `agent.md` 執筆後の分量実測 | branch/worktree 節を git.md から agent.md の発展節へ移すことを決定 (2026-09-06). 残りは分量実測で判断 |
+| エージェントの作業モデル (main を触るか worktree を分けるか) | git.md と agent.md の整合 | resolved | - | - | - | 1 ディレクトリ (main) で codex を動かし, 差分は `git diff` と `/diff` で読む. worktree は agent.md の発展節のみ (2026-09-06) |
+| 教員が学生の private repo をどう見るか | 学生が各自で作る | resolved | - | - | - | 学生が教員を Collaborator に招待する. git.md の GitHub 節に小節を追加 (2026-09-06) |
 | GitHub 手順のスクリーンショット | git.md の GitHub 節 | resolved | - | - | - | 8 枚を 2026-09-04 に撮影して収録. 撮影の過程で New repository の UI 記述の誤りが 3 件見つかり修正 |
 | 初回認証画面の図 (`credential.png`) | git.md の clone 節 | branched | Windows 実機確認 | - | Windows で Git Credential Manager の画面を撮影 | - |
 
@@ -284,3 +284,10 @@ codex (GPT-5.6, リポジトリを直接読ませた) と Cursor-Fable (全文�
   (`credential.helper` = `osxkeychain`) ことを実機で確認し, `gh auth login` を導入手順へ追加.
   空ディレクトリが記録されないため Exercise GIT-1 が成立していなかったのを修正.
   未反映の 4 件 (作業モデルの不整合, 分量, 教員のアクセス, details の保護) を台帳へ.
+- 2026-09-06: 未確定 3 件をユーザ裁定. 作業モデル = 1 ディレクトリで codex (worktree は発展のみ) /
+  git.md の branch・worktree 節を agent.md 発展へ移す / 教員は Collaborator 招待.
+  `agent.md` の本文を codex に下書きさせる (brief = 章構成 1〜8 + 演習 AGENT-1〜3 + git.md・python1.md の小改訂).
+- 2026-09-06: `agent.md` の本文を執筆 (codex 下書き → Claude 裁定, commit `92edeb3`). 8 節 + Exercise AGENT-1〜3.
+  git.md の branch/worktree 節を agent.md の発展へ移し, Collaborator 招待の小節を追加. python1.md の
+  生成 AI 段落を agent.md への参照に集約. prose-lint は agent.md / git.md とも指摘 0.
+  分量実測: 第 1 回 = agent.md 1〜3 節 222 行, 第 2 回 = git.md 689 行 + agent.md 4〜7 節 127 行 + Ch2.

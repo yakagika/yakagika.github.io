@@ -2,17 +2,17 @@
 plan_id: dsp-course-material
 status: in-progress
 created: 2026-09-04
-updated: 2026-09-04
+updated: 2026-09-06
 priority: high
-next_actor: user
-next_action: "feat/dsp-phase1 の land 判断. その後 Phase 3 = common/agent.md の執筆 (common-agent-literacy-material.md 参照), 次いで Ch7 と Ch8 の新規節"
+next_actor: agent
+next_action: "Phase 2 = Ch7 (クラスタリング) と Ch8 の Transformer 以降の節を open: false の骨子で起こす. dsp10 の BERT 導入文の前方参照もここで解消"
 ---
 
 # データサイエンス実践 (dsp) 講義資料の新設
 
 ## メタ情報
 
-- **状態**: in-progress (**Phase 1 完了**, branch `feat/dsp-phase1` に 7 commit. land 待ち)
+- **状態**: in-progress (**Phase 1 完了**, 2026-09-06 に main へ land. `common/git.md` `common/agent.md` も執筆済み. 次は Phase 2)
 - **作成日**: 2026-09-04
 - **最終更新**: 2026-09-04
 - **対象**: `lectures/dsp/` (新設), `lectures/common/` (Python 基礎 5 章 + LLM 利用資料の新設), `pages/lectures.markdown`, `CLAUDE.md`
@@ -464,6 +464,9 @@ codex (GPT-5.6, リポジトリを直接読ませた) と Cursor-Fable (計画�
   仕組み, 学習と推論・評価・再学習) を Ch8 へ同梱し, LLM の利用は共通資料として
   第 1〜2 回に環境構築と一緒に扱う形へ. 共通資料では数理的な内容を扱わない.
   必修は 11 章から 10 章になり, 選択章の番号を 11/12 へ繰り上げ.
+
+- 2026-09-06: `feat/dsp-phase1` を main へ rebase → ff-merge で land (recovery tag `recovery/dsp-phase1-land-2026-09-06`).
+  `common/agent.md` を執筆して land. 次は Phase 2 (Ch7 / Ch8 の骨子).
 
 ## Phase 1 の実施結果 (2026-09-04, 2026-09-06 追記)
 
