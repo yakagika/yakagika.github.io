@@ -4,15 +4,15 @@ status: in-progress
 created: 2026-09-04
 updated: 2026-09-06
 priority: high
-next_actor: agent
-next_action: "agent.md を cross-check (Cursor-Fable, 作者 codex ≠ reviewer) し, 指摘を裁定して反映. open 化は dsp 全体の open 化 commit と同時"
+next_actor: user
+next_action: "Windows 実機で herdr + codex の疎通確認と初回認証画面 (credential.png) の撮影 (外部待ち b). open 化は dsp 全体の open 化 commit と同時"
 ---
 
 # 共通資料 - git とエージェント利用のリテラシー
 
 ## メタ情報
 
-- **状態**: in-progress (`git.md` / `agent.md` とも執筆済み, main に land. agent.md の cross-check が残り)
+- **状態**: in-progress (`git.md` / `agent.md` とも執筆済み, main に land. 残りは Windows 実機確認と open 化)
 - **作成日**: 2026-09-04
 - **対象**: `lectures/common/git.md` (新規), `lectures/common/agent.md` (新規),
   `lectures/common/setup.md` (既存, 前方参照の解決), `lectures/common/llm.md` (骨子 → 上記 2 本へ吸収して削除)
@@ -293,3 +293,6 @@ codex (GPT-5.6, リポジトリを直接読ませた) と Cursor-Fable (全文�
   生成 AI 段落を agent.md への参照に集約. prose-lint は agent.md / git.md とも指摘 0.
   分量実測: 第 1 回 = agent.md 1〜3 節 222 行, 第 2 回 = git.md 689 行 + agent.md 4〜7 節 127 行 + Ch2.
 - 2026-09-06: 割付を確定. `git.md` を第 1 回へ前倒しし, 第 2 回を `agent.md` 1-7 + Ch2 に (ユーザ裁定).
+- 2026-09-06: `agent.md` のレビューは作者 (codex) と別ベンダの Claude-Fable が全文で行い, 作者≠reviewer を充足.
+  Cursor-Fable は主戦と同一モデルになるため追加しない. 事実の根拠は codex / herdr の公式文書
+  (2026-09-06 取得) で, brief に載せた一覧以外のコマンドは本文に無いことを codex の報告と grep で確認.
