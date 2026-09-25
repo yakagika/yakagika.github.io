@@ -8,6 +8,7 @@ featured: false
 date: 2026-09-04
 open: true
 tableOfContents: true
+previousChapter: setup.html
 nextChapter: agent.html
 ---
 

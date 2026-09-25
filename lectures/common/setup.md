@@ -6,6 +6,7 @@ tags:
 featured: false
 date: 2024-10-18
 tableOfContents: true
+nextChapter: git.html
 ---
 
 # プログラミング用の設定
@@ -16,6 +17,11 @@ tableOfContents: true
 - [プログラミング基礎 1 Pythonと環境構築](python1.html)
 - [関数型プログラミング — Haskellセットアップ](fp2.html)
 :::
+
+この資料の後に, 複数の講義で共通に使う次の 2 つを順に読みます.
+
+- [共通資料 バージョン管理とGitHub](git.html): git と GitHub の導入, 変更の確認と記録, 公開してよいものの判断
+- [共通資料 コーディングエージェントの利用](agent.html): codex と herdr の導入と操作, `AGENTS.md` と skill, 分からないまま承認しないための手順
 
 ## ソフトウェアの管理
 
