@@ -2,10 +2,10 @@
 plan_id: fp-v2-unified-rebuild
 status: in-progress
 created: 2026-07-10
-updated: 2026-09-08
+updated: 2026-09-25
 priority: high
 next_actor: agent
-next_action: "fp11 のユーザレビュー (2026-09-08 に未了と判明. open: true へ倒してローカル :8000 で確認中, 未 commit) → 確定後 open の扱いを決めて commit → Phase A6 (fp12 小改訂) → Phase B0 の着手時期判断 (Todoist 再登録済)"
+next_action: "Phase B0 = Ch1 thesis 章の設計を起こす (2026-09-10 裁定で着手確定, dispatch d712c24b2, Todoist 確認 due 10-01. 番号替えは含めない). 並行して fp11 はユーザレビュー待ち (open: true をローカルのみ, 未 commit)"
 ---
 
 # fp 講義 v2 — 統一視座 (組+法則) に基づく全面再構築
@@ -408,3 +408,4 @@ fp10 は Phase A1' 完了時点の語彙のままで, 本日確定した原則 1
 - 2026-07-16: **Applicative 部を案 A で全面再構成** (ユーザ「バラバラな印象」→ 診断 4 点 (手作り欠落/クラス節肥大/視点往復/需要回収弱) → 3 案 AUQ → 案 A): モナド部と対称の弧 (需要 → 手作り → 正体 → クラス化 → 法則) に組み替え. ①「## 独立な計算の組み合わせ」新設 (both を場合分けで手作り → lift2 = fmap (uncurry g) . both で需要回収 → lift3 = 組の畳み込み → bothList = 直積) ②Maybe/リストの μ の図 2 枚をクラス節から「緩モノイド関手」節末尾へ集約 (「手作りした both がこの μ の成分」で接続) ③クラス節スリム化 (分業読みを both で具体化, liftA2 = lift2 の総称版, fmap 特別の直後に需要回収の締め) ④「## Applicative 則」を独立節に分離 (4 則 + warn + 発展 note). 道筋 note の戻る節に Applicative 則を追加. spec: Fp10/BothSpec.hs 新設 (7 examples), `stack test` **710 examples green**. サイトビルド + リンク・アンカー検査 84 ページ 0 件. 未コミット.
 - 2026-07-23: **Phase B に fp7-10-readability-restructure を統合** (ユーザ決定): fp7〜fp10 の読みやすさ再構成 (本筋/発展の 2 層化, plan/proposed/) は単独実施せず, Phase B の章構成変更と同じパスで行う. fp7 の 2 章分離 (Phase B1 の Ch5/Ch6) が前提. 開始 trigger として Todoist タスク (due 2026-08-10) を登録.
 - 2026-09-08: **計画と実態の監査 (ユーザ依頼「修正計画を確認」)**. 検出と処置: (1) next_action の「fp11 ユーザレビュー」が未了のまま 2026-07-15 から止まっていた (fp11 は `open: false` で commit 済み) → ユーザ確認の上, `open: true` に倒してローカル :8000 でレビューを再開 (未 commit. 確定後に open の扱いを決める). (2) Phase B の開始 trigger (Todoist, due 2026-08-10) が open にも完了済みにも存在しなかった → 当日付 FromAI タスクとして再登録. (3) fp-typeclass-monad-arc (Phase 4 = fp11 が「未着手」のまま stale) と fp-examples-verification (フェーズ 4 の要否判断が 2 ヶ月保留) をそれぞれ実態反映して `plan/landed/` へ移動 (フェーズ 4 = CI 統合は見送り, ユーザ判断). (4) 関連ファイル節の「現行版 (不変で温存)」を swap 後の実態に修正. `fp-examples` の `stack test` は本日も全 pass. 教材本文は未変更.
+- 2026-09-25: next_action を Phase B0 (Ch1 thesis 章の設計) へ更新. 2026-09-10 の裁定 (今週着手, ただし fp5↔fp7 入れ替えと番号替えは後続 phase) を反映. fp11 はユーザレビュー継続 (公開は保留, ユーザ判断).
