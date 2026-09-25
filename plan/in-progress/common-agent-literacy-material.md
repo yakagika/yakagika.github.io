@@ -302,6 +302,7 @@ VM 内のローカル repo (GitHub 不使用, 検証後に削除) で確認し�
 | 教員が学生の private repo をどう見るか | 学生が各自で作る | resolved | - | - | - | 学生が教員を Collaborator に招待する. git.md の GitHub 節に小節を追加 (2026-09-06) |
 | GitHub 手順のスクリーンショット | git.md の GitHub 節 | resolved | - | - | - | 8 枚を 2026-09-04 に撮影して収録. 撮影の過程で New repository の UI 記述の誤りが 3 件見つかり修正 |
 | 初回認証画面の図 (`credential.png`) | git.md の clone 節 | resolved | - | - | - | 本文は `gh auth login` 経由なので GCM の画面は出ない. 撮る対象を GitHub の Device Activation 画面に変更して撮影 (2026-09-25) |
+| 作業場所を `~/work` に統一した後の fp2 の出力例 (教員環境の `Documents/Programs/Haskell/...` がエラー出力に残る) | setup.md の作業場所の統一 (2026-09-25) | branched | fp 講義の改稿 | - | fp2 の実行例を撮り直すとき (fp-v2 の Ch2 改稿時) | 実際の出力なので今回は触らない (2026-09-25) |
 | `<details data-pass>` のパスワードがページソースに平文で入る | 回答例の埋め込み | branched | サイト基盤 (範囲外) | 未起票 | 回答を隠す仕組みの見直しを基盤側で起票 | 本資料では現行方式を踏襲 (2026-09-25 台帳へ移記) |
 
 **先送りの理由**: Windows の `/diff` 不具合は OpenAI 側の修正待ち (b). 次に codex を更新したときに VM で再確認する (next_action).
