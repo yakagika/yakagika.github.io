@@ -5,7 +5,7 @@ created: 2026-09-04
 updated: 2026-09-25
 priority: high
 next_actor: agent
-next_action: "配布する AGENTS.md に何を書くかを決める (研究用 repo の規約から採る項目の選定)"
+next_action: "skill 公開の別 plan を起票する (原典 mattpocock/skills の MIT 表示を含む. 台帳の skill 公開の行)"
 ---
 
 # 共通資料 - git とエージェント利用のリテラシー
@@ -281,7 +281,7 @@ symlink を作れず (`Failed to create symlink`), 代わりにパッケージ�
 |---|---|---|---|---|---|---|
 | `AGENTS.md` を学生は書くのか読むのか | agent.md 4 | resolved | - | - | - | 最低限を事例として配布し以後は各自が改善. 研究用 repo の規約から採る (2026-09-04) |
 | 学生 repo の中身の見本を配るか | 学生が各自で作る | resolved | - | - | - | 資料に最小構成を載せる. `git.md` の §リポジトリの構成 に記載済み (2026-09-04) |
-| 配布する `AGENTS.md` に何を書くか | AGENTS.md の扱い | open | - | - | 研究用 repo の規約から採る項目の選定 | - |
+| 配布する `AGENTS.md` に何を書くか | AGENTS.md の扱い | resolved | - | - | - | 配布しない. 既存の 7 行を 1 事例とし, 研究規約から採った候補 11 行 (問いと理解 3 / 文献 2 / データ 3 / 作業の進め方 3) を「書き足す決まりの候補」の表で示し, 学生が自分で構築する. 問いと理解の 2 行 (設計を先に議論する = grill-me 型, 理解を AI と確かめる) はユーザ指示で追加. skill の事例に学生版 lit-verify を 2 つ目として追加し, 記録先は `references/` (codex が書く) (2026-09-25) |
 | Windows で herdr + codex が動くか | 学生の環境 | resolved | - | - | - | 動く. ただし winget の codex は `codex` で起動できない (§Windows 実機検証). 本文の修正は next_action (2026-09-25) |
 | skill をどこに公開するか (原典 `mattpocock/skills` MIT の表示を含む) | agent.md 5 | branched | 別 plan | 未起票 | 別 plan の起票と結論 | - |
 | 第 2 回が重い問題 | 回への割付 | resolved | - | - | - | branch/worktree 節を agent.md の発展節へ移し, `git.md` を第 1 回へ前倒し (2026-09-06). 第 1 回 = setup + git, 第 2 回 = agent 1-7 + Ch2 |
@@ -306,6 +306,8 @@ symlink を作れず (`Failed to create symlink`), 代わりにパッケージ�
 | 任意課題を加点対象にする | 最終発表の質疑で効くので, やったかどうかは評価しない | 2026-09-04 |
 
 ## 変更履歴
+
+- 2026-09-25: AGENTS.md を配布から事例 + 候補表の形へ変更し, skill に学生版 lit-verify を追加 (ユーザ裁定).
 
 - 2026-09-25: Windows 11 実機 (Parallels) で導入から codex の動作確認まで検証. 所見は §Windows 実機検証.
 
