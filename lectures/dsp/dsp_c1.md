@@ -541,7 +541,7 @@ plt.show()
 1. 再生数が最も多い動画のタイトルと再生数は何か?
 2. 高評価数と再生数の間に相関はあるか? (`df.corr()` を使って確認してください.)
 
-提出ファイル名: `sldsc-1.py`
+提出ファイル名: `dspc-1.py`
 
 <details class="protected" data-pass="yakagika">
     <summary> 回答例 </summary>
@@ -601,7 +601,7 @@ print(df[['view_count', 'like_count', 'comment_count']].corr())
 
 2 つ以上の YouTube チャンネル (例: 大学の公式チャンネルや研究機関のチャンネル) のチャンネル ID を調べ, 本資料の `get_channel_stats()` 関数を使って登録者数・総再生数・動画本数を取得して比較する DataFrame を作成してください.
 
-提出ファイル名: `sldsc-2.py`
+提出ファイル名: `dspc-2.py`
 
 <details class="protected" data-pass="yakagika">
     <summary> 回答例 </summary>
@@ -658,7 +658,7 @@ print(df)
 1. ポジティブコメント比率が最も高い動画と最も低い動画は何か?
 2. ポジ率と高評価数の間に相関はあるか? あるとすればどの程度か?
 
-提出ファイル名: `sldsc-3.py`
+提出ファイル名: `dspc-3.py`
 
 <details class="protected" data-pass="yakagika">
     <summary> 回答例 </summary>

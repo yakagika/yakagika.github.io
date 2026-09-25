@@ -35,7 +35,7 @@ nextChapter: dsp2.html
 
 [第1章 本資料の読み方](dsp1.html)
 
-[第2章 分析設計 — データ分析の進め方](dsp2.html)
+[第2章 分析設計: データ分析の進め方](dsp2.html)
 
 [第3章 データの可視化](dsp3.html)
 
