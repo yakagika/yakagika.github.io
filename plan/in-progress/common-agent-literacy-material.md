@@ -5,7 +5,7 @@ created: 2026-09-04
 updated: 2026-09-25
 priority: high
 next_actor: agent
-next_action: "skill 公開の別 plan を起票する (原典 mattpocock/skills の MIT 表示を含む. 台帳の skill 公開の行)"
+next_action: "Windows VM で skill の導入手順 (資料の SKILL.md を codex に置かせる / $skill-installer で grill-me を入れる) を実機確認する"
 ---
 
 # 共通資料 - git とエージェント利用のリテラシー
@@ -18,7 +18,7 @@ next_action: "skill 公開の別 plan を起票する (原典 mattpocock/skills 
   `lectures/common/setup.md` (既存, 前方参照の解決), `lectures/common/llm.md` (骨子 → 上記 2 本へ吸収して削除)
 - **親計画**: [dsp-course-material.md](dsp-course-material.md) - 第 1〜2 回で扱う共通資料
 - **吸収した計画**: `plan/proposed/slds-special-coding-agent-material.md` (学生向けコーディングエージェントの使い方 教材)
-- **切り出した計画**: skill の公開 (grill-me 等) は別 plan. 本計画では「導入を推奨する」と書くにとどめる
+- **切り出した計画**: なし (skill の公開は 2026-09-25 に「公開せず資料の文章で導入させる」と裁定し, 本計画内で完結)
 
 ## 概要
 
@@ -283,7 +283,7 @@ symlink を作れず (`Failed to create symlink`), 代わりにパッケージ�
 | 学生 repo の中身の見本を配るか | 学生が各自で作る | resolved | - | - | - | 資料に最小構成を載せる. `git.md` の §リポジトリの構成 に記載済み (2026-09-04) |
 | 配布する `AGENTS.md` に何を書くか | AGENTS.md の扱い | resolved | - | - | - | 配布しない. 既存の 7 行を 1 事例とし, 研究規約から採った候補 11 行 (問いと理解 3 / 文献 2 / データ 3 / 作業の進め方 3) を「書き足す決まりの候補」の表で示し, 学生が自分で構築する. 問いと理解の 2 行 (設計を先に議論する = grill-me 型, 理解を AI と確かめる) はユーザ指示で追加. skill の事例に学生版 lit-verify を 2 つ目として追加し, 記録先は `references/` (codex が書く) (2026-09-25) |
 | Windows で herdr + codex が動くか | 学生の環境 | resolved | - | - | - | 動く. ただし winget の codex は `codex` で起動できない (§Windows 実機検証). 本文の修正は next_action (2026-09-25) |
-| skill をどこに公開するか (原典 `mattpocock/skills` MIT の表示を含む) | agent.md 5 | branched | 別 plan | 未起票 | 別 plan の起票と結論 | - |
+| skill をどこに公開するか (原典 `mattpocock/skills` MIT の表示を含む) | agent.md 5 | resolved | - | - | - | 公開しない. 資料の文章に SKILL.md を載せ, codex に `.agents/skills/` へ導入させる手順 (`/diff` → `/skills` → `$名前` → commit) を教える. 公開 skill は grill-me (mattpocock/skills, MIT) を紹介し, `$skill-installer` で grill-me と grilling を入れる手順と使い方 (答える側が主導する, 実物を見ないと決められない問いは作って確かめる) を書く. installer の導入は 2026-09-25 に一時フォルダで試験済み (ユーザ裁定 2026-09-25) |
 | 第 2 回が重い問題 | 回への割付 | resolved | - | - | - | branch/worktree 節を agent.md の発展節へ移し, `git.md` を第 1 回へ前倒し (2026-09-06). 第 1 回 = setup + git, 第 2 回 = agent 1-7 + Ch2 |
 | エージェントの作業モデル (main を触るか worktree を分けるか) | git.md と agent.md の整合 | resolved | - | - | - | 1 ディレクトリ (main) で codex を動かし, 差分は `git diff` と `/diff` で読む. worktree は agent.md の発展節のみ (2026-09-06) |
 | 教員が学生の private repo をどう見るか | 学生が各自で作る | resolved | - | - | - | 学生が教員を Collaborator に招待する. git.md の GitHub 節に小節を追加 (2026-09-06) |
@@ -291,8 +291,7 @@ symlink を作れず (`Failed to create symlink`), 代わりにパッケージ�
 | 初回認証画面の図 (`credential.png`) | git.md の clone 節 | resolved | - | - | - | 本文は `gh auth login` 経由なので GCM の画面は出ない. 撮る対象を GitHub の Device Activation 画面に変更して撮影 (2026-09-25) |
 | `<details data-pass>` のパスワードがページソースに平文で入る | 回答例の埋め込み | branched | サイト基盤 (範囲外) | 未起票 | 回答を隠す仕組みの見直しを基盤側で起票 | 本資料では現行方式を踏襲 (2026-09-25 台帳へ移記) |
 
-**先送りの理由**: Windows 検証は外部待ち (実機と学生) のため (b). skill 公開は
-教材執筆とは独立した作業で別 plan が妥当なため (d).
+**先送りの理由**: 現在なし (2026-09-25 に Windows 検証と skill の扱いを解決).
 
 ## 却下した案
 
@@ -306,6 +305,8 @@ symlink を作れず (`Failed to create symlink`), 代わりにパッケージ�
 | 任意課題を加点対象にする | 最終発表の質疑で効くので, やったかどうかは評価しない | 2026-09-04 |
 
 ## 変更履歴
+
+- 2026-09-25: skill は公開せず, 資料の SKILL.md を codex に導入させる手順と, 公開 skill (grill-me) の導入と使い方を agent.md に追加 (ユーザ裁定).
 
 - 2026-09-25: AGENTS.md を配布から事例 + 候補表の形へ変更し, skill に学生版 lit-verify を追加 (ユーザ裁定).
 
