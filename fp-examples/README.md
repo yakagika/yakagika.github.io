@@ -4,7 +4,7 @@
 
 教材改訂で例を壊した場合に `stack test` でただちに検知することを目的としています.
 
-詳細な背景・設計・ロードマップは [`plans/in-progress/fp-examples-verification.md`](../plans/in-progress/fp-examples-verification.md) を参照.
+詳細な背景・設計・ロードマップは [`plan/landed/2026-09-08-fp-examples-verification.md`](../plan/landed/2026-09-08-fp-examples-verification.md) を参照.
 
 ## 実行
 

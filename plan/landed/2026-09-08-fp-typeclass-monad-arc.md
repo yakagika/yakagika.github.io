@@ -1,22 +1,22 @@
 ---
 plan_id: fp-typeclass-monad-arc
-status: in-progress
+status: landed
 created: 2026-06-15
-updated: 2026-07-09
+updated: 2026-09-08
 priority: medium
 next_actor: agent
-next_action: "Phase 4 = fp11 (可変状態と効果) — fp10 と同じ方式 (現行チェーンで v2 前提) を既定. fp-v2-unified-rebuild Phase A5 と同一"
+next_action: "landed (全 Phase 完了). 後続の fp 作業は fp-v2-unified-rebuild が正本"
 ---
 
 # fp 後半 (型クラス→代数→多相データ型→モナド→効果) の章構成と執筆計画
 
 ## メタ情報
 
-- **状態**: in-progress (Phase 0〜3 完了 = fp8/fp9/**fp10 完成** / Phase 4 = fp11 未着手)
+- **状態**: landed (2026-09-08. Phase 0〜4 完了 = fp8/fp9/fp10/fp11. 以後の fp 作業は fp-v2-unified-rebuild が正本)
 - **作成日**: 2026-06-15
-- **最終更新**: 2026-06-19
+- **最終更新**: 2026-09-08
 - **対象**: `lectures/fp/fp8.md`〜`fp11.md` (および fp7 からの接続)
-- **関連計画**: [fp-examples-verification.md](fp-examples-verification.md) (コード例の機械検証), [teaching-reification-cognitive-skills.md](teaching-reification-cognitive-skills.md) (認知スキルの可視化方針), [fp-v2-unified-rebuild.md](fp-v2-unified-rebuild.md) (**統一視座に基づく v2 全面再構築 — 本 arc の残フェーズ (fp10 後半・fp11) の帰属は同計画 Phase 0 で調停**)
+- **関連計画**: [fp-examples-verification.md](../landed/2026-09-08-fp-examples-verification.md) (コード例の機械検証, landed), [teaching-reification-cognitive-skills.md](../proposed/teaching-reification-cognitive-skills.md) (認知スキルの可視化方針), [fp-v2-unified-rebuild.md](../in-progress/fp-v2-unified-rebuild.md) (**統一視座に基づく v2 全面再構築 — 本 arc の残フェーズ (fp10 後半・fp11) の帰属は同計画 Phase 0 で調停**)
 
 ## 概要
 
@@ -95,8 +95,8 @@ fp 講義後半 (fp8〜fp11) を **「型クラス → 代数構造 → 多相�
   - ✅ **前半 (モナド)**: Functor 復習 → Applicative (独立節: `pure`/`<*>`, 4 法則) → Monad (`>>=`/`return`, Kleisli 射と `>=>`) → do 脱糖 → Maybe/Either モナド → モナド則 (Kleisli 圏の公理として再フレーム, fp8 モノイド・fp9 圏に接続). Either 例は専用エラー列挙型 (`CalcError`/`BankError`). 演習 CH10-1〜3 を各節直後に配置. `fp-examples/test/Fp10/` に spec 7 本 (純粋コアを hspec, モナド則は QuickCheck), `stack test` green. `open: true` で main に land (`b4fa7f5`).
   - ✅ **後半 (入出力)** (2026-07-10, `89a62c0`): IO モナド (アクションと `IO a`) / 参照透過性 / 標準入出力 / `main` と do の脱糖 + 「俯瞰の階段 — 台の持ち上げ」節. 演習 CH10-4・CH10-5. Fp10 spec 計 10 本, `stack test` 543 examples green.
   - IO 検証方針 (下記リスク #4) は fp12 の precedent で確定: **純粋コアは hspec, IO アクションはコンパイル確認のみ**. 前半は純粋なので全数検証済み.
-- **Phase 4 — fp11 本文 (可変状態と効果)** 未着手
-  - IORef, State, ST (runST/領域型 s/STRef), Reader/Writer・モナド変換子の概観.
+- **Phase 4 — fp11 本文 (可変状態と効果)** ✅ 完了 (2026-07-15, `be71834`. fp-v2-unified-rebuild Phase A5 として実施)
+  - State (手作り bindS → newtype → η/μ → インスタンス自作 → get/put/modify) / IORef / ST (runST) / Reader / Writer (Monoid w が部品) / Traversable (traverse・sequenceA・labelTree). 演習 CH11-1〜5, `fp-examples/test/Fp11/` 11 spec. 構成の詳細は fp-v2-unified-rebuild ロードマップ A5 項.
 
 各 Phase 完了時に演習を `### Exercise CHN-K` 形式 (CLAUDE.md の演習見出し規約) で追加する.
 
@@ -122,7 +122,7 @@ fp 講義後半 (fp8〜fp11) を **「型クラス → 代数構造 → 多相�
 - `lectures/fp/fp10.md` — モナドと入出力 (新規, スケルトン整備済)
 - `lectures/fp/fp11.md` — 可変状態と効果 (新規, スケルトン整備済)
 - `fp-examples/` — コード例の機械検証プロジェクト (`test/Fp8`/`Fp9` 以降を追加予定)
-- `plans/in-progress/fp-examples-verification.md` — 検証基盤の計画
+- `plan/landed/2026-09-08-fp-examples-verification.md` — 検証基盤の計画 (landed)
 
 ## 変更履歴
 
@@ -141,3 +141,4 @@ fp 講義後半 (fp8〜fp11) を **「型クラス → 代数構造 → 多相�
 - 2026-06-24: fp9 Functor 節に改善メモ 3 件を反映 (inbox triage 2026-06-24, task d1c44cdd0; Todoist 6gwWm2J.../6gwWm34.../6gwWpPj...). (1) `fmap` を「[第4章] の `map` を任意の関手に一般化したもの」として明示 (`map :: (a->b)->[a]->[b]` と `fmap :: (a->b)->f a->f b` を `\underbrace` で対比する数式 + 「入れ物の形を保つ map」という言い換えを追加). (2) 失敗系 2 型 Maybe/Either を **前半「多相データ型」節の先頭** へ移動 (旧: リスト→Map→ツリー→Maybe→Either / 新: Maybe→Either→基本操作→リスト→Map→ツリー), あわせて後半 Functor の実例順も Maybe→Either→リスト→Tree に揃えた. 章導入 2 文と Map の Maybe 前方参照 2 箇所を新順序へ修正. (`maybe either 先` の趣旨は当初 Functor 節の例順と解釈したが, ユーザ指摘で前半「多相データ型」節の並びと判明し追補.) (3) リストの `fmap` 実装例 `fmapList` (= `map` の再帰定義そのもの) を新設し `fmap`/`map` と一致することを確認. `Fp9.TreeFunctorSpec` を同期 (`fmapList` 定義 + 3 ケース追加, describe を Maybe/Either/リスト 順に整列), `cd fp-examples && stack test` = 362 examples / 0 failures. サイトビルド成功 (KaTeX 数式 intact, `\\[` 衝突なし). fp10/11 は対象外 (ユーザ確認済).
 - 2026-07-09: **Phase 3 前半 (fp10 モナド) を執筆・land**. Functor 復習 → Applicative (独立節: `pure`/`<*>`・4 法則) → Monad (`>>=`/`return`, Kleisli 射・`>=>`) → do 脱糖 → Maybe/Either モナド (Either は専用エラー列挙型 `CalcError`/`BankError`) → モナド則 (Kleisli 圏の公理として再フレーム, fp8 モノイド・fp9 圏に接続). 演習 CH10-1〜3 を各節直後に配置. `fp-examples/test/Fp10/` に spec 7 本 (純粋コア hspec + モナド則 QuickCheck). Applicative の深さ = 「独立節で丁寧に」, 進め方 = 「前半→後半の 2 段」をユーザが選択 (AUQ). IO 検証方針 (リスク #4) は fp12 の precedent で「純粋コア hspec / IO アクションはコンパイル確認のみ」に確定. session 中に main が `50893e4`→`079f35c` (fp8/fp9 のモノイド準同型・関手対応追加) まで進んでいたため, 隔離 worktree の branch を rebase → recovery tag `recovery/pre-fp10-land` → ff-merge で land (`b4fa7f5`). ユーザ指示で `open: true` (push 前は非公開のため draft でなく公開状態で main に載せ, ローカル `:8000` でレビュー). 後半 `# 入出力 (IO)` は「後半で執筆」note のプレースホルダとして残置.
 - 2026-07-09: fp10 前半をレビュー反映で 2 度改稿 (land 済). (1) **文体**: 散文を である調→**ですます調**に統一 (fp1〜9 が敬体; ユーザ指摘). blog-author-jp (Sonnet) に語尾変換を委譲→私が「〜たいです」等を手直し. あわせて `WRITING_STYLE.md` §C の「常体で統一」を実態に合わせ **講義=敬体 / 記事=常体** に修正. (2) **数学的対応物の追加** (ユーザ指摘「fp9 は数学∥Haskell∥対応の三本立てなのに fp10 は数学側が無い/Kleisli が唐突」): モナドを **自己関手 $T$ + 単位 $\eta$(=return) + 乗法 $\mu$(=join)** として定義し [第8章] モノイドとの対応 (自己関手の圏のモノイド) を対応表で明示, **Kleisli 圏を [第9章] 圏の公理として再接地**, モナド則を **>>= / (η,μ) / Kleisli の 3 等価形**で提示, **Applicative を「積を保つ関手 (lax monoidal)」= `liftA2 (,)`** として特徴づけ. 図示は数式+文 (SVG なし) / Applicative も数学対応を付ける方針をユーザが AUQ で選択. `Fp10.MonadMathSpec` (join/>>==join∘fmap/(η,μ)則 QuickCheck) + `ApplicativeSpec` に liftA2 5 例を追加, `stack test` **533 green**. 教訓は [[feedback_lecture_desumasu_tone]] / [[feedback_lecture_math_haskell_parallel]] に記録.
+- 2026-09-08: **landed へ移動**. Phase 4 (fp11) は 2026-07-15 に fp-v2-unified-rebuild Phase A5 として執筆済みだったが本 plan は「未着手」のまま stale だったため実態を反映. 未解決事項 1 (章タイトル命名) は v2 swap (2026-07-13) で fp7〜9 も記述的タイトルへ改名済みで解消, 4 (IO/ST 検証) は「純粋コア hspec / IO はコンパイル確認」で確定済み. 残る fp 作業は fp-v2-unified-rebuild (Phase A6, Phase B) が持つ.

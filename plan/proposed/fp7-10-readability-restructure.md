@@ -2,10 +2,10 @@
 plan_id: fp7-10-readability-restructure
 status: proposed
 created: 2026-07-23
-updated: 2026-07-23
+updated: 2026-09-08
 priority: medium
 next_actor: agent
-next_action: "2026-08-10 の Todoist タスクで発火. fp-v2-unified-rebuild Phase B (章構成変更, 特に B1 = fp7 の 2 章分離) と統合して実施. 単独では着手しない"
+next_action: "Phase B の着手時期判断 (Todoist FromAI, 2026-09-08 再登録) で発火. fp-v2-unified-rebuild Phase B (章構成変更, 特に B1 = fp7 の 2 章分離) と統合して実施. 単独では着手しない"
 ---
 
 # fp7〜fp10 本文の簡素化と読解経路の再構成
@@ -14,13 +14,13 @@ next_action: "2026-08-10 の Todoist タスクで発火. fp-v2-unified-rebuild P
 
 - **状態**: proposed
 - **作成日**: 2026-07-23
-- **最終更新**: 2026-07-23
+- **最終更新**: 2026-09-08
 - **対象**: `lectures/fp/fp7.md`〜`fp10.md`
-- **関連計画**: [fp-v2-unified-rebuild.md](fp-v2-unified-rebuild.md), [fp-typeclass-monad-arc.md](fp-typeclass-monad-arc.md), [fp-examples-verification.md](fp-examples-verification.md)
+- **関連計画**: [fp-v2-unified-rebuild.md](../in-progress/fp-v2-unified-rebuild.md), [fp-typeclass-monad-arc.md](../landed/2026-09-08-fp-typeclass-monad-arc.md), [fp-examples-verification.md](../landed/2026-09-08-fp-examples-verification.md)
 
 ## 実施形態 (2026-07-23 ユーザ決定)
 
-本計画は **単独では実施しない**. [fp-v2-unified-rebuild.md](fp-v2-unified-rebuild.md) の Phase B (章構成変更) との**統合作業**として, 2026-08-10 以降に実施する (同日付の Todoist タスクが trigger. plan-lifecycle 規約の dated-task park). 特に **fp7 は Phase B1 で 2 章 (Ch5 = 集合部 / Ch6 = 関係部) に分離する** ため, 本計画の Phase 1 (fp7) は分割後の 2 章の設計に吸収される. Phase 0 (2 層機構の評価) と Phase 2〜4 の観点は, 統合作業時の readability 側チェックリストとして用いる.
+本計画は **単独では実施しない**. [fp-v2-unified-rebuild.md](../in-progress/fp-v2-unified-rebuild.md) の Phase B (章構成変更) との**統合作業**として, 2026-08-10 以降に実施する (同日付の Todoist タスクが trigger. plan-lifecycle 規約の dated-task park. **2026-09-08 注**: 当該タスクが Todoist に見当たらなかったため, 着手時期判断の FromAI タスクとして再登録した). 特に **fp7 は Phase B1 で 2 章 (Ch5 = 集合部 / Ch6 = 関係部) に分離する** ため, 本計画の Phase 1 (fp7) は分割後の 2 章の設計に吸収される. Phase 0 (2 層機構の評価) と Phase 2〜4 の観点は, 統合作業時の readability 側チェックリストとして用いる.
 
 ## 概要
 
@@ -50,7 +50,7 @@ next_action: "2026-08-10 の Todoist タスクで発火. fp-v2-unified-rebuild P
 
 ### 明示的な競合
 
-1. **fp9 の導入順**: 本計画の当初案「`map` / `Maybe` / `Tree` → `Functor` → 関手則 → 圏論」は, [fp-v2-unified-rebuild.md](fp-v2-unified-rebuild.md) で承認済みの「一点圏の関手 → 小さな圏の関手 → 一般定義 → `Functor`」と逆順になる. 既存方針を変更するため, fp9 の詳細検討時に独立した選択・承認を必須とする.
+1. **fp9 の導入順**: 本計画の当初案「`map` / `Maybe` / `Tree` → `Functor` → 関手則 → 圏論」は, [fp-v2-unified-rebuild.md](../in-progress/fp-v2-unified-rebuild.md) で承認済みの「一点圏の関手 → 小さな圏の関手 → 一般定義 → `Functor`」と逆順になる. 既存方針を変更するため, fp9 の詳細検討時に独立した選択・承認を必須とする.
 2. **fp10 の圧縮**: `lectures/fp/fp10.md` のモノイド対象節には未コミットの加筆がある. 内容を削除対象とみなさず, まず節内圧縮・発展 note 化・後置のいずれで保存するかを比較し, 明示承認後に編集する.
 3. **fp10 の本筋順序**: 当初案の「利用の主線を先に通し, 圏論的説明を後置する」は, 確立済みの「新概念は数学的対象を先に (または並べて) 定義し, 対応で結ぶ」という設計と競合する (fp10 は 需要 → 手作り → 数学的構造 → 型クラス → 則 の律動で再構成済みで, fp9 も 2026-07-20 に同じ律動へ揃えてある). 本計画ではこの律動を **変更しない** ことを既定とし, fp10 の簡素化は数学節の内部圧縮と発展 note への切り出しに限る (Phase 4 参照).
 
@@ -227,11 +227,12 @@ next_action: "2026-08-10 の Todoist タスクで発火. fp-v2-unified-rebuild P
 - `fp-examples/test/Fp10/`
 - `lectures/fp/fp11.md`, `lectures/fp/fp12.md` (参照検査の対象. 本文の再構成対象ではない)
 - `plan/in-progress/fp-v2-unified-rebuild.md`
-- `plan/in-progress/fp-typeclass-monad-arc.md`
-- `plan/in-progress/fp-examples-verification.md`
+- `plan/landed/2026-09-08-fp-typeclass-monad-arc.md` (landed)
+- `plan/landed/2026-09-08-fp-examples-verification.md` (landed)
 
 ## 変更履歴
 
 - 2026-07-23: 正確性監査後の再構成案を, 章ごとの個別承認・実装を前提とする横断計画として作成.
 - 2026-07-23: 評価レビューを反映 — fp10 の設計競合を「明示的な競合」3 として明記し Phase 4 を律動維持・内部圧縮に限定, fp9 の実用先行案を不採用の記録へ格下げ, Phase 0 (既存 2 層機構の強化評価) を新設, fp8 の「本筋に残すもの」を明確化 (商集合・mkZ7・ブール代数骨子), fp11/fp12 参照検査を追加, `plan/proposed/` へ移動.
 - 2026-07-23: ユーザ決定により実施形態を変更 — 単独実施をやめ, fp-v2-unified-rebuild Phase B (章構成変更, fp7 の 2 章分離を含む) との統合作業として 2026-08-10 以降に実施. Todoist タスク (due 2026-08-10) を trigger として登録.
+- 2026-09-08: trigger の Todoist タスク (due 2026-08-10) が open にも完了済みにも無いことを確認し, 着手時期判断の FromAI タスクとして再登録. 関連計画 2 本 (fp-typeclass-monad-arc / fp-examples-verification) の landed 移動に合わせてリンクを更新.

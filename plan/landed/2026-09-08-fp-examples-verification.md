@@ -1,20 +1,20 @@
 ---
 plan_id: fp-examples-verification
-status: in-progress
+status: landed
 created: 2026-05-12
-updated: 2026-07-10
+updated: 2026-09-08
 priority: medium
 next_actor: agent
-next_action: "フェーズ 4 (任意: CI 統合・md⇔hs 同期) の要否判断 → 不要なら landed へ (フェーズ 0〜3 は完了済み — 実態反映 2026-07-10)"
+next_action: "landed. フェーズ 4 (CI 統合) は 2026-09-08 のユーザ判断で見送り (手元の stack test 運用で十分)"
 ---
 
 # fp 講義サンプルの検証用 Stack プロジェクト
 
 ## メタ情報
 
-- **状態**: in-progress (フェーズ 0〜3 完了 / フェーズ 4 (任意) の要否判断待ち)
+- **状態**: landed (2026-09-08. フェーズ 0〜3 完了, フェーズ 4 はユーザ判断で見送り)
 - **作成日**: 2026-05-12
-- **最終更新**: 2026-07-10 (フェーズ 3 完了の実態反映 — codex レビュー指摘の stale 修正)
+- **最終更新**: 2026-09-08 (フェーズ 4 見送りを確定し landed へ)
 
 ## 概要
 
@@ -235,13 +235,12 @@ dist-newstyle/
 ### フェーズ 3: fp6 / fp7 (各 1 日 〜) — **完了 (実態反映 2026-07-10)**
 
 - 本文書は旧章番号のまま停滞していたが, 実体は完了済み. 章再編に伴い spec ディレクトリは rename で追随しており (旧 `Fp4` → `Fp5`, 旧 `Fp5` → `Fp6` → `Fp7`), 現行 `test/` には Fp3 (3 本) / Fp5 (19 本) / Fp6 (6 本) / Fp7 (10 本) が揃っている.
-- さらに後続 arc ([fp-typeclass-monad-arc.md](fp-typeclass-monad-arc.md) ほか) で Fp8〜Fp10 / Fp12 / FpA1 も整備済み. 2026-07-10 時点で `stack test` 543 examples green (fp-v2-unified-rebuild Phase A1' 完了時).
+- さらに後続 arc ([fp-typeclass-monad-arc.md](2026-09-08-fp-typeclass-monad-arc.md) ほか) で Fp8〜Fp10 / Fp12 / FpA1 も整備済み. 2026-07-10 時点で `stack test` 543 examples green (fp-v2-unified-rebuild Phase A1' 完了時).
 - 「代数構造・モナドが入るため依存が増える」の懸念は QuickCheck / containers 依存の追加で解消済み.
 
-### フェーズ 4 (任意): CI 統合とマークダウン同期
+### フェーズ 4 (任意): CI 統合とマークダウン同期 — **見送り (2026-09-08, ユーザ判断)**
 
-- GitHub Actions 化.
-- マークダウン⇔.hs の同期チェック.
+- GitHub Actions 化 / マークダウン⇔.hs の同期チェック はいずれも実施しない. 教材編集時に `cd fp-examples && stack test` を手元で回す運用 (CLAUDE.md の規約) で回帰は十分に捕捉できており, 2026-09-08 時点でも全 spec green. 必要になったら別 plan として起こす.
 
 ## コスト見積もり
 
@@ -299,3 +298,4 @@ dist-newstyle/
     - ToC (`writerTOCDepth = 3`) に演習が一覧で並ぶようになった.
     - 学生課題ファイル名 `chN-K.hs` との 1:1 対応が `Exercise CHN-K` ↔ `chN-K.hs` で明示化.
     - CLAUDE.md に「練習問題の見出し規約」セクションを追加.
+- 2026-09-08: **landed へ移動**. フェーズ 4 (CI 統合・md⇔hs 同期) はユーザ判断で見送り. 検証基盤は Fp3〜Fp12/FpA1 まで整備済みで, 運用規約は CLAUDE.md「fp 講義編集時のルール」が正本.

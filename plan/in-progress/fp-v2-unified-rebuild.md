@@ -2,10 +2,10 @@
 plan_id: fp-v2-unified-rebuild
 status: in-progress
 created: 2026-07-10
-updated: 2026-07-13
+updated: 2026-09-08
 priority: high
 next_actor: agent
-next_action: "fp11 のユーザレビュー (open: true でローカル確認) → 確認後 commit / open の扱い決定. その後 Phase A6 (fp12 小改訂)"
+next_action: "fp11 のユーザレビュー (2026-09-08 に未了と判明. open: true へ倒してローカル :8000 で確認中, 未 commit) → 確定後 open の扱いを決めて commit → Phase A6 (fp12 小改訂) → Phase B0 の着手時期判断 (Todoist 再登録済)"
 ---
 
 # fp 講義 v2 — 統一視座 (組+法則) に基づく全面再構築
@@ -14,9 +14,9 @@ next_action: "fp11 のユーザレビュー (open: true でローカル確認) �
 
 - **状態**: in-progress (Phase 0 確定 = 折衷案, 実装中)
 - **作成日**: 2026-07-10
-- **最終更新**: 2026-07-13
+- **最終更新**: 2026-09-08
 - **対象**: `lectures/fp/` 全体 (Phase A: fp7〜fp12 / Phase B: fp1〜fp6), `fp-examples/`
-- **関連計画**: [fp-typeclass-monad-arc.md](fp-typeclass-monad-arc.md) (現行版の執筆 arc — Phase 0 で調停), [fp-examples-verification.md](fp-examples-verification.md), [../proposed/teaching-reification-cognitive-skills.md](../proposed/teaching-reification-cognitive-skills.md) (fp1 thesis の認知科学的裏付け)
+- **関連計画**: [fp-typeclass-monad-arc.md](../landed/2026-09-08-fp-typeclass-monad-arc.md) (現行版の執筆 arc — Phase 0 で調停, 2026-09-08 landed), [fp-examples-verification.md](../landed/2026-09-08-fp-examples-verification.md) (2026-09-08 landed), [../proposed/teaching-reification-cognitive-skills.md](../proposed/teaching-reification-cognitive-skills.md) (fp1 thesis の認知科学的裏付け)
 
 ## 概要
 
@@ -193,7 +193,7 @@ Obsidian Learn note「Haskell の再帰的データ型を数学的に読む — 
 - **Phase A5 — fp11** ✅ (2026-07-15 執筆完了, レビュー待ち). 構成案 (下記) をパターン語彙に更新の上そのまま実装. 構成 = 導入 (fp5 予告回収 + パターン↔効果 (effect) の橋 1 文 + 道筋 note + 地図表) → **# 状態を運ぶ計算** (Python の再代入 → 唯一の道 `s -> (a, s)` → 手書き配管 `three` の 2 難点) → **# State モナド** (`newtype State` + パターンの読み「場合分けなし・包まれた値が関数」→ 手作り `bindS` → 正体 (T a = s→(a×s), η/μ を数式∥Haskell, 単位律を let 展開で確認) → **インスタンスを自分の手で書く** (Functor/Applicative/Monad, `<*>` の左→右注記) → get/put/modify/gets + eval/execState → 実例 3 連 (fresh = Python 対訳 / label = forM×State / LCG 乱数 + replicateM 導入) + mtl 互換 note) → **# 本物の可変セル** (IORef (IO 伝染の問題) → ST (runST の rank-2 は名前まで) → 三者の使い分け表) → **# Reader と Writer** (Reader = put のない State, μ = 同じ環境を二重に配る, Config/税率例 / Writer = **Monoid w が部品** (η=mempty, μ=<>, モナド則がモノイド則から従う = 第8章の見せ場), Collatz ログ + Sum Int 取り替え + モナド変換子 note) → **# 構造を走査する** (traverse = forM の一般形 (Applicative に弱まる) → 一括検証/sequenceA → traverseTree 手作り (Node の liftA3 イディオム) → State を流す labelTree = 連番の一般化 → Traversable クラス (Functor/Foldable 前提, sum/length の恩恵, 3 クラス役割表) → **なぜ Applicative で十分か** (走査の順路は構造で静的 vs fp10 依存 2 重ループ)) → # まとめ (カタログ表 + fp12 への橋). 演習 CH11-1〜5 (algebra-first: 等式仕様→実装. 配管→State / コイン投げ LCG / minMax を State と ST / 互除法 Writer ログ + Monoid 取り替え / traverse 一括検証 + Applicative で十分な理由の記述). ユーザ決定 (AUQ 2026-07-15): Traversable = **fp11 末尾** (案 a) / 語彙 = パターン維持, State は「パターンのないデータ型で値が関数 (状態) になっている」という読み / 章題「可変状態と効果」維持 + 導入で効果を文献語彙として導入. `fp11.md` 986 行, `open: true` (レビュー用). fp-examples `test/Fp11/` 11 spec (Plumbing/State/IORef/ST/Reader/Writer/Traverse + Ex111〜115), `stack test` **703 examples green** (+62). サイトビルド + リンク・アンカー検査 84 ページ 0 件. fp12 の前提 (runState/evalState/modify/gets/mapM/replicateM, `Control.Monad.State`) は mtl note と各節でカバー済み.
 - **Phase A6** — fp12 小改訂 (+ ~~fp7〜9 の swap~~ → **2026-07-13 に前倒し実施済み**, 下記「v2 入れ替え (swap) 実施記録」)
 - **Phase B0** — Ch1 (thesis 章) の設計 (来年度に向け)
-- **Phase B1** — Ch5/Ch6 再編 (fp7v2 の 2 分割 + 現 fp5 の関係ベース再基礎づけ). **[fp7-10-readability-restructure](../proposed/fp7-10-readability-restructure.md) を統合実施** (2026-07-23 ユーザ決定): 読みやすさ 2 層化 (本筋/発展) と重複統合を章再編と同じパスで行う. 開始 trigger = 2026-08-10 の Todoist タスク.
+- **Phase B1** — Ch5/Ch6 再編 (fp7v2 の 2 分割 + 現 fp5 の関係ベース再基礎づけ). **[fp7-10-readability-restructure](../proposed/fp7-10-readability-restructure.md) を統合実施** (2026-07-23 ユーザ決定): 読みやすさ 2 層化 (本筋/発展) と重複統合を章再編と同じパスで行う. 開始 trigger = 2026-08-10 の Todoist タスク → **2026-09-08 に Todoist 上で見当たらず, 当日付 FromAI タスクとして再登録** (着手時期の判断待ち).
 - **Phase B2** — Ch7 (fp6 改稿)
 - **Phase B3** — Ch2〜4 微修正 + 番号替え・新旧対応表・統合
 
@@ -314,7 +314,7 @@ fp10 は Phase A1' 完了時点の語彙のままで, 本日確定した原則 1
 
 ## 関連ファイル / 記録
 
-- `lectures/fp/fp7.md`〜`fp12.md` — 現行版 (不変で温存)
+- `lectures/fp/fp7.md`〜`fp12.md` — 現行 = v2 (2026-07-13 swap 済み). v1 は `archive/fp-v1/` に非公開で温存
 - `fp-examples/` — 機械検証 (v2 は `test/Fp<N>V2/`)
 - `src/Main.hs:222-224` — takeFileName ルーティング (命名制約の根拠)
 - `lectures/fp/fp12.md` 導入節「仕様を等式で書く — 順序の逆転」 — 代数的定義の正本
@@ -407,3 +407,4 @@ fp10 は Phase A1' 完了時点の語彙のままで, 本日確定した原則 1
 - 2026-07-16: **fp10 モナド bridge のユーザ加筆を整備 + 型変数を m に統一**: ユーザが bridge 末尾に「>>= を構成するのに足りない部品」の型合わせによる `>>= = join . fmap` 導出を加筆. agent 整備 = 崩れた等式 (`fmap f m = m ((>>=) m f)`) の書き直し / 値変数を `mx :: m a` に改名 (型構築子との衝突解消) / コンテナ語彙→パターン語彙 / 「自由変換」→自然変換 (+ pure の補足). 併せて # モナド (Monad) 部冒頭〜bridge の型変数を `f a` → `m a` に統一 (6 箇所 + 断り 1 文, つなげる関数も g → f に改名. Applicative 部は f のまま).
 - 2026-07-16: **Applicative 部を案 A で全面再構成** (ユーザ「バラバラな印象」→ 診断 4 点 (手作り欠落/クラス節肥大/視点往復/需要回収弱) → 3 案 AUQ → 案 A): モナド部と対称の弧 (需要 → 手作り → 正体 → クラス化 → 法則) に組み替え. ①「## 独立な計算の組み合わせ」新設 (both を場合分けで手作り → lift2 = fmap (uncurry g) . both で需要回収 → lift3 = 組の畳み込み → bothList = 直積) ②Maybe/リストの μ の図 2 枚をクラス節から「緩モノイド関手」節末尾へ集約 (「手作りした both がこの μ の成分」で接続) ③クラス節スリム化 (分業読みを both で具体化, liftA2 = lift2 の総称版, fmap 特別の直後に需要回収の締め) ④「## Applicative 則」を独立節に分離 (4 則 + warn + 発展 note). 道筋 note の戻る節に Applicative 則を追加. spec: Fp10/BothSpec.hs 新設 (7 examples), `stack test` **710 examples green**. サイトビルド + リンク・アンカー検査 84 ページ 0 件. 未コミット.
 - 2026-07-23: **Phase B に fp7-10-readability-restructure を統合** (ユーザ決定): fp7〜fp10 の読みやすさ再構成 (本筋/発展の 2 層化, plan/proposed/) は単独実施せず, Phase B の章構成変更と同じパスで行う. fp7 の 2 章分離 (Phase B1 の Ch5/Ch6) が前提. 開始 trigger として Todoist タスク (due 2026-08-10) を登録.
+- 2026-09-08: **計画と実態の監査 (ユーザ依頼「修正計画を確認」)**. 検出と処置: (1) next_action の「fp11 ユーザレビュー」が未了のまま 2026-07-15 から止まっていた (fp11 は `open: false` で commit 済み) → ユーザ確認の上, `open: true` に倒してローカル :8000 でレビューを再開 (未 commit. 確定後に open の扱いを決める). (2) Phase B の開始 trigger (Todoist, due 2026-08-10) が open にも完了済みにも存在しなかった → 当日付 FromAI タスクとして再登録. (3) fp-typeclass-monad-arc (Phase 4 = fp11 が「未着手」のまま stale) と fp-examples-verification (フェーズ 4 の要否判断が 2 ヶ月保留) をそれぞれ実態反映して `plan/landed/` へ移動 (フェーズ 4 = CI 統合は見送り, ユーザ判断). (4) 関連ファイル節の「現行版 (不変で温存)」を swap 後の実態に修正. `fp-examples` の `stack test` は本日も全 pass. 教材本文は未変更.
