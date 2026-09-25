@@ -4,8 +4,8 @@ status: in-progress
 created: 2026-09-04
 updated: 2026-09-25
 priority: high
-next_actor: user
-next_action: "Windows 検証 (2026-09-25) の所見を git.md / agent.md へ反映する. codex の winget 導入の回避策をユーザが選ぶ (§Windows 実機検証)"
+next_actor: agent
+next_action: "配布する AGENTS.md に何を書くかを決める (研究用 repo の規約から採る項目の選定)"
 ---
 
 # 共通資料 - git とエージェント利用のリテラシー
@@ -265,8 +265,15 @@ symlink を作れず (`Failed to create symlink`), 代わりにパッケージ�
 ところがフォルダ内の実行ファイル名は `codex-aarch64-pc-windows-msvc.exe` (x64 機は `codex-x86_64-…`)
 なので `codex` では見つからない. 公式にも未解決 (openai/codex #28321, #11283).
 
-撮影した画像は `_scratch/winverify/` (未収録). 候補: Device Activation の画面 (`credential.png` 案),
-`gh auth login` の端末, herdr の初回画面, codex のフォルダ信頼と sandbox の画面, 承認画面, `/diff`, 2 pane 配置.
+**反映 (2026-09-25, ユーザ裁定)**:
+- codex の回避策は **開発者モードを先にオン** (他案: npm 経由 / 別名を作る 1 行). VM で開発者モードをオンにして
+  入れ直すと `Links\codex.exe` の symlink ができ, 開き直した PowerShell で `codex --version` が通り,
+  herdr の integrations も codex を `available` と表示した. agent.md に手順と, オフで入れた場合の入れ直しを追記.
+- 権限モードは VM の `/permissions` で確認: `Read Only` / `Ask for approval` (既定) / `Approve for me` / `Full Access`.
+  本文の `Auto` を置換.
+- 収録した図: `images/common/git/credential.png` (Device Activation), `images/common/agent/` に
+  codex-trust / codex-sandbox / codex-approval / codex-diff / herdr-split. アカウント名はそのまま載せる.
+- git.md: UAC の確認, `gh auth login` の実際の質問文, コードの自動コピー, 認証完了の表示を追記.
 
 ## 未確定 (台帳)
 

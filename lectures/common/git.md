@@ -113,6 +113,8 @@ winget install -e --id GitHub.cli
 
 2 つ目は GitHub CLI で, 後の認証で使います.
 
+どちらも途中で「このアプリがデバイスに変更を加えることを許可しますか?」という確認 (ユーザー アカウント制御) が出ます. 発行元が Git for Windows は Johannes Schindelin, GitHub CLI は GitHub, Inc. であることを確かめてから「はい」を押します.
+
 インストール後は **PowerShell を一度閉じて開き直してください.** 起動中のウィンドウには新しいコマンドの場所が反映されません.
 
 ::: note
@@ -366,12 +368,16 @@ gh auth login
 
 対話形式で聞かれるので, 次のように答えます.
 
-- What account do you want to log into? → **GitHub.com**
-- What is your preferred protocol for Git operations? → **HTTPS**
+- Where do you use GitHub? → **GitHub.com**
+- What is your preferred protocol for Git operations on this host? → **HTTPS**
 - Authenticate Git with your GitHub credentials? → **Yes**
-- How would you like to authenticate? → **Login with a web browser**
+- How would you like to authenticate GitHub CLI? → **Login with a web browser**
 
-表示される 8 文字のコードを控えて `Enter` を押すとブラウザが開くので, コードを貼り付けて認証します.
+`One-time code (XXXX-XXXX) copied to clipboard` と 8 文字のコードが表示されます. コードはクリップボードにも入っています. `Enter` を押すとブラウザが開くので, GitHub にサインインしていなければサインインします. 次の画面にコードを貼り付けて Continue を押し, 続く画面で Authorize github を押します.
+
+![コードを入力する画面. 端末に表示されたコードを 8 つの枠に入れる](/images/common/git/credential.png)
+
+端末に `Logged in as <自分のユーザ名>` と出れば認証は完了です.
 
 ::: warn
 
