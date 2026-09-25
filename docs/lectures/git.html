@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+    <script>
+      (function () {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+        function stored() {
+          var t = null;
+          try { t = localStorage.getItem('theme'); } catch (e) {}
+          return (t === 'dark' || t === 'light') ? t : null;
+        }
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
+        if (mq) {
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
+        }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
+      })();
+    </script>
+    <title>yakagika - 共通資料 バージョン管理とGitHub</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../style.css?v=1790309150">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+      <meta property="og:description" content="資料" />
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../" class="site-brand" aria-label="Home">
+          <span class="site-mark" aria-hidden="true">▮</span>
+          <span class="site-word">yakagika</span>
+        </a>
+      </div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../">Home</a>
+      <a href="../posts.html">Blog</a>
+      <a href="../lectures.html">Lecture</a>
+      <a href="../research.html">Research</a>
+      <a href="../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      <div id="lecture-toc" data-mode="series">
+        <h2>Index</h2>
+        <ul class="toc-root"><li class="toc-item toc-series-item current"><div class="toc-row"><span class="toc-toggle">▾</span><a href="git.html">共通資料 バージョン管理とGitHub</a></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item"><div class="toc-row"><span class="toc-toggle">▾</span><a href="agent.html">共通資料 コーディングエージェントの利用</a></div><ul class="toc-sublist"></ul></li></ul>
+      </div>
+      
+      
+    </nav>
+
+    <div id="content">
+    <article>
+<header class="article-header">
+    <span class="category-badge">Lecture</span>
+    <h1 class="article-title">共通資料 バージョン管理とGitHub</h1>
+    <p class="article-description">資料</p>
+    <div class="article-meta">
+        <span class="meta-item">公開: 2026-09-04</span>
+        <span class="meta-item">更新: 2026-09-10</span>
+    </div>
+    <div class="tag-chips"><a href="../tags/programming.html">programming</a><a href="../tags/lecture.html">lecture</a></div>
+</header>
+
+<!-- 上部: カード型の章ナビゲーション -->
+<nav class="chapter-nav-card">
+    
+        <span></span>
+    
+    
+        <a class="next" href="agent.html">
+            <span class="nav-label">Next →</span>
+            <span class="nav-title">共通資料 コーディングエージェントの利用</span>
+        </a>
+    
+</nav>
+
+<p>本資料は複数の講義で共通に使う資料です. コーディングエージェントに書かせた変更を確認し, 作業を記録し, 何を公開してよいかを判断するために必要な範囲の git と GitHub を扱います.</p>
+<p>エージェント自体の導入と操作は<a href="agent.html">共通資料 コーディングエージェントの利用</a>で扱います.</p>
+<h2 id="なぜエージェントと-git-を一緒に使うのか">なぜエージェントと git を一緒に使うのか</h2>
+<p>git は, ソフトウェアの<strong>バージョン管理</strong>の仕組みです. 変更を記録し, 記録どうしを比べ, 過去の記録の状態へ戻すために作られました. コーディングエージェントを使うと, この 3 つがそのまま自分の問題になります.</p>
+<h3 id="変更の差分を読む">変更の差分を読む</h3>
+<p>エージェントは, 指示を受けて手元のファイルを書き換えます. 1 回の指示で複数のファイルを同時に変更することも, 既存の行を消すこともあります.</p>
+<p>このとき, 完成したファイルは目の前にありますが, どの行が足されどの行が消えたのかは残っていません. 変更前と見比べようにも, 変更前の状態がもう手元にありません.</p>
+<p>git は記録どうしの差分を取れるので, エージェントが何をしたかを行単位で確認できます.</p>
+<h3 id="戻る場所を作る">戻る場所を作る</h3>
+<p>「さっきの状態に戻して」と頼めば戻る, とは限りません. エージェントは自分が書き換える前のファイルの中身を保持していません.</p>
+<p>エージェントとのやりとりには文脈の上限もあります. 長く続けると古いやりとりは押し出されて消えます. 文脈を切る操作 (<code>/clear</code>) をしたときも, セッションを終了したときも同じです. エージェント側に履歴は残りません.</p>
+<p>戻れる場所を作れるのは自分だけです. エージェントに作業させる前に commit しておけば, 何が起きてもそこまでは戻れます.</p>
+<h3 id="並列作業とコンフリクト">並列作業とコンフリクト</h3>
+<p>エージェントは 1 つずつ動かすとは限りません. 別々の作業を複数のエージェントに同時にやらせることができます.</p>
+<p>このとき全員が同じディレクトリを触ると, 後から書いたエージェントが先の変更を上書きします. 上書きされた側は, 自分の変更が消えたことを検知しません.</p>
+<p>git は branch で記録を枝分かれさせ, worktree で作業する場所を分けます. 分けておけば互いを踏まず, 合流させるときに同じ行を両方が変えていれば git がコンフリクトとして止めます. この 2 つは<a href="agent.html">共通資料 コーディングエージェントの利用</a>の発展節で扱います.</p>
+<h3 id="結果を出した版の同定">結果を出した版の同定</h3>
+<p>分析のコードを直すと出力も変わります. 発表資料に載せた図が, どの時点のコードとどの時点のデータから出たものかを後から言えないと, 質疑に答えられません.</p>
+<p>commit には日時とメッセージが残り, <code>git log</code> で一覧できます. どの記録の状態で出した図かを示せます.</p>
+<div class="note">
+<p>本資料が扱うのは, エージェントを使ううえで必要になる範囲です. 複数人での共同開発で使う機能 (pull request, レビュー, マージ戦略) までは踏み込みません.</p>
+</div>
+<h2 id="リポジトリを置くディレクトリ">リポジトリを置くディレクトリ</h2>
+<p>作業用のディレクトリを 1 つ作ります. 置き場所を間違えると, 後から直すのが面倒です.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> ~/work</span></code></pre></div>
+<p>Windows の PowerShell でも <code>~</code> はホームディレクトリを指すので, 同じコマンドで作れます.</p>
+<div class="warn">
+<p><strong>OneDrive, iCloud Drive, Google Drive, Dropbox の同期対象の中にリポジトリを置かないでください.</strong></p>
+<p>git はリポジトリの状態を <code>.git</code> という隠しディレクトリで管理しています. 中には索引ファイルや圧縮された記録が入っており, git はこれらを短時間のロックを取りながら書き換えます. 同期サービスはこの途中のファイルを掴むので, 次のことが起きます.</p>
+<ul>
+<li>git がロックを取れず <code>Unable to create '.git/index.lock'</code> で失敗する</li>
+<li>同期サービスが <code>analysis 2.py</code> のような重複ファイルを作り, git がそれを新しいファイルとして扱う</li>
+<li>同期がタイムスタンプを書き換え, 変更していないファイルが変更済みとして並ぶ</li>
+<li>OneDrive の「ファイル オンデマンド」や iCloud Drive の「ストレージを最適化」が <code>.git</code> の中身を端末から退避させ, オフラインのときに git が読めなくなる</li>
+</ul>
+<p>複数の端末で同じディレクトリを同期していると, 両方の <code>.git</code> が混ざってリポジトリ自体が読めなくなることもあります.</p>
+<p><strong>Windows では, デスクトップと Documents が OneDrive の管理下に入っていることがあります.</strong> 初期設定でそうなっている場合があるので, 置く前に確認してください. macOS も <code>~/Documents</code> と <code>~/Desktop</code> が iCloud Drive の対象になっていることがあります. どちらも <code>~/work</code> のように, 同期の対象外へ新しく作るのが確実です.</p>
+<p>GitHub へ push してあれば, 端末が壊れても <code>clone</code> し直せます. リポジトリをクラウド同期に入れる必要はありません.</p>
+</div>
+<h2 id="git-と-github-の役割">git と GitHub の役割</h2>
+<p><strong>git</strong> は手元のパソコンで動くプログラムです. ファイルの状態を記録し, 差分を取り, 過去の記録へ戻します. インターネットに接続していなくても動きます.</p>
+<p><strong>GitHub</strong> は git の記録をインターネット上に置いておくサービスです. Microsoft が運営しています. 手元の記録を GitHub に送っておけば, パソコンが壊れても失われませんし, 他人に見せることもできます.</p>
+<p>git は GitHub が無くても使えます. GitHub にもブラウザ上でファイルを編集する機能はありますが, エージェントは手元のファイルを書き換えるので, この講義では手元の git を使います.</p>
+<p>同じような役割のサービスに GitLab や Bitbucket があります.</p>
+<p>この講義では, 各自の GitHub アカウントで<strong>リポジトリ</strong> (記録の置き場所, repository, 略して repo) を 1 つ作り, そこに作業を記録していきます.</p>
+<h2 id="git-のインストール">git のインストール</h2>
+<p>OS ごとに手順が違います. 自分の OS の手順だけ実行してください.</p>
+<h3 id="windows">Windows</h3>
+<p>Windows には <strong>winget</strong> というコマンドが用意されています. Microsoft が提供しているソフトウェアの導入と更新の仕組みで, macOS の Homebrew に相当します. Windows 11 には最初から入っています.</p>
+<p><a href="setup.html">共通資料 プログラミング用の設定</a>で扱った PowerShell を開いて, 次の 2 つを実行します.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>winget install <span class="op">-</span>e <span class="op">--</span>id Git<span class="op">.</span><span class="fu">Git</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>winget install <span class="op">-</span>e <span class="op">--</span>id GitHub<span class="op">.</span><span class="fu">cli</span></span></code></pre></div>
+<p>2 つ目は GitHub CLI で, 後の認証で使います.</p>
+<p>インストール後は <strong>PowerShell を一度閉じて開き直してください.</strong> 起動中のウィンドウには新しいコマンドの場所が反映されません.</p>
+<div class="note">
+<p><code>winget</code> が認識されないと出た場合, 「アプリ インストーラー」(App Installer) が入っていないか, 導入直後で登録が終わっていません. Microsoft Store で「アプリ インストーラー」を検索して入れ, PowerShell を開き直してください. Windows 10 は 1809 より前のバージョンでは winget を使えないので, その場合は git-scm.com のインストーラを使います.</p>
+</div>
+<h3 id="macos">macOS</h3>
+<p><strong>Homebrew</strong> で入れます. Homebrew は macOS のソフトウェア導入の仕組みで, 入っていなければ <a href="https://brew.sh/index_ja">brew.sh</a> の手順に従って先に入れてください.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">brew</span> install git</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">brew</span> install gh</span></code></pre></div>
+<p>2 つ目は GitHub CLI で, 後の認証で使います.</p>
+<h3 id="インストールの確認">インストールの確認</h3>
+<p>OS を問わず, 次を実行してバージョンが表示されれば成功です.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> <span class="at">--version</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="ex">gh</span> <span class="at">--version</span></span></code></pre></div>
+<pre class="text"><code>git version 2.51.0
+gh version 2.100.0</code></pre>
+<h3 id="名前とメールアドレスの設定">名前とメールアドレスの設定</h3>
+<p>git は記録を残すときに, 誰が記録したかを一緒に書き込みます. 最初に一度だけ設定します. 自分の名前とアドレスに置き換えてください.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> config <span class="at">--global</span> user.name <span class="st">&quot;自分の名前&quot;</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> config <span class="at">--global</span> user.email <span class="st">&quot;自分のアドレス&quot;</span></span></code></pre></div>
+<p>ここで設定したメールアドレスは記録に含まれ, public なリポジトリでは誰でも読めます. 公開したくないアドレスは使わないでください. GitHub が発行する <code>&lt;数字&gt;+&lt;ユーザ名&gt;@users.noreply.github.com</code> という転送用アドレスを使う方法もあり, GitHub の設定画面の Emails で確認できます.</p>
+<h3 id="既定のエディタの設定">既定のエディタの設定</h3>
+<p><code>git commit</code> を <code>-m</code> 無しで実行すると, メッセージを書くためにエディタが開きます. 既定では <code>vim</code> が開き, 使い方を知らないと終了できません. VSCode を使うように変えておきます.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> config <span class="at">--global</span> core.editor <span class="st">&quot;code --wait&quot;</span></span></code></pre></div>
+<div class="note">
+<p>設定前に <code>vim</code> が開いてしまったときは, <code>Esc</code> を押してから <code>:q!</code> と入力して <code>Enter</code> を押すと, 保存せずに閉じます.</p>
+</div>
+<h2 id="public-と-private-の違い">public と private の違い</h2>
+<p>GitHub でリポジトリを作るとき, <strong>public</strong> (公開) と <strong>private</strong> (非公開) を選びます.</p>
+<ul>
+<li><strong>public</strong>: URL を知っていれば誰でも中身を読めます. 検索エンジンにも載ります.</li>
+<li><strong>private</strong>: 自分と, 自分が明示的に招待した人だけが読めます.</li>
+</ul>
+<p>迷ったら private にしてください. 後から public に変えられます. 逆に, public にしたものを private に戻しても, 公開されていた間に誰かがコピーしたものは取り戻せません.</p>
+<h3 id="public-に置いてはいけないもの">public に置いてはいけないもの</h3>
+<p>次のものは, 誰も見ないだろうと考えたとしても public なリポジトリに入れられません.</p>
+<p><strong>API キーと認証トークン</strong>. 外部サービスを使うための鍵です. たとえば, 教員が契約したアカウントの認証トークンを配布する講義があります. その鍵は共有の前払い残高に直結しているので, 公開されると第三者が残高を使い切れます. GitHub 上の公開リポジトリは機械的に走査されており, 鍵が置かれると短時間で発見されます.</p>
+<p><strong>個人情報を含むデータ</strong>. アンケートの回答, 名簿, 成績など, 個人が特定できるデータです. 匿名化したつもりでも, 複数の項目を組み合わせると個人が特定できることがあります.</p>
+<p><strong>提供を受けたデータ</strong>. 企業や自治体から研究目的で提供されたデータには, 公開してよい範囲の取り決めがあります.</p>
+<h3 id="private-は公開範囲を狭めるだけ">private は公開範囲を狭めるだけ</h3>
+<p>private にすれば何でも置ける, とはなりません. private でも, データは GitHub というアメリカの事業者のサーバへ送られます. 個人情報や提供を受けたデータは, private であっても外部へ送ってよいかを先に確認してください. 提供元との取り決め, 大学の規程, 倫理審査で承認した利用範囲が判断の根拠になります.</p>
+<p>判断がつかないデータは, 手元に置いたまま <code>.gitignore</code> で除外し, リポジトリには取得手順だけ書きます.</p>
+<div class="warn">
+<p><code>data/</code> と <code>.env</code> をリポジトリから除外し, クラウド同期からも外すと, <strong>提供を受けたデータと鍵はどこにもバックアップされません.</strong> 端末が壊れると失われます. 原本は外付けディスクや大学のストレージなど, リポジトリの外に別途保管してください.</p>
+</div>
+<h3 id="鍵を記録に入れてしまった場合">鍵を記録に入れてしまった場合</h3>
+<p>git は履歴を残すので, 一度記録した鍵はファイルから消しても履歴に残ります.</p>
+<p>やるべきことは, ファイルを直すことではなく, <strong>その鍵を無効にして発行し直すこと</strong>です. 教員から配布された鍵なら教員に連絡してください. 履歴からの完全な削除は手順が複雑で, 既に誰かが取得していた場合には意味がありません.</p>
+<h2 id="gitignore-に書く除外の設定">.gitignore に書く除外の設定</h2>
+<p>鍵をソースコードに直接書くと, 記録するときに一緒に入ります. 鍵は <code>.env</code> のような別のファイルに書き, そのファイルを追跡の対象から外します.</p>
+<p>対象から外すには, リポジトリの一番上に <code>.gitignore</code> という名前のファイルを作り, 除外したいものを 1 行に 1 つ書きます.</p>
+<pre class="text"><code># --- 認証情報 ---
+.env
+.env.local
+
+# --- データ ---
+data/
+*.csv
+*.xlsx
+*.xls
+
+# --- Python と uv が作るもの ---
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# --- OS が作るもの ---
+.DS_Store
+Thumbs.db</code></pre>
+<h3 id="パターンの読み方">パターンの読み方</h3>
+<ul>
+<li><code>/</code> を含まない行は, どの階層にも効きます. <code>*.csv</code> はリポジトリのどこにある CSV も除外し, <code>data/</code> は <code>src/data/</code> のような下位の <code>data</code> ディレクトリも除外します</li>
+<li>末尾の <code>/</code> はディレクトリだけに一致します</li>
+<li><code>*</code> は任意の文字列に一致しますが, <code>/</code> には一致しません. <code>*.csv</code> は <code>a.csv</code> に一致し, <code>sub/a.csv</code> にはこの規則では一致しません (前の規則で一致します)</li>
+</ul>
+<h3 id="各行の意図">各行の意図</h3>
+<p><strong>認証情報</strong>. <code>.env</code> は鍵を書くためのファイルです. <code>.env.local</code> のような派生も作られるので併せて外します.</p>
+<div class="note">
+<p>GitHub でリポジトリを作るときに Add .gitignore で Python を選ぶと, <code>.env</code> <code>.venv</code> <code>__pycache__</code> <code>.ipynb_checkpoints</code> は最初から入っています. 足りないのは <code>data/</code> と表計算ファイルなので, そこを追記します.</p>
+</div>
+<p><strong>データ</strong>. <code>data/</code> を丸ごと外したうえで, <code>*.csv</code> と <code>*.xlsx</code> も外します. 分析の途中で作った中間ファイルが <code>data/</code> の外へ散らばりやすく, その中に個人情報や提供データが混じるためです. 公開してよいデータを意図的に記録するときは, <code>-f</code> を付けて明示します.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add <span class="at">-f</span> data/pref_stats_2026.csv</span></code></pre></div>
+<p><strong>Python と uv が作るもの</strong>. <code>.venv/</code> は uv が作る仮想環境で, 数百 MB になることもあります. 各自の端末で作り直せるので記録しません. <code>__pycache__/</code> と <code>*.pyc</code> は Python が実行時に作る中間ファイルです.</p>
+<div class="warn">
+<p><strong><code>uv.lock</code> は除外しません.</strong> <code>pyproject.toml</code> を置いて uv でプロジェクトを管理する場合, <code>uv.lock</code> にはどのライブラリのどのバージョンを使ったかが書かれます. これがあると他の端末で同じ環境を再現できるので, 自動生成されるファイルですが記録する側です.</p>
+</div>
+<p><strong>OS が作るもの</strong>. <code>.DS_Store</code> は macOS が, <code>Thumbs.db</code> は Windows がフォルダごとに作るファイルです.</p>
+<p><code>AGENTS.md</code> は除外しません. エージェントへの指示を書くファイルで, リポジトリの一部として記録します. ただし記録される以上, ここに鍵やアカウント名を書けません. 中身は<a href="agent.html">共通資料 コーディングエージェントの利用</a>で扱います.</p>
+<div class="warn">
+<p><strong>Jupyter Notebook (<code>.ipynb</code>) は, 実行結果をファイル本体に埋め込みます.</strong> <code>df.head()</code> で表示した個人情報の行も, <code>.ipynb</code> の中に文字列として残ります. <code>data/</code> と <code>*.csv</code> を除外しても, notebook を記録すればデータが出ていきます.</p>
+<p>notebook を記録するときは, 保存する前に出力をすべて消してください. VSCode では notebook の上部にある Clear All Outputs で消せます.</p>
+</div>
+<div class="warn">
+<p><strong><code>.gitignore</code> に書いても, 既に記録したファイルは追跡から外れません.</strong> <code>.gitignore</code> は追跡していないファイルを候補に入れない設定であり, 追跡済みのファイルには効きません.</p>
+<p>誤って記録したファイルを外すには, 次のようにします.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> rm <span class="at">--cached</span> .env</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;.env を追跡の対象から外す&quot;</span></span></code></pre></div>
+<p><code>--cached</code> を付けると, 手元のファイルは残したまま追跡からだけ外れます. ただし<strong>それ以前の履歴には残る</strong>ので, 鍵であれば無効にして発行し直してください.</p>
+</div>
+<h2 id="github-のアカウントとリポジトリ">GitHub のアカウントとリポジトリ</h2>
+<h3 id="アカウントの作成">アカウントの作成</h3>
+<p><a href="https://github.com/">github.com</a> を開きます. 右上に Sign in と Sign up が並んでいるので, <strong>Sign up</strong> を押します.</p>
+<figure>
+<img src="../images/common/git/top.png" alt="GitHub のトップページ. アカウントの作成は右上の Sign up から始める" />
+<figcaption aria-hidden="true">GitHub のトップページ. アカウントの作成は右上の Sign up から始める</figcaption>
+</figure>
+<p>Email, Password, Username, Country/Region を入力して Create account を押すと, 入力したアドレスに確認コードが届きます. Google や Apple のアカウントで作ることもできますが, どちらを選んでも後の手順は変わりません.</p>
+<figure>
+<img src="../images/common/git/signup.png" alt="Sign up の入力画面. 必要なのはアドレス, パスワード, ユーザ名, 国だけ" />
+<figcaption aria-hidden="true">Sign up の入力画面. 必要なのはアドレス, パスワード, ユーザ名, 国だけ</figcaption>
+</figure>
+<p>Username は URL の一部になり (<code>https://github.com/&lt;ユーザ名&gt;</code>), 他人から見えます. 後から変更できますが, 変更すると以前の URL は無効になり, 手放した名前は他人が取得できます. 最初に決めてください.</p>
+<h3 id="二段階認証の設定">二段階認証の設定</h3>
+<p>パスワードだけでは, どこかで漏れたパスワードを使い回されるとアカウントを乗っ取られます. GitHub は 2023 年以降, コードを提供する利用者に段階的に二段階認証を必須化しており, 対象になると設定するまで操作が制限されます. 対象になるのを待たず, 最初に設定してください.</p>
+<p>右上のアイコンを押すとメニューが開きます. Settings に入ります.</p>
+<figure>
+<img src="../images/common/git/menu.png" alt="右上のアイコンから開くメニュー. Settings はこの中にある" />
+<figcaption aria-hidden="true">右上のアイコンから開くメニュー. Settings はこの中にある</figcaption>
+</figure>
+<p>左のメニューで Password and authentication を選びます. Sign in methods の一覧が出ます.</p>
+<figure>
+<img src="../images/common/git/settings-auth.png" alt="Settings の Password and authentication. 二段階認証の設定はこのページの下にある" />
+<figcaption aria-hidden="true">Settings の Password and authentication. 二段階認証の設定はこのページの下にある</figcaption>
+</figure>
+<p>同じページを下にたどると Two-factor authentication のセクションがあります. 右上が Enabled になっていれば設定済みです. 未設定なら, 認証アプリ (Google Authenticator など) かパスキーを登録します.</p>
+<figure>
+<img src="../images/common/git/2fa.png" alt="Two-factor authentication が Enabled になった状態. ここが Enabled なら設定は済んでいる" />
+<figcaption aria-hidden="true">Two-factor authentication が Enabled になった状態. ここが Enabled なら設定は済んでいる</figcaption>
+</figure>
+<div class="warn">
+<p>設定の途中で <strong>recovery code (回復コード)</strong> が表示されます. 認証アプリを入れた端末を失くしたときの唯一の復旧手段で, これを失うと GitHub 側でも復旧できません. 印刷するか, パスワード管理ソフトに保存してください.</p>
+</div>
+<h3 id="リポジトリの作成">リポジトリの作成</h3>
+<p>画面右上の <code>+</code> を押し, New repository を選びます.</p>
+<figure>
+<img src="../images/common/git/new-repo-menu.png" alt="+ メニューの New repository" />
+<figcaption aria-hidden="true">+ メニューの New repository</figcaption>
+</figure>
+<p>入力画面は 1 General と 2 Configuration の 2 段に分かれています.</p>
+<figure>
+<img src="../images/common/git/new-repo.png" alt="リポジトリ作成の入力画面. visibility を Private, Add README を On, .gitignore を Python にした状態" />
+<figcaption aria-hidden="true">リポジトリ作成の入力画面. visibility を Private, Add README を On, .gitignore を Python にした状態</figcaption>
+</figure>
+<p>上から順に次のようにします.</p>
+<ul>
+<li><strong>Repository name</strong>: 英数字とハイフンで, 中身が分かる名前 (例: <code>ds-practice-2026</code>). 入力すると使えるかどうかがその場で表示されます. 図では動作確認のため <code>aaaaa</code> と入れていますが, 自分のものは意味の分かる名前にしてください</li>
+<li><strong>Description</strong>: 1 行の説明 (任意)</li>
+<li><strong>Choose visibility</strong>: 右のドロップダウンで Private を選びます</li>
+<li><strong>Add README</strong>: 右のトグルを On にします. 空でないリポジトリができ, すぐ <code>clone</code> できます</li>
+<li><strong>Add .gitignore</strong>: ドロップダウンから Python を選びます</li>
+<li><strong>Add license</strong>: No license のままで構いません</li>
+</ul>
+<p>Create repository を押すと作成されます.</p>
+<h3 id="教員を-collaborator-に招待する">教員を Collaborator に招待する</h3>
+<p>作成したリポジトリのページで Settings を開き, 左のメニューから Collaborators を選びます. Add people を押し, 講義で案内する教員のアカウント名を入力して Add を押します. 教員が届いた招待を受け取ると, リポジトリを閲覧できます.</p>
+<p>private のリポジトリでも, Collaborator として招待した相手は中身を読めます.</p>
+<h3 id="github-cli-での認証">GitHub CLI での認証</h3>
+<p><code>clone</code> や <code>push</code> のたびに GitHub は本人確認を求めます. 先に入れた GitHub CLI で一度だけ済ませます.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ex">gh</span> auth login</span></code></pre></div>
+<p>対話形式で聞かれるので, 次のように答えます.</p>
+<ul>
+<li>What account do you want to log into? → <strong>GitHub.com</strong></li>
+<li>What is your preferred protocol for Git operations? → <strong>HTTPS</strong></li>
+<li>Authenticate Git with your GitHub credentials? → <strong>Yes</strong></li>
+<li>How would you like to authenticate? → <strong>Login with a web browser</strong></li>
+</ul>
+<p>表示される 8 文字のコードを控えて <code>Enter</code> を押すとブラウザが開くので, コードを貼り付けて認証します.</p>
+<div class="warn">
+<p><code>gh auth login</code> を使わない場合, macOS では <code>clone</code> や <code>push</code> のときにターミナルで <code>Username</code> と <code>Password</code> を聞かれます. <strong>ここで GitHub のログインパスワードを入れても通りません.</strong> パスワードによる認証は 2021 年に廃止されており, personal access token を自分で発行して貼る必要があります. その手間を省くために GitHub CLI を使います.</p>
+</div>
+<h3 id="clone-手元にコピーする">clone: 手元にコピーする</h3>
+<p>作成したリポジトリのページで緑の Code ボタンを押すと, Clone の欄が開きます. HTTPS のタブを選び, 表示された URL を右のボタンでコピーします.</p>
+<figure>
+<img src="../images/common/git/code-button.png" alt="Code ボタンを押した状態. HTTPS のタブの URL をコピーする" />
+<figcaption aria-hidden="true">Code ボタンを押した状態. HTTPS のタブの URL をコピーする</figcaption>
+</figure>
+<p>先に作った作業用ディレクトリへ移動してから実行します.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/work</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/<span class="op">&lt;</span>自分のユーザ名<span class="op">&gt;</span>/<span class="op">&lt;</span>リポジトリ名<span class="op">&gt;</span>.git</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> <span class="op">&lt;</span>リポジトリ名<span class="op">&gt;</span></span></code></pre></div>
+<h2 id="日常的に使う-7-つのコマンド">日常的に使う 7 つのコマンド</h2>
+<p>以降はすべて, <code>clone</code> したディレクトリの中で実行します.</p>
+<h3 id="status-何が変わっているかを見る">status: 何が変わっているかを見る</h3>
+<div class="sourceCode" id="cb13"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> status</span></code></pre></div>
+<pre class="text"><code>On branch main
+Changes not staged for commit:
+        modified:   src/analysis.py
+
+Untracked files:
+        notes/2026-04-15-groupby.md</code></pre>
+<p><code>modified</code> は追跡済みのファイルが書き換わったこと, <code>Untracked</code> はまだ git が知らないファイルであることを示します. 実際の出力にはこれに加えて操作の案内が数行出ますが, 読むべきはこの 2 つの一覧です.</p>
+<h3 id="diff-中身の変化を行単位で見る">diff: 中身の変化を行単位で見る</h3>
+<div class="sourceCode" id="cb15"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff</span></code></pre></div>
+<pre class="text"><code>diff --git a/src/analysis.py b/src/analysis.py
+--- a/src/analysis.py
++++ b/src/analysis.py
+@@ -10,7 +10,7 @@
+ df = pd.read_csv('data/survey.csv')
+
+-mean = df['score'].mean()
++mean = df['score'].dropna().mean()
+ print(mean)</code></pre>
+<p>先頭が <code>-</code> の行が消えた行, <code>+</code> の行が足された行です. この例では, 平均を取る前に欠損値を除くように書き換わっています.</p>
+<div class="warn">
+<p><strong><code>git diff</code> は追跡済みファイルの未ステージの変更しか表示しません.</strong> エージェントが新しく作ったファイルは <code>Untracked</code> なので, <code>git diff</code> に何も出ません. 差分が空なのを見て「変更されていない」と判断すると, 新規ファイルを読まないまま次へ進みます.</p>
+<p>エージェントに作業させたら, <strong>まず <code>git status</code> で一覧を見て, 新規ファイルは中身を開いて読んでください.</strong> 変更されたファイルは <code>git diff</code> で読みます.</p>
+</div>
+<h3 id="add-記録するものを選ぶ">add: 記録するものを選ぶ</h3>
+<div class="sourceCode" id="cb17"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add src/analysis.py notes/2026-04-15-groupby.md</span></code></pre></div>
+<p><code>git add .</code> と書くと, <strong>コマンドを実行したディレクトリより下</strong>の変更をまとめて選べます. リポジトリの一番上で実行しないと, 上の階層の変更は入りません. また <code>.gitignore</code> で除外していないファイルは全部入るので, 実行する前に <code>git status</code> で一覧を確認してください.</p>
+<h3 id="diff---staged-記録する直前に中身を確認する"><code>diff --staged</code>: 記録する直前に中身を確認する</h3>
+<p><code>git add</code> したファイルは <code>git diff</code> に出なくなります. これから記録される中身を読むには, 次を使います.</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--staged</span></span></code></pre></div>
+<p>鍵やデータを誤って選んでいないかは, ここで最後に確認できます. <strong>commit する前に必ず 1 度実行してください.</strong></p>
+<h3 id="commit-記録する">commit: 記録する</h3>
+<div class="sourceCode" id="cb19"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;欠損値を除いてから平均を取るように修正&quot;</span></span></code></pre></div>
+<p><code>-m</code> の後ろは<strong>コミットメッセージ</strong>で, 何をしたかを自分の言葉で書きます. 後から履歴を見たときに, この 1 行だけで何をしたか分かる必要があります. 「修正」「更新」だけでは分かりません.</p>
+<h3 id="push-github-に送る">push: GitHub に送る</h3>
+<div class="sourceCode" id="cb20"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> push</span></code></pre></div>
+<p>commit しただけでは手元にしか残りません. push して初めて GitHub 側に反映されます. 提出のたびに push してください.</p>
+<h3 id="log-履歴を見る">log: 履歴を見る</h3>
+<div class="sourceCode" id="cb21"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> log <span class="at">--oneline</span></span></code></pre></div>
+<pre class="text"><code>a3f79f8 欠損値を除いてから平均を取るように修正
+f041ec0 README にリポジトリの目的を書く
+568a3c1 Initial commit</code></pre>
+<p>左の 7 文字が記録の識別子です. 発表資料の図がどの記録の状態で出たものかは, これで示せます.</p>
+<h3 id="restore-変更を捨てる">restore: 変更を捨てる</h3>
+<p>エージェントの変更が意図と違っていたとき, 手元の変更を捨てて記録済みの状態に戻します.</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> restore <span class="at">--source</span><span class="op">=</span>HEAD src/analysis.py</span></code></pre></div>
+<p><code>--source=HEAD</code> は「最後に commit した状態から取り直す」という指定です. これを省くと <code>git add</code> で選んだ内容から取り直すので, <code>add</code> 済みの変更は残ります.</p>
+<div class="warn">
+<p><strong>restore は取り消せません.</strong> commit していない変更は警告なく消えます. これが唯一, 元に戻せない操作です.</p>
+<p>また restore が戻すのは追跡済みのファイルだけです. エージェントが新しく作ったファイルは残るので, 要らなければ自分で削除してください.</p>
+<p>エージェントに作業させる前に commit しておけば, いつでもここへ戻れます.</p>
+</div>
+<h2 id="branch-と-worktree">branch と worktree</h2>
+<p>エージェントを複数同時に動かすための branch と worktree は, <a href="agent.html">共通資料 コーディングエージェントの利用</a>の発展節で扱います. 作業中に見慣れないディレクトリが増えていたら, worktree によって分けられた作業場所です.</p>
+<h2 id="ディレクトリの構成">ディレクトリの構成</h2>
+<p>進捗を記録するリポジトリは, 次の構成を出発点にしてください. 作業しながら自分に合う形に変えて構いません.</p>
+<pre class="text"><code>&lt;リポジトリ名&gt;/
+├── AGENTS.md          # エージェントへの指示
+├── README.md          # このリポジトリが何か
+├── .gitignore         # 記録しないもの
+├── notes/             # 学んだことを書き出す場所
+│   └── 2026-04-15-pandas-groupby.md
+├── src/               # プログラム
+│   └── analysis.py
+└── data/              # データ (.gitignore で除外. GitHub 側には現れません)</code></pre>
+<p><code>AGENTS.md</code> は, エージェントに毎回読ませる決まりごとを書くファイルです. 中身は<a href="agent.html">共通資料 コーディングエージェントの利用</a>で扱います.</p>
+<p><code>notes/</code> は, エージェントに教わったことを自分の言葉で書き出す場所です. これは任意ですが, 最終回の発表の質疑で効きます.</p>
+<div class="note">
+<p>git が記録するのはファイルであってディレクトリではありません. 空のディレクトリを作っても <code>git status</code> には出ず, GitHub 側にも現れません. 中にファイルを 1 つ置いてから記録します.</p>
+</div>
+<section id="exercise-git-1" class="note">
+<h4>Exercise GIT-1</h4>
+<p><strong>リポジトリを作って最初の記録を残す</strong></p>
+<ol type="1">
+<li><code>git --version</code> と <code>gh --version</code> が表示されることを確認し, 名前とメールアドレスと既定のエディタを設定する.</li>
+<li><code>gh auth login</code> で認証する.</li>
+<li>GitHub で private のリポジトリを 1 つ作る (Add README を On, Add .gitignore を Python).</li>
+<li><code>~/work</code> へ移動して <code>clone</code> する.</li>
+<li><code>.gitignore</code> に <code>data/</code> と表計算ファイルの行を追記する.</li>
+<li><code>notes/</code> と <code>src/</code> を作り, それぞれに空でないファイルを 1 つずつ置く.</li>
+<li><code>git status</code> で一覧を確認し, <code>git add .</code>, <code>git diff --staged</code>, <code>git commit</code>, <code>git push</code> の順に実行する.</li>
+<li>GitHub 上でファイルが見えることを確認する.</li>
+</ol>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答例
+</summary>
+<div class="sourceCode" id="cb25"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> <span class="at">--version</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="ex">gh</span> <span class="at">--version</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> config <span class="at">--global</span> user.name <span class="st">&quot;自分の名前&quot;</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> config <span class="at">--global</span> user.email <span class="st">&quot;自分のアドレス&quot;</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> config <span class="at">--global</span> core.editor <span class="st">&quot;code --wait&quot;</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a><span class="ex">gh</span> auth login</span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/work</span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/yourname/ds-practice-2026.git</span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ds-practice-2026</span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a><span class="co"># .gitignore に data/ と *.csv などを追記 (エディタで編集)</span></span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> notes src</span>
+<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;# 最初の記録&quot;</span> <span class="op">&gt;</span> notes/2026-04-15-first.md</span>
+<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;print('hello')&quot;</span> <span class="op">&gt;</span> src/analysis.py</span>
+<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-18"><a href="#cb25-18" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> status              <span class="co"># .gitignore が modified, notes/ と src/ が Untracked</span></span>
+<span id="cb25-19"><a href="#cb25-19" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add .</span>
+<span id="cb25-20"><a href="#cb25-20" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--staged</span>       <span class="co"># 記録される中身を最後に確認する</span></span>
+<span id="cb25-21"><a href="#cb25-21" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;作業用のディレクトリを用意し, .gitignore にデータの除外を追記&quot;</span></span>
+<span id="cb25-22"><a href="#cb25-22" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> push</span></code></pre></div>
+<p>手順 6 で空のディレクトリを作っただけでは <code>git status</code> に何も出ません. git はファイルを記録する仕組みで, ディレクトリだけを記録できないためです.</p>
+</details>
+</section>
+<section id="exercise-git-2" class="note">
+<h4>Exercise GIT-2</h4>
+<p><strong>README を書き換えて GitHub に反映させる</strong></p>
+<p>エージェントに作業させるときに毎回踏む手順です. 変更する, 差分を読む, 記録する, 送る の 4 段を 1 周します.</p>
+<ol type="1">
+<li><code>README.md</code> をエディタで開き, 次の 3 つを書く.
+<ul>
+<li>このリポジトリが何か (どの講義の, 何を記録するものか)</li>
+<li>どこに何を置くか (<code>notes/</code> と <code>src/</code> の説明)</li>
+<li>使っているもの (Python, uv, codex など)</li>
+</ul></li>
+<li><code>git status</code> で, <code>README.md</code> が <code>modified</code> として出ることを確認する.</li>
+<li><code>git diff</code> で, 自分が書いた行が <code>+</code> で出ていることを確認する.</li>
+<li><code>git add README.md</code> してから, もう一度 <code>git status</code> を実行し, 表示が変わることを確認する.</li>
+<li><code>git diff --staged</code> で, 記録される中身を確認する.</li>
+<li>何をしたか分かるメッセージを付けて <code>git commit</code> する.</li>
+<li><code>git push</code> する.</li>
+<li>GitHub のリポジトリのページを再読み込みし, README の内容がページ下部に表示されていることと, Commits の履歴に自分のメッセージが載っていることを確認する.</li>
+</ol>
+<p>4 で表示が変わる理由を説明できるようにしてください.</p>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答例
+</summary>
+<p><code>README.md</code> の例です.</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode markdown"><code class="sourceCode markdown"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu"># ds-practice-2026</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>データサイエンス実践 (2026年度) の作業記録です.</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="fu">## 置き場所</span></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`notes/`</span> : 学んだことを日付ごとに書き出したもの</span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`src/`</span>   : 分析のプログラム</span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`data/`</span>  : データ (公開しないので記録していません)</span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a><span class="fu">## 使っているもの</span></span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Python 3.12 / uv</span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>codex (OpenAI Codex CLI)</span></code></pre></div>
+<p>操作は次のとおりです.</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> status</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="co"># On branch main</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Changes not staged for commit:</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="co">#         modified:   README.md</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a><span class="co"># +データサイエンス実践 (2026年度) の作業記録です.</span></span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a><span class="co"># +...  自分が書いた行が + で出ます</span></span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add README.md</span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> status</span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Changes to be committed:</span></span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a><span class="co">#         modified:   README.md</span></span>
+<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--staged</span></span>
+<span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;README にリポジトリの目的とディレクトリの説明を書く&quot;</span></span>
+<span id="cb27-17"><a href="#cb27-17" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> push</span></code></pre></div>
+<p>4 で表示が変わる理由は次のとおりです. <code>git status</code> は変更を 2 つの段階に分けて表示します. <code>git add</code> する前は <code>Changes not staged for commit</code> (記録する対象に入っていない変更), <code>git add</code> した後は <code>Changes to be committed</code> (次の <code>commit</code> に入る変更) です. <code>add</code> はこの変更を次の記録に入れると選ぶ操作で, <code>commit</code> はそこで選んだものをまとめて記録する操作です.</p>
+</details>
+</section>
+<section id="exercise-git-3" class="note">
+<h4>Exercise GIT-3</h4>
+<p><strong>公開してよいか判断する</strong></p>
+<p>次の 5 つについて, public のリポジトリに入れてよいか, 入れてはいけないか, 追加の確認が要るかを判断し, その理由を書いてください.</p>
+<ol type="1">
+<li>自分で書いた <code>analysis.py</code></li>
+<li>講義で配布された外部 API の認証トークンを書いた <code>.env</code></li>
+<li>政府統計のポータルからダウンロードした CSV</li>
+<li>授業で配布された, 学生の学籍番号を含むアンケート結果</li>
+<li><code>analysis.py</code> が出力した集計結果のグラフ画像</li>
+</ol>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答例
+</summary>
+<ol type="1">
+<li><strong>入れてよい</strong>です. 自分で書いたコードで, 鍵もデータも含みません.</li>
+<li><strong>入れてはいけません</strong>. 認証トークンは共有の前払い残高に直結します. 公開リポジトリは機械的に走査されるため, 発見されるまでの時間は短いです. <code>.gitignore</code> に <code>.env</code> を書いて除外します.</li>
+<li><strong>利用規約を確認してから判断します</strong>. 公開データでも再配布の可否や出典表示の条件はデータセットごとに違います. e-Stat のデータは出典を明記すれば再配布できますが, 条件の異なるものもあります. なお容量が大きい場合は, リポジトリに入れず取得手順を書く方が扱いやすいです.</li>
+<li><strong>入れてはいけません</strong>. 学籍番号は個人を特定できます. 学籍番号を消しても, 学部と学年と回答の組み合わせで特定できることがあります. <code>data/</code> ごと除外します.</li>
+<li><strong>元データによります</strong>. 集計結果そのものは個人を特定しませんが, 元データが 4 のような非公開データで, かつ集計の区分が細かいと (たとえば該当者が 1 人しかいない区分があると), その値から個人が特定できます. 元データが 3 なら, 3 と同じ条件で判断します.</li>
+</ol>
+</details>
+</section>
+
+<!-- 下部: カード型の章ナビゲーション -->
+<nav class="chapter-nav-card">
+    
+        <span></span>
+    
+    
+        <a class="next" href="agent.html">
+            <span class="nav-label">Next →</span>
+            <span class="nav-title">共通資料 コーディングエージェントの利用</span>
+        </a>
+    
+</nav>
+</article>
+
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        <nav class="footer-nav" aria-label="フッターナビゲーション">
+            <a href="../">Home</a>
+            <a href="../posts.html">Blog</a>
+            <a href="../lectures.html">Lecture</a>
+            <a href="../research.html">Research</a>
+            <a href="../rss.xml">RSS</a>
+            <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+        </nav>
+        <p class="footer-copy">&copy; yakagika &middot; Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>.</p>
+    </div>
+</div>
+
+
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="ページ先頭へ戻る" title="先頭へ戻る">↑</button>
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level;
+          switch (heading.tagName.toLowerCase()) {
+            case 'h2': level = 0; break;
+            case 'h3': level = 1; break;
+            case 'h4': level = 2; break;
+            default: return;
+          }
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          // Pandoc は `::: note` + 見出し の組み合わせを <section id="..." class="note">
+          // 内の <hN> として出力するため, 見出し自身に id が無い場合は
+          // 親 section の id を辿る.
+          var anchorId = heading.id;
+          if (!anchorId) {
+            var parentSection = heading.closest('section[id]');
+            if (parentSection) anchorId = parentSection.id;
+          }
+          anchor.href = '#' + anchorId;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+
+      // ----------------------------------------
+      // スクロールスパイ: 表示中の見出しを TOC でハイライト
+      // ----------------------------------------
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0 || typeof IntersectionObserver === 'undefined') return;
+
+      var idToTocItem = new Map();
+      headings.forEach(function(h) {
+        if (!h.id) return;
+        var link = tocContainer.querySelector('a[href="#' + CSS.escape(h.id) + '"]');
+        if (link) {
+          var li = link.closest('.toc-item') || link.closest('li');
+          if (li) idToTocItem.set(h.id, li);
+        }
+      });
+
+      var visible = new Set();
+      var lastActive = null;
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+
+        // ドキュメント順で最初に可視な見出しをアクティブに
+        var firstVisible = null;
+        for (var i = 0; i < headings.length; i++) {
+          if (visible.has(headings[i].id)) {
+            firstVisible = headings[i].id;
+            break;
+          }
+        }
+        if (!firstVisible) return;
+
+        var tocItem = idToTocItem.get(firstVisible);
+        if (!tocItem || tocItem === lastActive) return;
+
+        if (lastActive) lastActive.classList.remove('toc-active');
+        tocItem.classList.add('toc-active');
+        lastActive = tocItem;
+
+        // TOC を必要なときだけスクロール
+        tocItem.scrollIntoView({
+          block: 'nearest',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
+      }, {
+        // ヘッダー (60px) を除いた上部 〜 画面下から60% を判定領域とする
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0
+      });
+
+      headings.forEach(function(h) { if (h.id) observer.observe(h); });
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
+      const pre = codeBlock.parentNode;
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
+      copyButton.textContent = 'Copy';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    // パスワード保護付き details (回答例用)
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll('details.protected').forEach(function (det) {
+        var pass = det.getAttribute('data-pass') || '';
+        var summary = det.querySelector('summary');
+        if (!summary) return;
+
+        var gate = document.createElement('div');
+        gate.className = 'pass-gate';
+        gate.innerHTML =
+          '<label>合言葉: <input type="password" autocomplete="off" spellcheck="false"></label>' +
+          '<button type="button">解除</button>' +
+          '<span class="pass-error" hidden>合言葉が違います</span>';
+        summary.insertAdjacentElement('afterend', gate);
+
+        var input = gate.querySelector('input');
+        var button = gate.querySelector('button');
+        var errorMsg = gate.querySelector('.pass-error');
+
+        function tryUnlock() {
+          if (input.value === pass) {
+            det.classList.add('unlocked');
+            errorMsg.hidden = true;
+          } else {
+            errorMsg.hidden = false;
+            input.select();
+          }
+        }
+
+        button.addEventListener('click', tryUnlock);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
+        });
+
+        det.addEventListener('toggle', function () {
+          if (det.open && !det.classList.contains('unlocked')) {
+            input.focus();
+          }
+        });
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            try {
+              katex.render( texText.data
+                          , mathElements[i]
+                          , { displayMode: mathElements[i].classList.contains("display")
+                            , throwOnError: true
+                           }
+                          );
+            } catch (e) {
+              // 1 つの数式のエラーで残り全ての数式が生 TeX のまま残らないようにする
+              console.error('KaTeX render error:', e.message, texText.data);
+            }
+          }
+      }
+    });
+  </script>
+
+  <!-- 見出しアンカーリンク + Back to top -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 記事見出しに hover で現れる # パーマリンクを付与
+      document.querySelectorAll('article h2[id], article h3[id]').forEach(function (h) {
+        var a = document.createElement('a');
+        a.className = 'heading-anchor';
+        a.href = '#' + h.id;
+        a.setAttribute('aria-label', 'このセクションへのリンク');
+        a.textContent = '#';
+        h.appendChild(a);
+      });
+
+      // Back to top: スクロール量に応じて表示
+      var btt = document.getElementById('back-to-top');
+      if (btt) {
+        var onScroll = function () {
+          if (window.pageYOffset > 600) btt.classList.add('visible');
+          else btt.classList.remove('visible');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        btt.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
+    });
+  </script>
+
+  </body>
+</html>

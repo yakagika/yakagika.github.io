@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+    <script>
+      (function () {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+        function stored() {
+          var t = null;
+          try { t = localStorage.getItem('theme'); } catch (e) {}
+          return (t === 'dark' || t === 'light') ? t : null;
+        }
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
+        if (mq) {
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
+        }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
+      })();
+    </script>
+    <title>yakagika - 共通資料 コーディングエージェントの利用</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../style.css?v=1790309150">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+      <meta property="og:description" content="資料" />
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../" class="site-brand" aria-label="Home">
+          <span class="site-mark" aria-hidden="true">▮</span>
+          <span class="site-word">yakagika</span>
+        </a>
+      </div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../">Home</a>
+      <a href="../posts.html">Blog</a>
+      <a href="../lectures.html">Lecture</a>
+      <a href="../research.html">Research</a>
+      <a href="../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      <div id="lecture-toc" data-mode="series">
+        <h2>Index</h2>
+        <ul class="toc-root"><li class="toc-item toc-series-item"><div class="toc-row"><span class="toc-toggle">▾</span><a href="git.html">共通資料 バージョン管理とGitHub</a></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item current"><div class="toc-row"><span class="toc-toggle">▾</span><a href="agent.html">共通資料 コーディングエージェントの利用</a></div><ul class="toc-sublist"></ul></li></ul>
+      </div>
+      
+      
+    </nav>
+
+    <div id="content">
+    <article>
+<header class="article-header">
+    <span class="category-badge">Lecture</span>
+    <h1 class="article-title">共通資料 コーディングエージェントの利用</h1>
+    <p class="article-description">資料</p>
+    <div class="article-meta">
+        <span class="meta-item">公開: 2026-09-04</span>
+        <span class="meta-item">更新: 2026-09-10</span>
+    </div>
+    <div class="tag-chips"><a href="../tags/programming.html">programming</a><a href="../tags/lecture.html">lecture</a></div>
+</header>
+
+<!-- 上部: カード型の章ナビゲーション -->
+<nav class="chapter-nav-card">
+    
+        <a class="prev" href="git.html">
+            <span class="nav-label">← Previous</span>
+            <span class="nav-title">共通資料 バージョン管理とGitHub</span>
+        </a>
+    
+    
+</nav>
+
+<p>本資料は複数の講義で共通に使う資料です. コーディングエージェントに課題のプログラムを書かせ, その結果を読んで直せるようになるために必要な環境と操作, および判断の仕方を扱います.</p>
+<p>前提として<a href="setup.html">共通資料 プログラミング用の設定</a>と<a href="git.html">共通資料 バージョン管理とGitHub</a>を先に読んでください.</p>
+<p><strong>大規模言語モデルの仕組みはここでは扱いません.</strong> Transformer, 注意機構, 自己教師あり学習といった内部の話は<a href="dsp8.html">第8章 ニューラルネットワークから生成AIへ</a>で扱います.</p>
+<h2 id="ハーネス-エージェントが動く環境">ハーネス: エージェントが動く環境</h2>
+<p>大規模言語モデル (LLM) は, 入力された文章に続く文字列を予測して生成する仕組みです. LLM 単体では, 手元のファイルを開けず, コマンドも実行できません.</p>
+<p><strong>コーディングエージェント</strong>は, LLM に次の要素を組み合わせたものです.</p>
+<ul>
+<li><strong>道具</strong>: ファイルを読み書きし, コマンドを実行する機能</li>
+<li><strong>情報の形式</strong>: どのファイルをどの順で LLM に見せるかという決まり</li>
+<li><strong>フィードバック</strong>: コマンドの実行結果, エラー, テストの合否</li>
+<li><strong>足場</strong>: リポジトリの決まりを書く <code>AGENTS.md</code> と, 繰り返す手順を書く skill</li>
+</ul>
+<p>LLM を取り巻くこの環境を<strong>ハーネス</strong>と呼びます. codex は, LLM が提案した操作を道具で実行し, その結果を LLM へ返します. LLM は返された結果を読んで次の操作を決めます.</p>
+<p>エージェントの出来は LLM の賢さだけでなく, 与えた環境で決まります. 同じモデルを使っても, データの置き場所と実行方法が書かれたリポジトリでは必要な情報を読めますが, 何も書かれていないリポジトリでは推測が増えます. 学生が担うのは, うまい頼み方を探すことより, エージェントが判断できる環境を作ることと, 出力を読んで確かめることです.</p>
+<h3 id="sandbox-と承認">sandbox と承認</h3>
+<p>codex は<strong>sandbox</strong>の中でコマンドを動かします. 既定では作業ディレクトリの中だけを書き換え, ネットワークを使いません. 作業ディレクトリの外のファイルを変える操作や, ネットワークを使うコマンドには, 実行前の承認を求めます.</p>
+<p><code>/permissions</code> で承認の設定を切り替えられます. <code>Read Only</code> はファイルを読むだけの設定です. <code>Auto</code> は, 作業ディレクトリ内の編集と実行を自動で進め, その外へ出る操作では確認を求める設定です. 計画を相談するときは <code>Read Only</code>, 実際に書かせるときは <code>Auto</code> と使い分けます.</p>
+<p>承認画面もハーネスから返される情報の一部です. 許可する前に, どの操作がなぜ必要なのかを読みます. 説明できない操作への対処は<a href="#分からないまま承認しない">分からないまま承認しない</a>で扱います.</p>
+<h2 id="環境構築">環境構築</h2>
+<p>この講義では <strong>codex</strong> (エージェント本体) と <strong>herdr</strong> (エージェントを動かすターミナル) の 2 つを入れます. git と GitHub CLI は<a href="git.html">共通資料 バージョン管理とGitHub</a>で先に入れておいてください.</p>
+<h3 id="codex-を入れる">codex を入れる</h3>
+<p>codex は OpenAI が配布しているコーディングエージェントです.</p>
+<p>Windows は <a href="git.html">共通資料 バージョン管理とGitHub</a>で使った winget で入ります.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>winget install <span class="op">-</span>e <span class="op">--</span>id OpenAI<span class="op">.</span><span class="fu">Codex</span></span></code></pre></div>
+<p>macOS は Homebrew で入ります.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">brew</span> install <span class="at">--cask</span> codex</span></code></pre></div>
+<p>入ったことを確認します.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">codex</span> <span class="at">--version</span></span></code></pre></div>
+<h3 id="codex-にログインする">codex にログインする</h3>
+<p>codex は ChatGPT のアカウントを使います. 初回は <code>codex</code> を起動すると <strong>Sign in with ChatGPT</strong> が選択肢に出ます. <code>codex login</code> を実行しても同じ画面へ進めます. Sign in with ChatGPT を選び, ブラウザで ChatGPT にログインしてからターミナルへ戻ります.</p>
+<p>ログインの状態は次のコマンドで確認できます.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">codex</span> login status</span></code></pre></div>
+<div class="warn">
+<p><strong>この講義では ChatGPT Plus (月 20 ドル) を 3 ヶ月間契約してもらいます.</strong> 契約の時期は講義中に案内します.</p>
+</div>
+<h3 id="herdr-を入れる">herdr を入れる</h3>
+<p>herdr は, エージェントを動かすためのターミナルです. 1 つの作業ディレクトリを複数の画面に分け, エージェントの状態をまとめて確認できます.</p>
+<p>Windows は PowerShell で次を実行します.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>powershell <span class="op">-</span>ExecutionPolicy Bypass <span class="op">-</span>c <span class="st">&quot;irm https://herdr.dev/install.ps1 | iex&quot;</span></span></code></pre></div>
+<p>macOS と Linux は次を実行します.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-fsSL</span> https://herdr.dev/install.sh <span class="kw">|</span> <span class="fu">sh</span></span></code></pre></div>
+<div class="note">
+<p><strong>herdr は winget では入りません.</strong> winget を検索すると <code>hdosys.herdr-win</code> という項目が出てきますが, これは herdr の開発元ではない第三者が配布しているものです. 上のコマンドを使ってください.</p>
+<p>Windows のセキュリティ製品が上のコマンドを止めることがあります. その場合は <a href="https://herdr.dev/docs/install/">herdr.dev</a> から <code>install.cmd</code> をダウンロードして実行する手順が用意されています.</p>
+</div>
+<p>入ったことを確認します.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">herdr</span> <span class="at">--version</span></span></code></pre></div>
+<h3 id="動作確認">動作確認</h3>
+<p><a href="git.html">共通資料 バージョン管理とGitHub</a>で <code>clone</code> したディレクトリへ移動し, codex を起動します. ディレクトリの移動は<a href="setup.html">共通資料 プログラミング用の設定</a>の「CLIの基本操作」を参照してください.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">codex</span></span></code></pre></div>
+<p>起動したら, 次のように入力します.</p>
+<pre class="text"><code>このリポジトリについて説明して</code></pre>
+<p>README の内容を説明してくれれば動いています. <code>/exit</code> で終了します.</p>
+<h2 id="操作の最小セット">操作の最小セット</h2>
+<p>毎回の作業では, herdr の中に codex 用と確認用の 2 つの画面を置きます. ファイルを変更する場所は, <code>clone</code> した 1 つのディレクトリです. branch は <code>main</code> のまま使います.</p>
+<h3 id="herdr-の画面">herdr の画面</h3>
+<p>作業ディレクトリへ移動して <code>herdr</code> を実行すると, バックグラウンドのセッションに接続します. セッションが無ければ, その場で起動します. 初回は案内画面が出ます.</p>
+<p>herdr の画面は次の 3 段に分かれます.</p>
+<ul>
+<li><strong>workspace</strong>: プロジェクト単位の入れ物です. <code>herdr</code> を実行したディレクトリに対応します</li>
+<li><strong>tab</strong>: workspace の中に置く画面です</li>
+<li><strong>pane</strong>: コマンドを入力する実際のターミナルです. 右または下へ分割できます</li>
+</ul>
+<p>pane と tab はクリックして移動できます. pane の境界をドラッグすると大きさが変わり, 右クリックのメニューから分割できます. 文字列をドラッグして選ぶとコピーできます.</p>
+<p>キーボード操作は <strong>prefix</strong> 方式です. <code>ctrl+b</code> を押して離し, 続けて次のキーを押します.</p>
+<table>
+<thead>
+<tr class="header">
+<th>操作</th>
+<th>キー</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>右に pane を分割</td>
+<td><code>prefix</code> + <code>v</code></td>
+</tr>
+<tr class="even">
+<td>下に pane を分割</td>
+<td><code>prefix</code> + <code>-</code></td>
+</tr>
+<tr class="odd">
+<td>新しい tab</td>
+<td><code>prefix</code> + <code>c</code></td>
+</tr>
+<tr class="even">
+<td>一覧を表示</td>
+<td><code>prefix</code> + <code>?</code></td>
+</tr>
+<tr class="odd">
+<td>切り離す</td>
+<td><code>prefix</code> + <code>q</code></td>
+</tr>
+</tbody>
+</table>
+<p>切り離す操作を <strong>detach</strong> と呼びます. detach しても pane の中の処理は止まりません. 同じディレクトリでもう一度 <code>herdr</code> を実行すると, 続きへ戻れます. バックグラウンドのセッションまで完全に止めるコマンドは <code>herdr server stop</code> です.</p>
+<p>herdr は pane の中で動くエージェントを検出し, サイドバーに状態を表示します.</p>
+<table>
+<thead>
+<tr class="header">
+<th>状態</th>
+<th>意味</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>working</code></td>
+<td>作業中</td>
+</tr>
+<tr class="even">
+<td><code>blocked</code></td>
+<td>入力待ち</td>
+</tr>
+<tr class="odd">
+<td><code>done</code></td>
+<td>完了</td>
+</tr>
+<tr class="even">
+<td><code>idle</code></td>
+<td>待機中</td>
+</tr>
+</tbody>
+</table>
+<p>左の pane で codex を動かし, 右の pane で <code>git status</code> や <code>git diff</code> を実行する配置を使います. 2 つの pane は同じディレクトリを見ているので, codex の変更を右側ですぐ確認できます.</p>
+<h3 id="codex-との対話">codex との対話</h3>
+<p>作業ディレクトリで <code>codex</code> を実行すると対話が始まります. 指示は日本語の文章で構いません. 何を作るか, どのファイルを使うか, どう確認するかを書きます.</p>
+<pre class="text"><code>src/analysis.py を作り, data/sales.csv を読み込んで月ごとの売上合計を表示するプログラムを書いてください. 実行して結果も見せてください</code></pre>
+<p>codex は必要なファイルを読み, ファイルを変更し, コマンドを実行します. 読んでいるものと実行結果は画面に表示されます. <code>Auto</code> では作業ディレクトリ内の編集と実行が確認なしに進みます. その外へ出る操作の確認が出たら, 何をしようとしているかを読んでから答えます.</p>
+<p>対話中に使う操作は次のとおりです.</p>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>操作</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>/diff</code></td>
+<td>codex が変更したファイルの差分を表示します. git がまだ記録していない新規ファイルも含みます. 変更を承認する前と, 修正を頼んだ後に読みます</td>
+</tr>
+<tr class="even">
+<td><code>/new</code></td>
+<td>前の会話の文脈を捨て, 同じ codex の中で新しい会話を始めます</td>
+</tr>
+<tr class="odd">
+<td><code>/clear</code></td>
+<td>画面を消し, 新しい会話を始めます</td>
+</tr>
+<tr class="even">
+<td><code>/status</code></td>
+<td>モデル, 承認の設定, 文脈の残り容量を表示します</td>
+</tr>
+<tr class="odd">
+<td><code>/permissions</code></td>
+<td><code>Read Only</code> と <code>Auto</code> を切り替えます</td>
+</tr>
+<tr class="even">
+<td><code>/resume</code></td>
+<td>前回の会話に戻ります</td>
+</tr>
+<tr class="odd">
+<td><code>/init</code></td>
+<td><code>AGENTS.md</code> の雛形を作ります</td>
+</tr>
+<tr class="even">
+<td><code>/skills</code></td>
+<td>skill の一覧を表示して選びます</td>
+</tr>
+<tr class="odd">
+<td><code>/exit</code></td>
+<td>codex を終了します. <code>/quit</code> も同じです</td>
+</tr>
+</tbody>
+</table>
+<p>課題が変わるときは <code>/new</code> を使います. 話が噛み合わなくなり, 画面も整理したいときは <code>/clear</code> を使います. codex は <code>Ctrl+C</code> でも終了できます.</p>
+<p>行頭に <code>!</code> を付けると, その行をシェルコマンドとして実行します. たとえば <code>!git status</code> で変更の一覧を表示できます. <code>@</code> を打つとファイル名を検索して指示に貼れます.</p>
+<p>codex が作業している間に追加の指示が必要になったら, <code>Enter</code> で割り込ませます. 現在の作業が終わった後に実行させる指示は, <code>Tab</code> で次の順番に予約します.</p>
+<h3 id="周の手順">1 周の手順</h3>
+<ol type="1">
+<li>作業ディレクトリで <code>herdr</code> を起動します. プロジェクトに対応する workspace へ入り, 作業を中断しても戻れる状態を作るためです.</li>
+<li>右の pane で <code>git status</code> を実行します. 前回の変更が残っていない状態から始めるためです.</li>
+<li>左の pane で <code>codex</code> を起動します. codex が読み書きする範囲を作業ディレクトリに合わせるためです.</li>
+<li>何を, どのファイルに, どう確認するかを指示します. 終了条件を codex と共有するためです.</li>
+<li>確認が出たら, 操作と対象を読んでから答えます. sandbox の外へ出る理由を自分で判断するためです.</li>
+<li>作業が終わったら <code>/diff</code> を読みます. codex が加えた変更を記録前に確認するためです.</li>
+<li>右の pane で <code>git status</code> と <code>git diff</code> を実行します. 新規ファイルは <code>git diff</code> に出ないので, <code>git status</code> で見つけて中身を開きます.</li>
+<li>プログラムを動かして確かめます. 説明された結果と実際の結果が一致するかを見るためです.</li>
+<li><code>git add</code> で記録するファイルを選び, <code>git diff --staged</code> を読みます. 鍵やデータを含めていないかを記録直前に確認するためです.</li>
+<li><code>git commit</code> で変更を記録し, <code>git push</code> で GitHub へ送ります. 戻れる場所と提出物を残すためです.</li>
+</ol>
+<p>git の各コマンドと差分の読み方は<a href="git.html">共通資料 バージョン管理とGitHub</a>を参照してください.</p>
+<section id="exercise-agent-1" class="note">
+<h4>Exercise AGENT-1</h4>
+<p><strong>環境構築と最初の対話</strong></p>
+<ol type="1">
+<li><code>clone</code> したリポジトリで herdr を起動する.</li>
+<li>pane を左右に分割し, 左側で codex を起動する.</li>
+<li><code>このリポジトリについて説明して</code> と入力し, README に書かれた内容と合っているかを確かめる.</li>
+<li><code>/status</code> を実行し, モデル, 承認の設定, 文脈の残り容量を読む.</li>
+<li><code>/exit</code> で終了する.</li>
+</ol>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答例
+</summary>
+<p>作業ディレクトリで <code>herdr</code> を起動し, 右クリックのメニューまたは <code>prefix</code> + <code>v</code> で pane を左右に分けます. 左の pane で <code>codex</code> を起動し, 次のように入力します.</p>
+<pre class="text"><code>このリポジトリについて説明して</code></pre>
+<p>説明に README の目的やディレクトリ構成が含まれていることを確認します. 続けて <code>/status</code> を入力し, 表示されたモデル名, 承認の設定, 文脈の残り容量を読みます. 最後に <code>/exit</code> で終了します.</p>
+</details>
+</section>
+<h2 id="agents.md-リポジトリの決まりごとを読ませる">AGENTS.md: リポジトリの決まりごとを読ませる</h2>
+<p>codex は起動時に <code>AGENTS.md</code> を読みます. <code>AGENTS.md</code> には, 実行方法, 公開してはいけないもの, 書き換えてよい範囲など, リポジトリで繰り返し守る決まりを書きます.</p>
+<p>codex は最初に <code>~/.codex/AGENTS.md</code> を読みます. ここにはすべてのリポジトリに共通する決まりを書けます. 次に, リポジトリの root から現在のディレクトリまでを順にたどり, 各ディレクトリの <code>AGENTS.md</code> を読みます. 後から読んだ内容が優先されます.</p>
+<p>読み込める量は合計 32 KiB までです. 上限を超えた部分は読まれず, 空のファイルも無視されます. 起動のたびに読み直すので, 書き換えた後は codex を起動し直します.</p>
+<p><code>/init</code> で雛形を作れます. この講義では, 次の最小の例から始めます. 使っていて足りない決まりが見つかったら, 自分のリポジトリに合う文へ書き足してください.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode markdown"><code class="sourceCode markdown"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu"># 作業の決まり</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>説明は日本語で書く. 変更する前に, 何をするかを 2〜3 行で示す.</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Python は <span class="in">`uv run`</span> で実行する. ライブラリを追加するときは理由を書く.</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`data/`</span> と <span class="in">`.env`</span> の中身を出力や commit に含めない. 集計結果だけを扱う.</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>プログラムを変更したら実行し, 結果またはエラーをそのまま報告する.</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>分からないことは推測で埋めず, 質問する.</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`notes/`</span> は本人が自分の言葉で書く場所なので, エージェントは書き換えない.</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>根拠を示すときは, 実際に読んだ資料や実行した結果だけを引く.</span></code></pre></div>
+<p>各行には次の役割があります.</p>
+<ul>
+<li>「説明は日本語で書く」は, 差分と実行結果を学生が読める言葉へそろえ, 変更前の計画を承認の判断材料にします</li>
+<li>「Python は <code>uv run</code> で実行する」は, 毎回同じ実行方法を使わせ, ライブラリの追加理由を差分と報告から確認できるようにします</li>
+<li>「<code>data/</code> と <code>.env</code> の中身を出力や commit に含めない」は, 提供データと鍵が codex の画面や GitHub へ出る範囲を狭めます</li>
+<li>「変更したら実行する」は, コードの見た目だけでなく, 実行結果またはエラーを確認できるようにします</li>
+<li>「推測で埋めず, 質問する」は, 情報が足りない箇所を勝手な値や処理で埋めるのを防ぎます</li>
+<li>「<code>notes/</code> を書き換えない」は, 学生本人の理解とエージェントの出力を分けます</li>
+<li>「実際に読んだ資料や実行した結果だけを引く」は, 確認していない説明を根拠として扱わないための決まりです</li>
+</ul>
+<p><code>AGENTS.md</code> はエージェントへの指示であり, 機械的な制限ではありません. <code>/diff</code>, <code>git status</code>, <code>git diff</code> で実際の変更を確認する手順は残ります.</p>
+<section id="exercise-agent-2" class="note">
+<h4>Exercise AGENT-2</h4>
+<p><strong><code>AGENTS.md</code> の有無で応答を比べる</strong></p>
+<ol type="1">
+<li><code>AGENTS.md</code> を置かない状態で codex を起動し, <code>data/sales.csv の先頭 5 行を見せて</code> と頼む.</li>
+<li>応答を記録して codex を終了する.</li>
+<li>上の最小の <code>AGENTS.md</code> をリポジトリの root に置く.</li>
+<li>codex を起動し直し, 同じ指示を出す.</li>
+<li>2 つの応答の違いと, その理由を書く.</li>
+</ol>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答例
+</summary>
+<p><code>AGENTS.md</code> が無いときは, 先頭 5 行の中身をそのまま表示する応答が考えられます. <code>AGENTS.md</code> があるときは, <code>data/</code> の中身を出力しないという決まりを読み, 表示を断るか, 個々の行を見せない集計へ置き換える応答が期待されます.</p>
+<p>これは期待される違いであり, 応答を保証するものではありません. <code>AGENTS.md</code> は codex が判断に使う指示であり, ファイルへのアクセスを機械的に止める仕組みではないためです.</p>
+</details>
+</section>
+<h2 id="skill-繰り返す手順を切り出す">skill: 繰り返す手順を切り出す</h2>
+<p><strong>skill</strong>は, 繰り返す手順を <code>SKILL.md</code> に書き, エージェントに使わせる仕組みです. 1 つの skill は 1 つのディレクトリに置きます. <code>SKILL.md</code> は必須で, 補助するプログラムを <code>scripts/</code>, 長い資料を <code>references/</code> に置けます.</p>
+<p>リポジトリで共有する skill は <code>.agents/skills/&lt;名前&gt;/SKILL.md</code> に置きます. codex はリポジトリの root から現在のディレクトリまでにある <code>.agents/skills/</code> を探します. 自分だけがすべてのリポジトリで使う skill は <code>~/.agents/skills/&lt;名前&gt;/SKILL.md</code> に置きます.</p>
+<p><code>SKILL.md</code> の frontmatter には <code>name</code> と <code>description</code> が要ります. <code>description</code> には何をするかだけでなく, いつ使うかを書きます. 指示の中に <code>$名前</code> と書くか, <code>/skills</code> から選ぶと呼び出せます. 指示が <code>description</code> に合う場合は, codex が自分で選ぶこともあります.</p>
+<p>次の <code>explain-diff</code> は, 変更を読んでも意味が分からないときに使う例です.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode markdown"><code class="sourceCode markdown"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="an">name:</span><span class="co"> explain-diff</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="an">description:</span><span class="co"> コードの差分を読んで理解するときに使う. 変更箇所ごとに日本語で説明する.</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="fu"># 差分の説明</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>変更されたファイルをすべて確認する.</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>変更箇所ごとに, 「何をしているか」を説明する.</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>続けて, 「なぜそう書いたか」を説明する.</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>説明には, 実際に読んだコードと実行結果だけを使う.</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a><span class="ss">5. </span>新しく作られたファイルも省略しない.</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="ss">6. </span>分からない箇所は推測せず, 分からない理由を書く.</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a><span class="ss">7. </span>最後に, 学生が確かめる質問を 3 つ挙げる.</span></code></pre></div>
+<p>講義で配る skill もあります. 手順を何度も頼んでいると気づいたら, <code>AGENTS.md</code> を長くする前に, 1 つの作業として skill へ切り出せるかを考えます.</p>
+<h2 id="分からないまま承認しない">分からないまま承認しない</h2>
+<p>自分で説明できないコードを使えるのは学校の課題までです. 仕事や研究では, 中身の分からないコードを使うわけにはいきません. この講義でも, 提出したプログラムについて「なぜそう書いたか」「この行は何を意味するか」を質問します.</p>
+<p>codex の出力を承認するときは, 次の順で確認します.</p>
+<ol type="1">
+<li>確認が出たら, 何をしようとしているかを読んでから答えます. 分からなければ, 答える前に <code>この操作は何をしますか</code> と codex に聞きます.</li>
+<li>作業後に <code>/diff</code> を読みます. 説明できない行があれば <code>$explain-diff</code> で説明させ, それでも分からなければ質問します.</li>
+<li>小さな入力でプログラムを動かします. 説明どおりの結果になるかを見ます.</li>
+<li>新しく分かったことを <code>notes/</code> の日付付きファイルに自分の言葉で書きます. <code>AGENTS.md</code> で codex に書き換えさせない場所と決めてあるので, 自分の理解だけが残ります.</li>
+</ol>
+<p>判断の基準は, 最終回の発表で, 提出したプログラムの任意の行について「なぜそう書いたか」と聞かれて答えられることです. 答えられない行が残っていれば, その行はまだ承認できません.</p>
+<section id="exercise-agent-3" class="note">
+<h4>Exercise AGENT-3</h4>
+<p><strong>変更を説明できる状態にする</strong></p>
+<p>codex に小さなプログラムを書かせ, <code>/diff</code> で変更を読みます. 分からない行を <code>$explain-diff</code> で説明させ, 各行の意味を <code>notes/</code> の日付付きファイルへ自分の言葉で書いてください. 提出するものは <code>notes/</code> のファイルです.</p>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答例
+</summary>
+<p>次の 4 項目を <code>notes/</code> に書きます.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode markdown"><code class="sourceCode markdown"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu"># 小さなプログラムの確認</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>頼んだこと: 何を入力し, 何を出力するプログラムか</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>変更された場所: <span class="in">`/diff`</span> で見たファイルと行</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>各行の意味: 自分の言葉で 1 行ずつ説明したもの</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>確認した結果: 小さな入力と, 実際に得られた出力</span></code></pre></div>
+<p>skill の説明をそのまま貼るのではなく, 自分が理解した言葉へ書き換えます. 説明できない行が残った場合は, 質問と回答も記録します.</p>
+</details>
+</section>
+<h2 id="aiの開発環境と実行環境">AIの開発環境と実行環境</h2>
+<p>AI を使う環境は, モデルを作る段階と, できたモデルを使う段階に分かれます.</p>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>段階</th>
+<th>何をするか</th>
+<th>必要な環境</th>
+<th>この講義で行うか</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>学習</strong></td>
+<td>大量のデータからモデルを作る</td>
+<td>多数の計算機と大量のデータ</td>
+<td>行いません</td>
+</tr>
+<tr class="even">
+<td><strong>推論</strong></td>
+<td>できたモデルへ入力し, 出力を得る</td>
+<td>モデルを動かす計算機</td>
+<td>codex で行います</td>
+</tr>
+</tbody>
+</table>
+<p>codex のモデルは OpenAI のサーバで動きます. codex が読んだ手元のファイルの内容は, 指示と一緒にサーバへ送られます. <code>data/</code> に置いた提供データや個人情報は, codex に読ませた時点で手元の PC の外へ出ます.</p>
+<p><a href="git.html">共通資料 バージョン管理とGitHub</a>で public と private を選ぶときと同じ基準で, 外部へ送ってよい情報かを判断します. <code>AGENTS.md</code> に <code>data/</code> を読まないよう書くことは判断の助けになりますが, 機械的な保証ではありません. 手元で動かせる小さなモデルもありますが, この講義では扱いません.</p>
+<p>AI が書いたプログラムを動かす場所には, 次の違いがあります.</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>実行場所</th>
+<th>使う場面</th>
+<th>この講義での位置づけ</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>手元の PC</td>
+<td>通常の分析と課題</td>
+<td>基本の環境</td>
+</tr>
+<tr class="even">
+<td>Google Colab のようなクラウドのノートブック</td>
+<td>GPU が必要な計算</td>
+<td>必要な章で使う環境</td>
+</tr>
+<tr class="odd">
+<td>サーバ</td>
+<td>プログラムを常時動かす</td>
+<td>必要になったときに使う環境</td>
+</tr>
+</tbody>
+</table>
+<p>codex が実行するコマンドは, 手元の PC にある sandbox の中で動きます. モデルが OpenAI のサーバで動くことと, プログラムが手元で動くことは別です.</p>
+<h2 id="発展-llmで学習する">発展: LLMで学習する</h2>
+<p><strong>この節は成績評価の対象にしません.</strong> ただし, ここで残した記録と理解は, 最終回の発表でプログラムの理由を問われたときに効きます.</p>
+<h3 id="notes-に理解を残す"><code>notes/</code> に理解を残す</h3>
+<p><code>notes/</code> には日付付きのファイルを作り, 次の 4 つを書きます.</p>
+<ul>
+<li>何をエージェントに頼んだか</li>
+<li>何が返ってきたか</li>
+<li>どこが分からなかったか</li>
+<li>質問や実行によって, どう分かったか</li>
+</ul>
+<p>会話の全文を貼るのではなく, 後から同じ問題に出会った自分が使える説明へ書き直します. エージェントではなく本人が書くことで, 説明できる部分と分からない部分が分かれます.</p>
+<h3 id="曖昧な計画を質問で詰める">曖昧な計画を質問で詰める</h3>
+<p>課題の計画が曖昧なときは, すぐにコードを書かせず, 決まっていないことを質問へ変えます.</p>
+<ol type="1">
+<li>エージェントに <code>この計画で決まっていないことを質問の形で 5 つ挙げてください</code> と頼みます.</li>
+<li>5 つの問いに自分で答えます. 答えられない問いを「自分の理解が足りない」「情報が足りない」「試していない」の 3 つに分けます.</li>
+<li>「自分の理解が足りない」問いは説明を求め, 自分の言葉で書き直します.</li>
+<li>「情報が足りない」問いは, 課題文やデータの説明を確認します.</li>
+<li>「試していない」問いは, 小さな入力で確かめる内容を決めます.</li>
+<li>答えと確認方法を計画に書き戻してから, プログラムを作らせます.</li>
+</ol>
+<p>質問を増やすことが目的ではありません. 答えられない理由を分けると, 読む, 聞く, 試すのどれを次に行うかが決まります.</p>
+<h3 id="branch-と-worktree">branch と worktree</h3>
+<p>通常の課題では, <code>main</code> のまま 1 つのディレクトリで codex を動かします. エージェントを 2 つ同時に動かしたいときは, 同じファイルを互いに上書きしないよう, branch と worktree で作業場所を分けます.</p>
+<p>commit を 1 つの丸で表します. <code>commit</code> するたびに右へ 1 つ伸びていきます. <code>main</code> は, その先頭を指す名前です.</p>
+<pre class="text"><code>        ●───●───●
+       C1  C2  C3
+                ↑
+               main</code></pre>
+<p><strong>branch</strong>は, ある commit から記録を枝分かれさせる仕組みです. C3 から 2 本に分け, それぞれ別の作業を進められます.</p>
+<pre class="text"><code>                    ●───●   ← feat/graph   エージェント A が作業
+                   ╱ A1  A2
+        ●───●───●
+       C1  C2  C3 ↑
+                 main
+                   ╲ B1  B2
+                    ●───●   ← feat/clean   エージェント B が作業</code></pre>
+<p>A の作業と B の作業は互いに見えません. A が何をしても <code>main</code> と B は変わらないので, 失敗しても他の作業へ影響しません.</p>
+<p>作業が済んだら <code>main</code> へ<strong>合流</strong> (マージ) させます. 合流は 1 本ずつ行います. まず A を合流させると, <code>main</code> は合流の記録 M1 を指します.</p>
+<pre class="text"><code>                    ●───●
+                   ╱ A1  A2 ╲
+        ●───●───●            ●
+       C1  C2  C3             M1 ← main
+                   ╲ B1  B2
+                    ●───●</code></pre>
+<p>続けて B を合流させると M2 になります.</p>
+<pre class="text"><code>                    ●───●
+                   ╱ A1  A2 ╲
+        ●───●───●            ●───●
+       C1  C2  C3             M1  M2 ← main
+                   ╲ B1  B2  ╱
+                    ●───●───</code></pre>
+<p>2 回目の合流で A と B が同じファイルの同じ行を別々に変えていると, git はどちらを採るか決められません. git は合流を止め, その箇所に印を付けて人に判断を求めます. これが<strong>コンフリクト</strong>です. 片方の変更を黙って消さず, 判断が必要な場所で止まります.</p>
+<p>branch を切り替えると, ディレクトリの中身がその branch の状態へ入れ替わります. 1 つのディレクトリでは同時に 1 つの branch しか開けないため, A と B を同時には動かせません.</p>
+<p><strong>worktree</strong>は, 同じリポジトリに対して作業用のディレクトリを複数持つ仕組みです. 記録の実体は最初に <code>clone</code> したディレクトリの <code>.git</code> にあり, 追加したディレクトリはそこを参照します.</p>
+<pre class="text"><code>  ~/work/repo/                  記録の実体 (.git) はここ
+   [main]                        ← 自分が見る場所
+      ↑                 ↑
+      │ 参照            │ 参照
+  ~/work/repo-graph/  ~/work/repo-clean/
+   [feat/graph]        [feat/clean]
+   エージェント A        エージェント B</code></pre>
+<p>3 つのディレクトリは別々のファイルを持つので, A と B は互いの変更を上書きしません. git の記録は共有しているため, A の commit は B からも見えます.</p>
+<div class="warn">
+<p>記録の実体は最初のディレクトリにあります. <code>~/work/repo/</code> を消すと, 追加した worktree も使えなくなります.</p>
+</div>
+<p>herdr では <code>herdr worktree create --branch &lt;名前&gt;</code> で worktree を作れます. 詳しい操作はこの講義では扱いません.</p>
+
+<!-- 下部: カード型の章ナビゲーション -->
+<nav class="chapter-nav-card">
+    
+        <a class="prev" href="git.html">
+            <span class="nav-label">← Previous</span>
+            <span class="nav-title">共通資料 バージョン管理とGitHub</span>
+        </a>
+    
+    
+</nav>
+</article>
+
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        <nav class="footer-nav" aria-label="フッターナビゲーション">
+            <a href="../">Home</a>
+            <a href="../posts.html">Blog</a>
+            <a href="../lectures.html">Lecture</a>
+            <a href="../research.html">Research</a>
+            <a href="../rss.xml">RSS</a>
+            <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+        </nav>
+        <p class="footer-copy">&copy; yakagika &middot; Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>.</p>
+    </div>
+</div>
+
+
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="ページ先頭へ戻る" title="先頭へ戻る">↑</button>
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level;
+          switch (heading.tagName.toLowerCase()) {
+            case 'h2': level = 0; break;
+            case 'h3': level = 1; break;
+            case 'h4': level = 2; break;
+            default: return;
+          }
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          // Pandoc は `::: note` + 見出し の組み合わせを <section id="..." class="note">
+          // 内の <hN> として出力するため, 見出し自身に id が無い場合は
+          // 親 section の id を辿る.
+          var anchorId = heading.id;
+          if (!anchorId) {
+            var parentSection = heading.closest('section[id]');
+            if (parentSection) anchorId = parentSection.id;
+          }
+          anchor.href = '#' + anchorId;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+
+      // ----------------------------------------
+      // スクロールスパイ: 表示中の見出しを TOC でハイライト
+      // ----------------------------------------
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0 || typeof IntersectionObserver === 'undefined') return;
+
+      var idToTocItem = new Map();
+      headings.forEach(function(h) {
+        if (!h.id) return;
+        var link = tocContainer.querySelector('a[href="#' + CSS.escape(h.id) + '"]');
+        if (link) {
+          var li = link.closest('.toc-item') || link.closest('li');
+          if (li) idToTocItem.set(h.id, li);
+        }
+      });
+
+      var visible = new Set();
+      var lastActive = null;
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+
+        // ドキュメント順で最初に可視な見出しをアクティブに
+        var firstVisible = null;
+        for (var i = 0; i < headings.length; i++) {
+          if (visible.has(headings[i].id)) {
+            firstVisible = headings[i].id;
+            break;
+          }
+        }
+        if (!firstVisible) return;
+
+        var tocItem = idToTocItem.get(firstVisible);
+        if (!tocItem || tocItem === lastActive) return;
+
+        if (lastActive) lastActive.classList.remove('toc-active');
+        tocItem.classList.add('toc-active');
+        lastActive = tocItem;
+
+        // TOC を必要なときだけスクロール
+        tocItem.scrollIntoView({
+          block: 'nearest',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
+      }, {
+        // ヘッダー (60px) を除いた上部 〜 画面下から60% を判定領域とする
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0
+      });
+
+      headings.forEach(function(h) { if (h.id) observer.observe(h); });
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
+      const pre = codeBlock.parentNode;
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
+      copyButton.textContent = 'Copy';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    // パスワード保護付き details (回答例用)
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll('details.protected').forEach(function (det) {
+        var pass = det.getAttribute('data-pass') || '';
+        var summary = det.querySelector('summary');
+        if (!summary) return;
+
+        var gate = document.createElement('div');
+        gate.className = 'pass-gate';
+        gate.innerHTML =
+          '<label>合言葉: <input type="password" autocomplete="off" spellcheck="false"></label>' +
+          '<button type="button">解除</button>' +
+          '<span class="pass-error" hidden>合言葉が違います</span>';
+        summary.insertAdjacentElement('afterend', gate);
+
+        var input = gate.querySelector('input');
+        var button = gate.querySelector('button');
+        var errorMsg = gate.querySelector('.pass-error');
+
+        function tryUnlock() {
+          if (input.value === pass) {
+            det.classList.add('unlocked');
+            errorMsg.hidden = true;
+          } else {
+            errorMsg.hidden = false;
+            input.select();
+          }
+        }
+
+        button.addEventListener('click', tryUnlock);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
+        });
+
+        det.addEventListener('toggle', function () {
+          if (det.open && !det.classList.contains('unlocked')) {
+            input.focus();
+          }
+        });
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            try {
+              katex.render( texText.data
+                          , mathElements[i]
+                          , { displayMode: mathElements[i].classList.contains("display")
+                            , throwOnError: true
+                           }
+                          );
+            } catch (e) {
+              // 1 つの数式のエラーで残り全ての数式が生 TeX のまま残らないようにする
+              console.error('KaTeX render error:', e.message, texText.data);
+            }
+          }
+      }
+    });
+  </script>
+
+  <!-- 見出しアンカーリンク + Back to top -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 記事見出しに hover で現れる # パーマリンクを付与
+      document.querySelectorAll('article h2[id], article h3[id]').forEach(function (h) {
+        var a = document.createElement('a');
+        a.className = 'heading-anchor';
+        a.href = '#' + h.id;
+        a.setAttribute('aria-label', 'このセクションへのリンク');
+        a.textContent = '#';
+        h.appendChild(a);
+      });
+
+      // Back to top: スクロール量に応じて表示
+      var btt = document.getElementById('back-to-top');
+      if (btt) {
+        var onScroll = function () {
+          if (window.pageYOffset > 600) btt.classList.add('visible');
+          else btt.classList.remove('visible');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        btt.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
+    });
+  </script>
+
+  </body>
+</html>

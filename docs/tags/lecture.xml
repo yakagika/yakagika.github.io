@@ -7,12 +7,904 @@
         <description><![CDATA[Personal blog of yakagika]]></description>
         <atom:link href="/tags/lecture.xml" rel="self"
                    type="application/rss+xml" />
-        <lastBuildDate>Mon, 13 Jul 2026 00:00:00 UT</lastBuildDate>
+        <lastBuildDate>Fri, 04 Sep 2026 00:00:00 UT</lastBuildDate>
         
         <managingEditor>kaya3728@gmail.com (yakagika)</managingEditor>
         <webMaster>kaya3728@gmail.com (yakagika)</webMaster>
         
         <item>
+    <title>共通資料 バージョン管理とGitHub</title>
+    <link>/lectures/git.html</link>
+    <description><![CDATA[<p>本資料は複数の講義で共通に使う資料です. コーディングエージェントに書かせた変更を確認し, 作業を記録し, 何を公開してよいかを判断するために必要な範囲の git と GitHub を扱います.</p>
+<p>エージェント自体の導入と操作は<a href="agent.html">共通資料 コーディングエージェントの利用</a>で扱います.</p>
+<h1 id="なぜエージェントと-git-を一緒に使うのか">なぜエージェントと git を一緒に使うのか</h1>
+<p>git は, ソフトウェアの<strong>バージョン管理</strong>の仕組みです. 変更を記録し, 記録どうしを比べ, 過去の記録の状態へ戻すために作られました. コーディングエージェントを使うと, この 3 つがそのまま自分の問題になります.</p>
+<h2 id="変更の差分を読む">変更の差分を読む</h2>
+<p>エージェントは, 指示を受けて手元のファイルを書き換えます. 1 回の指示で複数のファイルを同時に変更することも, 既存の行を消すこともあります.</p>
+<p>このとき, 完成したファイルは目の前にありますが, どの行が足されどの行が消えたのかは残っていません. 変更前と見比べようにも, 変更前の状態がもう手元にありません.</p>
+<p>git は記録どうしの差分を取れるので, エージェントが何をしたかを行単位で確認できます.</p>
+<h2 id="戻る場所を作る">戻る場所を作る</h2>
+<p>「さっきの状態に戻して」と頼めば戻る, とは限りません. エージェントは自分が書き換える前のファイルの中身を保持していません.</p>
+<p>エージェントとのやりとりには文脈の上限もあります. 長く続けると古いやりとりは押し出されて消えます. 文脈を切る操作 (<code>/clear</code>) をしたときも, セッションを終了したときも同じです. エージェント側に履歴は残りません.</p>
+<p>戻れる場所を作れるのは自分だけです. エージェントに作業させる前に commit しておけば, 何が起きてもそこまでは戻れます.</p>
+<h2 id="並列作業とコンフリクト">並列作業とコンフリクト</h2>
+<p>エージェントは 1 つずつ動かすとは限りません. 別々の作業を複数のエージェントに同時にやらせることができます.</p>
+<p>このとき全員が同じディレクトリを触ると, 後から書いたエージェントが先の変更を上書きします. 上書きされた側は, 自分の変更が消えたことを検知しません.</p>
+<p>git は branch で記録を枝分かれさせ, worktree で作業する場所を分けます. 分けておけば互いを踏まず, 合流させるときに同じ行を両方が変えていれば git がコンフリクトとして止めます. この 2 つは<a href="agent.html">共通資料 コーディングエージェントの利用</a>の発展節で扱います.</p>
+<h2 id="結果を出した版の同定">結果を出した版の同定</h2>
+<p>分析のコードを直すと出力も変わります. 発表資料に載せた図が, どの時点のコードとどの時点のデータから出たものかを後から言えないと, 質疑に答えられません.</p>
+<p>commit には日時とメッセージが残り, <code>git log</code> で一覧できます. どの記録の状態で出した図かを示せます.</p>
+<div class="note">
+<p>本資料が扱うのは, エージェントを使ううえで必要になる範囲です. 複数人での共同開発で使う機能 (pull request, レビュー, マージ戦略) までは踏み込みません.</p>
+</div>
+<h1 id="リポジトリを置くディレクトリ">リポジトリを置くディレクトリ</h1>
+<p>作業用のディレクトリを 1 つ作ります. 置き場所を間違えると, 後から直すのが面倒です.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> ~/work</span></code></pre></div>
+<p>Windows の PowerShell でも <code>~</code> はホームディレクトリを指すので, 同じコマンドで作れます.</p>
+<div class="warn">
+<p><strong>OneDrive, iCloud Drive, Google Drive, Dropbox の同期対象の中にリポジトリを置かないでください.</strong></p>
+<p>git はリポジトリの状態を <code>.git</code> という隠しディレクトリで管理しています. 中には索引ファイルや圧縮された記録が入っており, git はこれらを短時間のロックを取りながら書き換えます. 同期サービスはこの途中のファイルを掴むので, 次のことが起きます.</p>
+<ul>
+<li>git がロックを取れず <code>Unable to create '.git/index.lock'</code> で失敗する</li>
+<li>同期サービスが <code>analysis 2.py</code> のような重複ファイルを作り, git がそれを新しいファイルとして扱う</li>
+<li>同期がタイムスタンプを書き換え, 変更していないファイルが変更済みとして並ぶ</li>
+<li>OneDrive の「ファイル オンデマンド」や iCloud Drive の「ストレージを最適化」が <code>.git</code> の中身を端末から退避させ, オフラインのときに git が読めなくなる</li>
+</ul>
+<p>複数の端末で同じディレクトリを同期していると, 両方の <code>.git</code> が混ざってリポジトリ自体が読めなくなることもあります.</p>
+<p><strong>Windows では, デスクトップと Documents が OneDrive の管理下に入っていることがあります.</strong> 初期設定でそうなっている場合があるので, 置く前に確認してください. macOS も <code>~/Documents</code> と <code>~/Desktop</code> が iCloud Drive の対象になっていることがあります. どちらも <code>~/work</code> のように, 同期の対象外へ新しく作るのが確実です.</p>
+<p>GitHub へ push してあれば, 端末が壊れても <code>clone</code> し直せます. リポジトリをクラウド同期に入れる必要はありません.</p>
+</div>
+<h1 id="git-と-github-の役割">git と GitHub の役割</h1>
+<p><strong>git</strong> は手元のパソコンで動くプログラムです. ファイルの状態を記録し, 差分を取り, 過去の記録へ戻します. インターネットに接続していなくても動きます.</p>
+<p><strong>GitHub</strong> は git の記録をインターネット上に置いておくサービスです. Microsoft が運営しています. 手元の記録を GitHub に送っておけば, パソコンが壊れても失われませんし, 他人に見せることもできます.</p>
+<p>git は GitHub が無くても使えます. GitHub にもブラウザ上でファイルを編集する機能はありますが, エージェントは手元のファイルを書き換えるので, この講義では手元の git を使います.</p>
+<p>同じような役割のサービスに GitLab や Bitbucket があります.</p>
+<p>この講義では, 各自の GitHub アカウントで<strong>リポジトリ</strong> (記録の置き場所, repository, 略して repo) を 1 つ作り, そこに作業を記録していきます.</p>
+<h1 id="git-のインストール">git のインストール</h1>
+<p>OS ごとに手順が違います. 自分の OS の手順だけ実行してください.</p>
+<h2 id="windows">Windows</h2>
+<p>Windows には <strong>winget</strong> というコマンドが用意されています. Microsoft が提供しているソフトウェアの導入と更新の仕組みで, macOS の Homebrew に相当します. Windows 11 には最初から入っています.</p>
+<p><a href="setup.html">共通資料 プログラミング用の設定</a>で扱った PowerShell を開いて, 次の 2 つを実行します.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>winget install <span class="op">-</span>e <span class="op">--</span>id Git<span class="op">.</span><span class="fu">Git</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>winget install <span class="op">-</span>e <span class="op">--</span>id GitHub<span class="op">.</span><span class="fu">cli</span></span></code></pre></div>
+<p>2 つ目は GitHub CLI で, 後の認証で使います.</p>
+<p>インストール後は <strong>PowerShell を一度閉じて開き直してください.</strong> 起動中のウィンドウには新しいコマンドの場所が反映されません.</p>
+<div class="note">
+<p><code>winget</code> が認識されないと出た場合, 「アプリ インストーラー」(App Installer) が入っていないか, 導入直後で登録が終わっていません. Microsoft Store で「アプリ インストーラー」を検索して入れ, PowerShell を開き直してください. Windows 10 は 1809 より前のバージョンでは winget を使えないので, その場合は git-scm.com のインストーラを使います.</p>
+</div>
+<h2 id="macos">macOS</h2>
+<p><strong>Homebrew</strong> で入れます. Homebrew は macOS のソフトウェア導入の仕組みで, 入っていなければ <a href="https://brew.sh/index_ja">brew.sh</a> の手順に従って先に入れてください.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">brew</span> install git</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">brew</span> install gh</span></code></pre></div>
+<p>2 つ目は GitHub CLI で, 後の認証で使います.</p>
+<h2 id="インストールの確認">インストールの確認</h2>
+<p>OS を問わず, 次を実行してバージョンが表示されれば成功です.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> <span class="at">--version</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="ex">gh</span> <span class="at">--version</span></span></code></pre></div>
+<pre class="text"><code>git version 2.51.0
+gh version 2.100.0</code></pre>
+<h2 id="名前とメールアドレスの設定">名前とメールアドレスの設定</h2>
+<p>git は記録を残すときに, 誰が記録したかを一緒に書き込みます. 最初に一度だけ設定します. 自分の名前とアドレスに置き換えてください.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> config <span class="at">--global</span> user.name <span class="st">&quot;自分の名前&quot;</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> config <span class="at">--global</span> user.email <span class="st">&quot;自分のアドレス&quot;</span></span></code></pre></div>
+<p>ここで設定したメールアドレスは記録に含まれ, public なリポジトリでは誰でも読めます. 公開したくないアドレスは使わないでください. GitHub が発行する <code>&lt;数字&gt;+&lt;ユーザ名&gt;@users.noreply.github.com</code> という転送用アドレスを使う方法もあり, GitHub の設定画面の Emails で確認できます.</p>
+<h2 id="既定のエディタの設定">既定のエディタの設定</h2>
+<p><code>git commit</code> を <code>-m</code> 無しで実行すると, メッセージを書くためにエディタが開きます. 既定では <code>vim</code> が開き, 使い方を知らないと終了できません. VSCode を使うように変えておきます.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> config <span class="at">--global</span> core.editor <span class="st">&quot;code --wait&quot;</span></span></code></pre></div>
+<div class="note">
+<p>設定前に <code>vim</code> が開いてしまったときは, <code>Esc</code> を押してから <code>:q!</code> と入力して <code>Enter</code> を押すと, 保存せずに閉じます.</p>
+</div>
+<h1 id="public-と-private-の違い">public と private の違い</h1>
+<p>GitHub でリポジトリを作るとき, <strong>public</strong> (公開) と <strong>private</strong> (非公開) を選びます.</p>
+<ul>
+<li><strong>public</strong>: URL を知っていれば誰でも中身を読めます. 検索エンジンにも載ります.</li>
+<li><strong>private</strong>: 自分と, 自分が明示的に招待した人だけが読めます.</li>
+</ul>
+<p>迷ったら private にしてください. 後から public に変えられます. 逆に, public にしたものを private に戻しても, 公開されていた間に誰かがコピーしたものは取り戻せません.</p>
+<h2 id="public-に置いてはいけないもの">public に置いてはいけないもの</h2>
+<p>次のものは, 誰も見ないだろうと考えたとしても public なリポジトリに入れられません.</p>
+<p><strong>API キーと認証トークン</strong>. 外部サービスを使うための鍵です. たとえば, 教員が契約したアカウントの認証トークンを配布する講義があります. その鍵は共有の前払い残高に直結しているので, 公開されると第三者が残高を使い切れます. GitHub 上の公開リポジトリは機械的に走査されており, 鍵が置かれると短時間で発見されます.</p>
+<p><strong>個人情報を含むデータ</strong>. アンケートの回答, 名簿, 成績など, 個人が特定できるデータです. 匿名化したつもりでも, 複数の項目を組み合わせると個人が特定できることがあります.</p>
+<p><strong>提供を受けたデータ</strong>. 企業や自治体から研究目的で提供されたデータには, 公開してよい範囲の取り決めがあります.</p>
+<h2 id="private-は公開範囲を狭めるだけ">private は公開範囲を狭めるだけ</h2>
+<p>private にすれば何でも置ける, とはなりません. private でも, データは GitHub というアメリカの事業者のサーバへ送られます. 個人情報や提供を受けたデータは, private であっても外部へ送ってよいかを先に確認してください. 提供元との取り決め, 大学の規程, 倫理審査で承認した利用範囲が判断の根拠になります.</p>
+<p>判断がつかないデータは, 手元に置いたまま <code>.gitignore</code> で除外し, リポジトリには取得手順だけ書きます.</p>
+<div class="warn">
+<p><code>data/</code> と <code>.env</code> をリポジトリから除外し, クラウド同期からも外すと, <strong>提供を受けたデータと鍵はどこにもバックアップされません.</strong> 端末が壊れると失われます. 原本は外付けディスクや大学のストレージなど, リポジトリの外に別途保管してください.</p>
+</div>
+<h2 id="鍵を記録に入れてしまった場合">鍵を記録に入れてしまった場合</h2>
+<p>git は履歴を残すので, 一度記録した鍵はファイルから消しても履歴に残ります.</p>
+<p>やるべきことは, ファイルを直すことではなく, <strong>その鍵を無効にして発行し直すこと</strong>です. 教員から配布された鍵なら教員に連絡してください. 履歴からの完全な削除は手順が複雑で, 既に誰かが取得していた場合には意味がありません.</p>
+<h1 id="gitignore-に書く除外の設定">.gitignore に書く除外の設定</h1>
+<p>鍵をソースコードに直接書くと, 記録するときに一緒に入ります. 鍵は <code>.env</code> のような別のファイルに書き, そのファイルを追跡の対象から外します.</p>
+<p>対象から外すには, リポジトリの一番上に <code>.gitignore</code> という名前のファイルを作り, 除外したいものを 1 行に 1 つ書きます.</p>
+<pre class="text"><code># --- 認証情報 ---
+.env
+.env.local
+
+# --- データ ---
+data/
+*.csv
+*.xlsx
+*.xls
+
+# --- Python と uv が作るもの ---
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# --- OS が作るもの ---
+.DS_Store
+Thumbs.db</code></pre>
+<h2 id="パターンの読み方">パターンの読み方</h2>
+<ul>
+<li><code>/</code> を含まない行は, どの階層にも効きます. <code>*.csv</code> はリポジトリのどこにある CSV も除外し, <code>data/</code> は <code>src/data/</code> のような下位の <code>data</code> ディレクトリも除外します</li>
+<li>末尾の <code>/</code> はディレクトリだけに一致します</li>
+<li><code>*</code> は任意の文字列に一致しますが, <code>/</code> には一致しません. <code>*.csv</code> は <code>a.csv</code> に一致し, <code>sub/a.csv</code> にはこの規則では一致しません (前の規則で一致します)</li>
+</ul>
+<h2 id="各行の意図">各行の意図</h2>
+<p><strong>認証情報</strong>. <code>.env</code> は鍵を書くためのファイルです. <code>.env.local</code> のような派生も作られるので併せて外します.</p>
+<div class="note">
+<p>GitHub でリポジトリを作るときに Add .gitignore で Python を選ぶと, <code>.env</code> <code>.venv</code> <code>__pycache__</code> <code>.ipynb_checkpoints</code> は最初から入っています. 足りないのは <code>data/</code> と表計算ファイルなので, そこを追記します.</p>
+</div>
+<p><strong>データ</strong>. <code>data/</code> を丸ごと外したうえで, <code>*.csv</code> と <code>*.xlsx</code> も外します. 分析の途中で作った中間ファイルが <code>data/</code> の外へ散らばりやすく, その中に個人情報や提供データが混じるためです. 公開してよいデータを意図的に記録するときは, <code>-f</code> を付けて明示します.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add <span class="at">-f</span> data/pref_stats_2026.csv</span></code></pre></div>
+<p><strong>Python と uv が作るもの</strong>. <code>.venv/</code> は uv が作る仮想環境で, 数百 MB になることもあります. 各自の端末で作り直せるので記録しません. <code>__pycache__/</code> と <code>*.pyc</code> は Python が実行時に作る中間ファイルです.</p>
+<div class="warn">
+<p><strong><code>uv.lock</code> は除外しません.</strong> <code>pyproject.toml</code> を置いて uv でプロジェクトを管理する場合, <code>uv.lock</code> にはどのライブラリのどのバージョンを使ったかが書かれます. これがあると他の端末で同じ環境を再現できるので, 自動生成されるファイルですが記録する側です.</p>
+</div>
+<p><strong>OS が作るもの</strong>. <code>.DS_Store</code> は macOS が, <code>Thumbs.db</code> は Windows がフォルダごとに作るファイルです.</p>
+<p><code>AGENTS.md</code> は除外しません. エージェントへの指示を書くファイルで, リポジトリの一部として記録します. ただし記録される以上, ここに鍵やアカウント名を書けません. 中身は<a href="agent.html">共通資料 コーディングエージェントの利用</a>で扱います.</p>
+<div class="warn">
+<p><strong>Jupyter Notebook (<code>.ipynb</code>) は, 実行結果をファイル本体に埋め込みます.</strong> <code>df.head()</code> で表示した個人情報の行も, <code>.ipynb</code> の中に文字列として残ります. <code>data/</code> と <code>*.csv</code> を除外しても, notebook を記録すればデータが出ていきます.</p>
+<p>notebook を記録するときは, 保存する前に出力をすべて消してください. VSCode では notebook の上部にある Clear All Outputs で消せます.</p>
+</div>
+<div class="warn">
+<p><strong><code>.gitignore</code> に書いても, 既に記録したファイルは追跡から外れません.</strong> <code>.gitignore</code> は追跡していないファイルを候補に入れない設定であり, 追跡済みのファイルには効きません.</p>
+<p>誤って記録したファイルを外すには, 次のようにします.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> rm <span class="at">--cached</span> .env</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;.env を追跡の対象から外す&quot;</span></span></code></pre></div>
+<p><code>--cached</code> を付けると, 手元のファイルは残したまま追跡からだけ外れます. ただし<strong>それ以前の履歴には残る</strong>ので, 鍵であれば無効にして発行し直してください.</p>
+</div>
+<h1 id="github-のアカウントとリポジトリ">GitHub のアカウントとリポジトリ</h1>
+<h2 id="アカウントの作成">アカウントの作成</h2>
+<p><a href="https://github.com/">github.com</a> を開きます. 右上に Sign in と Sign up が並んでいるので, <strong>Sign up</strong> を押します.</p>
+<figure>
+<img src="/images/common/git/top.png" alt="GitHub のトップページ. アカウントの作成は右上の Sign up から始める" />
+<figcaption aria-hidden="true">GitHub のトップページ. アカウントの作成は右上の Sign up から始める</figcaption>
+</figure>
+<p>Email, Password, Username, Country/Region を入力して Create account を押すと, 入力したアドレスに確認コードが届きます. Google や Apple のアカウントで作ることもできますが, どちらを選んでも後の手順は変わりません.</p>
+<figure>
+<img src="/images/common/git/signup.png" alt="Sign up の入力画面. 必要なのはアドレス, パスワード, ユーザ名, 国だけ" />
+<figcaption aria-hidden="true">Sign up の入力画面. 必要なのはアドレス, パスワード, ユーザ名, 国だけ</figcaption>
+</figure>
+<p>Username は URL の一部になり (<code>https://github.com/&lt;ユーザ名&gt;</code>), 他人から見えます. 後から変更できますが, 変更すると以前の URL は無効になり, 手放した名前は他人が取得できます. 最初に決めてください.</p>
+<h2 id="二段階認証の設定">二段階認証の設定</h2>
+<p>パスワードだけでは, どこかで漏れたパスワードを使い回されるとアカウントを乗っ取られます. GitHub は 2023 年以降, コードを提供する利用者に段階的に二段階認証を必須化しており, 対象になると設定するまで操作が制限されます. 対象になるのを待たず, 最初に設定してください.</p>
+<p>右上のアイコンを押すとメニューが開きます. Settings に入ります.</p>
+<figure>
+<img src="/images/common/git/menu.png" alt="右上のアイコンから開くメニュー. Settings はこの中にある" />
+<figcaption aria-hidden="true">右上のアイコンから開くメニュー. Settings はこの中にある</figcaption>
+</figure>
+<p>左のメニューで Password and authentication を選びます. Sign in methods の一覧が出ます.</p>
+<figure>
+<img src="/images/common/git/settings-auth.png" alt="Settings の Password and authentication. 二段階認証の設定はこのページの下にある" />
+<figcaption aria-hidden="true">Settings の Password and authentication. 二段階認証の設定はこのページの下にある</figcaption>
+</figure>
+<p>同じページを下にたどると Two-factor authentication のセクションがあります. 右上が Enabled になっていれば設定済みです. 未設定なら, 認証アプリ (Google Authenticator など) かパスキーを登録します.</p>
+<figure>
+<img src="/images/common/git/2fa.png" alt="Two-factor authentication が Enabled になった状態. ここが Enabled なら設定は済んでいる" />
+<figcaption aria-hidden="true">Two-factor authentication が Enabled になった状態. ここが Enabled なら設定は済んでいる</figcaption>
+</figure>
+<div class="warn">
+<p>設定の途中で <strong>recovery code (回復コード)</strong> が表示されます. 認証アプリを入れた端末を失くしたときの唯一の復旧手段で, これを失うと GitHub 側でも復旧できません. 印刷するか, パスワード管理ソフトに保存してください.</p>
+</div>
+<h2 id="リポジトリの作成">リポジトリの作成</h2>
+<p>画面右上の <code>+</code> を押し, New repository を選びます.</p>
+<figure>
+<img src="/images/common/git/new-repo-menu.png" alt="+ メニューの New repository" />
+<figcaption aria-hidden="true">+ メニューの New repository</figcaption>
+</figure>
+<p>入力画面は 1 General と 2 Configuration の 2 段に分かれています.</p>
+<figure>
+<img src="/images/common/git/new-repo.png" alt="リポジトリ作成の入力画面. visibility を Private, Add README を On, .gitignore を Python にした状態" />
+<figcaption aria-hidden="true">リポジトリ作成の入力画面. visibility を Private, Add README を On, .gitignore を Python にした状態</figcaption>
+</figure>
+<p>上から順に次のようにします.</p>
+<ul>
+<li><strong>Repository name</strong>: 英数字とハイフンで, 中身が分かる名前 (例: <code>ds-practice-2026</code>). 入力すると使えるかどうかがその場で表示されます. 図では動作確認のため <code>aaaaa</code> と入れていますが, 自分のものは意味の分かる名前にしてください</li>
+<li><strong>Description</strong>: 1 行の説明 (任意)</li>
+<li><strong>Choose visibility</strong>: 右のドロップダウンで Private を選びます</li>
+<li><strong>Add README</strong>: 右のトグルを On にします. 空でないリポジトリができ, すぐ <code>clone</code> できます</li>
+<li><strong>Add .gitignore</strong>: ドロップダウンから Python を選びます</li>
+<li><strong>Add license</strong>: No license のままで構いません</li>
+</ul>
+<p>Create repository を押すと作成されます.</p>
+<h2 id="教員を-collaborator-に招待する">教員を Collaborator に招待する</h2>
+<p>作成したリポジトリのページで Settings を開き, 左のメニューから Collaborators を選びます. Add people を押し, 講義で案内する教員のアカウント名を入力して Add を押します. 教員が届いた招待を受け取ると, リポジトリを閲覧できます.</p>
+<p>private のリポジトリでも, Collaborator として招待した相手は中身を読めます.</p>
+<h2 id="github-cli-での認証">GitHub CLI での認証</h2>
+<p><code>clone</code> や <code>push</code> のたびに GitHub は本人確認を求めます. 先に入れた GitHub CLI で一度だけ済ませます.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ex">gh</span> auth login</span></code></pre></div>
+<p>対話形式で聞かれるので, 次のように答えます.</p>
+<ul>
+<li>What account do you want to log into? → <strong>GitHub.com</strong></li>
+<li>What is your preferred protocol for Git operations? → <strong>HTTPS</strong></li>
+<li>Authenticate Git with your GitHub credentials? → <strong>Yes</strong></li>
+<li>How would you like to authenticate? → <strong>Login with a web browser</strong></li>
+</ul>
+<p>表示される 8 文字のコードを控えて <code>Enter</code> を押すとブラウザが開くので, コードを貼り付けて認証します.</p>
+<div class="warn">
+<p><code>gh auth login</code> を使わない場合, macOS では <code>clone</code> や <code>push</code> のときにターミナルで <code>Username</code> と <code>Password</code> を聞かれます. <strong>ここで GitHub のログインパスワードを入れても通りません.</strong> パスワードによる認証は 2021 年に廃止されており, personal access token を自分で発行して貼る必要があります. その手間を省くために GitHub CLI を使います.</p>
+</div>
+<h2 id="clone-手元にコピーする">clone: 手元にコピーする</h2>
+<p>作成したリポジトリのページで緑の Code ボタンを押すと, Clone の欄が開きます. HTTPS のタブを選び, 表示された URL を右のボタンでコピーします.</p>
+<figure>
+<img src="/images/common/git/code-button.png" alt="Code ボタンを押した状態. HTTPS のタブの URL をコピーする" />
+<figcaption aria-hidden="true">Code ボタンを押した状態. HTTPS のタブの URL をコピーする</figcaption>
+</figure>
+<p>先に作った作業用ディレクトリへ移動してから実行します.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/work</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/<span class="op">&lt;</span>自分のユーザ名<span class="op">&gt;</span>/<span class="op">&lt;</span>リポジトリ名<span class="op">&gt;</span>.git</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> <span class="op">&lt;</span>リポジトリ名<span class="op">&gt;</span></span></code></pre></div>
+<h1 id="日常的に使う-7-つのコマンド">日常的に使う 7 つのコマンド</h1>
+<p>以降はすべて, <code>clone</code> したディレクトリの中で実行します.</p>
+<h2 id="status-何が変わっているかを見る">status: 何が変わっているかを見る</h2>
+<div class="sourceCode" id="cb13"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> status</span></code></pre></div>
+<pre class="text"><code>On branch main
+Changes not staged for commit:
+        modified:   src/analysis.py
+
+Untracked files:
+        notes/2026-04-15-groupby.md</code></pre>
+<p><code>modified</code> は追跡済みのファイルが書き換わったこと, <code>Untracked</code> はまだ git が知らないファイルであることを示します. 実際の出力にはこれに加えて操作の案内が数行出ますが, 読むべきはこの 2 つの一覧です.</p>
+<h2 id="diff-中身の変化を行単位で見る">diff: 中身の変化を行単位で見る</h2>
+<div class="sourceCode" id="cb15"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff</span></code></pre></div>
+<pre class="text"><code>diff --git a/src/analysis.py b/src/analysis.py
+--- a/src/analysis.py
++++ b/src/analysis.py
+@@ -10,7 +10,7 @@
+ df = pd.read_csv(&#39;data/survey.csv&#39;)
+
+-mean = df[&#39;score&#39;].mean()
++mean = df[&#39;score&#39;].dropna().mean()
+ print(mean)</code></pre>
+<p>先頭が <code>-</code> の行が消えた行, <code>+</code> の行が足された行です. この例では, 平均を取る前に欠損値を除くように書き換わっています.</p>
+<div class="warn">
+<p><strong><code>git diff</code> は追跡済みファイルの未ステージの変更しか表示しません.</strong> エージェントが新しく作ったファイルは <code>Untracked</code> なので, <code>git diff</code> に何も出ません. 差分が空なのを見て「変更されていない」と判断すると, 新規ファイルを読まないまま次へ進みます.</p>
+<p>エージェントに作業させたら, <strong>まず <code>git status</code> で一覧を見て, 新規ファイルは中身を開いて読んでください.</strong> 変更されたファイルは <code>git diff</code> で読みます.</p>
+</div>
+<h2 id="add-記録するものを選ぶ">add: 記録するものを選ぶ</h2>
+<div class="sourceCode" id="cb17"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add src/analysis.py notes/2026-04-15-groupby.md</span></code></pre></div>
+<p><code>git add .</code> と書くと, <strong>コマンドを実行したディレクトリより下</strong>の変更をまとめて選べます. リポジトリの一番上で実行しないと, 上の階層の変更は入りません. また <code>.gitignore</code> で除外していないファイルは全部入るので, 実行する前に <code>git status</code> で一覧を確認してください.</p>
+<h2 id="diff---staged-記録する直前に中身を確認する"><code>diff --staged</code>: 記録する直前に中身を確認する</h2>
+<p><code>git add</code> したファイルは <code>git diff</code> に出なくなります. これから記録される中身を読むには, 次を使います.</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--staged</span></span></code></pre></div>
+<p>鍵やデータを誤って選んでいないかは, ここで最後に確認できます. <strong>commit する前に必ず 1 度実行してください.</strong></p>
+<h2 id="commit-記録する">commit: 記録する</h2>
+<div class="sourceCode" id="cb19"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;欠損値を除いてから平均を取るように修正&quot;</span></span></code></pre></div>
+<p><code>-m</code> の後ろは<strong>コミットメッセージ</strong>で, 何をしたかを自分の言葉で書きます. 後から履歴を見たときに, この 1 行だけで何をしたか分かる必要があります. 「修正」「更新」だけでは分かりません.</p>
+<h2 id="push-github-に送る">push: GitHub に送る</h2>
+<div class="sourceCode" id="cb20"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> push</span></code></pre></div>
+<p>commit しただけでは手元にしか残りません. push して初めて GitHub 側に反映されます. 提出のたびに push してください.</p>
+<h2 id="log-履歴を見る">log: 履歴を見る</h2>
+<div class="sourceCode" id="cb21"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> log <span class="at">--oneline</span></span></code></pre></div>
+<pre class="text"><code>a3f79f8 欠損値を除いてから平均を取るように修正
+f041ec0 README にリポジトリの目的を書く
+568a3c1 Initial commit</code></pre>
+<p>左の 7 文字が記録の識別子です. 発表資料の図がどの記録の状態で出たものかは, これで示せます.</p>
+<h2 id="restore-変更を捨てる">restore: 変更を捨てる</h2>
+<p>エージェントの変更が意図と違っていたとき, 手元の変更を捨てて記録済みの状態に戻します.</p>
+<div class="sourceCode" id="cb23"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> restore <span class="at">--source</span><span class="op">=</span>HEAD src/analysis.py</span></code></pre></div>
+<p><code>--source=HEAD</code> は「最後に commit した状態から取り直す」という指定です. これを省くと <code>git add</code> で選んだ内容から取り直すので, <code>add</code> 済みの変更は残ります.</p>
+<div class="warn">
+<p><strong>restore は取り消せません.</strong> commit していない変更は警告なく消えます. これが唯一, 元に戻せない操作です.</p>
+<p>また restore が戻すのは追跡済みのファイルだけです. エージェントが新しく作ったファイルは残るので, 要らなければ自分で削除してください.</p>
+<p>エージェントに作業させる前に commit しておけば, いつでもここへ戻れます.</p>
+</div>
+<h1 id="branch-と-worktree">branch と worktree</h1>
+<p>エージェントを複数同時に動かすための branch と worktree は, <a href="agent.html">共通資料 コーディングエージェントの利用</a>の発展節で扱います. 作業中に見慣れないディレクトリが増えていたら, worktree によって分けられた作業場所です.</p>
+<h1 id="ディレクトリの構成">ディレクトリの構成</h1>
+<p>進捗を記録するリポジトリは, 次の構成を出発点にしてください. 作業しながら自分に合う形に変えて構いません.</p>
+<pre class="text"><code>&lt;リポジトリ名&gt;/
+├── AGENTS.md          # エージェントへの指示
+├── README.md          # このリポジトリが何か
+├── .gitignore         # 記録しないもの
+├── notes/             # 学んだことを書き出す場所
+│   └── 2026-04-15-pandas-groupby.md
+├── src/               # プログラム
+│   └── analysis.py
+└── data/              # データ (.gitignore で除外. GitHub 側には現れません)</code></pre>
+<p><code>AGENTS.md</code> は, エージェントに毎回読ませる決まりごとを書くファイルです. 中身は<a href="agent.html">共通資料 コーディングエージェントの利用</a>で扱います.</p>
+<p><code>notes/</code> は, エージェントに教わったことを自分の言葉で書き出す場所です. これは任意ですが, 最終回の発表の質疑で効きます.</p>
+<div class="note">
+<p>git が記録するのはファイルであってディレクトリではありません. 空のディレクトリを作っても <code>git status</code> には出ず, GitHub 側にも現れません. 中にファイルを 1 つ置いてから記録します.</p>
+</div>
+<section id="exercise-git-1" class="note">
+<h3>Exercise GIT-1</h3>
+<p><strong>リポジトリを作って最初の記録を残す</strong></p>
+<ol type="1">
+<li><code>git --version</code> と <code>gh --version</code> が表示されることを確認し, 名前とメールアドレスと既定のエディタを設定する.</li>
+<li><code>gh auth login</code> で認証する.</li>
+<li>GitHub で private のリポジトリを 1 つ作る (Add README を On, Add .gitignore を Python).</li>
+<li><code>~/work</code> へ移動して <code>clone</code> する.</li>
+<li><code>.gitignore</code> に <code>data/</code> と表計算ファイルの行を追記する.</li>
+<li><code>notes/</code> と <code>src/</code> を作り, それぞれに空でないファイルを 1 つずつ置く.</li>
+<li><code>git status</code> で一覧を確認し, <code>git add .</code>, <code>git diff --staged</code>, <code>git commit</code>, <code>git push</code> の順に実行する.</li>
+<li>GitHub 上でファイルが見えることを確認する.</li>
+</ol>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答例
+</summary>
+<div class="sourceCode" id="cb25"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> <span class="at">--version</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="ex">gh</span> <span class="at">--version</span></span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> config <span class="at">--global</span> user.name <span class="st">&quot;自分の名前&quot;</span></span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> config <span class="at">--global</span> user.email <span class="st">&quot;自分のアドレス&quot;</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> config <span class="at">--global</span> core.editor <span class="st">&quot;code --wait&quot;</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a><span class="ex">gh</span> auth login</span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/work</span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/yourname/ds-practice-2026.git</span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ds-practice-2026</span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a><span class="co"># .gitignore に data/ と *.csv などを追記 (エディタで編集)</span></span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> notes src</span>
+<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;# 最初の記録&quot;</span> <span class="op">&gt;</span> notes/2026-04-15-first.md</span>
+<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;print(&#39;hello&#39;)&quot;</span> <span class="op">&gt;</span> src/analysis.py</span>
+<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-18"><a href="#cb25-18" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> status              <span class="co"># .gitignore が modified, notes/ と src/ が Untracked</span></span>
+<span id="cb25-19"><a href="#cb25-19" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add .</span>
+<span id="cb25-20"><a href="#cb25-20" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--staged</span>       <span class="co"># 記録される中身を最後に確認する</span></span>
+<span id="cb25-21"><a href="#cb25-21" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;作業用のディレクトリを用意し, .gitignore にデータの除外を追記&quot;</span></span>
+<span id="cb25-22"><a href="#cb25-22" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> push</span></code></pre></div>
+<p>手順 6 で空のディレクトリを作っただけでは <code>git status</code> に何も出ません. git はファイルを記録する仕組みで, ディレクトリだけを記録できないためです.</p>
+</details>
+</section>
+<section id="exercise-git-2" class="note">
+<h3>Exercise GIT-2</h3>
+<p><strong>README を書き換えて GitHub に反映させる</strong></p>
+<p>エージェントに作業させるときに毎回踏む手順です. 変更する, 差分を読む, 記録する, 送る の 4 段を 1 周します.</p>
+<ol type="1">
+<li><code>README.md</code> をエディタで開き, 次の 3 つを書く.
+<ul>
+<li>このリポジトリが何か (どの講義の, 何を記録するものか)</li>
+<li>どこに何を置くか (<code>notes/</code> と <code>src/</code> の説明)</li>
+<li>使っているもの (Python, uv, codex など)</li>
+</ul></li>
+<li><code>git status</code> で, <code>README.md</code> が <code>modified</code> として出ることを確認する.</li>
+<li><code>git diff</code> で, 自分が書いた行が <code>+</code> で出ていることを確認する.</li>
+<li><code>git add README.md</code> してから, もう一度 <code>git status</code> を実行し, 表示が変わることを確認する.</li>
+<li><code>git diff --staged</code> で, 記録される中身を確認する.</li>
+<li>何をしたか分かるメッセージを付けて <code>git commit</code> する.</li>
+<li><code>git push</code> する.</li>
+<li>GitHub のリポジトリのページを再読み込みし, README の内容がページ下部に表示されていることと, Commits の履歴に自分のメッセージが載っていることを確認する.</li>
+</ol>
+<p>4 で表示が変わる理由を説明できるようにしてください.</p>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答例
+</summary>
+<p><code>README.md</code> の例です.</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode markdown"><code class="sourceCode markdown"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu"># ds-practice-2026</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>データサイエンス実践 (2026年度) の作業記録です.</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="fu">## 置き場所</span></span>
+<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`notes/`</span> : 学んだことを日付ごとに書き出したもの</span>
+<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`src/`</span>   : 分析のプログラム</span>
+<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`data/`</span>  : データ (公開しないので記録していません)</span>
+<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a><span class="fu">## 使っているもの</span></span>
+<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Python 3.12 / uv</span>
+<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>codex (OpenAI Codex CLI)</span></code></pre></div>
+<p>操作は次のとおりです.</p>
+<div class="sourceCode" id="cb27"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> status</span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="co"># On branch main</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Changes not staged for commit:</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="co">#         modified:   README.md</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff</span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a><span class="co"># +データサイエンス実践 (2026年度) の作業記録です.</span></span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a><span class="co"># +...  自分が書いた行が + で出ます</span></span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add README.md</span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> status</span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Changes to be committed:</span></span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a><span class="co">#         modified:   README.md</span></span>
+<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--staged</span></span>
+<span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;README にリポジトリの目的とディレクトリの説明を書く&quot;</span></span>
+<span id="cb27-17"><a href="#cb27-17" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> push</span></code></pre></div>
+<p>4 で表示が変わる理由は次のとおりです. <code>git status</code> は変更を 2 つの段階に分けて表示します. <code>git add</code> する前は <code>Changes not staged for commit</code> (記録する対象に入っていない変更), <code>git add</code> した後は <code>Changes to be committed</code> (次の <code>commit</code> に入る変更) です. <code>add</code> はこの変更を次の記録に入れると選ぶ操作で, <code>commit</code> はそこで選んだものをまとめて記録する操作です.</p>
+</details>
+</section>
+<section id="exercise-git-3" class="note">
+<h3>Exercise GIT-3</h3>
+<p><strong>公開してよいか判断する</strong></p>
+<p>次の 5 つについて, public のリポジトリに入れてよいか, 入れてはいけないか, 追加の確認が要るかを判断し, その理由を書いてください.</p>
+<ol type="1">
+<li>自分で書いた <code>analysis.py</code></li>
+<li>講義で配布された外部 API の認証トークンを書いた <code>.env</code></li>
+<li>政府統計のポータルからダウンロードした CSV</li>
+<li>授業で配布された, 学生の学籍番号を含むアンケート結果</li>
+<li><code>analysis.py</code> が出力した集計結果のグラフ画像</li>
+</ol>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答例
+</summary>
+<ol type="1">
+<li><strong>入れてよい</strong>です. 自分で書いたコードで, 鍵もデータも含みません.</li>
+<li><strong>入れてはいけません</strong>. 認証トークンは共有の前払い残高に直結します. 公開リポジトリは機械的に走査されるため, 発見されるまでの時間は短いです. <code>.gitignore</code> に <code>.env</code> を書いて除外します.</li>
+<li><strong>利用規約を確認してから判断します</strong>. 公開データでも再配布の可否や出典表示の条件はデータセットごとに違います. e-Stat のデータは出典を明記すれば再配布できますが, 条件の異なるものもあります. なお容量が大きい場合は, リポジトリに入れず取得手順を書く方が扱いやすいです.</li>
+<li><strong>入れてはいけません</strong>. 学籍番号は個人を特定できます. 学籍番号を消しても, 学部と学年と回答の組み合わせで特定できることがあります. <code>data/</code> ごと除外します.</li>
+<li><strong>元データによります</strong>. 集計結果そのものは個人を特定しませんが, 元データが 4 のような非公開データで, かつ集計の区分が細かいと (たとえば該当者が 1 人しかいない区分があると), その値から個人が特定できます. 元データが 3 なら, 3 と同じ条件で判断します.</li>
+</ol>
+</details>
+</section>]]></description>
+    <pubDate>Fri, 04 Sep 2026 00:00:00 UT</pubDate>
+    <guid>/lectures/git.html</guid>
+    
+    <author>kaya3728@gmail.com (yakagika)</author>
+    
+    <dc:creator>yakagika</dc:creator>
+</item>
+<item>
+    <title>共通資料 コーディングエージェントの利用</title>
+    <link>/lectures/agent.html</link>
+    <description><![CDATA[<p>本資料は複数の講義で共通に使う資料です. コーディングエージェントに課題のプログラムを書かせ, その結果を読んで直せるようになるために必要な環境と操作, および判断の仕方を扱います.</p>
+<p>前提として<a href="setup.html">共通資料 プログラミング用の設定</a>と<a href="git.html">共通資料 バージョン管理とGitHub</a>を先に読んでください.</p>
+<p><strong>大規模言語モデルの仕組みはここでは扱いません.</strong> Transformer, 注意機構, 自己教師あり学習といった内部の話は<a href="dsp8.html">第8章 ニューラルネットワークから生成AIへ</a>で扱います.</p>
+<h1 id="ハーネス-エージェントが動く環境">ハーネス: エージェントが動く環境</h1>
+<p>大規模言語モデル (LLM) は, 入力された文章に続く文字列を予測して生成する仕組みです. LLM 単体では, 手元のファイルを開けず, コマンドも実行できません.</p>
+<p><strong>コーディングエージェント</strong>は, LLM に次の要素を組み合わせたものです.</p>
+<ul>
+<li><strong>道具</strong>: ファイルを読み書きし, コマンドを実行する機能</li>
+<li><strong>情報の形式</strong>: どのファイルをどの順で LLM に見せるかという決まり</li>
+<li><strong>フィードバック</strong>: コマンドの実行結果, エラー, テストの合否</li>
+<li><strong>足場</strong>: リポジトリの決まりを書く <code>AGENTS.md</code> と, 繰り返す手順を書く skill</li>
+</ul>
+<p>LLM を取り巻くこの環境を<strong>ハーネス</strong>と呼びます. codex は, LLM が提案した操作を道具で実行し, その結果を LLM へ返します. LLM は返された結果を読んで次の操作を決めます.</p>
+<p>エージェントの出来は LLM の賢さだけでなく, 与えた環境で決まります. 同じモデルを使っても, データの置き場所と実行方法が書かれたリポジトリでは必要な情報を読めますが, 何も書かれていないリポジトリでは推測が増えます. 学生が担うのは, うまい頼み方を探すことより, エージェントが判断できる環境を作ることと, 出力を読んで確かめることです.</p>
+<h2 id="sandbox-と承認">sandbox と承認</h2>
+<p>codex は<strong>sandbox</strong>の中でコマンドを動かします. 既定では作業ディレクトリの中だけを書き換え, ネットワークを使いません. 作業ディレクトリの外のファイルを変える操作や, ネットワークを使うコマンドには, 実行前の承認を求めます.</p>
+<p><code>/permissions</code> で承認の設定を切り替えられます. <code>Read Only</code> はファイルを読むだけの設定です. <code>Auto</code> は, 作業ディレクトリ内の編集と実行を自動で進め, その外へ出る操作では確認を求める設定です. 計画を相談するときは <code>Read Only</code>, 実際に書かせるときは <code>Auto</code> と使い分けます.</p>
+<p>承認画面もハーネスから返される情報の一部です. 許可する前に, どの操作がなぜ必要なのかを読みます. 説明できない操作への対処は<a href="#分からないまま承認しない">分からないまま承認しない</a>で扱います.</p>
+<h1 id="環境構築">環境構築</h1>
+<p>この講義では <strong>codex</strong> (エージェント本体) と <strong>herdr</strong> (エージェントを動かすターミナル) の 2 つを入れます. git と GitHub CLI は<a href="git.html">共通資料 バージョン管理とGitHub</a>で先に入れておいてください.</p>
+<h2 id="codex-を入れる">codex を入れる</h2>
+<p>codex は OpenAI が配布しているコーディングエージェントです.</p>
+<p>Windows は <a href="git.html">共通資料 バージョン管理とGitHub</a>で使った winget で入ります.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>winget install <span class="op">-</span>e <span class="op">--</span>id OpenAI<span class="op">.</span><span class="fu">Codex</span></span></code></pre></div>
+<p>macOS は Homebrew で入ります.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">brew</span> install <span class="at">--cask</span> codex</span></code></pre></div>
+<p>入ったことを確認します.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">codex</span> <span class="at">--version</span></span></code></pre></div>
+<h2 id="codex-にログインする">codex にログインする</h2>
+<p>codex は ChatGPT のアカウントを使います. 初回は <code>codex</code> を起動すると <strong>Sign in with ChatGPT</strong> が選択肢に出ます. <code>codex login</code> を実行しても同じ画面へ進めます. Sign in with ChatGPT を選び, ブラウザで ChatGPT にログインしてからターミナルへ戻ります.</p>
+<p>ログインの状態は次のコマンドで確認できます.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">codex</span> login status</span></code></pre></div>
+<div class="warn">
+<p><strong>この講義では ChatGPT Plus (月 20 ドル) を 3 ヶ月間契約してもらいます.</strong> 契約の時期は講義中に案内します.</p>
+</div>
+<h2 id="herdr-を入れる">herdr を入れる</h2>
+<p>herdr は, エージェントを動かすためのターミナルです. 1 つの作業ディレクトリを複数の画面に分け, エージェントの状態をまとめて確認できます.</p>
+<p>Windows は PowerShell で次を実行します.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>powershell <span class="op">-</span>ExecutionPolicy Bypass <span class="op">-</span>c <span class="st">&quot;irm https://herdr.dev/install.ps1 | iex&quot;</span></span></code></pre></div>
+<p>macOS と Linux は次を実行します.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-fsSL</span> https://herdr.dev/install.sh <span class="kw">|</span> <span class="fu">sh</span></span></code></pre></div>
+<div class="note">
+<p><strong>herdr は winget では入りません.</strong> winget を検索すると <code>hdosys.herdr-win</code> という項目が出てきますが, これは herdr の開発元ではない第三者が配布しているものです. 上のコマンドを使ってください.</p>
+<p>Windows のセキュリティ製品が上のコマンドを止めることがあります. その場合は <a href="https://herdr.dev/docs/install/">herdr.dev</a> から <code>install.cmd</code> をダウンロードして実行する手順が用意されています.</p>
+</div>
+<p>入ったことを確認します.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">herdr</span> <span class="at">--version</span></span></code></pre></div>
+<h2 id="動作確認">動作確認</h2>
+<p><a href="git.html">共通資料 バージョン管理とGitHub</a>で <code>clone</code> したディレクトリへ移動し, codex を起動します. ディレクトリの移動は<a href="setup.html">共通資料 プログラミング用の設定</a>の「CLIの基本操作」を参照してください.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">codex</span></span></code></pre></div>
+<p>起動したら, 次のように入力します.</p>
+<pre class="text"><code>このリポジトリについて説明して</code></pre>
+<p>README の内容を説明してくれれば動いています. <code>/exit</code> で終了します.</p>
+<h1 id="操作の最小セット">操作の最小セット</h1>
+<p>毎回の作業では, herdr の中に codex 用と確認用の 2 つの画面を置きます. ファイルを変更する場所は, <code>clone</code> した 1 つのディレクトリです. branch は <code>main</code> のまま使います.</p>
+<h2 id="herdr-の画面">herdr の画面</h2>
+<p>作業ディレクトリへ移動して <code>herdr</code> を実行すると, バックグラウンドのセッションに接続します. セッションが無ければ, その場で起動します. 初回は案内画面が出ます.</p>
+<p>herdr の画面は次の 3 段に分かれます.</p>
+<ul>
+<li><strong>workspace</strong>: プロジェクト単位の入れ物です. <code>herdr</code> を実行したディレクトリに対応します</li>
+<li><strong>tab</strong>: workspace の中に置く画面です</li>
+<li><strong>pane</strong>: コマンドを入力する実際のターミナルです. 右または下へ分割できます</li>
+</ul>
+<p>pane と tab はクリックして移動できます. pane の境界をドラッグすると大きさが変わり, 右クリックのメニューから分割できます. 文字列をドラッグして選ぶとコピーできます.</p>
+<p>キーボード操作は <strong>prefix</strong> 方式です. <code>ctrl+b</code> を押して離し, 続けて次のキーを押します.</p>
+<table>
+<thead>
+<tr class="header">
+<th>操作</th>
+<th>キー</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>右に pane を分割</td>
+<td><code>prefix</code> + <code>v</code></td>
+</tr>
+<tr class="even">
+<td>下に pane を分割</td>
+<td><code>prefix</code> + <code>-</code></td>
+</tr>
+<tr class="odd">
+<td>新しい tab</td>
+<td><code>prefix</code> + <code>c</code></td>
+</tr>
+<tr class="even">
+<td>一覧を表示</td>
+<td><code>prefix</code> + <code>?</code></td>
+</tr>
+<tr class="odd">
+<td>切り離す</td>
+<td><code>prefix</code> + <code>q</code></td>
+</tr>
+</tbody>
+</table>
+<p>切り離す操作を <strong>detach</strong> と呼びます. detach しても pane の中の処理は止まりません. 同じディレクトリでもう一度 <code>herdr</code> を実行すると, 続きへ戻れます. バックグラウンドのセッションまで完全に止めるコマンドは <code>herdr server stop</code> です.</p>
+<p>herdr は pane の中で動くエージェントを検出し, サイドバーに状態を表示します.</p>
+<table>
+<thead>
+<tr class="header">
+<th>状態</th>
+<th>意味</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>working</code></td>
+<td>作業中</td>
+</tr>
+<tr class="even">
+<td><code>blocked</code></td>
+<td>入力待ち</td>
+</tr>
+<tr class="odd">
+<td><code>done</code></td>
+<td>完了</td>
+</tr>
+<tr class="even">
+<td><code>idle</code></td>
+<td>待機中</td>
+</tr>
+</tbody>
+</table>
+<p>左の pane で codex を動かし, 右の pane で <code>git status</code> や <code>git diff</code> を実行する配置を使います. 2 つの pane は同じディレクトリを見ているので, codex の変更を右側ですぐ確認できます.</p>
+<h2 id="codex-との対話">codex との対話</h2>
+<p>作業ディレクトリで <code>codex</code> を実行すると対話が始まります. 指示は日本語の文章で構いません. 何を作るか, どのファイルを使うか, どう確認するかを書きます.</p>
+<pre class="text"><code>src/analysis.py を作り, data/sales.csv を読み込んで月ごとの売上合計を表示するプログラムを書いてください. 実行して結果も見せてください</code></pre>
+<p>codex は必要なファイルを読み, ファイルを変更し, コマンドを実行します. 読んでいるものと実行結果は画面に表示されます. <code>Auto</code> では作業ディレクトリ内の編集と実行が確認なしに進みます. その外へ出る操作の確認が出たら, 何をしようとしているかを読んでから答えます.</p>
+<p>対話中に使う操作は次のとおりです.</p>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>操作</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>/diff</code></td>
+<td>codex が変更したファイルの差分を表示します. git がまだ記録していない新規ファイルも含みます. 変更を承認する前と, 修正を頼んだ後に読みます</td>
+</tr>
+<tr class="even">
+<td><code>/new</code></td>
+<td>前の会話の文脈を捨て, 同じ codex の中で新しい会話を始めます</td>
+</tr>
+<tr class="odd">
+<td><code>/clear</code></td>
+<td>画面を消し, 新しい会話を始めます</td>
+</tr>
+<tr class="even">
+<td><code>/status</code></td>
+<td>モデル, 承認の設定, 文脈の残り容量を表示します</td>
+</tr>
+<tr class="odd">
+<td><code>/permissions</code></td>
+<td><code>Read Only</code> と <code>Auto</code> を切り替えます</td>
+</tr>
+<tr class="even">
+<td><code>/resume</code></td>
+<td>前回の会話に戻ります</td>
+</tr>
+<tr class="odd">
+<td><code>/init</code></td>
+<td><code>AGENTS.md</code> の雛形を作ります</td>
+</tr>
+<tr class="even">
+<td><code>/skills</code></td>
+<td>skill の一覧を表示して選びます</td>
+</tr>
+<tr class="odd">
+<td><code>/exit</code></td>
+<td>codex を終了します. <code>/quit</code> も同じです</td>
+</tr>
+</tbody>
+</table>
+<p>課題が変わるときは <code>/new</code> を使います. 話が噛み合わなくなり, 画面も整理したいときは <code>/clear</code> を使います. codex は <code>Ctrl+C</code> でも終了できます.</p>
+<p>行頭に <code>!</code> を付けると, その行をシェルコマンドとして実行します. たとえば <code>!git status</code> で変更の一覧を表示できます. <code>@</code> を打つとファイル名を検索して指示に貼れます.</p>
+<p>codex が作業している間に追加の指示が必要になったら, <code>Enter</code> で割り込ませます. 現在の作業が終わった後に実行させる指示は, <code>Tab</code> で次の順番に予約します.</p>
+<h2 id="周の手順">1 周の手順</h2>
+<ol type="1">
+<li>作業ディレクトリで <code>herdr</code> を起動します. プロジェクトに対応する workspace へ入り, 作業を中断しても戻れる状態を作るためです.</li>
+<li>右の pane で <code>git status</code> を実行します. 前回の変更が残っていない状態から始めるためです.</li>
+<li>左の pane で <code>codex</code> を起動します. codex が読み書きする範囲を作業ディレクトリに合わせるためです.</li>
+<li>何を, どのファイルに, どう確認するかを指示します. 終了条件を codex と共有するためです.</li>
+<li>確認が出たら, 操作と対象を読んでから答えます. sandbox の外へ出る理由を自分で判断するためです.</li>
+<li>作業が終わったら <code>/diff</code> を読みます. codex が加えた変更を記録前に確認するためです.</li>
+<li>右の pane で <code>git status</code> と <code>git diff</code> を実行します. 新規ファイルは <code>git diff</code> に出ないので, <code>git status</code> で見つけて中身を開きます.</li>
+<li>プログラムを動かして確かめます. 説明された結果と実際の結果が一致するかを見るためです.</li>
+<li><code>git add</code> で記録するファイルを選び, <code>git diff --staged</code> を読みます. 鍵やデータを含めていないかを記録直前に確認するためです.</li>
+<li><code>git commit</code> で変更を記録し, <code>git push</code> で GitHub へ送ります. 戻れる場所と提出物を残すためです.</li>
+</ol>
+<p>git の各コマンドと差分の読み方は<a href="git.html">共通資料 バージョン管理とGitHub</a>を参照してください.</p>
+<section id="exercise-agent-1" class="note">
+<h3>Exercise AGENT-1</h3>
+<p><strong>環境構築と最初の対話</strong></p>
+<ol type="1">
+<li><code>clone</code> したリポジトリで herdr を起動する.</li>
+<li>pane を左右に分割し, 左側で codex を起動する.</li>
+<li><code>このリポジトリについて説明して</code> と入力し, README に書かれた内容と合っているかを確かめる.</li>
+<li><code>/status</code> を実行し, モデル, 承認の設定, 文脈の残り容量を読む.</li>
+<li><code>/exit</code> で終了する.</li>
+</ol>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答例
+</summary>
+<p>作業ディレクトリで <code>herdr</code> を起動し, 右クリックのメニューまたは <code>prefix</code> + <code>v</code> で pane を左右に分けます. 左の pane で <code>codex</code> を起動し, 次のように入力します.</p>
+<pre class="text"><code>このリポジトリについて説明して</code></pre>
+<p>説明に README の目的やディレクトリ構成が含まれていることを確認します. 続けて <code>/status</code> を入力し, 表示されたモデル名, 承認の設定, 文脈の残り容量を読みます. 最後に <code>/exit</code> で終了します.</p>
+</details>
+</section>
+<h1 id="agents.md-リポジトリの決まりごとを読ませる">AGENTS.md: リポジトリの決まりごとを読ませる</h1>
+<p>codex は起動時に <code>AGENTS.md</code> を読みます. <code>AGENTS.md</code> には, 実行方法, 公開してはいけないもの, 書き換えてよい範囲など, リポジトリで繰り返し守る決まりを書きます.</p>
+<p>codex は最初に <code>~/.codex/AGENTS.md</code> を読みます. ここにはすべてのリポジトリに共通する決まりを書けます. 次に, リポジトリの root から現在のディレクトリまでを順にたどり, 各ディレクトリの <code>AGENTS.md</code> を読みます. 後から読んだ内容が優先されます.</p>
+<p>読み込める量は合計 32 KiB までです. 上限を超えた部分は読まれず, 空のファイルも無視されます. 起動のたびに読み直すので, 書き換えた後は codex を起動し直します.</p>
+<p><code>/init</code> で雛形を作れます. この講義では, 次の最小の例から始めます. 使っていて足りない決まりが見つかったら, 自分のリポジトリに合う文へ書き足してください.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode markdown"><code class="sourceCode markdown"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu"># 作業の決まり</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>説明は日本語で書く. 変更する前に, 何をするかを 2〜3 行で示す.</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>Python は <span class="in">`uv run`</span> で実行する. ライブラリを追加するときは理由を書く.</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`data/`</span> と <span class="in">`.env`</span> の中身を出力や commit に含めない. 集計結果だけを扱う.</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>プログラムを変更したら実行し, 結果またはエラーをそのまま報告する.</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>分からないことは推測で埋めず, 質問する.</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span><span class="in">`notes/`</span> は本人が自分の言葉で書く場所なので, エージェントは書き換えない.</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>根拠を示すときは, 実際に読んだ資料や実行した結果だけを引く.</span></code></pre></div>
+<p>各行には次の役割があります.</p>
+<ul>
+<li>「説明は日本語で書く」は, 差分と実行結果を学生が読める言葉へそろえ, 変更前の計画を承認の判断材料にします</li>
+<li>「Python は <code>uv run</code> で実行する」は, 毎回同じ実行方法を使わせ, ライブラリの追加理由を差分と報告から確認できるようにします</li>
+<li>「<code>data/</code> と <code>.env</code> の中身を出力や commit に含めない」は, 提供データと鍵が codex の画面や GitHub へ出る範囲を狭めます</li>
+<li>「変更したら実行する」は, コードの見た目だけでなく, 実行結果またはエラーを確認できるようにします</li>
+<li>「推測で埋めず, 質問する」は, 情報が足りない箇所を勝手な値や処理で埋めるのを防ぎます</li>
+<li>「<code>notes/</code> を書き換えない」は, 学生本人の理解とエージェントの出力を分けます</li>
+<li>「実際に読んだ資料や実行した結果だけを引く」は, 確認していない説明を根拠として扱わないための決まりです</li>
+</ul>
+<p><code>AGENTS.md</code> はエージェントへの指示であり, 機械的な制限ではありません. <code>/diff</code>, <code>git status</code>, <code>git diff</code> で実際の変更を確認する手順は残ります.</p>
+<section id="exercise-agent-2" class="note">
+<h3>Exercise AGENT-2</h3>
+<p><strong><code>AGENTS.md</code> の有無で応答を比べる</strong></p>
+<ol type="1">
+<li><code>AGENTS.md</code> を置かない状態で codex を起動し, <code>data/sales.csv の先頭 5 行を見せて</code> と頼む.</li>
+<li>応答を記録して codex を終了する.</li>
+<li>上の最小の <code>AGENTS.md</code> をリポジトリの root に置く.</li>
+<li>codex を起動し直し, 同じ指示を出す.</li>
+<li>2 つの応答の違いと, その理由を書く.</li>
+</ol>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答例
+</summary>
+<p><code>AGENTS.md</code> が無いときは, 先頭 5 行の中身をそのまま表示する応答が考えられます. <code>AGENTS.md</code> があるときは, <code>data/</code> の中身を出力しないという決まりを読み, 表示を断るか, 個々の行を見せない集計へ置き換える応答が期待されます.</p>
+<p>これは期待される違いであり, 応答を保証するものではありません. <code>AGENTS.md</code> は codex が判断に使う指示であり, ファイルへのアクセスを機械的に止める仕組みではないためです.</p>
+</details>
+</section>
+<h1 id="skill-繰り返す手順を切り出す">skill: 繰り返す手順を切り出す</h1>
+<p><strong>skill</strong>は, 繰り返す手順を <code>SKILL.md</code> に書き, エージェントに使わせる仕組みです. 1 つの skill は 1 つのディレクトリに置きます. <code>SKILL.md</code> は必須で, 補助するプログラムを <code>scripts/</code>, 長い資料を <code>references/</code> に置けます.</p>
+<p>リポジトリで共有する skill は <code>.agents/skills/&lt;名前&gt;/SKILL.md</code> に置きます. codex はリポジトリの root から現在のディレクトリまでにある <code>.agents/skills/</code> を探します. 自分だけがすべてのリポジトリで使う skill は <code>~/.agents/skills/&lt;名前&gt;/SKILL.md</code> に置きます.</p>
+<p><code>SKILL.md</code> の frontmatter には <code>name</code> と <code>description</code> が要ります. <code>description</code> には何をするかだけでなく, いつ使うかを書きます. 指示の中に <code>$名前</code> と書くか, <code>/skills</code> から選ぶと呼び出せます. 指示が <code>description</code> に合う場合は, codex が自分で選ぶこともあります.</p>
+<p>次の <code>explain-diff</code> は, 変更を読んでも意味が分からないときに使う例です.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode markdown"><code class="sourceCode markdown"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="an">name:</span><span class="co"> explain-diff</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="an">description:</span><span class="co"> コードの差分を読んで理解するときに使う. 変更箇所ごとに日本語で説明する.</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="fu"># 差分の説明</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="ss">1. </span>変更されたファイルをすべて確認する.</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="ss">2. </span>変更箇所ごとに, 「何をしているか」を説明する.</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a><span class="ss">3. </span>続けて, 「なぜそう書いたか」を説明する.</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a><span class="ss">4. </span>説明には, 実際に読んだコードと実行結果だけを使う.</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a><span class="ss">5. </span>新しく作られたファイルも省略しない.</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="ss">6. </span>分からない箇所は推測せず, 分からない理由を書く.</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a><span class="ss">7. </span>最後に, 学生が確かめる質問を 3 つ挙げる.</span></code></pre></div>
+<p>講義で配る skill もあります. 手順を何度も頼んでいると気づいたら, <code>AGENTS.md</code> を長くする前に, 1 つの作業として skill へ切り出せるかを考えます.</p>
+<h1 id="分からないまま承認しない">分からないまま承認しない</h1>
+<p>自分で説明できないコードを使えるのは学校の課題までです. 仕事や研究では, 中身の分からないコードを使うわけにはいきません. この講義でも, 提出したプログラムについて「なぜそう書いたか」「この行は何を意味するか」を質問します.</p>
+<p>codex の出力を承認するときは, 次の順で確認します.</p>
+<ol type="1">
+<li>確認が出たら, 何をしようとしているかを読んでから答えます. 分からなければ, 答える前に <code>この操作は何をしますか</code> と codex に聞きます.</li>
+<li>作業後に <code>/diff</code> を読みます. 説明できない行があれば <code>$explain-diff</code> で説明させ, それでも分からなければ質問します.</li>
+<li>小さな入力でプログラムを動かします. 説明どおりの結果になるかを見ます.</li>
+<li>新しく分かったことを <code>notes/</code> の日付付きファイルに自分の言葉で書きます. <code>AGENTS.md</code> で codex に書き換えさせない場所と決めてあるので, 自分の理解だけが残ります.</li>
+</ol>
+<p>判断の基準は, 最終回の発表で, 提出したプログラムの任意の行について「なぜそう書いたか」と聞かれて答えられることです. 答えられない行が残っていれば, その行はまだ承認できません.</p>
+<section id="exercise-agent-3" class="note">
+<h3>Exercise AGENT-3</h3>
+<p><strong>変更を説明できる状態にする</strong></p>
+<p>codex に小さなプログラムを書かせ, <code>/diff</code> で変更を読みます. 分からない行を <code>$explain-diff</code> で説明させ, 各行の意味を <code>notes/</code> の日付付きファイルへ自分の言葉で書いてください. 提出するものは <code>notes/</code> のファイルです.</p>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答例
+</summary>
+<p>次の 4 項目を <code>notes/</code> に書きます.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode markdown"><code class="sourceCode markdown"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu"># 小さなプログラムの確認</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>頼んだこと: 何を入力し, 何を出力するプログラムか</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>変更された場所: <span class="in">`/diff`</span> で見たファイルと行</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>各行の意味: 自分の言葉で 1 行ずつ説明したもの</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="ss">- </span>確認した結果: 小さな入力と, 実際に得られた出力</span></code></pre></div>
+<p>skill の説明をそのまま貼るのではなく, 自分が理解した言葉へ書き換えます. 説明できない行が残った場合は, 質問と回答も記録します.</p>
+</details>
+</section>
+<h1 id="aiの開発環境と実行環境">AIの開発環境と実行環境</h1>
+<p>AI を使う環境は, モデルを作る段階と, できたモデルを使う段階に分かれます.</p>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>段階</th>
+<th>何をするか</th>
+<th>必要な環境</th>
+<th>この講義で行うか</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>学習</strong></td>
+<td>大量のデータからモデルを作る</td>
+<td>多数の計算機と大量のデータ</td>
+<td>行いません</td>
+</tr>
+<tr class="even">
+<td><strong>推論</strong></td>
+<td>できたモデルへ入力し, 出力を得る</td>
+<td>モデルを動かす計算機</td>
+<td>codex で行います</td>
+</tr>
+</tbody>
+</table>
+<p>codex のモデルは OpenAI のサーバで動きます. codex が読んだ手元のファイルの内容は, 指示と一緒にサーバへ送られます. <code>data/</code> に置いた提供データや個人情報は, codex に読ませた時点で手元の PC の外へ出ます.</p>
+<p><a href="git.html">共通資料 バージョン管理とGitHub</a>で public と private を選ぶときと同じ基準で, 外部へ送ってよい情報かを判断します. <code>AGENTS.md</code> に <code>data/</code> を読まないよう書くことは判断の助けになりますが, 機械的な保証ではありません. 手元で動かせる小さなモデルもありますが, この講義では扱いません.</p>
+<p>AI が書いたプログラムを動かす場所には, 次の違いがあります.</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>実行場所</th>
+<th>使う場面</th>
+<th>この講義での位置づけ</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>手元の PC</td>
+<td>通常の分析と課題</td>
+<td>基本の環境</td>
+</tr>
+<tr class="even">
+<td>Google Colab のようなクラウドのノートブック</td>
+<td>GPU が必要な計算</td>
+<td>必要な章で使う環境</td>
+</tr>
+<tr class="odd">
+<td>サーバ</td>
+<td>プログラムを常時動かす</td>
+<td>必要になったときに使う環境</td>
+</tr>
+</tbody>
+</table>
+<p>codex が実行するコマンドは, 手元の PC にある sandbox の中で動きます. モデルが OpenAI のサーバで動くことと, プログラムが手元で動くことは別です.</p>
+<h1 id="発展-llmで学習する">発展: LLMで学習する</h1>
+<p><strong>この節は成績評価の対象にしません.</strong> ただし, ここで残した記録と理解は, 最終回の発表でプログラムの理由を問われたときに効きます.</p>
+<h2 id="notes-に理解を残す"><code>notes/</code> に理解を残す</h2>
+<p><code>notes/</code> には日付付きのファイルを作り, 次の 4 つを書きます.</p>
+<ul>
+<li>何をエージェントに頼んだか</li>
+<li>何が返ってきたか</li>
+<li>どこが分からなかったか</li>
+<li>質問や実行によって, どう分かったか</li>
+</ul>
+<p>会話の全文を貼るのではなく, 後から同じ問題に出会った自分が使える説明へ書き直します. エージェントではなく本人が書くことで, 説明できる部分と分からない部分が分かれます.</p>
+<h2 id="曖昧な計画を質問で詰める">曖昧な計画を質問で詰める</h2>
+<p>課題の計画が曖昧なときは, すぐにコードを書かせず, 決まっていないことを質問へ変えます.</p>
+<ol type="1">
+<li>エージェントに <code>この計画で決まっていないことを質問の形で 5 つ挙げてください</code> と頼みます.</li>
+<li>5 つの問いに自分で答えます. 答えられない問いを「自分の理解が足りない」「情報が足りない」「試していない」の 3 つに分けます.</li>
+<li>「自分の理解が足りない」問いは説明を求め, 自分の言葉で書き直します.</li>
+<li>「情報が足りない」問いは, 課題文やデータの説明を確認します.</li>
+<li>「試していない」問いは, 小さな入力で確かめる内容を決めます.</li>
+<li>答えと確認方法を計画に書き戻してから, プログラムを作らせます.</li>
+</ol>
+<p>質問を増やすことが目的ではありません. 答えられない理由を分けると, 読む, 聞く, 試すのどれを次に行うかが決まります.</p>
+<h2 id="branch-と-worktree">branch と worktree</h2>
+<p>通常の課題では, <code>main</code> のまま 1 つのディレクトリで codex を動かします. エージェントを 2 つ同時に動かしたいときは, 同じファイルを互いに上書きしないよう, branch と worktree で作業場所を分けます.</p>
+<p>commit を 1 つの丸で表します. <code>commit</code> するたびに右へ 1 つ伸びていきます. <code>main</code> は, その先頭を指す名前です.</p>
+<pre class="text"><code>        ●───●───●
+       C1  C2  C3
+                ↑
+               main</code></pre>
+<p><strong>branch</strong>は, ある commit から記録を枝分かれさせる仕組みです. C3 から 2 本に分け, それぞれ別の作業を進められます.</p>
+<pre class="text"><code>                    ●───●   ← feat/graph   エージェント A が作業
+                   ╱ A1  A2
+        ●───●───●
+       C1  C2  C3 ↑
+                 main
+                   ╲ B1  B2
+                    ●───●   ← feat/clean   エージェント B が作業</code></pre>
+<p>A の作業と B の作業は互いに見えません. A が何をしても <code>main</code> と B は変わらないので, 失敗しても他の作業へ影響しません.</p>
+<p>作業が済んだら <code>main</code> へ<strong>合流</strong> (マージ) させます. 合流は 1 本ずつ行います. まず A を合流させると, <code>main</code> は合流の記録 M1 を指します.</p>
+<pre class="text"><code>                    ●───●
+                   ╱ A1  A2 ╲
+        ●───●───●            ●
+       C1  C2  C3             M1 ← main
+                   ╲ B1  B2
+                    ●───●</code></pre>
+<p>続けて B を合流させると M2 になります.</p>
+<pre class="text"><code>                    ●───●
+                   ╱ A1  A2 ╲
+        ●───●───●            ●───●
+       C1  C2  C3             M1  M2 ← main
+                   ╲ B1  B2  ╱
+                    ●───●───</code></pre>
+<p>2 回目の合流で A と B が同じファイルの同じ行を別々に変えていると, git はどちらを採るか決められません. git は合流を止め, その箇所に印を付けて人に判断を求めます. これが<strong>コンフリクト</strong>です. 片方の変更を黙って消さず, 判断が必要な場所で止まります.</p>
+<p>branch を切り替えると, ディレクトリの中身がその branch の状態へ入れ替わります. 1 つのディレクトリでは同時に 1 つの branch しか開けないため, A と B を同時には動かせません.</p>
+<p><strong>worktree</strong>は, 同じリポジトリに対して作業用のディレクトリを複数持つ仕組みです. 記録の実体は最初に <code>clone</code> したディレクトリの <code>.git</code> にあり, 追加したディレクトリはそこを参照します.</p>
+<pre class="text"><code>  ~/work/repo/                  記録の実体 (.git) はここ
+   [main]                        ← 自分が見る場所
+      ↑                 ↑
+      │ 参照            │ 参照
+  ~/work/repo-graph/  ~/work/repo-clean/
+   [feat/graph]        [feat/clean]
+   エージェント A        エージェント B</code></pre>
+<p>3 つのディレクトリは別々のファイルを持つので, A と B は互いの変更を上書きしません. git の記録は共有しているため, A の commit は B からも見えます.</p>
+<div class="warn">
+<p>記録の実体は最初のディレクトリにあります. <code>~/work/repo/</code> を消すと, 追加した worktree も使えなくなります.</p>
+</div>
+<p>herdr では <code>herdr worktree create --branch &lt;名前&gt;</code> で worktree を作れます. 詳しい操作はこの講義では扱いません.</p>]]></description>
+    <pubDate>Fri, 04 Sep 2026 00:00:00 UT</pubDate>
+    <guid>/lectures/agent.html</guid>
+    
+    <author>kaya3728@gmail.com (yakagika)</author>
+    
+    <dc:creator>yakagika</dc:creator>
+</item>
+<item>
     <title>関数型プログラミング Ch9 圏と多相データ型</title>
     <link>/lectures/fp9.html</link>
     <description><![CDATA[<p><a href="fp8.html">前章 (第8章)</a>では, 型 (= 集合) の上に演算と法則を載せた <strong>代数構造</strong> と, その受け皿としての型クラスを見ました. 章の後半では <strong>準同型 (構造を保つ写像)</strong> が中心になり, 締めくくりで「台が値から関数 (射) へ持ち上がる」と予告しました. 本章はその回収です.</p>
@@ -8709,7 +9601,7 @@ fib(n-1) + fib(n-2),~if~n &gt;=2
 <section id="exercise-ch5-6" class="note">
 <h3>Exercise CH5-6</h3>
 <p><strong>パーセプトロンによる論理ゲート</strong></p>
-<p>パーセプトロンは, 複数の入力 <span class="math inline">x_1, x_2</span> に重み <span class="math inline">w_1, w_2</span> を掛けて足し合わせ, バイアス <span class="math inline">b</span> を加えた値が 0 以上かどうかで <code>True</code>/<code>False</code> を出力する素子です. <strong>重みとバイアスを変えるだけで</strong>, 同じ仕組みが AND・OR・NAND など異なる論理ゲートになります (パーセプトロンの背景・理論は <a href="slds14.html">特別講義資料</a> を参照してください).</p>
+<p>パーセプトロンは, 複数の入力 <span class="math inline">x_1, x_2</span> に重み <span class="math inline">w_1, w_2</span> を掛けて足し合わせ, バイアス <span class="math inline">b</span> を加えた値が 0 以上かどうかで <code>True</code>/<code>False</code> を出力する素子です. <strong>重みとバイアスを変えるだけで</strong>, 同じ仕組みが AND・OR・NAND など異なる論理ゲートになります (パーセプトロンの背景・理論は <a href="dsp8.html">データサイエンス実践 第8章</a> を参照してください).</p>
 <ol type="1">
 <li>ウォームアップとして, <code>||</code> を使わずに <code>or :: Bool -&gt; Bool -&gt; Bool</code> を <strong>パターンマッチ</strong> で実装してください.</li>
 </ol>
@@ -8935,867 +9827,6 @@ fib(n-1) + fib(n-2),~if~n &gt;=2
 </section>]]></description>
     <pubDate>Fri, 18 Oct 2024 00:00:00 UT</pubDate>
     <guid>/lectures/fp5.html</guid>
-    
-    <author>kaya3728@gmail.com (yakagika)</author>
-    
-    <dc:creator>yakagika</dc:creator>
-</item>
-<item>
-    <title>関数型プログラミング Ch4 スクリプトファイルとエラー対応</title>
-    <link>/lectures/fp4.html</link>
-    <description><![CDATA[<h1 id="スクリプトファイルの実行-復習">スクリプトファイルの実行 (復習)</h1>
-<div class="warn">
-<p><strong>コラム: Windows / VSCode 環境でよくある引っかかり</strong></p>
-<p>Haskell コード自体ではなく <strong>開発環境</strong> の設定が原因で <code>stack ghci</code> や <code>stack build</code> がうまく動かないケースが多発します. 「コードは合っているのに動かない」「エラーメッセージが文字化けして読めない」といった症状が出たら, <strong>Haskell ではなく環境を疑って</strong> 以下を確認してください.</p>
-<h3 id="vscode-で-階層が一つ上のディレクトリ-を開いていないか">1. VSCode で <strong>階層が一つ上のディレクトリ</strong> を開いていないか</h3>
-<p>VSCode の「Open Folder」で例えば <code>~/Projects</code> を開いてしまい, 実際のプロジェクト本体 <code>~/Projects/myproject</code> をターミナルから扱おうとすると, Stack が <code>stack.yaml</code> や <code>package.yaml</code> を見つけられず混乱します.</p>
-<p>→ <strong><code>stack.yaml</code> / <code>package.yaml</code> がある階層を VSCode のルートとして開き直す</strong> こと. ターミナルの <code>pwd</code> で現在地と一致しているかを確認しましょう.</p>
-<p>参考 (VSCode 公式 — 英語): <a href="https://code.visualstudio.com/docs/editor/workspaces">Workspaces in Visual Studio Code</a></p>
-<h3 id="vscode-で-複数のウィンドウから同じディレクトリを開いている-ことはないか">2. VSCode で <strong>複数のウィンドウから同じディレクトリを開いている</strong> ことはないか</h3>
-<p>同一プロジェクトを複数 VSCode ウィンドウで同時に開くと, Haskell Language Server や Stack の状態が二重に走り, ビルドキャッシュの食い違いやメモリ大量消費の原因になります.</p>
-<p>→ <strong>使っていないウィンドウは閉じて 1 つに揃える</strong> こと. 「Window メニュー」や Cmd/Ctrl+` で開いているウィンドウ一覧を確認できます.</p>
-<h3 id="ターミナルの-コードページ-chcp-が-utf-8-になっているか-windows-のみ">3. ターミナルの <strong>コードページ (<code>chcp</code>) が UTF-8 になっているか</strong> (Windows のみ)</h3>
-<p>Windows の PowerShell / cmd は既定で <strong>Shift_JIS (コードページ <code>932</code>)</strong> を使います. Haskell の標準出力は <strong>UTF-8</strong> なので, 日本語を含む文字列を扱うと文字化けや出力エラーが発生することがあります.</p>
-<p>応急処置としては, ターミナルで UTF-8 (<code>65001</code>) に切り替えるコマンドを打てば解消します:</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">chcp</span> 65001</span></code></pre></div>
-<p>ただし <code>chcp 65001</code> は <strong>そのターミナル 1 回限り</strong> の効果しか持たないため, ターミナルを開き直すたびに毎回打ち直す必要があります. <strong>VSCode で Haskell を学習するなら, 統合ターミナルが起動した瞬間に UTF-8 になるよう <code>settings.json</code> に書いておくのが圧倒的に楽</strong> です. 以下を推奨します.</p>
-<h4 id="推奨-vscode-の-settings.json-で起動時に自動で-utf-8-にする">推奨: VSCode の <code>settings.json</code> で起動時に自動で UTF-8 にする</h4>
-<ol type="1">
-<li>VSCode で <strong><code>Ctrl + Shift + P</code></strong> → 「<strong>Preferences: Open User Settings (JSON)</strong>」 を選んで <code>settings.json</code> を開く.</li>
-<li>次の内容を追記する (既にある設定とマージする形で OK):</li>
-</ol>
-<div class="sourceCode" id="cb2"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;terminal.integrated.defaultProfile.windows&quot;</span><span class="fu">:</span> <span class="st">&quot;PowerShell (UTF-8)&quot;</span><span class="fu">,</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;terminal.integrated.profiles.windows&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>        <span class="dt">&quot;PowerShell (UTF-8)&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;source&quot;</span><span class="fu">:</span> <span class="st">&quot;PowerShell&quot;</span><span class="fu">,</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>            <span class="dt">&quot;args&quot;</span><span class="fu">:</span> <span class="ot">[</span></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;-NoExit&quot;</span><span class="ot">,</span></span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;-Command&quot;</span><span class="ot">,</span></span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>                <span class="st">&quot;chcp 65001 | Out-Null&quot;</span></span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>            <span class="ot">]</span></span>
-<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>        <span class="fu">}</span></span>
-<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">}</span></span>
-<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
-<ol start="3" type="1">
-<li>VSCode の統合ターミナル (<code>Ctrl + `</code>) を一度閉じて開き直す.</li>
-</ol>
-<p>これで, <strong>新しくターミナルを開くたびに自動で UTF-8 に切り替わった状態で立ち上がる</strong> ようになります.</p>
-<p>各引数の役割:</p>
-<table>
-<colgroup>
-<col style="width: 50%" />
-<col style="width: 50%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th>引数</th>
-<th>役割</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><code>-NoExit</code></td>
-<td><code>chcp 65001</code> を実行した後も PowerShell を終了させずに対話モードを継続</td>
-</tr>
-<tr class="even">
-<td><code>-Command "chcp 65001 \| Out-Null"</code></td>
-<td>起動時に <code>chcp 65001</code> を実行. <code>Out-Null</code> で「Active code page: 65001」の出力を消す</td>
-</tr>
-<tr class="odd">
-<td><code>source: "PowerShell"</code></td>
-<td>VSCode が検出した PowerShell 実行ファイルを使う (Windows PowerShell 5.1 / PowerShell 7 のどちらでも OK)</td>
-</tr>
-</tbody>
-</table>
-<h4 id="補足-より恒久的な対処-任意">補足: より恒久的な対処 (任意)</h4>
-<ul>
-<li><strong>OS 全体で UTF-8 にする</strong>: Windows の「地域」設定 → 「管理」タブ → 「システム ロケールの変更」で <strong>「ベータ: ワールドワイド言語サポートで Unicode UTF-8 を使用」</strong> にチェック. これで PowerShell / cmd / 他のアプリすべてが UTF-8 で動作するようになりますが, 一部の旧 Windows アプリで文字化けする可能性があるため <strong>ベータ機能扱い</strong>.</li>
-<li><strong>PowerShell プロファイルに書く</strong>: VSCode 以外のターミナル (Windows Terminal など) でも自動 UTF-8 にしたい場合は, <code>notepad $PROFILE</code> でプロファイルを開いて <code>chcp 65001 | Out-Null</code> を追記する方法もあります.</li>
-</ul>
-<p>参考:</p>
-<ul>
-<li><a href="https://qiita.com/s4i/items/d6d19c24b9d8ff193f72">VSCodeの統合ターミナルでPowerShell起動時、文字コードをUTF-8に変える方法 (Qiita)</a></li>
-<li><a href="https://haskell.jp/blog/posts/2017/windows-gotchas.html">Windowsでのよくある落とし穴 (Haskell-jp ブログ)</a></li>
-</ul>
-<h3 id="smart-app-control-windows-11-が-stack-をブロック-している-windows-のみ">4. <strong>Smart App Control (Windows 11) が Stack をブロック</strong> している (Windows のみ)</h3>
-<p>Windows 11 の <strong>Smart App Control (スマートアプリコントロール, 略 SAC)</strong> が有効になっていると, Stack が GHC のビルドのために内部で起動する <strong><code>Cabal-simple_*.exe</code> (<code>C:\sr\setup-exe-cache\...</code>)</strong> が「未署名」と判定され, 起動自体が阻まれて <code>stack build</code> が以下のような cryptic なエラーで失敗します.</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">PS</span> C:<span class="dt">\U</span>sers<span class="dt">\u</span>ser<span class="dt">\H</span>askell<span class="dt">\t</span>est2<span class="op">&gt;</span> stack build</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">test2</span><span class="op">&gt;</span> configure <span class="er">(</span><span class="ex">lib</span> + exe<span class="kw">)</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="ex">Error:</span> <span class="pp">[</span><span class="ss">S</span><span class="pp">-</span><span class="ss">7282</span><span class="pp">]</span></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>       <span class="ex">Stack</span> failed to execute the build plan.</span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>       <span class="ex">While</span> executing the build plan, Stack encountered the error:</span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>       <span class="ex">C:\sr\setup-exe-cache\x86_64-windows\Cabal-simple_O_vy6YIf_3.12.1.0_ghc-9.10.3.exe:</span> startProcess: invalid argument <span class="er">(</span><span class="ex">Invalid</span> argument<span class="kw">)</span></span></code></pre></div>
-<p>メッセージは <code>startProcess: invalid argument</code> という Haskell 由来の文言で <strong>原因が極めて分かりにくい</strong> のが特徴です. 実体は SAC によるブロックなので, 修正は Windows 側の設定で行います.</p>
-<p>→ <strong>対策: スマートアプリコントロールを OFF にする</strong></p>
-<p><code>設定</code> → <code>プライバシーとセキュリティ</code> → <code>Windows セキュリティ</code> → <code>アプリとブラウザーの制御</code> → <code>スマートアプリコントロールの設定</code> → <strong>オフ</strong></p>
-<div class="warn">
-<p>SAC は本来 Windows 全体のマルウェア防御の一部なので, OFF にすると保護レベルが下がります. それでも本講義では Stack / Haskell 開発を進めるためには現状この方法しか実用解がありません.</p>
-<p>サーベイ結果(2026 年 5 月時点):</p>
-<ul>
-<li><strong>SAC には個別アプリの除外リスト機能が無い</strong>. Microsoft 公式 FAQ で「<strong>There is currently no way to bypass Smart App Control protection for individual apps</strong>」と明記.</li>
-<li><code>Cabal-simple_*.exe</code> のような Stack 内部の補助実行ファイルは Microsoft 署名を持たないため一律ブロックされる.</li>
-<li>イベントログ (<code>Applications and Services Logs &gt; Microsoft &gt; Windows &gt; CodeIntegrity &gt; Operational</code>, Event ID 3076/3077) で具体的にどの exe がブロックされたかは確認できるが, ブロックを解除する手段は無い.</li>
-<li>当初 SAC は「<strong>一度 OFF にするとクリーンインストールしないと再有効化できない</strong>」仕様だったが, 最近の Windows update で <strong>Windows セキュリティアプリから再有効化可能</strong> に改善されている.</li>
-</ul>
-<p>そのため「開発が終わったら再度 ON に戻す」運用も実用可能です. 個別の Stack 関連 exe を whitelist する手段は <strong>2026 年現在も存在しません</strong>.</p>
-</div>
-<p>参考: <a href="https://support.microsoft.com/en-us/windows/smart-app-control-frequently-asked-questions-285ea03d-fa88-4d56-882e-6698afdb7003">Smart App Control Frequently Asked Questions (Microsoft Support)</a></p>
-<hr />
-<p>これらは本章後半で扱う <strong>GHC のエラー</strong> とは別軸の「環境起因の問題」です. エラーメッセージそのものに違和感が無く挙動だけが変な場合は, まず上記 3 点を疑ってみてください.</p>
-</div>
-<div class="warn">
-<p>ここから先は,コードが複数行に渡ることが多くなるので,ghciの利用をやめてスクリプトを書きます.</p>
-<p><code>app</code> フォルダ内に <code>practice.hs</code>を作成しそこで事例の勉強をしましょう.</p>
-</div>
-<p><code>practice.hs</code> ファイルを作成したら,ファイルを以下のように記述しましょう.</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ot">{-# LANGUAGE OverloadedStrings #-}</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Data.Text</span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">putStrLn</span> <span class="st">&quot;practice&quot;</span></span></code></pre></div>
-<div class="warn">
-<p><code>module XXX () where</code></p>
-<p>という記述は,他のファイルからインポート可能なmodule化を行うための宣言です.
-また,Stackでは,<strong>大文字で始まる<code>*.hs</code>ファイルは,moduleとして認識されます.</strong></p>
-<p>したがって,一つのプロジェクトに複数の実行可能ファイルを生成する場合には,</p>
-<p><code>module XXX () where</code></p>
-<p>の記述をなくし, ファイル名を小文字ではじめる必要があります.</p>
-<p>これは,<code>Hello World</code>のために編集した<code>Main.hs</code>も同様であるため,<code>Main.hs</code>を<code>hello.hs</code>に名前を変更し,ファイル内の <code>module Main (main) where</code>の記述も削除し,以下のように変更しましょう.</p>
-<p>cf. <a href="https://www.reddit.com/r/haskell/comments/capuz7/multiple_executable_in_project/">他にもいくつかの方法があるようです</a></p>
-</div>
-<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Lib</span></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> helloWorld</span></code></pre></div>
-<p><code>package.yaml</code>の<code>executables:</code>を以下のように編集して<code>hello.hs</code>と<code>practice.hs</code>を実行可能ファイルとして登録します. <code>Data.Text</code>を利用するために,<code>dependencies:</code>以下に<code>- text</code>を追加しておきましょう.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">dependencies</span><span class="kw">:</span></span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> base &gt;= 4.7 &amp;&amp; &lt; 5</span></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> text</span></span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co">#ghc-options:</span></span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span><span class="kw">:</span></span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">source-dirs</span><span class="kw">:</span><span class="at"> src</span></span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="fu">executables</span><span class="kw">:</span></span>
-<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">hello</span><span class="kw">:</span></span>
-<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">main</span><span class="kw">:</span><span class="at">                main.hs</span></span>
-<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">source-dirs</span><span class="kw">:</span><span class="at">         app</span></span>
-<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">ghc-options</span><span class="kw">:</span></span>
-<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -threaded</span></span>
-<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -rtsopts</span></span>
-<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -with-rtsopts=-N</span></span>
-<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">dependencies</span><span class="kw">:</span></span>
-<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> hello-world</span></span>
-<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">practice</span><span class="kw">:</span></span>
-<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">main</span><span class="kw">:</span><span class="at">                practice.hs</span></span>
-<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">source-dirs</span><span class="kw">:</span><span class="at">         app</span></span>
-<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">ghc-options</span><span class="kw">:</span></span>
-<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -threaded</span></span>
-<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -rtsopts</span></span>
-<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -with-rtsopts=-N</span></span>
-<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">dependencies</span><span class="kw">:</span></span>
-<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> hello-world</span></span></code></pre></div>
-<p><code>stack run practice</code> で<code>practice</code>と表示されれば成功です.</p>
-<p>これからスクリプトで実行していくにあたって,<code>practice.hs</code>の中身をもう少し詳しく見てみましょう.</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Lib</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">putStrLn</span> <span class="st">&quot;practice&quot;</span></span></code></pre></div>
-<p>haskellのプログラムを実行すると, <code>main関数</code>のみが実行されます.</p>
-<p>Haskellは関数型言語なので,これから<code>import Lib</code>と<code>main</code>の間に関数を定義していき,<code>main</code>の中で実行していくことになります.</p>
-<p>main 関数で行うことは関数として実行することになりますが,これから学習する通常の関数の定義で記述するのは今は難しいので,<code>do</code>記法を紹介します. main 関数の=以下に<code>do</code>と書くことで,do以下のインデントブロックに記述された内容が手続き型的に1行ずつ実行されます.</p>
-<p>以下のプログラムでは, <code>"practice1"</code>,<code>"practice2"</code>,<code>"practice3"</code>の順に標準出力されます.</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Lib</span></span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> <span class="st">&quot;practice1&quot;</span> <span class="co">-- &quot;practice1&quot;</span></span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> <span class="st">&quot;practice2&quot;</span> <span class="co">-- &quot;practice2&quot;</span></span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> <span class="st">&quot;practice3&quot;</span> <span class="co">-- &quot;practice3&quot;</span></span></code></pre></div>
-<p><code>stack run practice</code>の結果を確認すると以下のようになります.</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> stack <span class="ex">run</span> practice</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="ex">practice1</span></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="ex">practice2</span></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="ex">practice3</span></span></code></pre></div>
-<p>また,ghciと異なって,出力結果が同じ画面に現れないので,
-以降のコード例では, その行の結果をコメントで書くこととします. コメント部分は,記述しなくても結果は変わらないので,省略しても構いません.</p>
-<div class="warn">
-<p>以降, CH3 以降の各練習問題に関しては異なる<code>hs</code>ファイルを作成し, package.yaml に追加,実行するようにして下さい.
-課題として都度提出してもらいます.</p>
-<ul>
-<li>各演習は <strong><code>Exercise CHN-K</code></strong> という見出しで識別されます (例: <code>Exercise CH4-3</code>).
-<ul>
-<li>URL アンカーは <code>#exercise-chN-K</code> (例: <code>fp4.html#exercise-ch4-3</code>).</li>
-<li>提出ファイル名は <code>chN-K.hs</code> (例: 3章 の 練習問題 1 → <code>ch3-1.hs</code>).</li>
-</ul></li>
-<li>package.yaml 上の <code>executables</code> 名称は任意につけて構いません.</li>
-</ul>
-<p>提出先に関しては講義中に指定します.</p>
-</div>
-<h1 id="エラー対応">エラー対応</h1>
-<p>スクリプトを書き始めると, ほぼ確実にエラーに遭遇します. Haskellのエラーメッセージは慣れていないと長く感じられますが, <strong>構造が固定化されている</strong> ため, 読み方さえ覚えれば原因がほぼ自動的に分かります.</p>
-<p>本章では (1) エラーメッセージの基本構造, (2) 典型的な 5 種類のエラーパターン, (3) fp3 までの内容を題材にしたエラー解決演習 を扱います.</p>
-<div class="note">
-<p>本章のエラー例は fp3 までの語彙 (トップレベル束縛, <code>main</code>, <code>let</code>, ghci で見た組込関数) のみで構成しています. 関数定義に伴う典型エラー (関数版 Non-exhaustive patterns / 引数不足など) は <strong>fp5 以降の演習</strong> にも含めていますので, そちらでも実例を確認してください.</p>
-</div>
-<h2 id="エラーメッセージの構造">エラーメッセージの構造</h2>
-<p>GHC のエラーは概ね以下の <strong>4 ブロック構造</strong> で出力されます.</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="op">&lt;</span>ファイルパス<span class="op">&gt;</span>:<span class="op">&lt;</span>行<span class="op">&gt;</span>:<span class="op">&lt;</span>列<span class="op">&gt;</span>: <span class="ex">error:</span> [<span class="op">&lt;</span>エラーコード<span class="op">&gt;</span>]</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="op">&lt;</span>人間向けメッセージ <span class="kw">(`</span><span class="ex">•</span><span class="kw">`</span> 記号で始まる箇条書き<span class="kw">)</span><span class="op">&gt;</span></span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="op">&lt;</span>文脈情報 <span class="kw">(`</span><span class="ex">In</span> an equation for...<span class="kw">`</span> など<span class="kw">)</span><span class="op">&gt;</span></span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="op">&lt;</span>行番号<span class="op">&gt;</span> <span class="kw">|</span> <span class="op">&lt;</span>該当ソース行<span class="op">&gt;</span></span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>       <span class="kw">|</span> <span class="op">&lt;</span>該当箇所の <span class="ex">^</span> マーク<span class="op">&gt;</span></span></code></pre></div>
-<p>たとえば:</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ex">/path/to/Main.hs:3:14:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">88464</span><span class="pp">]</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Variable</span> not in scope: greeting</span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="ex">3</span> <span class="kw">|</span> <span class="ex">main</span> = print greeting</span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span>              <span class="ex">^^^^^^^^</span></span></code></pre></div>
-<p>各ブロックの読み方:</p>
-<table>
-<thead>
-<tr class="header">
-<th>ブロック</th>
-<th>役割</th>
-<th>着目点</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><strong>ファイル + 行:列</strong></td>
-<td>エラー位置</td>
-<td>まずここで「どこか」を特定</td>
-</tr>
-<tr class="even">
-<td><strong>error: [GHC-xxxxx]</strong></td>
-<td>エラーコード</td>
-<td>検索キーワードとして使える</td>
-</tr>
-<tr class="odd">
-<td><strong><code>•</code> の行</strong></td>
-<td>人間向け要約</td>
-<td>何が間違っているか</td>
-</tr>
-<tr class="even">
-<td><strong><code>In ...</code> の行</strong></td>
-<td>文脈</td>
-<td>どの式・宣言の中で起きたか</td>
-</tr>
-<tr class="odd">
-<td><strong><code>^^^^</code> マーク</strong></td>
-<td>該当箇所</td>
-<td>ソース内の正確な位置</td>
-</tr>
-</tbody>
-</table>
-<p>エラー読解の順序は: <strong>「位置」→「タイプ(要約)」→「ソース上の該当箇所」</strong> の順が最速です. エラーコード (<code>GHC-88464</code> 等) は Google 検索でも有効です.</p>
-<h2 id="典型的なエラーパターン">典型的なエラーパターン</h2>
-<h3 id="variable-not-in-scope-未定義変数">1. <code>Variable not in scope</code> (未定義変数)</h3>
-<p><strong>スコープ(参照可能範囲)に変数が見つからない</strong> ときのエラー. <strong>タイポ</strong> または <strong>大文字小文字の取り違え</strong> が最頻出原因です.</p>
-<p>ソース:</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> greeting</span></code></pre></div>
-<p>実エラー出力:</p>
-<div class="sourceCode" id="cb13"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:2:14:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">88464</span><span class="pp">]</span></span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Variable</span> not in scope: greeting</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="ex">2</span> <span class="kw">|</span> <span class="ex">main</span> = print greeting</span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span>              <span class="ex">^^^^^^^^</span></span></code></pre></div>
-<p>修正: 変数を事前に定義するか, 既存変数のタイポを直す.</p>
-<div class="sourceCode" id="cb14"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="ot">greeting ::</span> <span class="dt">String</span></span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>greeting <span class="ot">=</span> <span class="st">&quot;hello&quot;</span></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> greeting</span></code></pre></div>
-<div class="warn">
-<p>変数の最初の文字を <strong>大文字で書いた場合</strong> は別のエラーになります.
-Haskell は小文字始まり = 変数, 大文字始まり = 型 / コンストラクタ, と扱うため,
-<code>Greeting</code> と書くと「<code>Data constructor not in scope: Greeting</code>」になります.</p>
-<div class="sourceCode" id="cb15"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:3:14:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">88464</span><span class="pp">]</span></span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Data</span> constructor not in scope: Greeting</span></code></pre></div>
-</div>
-<h3 id="couldnt-match-type-型不一致">2. <code>Couldn't match type</code> (型不一致)</h3>
-<p>ある型を期待しているところに別の型が来たとき出るエラー. <strong><code>(expected type) と (actual type) が不一致</code></strong> という構造になっています.</p>
-<p>ソース:</p>
-<div class="sourceCode" id="cb16"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> n <span class="ot">=</span> <span class="dv">1</span><span class="ot"> ::</span> <span class="dt">Int</span></span>
-<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> (n <span class="op">++</span> <span class="st">&quot;!&quot;</span>)</span></code></pre></div>
-<p>実エラー出力:</p>
-<div class="sourceCode" id="cb17"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:4:12:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">83865</span><span class="pp">]</span></span>
-<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> Couldn<span class="st">&#39;t match expected type ‘[Char]’ with actual type ‘Int’</span></span>
-<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="st">    • In the first argument of ‘(++)’, namely ‘n’</span></span>
-<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="st">      In the first argument of ‘print’, namely ‘(n ++ &quot;!&quot;)’</span></span>
-<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="st">      In a stmt of a &#39;</span>do<span class="st">&#39; block: print (n ++ &quot;!&quot;)</span></span>
-<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="st">  |</span></span>
-<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="st">4 |     print (n ++ &quot;!&quot;)</span></span>
-<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="st">  |            ^</span></span></code></pre></div>
-<p>読み方:</p>
-<ul>
-<li><code>expected type ‘[Char]’</code>: 「<code>[Char]</code> (= <code>String</code>) が来るはずだった」(<code>(++)</code> は両側ともリストを要求)</li>
-<li><code>actual type ‘Int’</code>: 「実際には <code>Int</code> が来た」(<code>n</code> の型)</li>
-</ul>
-<p>修正方針: 文字列同士の連結にするなら <code>show</code> で <code>n</code> を文字列に変換.</p>
-<div class="sourceCode" id="cb18"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> n <span class="ot">=</span> <span class="dv">1</span><span class="ot"> ::</span> <span class="dt">Int</span></span>
-<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> (<span class="fu">show</span> n <span class="op">++</span> <span class="st">&quot;!&quot;</span>)    <span class="co">-- &quot;1!&quot;</span></span></code></pre></div>
-<h3 id="no-instance-for-型クラス制約の不満足">3. <code>No instance for</code> (型クラス制約の不満足)</h3>
-<p>ある型に対して要求された機能(<code>Show</code>, <code>Num</code>, <code>Eq</code> など)が定義されていないときのエラー.</p>
-<p>ソース (型不適合: <code>putStrLn</code> に数値を渡す):</p>
-<div class="sourceCode" id="cb19"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">putStrLn</span> <span class="dv">42</span></span></code></pre></div>
-<p>実エラー出力:</p>
-<div class="sourceCode" id="cb20"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:2:17:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">39999</span><span class="pp">]</span></span>
-<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> No instance for ‘Num String’ arising from the literal ‘42’</span>
-<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> In the first argument of ‘putStrLn’, namely ‘42’</span>
-<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>      <span class="ex">In</span> the expression: putStrLn 42</span>
-<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>      <span class="ex">In</span> an equation for ‘main’: main = putStrLn 42</span>
-<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
-<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="ex">2</span> <span class="kw">|</span> <span class="ex">main</span> = putStrLn 42</span>
-<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span>                 <span class="ex">^^</span></span></code></pre></div>
-<p>読み方:</p>
-<ul>
-<li><code>No instance for ‘Num String’</code>: 「<code>String</code> 型に <code>Num</code> (数値) のインスタンスがない」</li>
-<li><code>arising from the literal ‘42’</code>: 「リテラル <code>42</code> から要請されている」</li>
-<li>→ <code>putStrLn :: String -&gt; IO ()</code> なので <code>42</code> が <code>String</code> だと思われ, でも <code>42</code> は <code>Num</code> 由来なので不適合</li>
-</ul>
-<p>修正: 文字列にしたいなら <code>show</code> で変換.</p>
-<div class="sourceCode" id="cb21"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">putStrLn</span> (<span class="fu">show</span> <span class="dv">42</span>)</span></code></pre></div>
-<p>別のケース (関数そのものを print してしまう):</p>
-<div class="sourceCode" id="cb22"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> <span class="fu">head</span></span></code></pre></div>
-<p>実エラー出力:</p>
-<div class="sourceCode" id="cb23"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:2:8:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">39999</span><span class="pp">]</span></span>
-<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> No instance for ‘Show <span class="er">(</span><span class="ex">[a0]</span> <span class="at">-</span><span class="op">&gt;</span> a0<span class="kw">)</span><span class="ex">’</span> arising from a use of ‘print’</span>
-<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a>        <span class="kw">(</span><span class="ex">maybe</span> you haven<span class="st">&#39;t applied a function to enough arguments?)</span></span>
-<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="st">    • In the expression: print head</span></span>
-<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="st">      In an equation for ‘main’: main = print head</span></span>
-<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a><span class="st">  |</span></span>
-<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a><span class="st">2 | main = print head</span></span>
-<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a><span class="st">  |        ^^^^^</span></span></code></pre></div>
-<p><code>(maybe you haven't applied a function to enough arguments?)</code> という GHC のヒントが非常に重要. <strong>関数本体ではなく, 結果を渡したかった</strong> のではないか? と聞いてくれている.</p>
-<p>修正: <code>head</code> に引数 (リスト) を与える.</p>
-<div class="sourceCode" id="cb24"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> (<span class="fu">head</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>])</span></code></pre></div>
-<h3 id="parse-error-構文エラー">4. <code>Parse error</code> (構文エラー)</h3>
-<p>文法として認識できない. <strong>インデント不足</strong> や <strong>括弧の不整合</strong> が代表的.</p>
-<p>ソース (do 内のインデント忘れ):</p>
-<div class="sourceCode" id="cb25"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="fu">putStrLn</span> <span class="st">&quot;hello&quot;</span></span></code></pre></div>
-<p>実エラー出力:</p>
-<div class="sourceCode" id="cb26"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:3:1:</span> error:</span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Parse</span> error: module header, import declaration</span>
-<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    <span class="ex">or</span> top-level declaration expected.</span>
-<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
-<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="ex">3</span> <span class="kw">|</span> <span class="ex">putStrLn</span> <span class="st">&quot;hello&quot;</span></span>
-<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span> <span class="ex">^^^^^^^^^^^^^^^^</span></span></code></pre></div>
-<p><code>do</code> の本体は <strong>1 つ深くインデント</strong> する必要があります.</p>
-<p>修正:</p>
-<div class="sourceCode" id="cb27"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> <span class="st">&quot;hello&quot;</span></span></code></pre></div>
-<h3 id="non-exhaustive-patterns-網羅されていないパターン-実行時">5. <code>Non-exhaustive patterns</code> (網羅されていないパターン, 実行時)</h3>
-<p>パターンマッチで <strong>すべての場合がカバーされていない</strong> とき, コンパイルは通っても (警告は出る) <strong>実行時</strong> に該当しない値が渡されると停止します. fp3 で見せた <code>(x, y) = (1, 2)</code> のような <strong>let パターン束縛</strong> でも同じ事が起きます.</p>
-<p>ソース:</p>
-<div class="sourceCode" id="cb28"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> (c<span class="op">:</span>_) <span class="ot">=</span> <span class="st">&quot;&quot;</span><span class="ot"> ::</span> <span class="dt">String</span></span>
-<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> [c]</span></code></pre></div>
-<p>実行時メッセージ (<code>stack run</code> 等で):</p>
-<div class="sourceCode" id="cb29"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="ex">probe:</span> app/Main.hs:3:9-28: Non-exhaustive patterns in c : _</span></code></pre></div>
-<p><code>(c:_)</code> は「先頭の 1 文字 + 残り」というパターンだが, 右辺が <strong>空文字列</strong> だと該当する文字が無いため失敗する.</p>
-<p>修正 1: 空でないことが確実な値を与える.</p>
-<div class="sourceCode" id="cb30"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> (c<span class="op">:</span>_) <span class="ot">=</span> <span class="st">&quot;hello&quot;</span><span class="ot"> ::</span> <span class="dt">String</span></span>
-<span id="cb30-3"><a href="#cb30-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> [c]       <span class="co">-- &quot;h&quot;</span></span></code></pre></div>
-<p>修正 2: 事前に空判定する.</p>
-<div class="sourceCode" id="cb31"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> xs <span class="ot">=</span> <span class="st">&quot;&quot;</span><span class="ot"> ::</span> <span class="dt">String</span></span>
-<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="fu">null</span> xs <span class="kw">then</span> <span class="fu">putStrLn</span> <span class="st">&quot;empty&quot;</span></span>
-<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>               <span class="kw">else</span> <span class="fu">putStrLn</span> [<span class="fu">head</span> xs]</span></code></pre></div>
-<div class="warn">
-<p>類似に <strong><code>head []</code> などの空リスト操作</strong> があります. これも実行時エラー:</p>
-<div class="sourceCode" id="cb32"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="ex">probe:</span> Prelude.head: empty list</span>
-<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="ex">CallStack</span> <span class="er">(</span><span class="ex">from</span> HasCallStack<span class="kw">)</span><span class="bu">:</span></span>
-<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>  <span class="ex">...</span></span>
-<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">head</span>, called at app/Main.hs:... in main:Main</span></code></pre></div>
-<p>リスト操作前に <code>null</code> で検査するのが安全です. 後の章では <code>Maybe</code> 型でこの種の失敗を <strong>型で表現する</strong> 手法を扱います.</p>
-</div>
-<h2 id="エラー読解のコツ">エラー読解のコツ</h2>
-<ol type="1">
-<li><strong>最初の error: 行だけ見る</strong>. Stack のビルドエラーは複数ブロック表示しますが, 修正すべきは <strong>一番上の error:</strong> がほとんどです.</li>
-<li><strong>エラーコード (<code>GHC-xxxxx</code>) を覚える</strong>. 同じコードは同じ種類の原因.</li>
-<li><strong><code>^^^^</code> の位置を必ず見る</strong>. 行番号だけでなく列までヒントが出ています.</li>
-<li><strong><code>expected</code> / <code>actual</code> の型は逆ではない</strong>. 「期待していたのは expected, 来てしまったのが actual」.</li>
-<li><strong>ghci で <code>:t &lt;式&gt;</code></strong> で局所的に型を確認すると, 型不一致の原因が見えやすい.</li>
-<li><strong>小さく書いて頻繁にビルド</strong>. 100 行書いてからビルドするのではなく, 数行書いたら <code>stack build</code>. エラーが出る場所がすぐ分かります.</li>
-</ol>
-<h2 id="演習">演習</h2>
-<p>ここからは fp1〜fp3 の復習を兼ねた <strong>エラー解決演習</strong> です. 各問題で:</p>
-<ol type="1">
-<li>提示されたコードと <strong>実際の GHC エラー出力</strong> を読む</li>
-<li>エラーの原因を答える</li>
-<li>動くコードに修正する</li>
-</ol>
-<p>提出は <code>ch4-K.hs</code> (修正後の動作するコード) に加え, <strong>何が原因だったか</strong> を 1 〜 2 行のコメントで書いてください.</p>
-<section id="exercise-ch4-1" class="note">
-<h3>Exercise CH4-1</h3>
-<p><strong>未定義変数のエラー (fp3 数値型の復習)</strong></p>
-<p>以下のコードは fp3 「数値型」節で扱った三角形面積の計算ですが, コンパイルが通りません. 出力されるエラーを読んで原因を答え, 動くように修正してください.</p>
-<div class="sourceCode" id="cb33"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-1.hs (誤りあり)</span></span>
-<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a><span class="ot">trianglearea ::</span> <span class="dt">Double</span></span>
-<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a>trianglearea <span class="ot">=</span> <span class="dv">5</span> <span class="op">*</span> <span class="dv">4</span> <span class="op">/</span> <span class="dv">2</span></span>
-<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> triangleArea</span></code></pre></div>
-<p>実エラー (<code>stack build</code> の出力):</p>
-<div class="sourceCode" id="cb34"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:5:15:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">88464</span><span class="pp">]</span></span>
-<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Variable</span> not in scope: triangleArea :: Double</span>
-<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Suggested</span> fix: Perhaps use ‘trianglearea’ <span class="er">(</span><span class="ex">line</span> 2<span class="kw">)</span></span>
-<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
-<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a><span class="ex">5</span> <span class="kw">|</span> <span class="ex">main</span> = print triangleArea</span>
-<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span>              <span class="ex">^^^^^^^^^^^^</span></span></code></pre></div>
-<details class="protected" data-pass="yakagika">
-<summary>
-回答例
-</summary>
-<p><strong>原因</strong>: 変数名の <strong>大文字小文字</strong> が定義 (<code>trianglearea</code>) と呼び出し (<code>triangleArea</code>) で食い違っている. Haskell は大文字小文字を区別する.</p>
-<p>GHC が <code>Suggested fix: Perhaps use ‘trianglearea’</code> というヒントまで出してくれているので, それを参考に揃える.</p>
-<p>修正:</p>
-<div class="sourceCode" id="cb35"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-1.hs (修正版)</span></span>
-<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a><span class="ot">triangleArea ::</span> <span class="dt">Double</span></span>
-<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a>triangleArea <span class="ot">=</span> <span class="dv">5</span> <span class="op">*</span> <span class="dv">4</span> <span class="op">/</span> <span class="dv">2</span></span>
-<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> triangleArea   <span class="co">-- 10.0</span></span></code></pre></div>
-<p>呼び出し側を揃えるか定義側を揃えるかどちらでも OK. <strong>キャメルケース (<code>triangleArea</code>) が Haskell の慣習</strong>.</p>
-</details>
-</section>
-<section id="exercise-ch4-2" class="note">
-<h3>Exercise CH4-2</h3>
-<p><strong>型不一致のエラー (fp3 リストと数値の復習)</strong></p>
-<p>以下のコードは fp3 「リスト」節で扱ったリスト連結 (<code>++</code>) を使っていますが, 型エラーが出ます. 原因を答えて修正してください.</p>
-<div class="sourceCode" id="cb36"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-2.hs (誤りあり)</span></span>
-<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> ([<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span><span class="ot"> ::</span> <span class="dt">Int</span>] <span class="op">++</span> <span class="dv">5</span>)</span></code></pre></div>
-<p>実エラー:</p>
-<div class="sourceCode" id="cb37"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:2:35:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">39999</span><span class="pp">]</span></span>
-<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> No instance for ‘Num <span class="pp">[</span><span class="ss">Int</span><span class="pp">]</span>’ arising from the literal ‘5’</span>
-<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> In the second argument of ‘<span class="er">(</span><span class="ex">++</span><span class="kw">)</span><span class="ex">’,</span> namely ‘5’</span>
-<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>      <span class="ex">In</span> the first argument of ‘print’, namely ‘<span class="er">(</span><span class="ex">[1,</span> 2, 3 :: Int] ++ 5<span class="kw">)</span><span class="ex">’</span></span>
-<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>      <span class="ex">In</span> the expression: print <span class="er">(</span><span class="ex">[1,</span> 2, 3 :: Int] ++ 5<span class="kw">)</span></span>
-<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
-<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a><span class="ex">2</span> <span class="kw">|</span> <span class="ex">main</span> = print <span class="er">(</span><span class="ex">[1,</span> 2, 3 :: Int] ++ 5<span class="kw">)</span></span>
-<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span>                                   <span class="ex">^</span></span></code></pre></div>
-<details class="protected" data-pass="yakagika">
-<summary>
-回答例
-</summary>
-<p><strong>原因</strong>: <code>(++)</code> は <strong>リスト同士</strong> を連結する演算子 (<code>[a] -&gt; [a] -&gt; [a]</code>) なのに, 右辺の <code>5</code> は <strong><code>Num</code> 型 (<code>Int</code> などの数値)</strong> で, リストではない. そのため GHC は「<code>5</code> も <code>[Int]</code> 型 (= <code>Num [Int]</code>) であってほしいが, <code>Num</code> のインスタンスは <code>[Int]</code> には無い」と訴えている.</p>
-<p>修正 1: 数値をリストに包んで連結する.</p>
-<div class="sourceCode" id="cb38"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> ([<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span><span class="ot"> ::</span> <span class="dt">Int</span>] <span class="op">++</span> [<span class="dv">5</span>])   <span class="co">-- [1,2,3,5]</span></span></code></pre></div>
-<p>修正 2: cons 構築子 <code>(:)</code> で先頭に足す.</p>
-<div class="sourceCode" id="cb39"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">print</span> (<span class="dv">5</span> <span class="op">:</span> [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span><span class="ot"> ::</span> <span class="dt">Int</span>])   <span class="co">-- [5,1,2,3]</span></span></code></pre></div>
-</details>
-</section>
-<section id="exercise-ch4-3" class="note">
-<h3>Exercise CH4-3</h3>
-<p><strong>Parse error と論理演算 (fp3 論理型の復習)</strong></p>
-<p>以下は fp3 「論理型」節で見た偶数判定を <code>do</code> の中で実行しようとしたコードです. 構文エラーで止まります. 原因を答えて修正してください.</p>
-<div class="sourceCode" id="cb40"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-3.hs (誤りあり)</span></span>
-<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span> (<span class="dv">101</span> <span class="ot">`mod`</span> <span class="dv">2</span> <span class="op">==</span> <span class="dv">0</span>)</span>
-<span id="cb40-5"><a href="#cb40-5" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span> (<span class="dv">202</span> <span class="ot">`mod`</span> <span class="dv">2</span> <span class="op">==</span> <span class="dv">0</span>)</span></code></pre></div>
-<p>実エラー:</p>
-<div class="sourceCode" id="cb41"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:4:1:</span> error:</span>
-<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Parse</span> error: module header, import declaration</span>
-<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>    <span class="ex">or</span> top-level declaration expected.</span>
-<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
-<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a><span class="ex">4</span> <span class="kw">|</span> <span class="ex">print</span> <span class="er">(</span><span class="ex">101</span> <span class="kw">`</span><span class="ex">mod</span><span class="kw">`</span> 2 == 0<span class="kw">)</span></span>
-<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span> <span class="ex">^^^^^^^^^^^^^^^^^^^^^^^^</span></span></code></pre></div>
-<details class="protected" data-pass="yakagika">
-<summary>
-回答例
-</summary>
-<p><strong>原因</strong>: <code>do</code> ブロック内の文が <strong>インデントされていない</strong>. Haskell は <strong>オフサイド規則 (offside rule)</strong> によりインデントで構造を判定するため, <code>do</code> の本体は <code>do</code> より深い (= 右側に位置する) 必要がある.</p>
-<p>GHC は「トップレベル宣言が来るはずだった」と判断してしまい, <code>print</code> で始まる行を <strong>新しい関数定義として読もうとして失敗</strong> している. これが「<code>Parse error: ... top-level declaration expected</code>」の正体.</p>
-<p>修正:</p>
-<div class="sourceCode" id="cb42"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-3.hs (修正版)</span></span>
-<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> (<span class="dv">101</span> <span class="ot">`mod`</span> <span class="dv">2</span> <span class="op">==</span> <span class="dv">0</span>)   <span class="co">-- False (奇数)</span></span>
-<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> (<span class="dv">202</span> <span class="ot">`mod`</span> <span class="dv">2</span> <span class="op">==</span> <span class="dv">0</span>)   <span class="co">-- True  (偶数)</span></span></code></pre></div>
-<p><code>do</code> の本体は <strong>同じ列に揃えて</strong> インデントする. 4 スペースが慣習だが揃っていれば 2 でも 6 でも OK.</p>
-</details>
-</section>
-<section id="exercise-ch4-4" class="note">
-<h3>Exercise CH4-4</h3>
-<p><strong>型クラス制約のエラー (fp3 数値型の混在)</strong></p>
-<p>以下のコードは整数と小数を混ぜて使っていますが, 型エラーが出ます. 原因を答えて修正してください.</p>
-<div class="sourceCode" id="cb43"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-4.hs (誤りあり)</span></span>
-<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> bmi <span class="ot">=</span> <span class="dv">60</span> <span class="op">/</span> (<span class="fl">1.75</span> <span class="op">*</span> <span class="fl">1.75</span>)<span class="ot"> ::</span> <span class="dt">Int</span></span>
-<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> bmi</span></code></pre></div>
-<p>実エラー:</p>
-<div class="sourceCode" id="cb44"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="ex">app/Main.hs:4:25:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">39999</span><span class="pp">]</span></span>
-<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> No instance for ‘Fractional Int’ arising from the literal ‘1.75’</span>
-<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>    <span class="ex">•</span> In the first argument of ‘<span class="er">(</span><span class="ex">*</span><span class="kw">)</span><span class="ex">’,</span> namely ‘1.75’</span>
-<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>      <span class="ex">In</span> the second argument of ‘<span class="er">(</span><span class="ex">/</span><span class="kw">)</span><span class="ex">’,</span> namely ‘<span class="er">(</span><span class="ex">1.75</span> <span class="pp">*</span> 1.75<span class="kw">)</span><span class="ex">’</span></span>
-<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>      <span class="ex">In</span> the expression: 60 / <span class="er">(</span><span class="ex">1.75</span> <span class="pp">*</span> 1.75<span class="kw">)</span> <span class="ex">::</span> Int</span>
-<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
-<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a><span class="ex">4</span> <span class="kw">|</span>     <span class="bu">let</span> <span class="va">bmi</span> <span class="op">=</span> <span class="dv">60</span> <span class="op">/</span> <span class="er">(</span><span class="ex">1.75</span> <span class="pp">*</span> 1.75<span class="kw">)</span> <span class="ex">::</span> Int</span>
-<span id="cb44-8"><a href="#cb44-8" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span>                     <span class="ex">^^^^</span></span></code></pre></div>
-<details class="protected" data-pass="yakagika">
-<summary>
-回答例
-</summary>
-<p><strong>原因</strong>: 結果を <code>:: Int</code> と型注釈で指定しているが, 式の中に小数リテラル <code>1.75</code> が混ざっている. GHC は「結果が <code>Int</code> ならすべての要素も <code>Int</code> のはず → <code>1.75</code> も <code>Int</code> であってほしい → でも <code>1.75</code> は <code>Fractional</code> 制約が要る → <code>Int</code> には <code>Fractional</code> のインスタンスが無い」と推論して <code>No instance for ‘Fractional Int’</code> を出している.</p>
-<p>修正: BMI は小数になるので <strong><code>Double</code> で扱う</strong>.</p>
-<div class="sourceCode" id="cb45"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-4.hs (修正版)</span></span>
-<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> bmi <span class="ot">=</span> <span class="dv">60</span> <span class="op">/</span> (<span class="fl">1.75</span> <span class="op">*</span> <span class="fl">1.75</span>)<span class="ot"> ::</span> <span class="dt">Double</span></span>
-<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> bmi   <span class="co">-- 19.591836734693878</span></span></code></pre></div>
-<p>もし整数結果が欲しい場合は <code>floor</code> などで切り捨てる: <code>print (floor bmi :: Int)</code>.</p>
-</details>
-</section>
-<section id="exercise-ch4-5" class="note">
-<h3>Exercise CH4-5</h3>
-<p><strong>実行時エラー: 網羅されていないパターン (fp3 文字列とリストの復習)</strong></p>
-<p>以下のコードはコンパイルは通りますが, 実行すると途中で止まります. 出力されるエラーを読んで原因を答え, 修正してください.</p>
-<div class="sourceCode" id="cb46"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-5.hs (誤りあり)</span></span>
-<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> (c<span class="op">:</span>_) <span class="ot">=</span> <span class="st">&quot;hello&quot;</span><span class="ot"> ::</span> <span class="dt">String</span></span>
-<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> [c]               <span class="co">-- &#39;h&#39;</span></span>
-<span id="cb46-6"><a href="#cb46-6" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> (d<span class="op">:</span>_) <span class="ot">=</span> <span class="st">&quot;&quot;</span><span class="ot"> ::</span> <span class="dt">String</span></span>
-<span id="cb46-7"><a href="#cb46-7" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> [d]               <span class="co">-- 実行時に止まる</span></span></code></pre></div>
-<p>実行時出力 (<code>stack run</code> 等で):</p>
-<div class="sourceCode" id="cb47"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="ex">h</span></span>
-<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a><span class="ex">ch4-5:</span> app/Main.hs:5:9-28: Non-exhaustive patterns in d : _</span></code></pre></div>
-<details class="protected" data-pass="yakagika">
-<summary>
-回答例
-</summary>
-<p><strong>原因</strong>: <code>let (d:_) = ""</code> は「先頭 1 文字 + 残り」というパターン束縛だが, 右辺が <strong>空文字列</strong> で先頭に該当する文字が無いため失敗する. パターン束縛も「網羅されていないパターン」の一種.</p>
-<p>実は <strong>コンパイル時にも警告が出ている</strong> はず (<code>Pattern match(es) are non-exhaustive</code> の warning). <code>stack build</code> のメッセージをよく見ると気づける.</p>
-<p>修正 1: 事前に <strong><code>null</code> で空判定</strong> する.</p>
-<div class="sourceCode" id="cb48"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- ch4-5.hs (修正版 A)</span></span>
-<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> xs <span class="ot">=</span> <span class="st">&quot;hello&quot;</span><span class="ot"> ::</span> <span class="dt">String</span></span>
-<span id="cb48-5"><a href="#cb48-5" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="fu">null</span> xs <span class="kw">then</span> <span class="fu">putStrLn</span> <span class="st">&quot;empty&quot;</span></span>
-<span id="cb48-6"><a href="#cb48-6" aria-hidden="true" tabindex="-1"></a>               <span class="kw">else</span> <span class="fu">putStrLn</span> [<span class="fu">head</span> xs]</span>
-<span id="cb48-7"><a href="#cb48-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb48-8"><a href="#cb48-8" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> ys <span class="ot">=</span> <span class="st">&quot;&quot;</span><span class="ot"> ::</span> <span class="dt">String</span></span>
-<span id="cb48-9"><a href="#cb48-9" aria-hidden="true" tabindex="-1"></a>    <span class="kw">if</span> <span class="fu">null</span> ys <span class="kw">then</span> <span class="fu">putStrLn</span> <span class="st">&quot;empty&quot;</span></span>
-<span id="cb48-10"><a href="#cb48-10" aria-hidden="true" tabindex="-1"></a>               <span class="kw">else</span> <span class="fu">putStrLn</span> [<span class="fu">head</span> ys]</span></code></pre></div>
-<p>修正 2: パターン束縛ではなく <code>head</code> (こちらも空文字列だと実行時エラーだが, 検査と組み合わせる前提).</p>
-<div class="sourceCode" id="cb49"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> xs <span class="ot">=</span> <span class="st">&quot;hello&quot;</span><span class="ot"> ::</span> <span class="dt">String</span></span>
-<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a>    <span class="fu">putStrLn</span> (<span class="kw">if</span> <span class="fu">null</span> xs <span class="kw">then</span> <span class="st">&quot;&quot;</span> <span class="kw">else</span> [<span class="fu">head</span> xs])</span></code></pre></div>
-<p><strong>安全な扱いとして</strong> 後の章で <code>Maybe</code> 型を使い「失敗しうる」ことを <strong>型で表現する</strong> 手法を学びます (例: <code>listToMaybe</code>).</p>
-</details>
-</section>]]></description>
-    <pubDate>Fri, 18 Oct 2024 00:00:00 UT</pubDate>
-    <guid>/lectures/fp4.html</guid>
-    
-    <author>kaya3728@gmail.com (yakagika)</author>
-    
-    <dc:creator>yakagika</dc:creator>
-</item>
-<item>
-    <title>関数型プログラミング Ch2 環境構築</title>
-    <link>/lectures/fp2.html</link>
-    <description><![CDATA[<h1 id="プログラミング用の設定">プログラミング用の設定</h1>
-<p>本章では,実際にHaskellを利用したプログラミングを体験してみます. しかし,Haskellを使う前に,一般的にプログラミングを行うために必要となる準備をしておきましょう.</p>
-<div class="note">
-<p>テキストエディタ(VSCode)のインストール,IME,CLI,基本コマンドなどの設定は他の講義と共通するため,別ページにまとめています.</p>
-<p><a href="setup.html">プログラミング用の設定はこちら</a></p>
-</div>
-<h1 id="haskellセットアップ">Haskellセットアップ</h1>
-<p>言語の特徴や意味を色々と説明してきましたが,習うより慣れろということで,そろそろHaskellを利用してみましょう.Haskellの開発環境には様々なものがありますが,現在良く使われているものとして<a href="https://www.haskell.org/cabal/"><code>Cabal</code></a> + <a href="https://www.haskell.org/ghcup/"><code>GHCup</code></a>あるいは<a href="https://docs.haskellstack.org/en/stable/"><code>Stack</code></a>の2つがあります. CabalとStackはプロジェクトのビルドを行うためのアーキテクチャであり,GHCupは周辺環境のインストーラーです. どちらで開発を行ってもいいのですが,本稿では<code>Stack</code>を用います.</p>
-<p>Stackは現在のHaskellの標準的なコンパイラである,<code>Glasgow Haskell Compiler（GHC）</code>に基づいたビルド環境です(cabalもGHCですが). 他の言語と同様にHaskellでも様々なpackage(ライブラリ)を利用するのですが,package毎に他のpackageや,GHC(Haskellのコンパイラ)との依存関係があります.それらを使用するpackage事に調整することが人間には至難の業であり, 特定のpackageの依存関係を満たせば他のpackageの依存関係が満たされなくなるという試行錯誤を永遠と繰り返すことを<code>cabal hell</code>などと呼びます.</p>
-<p>Stackにはそのようなpackage間の依存関係を満たすバージョンの組み合わせ(<code>resolver</code>)を利用して,自動で解決してくれる機能があり,Haskellでのプロジェクトの開発を容易にしてくれます. resolverの集まりを<a href="https://www.stackage.org"><code>Stackage</code></a>といい, resolverで扱われるpackageをまとめて管理するレポジトリのことを<a href="https://hackage.haskell.org"><code>Hackage</code></a>といいます.</p>
-<div class="note">
-<p><strong>Stackの役割</strong></p>
-<p>Haskellの各packageは, 動作可能なGHCのバージョンや依存packageのバージョンに制約を持っています. プロジェクトで使う複数のpackageを同時に動かすには, <strong>すべてのpackageの制約を満たすGHCと依存packageの組合せ</strong>, すなわち各制約集合の <strong>積集合</strong> に属する組合せを選ばなければなりません. この組合せを人手で探そうとして泥沼にはまるのが <code>cabal hell</code> です.</p>
-<svg viewBox="0 0 360 300" width="100%" style="max-width: 440px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="package毎の対応GHC・依存バージョンの積集合">
-<circle cx="135" cy="130" r="80" fill="rgba(13,148,136,0.18)" stroke="currentColor" stroke-width="1.5"/>
-<circle cx="225" cy="130" r="80" fill="rgba(13,148,136,0.18)" stroke="currentColor" stroke-width="1.5"/>
-<circle cx="180" cy="200" r="80" fill="rgba(13,148,136,0.18)" stroke="currentColor" stroke-width="1.5"/>
-<text x="55" y="38" fill="currentColor" font-size="14" text-anchor="middle" font-weight="600">package A</text>
-<text x="55" y="55" fill="currentColor" font-size="11" text-anchor="middle" opacity="0.7">対応 GHC・依存</text>
-<text x="305" y="38" fill="currentColor" font-size="14" text-anchor="middle" font-weight="600">package B</text>
-<text x="305" y="55" fill="currentColor" font-size="11" text-anchor="middle" opacity="0.7">対応 GHC・依存</text>
-<text x="180" y="290" fill="currentColor" font-size="14" text-anchor="middle" font-weight="600">package C (対応 GHC・依存)</text>
-<text x="180" y="158" fill="currentColor" font-size="12" text-anchor="middle" font-weight="700">使用可能な</text>
-<text x="180" y="175" fill="currentColor" font-size="12" text-anchor="middle" font-weight="700">組合せ</text>
-</svg>
-<p>Stackでは, この積集合の代表点を予め選んで固定したものが <strong>resolver (Stackage が提供する組合せの snapshot)</strong> です. プロジェクトはこのresolverに従い, <strong>選ばれたGHCとpackage群がプロジェクト固有のもの (<code>.stack-work/</code> ディレクトリ以下) として配置</strong> され, 他のプロジェクトと干渉しません.</p>
-<svg viewBox="0 0 360 220" width="100%" style="max-width: 440px; display: block; margin: 1.5em auto;" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Stackプロジェクトの概念図">
-<rect x="20" y="20" width="320" height="190" rx="10" fill="rgba(13,148,136,0.05)" stroke="currentColor" stroke-width="1.5" stroke-dasharray="6 4"/>
-<text x="40" y="42" fill="currentColor" font-size="13" font-weight="600">Stackプロジェクト (resolver で固定)</text>
-<rect x="50" y="60" width="260" height="48" rx="8" fill="rgba(13,148,136,0.22)" stroke="currentColor" stroke-width="1.2"/>
-<text x="180" y="90" fill="currentColor" font-size="15" text-anchor="middle" font-weight="600">選択された GHC</text>
-<rect x="50" y="130" width="80" height="38" rx="19" fill="rgba(13,148,136,0.12)" stroke="currentColor" stroke-width="1"/>
-<text x="90" y="154" fill="currentColor" font-size="13" text-anchor="middle">package A</text>
-<rect x="140" y="130" width="80" height="38" rx="19" fill="rgba(13,148,136,0.12)" stroke="currentColor" stroke-width="1"/>
-<text x="180" y="154" fill="currentColor" font-size="13" text-anchor="middle">package B</text>
-<rect x="230" y="130" width="80" height="38" rx="19" fill="rgba(13,148,136,0.12)" stroke="currentColor" stroke-width="1"/>
-<text x="270" y="154" fill="currentColor" font-size="13" text-anchor="middle">package C</text>
-<text x="180" y="200" fill="currentColor" font-size="11" text-anchor="middle" opacity="0.7">.stack-work/ ディレクトリ以下にプロジェクト固有として配置</text>
-</svg>
-<p>従来 <code>Cabal + GHCup</code> の構成では, GHCバージョン管理・package管理・依存解決をそれぞれ別の役割で分担していましたが, <code>Stack</code> はこれらをまとめて扱えます.</p>
-<table>
-<colgroup>
-<col style="width: 20%" />
-<col style="width: 20%" />
-<col style="width: 20%" />
-<col style="width: 20%" />
-<col style="width: 20%" />
-</colgroup>
-<thead>
-<tr class="header">
-<th style="text-align: left;"></th>
-<th style="text-align: left;">GHCバージョン管理</th>
-<th style="text-align: left;">パッケージ管理</th>
-<th style="text-align: left;">依存解決</th>
-<th style="text-align: left;">プロジェクト分離</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: left;">Cabal + GHCup</td>
-<td style="text-align: left;">GHCup</td>
-<td style="text-align: left;">Cabal (Hackage)</td>
-<td style="text-align: left;">Cabal solver</td>
-<td style="text-align: left;">Cabal store</td>
-</tr>
-<tr class="even">
-<td style="text-align: left;">Stack</td>
-<td style="text-align: left;">Stack</td>
-<td style="text-align: left;">Stack (Hackage)</td>
-<td style="text-align: left;">resolver (Stackage)</td>
-<td style="text-align: left;">.stack-work</td>
-</tr>
-</tbody>
-</table>
-</div>
-<h2 id="環境構築">環境構築</h2>
-<p>Stackの環境構築の方法は基本的には,<a href="https://docs.haskellstack.org/en/stable/">公式サイト</a>に従ってください. 使用しているOS毎にインストール方法が異なるので注意しましょう特にMacユーザーはIntel Mac と Apple silliconでインストール方法が異なるので正しい方を選択するようにしてください.</p>
-<p>インストールが終わったら,以下のコマンドでstackを最新版にupgradeします.</p>
-<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">stack</span> upgrade</span></code></pre></div>
-<p>次に,開発用のディレクトリに移動して,開発用のプロジェクトを作成していきます. Stackでは,新しいプロジェクトの作成は<code>stack new [project-name]</code> コマンドで行われます. <code>stack new [project-name]</code>コマンドで新しいプロジェクトを作成すると,必要なファイルが含まれた<code>[project-name]</code>という名前のディレクトリが作成されます. 作成されたディレクトリに移動しましょう.</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> ls</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> stack <span class="ex">new</span> hello-world</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> ls</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="ex">hello-world</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> cd <span class="ex">hello-world</span></span></code></pre></div>
-<p>作成されたディレクトリの構成は以下のようになっています.</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">❯</span> tree</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="bu">.</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="ex">├──</span> CHANGELOG.md</span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="ex">├──</span> LICENSE</span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="ex">├──</span> README.md</span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="ex">├──</span> Setup.hs</span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="ex">├──</span> app</span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="ex">│</span>   ├── hello.hs</span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="ex">├──</span> hello-world.cabal</span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="ex">├──</span> package.yaml</span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="ex">├──</span> src</span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="ex">│</span>   └── Lib.hs</span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="ex">├──</span> stack.yaml</span>
-<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="ex">└──</span> test</span>
-<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>    <span class="ex">└──</span> Spec.hs</span></code></pre></div>
-<p>それぞれの用途と意味は以下のとおりです.</p>
-<div class="note">
-<ul>
-<li><p><code>app</code>フォルダの中には,実行可能ファイル用のプログラム</p>
-<ul>
-<li><p>プロジェクトをbuildすると,<code>Main.hs</code>から実行可能ファイル(executable)が生成されます</p></li>
-<li><p>この後,<code>Main.hs</code>の中身を編集して<code>Hello World</code>用のプログラムを作成します.</p></li>
-</ul></li>
-</ul>
-<hr />
-<ul>
-<li><p><code>src</code>フォルダ内には,実行可能ファイルで利用するライブラリが格納されます.</p>
-<ul>
-<li>ここに自分で開発したライブラリを含めることも可能です.</li>
-</ul></li>
-</ul>
-<hr />
-<ul>
-<li><p><code>package.yaml</code>ファイルはプロジェクトの設定を記入するファイルです.</p>
-<ul>
-<li><p>Hackageなどの外部のライブラリを利用する場合には,<code>package.yaml</code>内の<code>dependencies:</code>部分に,使用したいライブラリを記述します.</p></li>
-<li><p>Stackは<code>stack setup</code>コマンドによって,package.yaml内に記述されたライブラリの依存関係を解決するresolverを自動で選択しますが,
-自分で使いたいresolverを<code>package.yaml</code>内の<code>resolver:</code>に続けて書くことで,指定することも可能です.</p></li>
-<li><p>その他実行可能ファイルの設定や,コンパイルオプションなどを指定することができます.</p></li>
-<li><p><code>package.yaml</code> の設定に従って,プロジェクトの設定ファイル <code>test.cabal</code>が自動で作成されます.
-基本的にstackを使っている範囲では<code>.cabal</code>ファイルを自分で編集することはありません.</p></li>
-</ul></li>
-</ul>
-<hr />
-<ul>
-<li><p><code>stack.yaml</code>ファイルは,stackの設定を記入します</p>
-<ul>
-<li>resolverに含まれないライブラリ(自分のGitHub上にあるライブラリなど)を指定する,あるいはあえてresolverとは異なるバージョンを利用するときなどには
-<code>extra-deps:</code>に続けて,使用したいライブラリのレポジトリやバージョンを明示します.</li>
-</ul></li>
-</ul>
-</div>
-<p>これらの利用法は,今後ライブラリを使用し始めたときに改めて学習すれば大丈夫なので,取り敢えずプログラムを作成してきましょう.</p>
-<h2 id="hello-world">Hello World</h2>
-<p>環境構築が上手くできているかを確認するために,<code>Hello World</code>用のプログラムを作成してみましょう.</p>
-<p>まずは,<code>app/Main.hs</code>をテキストエディタで開いて編集します.</p>
-<p><code>app/Main.hs</code>を開くと,以下のようなファイルになっているかと思います. Haskellのプログラムをコンパイルした実行可能ファイルでは,<code>main =</code> 内の記述が実行されます.</p>
-<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">module</span> <span class="dt">Main</span> (main) <span class="kw">where</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Lib</span></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> someFunc</span></code></pre></div>
-<p>現在は<code>sumFunc</code>という関数が実行されます. <code>sumFunc</code>は <code>import Lib</code> の記述によって, <code>src/Lib.hs</code>からimportされています. <code>src/Lib.hs</code>を開くと,</p>
-<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">module</span> <span class="dt">Lib</span></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    ( someFunc</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    ) <span class="kw">where</span></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="ot">someFunc ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>someFunc <span class="ot">=</span> <span class="fu">putStrLn</span> <span class="st">&quot;someFunc&quot;</span></span></code></pre></div>
-<p>という風に<code>someFunc</code>が定義されています. プログラム内の <code>someFunc :: IO ()</code> は<code>someFunc</code>の型注釈です. <code>IO ()</code> というのは,標準入出力 <code>IO</code> において, アクション <code>()</code> を実行するという意味ですが,ここではそれぞれの詳細は省きます. <code>putStrLn</code> は文字列を引数にとり,標準入出力<code>IO</code>に受け取った文字列を出力するというアクション<code>()</code>を返す関数であり,ここでは,<code>"someFunc"</code>という文字列が出力されます. この<code>"someFunc"</code> 部分を <code>"Hello World"</code>に書き換えれば,Hello Worldは実行できます.関数の定義はこのあと徐々に扱いますが, someFuncは,引数を取らないので関数というよりは実際には値です.</p>
-<p><code>Lib.hs</code> に<code>helloWorld</code>と出力する値<code>helloWorld</code>を追加し,全体を以下のように書き換えましょう.</p>
-<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">module</span> <span class="dt">Lib</span></span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    ( someFunc</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    , helloWorld</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    ) <span class="kw">where</span></span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="ot">someFunc ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>someFunc <span class="ot">=</span> <span class="fu">putStrLn</span> <span class="st">&quot;someFunc&quot;</span></span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="ot">helloWorld ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>helloWorld <span class="ot">=</span> <span class="fu">putStrLn</span> <span class="st">&quot;Hello World&quot;</span></span></code></pre></div>
-<p><code>module Lib () where</code> はモジュール宣言で,他のプログラムから<code>import Lib</code>で,<code>src/Lib.hs</code>内に定義された関数や値などの内 <code>()</code>内に記述されたものを読み込むことができるようにします.
-作成した値<code>helloWorld</code>を<code>()</code>内に<code>helloWorld</code>を追加することを忘れないようにしましょう.</p>
-<p>併せて <code>app/Main.hs</code> を書き換えて,作成した<code>helloWorld</code>を実行しましょう.</p>
-<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">module</span> <span class="dt">Main</span> (main) <span class="kw">where</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Lib</span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> helloWorld</span></code></pre></div>
-<p>このプログラムをコンパイルして得られる実行可能ファイルの名前などは,<code>package.yaml</code>内で定義されています.</p>
-<div class="sourceCode" id="cb8"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ghc-options</span><span class="kw">:</span></span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> -Wall</span></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> -Wcompat</span></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> -Widentities</span></span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> -Wincomplete-record-updates</span></span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> -Wincomplete-uni-patterns</span></span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> -Wmissing-export-lists</span></span>
-<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> -Wmissing-home-modules</span></span>
-<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> -Wpartial-fields</span></span>
-<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="kw">-</span><span class="at"> -Wredundant-constraints</span></span>
-<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span><span class="kw">:</span></span>
-<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">source-dirs</span><span class="kw">:</span><span class="at"> src</span></span>
-<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a><span class="fu">executables</span><span class="kw">:</span></span>
-<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">hello-world-exe</span><span class="kw">:</span></span>
-<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">main</span><span class="kw">:</span><span class="at">                Main.hs</span></span>
-<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">source-dirs</span><span class="kw">:</span><span class="at">         app</span></span>
-<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">ghc-options</span><span class="kw">:</span></span>
-<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -threaded</span></span>
-<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -rtsopts</span></span>
-<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -with-rtsopts=-N</span></span>
-<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">dependencies</span><span class="kw">:</span></span>
-<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> hello-world</span></span></code></pre></div>
-<p><code>ghc-options:</code> 以下の項目はghcのコンパイルオプションであり,<code>W</code>で始まるいずれのオプションもコンパイル時の<code>Warning</code>を追加するものです. これらのコンパイルオプションがあると,プログラムの品質を高めることができますが, 利用していてWarningが邪魔に感じた場合は,すべて削除しても問題ありません(
-その場合は以下のように,<code>ghc-options:</code>部分を<code>#</code>でコメントアウトしてください.)</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">#ghc-options:</span></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span><span class="kw">:</span></span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">source-dirs</span><span class="kw">:</span><span class="at"> src</span></span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="fu">executables</span><span class="kw">:</span></span>
-<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">hello-world-exe</span><span class="kw">:</span></span>
-<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">main</span><span class="kw">:</span><span class="at">                Main.hs</span></span>
-<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">source-dirs</span><span class="kw">:</span><span class="at">         app</span></span>
-<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">ghc-options</span><span class="kw">:</span></span>
-<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -threaded</span></span>
-<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -rtsopts</span></span>
-<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> -with-rtsopts=-N</span></span>
-<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">dependencies</span><span class="kw">:</span></span>
-<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> hello-world</span></span></code></pre></div>
-<p>特に,本講義資料では,品質よりも分かりやすさを優先してできるだけシンプルな実装を紹介する他,事例としてあえて間違ったコードを入力する場面も存在します. そのままサンプルを入力すると多数のWarningが表示されることになるので,以下の説明中で登場する出力結果ではこれらのオプションはすべて切った状態のものとなっている点に留意してください.</p>
-<p><code>library:</code>以下の記述で,利用するライブラリのPATH,<code>executables:</code>以下の記述で実行可能ファイルについて記述されています. ここでは, executableとして’app’フォルダ内にある’Main.hs’が’hello-world-exe’という名称でコンパイルされることが書かれています.<code>ghc-options:</code>以下は,コンパイル時のオプションを設定していますが,ここでは詳細は省略します.</p>
-<p><code>Main.hs</code>以外のファイルをここに追加すれば,いくらでも実行可能ファイルは増やすことができます.</p>
-<p><code>hello-world-exe</code>部分をもっと短い名前に変更することも可能です.なお生成される実行可能ファイルはMacでは<code>hello-world-exe</code>,Windowsでは<code>hello-world-exe.exe</code>になるので注意してください.</p>
-<p>それでは,以下のコマンドでこのプロジェクトをbuildして,実行してみましょう.</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">stack</span> build</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="ex">stack</span> exec hello-world-exe</span></code></pre></div>
-<p><code>stack build</code>のあと,プログラムにミスがなければ以下のように出力されるはずです(一部省略しています).</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ex">❯</span> stack build</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="ex">hello-world</span><span class="op">&gt;</span> build <span class="er">(</span><span class="ex">lib</span> + exe<span class="kw">)</span> <span class="ex">with</span> ghc-9.6.4</span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="ex">Preprocessing</span> library for hello-world-0.1.0.0..</span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="ex">Building</span> library for hello-world-0.1.0.0..</span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="ex">[1</span> of 2] Compiling Lib [Source file changed]</span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="ex">Preprocessing</span> executable <span class="st">&#39;hello-world-exe&#39;</span> for hello-world-0.1.0.0..</span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="ex">Building</span> executable <span class="st">&#39;hello-world-exe&#39;</span> for hello-world-0.1.0.0..</span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="ex">[1</span> of 2] Compiling Main [Source file changed]</span>
-<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="ex">[3</span> of 3] Linking .stack-work/dist/x86_64-osx/ghc-9.6.4/build/hello-world-exe/hello-world-exe [Objects changed]</span>
-<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="ex">hello-world</span><span class="op">&gt;</span> copy/register</span>
-<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a><span class="ex">Registering</span> library for hello-world-0.1.0.0..</span></code></pre></div>
-<p>どこかで,タイプミスなどがあると例えば以下のようなエラーが表示される可能性もあります(一部省略しています).</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="ex">hello-world</span><span class="op">&gt;</span> build <span class="er">(</span><span class="ex">lib</span> + exe<span class="kw">)</span> <span class="ex">with</span> ghc-9.6.4</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="ex">Preprocessing</span> library for hello-world-0.1.0.0..</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="ex">Building</span> library for hello-world-0.1.0.0..</span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="ex">Preprocessing</span> executable <span class="st">&#39;hello-world-exe&#39;</span> for hello-world-0.1.0.0..</span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="ex">Building</span> executable <span class="st">&#39;hello-world-exe&#39;</span> for hello-world-0.1.0.0..</span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="ex">[1</span> of 2] Compiling Main [Source file changed]</span>
-<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="ex">/Users/akagi/Documents/Programs/Haskell/blog/hello-world/app/Main.hs:6:8:</span> error: <span class="pp">[</span><span class="ss">GHC</span><span class="pp">-</span><span class="ss">88464</span><span class="pp">]</span></span>
-<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Variable</span> not in scope: hellWorld :: IO <span class="er">(</span><span class="kw">)</span></span>
-<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    <span class="ex">Suggested</span> fix: Perhaps use <span class="st">&#39;helloWorld&#39;</span> <span class="er">(</span><span class="ex">imported</span> from Lib<span class="kw">)</span></span>
-<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span></span>
-<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a><span class="ex">6</span> <span class="kw">|</span> <span class="ex">main</span> = hellWorld</span>
-<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>  <span class="kw">|</span>        <span class="ex">^^^^^^^^^</span></span>
-<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a><span class="ex">Error:</span> <span class="pp">[</span><span class="ss">S</span><span class="pp">-</span><span class="ss">7282</span><span class="pp">]</span></span>
-<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>       <span class="ex">Stack</span> failed to execute the build plan.</span>
-<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>       <span class="ex">While</span> executing the build plan, Stack encountered the error:</span>
-<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a>       <span class="ex">[S-7011]</span></span>
-<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a>       <span class="ex">While</span> building package hello-world-0.1.0.0</span>
-<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>       <span class="ex">Process</span> exited with code: ExitFailure 1</span></code></pre></div>
-<p>上のエラーでは, <code>Main.hs</code>の6行目で使用されている,<code>hellWorld</code>が定義されていないという意味になります.
-<code>helloWorld</code>と<code>o</code>を追加して正しい名称にしたあともう一度 <code>stack build</code>をしてみましょう.</p>
-<p><code>stack exec hello-world-exe</code>の後,<code>Hello World</code>と出力されていれば成功です.</p>
-<p>なお,build と exec を併せて一つのコマンド<code>stack run</code> で代替することも可能です.</p>
-<div class="sourceCode" id="cb13"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="ex">❯</span> stack run hello-world-exe</span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="ex">hello-world</span><span class="op">&gt;</span> build <span class="er">(</span><span class="ex">lib</span> + exe<span class="kw">)</span> <span class="ex">with</span> ghc-9.6.4</span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="ex">Preprocessing</span> library for hello-world-0.1.0.0..</span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="ex">Building</span> library for hello-world-0.1.0.0..</span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="ex">Preprocessing</span> executable <span class="st">&#39;hello-world-exe&#39;</span> for hello-world-0.1.0.0..</span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="ex">Building</span> executable <span class="st">&#39;hello-world-exe&#39;</span> for hello-world-0.1.0.0..</span>
-<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="ex">hello-world</span><span class="op">&gt;</span> copy/register</span>
-<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="ex">Registering</span> library for hello-world-0.1.0.0..</span>
-<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="ex">Hello</span> World</span></code></pre></div>]]></description>
-    <pubDate>Fri, 18 Oct 2024 00:00:00 UT</pubDate>
-    <guid>/lectures/fp2.html</guid>
     
     <author>kaya3728@gmail.com (yakagika)</author>
     
