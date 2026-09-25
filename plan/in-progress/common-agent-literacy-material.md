@@ -5,7 +5,7 @@ created: 2026-09-04
 updated: 2026-09-25
 priority: high
 next_actor: user
-next_action: "Windows 実機で herdr + codex の疎通確認と初回認証画面 (credential.png) の撮影 (外部待ち b)"
+next_action: "Windows 検証 (2026-09-25) の所見を git.md / agent.md へ反映する. codex の winget 導入の回避策をユーザが選ぶ (§Windows 実機検証)"
 ---
 
 # 共通資料 - git とエージェント利用のリテラシー
@@ -240,6 +240,34 @@ codex (GPT-5.6, リポジトリを直接読ませた) と Cursor-Fable (全文�
 4. **`<details data-pass>` はページソースにパスワードが平文で入る**ので保護になっていない.
    基盤側の問題で本資料の範囲外だが, 回答例を隠す設計の前提として認識が要る.
 
+## Windows 実機検証 (2026-09-25)
+
+Parallels の Windows 11 (ARM64, build 26200) で, 未導入の状態から本文どおりに実施した.
+操作は Claude Code の computer use, ログインと認可と sandbox の UAC はユーザ.
+clone は ExchangeAlgebra (public) を使い, push は `--dry-run` のみ. 検証後に clone は削除した.
+
+| 項目 | 結果 | 本文への影響 |
+|---|---|---|
+| `winget install -e --id Git.Git` / `GitHub.cli` | 成功. どちらも UAC の確認が出る | UAC の「はい」を押す旨を追記 |
+| 開き直す前の PowerShell で `git` | 認識されない | 本文どおり |
+| `winget install -e --id OpenAI.Codex` (0.156.1) | 「エイリアス codex を追加」と出るが, 開き直しても `codex` が認識されない | **要修正 (重大)**. 下記 |
+| herdr の公式 PowerShell スクリプト (0.9.1) | 成功. ARM 機では x86_64 版をエミュレーションで入れる | 本文どおり |
+| `gh auth login` | 成功. 最初の質問は「Where do you use GitHub?」. コードは自動でクリップボードに入る. ブラウザはまずサインイン画面 | 質問文と「控えて」を修正 |
+| clone / status / diff / add / diff --staged / commit / log / push --dry-run | すべて本文どおり. 認証は聞かれない | - |
+| `codex login` | ブラウザでログインし成功 | - |
+| codex 初回起動 | 本文に無い画面が 2 つ出る: フォルダの信頼 (Trust and continue) と, Windows の sandbox 設定 (既定 = 管理者権限で設定 / non-admin / Quit) | 2 画面の説明を追記 |
+| codex の権限表示 | `/status` は `Workspace (Ask for approval)`. 読み取りだけのコマンドにも毎回承認を求める | 本文の `Read Only` / `Auto` の説明と名前が合わない. 要確認 |
+| `/diff` と右 pane の `git diff` | どちらも差分を表示. 本文の 2 pane 配置がそのまま動く | 図に使える |
+| herdr の agents 欄 / integrations | codex を検出しない (`not found`) | codex の PATH 問題の派生. 回避策次第で解消するか要確認 |
+
+**codex が起動できない原因**: 開発者モードが無効な Windows では winget が `Links\codex.exe` の
+symlink を作れず (`Failed to create symlink`), 代わりにパッケージのフォルダを PATH に足す.
+ところがフォルダ内の実行ファイル名は `codex-aarch64-pc-windows-msvc.exe` (x64 機は `codex-x86_64-…`)
+なので `codex` では見つからない. 公式にも未解決 (openai/codex #28321, #11283).
+
+撮影した画像は `_scratch/winverify/` (未収録). 候補: Device Activation の画面 (`credential.png` 案),
+`gh auth login` の端末, herdr の初回画面, codex のフォルダ信頼と sandbox の画面, 承認画面, `/diff`, 2 pane 配置.
+
 ## 未確定 (台帳)
 
 | 問い | 親 | 状態 | 分岐先 | 外へ出した物 | 戻る条件 | 結論 |
@@ -247,13 +275,13 @@ codex (GPT-5.6, リポジトリを直接読ませた) と Cursor-Fable (全文�
 | `AGENTS.md` を学生は書くのか読むのか | agent.md 4 | resolved | - | - | - | 最低限を事例として配布し以後は各自が改善. 研究用 repo の規約から採る (2026-09-04) |
 | 学生 repo の中身の見本を配るか | 学生が各自で作る | resolved | - | - | - | 資料に最小構成を載せる. `git.md` の §リポジトリの構成 に記載済み (2026-09-04) |
 | 配布する `AGENTS.md` に何を書くか | AGENTS.md の扱い | open | - | - | 研究用 repo の規約から採る項目の選定 | - |
-| Windows で herdr + codex が動くか | 学生の環境 | branched | 実機確認 | - | 学生の Windows 機 1 台で疎通 | - |
+| Windows で herdr + codex が動くか | 学生の環境 | resolved | - | - | - | 動く. ただし winget の codex は `codex` で起動できない (§Windows 実機検証). 本文の修正は next_action (2026-09-25) |
 | skill をどこに公開するか (原典 `mattpocock/skills` MIT の表示を含む) | agent.md 5 | branched | 別 plan | 未起票 | 別 plan の起票と結論 | - |
 | 第 2 回が重い問題 | 回への割付 | resolved | - | - | - | branch/worktree 節を agent.md の発展節へ移し, `git.md` を第 1 回へ前倒し (2026-09-06). 第 1 回 = setup + git, 第 2 回 = agent 1-7 + Ch2 |
 | エージェントの作業モデル (main を触るか worktree を分けるか) | git.md と agent.md の整合 | resolved | - | - | - | 1 ディレクトリ (main) で codex を動かし, 差分は `git diff` と `/diff` で読む. worktree は agent.md の発展節のみ (2026-09-06) |
 | 教員が学生の private repo をどう見るか | 学生が各自で作る | resolved | - | - | - | 学生が教員を Collaborator に招待する. git.md の GitHub 節に小節を追加 (2026-09-06) |
 | GitHub 手順のスクリーンショット | git.md の GitHub 節 | resolved | - | - | - | 8 枚を 2026-09-04 に撮影して収録. 撮影の過程で New repository の UI 記述の誤りが 3 件見つかり修正 |
-| 初回認証画面の図 (`credential.png`) | git.md の clone 節 | branched | Windows 実機確認 | - | Windows で Git Credential Manager の画面を撮影 | - |
+| 初回認証画面の図 (`credential.png`) | git.md の clone 節 | resolved | - | - | - | 本文は `gh auth login` 経由なので GCM の画面は出ない. 撮る対象を GitHub の Device Activation 画面に変更して撮影 (2026-09-25) |
 | `<details data-pass>` のパスワードがページソースに平文で入る | 回答例の埋め込み | branched | サイト基盤 (範囲外) | 未起票 | 回答を隠す仕組みの見直しを基盤側で起票 | 本資料では現行方式を踏襲 (2026-09-25 台帳へ移記) |
 
 **先送りの理由**: Windows 検証は外部待ち (実機と学生) のため (b). skill 公開は
@@ -271,6 +299,8 @@ codex (GPT-5.6, リポジトリを直接読ませた) と Cursor-Fable (全文�
 | 任意課題を加点対象にする | 最終発表の質疑で効くので, やったかどうかは評価しない | 2026-09-04 |
 
 ## 変更履歴
+
+- 2026-09-25: Windows 11 実機 (Parallels) で導入から codex の動作確認まで検証. 所見は §Windows 実機検証.
 
 - 2026-09-10: ユーザ指示により `git.md` / `agent.md` を DSP 全体に先行して `open: true` 化.
   `stack exec main -- build` が成功し, 生成 HTML に本文が出ることを確認. `setup.md` には winget / Homebrew
