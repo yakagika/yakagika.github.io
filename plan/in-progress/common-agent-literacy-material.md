@@ -5,7 +5,7 @@ created: 2026-09-04
 updated: 2026-09-25
 priority: high
 next_actor: agent
-next_action: "Windows VM で skill の導入手順 (資料の SKILL.md を codex に置かせる / $skill-installer で grill-me を入れる) を実機確認する"
+next_action: "Windows の /diff 不具合 (outputBytesCap / windows sandbox) を codex の新版で再確認し, 直っていれば agent.md の note を外す (外部待ち b: OpenAI の修正. 次の codex 更新時)"
 ---
 
 # 共通資料 - git とエージェント利用のリテラシー
@@ -275,6 +275,19 @@ symlink を作れず (`Failed to create symlink`), 代わりにパッケージ�
   codex-trust / codex-sandbox / codex-approval / codex-diff / herdr-split. アカウント名はそのまま載せる.
 - git.md: UAC の確認, `gh auth login` の実際の質問文, コードの自動コピー, 認証完了の表示を追記.
 
+### skill の導入手順の実機確認 (2026-09-25)
+
+VM 内のローカル repo (GitHub 不使用, 検証後に削除) で確認した.
+
+| 項目 | 結果 | 本文への影響 |
+|---|---|---|
+| 資料の SKILL.md を貼って `.agents/skills/explain-diff/SKILL.md` を作らせる | 成功. `.agents` は設定の場所として保護され, `Ask for approval` でも書き込み前に確認が出る | 確認が出る旨を追記 |
+| 起動し直して一覧に出るか | `$` で一覧が開き, 名前の一部で絞り込める. `/skills` は List / Enable の選択肢を経る | 手順を `$` 主体に修正, 図を追加 |
+| `$explain-diff` の実行 | 変更箇所ごとの説明と確かめる質問 3 つが返った | - |
+| `$skill-installer` で grill-me と grilling | ネットワークとワークスペース外への書き込みで確認が出る. 承認後 `~/.codex/skills/` に導入, 一覧に Grill Me / Grilling が出た | 確認が出る旨を追記 |
+| `$grill-me` | Q1, Q2 と番号付きで問いとおすすめが返った | 図を追加 |
+| `/diff` | **失敗**: `custom outputBytesCap is not supported with windows sandbox (code -32600)`. herdr の内外, 実行ファイル直接でも同じ. config から `[windows] sandbox = "elevated"` を外すと表示できた (config は元に戻した). 1 回目の検証 (入れ直し前) では動いていた. `winget upgrade` は新版なし (0.157.0 は winget 未反映) | note を追加し, 失敗時は右 pane の `git status` / `git diff` で読むと案内 |
+
 ## 未確定 (台帳)
 
 | 問い | 親 | 状態 | 分岐先 | 外へ出した物 | 戻る条件 | 結論 |
@@ -291,7 +304,7 @@ symlink を作れず (`Failed to create symlink`), 代わりにパッケージ�
 | 初回認証画面の図 (`credential.png`) | git.md の clone 節 | resolved | - | - | - | 本文は `gh auth login` 経由なので GCM の画面は出ない. 撮る対象を GitHub の Device Activation 画面に変更して撮影 (2026-09-25) |
 | `<details data-pass>` のパスワードがページソースに平文で入る | 回答例の埋め込み | branched | サイト基盤 (範囲外) | 未起票 | 回答を隠す仕組みの見直しを基盤側で起票 | 本資料では現行方式を踏襲 (2026-09-25 台帳へ移記) |
 
-**先送りの理由**: 現在なし (2026-09-25 に Windows 検証と skill の扱いを解決).
+**先送りの理由**: Windows の `/diff` 不具合は OpenAI 側の修正待ち (b). 次に codex を更新したときに VM で再確認する (next_action).
 
 ## 却下した案
 

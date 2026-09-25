@@ -235,6 +235,12 @@ codex は必要なファイルを読み, ファイルを変更し, コマンド�
 
 ![/diff の表示. ファイルの末尾に 1 行追加した変更](/images/common/agent/codex-diff.png)
 
+::: note
+
+Windows では, `/diff` が `Failed to compute diff: ... not supported with windows sandbox` と表示して差分を出さないことがあります. codex の sandbox と `/diff` の組み合わせで起きる不具合で, 手元の操作の誤りではありません. そのときは右の pane で `git status` と `git diff` を実行して, 同じ変更を読みます.
+
+:::
+
 課題が変わるときは `/new` を使います. 話が噛み合わなくなり, 画面も整理したいときは `/clear` を使います. codex は `Ctrl+C` でも終了できます.
 
 行頭に `!` を付けると, その行をシェルコマンドとして実行します. たとえば `!git status` で変更の一覧を表示できます. `@` を打つとファイル名を検索して指示に貼れます.
@@ -420,12 +426,16 @@ description: 文献を引用するとき, または参考文献に文献を加�
 .agents/skills/explain-diff/SKILL.md を作り, 次の内容をそのまま書いてください.
 ~~~
 
+`.agents/` は codex の設定を置く場所なので, 既定の `Ask for approval` でも書き込みの前に確認が出ます. 書こうとしている内容が貼った内容と同じであることを読んでから許可します.
+
 作らせたら, 次の順で確かめます.
 
 1. `/diff` を読み, 指定した場所に指定した内容だけが書かれたことを確かめます.
-2. codex を起動し直し, `/skills` の一覧に `explain-diff` が出ることを確かめます.
-3. `$explain-diff` と入力して呼び出し, 手順どおりに動くかを見ます.
+2. codex を起動し直し, `$` を打ちます. skill の一覧が開くので, 続けて名前の一部を打ち, `explain-diff` が出ることを確かめます. `/skills` の List skills でも同じ一覧が開きます.
+3. 一覧から選ぶか `$explain-diff` と入力し, 続けて説明してほしい内容を書いて呼び出します. 手順どおりに, 変更箇所ごとの説明と確かめる質問 3 つが返るかを見ます.
 4. `git add` と `git commit` で記録します. リポジトリの skill は, 課題のコードと一緒に GitHub に残ります.
+
+![skill の一覧. $ に続けて名前の一部を打つと絞り込める](/images/common/agent/codex-skills-list.png)
 
 使ううちに手順が課題に合わなくなったら, `SKILL.md` を自分で書き換えます. `AGENTS.md` と同じく, 資料の skill は出発点です.
 
@@ -439,13 +449,17 @@ GitHub などで公開されている skill もあります. ここでは例と�
 $skill-installer https://github.com/mattpocock/skills の skills/productivity/grill-me と skills/productivity/grilling を入れてください
 ~~~
 
-`skill-installer` で入れた skill は `~/.codex/skills/` に置かれ, すべてのリポジトリで使えます. 入れた後は codex を起動し直します.
+`skill-installer` は GitHub から skill を取ってきて, 作業ディレクトリの外にある `~/.codex/skills/` に置きます. ネットワークと作業ディレクトリの外を使うので, 実行の前に確認が出ます. 取ってくる先が上で指定したリポジトリであることを読んでから許可します. `~/.codex/skills/` に置いた skill は, すべてのリポジトリで使えます. 入れた後は codex を起動し直します.
 
 grill-me は, 頼まない限り codex が自分から使うことはありません. 計画を詰めたいときに, 新しい会話を始め, `$grill-me` に続けて考えを書きます.
 
 ~~~ text
 $grill-me 気象データと売上データを組み合わせて, 雨の日に売上がどう変わるかを分析したい
 ~~~
+
+問いは番号付きで返り, それぞれにおすすめの答えが付きます. 次の図は最初の回答の一部です.
+
+![grill-me の最初の問い. 分析の結果で何を決めたいかと, 対象の範囲を聞いている](/images/common/agent/grill-me-round.png)
 
 grill-me は, 答える側が主導して初めて役に立ちます. 推奨の答えに同意を続けるだけでは, エージェントが書いた計画に頷いたことにしかなりません. 分からない問いには分からないと答え, 話が課題の範囲から外れたら止めます. グラフの見せ方のように, 実物を見ないと決められない問いに行き当たったら, 質問を続けずに小さく作って確かめてから答えます. 手作業で同じことを行う手順は[曖昧な計画を質問で詰める](#曖昧な計画を質問で詰める)にあります.
 
