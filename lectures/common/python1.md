@@ -434,7 +434,7 @@ Type "help", "copyright", "credits" or "license" for more information.
 
 ~~~ sh
 > chcp 65001
-> cd Documents/Programs/Python/slds
+> cd ~/work/dsp
 ~~~
 
 `uv init [新規フォルダ名]` でプロジェクトを作成することが出来ます.
@@ -444,7 +444,7 @@ Type "help", "copyright", "credits" or "license" for more information.
 
 ~~~ sh
 => uv init -p 3.11.9 hello-world
-Initialized project `hello-world` at `C:\Users\akagi\Documents\Programs\slds\hello-world`
+Initialized project `hello-world` at `C:\Users\akagi\work\dsp\hello-world`
 ~~~
 
 作成したプロジェクトのディレクトリに移動します.
@@ -467,7 +467,7 @@ Initialized project `hello-world` at `C:\Users\akagi\Documents\Programs\slds\hel
 > ls
 
 
-    Directory: C:\Users\akagi\Documents\Programs\slds\hello-world
+    Directory: C:\Users\akagi\work\dsp\hello-world
 
 
 Mode                 LastWriteTime         Length Name
@@ -490,7 +490,7 @@ lsコマンドでファイルがあるか確認しましょう.
 > ls
 
 
-    Directory: C:\Users\akagi\Documents\Programs\slds\hello-world
+    Directory: C:\Users\akagi\work\dsp\hello-world
 
 
 Mode                 LastWriteTime         Length Name
