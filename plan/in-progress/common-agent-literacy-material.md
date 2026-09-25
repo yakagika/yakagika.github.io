@@ -2,7 +2,7 @@
 plan_id: common-agent-literacy-material
 status: in-progress
 created: 2026-09-04
-updated: 2026-09-10
+updated: 2026-09-25
 priority: high
 next_actor: user
 next_action: "Windows 実機で herdr + codex の疎通確認と初回認証画面 (credential.png) の撮影 (外部待ち b)"
@@ -69,11 +69,11 @@ next_action: "Windows 実機で herdr + codex の疎通確認と初回認証画�
 4. **GitHub のアカウントとリポジトリを作る** - Sign up, 二段階認証 (2023 年から push 利用者に必須),
    New repository (private / README / Python の .gitignore), Code から HTTPS の URL を取って clone.
    認証はブラウザ経由 (パスワード認証は 2021 年に廃止)
-3. **public と private の違い** - 何を public に置いてはいけないか
+5. **public と private の違い** - 何を public に置いてはいけないか
    - API キー, 認証トークン (補足 B で配布する X の共有トークンが直接該当する)
    - 個人情報を含むデータ, 提供を受けたデータ
-4. 最低限の操作 - `clone` / `status` / `diff` / `add` / `commit` / `push`
-5. **エージェントが使うものを理解する程度の branch と worktree**
+6. 最低限の操作 - `clone` / `status` / `diff` / `add` / `commit` / `push` / `log`
+7. **エージェントが使うものを理解する程度の branch と worktree** (2026-09-06 に `agent.md` の発展節へ移動)
    - 操作を覚えるのではなく, herdr / codex が何をしているかを読めるようにする
 
 ### `common/agent.md` - コーディングエージェントの利用
@@ -224,7 +224,9 @@ codex (GPT-5.6, リポジトリを直接読ませた) と Cursor-Fable (全文�
 `してしまう` の演出を事実の断定へ / 演習の回答例を敬体へ / 「触れた」等の禁止語を削除 /
 「3 つ」と 4 節の不一致を解消.
 
-### 未反映 (ユーザ判断が要る)
+### 未反映だった 4 件 (1〜3 は 2026-09-06 に裁定済み, 4 は範囲外)
+
+結論は §未確定 (台帳) を参照. 以下は cross-check 時点の記録として残す.
 
 1. **作業モデルの不整合**. §なぜ… は「エージェントが自分のディレクトリを触る」前提で
    commit と diff を教えるが, §worktree では herdr がエージェントごとに別 worktree を作ると書いている.
@@ -252,6 +254,7 @@ codex (GPT-5.6, リポジトリを直接読ませた) と Cursor-Fable (全文�
 | 教員が学生の private repo をどう見るか | 学生が各自で作る | resolved | - | - | - | 学生が教員を Collaborator に招待する. git.md の GitHub 節に小節を追加 (2026-09-06) |
 | GitHub 手順のスクリーンショット | git.md の GitHub 節 | resolved | - | - | - | 8 枚を 2026-09-04 に撮影して収録. 撮影の過程で New repository の UI 記述の誤りが 3 件見つかり修正 |
 | 初回認証画面の図 (`credential.png`) | git.md の clone 節 | branched | Windows 実機確認 | - | Windows で Git Credential Manager の画面を撮影 | - |
+| `<details data-pass>` のパスワードがページソースに平文で入る | 回答例の埋め込み | branched | サイト基盤 (範囲外) | 未起票 | 回答を隠す仕組みの見直しを基盤側で起票 | 本資料では現行方式を踏襲 (2026-09-25 台帳へ移記) |
 
 **先送りの理由**: Windows 検証は外部待ち (実機と学生) のため (b). skill 公開は
 教材執筆とは独立した作業で別 plan が妥当なため (d).
