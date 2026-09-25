@@ -2,17 +2,17 @@
 plan_id: common-agent-literacy-material
 status: in-progress
 created: 2026-09-04
-updated: 2026-09-06
+updated: 2026-09-10
 priority: high
 next_actor: user
-next_action: "Windows 実機で herdr + codex の疎通確認と初回認証画面 (credential.png) の撮影 (外部待ち b). open 化は dsp 全体の open 化 commit と同時"
+next_action: "Windows 実機で herdr + codex の疎通確認と初回認証画面 (credential.png) の撮影 (外部待ち b)"
 ---
 
 # 共通資料 - git とエージェント利用のリテラシー
 
 ## メタ情報
 
-- **状態**: in-progress (`git.md` / `agent.md` とも執筆済み, main に land. 残りは Windows 実機確認と open 化)
+- **状態**: in-progress (`git.md` / `agent.md` とも執筆済み, main に land, 2026-09-10 に `open: true` 化. 残りは Windows 実機確認)
 - **作成日**: 2026-09-04
 - **対象**: `lectures/common/git.md` (新規), `lectures/common/agent.md` (新規),
   `lectures/common/setup.md` (既存, 前方参照の解決), `lectures/common/llm.md` (骨子 → 上記 2 本へ吸収して削除)
@@ -269,6 +269,9 @@ codex (GPT-5.6, リポジトリを直接読ませた) と Cursor-Fable (全文�
 
 ## 変更履歴
 
+- 2026-09-10: ユーザ指示により `git.md` / `agent.md` を DSP 全体に先行して `open: true` 化.
+  `stack exec main -- build` が成功し, 生成 HTML に本文が出ることを確認. `setup.md` には winget / Homebrew
+  を講義の標準的なソフトウェア管理手段とする説明を加え, VSCode と `tree` の導入手順も統一.
 - 2026-09-04: grill-me で設計を確定して作成. `llm.md` の骨子を `git.md` / `agent.md` へ分割.
   `plan/proposed/slds-special-coding-agent-material.md` を吸収.
 - 2026-09-04: `common/git.md` を執筆. `common/agent.md` を骨子として起こし, `common/llm.md` を削除.

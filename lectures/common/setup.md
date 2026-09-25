@@ -17,6 +17,32 @@ tableOfContents: true
 - [関数型プログラミング — Haskellセットアップ](fp2.html)
 :::
 
+## ソフトウェアの管理
+
+**パッケージマネージャ**は, ソフトウェアのインストールと更新をコマンドで管理する仕組みです. Webサイトからインストーラーを個別に探す方法と比べて, 同じ名前のソフトウェアを同じ手順で導入できます.
+
+本講義で使うソフトウェアは, 個別に別の手順を指定したものを除き, Windows では **winget**, macOS では **Homebrew**で管理します.
+
+### Windows: winget
+
+winget は Microsoft が提供する Windows のパッケージマネージャです. Windows 11 には標準で含まれています. PowerShell で次を実行し, バージョンが表示されることを確認します.
+
+~~~ powershell
+winget --version
+~~~
+
+`winget` が認識されない場合は, Microsoft Store で「アプリ インストーラー」(App Installer) をインストールまたは更新し, PowerShell を開き直します.
+
+### macOS: Homebrew
+
+Homebrew は macOS のパッケージマネージャです. macOS には最初から入っていないため, 未導入の場合は [Homebrew の公式サイト](https://brew.sh/index_ja)にある手順でインストールします. インストール後に次を実行し, バージョンが表示されることを確認します.
+
+~~~ bash
+brew --version
+~~~
+
+Homebrew のインストール完了時に, `brew` を利用できるようにするための追加コマンドが表示されることがあります. 表示された場合は, そのコマンドも実行してからターミナルを開き直します.
+
 ## テキストエディタのインストール
 
 テキストエディタとは,プログラムを書くためのソフトウェアです.
@@ -50,15 +76,21 @@ print(greet_based_on_time())
 
 また,スペースをタブに変換するなどの機能も非常に便利です.  
 
-この資料では世界的に人気のあるMicrosoftの開発したテキストエディタである **VSCode (Visual Studio Code)**を利用します. 最近では生成AIを利用した自動補完機能がついた**Cursor(有料)**などもあります. AI利用法に関しては[共通資料 コーディングエージェントの利用](agent.html)で扱いますが,ほぼ同様の機能が利用可能なので,Cursorを既に利用している方はそちらでも問題ありません. そのた,既に何かしらのテキストエディタを利用している方は,現在使用しているエディタをそのまま利用して頂いても構いませんが必要な設定等は自分で行って下さい.
+この資料では世界的に人気のある Microsoft の開発したテキストエディタである **VSCode (Visual Studio Code)**を利用します. 最近では生成 AI を利用した自動補完機能が付いた**Cursor (有料)**などもあります. AI 利用法は[共通資料 コーディングエージェントの利用](agent.html)で扱います. Cursor を既に利用している場合は, そちらを使っても構いません. それ以外のテキストエディタを使う場合は, 必要な設定を各自で行ってください.
 
-[VSCode](https://code.visualstudio.com/) をクリックして,ページ上部にあるDownloadをクリックします. 自分のPCに合わせたインストール方法を選択しましょう.
+Windows は PowerShell で次を実行します.
 
-![Screenshot VSCode](/images/common/vscode-install.png)
+~~~ powershell
+winget install -e --id Microsoft.VisualStudioCode
+~~~
 
-インストーラーをダウンロードしたら,クリックして開いて,｢同意｣等を進めて下さい. 基本的に設定はデフォルトのままで問題ありません.
+macOS はターミナルで次を実行します.
 
-インストールが終了したら,VSCodeが立ち上がります. サインインを求められますが,ここでは｢Continue without Sigining In｣を選択してサインイン無しで進めます.
+~~~ bash
+brew install --cask visual-studio-code
+~~~
+
+インストールが終了したら VSCode を起動します. サインインを求められますが, ここでは「Continue without Signing In」を選択してサインインせずに進めます.
 
 ![VSCode Sign In](/images/common/vscode-sign-in.png)
 
@@ -284,8 +316,11 @@ C:\USERS\AKAGI\DOCUMENTS
 
 ::: warn
 
-Macの場合は,`tree`コマンドは入っていないので,`brew`などを利用してインストールする必要があります.
-`brew`に関しては自分で調べてみましょう.
+macOS には `tree` コマンドが最初から入っていないため, Homebrew でインストールします.
+
+~~~ bash
+brew install tree
+~~~
 
 また,オプションもWindowsとは異なっています.
 

@@ -6,7 +6,7 @@ tags:
     - lecture
 featured: false
 date: 2026-09-04
-open: false
+open: true
 tableOfContents: true
 previousChapter: git.html
 ---
