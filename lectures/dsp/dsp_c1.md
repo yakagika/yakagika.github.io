@@ -579,7 +579,7 @@ for item in stats_res.get('items', []):
     })
 
 df = pd.DataFrame(rows).sort_values('view_count', ascending=False).reset_index(drop=True)
-df.to_csv('sldsc-1.csv', index=False, encoding='utf-8-sig')
+df.to_csv('dspc-1.csv', index=False, encoding='utf-8-sig')
 print(df[['title', 'view_count', 'like_count']])
 
 # 問2: 相関
@@ -639,7 +639,7 @@ def get_channel_stats(channel_id):
 rows = [get_channel_stats(cid) for cid in channel_ids]
 df = pd.DataFrame([r for r in rows if r is not None])
 df = df.sort_values('subscriber_count', ascending=False).reset_index(drop=True)
-df.to_csv('sldsc-2.csv', index=False, encoding='utf-8-sig')
+df.to_csv('dspc-2.csv', index=False, encoding='utf-8-sig')
 print(df)
 ~~~
 
