@@ -319,6 +319,8 @@ VM 内のローカル repo (GitHub 不使用, 検証後に削除) で確認し�
 
 ## 変更履歴
 
+- 2026-09-25: agent.md のハーネス節に「AI の使い方の移り変わり」を追加 (出典: human-loop-accounting の研究報告デッキ 2026-09-10 の 3-5 枚目). 1 枚目の年表は SVG で再構築 (`images/common/agent/ai-usage-trend.svg`), 2-3 枚目はスライドを Quick Look で描画して切り出した図をそのまま使用.
+
 - 2026-09-25: skill は公開せず, 資料の SKILL.md を codex に導入させる手順と, 公開 skill (grill-me) の導入と使い方を agent.md に追加 (ユーザ裁定).
 
 - 2026-09-25: AGENTS.md を配布から事例 + 候補表の形へ変更し, skill に学生版 lit-verify を追加 (ユーザ裁定).
