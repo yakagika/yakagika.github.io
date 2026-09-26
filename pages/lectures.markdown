@@ -12,6 +12,12 @@ title: Lectures
     <span class="series-desc">文系学部生がデータサイエンスの一連の流れを, 自分の選んだテーマで実践する講義. 前期はプログラミングと Python ライブラリの基本, 後期は研究テーマに応じた分析手法を学び, 年度末の学会口頭発表を最終目標とする.</span>
     <span class="series-cta">資料を見る →</span>
   </a>
+  <a class="series-card" href="lectures/dsp1.html">
+    <span class="series-badge">Data Science</span>
+    <span class="series-title">データサイエンス実践</span>
+    <span class="series-desc">文系学部生向けに, 分析設計, 可視化, 回帰, 分類, クラスタリング, ニューラルネットワーク, 画像認識, 自然言語処理を Python で実習する講義. 章ごとに共通の例題データで手法を試し, 発展の手法から 1 つを選んで最終回に発表する. (作成中)</span>
+    <span class="series-cta">資料を見る →</span>
+  </a>
   <a class="series-card" href="lectures/fp1.html">
     <span class="series-badge">Functional Programming</span>
     <span class="series-title">関数型プログラミング</span>

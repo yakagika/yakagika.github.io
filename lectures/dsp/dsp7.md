@@ -8,7 +8,7 @@ tags:
     - python
 featured: false
 date: 2026-09-04
-open: false
+open: true
 tableOfContents: true
 previousChapter: dsp6.html
 nextChapter: dsp8.html
@@ -39,8 +39,7 @@ uv add pandas matplotlib matplotlib-fontja scikit-learn scipy mlxtend
 | `date`, `time` | 買い物をした日付と時刻 |
 | `item` | 品目 (弁当, おにぎり, コーヒー, ノートなど 15 種類) |
 | `category` | 品目のカテゴリ (食事, 飲料, 菓子, 文具) |
-| `price` | 単価 (円) |
-| `quantity` | 個数 |
+| `price` | 価格 (円) |
 
 ~~~ py
 import pandas as pd
@@ -48,12 +47,12 @@ import pandas as pd
 log = pd.read_csv('data/store_log.csv', encoding='utf-8-sig')
 print(log.head())
 """
-   receipt_id  member_id        date   time  item category  price  quantity
-0           1       1056  2026-04-13  11:02    お茶       飲料    130         1
-1           1       1056  2026-04-13  11:02    弁当       食事    500         1
-2           2       1065  2026-04-13  11:11  ジュース       飲料    140         1
-3           2       1065  2026-04-13  11:11    弁当       食事    500         1
-4           3       1041  2026-04-13  11:13  おにぎり       食事    150         1
+   receipt_id  member_id        date   time  item category  price
+0           1       1056  2026-04-13  11:02    お茶       飲料    130
+1           1       1056  2026-04-13  11:02    弁当       食事    500
+2           2       1065  2026-04-13  11:11  ジュース       飲料    140
+3           2       1065  2026-04-13  11:11    弁当       食事    500
+4           3       1041  2026-04-13  11:13  おにぎり       食事    150
 """
 print(len(log), log['receipt_id'].nunique(), log['member_id'].nunique())
 """
@@ -70,14 +69,13 @@ print(len(log), log['receipt_id'].nunique(), log['member_id'].nunique())
 
 ## 会員ごとの集計
 
-会員ごとに, 来店回数 (レシートの枚数) と 1 回あたりの購入額を求めます. `groupby` で会員ごとにまとめ, `nunique()` で重複を除いたレシート番号の数を数えます.
+会員ごとに, 来店回数 (レシートの枚数) と 1 回あたりの購入額を求めます. `groupby` で会員ごとにまとめ, `nunique()` で重複を除いたレシート番号の数を数えます. 1 回あたりの購入額は, 価格の合計を来店回数で割って求めます.
 
 ~~~ py
-log['amount'] = log['price'] * log['quantity']  # 1行ごとの金額
 g = log.groupby('member_id')
 member = pd.DataFrame({
     'visits': g['receipt_id'].nunique(),                               # 来店回数
-    'amount_per_visit': g['amount'].sum() / g['receipt_id'].nunique(),  # 1回あたりの購入額
+    'amount_per_visit': g['price'].sum() / g['receipt_id'].nunique(),  # 1回あたりの購入額
 })
 print(member.head().round(1))
 """
@@ -192,7 +190,7 @@ k-means 法は, 散布図で見えた 4 つの塊をそれぞれ 1 つのクラ�
 
 ~~~ py
 # 会員×カテゴリの購入額の表を作り, 行の合計で割って割合にする
-share = log.pivot_table(index='member_id', columns='category', values='amount',
+share = log.pivot_table(index='member_id', columns='category', values='price',
                         aggfunc='sum', fill_value=0)
 share = share.div(share.sum(axis=1), axis=0)
 print(share.join(member['cluster']).groupby('cluster').mean().round(2))
@@ -457,13 +455,12 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 
 log = pd.read_csv('data/store_log.csv', encoding='utf-8-sig')
-log['amount'] = log['price'] * log['quantity']
 g = log.groupby('member_id')
 member = pd.DataFrame({
     'visits': g['receipt_id'].nunique(),
-    'amount_per_visit': g['amount'].sum() / g['receipt_id'].nunique(),
+    'amount_per_visit': g['price'].sum() / g['receipt_id'].nunique(),
 })
-share = log.pivot_table(index='member_id', columns='category', values='amount',
+share = log.pivot_table(index='member_id', columns='category', values='price',
                         aggfunc='sum', fill_value=0)
 share = share.div(share.sum(axis=1), axis=0)
 
@@ -530,11 +527,10 @@ import pandas as pd
 from scipy.cluster.hierarchy import linkage, fcluster
 
 log = pd.read_csv('data/store_log.csv', encoding='utf-8-sig')
-log['amount'] = log['price'] * log['quantity']
 g = log.groupby('member_id')
 member = pd.DataFrame({
     'visits': g['receipt_id'].nunique(),
-    'amount_per_visit': g['amount'].sum() / g['receipt_id'].nunique(),
+    'amount_per_visit': g['price'].sum() / g['receipt_id'].nunique(),
 })
 z = (member - member.mean()) / member.std(ddof=0)
 
@@ -580,11 +576,10 @@ import pandas as pd
 from sklearn.cluster import KMeans
 
 log = pd.read_csv('data/store_log.csv', encoding='utf-8-sig')
-log['amount'] = log['price'] * log['quantity']
 g = log.groupby('member_id')
 member = pd.DataFrame({
     'visits': g['receipt_id'].nunique(),
-    'amount_per_visit': g['amount'].sum() / g['receipt_id'].nunique(),
+    'amount_per_visit': g['price'].sum() / g['receipt_id'].nunique(),
 })
 z = (member - member.mean()) / member.std(ddof=0)
 member['cluster'] = KMeans(n_clusters=4, random_state=0, n_init=10).fit_predict(z)

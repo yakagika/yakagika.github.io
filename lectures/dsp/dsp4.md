@@ -8,7 +8,7 @@ tags:
     - python
 featured: false
 date: 2026-09-04
-open: false
+open: true
 tableOfContents: true
 previousChapter: dsp3.html
 nextChapter: dsp5.html
