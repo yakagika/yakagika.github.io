@@ -1637,7 +1637,7 @@ print('特徴マップ描画完了')
 
 2. `Guided Backpropagation`
 
-    Guided Backpropagation は, ネットワークの内部を逆向きに伝わる勾配のうち正の値だけを通すように制限して, 入力画像のどの画素が予測に大きく寄与しているかを可視化する手法です. 正の影響だけを残すので, 予測したクラスを支持する特徴に焦点を当てられます.
+    Guided Backpropagation は, ネットワークの内部を逆向きに伝わる勾配を, 活性化関数 (ReLU など) を通るたびに, 入力が正の位置にある正の値だけを通すように制限して, 入力画像のどの画素が予測に大きく寄与しているかを可視化する手法です. 正の影響だけを残すので, 予測したクラスを支持する特徴に焦点を当てられます.
 
 3. `Guided Grad-CAM`
 
@@ -1681,30 +1681,26 @@ def backward_hook(module, grad_input, grad_output):
 forward_h = target_layer.register_forward_hook(forward_hook)
 backward_h = target_layer.register_full_backward_hook(backward_hook)
 
-# Guided Backprop用：ConvNeXtはGELUを使用, そのためGELUに対するGuided Backpropを実装
-# 出力が正の部分のみ勾配を通す
-gelu_outputs = {}  # moduleをキーにしてforward出力を保存
+# Guided Backprop用: ConvNeXtの活性化関数GELUの逆伝播を書き換える
+# ReLUのGuided Backpropと同じ規則で, 入力が正の位置にある正の勾配だけを通す
+gelu_inputs = {}  # moduleをキーにしてforwardの入力を保存
 
 def gelu_forward_hook(module, input, output):
-    gelu_outputs[module] = output
+    gelu_inputs[module] = input[0]
 
 def gelu_backward_hook(module, grad_input, grad_output):
-    # grad_input: tuple of gradients wrt input of gelu
-    # grad_output: tuple of gradients wrt output of gelu
-    # guided backprop: 出力が正の位置のみ勾配を通す
-    out = gelu_outputs[module]
-    # outと同じ形状で, out>0のとこだけ1, それ以外0
-    positive_mask = (out > 0).float()
-    # grad_output[0]に対して, positive_maskをかけて負の領域をカット
-    guided_grad = grad_output[0] * positive_mask
-    return (guided_grad,)
+    # grad_output[0]: GELUの出力についての勾配 (上の層から届いた勾配)
+    # 返した値が, GELUの入力についての勾配として下の層へ伝わる
+    positive_input = (gelu_inputs[module] > 0).float()  # 入力が正の位置だけ1
+    positive_grad = torch.clamp(grad_output[0], min=0)  # 負の勾配を0にする
+    return (positive_grad * positive_input,)
 
 # GELU層にフックを登録
 guided_hooks = []
 for m in model.modules():
     if isinstance(m, nn.GELU):
         fh = m.register_forward_hook(gelu_forward_hook)
-        bh = m.register_backward_hook(gelu_backward_hook)
+        bh = m.register_full_backward_hook(gelu_backward_hook)
         guided_hooks.append(fh)
         guided_hooks.append(bh)
 
@@ -1725,6 +1721,12 @@ def generate_gradcam():
         cam = cam / np.max(cam)
     return cam
 
+def normalize_gradient(grad):
+    # 平均が0.5, 標準偏差が0.15になるように揃えて, 0〜1の範囲に収める
+    # (最小値と最大値で0〜1に揃えると, 少数の極端な値に合わせて全体がほぼ灰色になる)
+    grad = (grad - grad.mean()) / (grad.std() + 1e-8)
+    return np.clip(grad * 0.15 + 0.5, 0, 1)
+
 def do_guided_backprop(model, img_tensor, target_class):
     # 勾配リセット
     model.zero_grad()
@@ -1734,9 +1736,8 @@ def do_guided_backprop(model, img_tensor, target_class):
     loss = output[0, target_class]
     model.zero_grad()
     loss.backward()
+    # 入力画像についての勾配 (正規化する前の値) を返す
     guided_grad = img_tensor.grad.data[0].cpu().numpy().transpose(1,2,0)
-    guided_grad = guided_grad - guided_grad.min()
-    guided_grad = guided_grad / (guided_grad.max() + 1e-8)
     return guided_grad
 
 def apply_colormap_on_image(org_img, cam, alpha=0.5):
@@ -1752,12 +1753,11 @@ def apply_colormap_on_image(org_img, cam, alpha=0.5):
     return np.uint8(255*cam_img)
 
 def guided_gradcam(guided_grad, cam):
+    # 正規化する前の勾配にGrad-CAMを掛けてから, 表示用に正規化する
     H, W, _ = guided_grad.shape
     cam_resized = cv2.resize(cam, (W, H))
     guided_gradcam = guided_grad * cam_resized[..., np.newaxis]
-    guided_gradcam = guided_gradcam - guided_gradcam.min()
-    guided_gradcam = guided_gradcam / (guided_gradcam.max()+1e-8)
-    return guided_gradcam
+    return normalize_gradient(guided_gradcam)
 
 gradcam_dir = 'data/result/gradcam_guided'
 if not os.path.exists(gradcam_dir):
@@ -1784,12 +1784,12 @@ for cls_id, img_path in sample_images.items():
     gradcam_img_rgb = gradcam_img[:,:,::-1]
 
     # Guided Backprop
-    gb = do_guided_backprop(model, img_tensor, cls_id) # 0-1 float
+    gb = do_guided_backprop(model, img_tensor, cls_id) # 正規化前の勾配
     g_gradcam = guided_gradcam(gb, cam) # 0-1 float
 
     original_uint8 = org_img_np
     gradcam_uint8 = gradcam_img_rgb
-    gb_uint8 = (gb*255).astype(np.uint8)
+    gb_uint8 = (normalize_gradient(gb)*255).astype(np.uint8)
     g_gradcam_uint8 = (g_gradcam*255).astype(np.uint8)
 
     combined = np.hstack([original_uint8, gradcam_uint8, gb_uint8, g_gradcam_uint8])
@@ -1803,17 +1803,32 @@ for h in guided_hooks:
 print("Grad-CAM, Guided Backprop, Guided Grad-CAM 完了")
 ~~~
 
-10 代の写真と 60 代の写真を 1 枚ずつ選んで, 手法を適用した画像が次のとおりです. 左から元の画像, `Grad-CAM`, `Guided Backpropagation`, `Guided Grad-CAM` の順に並べています.
+10 代の写真と 60 代の写真を 1 枚ずつ選んで, 年齢識別のモデルに `Grad-CAM` を適用した画像が次のとおりです. 左が元の画像, 右が `Grad-CAM` です.
 
-![10 代の画像への適用](/images/slds/ch14/gradcam-10s.png)
+![10 代の画像への Grad-CAM](/images/dsp/ch9/gradcam-age-10s.png)
 
-![60 代の画像への適用](/images/slds/ch14/gradcam-60s.png)
-
-::: warn
-`Guided Backpropagation` の画像には, 画素ごとの寄与がはっきり表れていません. 学習が十分でない (テストデータの正解率が 0.4 程度である) ことによるのか, コードの誤りによるのかは, 確かめられていません.
-:::
+![60 代の画像への Grad-CAM](/images/dsp/ch9/gradcam-age-60s.png)
 
 この結果を見ると, 学習したモデルは, 10 代の画像では鼻や首, 60 代の画像では顎や首に注目しています. 人が年齢を推測するときにも首のしわを手がかりにすることがあるので, それなりに納得できる結果です. ただし, 1 枚ずつの画像から言えることは限られます. 実際の研究では, 多くの画像を比べて, モデルが何に注目しているかを分析します.
+
+`Guided Backpropagation` が何を映すかは, 輪郭のはっきりした物体の画像で確かめると分かりやすくなります. 次の図は, ImageNet で事前学習した ConvNeXt-Tiny (分類層を 6 クラス用に置き換える前のモデル) に猫とコーヒーカップの画像を入れ, モデルが予測したクラス (ImageNet のクラス番号 285 の Egyptian cat と 967 の espresso) について, 上のコードを実行した結果です. 左から元の画像, `Grad-CAM`, `Guided Backpropagation`, `Guided Grad-CAM` の順に並べています. 画像は scikit-image に付属するサンプル画像 (`skimage.data.chelsea`, `skimage.data.coffee`) です.
+
+![猫の画像への適用 (事前学習済みモデル)](/images/dsp/ch9/gradcam-guided-cat.png)
+
+![コーヒーカップの画像への適用 (事前学習済みモデル)](/images/dsp/ch9/gradcam-guided-coffee.png)
+
+`Guided Backpropagation` の画像には, 猫の目, 鼻, ひげや, カップと受け皿の縁のように, 予測したクラスを支える輪郭が画素の単位で表れます. `Guided Grad-CAM` では, それらの輪郭のうち, `Grad-CAM` が注目した領域 (猫の鼻と目, カップの中) にあるものだけが残ります.
+
+::: note
+Guided Backpropagation の実装で次の 2 点を誤ると, 画像がほぼ一様な灰色になり, 画素ごとの寄与が読み取れなくなります (この資料の以前のコードにも, この 2 点の誤りがありました). 次の図は, 左から元の画像, 2 点とも誤った結果, 正規化だけを直した結果, 2 点とも直した結果です (いずれも事前学習済みのモデル).
+
+![Guided Backpropagation の誤りと修正](/images/dsp/ch9/guided-backprop-fix.png)
+
+1. **負の勾配を 0 にしていない**: 以前のコードは, GELU の出力が正の位置だけ勾配を通していましたが, 勾配そのものの符号は見ていませんでした. これは通常の逆伝播で ReLU を通るときと同じ計算なので, 得られる画像は通常の勾配に近いもの (相関係数は 0.7 程度) になり, 正と負の値が細かく入り混じります. Guided Backpropagation では, 入力が正の位置であることに加えて, 上の層から届いた勾配が負ならその勾配を 0 にします. 修正したコードでは, `torch.clamp(grad_output[0], min=0)` で負の勾配を 0 にしています.
+2. **最小値と最大値で正規化している**: 入力画像についての勾配は, ごく少数の画素だけが極端に大きな値を取ります. 最小値と最大値で 0〜1 の範囲に揃えると, その少数の画素に合わせて目盛りが決まるので, 残りの画素はすべて中間の灰色に近い値になります. 修正したコードでは, 平均と標準偏差で揃えています (`normalize_gradient`). `Guided Grad-CAM` も, 正規化した後の画像ではなく, 正規化する前の勾配に `Grad-CAM` を掛けてから正規化するように直しています.
+
+ConvNeXt の活性化関数は ReLU ではなく GELU です. GELU は負の入力に対して 0 に近い小さな負の値を返すだけなので, ReLU の規則 (入力が正の位置にある正の勾配だけを通す) をそのまま当てはめています. GELU の本来の微分で逆伝播したうえで負の勾配を 0 にする方法でも, ほぼ同じ画像 (相関係数は 0.8 程度) になります. フックの登録には, 推奨されなくなった `register_backward_hook` ではなく `register_full_backward_hook` を使っています.
+:::
 
 ## 年齢識別のコード全体 {#age-full-code}
 
@@ -2300,30 +2315,26 @@ def main():
     forward_h = target_layer.register_forward_hook(forward_hook)
     backward_h = target_layer.register_full_backward_hook(backward_hook)
 
-    # Guided Backprop用：ConvNeXtはGELUを使用, そのためGELUに対するGuided Backpropを実装
-    # 出力が正の部分のみ勾配を通す
-    gelu_outputs = {}  # moduleをキーにしてforward出力を保存
+    # Guided Backprop用: ConvNeXtの活性化関数GELUの逆伝播を書き換える
+    # ReLUのGuided Backpropと同じ規則で, 入力が正の位置にある正の勾配だけを通す
+    gelu_inputs = {}  # moduleをキーにしてforwardの入力を保存
 
     def gelu_forward_hook(module, input, output):
-        gelu_outputs[module] = output
+        gelu_inputs[module] = input[0]
 
     def gelu_backward_hook(module, grad_input, grad_output):
-        # grad_input: tuple of gradients wrt input of gelu
-        # grad_output: tuple of gradients wrt output of gelu
-        # guided backprop: 出力が正の位置のみ勾配を通す
-        out = gelu_outputs[module]
-        # outと同じ形状で, out>0のとこだけ1, それ以外0
-        positive_mask = (out > 0).float()
-        # grad_output[0]に対して, positive_maskをかけて負の領域をカット
-        guided_grad = grad_output[0] * positive_mask
-        return (guided_grad,)
+        # grad_output[0]: GELUの出力についての勾配 (上の層から届いた勾配)
+        # 返した値が, GELUの入力についての勾配として下の層へ伝わる
+        positive_input = (gelu_inputs[module] > 0).float()  # 入力が正の位置だけ1
+        positive_grad = torch.clamp(grad_output[0], min=0)  # 負の勾配を0にする
+        return (positive_grad * positive_input,)
 
     # GELU層にフックを登録
     guided_hooks = []
     for m in model.modules():
         if isinstance(m, nn.GELU):
             fh = m.register_forward_hook(gelu_forward_hook)
-            bh = m.register_backward_hook(gelu_backward_hook)
+            bh = m.register_full_backward_hook(gelu_backward_hook)
             guided_hooks.append(fh)
             guided_hooks.append(bh)
 
@@ -2344,6 +2355,12 @@ def main():
             cam = cam / np.max(cam)
         return cam
 
+    def normalize_gradient(grad):
+        # 平均が0.5, 標準偏差が0.15になるように揃えて, 0〜1の範囲に収める
+        # (最小値と最大値で0〜1に揃えると, 少数の極端な値に合わせて全体がほぼ灰色になる)
+        grad = (grad - grad.mean()) / (grad.std() + 1e-8)
+        return np.clip(grad * 0.15 + 0.5, 0, 1)
+
     def do_guided_backprop(model, img_tensor, target_class):
         # 勾配リセット
         model.zero_grad()
@@ -2353,9 +2370,8 @@ def main():
         loss = output[0, target_class]
         model.zero_grad()
         loss.backward()
+        # 入力画像についての勾配 (正規化する前の値) を返す
         guided_grad = img_tensor.grad.data[0].cpu().numpy().transpose(1,2,0)
-        guided_grad = guided_grad - guided_grad.min()
-        guided_grad = guided_grad / (guided_grad.max() + 1e-8)
         return guided_grad
 
     def apply_colormap_on_image(org_img, cam, alpha=0.5):
@@ -2371,12 +2387,11 @@ def main():
         return np.uint8(255*cam_img)
 
     def guided_gradcam(guided_grad, cam):
+        # 正規化する前の勾配にGrad-CAMを掛けてから, 表示用に正規化する
         H, W, _ = guided_grad.shape
         cam_resized = cv2.resize(cam, (W, H))
         guided_gradcam = guided_grad * cam_resized[..., np.newaxis]
-        guided_gradcam = guided_gradcam - guided_gradcam.min()
-        guided_gradcam = guided_gradcam / (guided_gradcam.max()+1e-8)
-        return guided_gradcam
+        return normalize_gradient(guided_gradcam)
 
     gradcam_dir = 'data/result/gradcam_guided'
     if not os.path.exists(gradcam_dir):
@@ -2403,12 +2418,12 @@ def main():
         gradcam_img_rgb = gradcam_img[:,:,::-1]
 
         # Guided Backprop
-        gb = do_guided_backprop(model, img_tensor, cls_id) # 0-1 float
+        gb = do_guided_backprop(model, img_tensor, cls_id) # 正規化前の勾配
         g_gradcam = guided_gradcam(gb, cam) # 0-1 float
 
         original_uint8 = org_img_np
         gradcam_uint8 = gradcam_img_rgb
-        gb_uint8 = (gb*255).astype(np.uint8)
+        gb_uint8 = (normalize_gradient(gb)*255).astype(np.uint8)
         g_gradcam_uint8 = (g_gradcam*255).astype(np.uint8)
 
         combined = np.hstack([original_uint8, gradcam_uint8, gb_uint8, g_gradcam_uint8])
