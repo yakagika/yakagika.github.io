@@ -662,19 +662,22 @@ Python の CNN のライブラリはいくつかありますが, ConvNeXt は Me
 
 ## 顔による年齢識別 {#age-classification}
 
-**画像分類**の事例として, 顔の画像から年代を当てるモデルを作ります. 10 代から 60 代までの 6 クラスへの分類です. データには, 16 歳から 62 歳までの有名人 2,000 人の画像 160,000 枚以上を含むデータセット [Cross-Age Celebrity Dataset (CACD)](http://bcsiriuschen.github.io/CARC/) を使います.
+**画像分類**の事例として, 顔の画像から年代を当てるモデルを作ります. 10 代から 60 代までの 6 クラスへの分類です. データには, 顔の画像約 10 万枚に年齢, 性別, 人種のラベルを付けたデータセット [FairFace](https://github.com/joojs/fairface) (Kärkkäinen & Joo, 2021) を使います. 画像は写真共有サイト Flickr に公開された写真などから顔の部分を切り出したもので, データセットは [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.ja) (出典を示せば再配布や改変ができるライセンス) で公開されています. 年齢は, 年齢そのものではなく `0-2`, `3-9`, `10-19`, `20-29`, `30-39`, `40-49`, `50-59`, `60-69`, `more than 70` の 9 つの階級で付いています.
 
-![The dataset metadata](/images/CACD.png)
+FairFace の GitHub のページを開き, `Data` の項にある次のリンクから, 画像とラベルをダウンロードしてください. いずれも Google ドライブのページが開くので, 右上のダウンロードのボタンを押します. 画像のファイルは約 550 MB あるので, 通信環境に注意してください. 画像のファイルでは, サイズが大きいので「このファイルのウイルス スキャンを実行できません」という確認の画面が出ます. 「このままダウンロード」を押してください.
 
-`The dataset metadata only can be downloaded` をクリックしてメタデータを, `Original face images (detected and croped by openCV face detector) can be downloaded` をクリックして画像データをダウンロードしてください (3 GB あるので通信環境に注意してください).
+- `Images (train + validation set)` の `[Padding=0.25]`: 画像 (`fairface-img-margin025-trainval.zip`)
+- `Labels` の `Train`: 訓練用の画像のラベル (`fairface_label_train.csv`)
 
-`CACD2000.tar.gz` は展開して, `celebrity2000_meta.mat` とともに, プログラムを置くディレクトリの中の `data` ディレクトリに保存しておきましょう.
+`Padding=0.25` は顔の周りの余白の少ない版で, 余白の多い `Padding=1.25` の版もあります. `Labels` の `Validation` は検証用の画像のラベルですが, この資料では使いません.
+
+プログラムを置くディレクトリの中に `data` ディレクトリを作り, `fairface_label_train.csv` を保存します. `fairface-img-margin025-trainval.zip` も `data` ディレクトリに移してから展開します. Windows ではファイルを右クリックして「すべて展開」を, macOS ではファイルをダブルクリックします. どちらの場合も `fairface-img-margin025-trainval` というフォルダができ, その中の `train` と `val` のフォルダに画像が入っています.
 
 ### 画像ファイルの形式 {#image-file-format}
 
-機械学習で使うラベル付きの画像データには, CACD のような `.mat` ファイル, 画像と CSV などのラベルの組み合わせ, ラベル名のフォルダごとに分けた画像ファイルなど, いくつかの形式があります. いずれにも対応できるようにしておく必要がありますが, この資料では最も単純な, ラベル名を付けたフォルダに画像ファイルを保存する形式を扱います.
+機械学習で使うラベル付きの画像データには, 画像と CSV などのラベルの表の組み合わせ, ラベル名のフォルダごとに分けた画像ファイル, MATLAB の `.mat` ファイルのように画像とラベルをまとめた形式など, いくつかの形式があります. いずれにも対応できるようにしておく必要がありますが, この資料では最も単純な, ラベル名を付けたフォルダに画像ファイルを保存する形式を扱います.
 
-ダウンロードした `celebrity2000_meta.mat` にはメタデータだけが含まれており, 画像は別のファイルになっています. メタデータに従って, 年齢別に画像をフォルダに保存してみましょう.
+FairFace は, 画像とラベルの表を組み合わせた形式です. 画像のファイル名は `1.jpg`, `2.jpg` のような通し番号で, どの画像がどの年齢の階級かは, ラベルの表 `fairface_label_train.csv` に書かれています. ラベルの表に従って, 年代別に画像をフォルダに保存してみましょう.
 
 ~~~ sh
 > ls
@@ -682,22 +685,19 @@ face_image.py
 data
 
 > ls data
-CACD2000
-celebrity2000_meta.mat
+fairface-img-margin025-trainval
+fairface_label_train.csv
 ~~~
 
-
 ::: note
-- `.mat` ファイル
+- CSV ファイルのラベルの表
 ---
-    - MATLAB のファイル.
-    - 基本的には `scipy` を使って読み込む.
-    - 形式が MATLAB `v7.3` の場合は, `HDF5` を扱うライブラリ `h5py` を使う.
-    - `HDF5 (Hierarchical Data Format version 5)` は, ディレクトリ構造に似た階層型のデータ形式.
+    - 1 行が 1 枚の画像に対応し, 画像のファイル名 (パス) の列と, ラベルの列が並ぶ.
+    - `pandas` の `read_csv` で `DataFrame` として読み込む.
+    - `fairface_label_train.csv` の列は, `file` (画像のパス), `age` (年齢の階級), `gender` (性別), `race` (人種), `service_test` (データセットの作者の実験で使った画像かどうか).
 :::
 
-
-まずは `celebrity2000_meta.mat` を読み込み, 中身を確認してみましょう.
+まずは `fairface_label_train.csv` を読み込み, 中身を確認してみましょう.
 
 ::: warn
 次のライブラリが必要になるので, `uv add` しておいてください.
@@ -706,253 +706,122 @@ celebrity2000_meta.mat
     - CNN 用のライブラリ (PyTorch)
 - `torchvision`
     - PyTorch の画像, 動画処理用のライブラリ
-- `scipy`
-- `h5py`
 - `pillow`
     - 画像処理用のライブラリ
+- `opencv-python`
+    - 画像処理用のライブラリ ([Grad-CAM と Guided Backpropagation](#grad-cam)で使います. `import` するときには `cv2` と書きます)
 
-ファイル操作に使う `shutil` は Python の標準ライブラリなので, 追加は要りません.
+`pandas`, `matplotlib`, `seaborn`, `scikit-learn` も使います. ファイル操作に使う `shutil` は Python の標準ライブラリなので, 追加は要りません.
 :::
 
 ~~~ py
-import h5py #HDF5を扱うライブラリ
-from PIL import Image #画像の表示/保存/書き込みなどを扱うライブラリ
 import os
-import numpy as np
-import scipy.io
+import pandas as pd
+from PIL import Image #画像の表示/保存/書き込みなどを扱うライブラリ
 
 #画像データの保存先
-image_dir = 'data/CACD2000'
+image_dir = 'data/fairface-img-margin025-trainval'
 
-# .matファイルの読み込み（古い形式の場合）
-## 辞書型として読み込まれる
-file = scipy.io.loadmat('data/celebrity2000_meta.mat')
+# ラベルの表 (CSV ファイル) の読み込み
+labels = pd.read_csv('data/fairface_label_train.csv')
 
-# 辞書のKeyを表示する
-print('keys:',file.keys())
-# >>> dict_keys(['__header__', '__version__', '__globals__', 'celebrityData', 'celebrityImageData'])
-
-#celebrityImageDataの確認
-print(file['celebrityImageData'])
-
+# 先頭の5行を表示する
+print(labels.head())
 """
-[[(array([[53],
-         [53],
-         [53],
-         ...,
-         [23],
-         [23],
-         [23]], dtype=uint8), array([[   1],
-         [   1],
-         [   1],
-         ...,
-         [2000],
-         [2000],
-         [2000]], dtype=uint16), array([[2004],
-         [2004],
-         [2004],
-         ...,
-         [2013],
-         [2013],
-         [2013]], dtype=uint16), array([], shape=(0, 0), dtype=uint8), array([[ 1],
-         [ 1],
-         [ 1],
-         ...,
-         [50],
-         [50],
-         [50]], dtype=uint8), array([[1],
-         [1],
-         [1],
-         ...,
-         [0],
-         [0],
-         [0]], dtype=uint8), array([[1951],
-         [1951],
-         [1951],
-         ...,
-         [1990],
-         [1990],
-         [1990]], dtype=uint16), array([[array(['53_Robin_Williams_0001.jpg'], dtype='<U26')],
-         [array(['53_Robin_Williams_0002.jpg'], dtype='<U26')],
-         [array(['53_Robin_Williams_0003.jpg'], dtype='<U26')],
-         ...,
-         [array(['23_Katie_Findlay_0011.jpg'], dtype='<U25')],
-         [array(['23_Katie_Findlay_0012.jpg'], dtype='<U25')],
-         [array(['23_Katie_Findlay_0013.jpg'], dtype='<U25')]], dtype=object))                ]]
+          file    age  gender        race  service_test
+0  train/1.jpg  50-59    Male  East Asian          True
+1  train/2.jpg  30-39  Female      Indian         False
+2  train/3.jpg    3-9  Female       Black         False
+3  train/4.jpg  20-29  Female      Indian          True
+4  train/5.jpg  20-29  Female      Indian          True
 """
-# 7個目に画像のファイル名が入っているので
-# celebrityImageDataから画像ファイル名を抽出
-image_data = file['celebrityImageData']
-jpg_files = [str(image_name[0][0]) for image_name in image_data[0][0][7]]
 
-# 抽出された.jpgファイル名のリストを上から10個表示
-print(jpg_files[:10])
+# 行数と列数を表示する
+print(labels.shape)
+# >>> (86744, 5)
+
+# 年齢の階級ごとの枚数を表示する
+print(labels['age'].value_counts())
+"""
+age
+20-29           25598
+30-39           19250
+40-49           10744
+3-9             10408
+10-19            9103
+50-59            6228
+60-69            2779
+0-2              1792
+more than 70      842
+Name: count, dtype: int64
+"""
 
 # 画像データの取得と表示
-## 名前データを利用して画像をいくつか開いてみます.
-for n in jpg_files[:10]:
-    img_path = os.path.join(image_dir, n)  # パスを結合し,ファイル名を取得
-
+## file列のパスを利用して画像をいくつか開いてみます.
+for n in labels['file'][:3]:
+    img_path = os.path.join(image_dir, n)  # パスを結合する
     if os.path.exists(img_path):
         img = Image.open(img_path)  # 画像ファイルを開く
+        print(img_path, img.size)   # パスと画像の大きさ (幅, 高さ) を表示
         img.show()  # 画像を表示
     else:
         print(f"Image file not found: {img_path}")
-    #>>> 画像が表示されます
-~~~
-
-
-
-
-::: warn
-- HDF5 の利用例
-
-CACD のページの一番上の `The dataset metadata and features used in this paper` からダウンロードできる `celebrity2000.mat` は `HDF5` のデータなので, `scipy` で読み込むとエラーが出ます.
-
-~~~ py
-file = scipy.io.loadmat('data/celebrity2000.mat')
 """
-Traceback (most recent call last):
-  File "/Users/akagi/Desktop/face_image.py", line 86, in <module>
-    file = scipy.io.loadmat('data/celebrity2000.mat')
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/akagi/.pyenv/versions/3.12.3/lib/python3.12/site-packages/scipy/io/matlab/_mio.py", line 226, in loadmat
-    MR, _ = mat_reader_factory(f, **kwargs)
-            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/Users/akagi/.pyenv/versions/3.12.3/lib/python3.12/site-packages/scipy/io/matlab/_mio.py", line 80, in mat_reader_factory
-# 注: 上記パスは pyenv 環境での例です. uv 環境ではパスが異なりますが,エラーの内容と対処法は同じです.
-    raise NotImplementedError('Please use HDF reader for matlab v7.3 '
-NotImplementedError: Please use HDF reader for matlab v7.3 files, e.g. h5py
-
+data/fairface-img-margin025-trainval/train/1.jpg (224, 224)
+data/fairface-img-margin025-trainval/train/2.jpg (224, 224)
+data/fairface-img-margin025-trainval/train/3.jpg (224, 224)
+>>> 画像が表示されます
 """
 ~~~
 
+訓練用の画像は 86,744 枚あり, 画像の大きさはすべて 224 × 224 画素にそろえられています. 階級ごとの枚数には偏りがあり, 最も多い 20 代 (`20-29`) は 25,598 枚, 60 代 (`60-69`) は 2,779 枚です.
 
-今回は `celebrity2000_meta.mat` を使うので必要ありませんが, 試しに同じように画像を表示してみましょう.
+それでは, `fairface_label_train.csv` をもとに, 年代別にフォルダを分けて画像を保存します. 使うのは `10-19` から `60-69` までの 6 つの階級で, 保存先のフォルダの名前は `10s`, `20s`, ..., `60s` とします. 10 歳未満 (`0-2`, `3-9`) と 70 歳以上 (`more than 70`) の画像は使いません.
 
-`HDF5` は辞書を入れ子にしたような構造をしており, `key` でデータにアクセスできます.
-
-~~~ py
-import h5py #HDF5を扱うライブラリ
-from PIL import Image #画像の表示/保存/書き込みなどを扱うライブラリ
-import os
-import numpy as np
-
-# .matファイル(HDF5)の読み込み
-with h5py.File('data/celebrity2000.mat', 'r') as file:
-    # List all keys in the .mat file
-    print('keys:',list(file.keys()))
-    # >>> keys: ['#refs#', 'celebrityData', 'celebrityImageData']
-
-    ## ラベルの確認
-    print('DataKeys:',file['celebrityImageData'].keys())
-    # >>> DataKeys: <KeysViewHDF5 ['age', 'birth', 'feature', 'identity', 'lfw', 'name', 'rank', 'year']>
-
-    # 年齢データの確認
-    print('age:',file['celebrityImageData']['age'])
-    # >>> age: <HDF5 dataset "age": shape (1, 163446), type "<f8">
-    print('age:',file['celebrityImageData']['age'][0])
-    # >>> age: [53. 53. 53. ... 23. 23. 23.]
-
-    # 名前データの確認
-    print('name:',file['celebrityImageData']['name'])
-    # >>> name: <HDF5 dataset "name": shape (1, 163446), type "|O">
-    print('name:',file['celebrityImageData']['name'][0])
-    # >>> name: [<HDF5 object reference> <HDF5 object reference> <HDF5 object reference>
-    #... <HDF5 object reference> <HDF5 object reference>
-    #<HDF5 object reference>]
-    # ↑ <HDF5 object reference>は他のHDF5オブジェクトへの参照 #refs#に入っている.
-
-    # nameデータを参照して表示
-    name_references = file['celebrityImageData']['name'][0]
-    names = []
-    for ref in name_references:
-        name = file[ref][()].tobytes().decode('utf-16')  # utf-16でデコード
-        names.append(name)
-
-    # 最初の10件の名前を表示
-    print('names:', names[:10])
-    # names: ['53_Robin_Williams_0001.jpg'
-    # , '53_Robin_Williams_0002.jpg'
-    # , '53_Robin_Williams_0003.jpg'
-    # , '53_Robin_Williams_0004.jpg'
-    # , '53_Robin_Williams_0005.jpg'
-    # , '53_Robin_Williams_0006.jpg'
-    # , '53_Robin_Williams_0007.jpg'
-    # , '53_Robin_Williams_0009.jpg'
-    # , '53_Robin_Williams_0010.jpg'
-    # , '53_Robin_Williams_0011.jpg']
-
-    # 画像データの取得と表示
-    ## 名前データを利用して画像をいくつか開いてみます.
-    for n in names[:10]:
-        img_path = os.path.join(image_dir, n)  # パスを結合し,ファイル名を取得
-
-        if os.path.exists(img_path):
-            img = Image.open(img_path)  # 画像ファイルを開く
-            img.show()  # 画像を表示
-        else:
-            print(f"Image file not found: {img_path}")
-    # >>> 画像が表示される
-~~~
-
-同じようにデータを取り出せることが確認できます.
-
-
-:::
-
-
-それでは, `celebrity2000_meta.mat` をもとに, 年代別にフォルダを分けて画像を保存します. 年代の区分は `10`, `20`, ..., `100` とします. 画像ファイル名の先頭の数字も年齢を表しているのでそれを使っても構いませんが, ここではメタデータを使います. 年齢は `image_data[0][0][0]` に入っています.
-
-研究であれば画像の枚数は多いほど良いのですが, ここでは一通りの流れを体験することが目的なので, 学生の PC でも扱いやすいように各年代 200 枚だけコピーします.
+研究であれば画像の枚数は多いほど良いのですが, ここでは一通りの流れを体験することが目的なので, 学生の PC でも扱いやすいように各年代 200 枚だけコピーします. どの 200 枚を選ぶかは, `DataFrame` の `sample` で, 乱数の種 (`random_state`) を固定してランダムに決めます.
 
 ~~~ py
 import os
 import shutil
-import scipy.io
-from collections import defaultdict
-import random
+import pandas as pd
 
 # 画像ディレクトリの設定
-image_dir = 'data/CACD2000'
+image_dir = 'data/fairface-img-margin025-trainval'
 output_dir = 'data/sorted_images'
 
-# .matファイルの読み込み
-file = scipy.io.loadmat('data/celebrity2000_meta.mat')
+# ラベルの表の読み込み
+labels = pd.read_csv('data/fairface_label_train.csv')
 
-# celebrityImageDataから年齢と画像ファイル名を抽出
-image_data = file['celebrityImageData']
-# 年齢情報
-ages = image_data[0][0][0].flatten()
-# 画像ファイル名
-jpg_files = [str(image_name[0][0]) for image_name in image_data[0][0][7]]
+# 年齢の階級と保存先のフォルダ名の対応 (0-2, 3-9, more than 70 は使わない)
+age_groups = {'10-19': '10s', '20-29': '20s', '30-39': '30s',
+              '40-49': '40s', '50-59': '50s', '60-69': '60s'}
 
-# 年齢と画像ファイルをペアにする
-age_image_pairs = list(zip(ages, jpg_files))
+# 年代別のフォルダに画像をコピー（各年代最大200枚）
+for age, folder in age_groups.items():
+    # この階級の行だけを取り出し, ランダムに最大200行を選ぶ
+    rows = labels[labels['age'] == age]
+    rows = rows.sample(n=min(200, len(rows)), random_state=42)
 
-# 年代ごとの画像カウント
-age_group_counts = defaultdict(int)
+    folder_path = os.path.join(output_dir, folder)
+    os.makedirs(folder_path, exist_ok=True)
 
-# 年齢別に画像をシャッフル
-random.shuffle(age_image_pairs)
-
-# 年齢別のフォルダに画像をコピー（各年代最大200枚）
-for age, jpg_file in age_image_pairs:
-    age_group = (age // 10) * 10
-    if age_group > 100:
-        age_group = 100  # 100代以上は100代フォルダに保存
-
-    # 各年代ごとに200枚までコピー
-    if age_group_counts[age_group] < 200:
-        folder_path = os.path.join(output_dir, f'{age_group}s')
-        os.makedirs(folder_path, exist_ok=True)
-
-        src_path = os.path.join(image_dir, jpg_file)
-        dst_path = os.path.join(folder_path, jpg_file)
-
+    for file in rows['file']:
+        src_path = os.path.join(image_dir, file)                     # 例: data/fairface-img-margin025-trainval/train/123.jpg
+        dst_path = os.path.join(folder_path, os.path.basename(file)) # 例: data/sorted_images/10s/123.jpg
         shutil.copy(src_path, dst_path)
-        age_group_counts[age_group] += 1
+
+    print(folder, len(rows))
+"""
+10s 200
+20s 200
+30s 200
+40s 200
+50s 200
+60s 200
+"""
 ~~~
+
+`file` 列の値は `train/123.jpg` のように `train` フォルダからのパスになっています. `os.path.basename` はパスの最後のファイル名 (`123.jpg`) だけを取り出す関数で, 保存先ではフォルダを付けずにファイル名だけを使っています.
 
 結果を確認してみます.
 
@@ -968,36 +837,36 @@ for age, jpg_file in age_image_pairs:
 > ls data/sorted_images
 10s 20s 30s 40s 50s 60s
 > ls data/sorted_images/10s |head -20
-19_Alison_Pill_0001.jpg
-19_Alison_Pill_0002.jpg
-19_Alison_Pill_0003.jpg
-19_Alison_Pill_0005.jpg
-19_Alison_Pill_0006.jpg
-19_Alison_Pill_0007.jpg
-19_Alison_Pill_0009.jpg
-19_Alison_Pill_0011.jpg
-19_Amanda_Seyfried_0001.jpg
-19_Amanda_Seyfried_0002.jpg
-19_Amanda_Seyfried_0004.jpg
-19_Amanda_Seyfried_0005.jpg
-19_Amanda_Seyfried_0007.jpg
-19_Amanda_Seyfried_0008.jpg
-19_Amanda_Seyfried_0010.jpg
-19_Amanda_Seyfried_0011.jpg
-19_Amanda_Seyfried_0013.jpg
-19_Amanda_Seyfried_0014.jpg
-19_Anna_Kendrick_0002.jpg
-19_Anna_Kendrick_0008.jpg
+10085.jpg
+10370.jpg
+10516.jpg
+10599.jpg
+1183.jpg
+12699.jpg
+13286.jpg
+13594.jpg
+13800.jpg
+14253.jpg
+14267.jpg
+1553.jpg
+15592.jpg
+15838.jpg
+15876.jpg
+15916.jpg
+15964.jpg
+16005.jpg
+16037.jpg
+16535.jpg
 ~~~
 
-データには 10 代から 60 代までしか含まれていませんでした. 各フォルダの中身を見ると, 画像が保存できていることが分かります.
+`ls` はファイル名を文字の順に並べるので, 数値の大きさの順にはなりません. 各フォルダに画像が保存できていることが分かります.
 
 
 [手書き数字の認識](#digit-recognition)と同じく, モデルの性能を評価するために, 学習に使う訓練データと, 学習の結果を確かめるテストデータに分けます. 続いて, 訓練用とテスト用でフォルダを分けます.
 
 各年代 200 枚の画像のうち, 8 割 (160 枚) を訓練データ, 2 割 (40 枚) をテストデータにします.
 
-データの分割には, 指定した割合でデータを分ける `sklearn` の `train_test_split` を使います.
+データの分割には, 指定した割合でデータを分ける `sklearn` の `train_test_split` を使います. `os.listdir` が返すファイルの順序は OS によって異なるので, `sorted` でファイル名の順に並べてから分けます. 並べておかないと, 同じ `random_state` でも, PC によって分け方が変わります.
 
 ~~~ py
 import os
@@ -1010,7 +879,7 @@ output_dir = 'data/sorted_images_split'
 # 画像ファイルのパスを収集し,年齢別に分類
 age_groups = ['10s', '20s', '30s', '40s', '50s', '60s']
 for age_group in age_groups:
-    images = os.listdir(os.path.join(data_dir, age_group))
+    images = sorted(os.listdir(os.path.join(data_dir, age_group)))  # ファイル名の順に並べる
     train_images, val_images = train_test_split(images
                                                ,test_size=0.2 #2割をテスト用データにする
                                                , random_state=42)
@@ -1046,6 +915,8 @@ data/sorted_images_split
         └── 60s
 ~~~
 
+ここで作ったフォルダの `val` はテストデータです. FairFace に含まれる `val` フォルダ (データセットの作者が分けた検証用の画像) とは別のものです.
+
 
 
 ### 画像認識の実施 {#run-convnext}
@@ -1072,6 +943,10 @@ CNN の学習のコードで扱う基本的な概念を説明します.
 
     画像を左右に反転させて, データに多様性を加えます.
 
+    - **色調の変化 (Color Jitter)**
+
+    画像の明るさ (`brightness`) とコントラスト (`contrast`) をランダムに変えます. `0.2` は, 元の画像の 0.8 倍から 1.2 倍の範囲で変えることを表します.
+
     - **テンソル (Tensor) 変換**
 
     数値の多次元配列を **Tensor** (テンソル) と呼びます. データをテンソルに変換すると, 効率的に学習を行えます.
@@ -1097,6 +972,7 @@ data_transforms = {
     'train': transforms.Compose([
         transforms.Resize((224, 224)),     #画像のリサイズ
         transforms.RandomHorizontalFlip(), #画像をランダムに反転
+        transforms.ColorJitter(brightness=0.2, contrast=0.2),  # 色調変化
         transforms.ToTensor(),             #テンソル(多次元配列)に変換
         transforms.Normalize(mean=[0.485, 0.456, 0.406]
                             ,std=[0.229, 0.224, 0.225]), #正規化(本来は値を変更する必要あり.
@@ -1209,7 +1085,7 @@ def set_seed(seed):
 def main():
     # シードを設定する
     #(自分の研究でやる場合は以下の行は消しても問題ない.)
-    set_seed(42)
+    set_seed(2024)
 ~~~
 
 - **CUDA (Compute Unified Device Architecture)**
@@ -1239,7 +1115,7 @@ else:
 
 
 ::: warn
-このコードを実行すると, PC の性能によっては, 10 分以上にわたって CPU や GPU のほぼすべてが使われます. ほかの不要なアプリを閉じて, 時間に余裕があるときに, 電源につないだ状態で実行しましょう. このコードは学生の PC でも動くように作ってありますが, うまくいかない場合は Google Colaboratory で試してみましょう.
+このコードを実行すると, PC の性能によっては, 10 分以上にわたって CPU や GPU のほぼすべてが使われます. 例えば, Apple M5 Max を搭載した Mac (MPS を使用) では, 3 エポックの学習と図の出力に約 4 分, 20 エポックでは約 18 分かかりました. GPU を使えない PC では, これより大幅に長くかかります. ほかの不要なアプリを閉じて, 時間に余裕があるときに, 電源につないだ状態で実行しましょう. このコードは学生の PC でも動くように作ってありますが, うまくいかない場合は Google Colaboratory で試してみましょう.
 
 :::
 
@@ -1264,23 +1140,40 @@ information and possible workarounds, please see
 
 次の 2 つのグラフは, `num_epochs` を `20` にして学習したときのものです.
 
-![損失の推移 (20 エポック)](/images/slds/ch14/convnext-loss-epoch20.png)
+![損失の推移 (20 エポック)](/images/dsp/ch9/age-loss-epoch20.png)
 
-![正解率の推移 (20 エポック)](/images/slds/ch14/convnext-acc-epoch20.png)
+![正解率の推移 (20 エポック)](/images/dsp/ch9/age-acc-epoch20.png)
 
-グラフの横軸は 0 から数えたエポックの番号です. 横軸の 5 (6 エポック目) のあたりで訓練データの正解率が最も高くなり, その後は訓練データでもテストデータでも正解率が下がり, 損失が増えています. [エポック (epoch) 数](#エポック-epoch-数)の説明で挙げた過学習では, 訓練データの損失は下がり続け, テストデータの損失だけが増えます. 訓練データの損失まで増えているのは過学習とは別の現象で, 学習率などの設定がこのデータに合っていない可能性があります. そこで, `num_epochs` を `5` に変更して, もう一度学習します ([年齢識別のコード全体](#age-full-code)は `5` にしてあります). ランダムシードを固定しているので, 途中までは基本的に同じ値が出力されます.
+グラフの横軸は 0 から数えたエポックの番号です. 訓練データの損失 (赤) は 7 エポック目までに `0.12` まで下がり, その後も 0 の近くにとどまります. 横軸の 16 (17 エポック目) では, 訓練データの正解率が `1.0` に達しています. 一方で, テストデータの損失 (青) は横軸の 2 (3 エポック目) の `1.41` が最も低く, その後はおおむね増え続けて, 20 エポック目には `2.63` になります. テストデータの正解率も 3 エポック目の `0.417` が最も高く, その後は `0.36` から `0.41` の間で上下するだけです. 訓練データの損失が下がったまま, テストデータの損失だけが増えるのは, [エポック (epoch) 数](#エポック-epoch-数)の説明で挙げた過学習の典型的な形です. 各年代 160 枚の訓練データは, ConvNeXt のパラメータの数 (約 2,800 万) と比べてはるかに少ないので, モデルは訓練データの 1 枚 1 枚に特有の特徴まで覚えて訓練データの損失を下げ, その特徴は新しい画像には通用しません.
 
-![正解率の推移 (5 エポック)](/images/slds/ch14/convnext-acc-epoch5.png)
+そこで, テストデータの損失が最も低かった `3` に `num_epochs` を変更して, もう一度学習します ([年齢識別のコード全体](#age-full-code)は `3` にしてあります). ランダムシードを固定しているので, 3 エポック目までは 20 エポックの場合と同じ値が出力されます.
 
-最終的に, テストデータでの正解率は `0.4` 程度になりました. それほど高い値ではありませんが, ランダムな予測 ($1/6 \approx 0.17$) の 2 倍以上なので, ここではこのモデルで先へ進みます. 実際の研究などでは, データを増やす, ハイパーパラメータやアルゴリズムを変更するなどして, より良い値を目指します.
+~~~ sh
+Epoch 1/3
+----------
+train Loss: 1.7262 Acc: 0.2333
+val Loss: 1.5763 Acc: 0.2917
+Epoch 2/3
+----------
+train Loss: 1.3405 Acc: 0.4771
+val Loss: 1.4478 Acc: 0.3667
+Epoch 3/3
+----------
+train Loss: 0.9863 Acc: 0.6729
+val Loss: 1.4121 Acc: 0.4167
+~~~
 
-出力される `pred_acctual_heatmap.png` は, テストデータについて, 実際のラベル (横軸) ごとに, どのラベルと予測したか (縦軸) を数え, 列ごとの相対度数にしたヒートマップです. 縦と横が入れ替わっていますが, [手書き数字の認識](#digits-errors)の混同行列と同じ表です. すべて正しく予測できていれば, 度数は対角線上に集中します.
+![正解率の推移 (3 エポック)](/images/dsp/ch9/age-acc-epoch3.png)
 
-![実際のラベルと予測のヒートマップ](/images/slds/ch14/pred-acctual-heatmap.png)
+最終的に, テストデータでの正解率は `0.417` (240 枚のうち 100 枚が正解) になりました. それほど高い値ではありませんが, ランダムな予測 ($1/6 \approx 0.17$) の 2 倍以上なので, ここではこのモデルで先へ進みます. 実際の研究などでは, データを増やす, ハイパーパラメータやアルゴリズムを変更するなどして, より良い値を目指します. FairFace には各年代に 2,000 枚以上の画像があるので, 1 クラスあたりの枚数の上限を増やすのが最初に試せる方法です.
 
-ヒートマップを見ると, 度数は対角線の近くに集まっています. 10 代と 20 代 (横軸の 0, 1) を 60 代と予測した割合は 0 で, 50 代と予測した割合も 0.025 以下です. 年齢の大きく離れた年代とはほとんど取り違えていません.
+出力される `pred_acctual_heatmap.png` は, テストデータについて, 実際のラベル (横軸) ごとに, どのラベルと予測したか (縦軸) を数え, 列ごとの相対度数にしたヒートマップです. 縦と横が入れ替わっていますが, [手書き数字の認識](#digits-errors)の混同行列と同じ表です. すべて正しく予測できていれば, 度数は対角線上に集中します. 軸の番号の 0 から 5 は, 10 代から 60 代に対応します.
 
-一方で, 実際のラベルが 10 代, 20 代, 40 代のとき, 30 代と誤って予測する割合が高くなっています (0.7, 0.62, 0.4). 40 代より若い年代は, あまりうまく識別できていません.
+![実際のラベルと予測のヒートマップ](/images/dsp/ch9/age-heatmap.png)
+
+ヒートマップを見ると, 度数は対角線とその両隣に集まっています. 実際のラベルが 10 代と 20 代 (横軸の 0, 1) のとき, 50 代か 60 代と予測した割合は合わせて 0.05 以下で, 実際のラベルが 60 代 (横軸の 5) のとき, 10 代と予測した割合は 0 です. 年齢の大きく離れた年代とはほとんど取り違えていません.
+
+誤りの多くは隣の年代との取り違えです. 実際のラベルが 10 代のときに 20 代と予測した割合は 0.3, 20 代のときに 10 代と予測した割合は 0.35 で, 50 代と 60 代の間でも 0.35 ずつ取り違えています. 最も識別できていないのは 40 代 (横軸の 3) で, 40 代と正しく予測した割合は 0.075 しかありません. 40 代の画像は, 30 代 (0.35), 50 代 (0.3), 60 代 (0.2) と予測されています. 縦軸の 3 の行を見ると, どの年代の画像も 40 代とはほとんど予測されておらず, モデルは 40 代というラベル自体をほとんど使っていません.
 
 ## 音声認識 {#speech-recognition}
 
@@ -1418,11 +1311,13 @@ for n in [4, 8, 16, 64]:
 
 [年齢識別のコード全体](#age-full-code)は, 学習したモデルが訓練データの各画像について出力した値を特徴量として取り出し, PCA と t-SNE で 2 次元に圧縮した散布図も出力します (`convnext_pca.png` と `convnext_tsne.png`). PCA (主成分分析) は, データのばらつきが大きい方向から順に軸を取り直し, 上位の軸だけを残して次元を減らす手法です. t-SNE は, 高い次元で近くにある点同士が 2 次元でも近くに来るように配置する手法です.
 
-![PCA](/images/slds/ch14/convnext-pca.png)
+![PCA](/images/dsp/ch9/age-pca.png)
 
-![t-SNE](/images/slds/ch14/convnext-tsne.png)
+![t-SNE](/images/dsp/ch9/age-tsne.png)
 
-いずれの図でも, 左から右へ行くにつれて年代が高くなっており, モデルが年代をある程度識別できていることが分かります. 一方で, 30 代 (緑) が広い範囲に分布しているので, 30 代の識別は難しいこと, 50 代と 60 代は左右とは別の方向 (上下) で分かれていることなども読み取れます.
+いずれの図でも, 左から右へ行くにつれて年代が高くなっており, モデルが年代をある程度識別できていることが分かります. PCA の図では, 10 代 (青) が左上に, 60 代 (茶) が右上に集まり, 20 代から 50 代はその間を U 字の形につないでいます. 20 代と 30 代, 50 代と 60 代は重なる範囲が広く, 40 代 (赤) は 30 代と 50 代の間に散らばっています. t-SNE の図では, 10 代, 50 代, 60 代がそれぞれまとまっています. 20 代, 30 代, 40 代もそれぞれの集まりを作りますが, 中央付近 (横軸の -20 から 10 のあたり) では 3 つの年代の点が入り混じっています. 30 代と 40 代の区別が難しいことは, [画像認識の実施](#run-convnext)のヒートマップで 40 代の正解の割合が低かったことと合っています.
+
+ただし, これらの図は訓練データの特徴量から描いたものです. モデルは訓練データに合わせて学習しているので, テストデータで描くよりも年代ごとにまとまって見えます. テストデータで同じ図を描くには, `val_features` と `val_labels` を `plot_tsne` と `plot_pca` に渡します.
 
 学習したモデルの特徴量をこのように分析すると, それぞれのクラスの特徴がある程度見えてきます.
 
@@ -1607,23 +1502,23 @@ for h in hooks:
 print('特徴マップ描画完了')
 ~~~
 
-生成した画像のうち, 10 代 (10s) と 60 代 (60s) の特徴マップを確認してみましょう.
+生成した画像のうち, 10 代 (10s) と 60 代 (60s) の 1 枚目 (テストデータの `DataLoader` から最初に取り出された画像. [Grad-CAM と Guided Backpropagation](#grad-cam)で使う画像とは別のもの) の特徴マップを確認してみましょう (画像の出典: FairFace (Kärkkäinen & Joo, 2021), CC BY 4.0).
 
-![10s 0 層](/images/slds/ch14/10s-0-6.png)
-![60s 0 層](/images/slds/ch14/60s-0-8.png)
+![10s 0 層](/images/dsp/ch9/age-fmap-10s-0.png)
+![60s 0 層](/images/dsp/ch9/age-fmap-60s-0.png)
 
-最初の層の特徴マップは抽象化が進んでおらず, 入力画像に近い形状や明暗を捉えています. この段階ではまだ「顔」「目」「鼻」などのまとまった対象は捉えておらず, 画素の単位での色, 明るさ, エッジなどの低次の特徴 (輪郭や縞模様, 明るい部分や暗い部分など) を取り出している段階に見えます.
+最初の層の特徴マップは抽象化が進んでおらず, 入力画像に近い形状や明暗を捉えています. 10 代の画像では眼鏡の縁や唇の輪郭, 60 代の画像では顔の輪郭や目の周りの線が, チャンネルによって明るく, あるいは暗く表れています. この段階ではまだ「顔」「目」「鼻」などのまとまった対象は捉えておらず, 画素の単位での色, 明るさ, エッジなどの低次の特徴 (輪郭や縞模様, 明るい部分や暗い部分など) を取り出している段階に見えます.
 
 
-![10s 5 層](/images/slds/ch14/10s-5-6.png)
-![60s 5 層](/images/slds/ch14/60s-5-8.png)
+![10s 5 層](/images/dsp/ch9/age-fmap-10s-5.png)
+![60s 5 層](/images/dsp/ch9/age-fmap-60s-5.png)
 
-5 層では, 人物の顔そのものは読み取れませんが, 明暗や模様の分布がより粗い解像度で表されています. モザイク状に見える特徴マップもあり, 特定の領域に強く反応するフィルタがあることが分かります.
+5 層の特徴マップは 14 × 14 の粗い解像度になり, 人物の顔そのものは読み取れません. モザイク状の特徴マップの中に, 一部のマスだけが明るいものがあり, 特定の領域に強く反応するフィルタがあることが分かります.
 
-![10s 最終層](/images/slds/ch14/10s-last-6.png)
-![60s 最終層](/images/slds/ch14/60s-last-8.png)
+![10s 最終層](/images/dsp/ch9/age-fmap-10s-last.png)
+![60s 最終層](/images/dsp/ch9/age-fmap-60s-last.png)
 
-最終層になると, 抽象化が進み, 人が見ても元の画像との対応は分からなくなります. それでも, ネットワークにとって意味のある特徴 (特定の配置や模様, 対象物のおおよその形など) がチャンネルごとに表されていると考えられます. この段階では, 分類に役立つ特徴が少数の値に凝縮されています.
+最終層の特徴マップは 7 × 7 になり, 人が見ても元の画像との対応は分からなくなります. それでも, ネットワークにとって意味のある特徴 (特定の配置や模様, 対象物のおおよその形など) がチャンネルごとに表されていると考えられます. この段階では, 分類に役立つ特徴が少数の値に凝縮されています. なお, コードの `features_-1` と `last_conv` は, どちらも `model.features[-1]` の出力なので, 同じ特徴マップが保存されます.
 
 
 ## Grad-CAM と Guided Backpropagation {#grad-cam}
@@ -1661,7 +1556,7 @@ base_val_dir = os.path.join(data_dir, 'val')
 sample_images = {}
 for cls_id, cls_name in target_cam_classes.items():
     cls_dir = os.path.join(base_val_dir, cls_name)
-    img_name = os.listdir(cls_dir)[0]
+    img_name = sorted(os.listdir(cls_dir))[0]  # ファイル名の順で最初の画像
     img_path = os.path.join(cls_dir, img_name)
     sample_images[cls_id] = img_path
 
@@ -1803,13 +1698,17 @@ for h in guided_hooks:
 print("Grad-CAM, Guided Backprop, Guided Grad-CAM 完了")
 ~~~
 
-10 代の写真と 60 代の写真を 1 枚ずつ選んで, 年齢識別のモデルに `Grad-CAM` を適用した画像が次のとおりです. 左が元の画像, 右が `Grad-CAM` です.
+10 代と 60 代のテストデータから, ファイル名の順で最初の画像を 1 枚ずつ選び, 年齢識別のモデルにこれらの手法を適用した結果が次のとおりです. 左から元の画像, `Grad-CAM`, `Guided Backpropagation`, `Guided Grad-CAM` の順に並べています. どちらの画像も, モデルは正しい年代を予測しています (6 つの年代のうち, 正しい年代の確率が最も高く, どちらも 0.48 です).
 
-![10 代の画像への Grad-CAM](/images/dsp/ch9/gradcam-age-10s.png)
+![10 代の画像への適用](/images/dsp/ch9/gradcam-age-10s.png)
 
-![60 代の画像への Grad-CAM](/images/dsp/ch9/gradcam-age-60s.png)
+![60 代の画像への適用](/images/dsp/ch9/gradcam-age-60s.png)
 
-この結果を見ると, 学習したモデルは, 10 代の画像では鼻や首, 60 代の画像では顎や首に注目しています. 人が年齢を推測するときにも首のしわを手がかりにすることがあるので, それなりに納得できる結果です. ただし, 1 枚ずつの画像から言えることは限られます. 実際の研究では, 多くの画像を比べて, モデルが何に注目しているかを分析します.
+画像の出典: FairFace (Kärkkäinen & Joo, 2021), CC BY 4.0.
+
+`Grad-CAM` を見ると, 学習したモデルは, 10 代の画像では目の周りと, 鼻の横から口にかけての頬に, 60 代の画像では額と鼻, 顎のひげに注目しています. 60 代の画像で注目している額は, しわの寄りやすい場所です. 人が年齢を推測するときにも額のしわやひげの白さを手がかりにすることがあるので, それなりに納得できる結果です. ただし, 1 枚ずつの画像から言えることは限られます. 実際の研究では, 多くの画像を比べて, モデルが何に注目しているかを分析します.
+
+`Guided Backpropagation` の画像は, どちらも細かい粒状の模様が全体に広がり, 目や鼻の輪郭がかすかに分かる程度です. `Guided Grad-CAM` では, その模様のうち `Grad-CAM` が注目した領域にあるものだけが残ります.
 
 `Guided Backpropagation` が何を映すかは, 輪郭のはっきりした物体の画像で確かめると分かりやすくなります. 次の図は, ImageNet で事前学習した ConvNeXt-Tiny (分類層を 6 クラス用に置き換える前のモデル) に猫とコーヒーカップの画像を入れ, モデルが予測したクラス (ImageNet のクラス番号 285 の Egyptian cat と 967 の espresso) について, 上のコードを実行した結果です. 左から元の画像, `Grad-CAM`, `Guided Backpropagation`, `Guided Grad-CAM` の順に並べています. 画像は scikit-image に付属するサンプル画像 (`skimage.data.chelsea`, `skimage.data.coffee`) です.
 
@@ -1950,8 +1849,10 @@ def main():
     set_seed(2024)
     # データのディレクトリ設定
     data_dir = 'data/sorted_images_split'
+    # 結果の保存先のフォルダを作る
+    os.makedirs('data/result', exist_ok=True)
     batch_size = 32
-    num_epochs = 5
+    num_epochs = 3
     num_classes = 6  # 10代, 20代, ..., 60代
 
     # デバイス設定
@@ -2295,7 +2196,7 @@ def main():
     sample_images = {}
     for cls_id, cls_name in target_cam_classes.items():
         cls_dir = os.path.join(base_val_dir, cls_name)
-        img_name = os.listdir(cls_dir)[0]
+        img_name = sorted(os.listdir(cls_dir))[0]  # ファイル名の順で最初の画像
         img_path = os.path.join(cls_dir, img_name)
         sample_images[cls_id] = img_path
 
