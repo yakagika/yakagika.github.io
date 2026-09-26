@@ -31,9 +31,11 @@
     --fill-soft:  #f4f4f4;   /* 演習見出し行などの淡い地 */
     --fill-code:  #f0f0f0;   /* inline code の地 */
 
-    /* callout の罫線色 — 地は白のまま, 線とラベルだけに色を持たせる */
+    /* callout の罫線色と地. 地は罫線と同じ色味をごく薄くしたもの */
     --note-rule:  #7a9cc0;   /* 薄い青 */
     --warn-rule:  #c4756f;   /* 薄い赤 */
+    --note-bg:    #eef3f8;
+    --warn-bg:    #f9eeec;
 
     /* コードブロックの地. src/Main.hs の pandocCodeStyle と同じ値にしておく
        (言語指定の無い pre は syntax.css の対象外なので, ここが効く) */
@@ -59,6 +61,8 @@ html.dark {
     --fill-code:  #1c1c1c;
     --note-rule:  #7f9fbf;
     --warn-rule:  #c4817b;
+    --note-bg:    #141b22;
+    --warn-bg:    #221514;
 }
 
 /* ------------------------------------------------------------
@@ -357,19 +361,17 @@ div.warn, section.warn {
     position: relative;
     margin: 32px 0;
     padding: 22px 20px 16px;
-    background: none;
     border-radius: 0;
 }
 
-div.note, section.note { border: 1px solid var(--note-rule); }
-div.warn, section.warn { border: 2px solid var(--warn-rule); }
+div.note, section.note { border: 1px solid var(--note-rule); background-color: var(--note-bg); }
+div.warn, section.warn { border: 2px solid var(--warn-rule); background-color: var(--warn-bg); }
 
 div.note::before, section.note::before,
 div.warn::before, section.warn::before {
     position: absolute;
     left: 14px;
     padding: 0 8px;
-    background-color: var(--paper);
     font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.18em;
@@ -379,12 +381,19 @@ div.note::before, section.note::before {
     content: "NOTE";
     top: -9px;
     color: var(--note-rule);
+    /* 枠線をまたぐので, 枠の外側は地の色, 内側は枠内の色で塗り分ける */
+    background: linear-gradient(var(--label-outer, var(--paper)) 9px, var(--note-bg) 9px);
 }
 div.warn::before, section.warn::before {
     content: "CAUTION";
     top: -10px;
     color: var(--warn-rule);
+    background: linear-gradient(var(--label-outer, var(--paper)) 10px, var(--warn-bg) 10px);
 }
+
+/* 枠の中にさらに枠を置いたときは, ラベルの外側を親の枠内の色にそろえる */
+.note .note::before, .note .warn::before { --label-outer: var(--note-bg); }
+.warn .note::before, .warn .warn::before { --label-outer: var(--warn-bg); }
 
 /* callout 内の余白を均一化 */
 div.note > *:first-child, section.note > *:first-child,
