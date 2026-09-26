@@ -1502,7 +1502,7 @@ for h in hooks:
 print('特徴マップ描画完了')
 ~~~
 
-生成した画像のうち, 10 代 (10s) と 60 代 (60s) の 1 枚目 (テストデータの `DataLoader` から最初に取り出された画像. [Grad-CAM と Guided Backpropagation](#grad-cam)で使う画像とは別のもの) の特徴マップを確認してみましょう (画像の出典: FairFace (Kärkkäinen & Joo, 2021), CC BY 4.0).
+生成した画像のうち, 10 代 (10s) と 60 代 (60s) の 1 枚目 (テストデータの `DataLoader` から最初に取り出された画像. [Grad-CAM と Guided Backpropagation](#grad-cam)で使う画像とは別のもの) の特徴マップを確認してみましょう (画像の出典: [FairFace](https://github.com/joojs/fairface) (Kärkkäinen & Joo, 2021), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.ja). 特徴マップの図は, 元の画像をモデルに入力して得た中間層の出力を描いたもので, 元の画像を加工しています).
 
 ![10s 0 層](/images/dsp/ch9/age-fmap-10s-0.png)
 ![60s 0 層](/images/dsp/ch9/age-fmap-60s-0.png)
@@ -1704,7 +1704,7 @@ print("Grad-CAM, Guided Backprop, Guided Grad-CAM 完了")
 
 ![60 代の画像への適用](/images/dsp/ch9/gradcam-age-60s.png)
 
-画像の出典: FairFace (Kärkkäinen & Joo, 2021), CC BY 4.0.
+画像の出典: [FairFace](https://github.com/joojs/fairface) (Kärkkäinen & Joo, 2021), [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.ja). 元の画像に Grad-CAM のヒートマップを重ねる, Guided Backpropagation の結果を掛け合わせるなどの加工をしています.
 
 `Grad-CAM` を見ると, 学習したモデルは, 10 代の画像では目の周りと, 鼻の横から口にかけての頬に, 60 代の画像では額と鼻, 顎のひげに注目しています. 60 代の画像で注目している額は, しわの寄りやすい場所です. 人が年齢を推測するときにも額のしわやひげの白さを手がかりにすることがあるので, それなりに納得できる結果です. ただし, 1 枚ずつの画像から言えることは限られます. 実際の研究では, 多くの画像を比べて, モデルが何に注目しているかを分析します.
 
