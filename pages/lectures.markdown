@@ -30,12 +30,6 @@ title: Lectures
     <span class="series-desc">VSCode, CLI, 基本コマンドなど, 各講義で共通のプログラミング環境設定.</span>
     <span class="series-cta">設定を見る →</span>
   </a>
-  <a class="series-card" href="lectures/git.html">
-    <span class="series-badge">Coding Agent</span>
-    <span class="series-title">共通資料 git とコーディングエージェント</span>
-    <span class="series-desc">git と GitHub で変更を確認して記録し, コーディングエージェント (codex) に書かせたコードを読んで直すための環境と操作, 判断の仕方.</span>
-    <span class="series-cta">資料を見る →</span>
-  </a>
 </div>
 ```
 
