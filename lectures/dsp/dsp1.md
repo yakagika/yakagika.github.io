@@ -47,7 +47,7 @@ nextChapter: dsp2.html
 
 [第7章 クラスタリングとパターン発見](dsp7.html)
 
-[第8章 ニューラルネットワークから生成AIへ](dsp8.html)
+[第8章 ニューラルネットワークと Transformer](dsp8.html)
 
 [第9章 画像認識](dsp9.html)
 

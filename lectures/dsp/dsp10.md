@@ -1237,6 +1237,10 @@ for c,txt in zip(list(df_wiki['c'].unique()),txts):
 
 それぞれ異なる単語が表れており興味深いです. 研究の場合は,それぞれの特徴やその理由に関して考察すると面白いでしょう.
 
+# 生成 AI の仕組み: 事前学習と生成
+
+(執筆中)
+
 # 発展
 
 以下は授業では扱いません. 課題では, ここに挙げた手法から好きなものを選んで実施し, 最終回に発表してもらいます.
@@ -1524,3 +1528,7 @@ print(df.T)
 visualisation = pyLDAvis.gensim.prepare(lda, corpus, dictionary)
 pyLDAvis.save_html(visualisation, 'result/LDA_Visualization.html')
 ~~~
+
+## CLIP
+
+(執筆中)
