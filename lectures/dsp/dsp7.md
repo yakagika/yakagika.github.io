@@ -30,7 +30,7 @@ uv add pandas matplotlib matplotlib-fontja scikit-learn scipy mlxtend
 
 # 例題のデータ: 大学の売店の購買記録
 
-[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/dsp7/store_log.csv)のデータは, ある大学の売店の 1 学期分 (4 月から 7 月) の会員の購買記録です (練習用に作成した架空のデータです). 1 行がレシート 1 枚に載った 1 品目を表します.
+[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/dsp7/store_log.csv)のデータは, [第6章](dsp6.html)で会員の退会を予測した大学の売店の, 1 学期分 (4 月から 7 月) の会員の購買記録です (練習用に作成した架空のデータです). 第6章のデータは, この記録を会員ごとに集計したものでした. 1 行がレシート 1 枚に載った 1 品目を表します.
 
 | 列 | 内容 |
 |---|---|
