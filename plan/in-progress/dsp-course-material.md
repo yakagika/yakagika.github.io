@@ -4,8 +4,8 @@ status: in-progress
 created: 2026-09-04
 updated: 2026-09-25
 priority: high
-next_actor: agent
-next_action: "Ch9 の年齢識別の図に載る実在の人物の顔 (FairFace, 元写真は主に YFCC-100M) を公開ページに載せ続けるかをユーザに問い, 決定に沿って図を差し替えるか残す"
+next_actor: user
+next_action: "全章 (Ch1〜Ch12) の執筆と点検が一巡した. ユーザが確認用に open: true の各章を通読し, 修正点を指示する (Ch9 の顔の図は出典にライセンスのリンクと加工の明記を足して掲載継続, 2026-09-26 ユーザ決定)"
 ---
 
 # データサイエンス実践 (dsp) 講義資料の新設
