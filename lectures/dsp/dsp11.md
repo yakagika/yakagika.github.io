@@ -1220,8 +1220,8 @@ if __name__ == "__main__":
     #------------------------------------------------------------------
 
     posterior_mean = idata.posterior_predictive["GPA"].mean(dim=("chain", "draw")).values
-    bayes_rmse = mean_squared_error(df["GPA"], posterior_mean)
-    print(f"[階層ベイズモデルのRMSE] {bayes_rmse:.4f}\n")
+    bayes_mse = mean_squared_error(df["GPA"], posterior_mean)
+    print(f"[階層ベイズモデルのMSE] {bayes_mse:.4f}\n")
     # 事後予測の平均（予測値）を取り出す
     posterior_mean = idata.posterior_predictive["GPA"].mean(dim=("chain", "draw")).values
 
@@ -1362,7 +1362,7 @@ if __name__ == "__main__":
     print(f"\n=== 予測精度 ===")
     print(f"R²: {r2:.4f}")
     print(f"MAE: {mae:.4f}")
-    print(f"RMSE: {bayes_rmse:.4f}")
+    print(f"MSE: {bayes_mse:.4f}")
     
     # 階層効果の可視化
     plt.figure(figsize=(12, 8))
@@ -1416,9 +1416,9 @@ if __name__ == "__main__":
     
     # 結果の要約をCSVに保存
     results_summary = {
-        'Metric': ['R²', 'MAE', 'RMSE', 'Study_Effect_Mean', 'Study_Effect_Std', 
+        'Metric': ['R²', 'MAE', 'MSE', 'Study_Effect_Mean', 'Study_Effect_Std', 
                   'Scholarship_Effect_Mean', 'Scholarship_Effect_Std', 'Student_Variability'],
-        'Value': [r2, mae, bayes_rmse, np.mean(beta_st_vals), np.std(beta_st_vals),
+        'Value': [r2, mae, bayes_mse, np.mean(beta_st_vals), np.std(beta_st_vals),
                  np.mean(beta_ss_vals), np.std(beta_ss_vals), np.mean(sigma_alpha_vals)]
     }
     
@@ -1941,9 +1941,9 @@ AttributeError: module 'arviz' has no attribute 'plot_ppc'
 ~~~ py
     # 事後予測分布から予測値(平均)を取り出す
     posterior_mean = idata.posterior_predictive["GPA"].mean(dim=("chain", "draw")).values
-    # RMSEを計算
-    bayes_rmse = mean_squared_error(df["GPA"], posterior_mean)
-    print(f"[階層ベイズモデルのRMSE] {bayes_rmse:.4f}\n")
+    # MSEを計算
+    bayes_mse = mean_squared_error(df["GPA"], posterior_mean)
+    print(f"[階層ベイズモデルのMSE] {bayes_mse:.4f}\n")
 ~~~
 
 - **`idata.posterior_predictive["GPA"]`**: 事後予測分布から生成されたGPAのサンプルです. このデータは,複数のチェーン(`chain`)と複数のドロー(`draw`)から構成される多次元配列です.
@@ -1952,7 +1952,7 @@ AttributeError: module 'arviz' has no attribute 'plot_ppc'
 
 - **`.values`**: `xarray`のデータ配列をNumPy配列に変換します. これにより,後続の計算や可視化で使用しやすくなります.
 
-- **`mean_squared_error(df["GPA"], posterior_mean)`**: 実測値(`df["GPA"]`)と予測値(`posterior_mean`)の間の平均二乗誤差(RMSE)を計算します. この値が小さいほど,モデルの予測精度が高いことを示します.
+- **`mean_squared_error(df["GPA"], posterior_mean)`**: 実測値(`df["GPA"]`)と予測値(`posterior_mean`)の間の平均二乗誤差 (MSE) を計算します. この値が小さいほど,モデルの予測精度が高いことを示します.
 
 
 ~~~ py
@@ -2108,7 +2108,7 @@ AttributeError: module 'arviz' has no attribute 'plot_ppc'
     print(f"\n=== 予測精度 ===")
     print(f"R²: {r2:.4f}")
     print(f"MAE: {mae:.4f}")
-    print(f"RMSE: {bayes_rmse:.4f}")
+    print(f"MSE: {bayes_mse:.4f}")
     
     # 階層効果の可視化
     plt.figure(figsize=(12, 8))
@@ -2162,9 +2162,9 @@ AttributeError: module 'arviz' has no attribute 'plot_ppc'
     
     # 結果の要約をCSVに保存
     results_summary = {
-        'Metric': ['R²', 'MAE', 'RMSE', 'Study_Effect_Mean', 'Study_Effect_Std', 
+        'Metric': ['R²', 'MAE', 'MSE', 'Study_Effect_Mean', 'Study_Effect_Std', 
                   'Scholarship_Effect_Mean', 'Scholarship_Effect_Std', 'Student_Variability'],
-        'Value': [r2, mae, bayes_rmse, np.mean(beta_st_vals), np.std(beta_st_vals),
+        'Value': [r2, mae, bayes_mse, np.mean(beta_st_vals), np.std(beta_st_vals),
                  np.mean(beta_ss_vals), np.std(beta_ss_vals), np.mean(sigma_alpha_vals)]
     }
     
