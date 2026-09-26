@@ -119,7 +119,7 @@ agent.md 127 行 + Ch2 となり 90 分に収まらなかったため). codex �
 | `common/setup.md:122-230` | CLI の基本操作は既存. `git.md` / `agent.md` で重複させず参照する |
 | `common/python1.md:537-539` | 生成 AI 利用の方針の断片. 正本を `agent.md` へ移し参照に置き換える |
 | `lectures/fp/fp1.md:639` | AI コーディング支援への言及. `agent.md` へリンクできる |
-| `lectures/dsp/dsp_b1.md:49` | 教員が契約した X の認証トークンを配布する. `git.md` 3 の public/private の実例として直結 |
+| `lectures/slds/slds_b1.md` (認証トークンの配布の節) | 教員が契約した X の認証トークンを配布する. 2026-09-26 に補足 B は dsp から外し slds にだけ残した. `git.md` 3 の public/private の実例として直結 |
 | `lectures/dsp/dsp8.md` | LLM の仕組み (Transformer, 注意機構, 自己教師あり学習) はこちらの担当. `agent.md` では数理を扱わない |
 
 ## 導入コマンド (2026-09-04 調査)
