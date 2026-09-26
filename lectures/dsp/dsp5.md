@@ -956,7 +956,7 @@ plt.show()
 ~~~ py
 pred = result.predict(X)
 plt.figure(figsize=(8, 6))
-plt.scatter(y, pred, alpha=0.7, edgecolors="k")
+plt.scatter(pred, y, alpha=0.7, edgecolors="k")
 plt.xlabel("Predicted")
 plt.ylabel("Actual")
 plt.title("Actual vs. Predicted")
@@ -965,7 +965,7 @@ plt.grid()
 plt.show()
 ~~~
 
-![](/images/slds/ch11/oecd_pred_actual.png)
+![](/images/dsp/ch5/oecd-pred-actual.png)
 
 実測値と予測値が一致していれば, この散布図はグラフの 45 度線 (赤い点線) 上に一直線になります.
 $R^2$ の結果通り, あまり予測精度が高くないことがわかります.
@@ -1544,7 +1544,7 @@ Kurtosis:                       6.591   Cond. No.                         1.09
 ~~~ py
 pred = result.predict(X)
 plt.figure(figsize=(8, 6))
-plt.scatter(y, pred, alpha=0.7, edgecolors="k")
+plt.scatter(pred, y, alpha=0.7, edgecolors="k")
 plt.xlabel("Predicted")
 plt.ylabel("Actual")
 plt.title("Actual vs. Predicted")
@@ -1557,7 +1557,7 @@ plt.show()
 実測値と予測値が一致していれば, この散布図はグラフの 45 度線 (赤い点線) 上に一直線になります.
 ほとんどの点が 45 度線付近に集まっているので, かなり正確に予測ができていることが分かります.
 
-![](/images/slds/ch11/multi-regression5.png)
+![](/images/dsp/ch5/multi-regression-pred-actual.png)
 
 
 実測値と予測値の**カーネル密度プロット (Kernel Density Estimation Plot)**を重ねたグラフもベイズモデルなどでよく利用される手法です.
