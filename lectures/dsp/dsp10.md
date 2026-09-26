@@ -206,7 +206,7 @@ def mecab_wakati(text,word_types = ["名詞","動詞","形容詞","副詞"]):
             if word_type in noun:
                  sent += node.surface + " " # node.surface は「表層形」
             if word_type in others:
-                sent += node.feature.split(",")[6] + " " # node.feature.split(",")[6] は形態素解析結果の「原型」
+                sent += node.feature.split(",")[10] + " " # node.feature.split(",")[10] は unidic の「書字形基本形」(活用する前の形, 例: 当たり → 当たる)
         node = node.next
         if node is None:
             break
@@ -215,14 +215,14 @@ def mecab_wakati(text,word_types = ["名詞","動詞","形容詞","副詞"]):
 sent = mecab_wakati(text)
 print(sent)
 """
-建学 精神 理念 有用 学術 商業 道徳 涵養 巣鴨 商業 学校 創設 し...
+建学 精神 理念 有用 学術 商業 道徳 涵養 巣鴨 商業 学校 創設 する 文学 博士 遠藤 隆吉 自ら 志 する 学府 創立 当たる...
 """
 
 #動詞だけ抽出
 sent = mecab_wakati(text,['動詞'])
 print('-'*10 + '\n', sent)
 """
- スル スル アタル ノベル イル マサル
+ する する 当たる 述べる いる まさる いる 対する 忘れる 譲る 持つ...
 """
 ~~~
 
@@ -252,6 +252,8 @@ uv add wordcloud
 
 ~~~ py
 from wordcloud import WordCloud
+# 直前で動詞だけに上書きした sent を, 既定の品詞で作り直します
+sent = mecab_wakati(text)
 wc = WordCloud(width=1000
               ,height=400
               ,background_color='white'
@@ -315,7 +317,7 @@ def mecab_wakati(text,word_types = ["名詞","動詞","形容詞","副詞"]):
             if word_type in noun:
                  sent += node.surface + " " # node.surface は「表層形」
             if word_type in others:
-                sent += node.feature.split(",")[6] + " " # node.feature.split(",")[6] は形態素解析結果の「原型」
+                sent += node.feature.split(",")[10] + " " # node.feature.split(",")[10] は unidic の「書字形基本形」(活用する前の形, 例: 当たり → 当たる)
         node = node.next
         if node is None:
             break
@@ -1482,10 +1484,10 @@ def mecab_wakati(text):
             # 名詞だけをリストに追加する
             if word_type in ["名詞"]:
                 sent += node.surface + " "  # node.surface は「表層形」
-            # 動詞（の原型），形容詞，副詞もリストに加えたい場合は次の２行を有効にする
+            # 動詞（の基本形），形容詞，副詞もリストに加えたい場合は次の２行を有効にする
             #if word_type in [ "動詞", "形容詞","副詞"]:
             if word_type in [ "動詞","副詞","形容詞"]:
-                sent += node.feature.split(",")[6] + " " # node.feature.split(",")[6] は形態素解析結果の「原型」
+                sent += node.feature.split(",")[10] + " " # node.feature.split(",")[10] は unidic の「書字形基本形」(活用する前の形, 例: 当たり → 当たる)
         node = node.next
         if node is None:
             break
@@ -1754,7 +1756,7 @@ def mecab_wakati(text,word_types = ["名詞","動詞","形容詞","副詞"]):
             if word_type in noun:
                  sent += node.surface + " " # node.surface は「表層形」
             if word_type in others:
-                sent += node.feature.split(",")[6] + " " # node.feature.split(",")[6] は形態素解析結果の「原型」
+                sent += node.feature.split(",")[10] + " " # node.feature.split(",")[10] は unidic の「書字形基本形」(活用する前の形, 例: 当たり → 当たる)
         node = node.next
         if node is None:
             break
@@ -1784,7 +1786,7 @@ akagi = df['text']
 txt = [mecab_wakati(strip_CRLF_from_Text(remove_urls(x)),["名詞","動詞"]).split(' ') for x in akagi]
 
 #削除文字の指定
-stopwords = ['オモウ','イウ','イル','アル','こと']
+stopwords = ['思う','言う','いう','いる','ある','こと']
 txt = [[x for x in t if x not in stopwords] for t in txt]
 ~~~
 
@@ -1807,7 +1809,7 @@ corpus = [dictionary.doc2bow(x) for x in txt]
 print(f"Number of unique tokens: {len(dictionary)}")
 print(f"Number of documents: {len(corpus)}")
 """
-Number of unique tokens: 200
+Number of unique tokens: 220
 Number of documents: 50
 """
 ~~~
@@ -1901,7 +1903,7 @@ def mecab_wakati(text,word_types = ["名詞","動詞","形容詞","副詞"]):
             if word_type in noun:
                  sent += node.surface + " " # node.surface は「表層形」
             if word_type in others:
-                sent += node.feature.split(",")[6] + " " # node.feature.split(",")[6] は形態素解析結果の「原型」
+                sent += node.feature.split(",")[10] + " " # node.feature.split(",")[10] は unidic の「書字形基本形」(活用する前の形, 例: 当たり → 当たる)
         node = node.next
         if node is None:
             break
@@ -1928,7 +1930,7 @@ akagi = df[df['query'] == '国民民主党']['text']
 txt = [mecab_wakati(strip_CRLF_from_Text(remove_urls(x)),["名詞","動詞"]).split(' ') for x in akagi]
 
 #削除文字の指定
-stopwords = ['オモウ','イウ','イル','アル','こと']
+stopwords = ['思う','言う','いう','いる','ある','こと']
 txt = [[x for x in t if x not in stopwords] for t in txt]
 
 #辞書の作成
