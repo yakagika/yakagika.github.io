@@ -2,10 +2,10 @@
 plan_id: dsp-curriculum-matrix
 status: in-progress
 created: 2026-09-04
-updated: 2026-09-25
+updated: 2026-09-26
 priority: high
 next_actor: agent
-next_action: "各章の執筆に合わせて 節アンカー と 評価証拠 の列を埋める"
+next_action: "残る 1 行 (123 AI の開発環境と実行環境, 担当 common/agent) の節アンカーと評価証拠を, common-agent-literacy-material の agent.md 執筆時に埋める"
 ---
 
 # データサイエンス実践 — モデルカリキュラム対応表
