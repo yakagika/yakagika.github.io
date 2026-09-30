@@ -5,7 +5,7 @@ created: 2026-09-04
 updated: 2026-09-25
 priority: high
 next_actor: agent
-next_action: "Windows の /diff 不具合 (outputBytesCap / windows sandbox) を codex の新版で再確認し, 直っていれば agent.md の note を外す (外部待ち b: OpenAI の修正. 次の codex 更新時)"
+next_action: "agent.md に (1) muse spark の調査結果と (2) 「他モデル (Anthropic / Gemini) でも同じことができる. この講義では学生に広く知られているので OpenAI にした」の追記を入れる (2026-09-30 の本人依頼, 10/7 を仮置き. 調査結果の中身は本人から受け取る). 別件: Windows の /diff 不具合を codex の新版で再確認し, 直っていれば note を外す (外部待ち)"
 ---
 
 # 共通資料 - git とエージェント利用のリテラシー
