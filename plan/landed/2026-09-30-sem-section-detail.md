@@ -1,18 +1,18 @@
 ---
 plan_id: sem-section-detail
-status: in-progress
+status: landed
 created: 2026-09-30
 updated: 2026-09-30
 priority: high
-next_actor: agent
-next_action: "前処理の修正と図の再生成, SEM の節の書き直しを dsp12 / slds16 に入れ, codex の cross-check を通して land する"
+next_actor: user
+next_action: "なし (landed). 本文の通読と修正指示は dsp-course-material の通読の中で行う"
 ---
 
 # 共分散構造分析の節の詳細化 (slds16 / dsp12)
 
 ## メタ情報
 
-- **状態**: in-progress (2026-09-30 承認, 実装中)
+- **状態**: landed (2026-09-30)
 - **作成日**: 2026-09-30
 - **対象**: `lectures/dsp/dsp12.md` の `# 共分散構造分析` 節, `lectures/slds/slds16.md` の同節,
   `images/slds/ch16/` の SEM 関係の図 (両講義で共有)
@@ -95,3 +95,13 @@ next_action: "前処理の修正と図の再生成, SEM の節の書き直しを
 
 - 2026-09-30: 点検・評価をユーザへ報告. 方針 (説明の組み直し + 実例の修正 / 再計算 / 図の描き直し) をユーザが選択.
   再現計算と改良モデルの探索を実施.
+- 2026-09-30: 実装を commit 8fc41e5 に入れた. 前処理の修正と図 3 枚 (spearman / pca-graph / pca-corr) の再生成,
+  SEM 節の書き直し (両講義), 図 5 枚の新規作成 (sem-model / sem-toy / sem-hypothesis / sem-result / sem-result2), 旧図 4 枚の削除.
+  既存の q13-17-histgram.png は中身が Q1〜Q6 のヒストグラムでバグの影響が無いため据え置いた.
+  修正モデルは Windows を knowledge にも負荷させる 1 箇所だけにした (Word ~~ Excel は理論的根拠が弱いので入れない).
+  KaTeX で全数式 (display 10 / inline 84) の描画を確認. docs/ の生成は公開手順 (publish.sh) に任せる.
+- 2026-09-30: codex (Astra) の cross-check で 14 件の指摘. すべて採用して反映した. 主なもの:
+  固定した負荷量を「有意」と書いていた誤り / semopy 2.3 の GFI が NFI と同じ式で計算されている (ソースで確認, 判断材料から外した) /
+  χ² の棄却を標本数だけに帰していた / 識別と自由度の条件の一般化 / 合成変数の逆転処理と希薄化の成立条件 /
+  交差負荷のある Windows の共通性 / 仮説図に因子間共分散が無かった (図を座標指定で描き直した) / 探索用と検証用のデータ分割の順序 /
+  切片の省略, 「志向」が仮の名前であること, パス係数と共分散のつながりの式を追加. 適合度の出力は説明する指標だけに絞った.
