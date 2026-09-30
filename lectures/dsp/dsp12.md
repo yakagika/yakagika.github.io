@@ -520,6 +520,9 @@ order = {target_row:['すごく自信がある'
                     ,'どちらでもない'
                     ,'あまり自信がない'
                     ,'全く自信がない']}
+## 図の軸に表示する質問の内容
+labels = {'Q2':'スマートフォンへの自信 (Q2)'
+         ,'Q4':'パソコンへの自信 (Q4)'}
 
 crosstab = pd.crosstab(df[target_row],df[target_col])
 crosstab = crosstab.reindex(order[target_row],axis='index')
@@ -533,8 +536,10 @@ sns.heatmap( crosstab
            , annot=True
            , fmt='d')
 
-plt.title('クロステーブル:' + target_row + '×' + target_col)
-plt.xticks(rotation=70)
+plt.title('同時度数分布表 (人数)')
+plt.ylabel(labels[target_row])
+plt.xlabel(labels[target_col])
+plt.xticks(rotation=30)
 plt.tight_layout()
 plt.savefig(dir_fig + 'cross_table_'+ target_row + '_' + target_col +'.png')
 plt.close()
@@ -556,7 +561,7 @@ x2, p, dof, e = st.chi2_contingency(crosstab,correction=False)
 print(p)
 # >>> 2.2871064452593352e-84
 
-if p <= 0.025:
+if p <= 0.05:
     print('有意')
 else:
     print('有意でない')
@@ -581,7 +586,7 @@ residual = crosstab - expect
 col_sum = crosstab.sum()
 row_sum = crosstab.transpose().sum()
 total   = col_sum.sum()
-stdres  = residual
+stdres  = residual.copy()
 
 for c in stdres.columns:
     for r in stdres.index:
@@ -591,22 +596,28 @@ for c in stdres.columns:
                                   * (1 - row_sum[r] / total))
 
 #ヒートマップの作成
+## 色の範囲は絶対値の最大に合わせ, 絶対値が 1.96 を超えるセルに * を付ける
+lim   = np.abs(stdres.values).max()
+annot = stdres.apply(lambda col: col.map(lambda v: f'{v:.1f}' + ('*' if abs(v) > 1.96 else '')))
 sns.heatmap(stdres
-           ,cmap=plt.get_cmap('bwr')
-           ,vmax=1.96
-           ,vmin=-1.96
+           ,cmap=plt.get_cmap('RdBu_r')
+           ,vmax=lim
+           ,vmin=-lim
            ,center=0
            ,xticklabels=1
            ,linewidths=.5
-           ,annot=True)
-plt.title('標準化残差:'+ target_row + '×' + target_col)
-plt.xticks(rotation=70)
+           ,annot=annot
+           ,fmt='')
+plt.title('標準化残差 (* は絶対値が 1.96 を超えるセル)')
+plt.ylabel(labels[target_row])
+plt.xlabel(labels[target_col])
+plt.xticks(rotation=30)
 plt.tight_layout()
 plt.savefig(dir_fig + 'stdres_' + target_row + '_' + target_col + '.png')
 plt.close()
 ~~~
 
-作成された標準化残差を確認すると, 対角線上のセル (2 つの質問に同じ程度の自信を答えた組み合わせ) の多くが正の大きな値になっています. 例えば, 両方に「すごく自信がある」と答えた組み合わせは 11, 両方に「全く自信がない」と答えた組み合わせは 9.5 です. 反対に, 対角線から離れたセルは負の値になっています. 標準化残差の絶対値が 1.96 を超えるセルは, 5% 水準で期待度数から有意に偏っていると判断できます. したがって, スマートフォンに自信がある学生ほどパソコンにも自信があるという偏りが, 統計的に確かめられました.
+作成された標準化残差を確認すると, 対角線上のセル (2 つの質問に同じ程度の自信を答えた組み合わせ) の多くが正の大きな値になっています. 例えば, 両方に「すごく自信がある」と答えた組み合わせは 10.9, 両方に「全く自信がない」と答えた組み合わせは 9.5 です. 反対に, 対角線から離れたセルは負の値になっています. 標準化残差の絶対値が 1.96 を超えるセルは, 5% 水準で期待度数から有意に偏っていると判断でき, 図では値に「*」を付けています. 「*」の付いていないセル (例えば, パソコンに「あまり自信がない」, スマートフォンに「あまり自信がない」の 1.2) は, 期待度数との差が偶然の範囲を超えるとはいえません. したがって, スマートフォンに自信がある学生ほどパソコンにも自信があるという偏りが, 統計的に確かめられました.
 
 ![標準化残差](/images/slds/ch16/regit.png)
 
