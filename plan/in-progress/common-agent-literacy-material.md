@@ -47,7 +47,7 @@ next_action: "Windows の /diff 不具合 (outputBytesCap / windows sandbox) を
 |---|---|---|
 | ターミナル | **herdr** (Agent multiplexer, Apache-2.0, v0.8.2) | macOS / Linux / Windows 対応. macOS/Linux は `curl -fsSL https://herdr.dev/install.sh \| sh`, Windows は `irm https://herdr.dev/install.ps1 \| iex` |
 | エージェント | **codex** (OpenAI Codex CLI) | 学生が ChatGPT に馴染んでいること, 単価が安いことが選定理由 |
-| 課金 | **ChatGPT Plus $20/月 を 3 ヶ月** | 学生負担. 3 ヶ月で約 9,000 円 |
+| 課金 | **ChatGPT Plus $20/月 を 3 ヶ月 (推奨. 2026-10-02 に必須から変更)** | 学生負担. 3 ヶ月で約 9,000 円 |
 | skill | `~/.agents/skills/` または `.agents/skills/` の `SKILL.md` | codex は 2025-12 から対応 |
 | repo | **学生が各自の GitHub アカウントで作る** | 教員側でテンプレートや Classroom は用意しない |
 
