@@ -2,10 +2,10 @@
 plan_id: common-agent-literacy-material
 status: in-progress
 created: 2026-09-04
-updated: 2026-09-25
+updated: 2026-10-02
 priority: high
 next_actor: agent
-next_action: "agent.md に (1) muse spark の調査結果と (2) 「他モデル (Anthropic / Gemini) でも同じことができる. この講義では学生に広く知られているので OpenAI にした」の追記を入れる (2026-09-30 の本人依頼, 10/7 を仮置き. 調査結果の中身は本人から受け取る). 別件: Windows の /diff 不具合を codex の新版で再確認し, 直っていれば note を外す (外部待ち)"
+next_action: "Windows の /diff 不具合 (outputBytesCap / windows sandbox) を codex の新版で再確認し, 直っていれば agent.md の note を外す (外部待ち b: OpenAI の修正. 次の codex 更新時)"
 ---
 
 # 共通資料 - git とエージェント利用のリテラシー
@@ -319,6 +319,8 @@ VM 内のローカル repo (GitHub 不使用, 検証後に削除) で確認し�
 | 任意課題を加点対象にする | 最終発表の質疑で効くので, やったかどうかは評価しない | 2026-09-04 |
 
 ## 変更履歴
+
+- 2026-10-02: agent.md の「環境構築」の冒頭に「この講義で codex を使う理由」の note を追加 (他モデルでも同じ操作ができること, OpenAI を選んだ理由, Muse Code / Muse Spark の概要). 出典は Meta の公開文書と The Register (2026-08-06). Windows 対応は公開時の案内に無く, 実機未確認.
 
 - 2026-09-25: agent.md のハーネス節に「AI の使い方の移り変わり」を追加 (出典: human-loop-accounting の研究報告デッキ 2026-09-10 の 3-5 枚目). 1 枚目の年表は SVG で再構築 (`images/common/agent/ai-usage-trend.svg`), 2-3 枚目はスライドを Quick Look で描画して切り出した図をそのまま使用.
 

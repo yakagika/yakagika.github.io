@@ -83,6 +83,16 @@ codex は **sandbox** の中でコマンドを動かします. 既定では作�
 
 この講義では **codex** (エージェント本体) と **herdr** (エージェントを動かすターミナル) の 2 つを入れます. git と GitHub CLI は[共通資料 バージョン管理とGitHub](git.html)で先に入れておいてください.
 
+::: note
+
+**この講義で codex を使う理由**
+
+エージェントの仕組みは codex に固有のものではありません. Anthropic の Claude Code や Google の Gemini CLI でも, 同じように作業ディレクトリへ指示を出し, 同じ操作ができます. この資料の `AGENTS.md`, skill, sandbox と承認の考え方は, 道具が変わっても読み替えて使えます. この講義で OpenAI の codex を選んだのは, 学生に ChatGPT が広く知られていて, ChatGPT のアカウントでそのままログインできるためです.
+
+Meta も 2026 年 8 月 5 日に, ターミナルで動くエージェントの [Muse Code](https://research.meta.ai/blog/introducing-muse-code-and-muse-spark-1-2) をベータ版として公開しました. Meta のモデル Muse Spark (最新は 1.3, 文脈長は 100 万トークン) で動き, 標準で `/plan`, `/grill`, `/goal` の skill を持ちます. 公開時に案内された対応 OS は macOS と Linux で, Windows は含まれていません. 利用は Meta の API か OpenRouter 経由で, 料金はトークンあたりの従量です (muse-spark-1.3 で, 入力が 100 万トークンあたり 1.25 ドル, 出力が 4.25 ドル). 月額のアカウントで使う codex とは, 契約の形が異なります.
+
+:::
+
 ## codex を入れる
 
 codex は OpenAI が配布しているコーディングエージェントです.
