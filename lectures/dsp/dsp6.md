@@ -441,6 +441,78 @@ ROC 曲線の下側の面積を **AUC** (Area Under the Curve) といいます. 
 
 決定木の ROC 曲線は, 数個の点を結んだ折れ線になっています. 決定木が出す確率は, データが最後に行き着いた箱 (葉) の中の退会の割合なので, 深さ 2 の木では 4 通りの値しかとらないためです. 閾値の候補が少ないので, 閾値を細かく調整することはできません.
 
+## ランダムフォレスト (発展) {#ランダムフォレスト}
+
+ランダムフォレストとサポートベクターマシンは, 本文と同じデータと分け方で, 決定木と比べます.
+
+**ランダムフォレスト**は, 少しずつ異なる決定木をたくさん作り, それらの予測を多数決 (確率なら平均) でまとめる手法です. 各木は, 訓練データから重複を許してランダムに選び直したデータで学習し, 分岐のたびに説明変数の一部だけをランダムに候補にします. 1 本の決定木は訓練データの細かい違いに引きずられやすいのですが, 違う誤り方をする木を多数まとめると, 誤りが打ち消し合って予測が安定します.
+
+~~~ py
+from sklearn.ensemble import RandomForestClassifier
+
+rf = RandomForestClassifier(n_estimators=200, random_state=0)  # 200本の木
+rf.fit(X_train, y_train)
+rf_prob = rf.predict_proba(X_test)[:, 1]
+print(rf.score(X_test, y_test), roc_auc_score(y_test, rf_prob))
+"""
+0.8166666666666667 0.8157894736842106
+"""
+# 説明変数の重要度 (分岐でジニ不純度をどれだけ下げたか)
+print(pd.Series(rf.feature_importances_, index=X.columns).sort_values(ascending=False).round(3))
+"""
+visits              0.246
+days_since_last     0.222
+share_stationery    0.178
+share_meal          0.103
+share_drink         0.097
+amount_per_visit    0.081
+share_snack         0.073
+"""
+~~~
+
+テストデータでの正解率は 0.817, AUC は 0.816 で, 深さ 2 の決定木 (0.833, 0.835) をわずかに下回りました. 説明変数の重要度は, 各変数による分岐がジニ不純度をどれだけ下げたかを, 全部の木で平均した値です. 来店回数と最後の来店からの日数が上位に来ており, 決定木の分岐と一致します. 3 番目の文具の割合は, 文具を中心に買う会員の来店回数が少ないことを反映していると考えられます.
+
+## サポートベクターマシン (発展) {#サポートベクターマシン}
+
+**サポートベクターマシン** (SVM) は, 2 つのクラスを分ける境界を, 境界に最も近いデータ (**サポートベクター**) からの距離 (**マージン**) が最大になるように決める手法です. マージンを大きくとると, 新しいデータが境界の近くに来ても分類が揺らぎにくくなります. 直線で分けられないデータには, **カーネル**と呼ばれる関数でデータを曲がった境界で分けられるようにします (`scikit-learn` の既定は RBF カーネル). SVM は距離を使うので, [第4章](dsp4.html#標準化)と同じく説明変数を標準化してから使います.
+
+~~~ py
+from sklearn.svm import SVC
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
+
+# 標準化と SVM をつなげて1つのモデルにする
+svm = make_pipeline(StandardScaler(), SVC(probability=True, random_state=0))
+svm.fit(X_train, y_train)
+svm_prob = svm.predict_proba(X_test)[:, 1]
+print(svm.score(X_test, y_test), roc_auc_score(y_test, svm_prob))
+"""
+0.8 0.8110047846889952
+"""
+~~~
+
+`make_pipeline` は, 標準化 (`StandardScaler`) と SVM を順につなげて 1 つのモデルとして扱う関数です. 標準化の平均と標準偏差は訓練データから計算され, テストデータにも同じ値が使われます.
+
+3 つのモデルの ROC 曲線を重ねて比べます.
+
+~~~ py
+for name, p in [('決定木 (深さ 2)', prob), ('ランダムフォレスト', rf_prob), ('SVM', svm_prob)]:
+    f, t, _ = roc_curve(y_test, p)
+    plt.plot(f, t, label=f'{name} (AUC = {roc_auc_score(y_test, p):.3f})')
+plt.plot([0, 1], [0, 1], linestyle='--', color='gray')
+plt.xlabel('偽陽性率 (FPR)')
+plt.ylabel('真陽性率 (TPR)')
+plt.legend()
+plt.show()
+plt.close()
+~~~
+
+![3 つのモデルの ROC 曲線](/images/dsp/ch6/roc-compare.png)
+
+ランダムフォレストと SVM は, 会員ごとに細かく異なる確率を出すので, ROC 曲線が多くの点を通る細かい階段になります. 閾値を細かく調整したいときは, こうしたモデルが使いやすくなります.
+
+一方で, このデータでは AUC は決定木が最も高く, ランダムフォレスト (0.816) と SVM (0.811) は少し下回りました. このデータの退会は, 来店回数と最後の来店からの日数という 2 つの変数の単純な条件でほぼ決まっているので, 深さ 2 の決定木でも十分に表せたと考えられます. 複雑な手法がいつも良い結果を出すとは限りません. また, テストデータは 60 人しかいないので, AUC の 0.02 程度の差は, データの分け方 (`random_state`) を変えると入れ替わりうる大きさです. 手法を比べるときは, 分け方を変えて何度か評価し, 差が安定しているかも確かめます.
+
 # 演習
 
 ### Exercise DSP6-1
@@ -587,77 +659,3 @@ print(accuracy_score(y_test, pred2), precision_score(y_test, pred2),
 4 つの指標は, 7 つの説明変数を使った本文の木とすべて同じです. 本文の深さ 2 の木も, 分岐に使ったのは来店回数と最後の来店からの日数の 2 つだけだったので, 同じ木ができています. このデータでは, 退会の予測に必要な情報はこの 2 つの変数にほぼ含まれています. 説明変数が少ないモデルは, 予測の根拠を説明しやすく, 集めるデータも少なくて済むので, 性能が同じなら少ない方を選ぶのが一般的です.
 
 </details>
-
-# 発展: ランダムフォレストとサポートベクターマシン
-
-以下は授業では扱いません. 課題では, ここに挙げた手法から好きなものを選んで実施し, 最終回に発表してもらいます. どちらも本文と同じデータと分け方で, 決定木と比べます.
-
-## ランダムフォレスト
-
-**ランダムフォレスト**は, 少しずつ異なる決定木をたくさん作り, それらの予測を多数決 (確率なら平均) でまとめる手法です. 各木は, 訓練データから重複を許してランダムに選び直したデータで学習し, 分岐のたびに説明変数の一部だけをランダムに候補にします. 1 本の決定木は訓練データの細かい違いに引きずられやすいのですが, 違う誤り方をする木を多数まとめると, 誤りが打ち消し合って予測が安定します.
-
-~~~ py
-from sklearn.ensemble import RandomForestClassifier
-
-rf = RandomForestClassifier(n_estimators=200, random_state=0)  # 200本の木
-rf.fit(X_train, y_train)
-rf_prob = rf.predict_proba(X_test)[:, 1]
-print(rf.score(X_test, y_test), roc_auc_score(y_test, rf_prob))
-"""
-0.8166666666666667 0.8157894736842106
-"""
-# 説明変数の重要度 (分岐でジニ不純度をどれだけ下げたか)
-print(pd.Series(rf.feature_importances_, index=X.columns).sort_values(ascending=False).round(3))
-"""
-visits              0.246
-days_since_last     0.222
-share_stationery    0.178
-share_meal          0.103
-share_drink         0.097
-amount_per_visit    0.081
-share_snack         0.073
-"""
-~~~
-
-テストデータでの正解率は 0.817, AUC は 0.816 で, 深さ 2 の決定木 (0.833, 0.835) をわずかに下回りました. 説明変数の重要度は, 各変数による分岐がジニ不純度をどれだけ下げたかを, 全部の木で平均した値です. 来店回数と最後の来店からの日数が上位に来ており, 決定木の分岐と一致します. 3 番目の文具の割合は, 文具を中心に買う会員の来店回数が少ないことを反映していると考えられます.
-
-## サポートベクターマシン
-
-**サポートベクターマシン** (SVM) は, 2 つのクラスを分ける境界を, 境界に最も近いデータ (**サポートベクター**) からの距離 (**マージン**) が最大になるように決める手法です. マージンを大きくとると, 新しいデータが境界の近くに来ても分類が揺らぎにくくなります. 直線で分けられないデータには, **カーネル**と呼ばれる関数でデータを曲がった境界で分けられるようにします (`scikit-learn` の既定は RBF カーネル). SVM は距離を使うので, [第4章](dsp4.html#標準化)と同じく説明変数を標準化してから使います.
-
-~~~ py
-from sklearn.svm import SVC
-from sklearn.preprocessing import StandardScaler
-from sklearn.pipeline import make_pipeline
-
-# 標準化と SVM をつなげて1つのモデルにする
-svm = make_pipeline(StandardScaler(), SVC(probability=True, random_state=0))
-svm.fit(X_train, y_train)
-svm_prob = svm.predict_proba(X_test)[:, 1]
-print(svm.score(X_test, y_test), roc_auc_score(y_test, svm_prob))
-"""
-0.8 0.8110047846889952
-"""
-~~~
-
-`make_pipeline` は, 標準化 (`StandardScaler`) と SVM を順につなげて 1 つのモデルとして扱う関数です. 標準化の平均と標準偏差は訓練データから計算され, テストデータにも同じ値が使われます.
-
-3 つのモデルの ROC 曲線を重ねて比べます.
-
-~~~ py
-for name, p in [('決定木 (深さ 2)', prob), ('ランダムフォレスト', rf_prob), ('SVM', svm_prob)]:
-    f, t, _ = roc_curve(y_test, p)
-    plt.plot(f, t, label=f'{name} (AUC = {roc_auc_score(y_test, p):.3f})')
-plt.plot([0, 1], [0, 1], linestyle='--', color='gray')
-plt.xlabel('偽陽性率 (FPR)')
-plt.ylabel('真陽性率 (TPR)')
-plt.legend()
-plt.show()
-plt.close()
-~~~
-
-![3 つのモデルの ROC 曲線](/images/dsp/ch6/roc-compare.png)
-
-ランダムフォレストと SVM は, 会員ごとに細かく異なる確率を出すので, ROC 曲線が多くの点を通る細かい階段になります. 閾値を細かく調整したいときは, こうしたモデルが使いやすくなります.
-
-一方で, このデータでは AUC は決定木が最も高く, ランダムフォレスト (0.816) と SVM (0.811) は少し下回りました. このデータの退会は, 来店回数と最後の来店からの日数という 2 つの変数の単純な条件でほぼ決まっているので, 深さ 2 の決定木でも十分に表せたと考えられます. 複雑な手法がいつも良い結果を出すとは限りません. また, テストデータは 60 人しかいないので, AUC の 0.02 程度の差は, データの分け方 (`random_state`) を変えると入れ替わりうる大きさです. 手法を比べるときは, 分け方を変えて何度か評価し, 差が安定しているかも確かめます.
