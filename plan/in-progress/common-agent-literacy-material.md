@@ -5,7 +5,7 @@ created: 2026-09-04
 updated: 2026-10-02
 priority: high
 next_actor: agent
-next_action: "Windows の /diff 不具合 (outputBytesCap / windows sandbox) を codex の新版で再確認し, 直っていれば agent.md の note を外す (外部待ち b: OpenAI の修正. 次の codex 更新時)"
+next_action: "(1) 授業前に Windows と macOS の実機で, 空のリポジトリから agent.md の Exercise AGENT-1 (1 周の手順) を通し, VSCode を開く依頼, 右の pane への差分表示, /model の画面, 無料アカウントの利用量の持ちを確かめて本文を直す. (2) モデルと料金の数字 (Astra / Sol / Luna, Plus の目安) を公式の料金ページで再確認する. (3) Windows の /diff 不具合を codex の新版で再確認し, 直っていれば note を外す (外部待ち: OpenAI の修正)"
 ---
 
 # 共通資料 - git とエージェント利用のリテラシー
@@ -319,6 +319,8 @@ VM 内のローカル repo (GitHub 不使用, 検証後に削除) で確認し�
 | 任意課題を加点対象にする | 最終発表の質疑で効くので, やったかどうかは評価しない | 2026-09-04 |
 
 ## 変更履歴
+
+- 2026-10-05: 2026-10-02 の改稿を記録. 手順を 7 つに絞り Exercise AGENT-1 を「1 周の手順」に置換, 詳細を note へ移動, 差分確認とコミットを codex へ頼む形に変更, モデル節 (Astra / Sol / Luna, /model) と無料アカウントの案内を追加, 末尾に関連講義へのリンクを追加. 学生に Muse Code を勧めるかは未裁定 (Todoist 6hfX6vj2Rqp9PHJX). git.md への波及は plan git-md-revision-after-agent.
 
 - 2026-10-02: agent.md の「環境構築」の冒頭に「この講義で codex を使う理由」の note を追加 (他モデルでも同じ操作ができること, OpenAI を選んだ理由, Muse Code / Muse Spark の概要). 出典は Meta の公開文書と The Register (2026-08-06). Windows 対応は公開時の案内に無く, 実機未確認.
 
