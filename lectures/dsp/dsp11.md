@@ -347,7 +347,7 @@ http://download.tensorflow.org/example_images/flower_photos.tgz
 
 ::: warn
 
-学習には時間がかかります. 次の条件 (各種類 50 枚, 3 エポック) で, Apple M5 Max の GPU (MPS) では約 2 分, 同じ PC の CPU だけでは約 9 分でした. GPU を使えない PC では, さらに時間がかかることがあります. 学習を始めたら, ほかの不要なアプリを閉じ, 待っている間に発表資料の下書きを進めてください.
+学習には時間がかかります. 次の条件 (各種類 50 枚, 3 エポック) で, Apple M5 Max の GPU (MPS) では約 2 分, 同じ PC の CPU だけでは約 9 分でした. GPU を使えない PC では, さらに時間がかかることがあります. 学習を始めたら, ほかの不要なアプリを閉じ, 待っている間に発表資料の下書きを進めてください. 時間がかかりすぎるときは, 共通資料の[Google Colaboratory による GPU 計算](colab.html)の手順で, Colab の GPU を使うこともできます.
 
 :::
 
