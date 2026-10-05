@@ -1251,26 +1251,6 @@ plt.show()
 
 ヒートマップは複数の数値間の相関係数や距離を可視化する際にも良く用いられるので, 覚えておきましょう.
 
-::: note
-
-- 演習
-
-1. GoogleTrend で 4 つのワードに関して同じ期間の推移を調べ以下の 2 通りの方法で CSV を作成してください.
-
-    - 1 つのグラフに表示
-        for文を利用して1つのグラフに4つの折れ線グラフを色を変えて表示する.
-        凡例も表示する.
-
-    - グラフの分割
-        グラフを分割して,それぞれのワードに関して4象限の折れ線グラフを作成する.
-
-
-2. [こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/beetle_datal.csv)のカブトムシの種類別の体長と体重のデータを利用して散布図を作成してください. カブトムシの種類別に散布図の色や点の図形を変更してください.
-
-3. [こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/forest_beetle_data.csv)の森の地点別に採取できたカブトムシの種類を記録したデータを可視化しどの森でどのカブトムシが取れやすいのかを分析してください.
-
-:::
-
 ## 縦軸と横軸の選び方 {#axis-choice}
 
 同じデータでも, 縦軸と横軸に何を取るかで読み取れることが変わります. そのため, 図を描く前に, 問いに対して軸の候補を書き出します. [積み上げ棒グラフ](#stacked-bar)で使った都道府県別のデータで, 問い「運動時間は地域によって違うか」に対する候補を書き出すと, 次のようになります.
@@ -1586,6 +1566,94 @@ plt.show()
 問 2: 見せたいことは 2 つの量的データの関係なので, 横軸に食費 (円), 縦軸に平均身長 (cm) を取った散布図を描きます. 食費の多い都道府県ほど平均身長が高い傾向が見えます. ただし, この図から食費が身長を高くするという因果関係までは読み取れません.
 
 `plt.boxplot()` の `tick_labels=` は `matplotlib` 3.9 以降の引数名で, それより前の版では `labels=` を使います.
+
+</details>
+
+### Exercise DSP3-3
+
+**複数のグループを折れ線・散布図・ヒートマップで比べる**
+
+1. [Google トレンド](https://trends.google.co.jp/trends/)で 4 つのワードの同じ期間の推移を調べ, CSV をダウンロードしてください. この CSV から, 発展の[for 文を利用したグラフ](#for-graph)と[グラフの分割](#グラフの分割)を使って, 次の 2 通りの折れ線グラフを作成してください.
+    - 1 つのグラフに表示: for 文で 4 本の折れ線を色を変えて重ね, 凡例も表示する.
+    - グラフの分割: グラフを 4 つに分割し, ワードごとの折れ線グラフを 1 つずつ描く.
+2. [こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/beetle_datal.csv)のカブトムシの種類別の体長と体重のデータを使って[散布図](#scatter)を作成してください. カブトムシの種類別に, 点の色と形を変えてください.
+3. [こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/forest_beetle_data.csv)の森の地点別に採取できたカブトムシの種類を記録したデータを[ヒートマップ](#heatmap)で可視化し, どの森でどのカブトムシが採れやすいかを分析してください.
+
+提出ファイル名: `dsp3-3.py`
+
+<details class="protected" data-pass="yakagika">
+    <summary> 回答例 </summary>
+
+~~~ py
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import matplotlib_fontja
+
+# 問1: Google トレンドの CSV は先頭の 2 行が説明なので, skiprows=2 で読み飛ばします.
+# (ダウンロードした CSV の先頭を確認し, 説明の行数に合わせて調整します.)
+trends = pd.read_csv('data/trends.csv', skiprows=2, index_col=0, parse_dates=True)
+
+# 1 つのグラフに表示: for 文で列ごとに折れ線を重ね, 凡例を付けます.
+for word in trends.columns:
+    plt.plot(trends.index, trends[word], label=word)
+plt.ylabel('検索の相対的な人気度')
+plt.legend()
+plt.xticks(rotation=15)
+plt.show()
+
+# グラフの分割: 2 行 2 列に分け, それぞれにワードを 1 つずつ描きます.
+fig, axes = plt.subplots(nrows=2, ncols=2, sharex=True, sharey=True)
+for ax, word in zip(axes.flatten(), trends.columns):
+    ax.plot(trends.index, trends[word])
+    ax.set_title(word)
+plt.show()
+
+# 問2: 種類ごとに色と点の形を変えて重ねます.
+beetle = pd.read_csv('data/beetle_datal.csv')
+markers = ['o', 's', '^', 'D']
+for (name, group), marker in zip(beetle.groupby('Type'), markers):
+    plt.scatter(group['Length'], group['Weight'], marker=marker, label=name)
+plt.xlabel('体長 (mm)')
+plt.ylabel('体重 (g)')
+plt.legend()
+plt.show()
+
+print(beetle[['Length', 'Weight']].corr().round(2))
+print(beetle.groupby('Type')[['Length', 'Weight']].mean().round(1))
+
+# 問3: 森 (行) と種類 (列) の組み合わせごとに数え, ヒートマップにします.
+forest = pd.read_csv('data/forest_beetle_data.csv')
+cross = pd.crosstab(forest['Location'], forest['Type'])
+print(cross.to_string())
+
+sns.heatmap(cross, cmap=plt.get_cmap('Reds'), linewidths=.5, annot=True, fmt='d')
+plt.show()
+~~~
+
+~~~ sh
+        Length  Weight
+Length    1.00    0.65
+Weight    0.65    1.00
+                      Length  Weight
+Type
+Allomyrina dichotoma    50.2    21.0
+Chalcosoma atlas        51.3    19.7
+Dynastes hercules       47.9    19.8
+Megasoma elephas        49.5    20.5
+Type      Allomyrina dichotoma  Chalcosoma atlas  Dynastes hercules  Megasoma elephas
+Location
+Forest A                    47                11                 12                 6
+Forest B                    14                 9                 43                 8
+Forest C                    11                 7                  8                49
+Forest D                    11                54                 11                 8
+~~~
+
+問 1: 同じデータを, 1 つのグラフに重ねる描き方と, ワードごとに分ける描き方で表しています. 重ねると 4 本の水準の違いを直接比べられ, 分けると 1 本ごとの上下の動きが読み取りやすくなります. 分割では `sharex=True, sharey=True` で軸をそろえているので, 分けても水準の違いは比べられます.
+
+問 2: 体長が大きいほど体重も大きい傾向があります (相関係数 0.65). 一方, 4 種類の点は重なり合っていて, 種類ごとの平均も体長 48〜51 mm, 体重 20〜21 g と近いため, 種類による違いはこの図からほとんど読み取れません.
+
+問 3: 森ごとに最も多く採れる種類が異なります. Forest A は Allomyrina dichotoma (47 個体), Forest B は Dynastes hercules (43 個体), Forest C は Megasoma elephas (49 個体), Forest D は Chalcosoma atlas (54 個体) が最も多く, 他の種類は 6〜14 個体にとどまります. 各森の採取数は 74〜84 個体と大きく違わないので, 個体数のまま比べられます.
 
 </details>
 
