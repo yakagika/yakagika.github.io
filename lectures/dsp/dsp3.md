@@ -97,12 +97,13 @@ import seaborn as sns
 .graph-flowchart .gf-ico{width:26px;height:26px;flex:0 0 auto;margin:0;max-width:none;max-height:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .graph-flowchart .gf-ico .f{fill:currentColor;fill-opacity:.22}
 .graph-flowchart .gf-ico .d{fill:currentColor;stroke:none}
+.graph-flowchart .gf-tag{font-size:.75em;font-weight:600;color:var(--ink-soft);border:1px solid var(--rule-hair);padding:0 4px}
 </style>
 <ul class="gf-ul">
 <li><div class="gf-line"><span class="gf-root">データ</span></div><ul class="gf-ul">
 <li><div class="gf-line"><span class="gf-dim">1次元データ</span></div><ul class="gf-ul"><li><div class="gf-line"><span class="gf-type">量的</span><span class="gf-arrow">→</span><a class="gf-g" href="#histogram"><svg class="gf-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M4 28h24"/><rect class="f" x="6" y="20" width="5" height="8"/><rect class="f" x="11" y="10" width="5" height="18"/><rect class="f" x="16" y="6" width="5" height="22"/><rect class="f" x="21" y="16" width="5" height="12"/></svg>ヒストグラム</a></div></li><li><div class="gf-line"><span class="gf-type">質的</span><span class="gf-arrow">→</span><a class="gf-g" href="#bar"><svg class="gf-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M4 28h24"/><rect class="f" x="5" y="18" width="5" height="10"/><rect class="f" x="13" y="8" width="5" height="20"/><rect class="f" x="21" y="21" width="5" height="7"/></svg>棒グラフ</a><a class="gf-g" href="#pie"><svg class="gf-ico" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="11"/><path class="f" d="M16 16V5A11 11 0 0 1 25.5 21.5Z"/></svg>円グラフ</a></div></li></ul></li>
 <li><div class="gf-line"><span class="gf-dim">2次元データ</span></div><ul class="gf-ul"><li><div class="gf-line"><span class="gf-type">質的 × 質的</span><span class="gf-arrow">→</span><a class="gf-g" href="#heatmap"><svg class="gf-ico" viewBox="0 0 32 32" aria-hidden="true"><rect class="f" style="fill-opacity:0.9" x="4" y="4" width="7" height="7"/><rect class="f" style="fill-opacity:0.5" x="12" y="4" width="7" height="7"/><rect class="f" style="fill-opacity:0.15" x="20" y="4" width="7" height="7"/><rect class="f" style="fill-opacity:0.4" x="4" y="12" width="7" height="7"/><rect class="f" style="fill-opacity:0.8" x="12" y="12" width="7" height="7"/><rect class="f" style="fill-opacity:0.3" x="20" y="12" width="7" height="7"/><rect class="f" style="fill-opacity:0.15" x="4" y="20" width="7" height="7"/><rect class="f" style="fill-opacity:0.35" x="12" y="20" width="7" height="7"/><rect class="f" style="fill-opacity:0.9" x="20" y="20" width="7" height="7"/></svg>ヒートマップ</a></div></li><li><div class="gf-line"><span class="gf-type">質的 × 量的</span><span class="gf-arrow">→</span><a class="gf-g" href="#bar"><svg class="gf-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M4 28h24"/><rect class="f" x="5" y="18" width="5" height="10"/><rect class="f" x="13" y="8" width="5" height="20"/><rect class="f" x="21" y="21" width="5" height="7"/></svg>棒グラフ</a><a class="gf-g" href="#boxplot"><svg class="gf-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4v6M16 22v6M12 4h8M12 28h8"/><rect class="f" x="9" y="10" width="14" height="12"/><path d="M9 16h14"/></svg>箱ひげ図</a></div></li><li><div class="gf-line"><span class="gf-type">量的 × 量的</span><span class="gf-arrow">→</span><a class="gf-g" href="#scatter"><svg class="gf-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 4v24h23"/><circle class="d" cx="10" cy="22" r="1.7"/><circle class="d" cx="14" cy="18" r="1.7"/><circle class="d" cx="18" cy="20" r="1.7"/><circle class="d" cx="20" cy="13" r="1.7"/><circle class="d" cx="25" cy="9" r="1.7"/><circle class="d" cx="13" cy="24" r="1.7"/></svg>散布図</a></div></li><li><div class="gf-line"><span class="gf-type">時間 × 量的</span><span class="gf-arrow">→</span><a class="gf-g" href="#line"><svg class="gf-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 4v24h23"/><path d="M8 22l6-7 5 4 8-11"/></svg>折れ線グラフ</a></div></li></ul></li>
-<li><div class="gf-line"><span class="gf-dim">3次元以上のデータ</span></div><ul class="gf-ul"><li><div class="gf-line"><span class="gf-type">量的 3 つ</span><span class="gf-arrow">→</span><a class="gf-g" href="#scatter-3d"><svg class="gf-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M14 20V4M14 20L4 28M14 20l14 6"/><circle class="d" cx="18" cy="10" r="1.7"/><circle class="d" cx="21" cy="17" r="1.7"/><circle class="d" cx="9" cy="22" r="1.7"/><circle class="d" cx="16" cy="15" r="1.7"/><circle class="d" cx="23" cy="23" r="1.7"/></svg>3次元プロット</a><a class="gf-g" href="#scatter-3d"><svg class="gf-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 4v24h23"/><circle class="f" cx="11" cy="21" r="2.3"/><circle class="f" style="fill-opacity:.5" cx="17" cy="15" r="4"/><circle class="f" cx="24" cy="9" r="3"/><circle class="f" style="fill-opacity:.1" cx="23" cy="22" r="3"/></svg>色・大きさ付き散布図</a></div></li><li><div class="gf-line"><span class="gf-type">量的が多数</span><span class="gf-arrow">→</span><a class="gf-g" href="#scatter-matrix"><svg class="gf-ico" viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="4" width="24" height="24"/><path d="M12 4v24M20 4v24M4 12h24M4 20h24"/><rect class="f" x="4" y="4" width="8" height="8"/><rect class="f" x="12" y="12" width="8" height="8"/><rect class="f" x="20" y="20" width="8" height="8"/><circle class="d" cx="14.5" cy="9.5" r="0.9"/><circle class="d" cx="17.5" cy="6.5" r="0.9"/><circle class="d" cx="22.5" cy="9.5" r="0.9"/><circle class="d" cx="25.5" cy="6.5" r="0.9"/><circle class="d" cx="6.5" cy="17.5" r="0.9"/><circle class="d" cx="9.5" cy="14.5" r="0.9"/><circle class="d" cx="22.5" cy="17.5" r="0.9"/><circle class="d" cx="25.5" cy="14.5" r="0.9"/><circle class="d" cx="6.5" cy="25.5" r="0.9"/><circle class="d" cx="9.5" cy="22.5" r="0.9"/><circle class="d" cx="14.5" cy="25.5" r="0.9"/><circle class="d" cx="17.5" cy="22.5" r="0.9"/></svg>散布図行列</a></div></li></ul></li>
+<li><div class="gf-line"><span class="gf-dim">3次元以上のデータ</span></div><ul class="gf-ul"><li><div class="gf-line"><span class="gf-type">量的 3 つ</span><span class="gf-arrow">→</span><a class="gf-g" href="#scatter-3d"><svg class="gf-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M14 20V4M14 20L4 28M14 20l14 6"/><circle class="d" cx="18" cy="10" r="1.7"/><circle class="d" cx="21" cy="17" r="1.7"/><circle class="d" cx="9" cy="22" r="1.7"/><circle class="d" cx="16" cy="15" r="1.7"/><circle class="d" cx="23" cy="23" r="1.7"/></svg>3次元プロット<small class="gf-tag">発展</small></a><a class="gf-g" href="#scatter-3d"><svg class="gf-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 4v24h23"/><circle class="f" cx="11" cy="21" r="2.3"/><circle class="f" style="fill-opacity:.5" cx="17" cy="15" r="4"/><circle class="f" cx="24" cy="9" r="3"/><circle class="f" style="fill-opacity:.1" cx="23" cy="22" r="3"/></svg>色・大きさ付き散布図<small class="gf-tag">発展</small></a></div></li><li><div class="gf-line"><span class="gf-type">量的が多数</span><span class="gf-arrow">→</span><a class="gf-g" href="#scatter-matrix"><svg class="gf-ico" viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="4" width="24" height="24"/><path d="M12 4v24M20 4v24M4 12h24M4 20h24"/><rect class="f" x="4" y="4" width="8" height="8"/><rect class="f" x="12" y="12" width="8" height="8"/><rect class="f" x="20" y="20" width="8" height="8"/><circle class="d" cx="14.5" cy="9.5" r="0.9"/><circle class="d" cx="17.5" cy="6.5" r="0.9"/><circle class="d" cx="22.5" cy="9.5" r="0.9"/><circle class="d" cx="25.5" cy="6.5" r="0.9"/><circle class="d" cx="6.5" cy="17.5" r="0.9"/><circle class="d" cx="9.5" cy="14.5" r="0.9"/><circle class="d" cx="22.5" cy="17.5" r="0.9"/><circle class="d" cx="25.5" cy="14.5" r="0.9"/><circle class="d" cx="6.5" cy="25.5" r="0.9"/><circle class="d" cx="9.5" cy="22.5" r="0.9"/><circle class="d" cx="14.5" cy="25.5" r="0.9"/><circle class="d" cx="17.5" cy="22.5" r="0.9"/></svg>散布図行列</a></div></li></ul></li>
 </ul></li>
 </ul>
 </div>
@@ -132,8 +133,8 @@ import seaborn as sns
 - **比較**: [棒グラフ](#bar)
 - **構成**: [円グラフ](#pie), [積み上げ棒グラフ](#stacked-bar)
 - **分布**: [ヒストグラム](#histogram), [箱ひげ図](#boxplot)
-- **変化**: [折れ線グラフ](#line) (複数の系列を重ねる方法は発展の [for 文を利用したグラフ](#for-graph))
-- **関係**: [散布図](#scatter), [散布図行列](#scatter-matrix), [ヒートマップ](#heatmap), 発展の[変数の関係を図で表す](#relation-diagram)
+- **変化**: [折れ線グラフ](#line) (複数の系列を重ねる方法は [for 文を利用したグラフ (発展)](#for-graph))
+- **関係**: [散布図](#scatter), [散布図行列](#scatter-matrix), [ヒートマップ](#heatmap), [変数の関係を図で表す (発展)](#relation-diagram)
 
 同じデータでも, 軸に何を取るかで読み取れることが変わり ([縦軸と横軸の選び方](#axis-choice)), 軸の範囲や色の付け方によっては, グループの間に実際より大きな差があるように見えます ([誇張と強調が読み取りに与える影響](#exaggeration)).
 
@@ -333,7 +334,7 @@ plt.show()
 
 表示されたグラフは, 保存ボタンで画像として保存できます.
 
-グラフ作成の基本は, これで終わりです. あとは, それぞれのグラフごとに `plt.bar()` の部分を使い分け, グラフのデザインを変更することで, 様々なグラフが作成できます. 色, スタイル, 凡例などの変更は, 発展の[グラフのデザインの変更](#design)にまとめてあります.
+グラフ作成の基本は, これで終わりです. あとは, それぞれのグラフごとに `plt.bar()` の部分を使い分け, グラフのデザインを変更することで, 様々なグラフが作成できます. 色, スタイル, 凡例などの変更は, [グラフのデザインの変更 (発展)](#design)にまとめてあります.
 
 
 
@@ -432,12 +433,119 @@ region
 九州・沖縄             1       1      6
 ~~~
 
-`pd.cut()` は量的データを `bins=` で指定した区間に分け, 各値がどの階級に入るかを表す列を作ります. `pd.crosstab(行, 列)` は, 2 つの列の値の組み合わせごとに行数を数えた表を作ります (発展の[同時度数分布表](#同時度数分布表)で詳しく扱います). できた表の `.plot.bar(stacked=True)` を呼ぶと, 列 (階級) ごとの棒が行 (地方) ごとに積み上がります. `plt.bar()` で描く場合は, 2 つ目以降の棒の引数 `bottom=` に, それまでに積んだ高さを渡します.
+`pd.cut()` は量的データを `bins=` で指定した区間に分け, 各値がどの階級に入るかを表す列を作ります. `pd.crosstab(行, 列)` は, 2 つの列の値の組み合わせごとに行数を数えた表を作ります ([同時度数分布表 (発展)](#同時度数分布表)で詳しく扱います). できた表の `.plot.bar(stacked=True)` を呼ぶと, 列 (階級) ごとの棒が行 (地方) ごとに積み上がります. `plt.bar()` で描く場合は, 2 つ目以降の棒の引数 `bottom=` に, それまでに積んだ高さを渡します.
 
 ![地方ごとの運動時間の階級別の都道府県数](/images/dsp/ch3/stacked-bar.png)
 
 東北は 6 県のうち 5 県が 14 分以下, 九州・沖縄は 8 県のうち 6 県が 18 分以上で, 関東は 7 都県すべてが 15〜17 分に入ります. 運動時間の短い県は北に, 長い県は南に多いことが読み取れます. 一方で, 棒全体の高さは地方の都道府県数 (北海道の 1 から中部の 9 まで) で決まるので, 地方同士で内訳の割合を比べるには向きません. 割合で比べる描き方は[実数か割合か](#axis-count-ratio)で扱います.
 
+
+## 同時度数分布表 (発展) {#同時度数分布表}
+
+2つの観測項目の関係を調べる手法として散布図を学びましたが,散布図は量的データにしか使えません. 質的変数同士の関係性を調べるにはどのようにしたらいいのでしょうか.
+
+質的変数同士の関係性を調べる手法として代表的なものに**同時度数分布表(クロス表)**があります.
+例えば[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/cross_table_data.csv)のデータはある講義の成績情報ですが,観測項目として成績以外に1時限から5時限までの時限が記録されています. 時限が早い講義と遅い講義で成績が変わるのかという関係性を調べてみます.
+
+~~~ sh
+     Period Grade
+0         2     B
+1         5     A
+2         4     A
+3         3     C
+4         1     C
+..      ...   ...
+195       2     C
+196       4     C
+197       5     C
+198       5     F
+199       4     C
+~~~
+
+試しに,散布図で`Period`と`Grade`の関係を表してみましょう.
+成績をそのままでは,散布図の軸上に配置できないので数値に変換します.
+
+~~~ py
+df = pd.read_csv('data/cross_table_data.csv')
+print(df)
+
+#あえて散布図を作ってみる
+grade_num_map = {'S':1
+                ,'A':2
+                ,'B':3
+                ,'C':4
+                ,'F':5}
+
+df['Grade_num'] = df['Grade'].map(lambda x: grade_num_map[x])
+
+plt.scatter(df['Period'],df['Grade'])
+plt.xlabel('Period')
+plt.ylabel('Grade')
+plt.show()
+~~~
+
+![質的データの散布図](/images/slds/ch8/cross-table1.png)
+
+質的データを数値に変換したとしても,離散値となるため,散布図はこのように基本的にはすべての交点に点があるだけのなんの情報も得られないグラフとなります.
+
+散布図としてプロットすると, 点がありうる場所が少なすぎるため情報がとれません. 元々知りたいことは,講義の時限と成績にどのような関係があるのかということでした.
+そこで, 講義の時間ごとの成績の偏りが分かるように可視化することを考えてみます.
+
+講義の時限ごとの成績の分布がわかり,それぞれに違いがあれば時限によって成績に偏りが出ていると言えそうです.
+そこで,以下のように講義の時限毎の成績の度数分布表を作ってみましょう.
+
+![同時度数分布表](/images/slds/ch8/cross-table2.png)
+
+この度数分布表では,時限毎にその成績を取った学生の度数が数えられています($n_{11}$は1時限にSを取った学生の度数,$n_{ij}$は`j時限`に上から`i番目`の成績をとった学生の度数.)
+
+このような2観測項目の度数分布表を**同時度数分布表**あるいは,**クロス表(cross table)**といいます.
+
+それでは,Pythonで同時度数分布表を作成してみましょう.
+`pandas` では,`.crosstab(行,列)`メソッドを利用することで,クロス表が作成できます.
+
+~~~ py
+#クロス表の作成
+cross = pd.crosstab(df['Grade'],df['Period'])
+
+#表示順の設定
+cross = cross.reindex([1,2,3,4,5],axis='columns')
+cross = cross.reindex(['S','A','B','C','F'],axis='index')
+print(cross)
+~~~
+
+~~~ sh
+Period   1   2   3   4   5
+Grade
+S        9  10  12   4   2
+A        7  14   7   5   4
+B        9  10   7  11   7
+C       14   6   3  15  18
+F        7   4   3   1  11
+~~~
+
+このようにしてみることで,それぞれの時限毎にそれぞれの成績がどのような分布なのかが分かります.
+しかし,各時限の人数が同じとは限らないため,各列の値をその列の和で割って,列相対度数に変更してみましょう.
+
+~~~ py
+#列相対度数に変更する
+for c in cross.columns:
+    cross[c] = cross[c] / cross[c].sum()
+
+print(cross)
+~~~
+
+~~~ sh
+Period         1         2        3         4         5
+Grade
+S       0.195652  0.227273  0.37500  0.111111  0.047619
+A       0.152174  0.318182  0.21875  0.138889  0.095238
+B       0.195652  0.227273  0.21875  0.305556  0.166667
+C       0.304348  0.136364  0.09375  0.416667  0.428571
+F       0.152174  0.090909  0.09375  0.027778  0.261905
+~~~
+
+このようにすると,時限毎にどの程度の割合がSやAなどの良い成績をとっているのかが分かります.
+通常度数分布表を作成したあとには,**χ二乗検定**や,**標準化残差**を利用した**残差分析**によって,**偏り**が統計的に存在するかを判定します. しかし,それらは「データ活用の統計学実践」に譲るとして,これを一目で判断しやすいように可視化する方法は, [ヒートマップ](#heatmap)の節で扱います.
 
 ## 折れ線グラフ {#line}
 
@@ -477,7 +585,324 @@ Name: Location_1, dtype: float64
 
 灰色の線が日ごとの気温です. 日ごとの気温は 0 ℃ から 33 ℃ の間で大きく上下していて, この線だけでは全体の傾向が読み取れません. 青い線は, その日までの 7 日間の気温の平均 (**移動平均**) です. 移動平均では日ごとの上下がならされ, 1 月中旬に最も低く (約 15 ℃), 2 月上旬に最も高く (約 25 ℃) なり, その後は 20 ℃ 前後で推移していることが読み取れます. 月ごとの平均気温 (1 月 18.74 ℃, 2 月 21.44 ℃) の違いとも合っています.
 
-折れ線グラフは, 横軸が時間のように順序と間隔を持つときに使います. 都道府県や商品の種類のように順序の無いカテゴリーを線でつなぐと, 存在しない「変化」を描くことになるので, 棒グラフを使います. 複数の地点の気温を 1 つの図に重ねる方法は, 発展の [for 文を利用したグラフ](#for-graph)で扱います.
+折れ線グラフは, 横軸が時間のように順序と間隔を持つときに使います. 都道府県や商品の種類のように順序の無いカテゴリーを線でつなぐと, 存在しない「変化」を描くことになるので, 棒グラフを使います. 複数の地点の気温を 1 つの図に重ねる方法は, [for 文を利用したグラフ (発展)](#for-graph)で扱います.
+
+## グラフのデザインの変更 (発展) {#design}
+
+[棒グラフの作成](#bar)で作った棒グラフ (`labels`, `x_position`, `values`) を使います.
+
+グラフのデザインに関する要素は,無数にあるためこの講義ですべてを扱うことはできませんが,いくつかの要素を実際に変更してみましょう.
+
+### 色の変更
+
+matplotlibではグラフの各部に以下の色を指定できます.
+これ以外の指定の仕方もあります.色の変え方は,それぞれのグラフで異なります.
+
+![グラフの色](/images/slds/ch8/graph-color.png)
+
+棒グラフは`plt.bar(color=棒毎の色のリスト)`の形で棒ごとに色を指定することができます.
+
+~~~ py
+# 棒グラフの色を指定します.
+# 1つ目 red
+# 2つ目 blue
+# 3つ目 yellow
+color_list = ["red", "blue", "yellow"]
+# 引数に色の指定をします
+plt.bar(color=color_list, x=x_position, height=values)
+#ラベルの位置を指定します.
+plt.xticks(ticks=x_position,labels=labels)
+# yラベルを指定します
+plt.ylabel("number")
+# タイトルを指名します
+plt.title("kind")
+# グラフの表示
+plt.show()
+~~~
+
+![棒グラフの色の変更](/images/slds/ch8/bar-graph-color.png)
+
+### スタイルの変更
+
+毎回細かなデザインを自分で調整すると手間なので,デフォルトで準備されているスタイルを利用すると楽です.
+
+matplotlibではいくつかのデフォルトのスタイルが準備されています. 使用可能なスタイルは,plt.style.available で確認できます.
+
+~~~ sh
+❯ python
+Python 3.12.3 (main, Jun  3 2024, 08:31:31) [Clang 15.0.0 (clang-1500.3.9.4)] on darwin
+Type "help", "copyright", "credits" or "license" for more information.
+>>> import matplotlib.pyplot as plt
+>>> plt.style.available
+['Solarize_Light2', 'bmh', 'classic', 'dark_background', 'fast', 'fivethirtyeight', 'ggplot', 'grayscale', 'petroff10', 'petroff6', 'petroff8', 'seaborn-v0_8', 'seaborn-v0_8-bright', 'seaborn-v0_8-colorblind', 'seaborn-v0_8-dark', 'seaborn-v0_8-dark-palette', 'seaborn-v0_8-darkgrid', 'seaborn-v0_8-deep', 'seaborn-v0_8-muted', 'seaborn-v0_8-notebook', 'seaborn-v0_8-paper', 'seaborn-v0_8-pastel', 'seaborn-v0_8-poster', 'seaborn-v0_8-talk', 'seaborn-v0_8-ticks', 'seaborn-v0_8-white', 'seaborn-v0_8-whitegrid', 'tableau-colorblind10']
+~~~
+
+それぞれのスタイルのイメージは[こちら](https://matplotlib.org/stable/gallery/style_sheets/style_sheets_reference.html)で確認できます.
+
+::: note
+**`seaborn` という名前のスタイルは削除されています**
+
+`matplotlib`にはかつて`seaborn`や`seaborn-darkgrid`という名前のスタイルが同梱されていましたが, これらは`seaborn`ライブラリ本体のデザイン更新に追随できなくなったため, matplotlib 3.6 で非推奨となり, 3.8 で削除されました. 現在は`seaborn-v0_8`,`seaborn-v0_8-darkgrid`のように **`seaborn-v0_8`で始まる名前** に置き換わっています (末尾の`v0_8`は seaborn 0.8 時代のデザインで固定されていることを表します).
+
+古い解説記事などで`plt.style.use('seaborn')`という記述を見かけても, そのままでは`OSError`になります. `plt.style.use('seaborn-v0_8')`のように読み替えてください. 最新の`seaborn`のデザインを使いたい場合は, スタイルシートではなく`seaborn`を直接読み込み,`sns.set_theme()`を利用します.
+:::
+
+スタイルは`plt.style.use('スタイル名')`で指定し,以降のコード全てに適用されます.
+
+~~~ py
+# スタイル 'ggplot' を使ってみます
+plt.style.use('ggplot')
+# 引数に色の指定をします
+plt.bar(x=x_position, height=values)
+#ラベルの位置を指定します.
+plt.xticks(ticks=x_position,labels=labels)
+# yラベルを指定します
+plt.ylabel("number")
+# タイトルを指名します
+plt.title("kind")
+# グラフの表示
+plt.show()
+~~~
+
+![スタイルの適用](/images/slds/ch8/bar-graph-style.png)
+
+### 要素の追加
+
+グラフに新しい要素を付け加えるのも簡単です.
+
+`plt.show()`までの間に,グラフを宣言することで,複数のグラフを重ねることが可能です.
+ここでは, 異なる色の棒グラフを追加しています.
+
+また, `plt.legend()`によって凡例を追加しています.
+
+~~~ py
+# スタイル seaborn-v0_8 を使ってみます
+plt.style.use('seaborn-v0_8')
+# 棒グラフを2つ並べます
+plt.bar(color='red', x=x_position, width=0.3,height=values)
+plt.bar(color='blue',x=x_position+0.3, width=0.3,height=[11,15,14])
+#凡例を追加します
+# loc で位置を指定します
+# 上下 upper center lower
+# 左右 left center right
+plt.legend(['2020','2000'], loc='upper left')
+#ラベルの位置を指定します.
+plt.xticks(ticks=x_position+0.15,labels=labels)
+# yラベルを指定します
+plt.ylabel("number")
+# タイトルを指名します
+plt.title("kind")
+# グラフの表示
+plt.show()
+~~~
+
+![凡例の追加](/images/slds/ch8/bar-graph-style2.png)
+
+デザインのすべてのパターンをここで扱うことは出来ないので,
+やりたいことに応じて,
+[matplotlubの公式ドキュメント](https://matplotlib.org/stable/users/index)を確認しましょう.
+
+## for 文を利用したグラフ (発展) {#for-graph}
+
+これまでのように単純な一つのグラフを作成するだけであれば,恐らくExcelなどのほうが手軽ですが,多数のグラフを作成したり, 複数のデータを組み合わせた複雑なグラフを作成する場合にはプログラミングの方が便利になります.
+
+
+例えば[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/temperature_10location.csv)のデータを利用して棒グラフを作成することを考えてみましょう.このデータは10箇所の気温が記録された時系列データです.
+
+~~~ sh
+          Date  Location_1  Location_2  ...  Location_8  Location_9  Location_10
+0   2023-01-01   18.211700   21.553371  ...   18.665620   29.108637    21.634069
+1   2023-01-02   15.108630   16.172744  ...   20.135756    9.212193    24.209877
+2   2023-01-03   14.938279   24.593193  ...   16.778431   22.291269    19.815977
+3   2023-01-04   20.640249   18.862405  ...   13.282269   16.040627    15.993132
+4   2023-01-05   14.218562   16.281882  ...   15.729466   24.951213    18.053277
+..         ...         ...         ...  ...         ...         ...          ...
+95  2023-04-06   21.312739   19.613363  ...   16.497553   20.446656    13.644605
+96  2023-04-07   26.388210   31.533854  ...   18.999736   15.603714    19.215097
+97  2023-04-08   16.914329   20.479892  ...   21.698464   17.705697    16.867517
+98  2023-04-09   14.316258   17.841650  ...   31.885071   20.816917    16.895196
+99  2023-04-10   23.595042   19.896247  ...   17.534881   15.180066    15.104460
+~~~
+
+このデータの`Location_1`から`Location_10`までの折れ線グラフを一つのグラフに表示することを考えてみます.
+
+`matplotlib`では, `plt.show()`までに要素を重ねることで複数のグラフを重ねることができます.
+
+例えば,10本の折れ線グラフを表示する場合,一つ一つ手書きすると以下のようになります.
+
+~~~ py
+df = pd.read_csv('data/temperature_10location.csv')
+print(df)
+
+#'Date'列を日付型に変更しています.
+df['Date'] = pd.to_datetime(df['Date'])
+
+#一つ一つ手書きする方法
+plt.plot(df['Date'],df['Location_1'],label='Location_1')
+plt.plot(df['Date'],df['Location_2'],label='Location_2')
+plt.plot(df['Date'],df['Location_3'],label='Location_3')
+plt.plot(df['Date'],df['Location_4'],label='Location_4')
+plt.plot(df['Date'],df['Location_5'],label='Location_5')
+plt.plot(df['Date'],df['Location_6'],label='Location_6')
+plt.plot(df['Date'],df['Location_7'],label='Location_7')
+plt.plot(df['Date'],df['Location_8'],label='Location_8')
+plt.plot(df['Date'],df['Location_9'],label='Location_9')
+plt.plot(df['Date'],df['Location_10'],label='Location_10')
+
+plt.legend()
+plt.xticks(rotation=15) #x軸を15度傾かせています
+plt.show()
+
+~~~
+
+![10本の折れ線グラフ](/images/slds/ch8/temperature-10location.png)
+
+10本程度であれば,まだ書けなくもありませんが,それでも手間がかかります.こういった繰り返しの作業は`for文`を利用しましょう.
+
+`for文`を利用した場合には以下のようになります.
+
+~~~ py
+for x in df.columns[1:]:
+    plt.plot(df['Date'],df[x],label=x)
+plt.legend()
+plt.xticks(rotation=15)
+plt.show()
+~~~
+
+グラフの内容は同じですが,こちらのほうが労力が少なく,コードもスッキリしており,何か修正を加える場合でも修正箇所が少なくて済みます.
+繰り返し作業は積極的に`for文`や`while文`を利用するようにしましょう.
+
+## グラフの分割 (発展) {#グラフの分割}
+
+先程は一つのグラフ内に複数の折れ線グラフを表示しましたが,個別に表示する場合にはどのようになるでしょうか.
+一つの方法として,以下の用に複数のグラフを個別に作成することも可能です.
+(先に保存先のディレクトリ `result/multi_plot` を作成しておきましょう.)
+
+~~~ py
+for x in df.columns[1:]:
+    plt.plot(df['Date'],df[x])
+    plt.title(x)
+    plt.xticks(rotation=15)
+    plt.savefig('result/multi_plot/' + x + '.png')
+    plt.close()
+~~~
+
+![保存された10個のグラフ](/images/slds/ch8/temperature-10location2.png)
+
+しかし,レポートなどに10枚の画像を貼り付けるのは手間がかかりますし,余白など無駄も多いです.
+
+- subplots()
+
+`matplotlib`には1枚の画像を分割して複数のグラフを載せるためのメソッド`.subplots()`があるので,関連するグラフや比較のためのグラフなどはできるだけ1枚の画像に集約しましょう.
+
+`.subplots()`は1枚の画像を`n行`,`n列`に分割し,それぞれの領域にグラフを描画します.
+
+各領域は `axes`などと呼ばれ,画像全体を`figure`などと呼びます.
+利用するためには,まず `fig, axes = plt.subplots()`の形で宣言します. 引数として,行数は`nrows=`,列数は`ncols=`にそれぞれ`int`で指定します.
+
+![FigureとAxes](/images/slds/ch8/figure-axes.png)
+
+~~~ py
+
+fig, axes = plt.subplots(nrows= 5 #行数の指定
+                       ,ncols= 2 #列数の指定
+                        )
+~~~
+
+宣言のあと,各領域のグラフを `axes[行,列]`の形で指定していきます.行や列は`0`から始まるので注意してください.
+
+~~~ py
+axes[0,0].plot(df['Date'],df['Location_1'],label='Location_1')
+axes[0,1].plot(df['Date'],df['Location_2'],label='Location_2')
+axes[1,0].plot(df['Date'],df['Location_3'],label='Location_3')
+axes[1,1].plot(df['Date'],df['Location_4'],label='Location_4')
+axes[2,0].plot(df['Date'],df['Location_5'],label='Location_5')
+axes[2,1].plot(df['Date'],df['Location_6'],label='Location_6')
+axes[3,0].plot(df['Date'],df['Location_7'],label='Location_7')
+axes[3,1].plot(df['Date'],df['Location_8'],label='Location_8')
+axes[4,0].plot(df['Date'],df['Location_9'],label='Location_9')
+axes[4,1].plot(df['Date'],df['Location_10'],label='Location_10')
+plt.show()
+~~~
+
+以下のようなグラフが作成されます. しかし, 少し見にくいですね.
+
+![subplots](/images/slds/ch8/subplot1.png)
+
+`.subplots(sharex=True)`とすると,x軸を共有することができます.今回のグラフはx軸がすべて同じなので,共有してみましょう.
+また,それぞれのグラフにタイトルを付けてみます.
+更に,一つ一つ手で入力するのは手間なので`for文`を利用してみましょう.
+
+タイトルを付けるには今までの`plt.title()`ではなく`axes[r,c].set_title()`になります. `axes`毎の要素に関しては[公式サイト](https://matplotlib.org/stable/users/explain/axes/axes_intro.html)を参考にしてください.
+
+![axesの要素(https://matplotlib.orgより)](https://matplotlib.org/stable/_images/anatomy.png)
+
+
+~~~ py
+fig, axes = plt.subplots(nrows= 5 #行数の指定
+                        ,ncols= 2 #列数の指定
+                        ,sharex=True)
+
+count = 0
+for i in range(5):
+    for j in range(2):
+        col = df.columns[1:]
+        axes[i,j].plot(df['Date'],df[col[count]])
+        axes[i,j].set_title(col[count])
+        axes[i,j].tick_params(axis='x', rotation=15)
+        count +=1
+plt.show()
+~~~
+
+![subplots](/images/slds/ch8/subplot2.png)
+
+グラフ全体の要素は`fig.`の形で指定します.
+タイトルを付ける場合は`fig.suptitle('title')`となります.
+
+~~~ py
+fig, axes = plt.subplots(nrows= 5 #行数の指定
+                        ,ncols= 2 #列数の指定
+                        ,sharex=True)
+
+count = 0
+for i in range(5):
+    for j in range(2):
+        col = df.columns[1:]
+        axes[i,j].plot(df['Date'],df[col[count]])
+        axes[i,j].set_title(col[count])
+        axes[i,j].tick_params(axis='x', rotation=15)
+        count +=1
+fig.suptitle('subplots title')
+plt.show()
+~~~
+
+![subplots](/images/slds/ch8/subplot3.png)
+
+::: note
+
+- flatten()
+
+`for文`を二重ループで記述するのは大変なので,しばしば`axes.flatten()`を利用して,連番に変換すると便利です.
+
+![flatten](/images/slds/ch8/figure-axes-flatten.png)
+
+~~~ py
+fig, axes = plt.subplots(nrows= 5 #行数の指定
+                        ,ncols= 2 #列数の指定
+                        ,sharex=True)
+
+#連番に変換
+axes = axes.flatten()
+for i in range(10):
+    col = df.columns[1:][i] #countをiで共通化
+    axes[i].plot(df['Date'],df[col])
+    axes[i].set_title(col)
+    axes[i].tick_params(axis='x', rotation=15)
+fig.suptitle('subplots title')
+plt.show()
+~~~
+
+:::
 
 ## 度数分布表とヒストグラム
 
@@ -971,6 +1396,34 @@ plt.show()
 
 階級幅の設定によって, 見た目が変わることが分かります. 作成手法や階級の設定は目的に応じて, 使い分けるようにしましょう.
 
+## カーネル密度プロット (発展) {#カーネル密度プロット}
+
+データの分布を表現する手法としてヒストグラムは非常に便利ですが,階級数や階級幅を自分で定める必要があり,その設定によって見た目が変わってしまいます. また, データ数が少ないときには正確なデータの分布をつかめないという問題点もあります.
+
+そこで, データを階級で区分せずに,度数ではなく確率密度を直接推定する手法に**カーネル密度推定(Kernel Density Estimation, KDE)**があります.
+
+カーネル密度推定では, 一つ一つのデータ点の上に**カーネル**と呼ばれる小さな山(多くはガウス関数)を置き, それらをすべて足し合わせて1本のなめらかな曲線をつくります. データ点 $x_1, x_2, \dots, x_n$ に対する密度の推定値 $\hat{f}(x)$ は次の式で表されます.
+
+$$\hat{f}(x) = \frac{1}{nh}\sum_{i=1}^{n} K\!\left(\frac{x - x_i}{h}\right)$$
+
+ここで $K$ はカーネル関数(山の形)を, $h$ は**バンド幅(bandwidth)**と呼ばれるなめらかさを決めるパラメータを表します. $h$ を小さくするとデータ点ごとの凹凸が強く出て, 大きくするとよりなめらかになります. ヒストグラムにおける階級幅と同じような役割を持つ量です.
+
+`seaborn`では`.histplot()`の引数`kde=True`を指定することで, ヒストグラムに重ねてカーネル密度推定の曲線を描くことができます. ここでは, ヒストグラムの節で用いた[量的データ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/histogram_quantitative.csv)を使ってみましょう.
+
+~~~ py
+df = pd.read_csv('data/histogram_quantitative.csv')
+# stat='density' で縦軸を度数から密度(棒の面積の合計が1)に変換します.
+# kde=True を渡すと, ヒストグラムに重ねてカーネル密度推定の曲線が描かれます.
+sns.histplot(df['Values'], stat='density', kde=True)
+plt.xlabel('Values')
+plt.show()
+plt.close()
+~~~
+
+![カーネル密度プロット](/images/slds/ch8/kde-plot.png)
+
+ヒストグラムの階段状のグラフと異なり, 分布のなめらかな形をつかむことができます. 曲線だけを描きたい場合は`sns.kdeplot(df['Values'])`とします. ただし, カーネル密度推定はあくまで手元のデータからの**推定**であり, バンド幅の取り方によって形が変わる点には注意しましょう.
+
 ## 箱ひげ図 {#boxplot}
 
 データの観測対象が複数のグループに層別可能な場合には, それぞれのヒストグラムを作成して比較することなどが必要です. グループの数が多い場合には, 何個もヒストグラムを作成することになりますし, 比較には向いていない場合があります.
@@ -1073,7 +1526,7 @@ plt.show()
 
 この関係の度合いを数値化する**相関係数**や, 関係の仕方を説明する**回帰分析**に関しては後ほど扱います.
 
-### 観測項目が複数ある場合の散布図 {#scatter-3d}
+### 観測項目が複数ある場合の散布図 (発展) {#scatter-3d}
 
 データが 3 つある場合には, 以下のように 3D で表現することも可能ですがこの講義では, 3 次元のグラフに関しては深く扱いません. 興味のある方は調べてみましょう.
 
@@ -1113,7 +1566,7 @@ plt.show()
 
 ![色とサイズによる表現](/images/slds/ch8/scatter-color-size.png)
 
-### クラスタリングにおける散布図
+### クラスタリングにおける散布図 (発展) {#クラスタリングにおける散布図}
 
 散布図は複数の観測項目間の関係性を可視化するための手法ですが, データから特定の観測対象の集まり (**クラスター**) を発見する**クラスタリング**とも深い関わりがあります.
 クラスタリングの手法は後ほど扱いますが, ここでは可視化手法としての散布図とクラスタ表現の関係に関して確認してみましょう.
@@ -1194,7 +1647,7 @@ plt.close()
 
 ヒートマップとは, 表形式の数値を各セルの色によって表現する可視化手法です. 2 つの質的データの組み合わせごとに数えた表 (同時度数分布表) のような, 数値の並んだ表を一目で読めるようにします.
 
-[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/cross_table_data.csv)のデータは, ある講義の学生ごとに, 受講した時限 (`Period`, 1〜5 時限) と成績 (`Grade`, S, A, B, C, F) を記録したものです. 時限ごとに各成績の学生が占める割合の表を作り, ヒートマップにします. 表の作り方は発展の[同時度数分布表](#同時度数分布表)で詳しく扱います.
+[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/cross_table_data.csv)のデータは, ある講義の学生ごとに, 受講した時限 (`Period`, 1〜5 時限) と成績 (`Grade`, S, A, B, C, F) を記録したものです. 時限ごとに各成績の学生が占める割合の表を作り, ヒートマップにします. 表の作り方は[同時度数分布表 (発展)](#同時度数分布表)で詳しく扱います.
 
 ~~~ py
 df = pd.read_csv('data/cross_table_data.csv')
@@ -1231,6 +1684,49 @@ plt.show()
 このヒートマップでは, 数値が大きいほど, 色が濃くなっており 2, 3 時限において B 以上の成績を取る学生の割合が大きいこと, 4, 5 時限において C や F などの成績を取る人の割合が大きいことが視覚的に分かります.
 
 ヒートマップは複数の数値間の相関係数や距離を可視化する際にも良く用いられるので, 覚えておきましょう.
+
+## 変数の関係を図で表す (発展) {#relation-diagram}
+
+[散布図行列](#scatter-matrix)や[ヒートマップ](#heatmap)は, 変数の組ごとの関係を並べて見せます. 変数が多くなると, どの変数がどの変数とつながっているかという全体の構造は, これらの図からは読み取りにくくなります. そこで, 変数を楕円 (ノード) で, 変数の間の関係を線 (エッジ) で表す図を描きます.
+
+ここでは, 都道府県別のデータの 5 つの変数について, 相関係数 ([第4章](dsp4.html)で扱う, 2 つの量的データの直線的な関係の強さを -1 から 1 で表す指標) の絶対値が 0.3 以上の組を線で結びます. 図の作成には, グラフ (ノードとエッジからなる図) を描くソフトウェア Graphviz を Python から使うライブラリ `graphviz` を使います. `uv add graphviz` に加えて, Graphviz 本体のインストール (macOS なら `brew install graphviz`, Windows なら公式サイトのインストーラ) が必要です.
+
+~~~ py
+import pandas as pd
+import graphviz
+
+df = pd.read_csv('data/pref_stats.csv', encoding='utf-8-sig', index_col='pref')
+corr = df.corr()   # 5 つの項目の, すべての組み合わせの相関係数
+
+names = {'height': '身長', 'weight': '体重', 'food': '食費'
+        ,'sleep': '睡眠時間', 'sports': '運動時間'}
+
+g = graphviz.Graph(format='png')   # 向きの無い線で結ぶ図
+g.attr(dpi='150')                   # 画像の解像度
+g.attr('node', fontname='Hiragino Sans', shape='ellipse')
+g.attr('edge', fontname='Hiragino Sans')
+for col, label in names.items():
+    g.node(col, label)
+
+cols = list(names)
+for i in range(len(cols)):
+    for j in range(i + 1, len(cols)):
+        r = corr.loc[cols[i], cols[j]]
+        if abs(r) >= 0.3:   # 相関係数の絶対値が 0.3 以上の組だけ線で結ぶ
+            g.edge(cols[i], cols[j]
+                  ,label=f'{r:.2f}'
+                  ,style='solid' if r > 0 else 'dashed'   # 負の相関は破線
+                  ,penwidth=str(1 + 4 * abs(r)))          # 強い相関ほど太く
+g.render('pref_corr_graph', cleanup=True)   # pref_corr_graph.png が保存されます
+~~~
+
+`fontname='Hiragino Sans'` は macOS の日本語フォントです. Windows では `'Yu Gothic'` などに替えます.
+
+![都道府県別のデータの変数の関係](/images/dsp/ch3/relation-graph.png)
+
+身長は食費 (0.65), 体重 (0.51) と正の相関で, 運動時間 (-0.42) と負の相関で結ばれ, 5 つの変数の中で最も多くの線が集まります. 睡眠時間は体重と正の相関 (0.38), 食費と負の相関 (-0.41) を持ちます. 散布図行列では 10 組の散布図を 1 つずつ見比べる必要がありましたが, この図では関係の強い組と, 関係が集まる変数を一度に見渡せます.
+
+この図の線は相関を表すだけで, どちらがどちらに影響するかという向きは表していません. 変数の間の影響の向きを仮説として矢印で描いた図は**パス図**と呼ばれ, パス図の仮説をデータで確かめる手法が, [第12章](dsp12.html#共分散構造分析)で扱う共分散構造分析です.
 
 ## 縦軸と横軸の選び方 {#axis-choice}
 
@@ -1328,7 +1824,7 @@ fig.tight_layout()
 plt.show()
 ~~~
 
-`plt.subplots(nrows=2)` は 1 枚の図を上下 2 つの領域に分け, `axes[0]`, `axes[1]` でそれぞれの領域に描きます (発展の[グラフの分割](#グラフの分割)で詳しく扱います).
+`plt.subplots(nrows=2)` は 1 枚の図を上下 2 つの領域に分け, `axes[0]`, `axes[1]` でそれぞれの領域に描きます ([グラフの分割 (発展)](#グラフの分割)で詳しく扱います).
 
 ![運動時間の棒グラフ: 北から南の順と長い順](/images/dsp/ch3/axis-order.png)
 
@@ -1554,7 +2050,9 @@ plt.show()
 
 **複数のグループを折れ線・散布図・ヒートマップで比べる**
 
-1. [Google トレンド](https://trends.google.co.jp/trends/)で 4 つのワードの同じ期間の推移を調べ, CSV をダウンロードしてください. この CSV から, 発展の[for 文を利用したグラフ](#for-graph)と[グラフの分割](#グラフの分割)を使って, 次の 2 通りの折れ線グラフを作成してください.
+問 1 では, 授業では扱わない (発展) の節を使います.
+
+1. [Google トレンド](https://trends.google.co.jp/trends/)で 4 つのワードの同じ期間の推移を調べ, CSV をダウンロードしてください. この CSV から, [for 文を利用したグラフ (発展)](#for-graph)と[グラフの分割 (発展)](#グラフの分割)を使って, 次の 2 通りの折れ線グラフを作成してください.
     - 1 つのグラフに表示: for 文で 4 本の折れ線を色を変えて重ね, 凡例も表示する.
     - グラフの分割: グラフを 4 つに分割し, ワードごとの折れ線グラフを 1 つずつ描く.
 2. [こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/beetle_datal.csv)のカブトムシの種類別の体長と体重のデータを使って[散布図](#scatter)を作成してください. カブトムシの種類別に, 点の色と形を変えてください.
@@ -1776,503 +2274,3 @@ Category D    28  0.28  100    1.00
 量的データは, 最大値の約 575 万が, 他の値の最大値 (約 78) から桁違いに離れた**外れ値**です. この 1 件が階級の幅を押し広げるため, 最初の度数分布表では 99 件が最初の階級に入り, ヒストグラムは 1 本の棒しか読み取れません. 実際の分析では, 外れ値を除く前に入力ミスなどの原因を確認します. 外れ値を除いて作り直すと, 45 を超え 54 以下の階級が最も多い (27 件), 左右ほぼ対称な山の形になっていることが読み取れます.
 
 </details>
-
-# 発展
-
-以下は授業では扱いません. 課題では, ここに挙げた手法から好きなものを選んで実施し, 最終回に発表してもらいます.
-
-## グラフのデザインの変更 {#design}
-
-[棒グラフの作成](#bar)で作った棒グラフ (`labels`, `x_position`, `values`) を使います.
-
-グラフのデザインに関する要素は,無数にあるためこの講義ですべてを扱うことはできませんが,いくつかの要素を実際に変更してみましょう.
-
-### 色の変更
-
-matplotlibではグラフの各部に以下の色を指定できます.
-これ以外の指定の仕方もあります.色の変え方は,それぞれのグラフで異なります.
-
-![グラフの色](/images/slds/ch8/graph-color.png)
-
-棒グラフは`plt.bar(color=棒毎の色のリスト)`の形で棒ごとに色を指定することができます.
-
-~~~ py
-# 棒グラフの色を指定します.
-# 1つ目 red
-# 2つ目 blue
-# 3つ目 yellow
-color_list = ["red", "blue", "yellow"]
-# 引数に色の指定をします
-plt.bar(color=color_list, x=x_position, height=values)
-#ラベルの位置を指定します.
-plt.xticks(ticks=x_position,labels=labels)
-# yラベルを指定します
-plt.ylabel("number")
-# タイトルを指名します
-plt.title("kind")
-# グラフの表示
-plt.show()
-~~~
-
-![棒グラフの色の変更](/images/slds/ch8/bar-graph-color.png)
-
-### スタイルの変更
-
-毎回細かなデザインを自分で調整すると手間なので,デフォルトで準備されているスタイルを利用すると楽です.
-
-matplotlibではいくつかのデフォルトのスタイルが準備されています. 使用可能なスタイルは,plt.style.available で確認できます.
-
-~~~ sh
-❯ python
-Python 3.12.3 (main, Jun  3 2024, 08:31:31) [Clang 15.0.0 (clang-1500.3.9.4)] on darwin
-Type "help", "copyright", "credits" or "license" for more information.
->>> import matplotlib.pyplot as plt
->>> plt.style.available
-['Solarize_Light2', 'bmh', 'classic', 'dark_background', 'fast', 'fivethirtyeight', 'ggplot', 'grayscale', 'petroff10', 'petroff6', 'petroff8', 'seaborn-v0_8', 'seaborn-v0_8-bright', 'seaborn-v0_8-colorblind', 'seaborn-v0_8-dark', 'seaborn-v0_8-dark-palette', 'seaborn-v0_8-darkgrid', 'seaborn-v0_8-deep', 'seaborn-v0_8-muted', 'seaborn-v0_8-notebook', 'seaborn-v0_8-paper', 'seaborn-v0_8-pastel', 'seaborn-v0_8-poster', 'seaborn-v0_8-talk', 'seaborn-v0_8-ticks', 'seaborn-v0_8-white', 'seaborn-v0_8-whitegrid', 'tableau-colorblind10']
-~~~
-
-それぞれのスタイルのイメージは[こちら](https://matplotlib.org/stable/gallery/style_sheets/style_sheets_reference.html)で確認できます.
-
-::: note
-**`seaborn` という名前のスタイルは削除されています**
-
-`matplotlib`にはかつて`seaborn`や`seaborn-darkgrid`という名前のスタイルが同梱されていましたが, これらは`seaborn`ライブラリ本体のデザイン更新に追随できなくなったため, matplotlib 3.6 で非推奨となり, 3.8 で削除されました. 現在は`seaborn-v0_8`,`seaborn-v0_8-darkgrid`のように **`seaborn-v0_8`で始まる名前** に置き換わっています (末尾の`v0_8`は seaborn 0.8 時代のデザインで固定されていることを表します).
-
-古い解説記事などで`plt.style.use('seaborn')`という記述を見かけても, そのままでは`OSError`になります. `plt.style.use('seaborn-v0_8')`のように読み替えてください. 最新の`seaborn`のデザインを使いたい場合は, スタイルシートではなく`seaborn`を直接読み込み,`sns.set_theme()`を利用します.
-:::
-
-スタイルは`plt.style.use('スタイル名')`で指定し,以降のコード全てに適用されます.
-
-~~~ py
-# スタイル 'ggplot' を使ってみます
-plt.style.use('ggplot')
-# 引数に色の指定をします
-plt.bar(x=x_position, height=values)
-#ラベルの位置を指定します.
-plt.xticks(ticks=x_position,labels=labels)
-# yラベルを指定します
-plt.ylabel("number")
-# タイトルを指名します
-plt.title("kind")
-# グラフの表示
-plt.show()
-~~~
-
-![スタイルの適用](/images/slds/ch8/bar-graph-style.png)
-
-### 要素の追加
-
-グラフに新しい要素を付け加えるのも簡単です.
-
-`plt.show()`までの間に,グラフを宣言することで,複数のグラフを重ねることが可能です.
-ここでは, 異なる色の棒グラフを追加しています.
-
-また, `plt.legend()`によって凡例を追加しています.
-
-~~~ py
-# スタイル seaborn-v0_8 を使ってみます
-plt.style.use('seaborn-v0_8')
-# 棒グラフを2つ並べます
-plt.bar(color='red', x=x_position, width=0.3,height=values)
-plt.bar(color='blue',x=x_position+0.3, width=0.3,height=[11,15,14])
-#凡例を追加します
-# loc で位置を指定します
-# 上下 upper center lower
-# 左右 left center right
-plt.legend(['2020','2000'], loc='upper left')
-#ラベルの位置を指定します.
-plt.xticks(ticks=x_position+0.15,labels=labels)
-# yラベルを指定します
-plt.ylabel("number")
-# タイトルを指名します
-plt.title("kind")
-# グラフの表示
-plt.show()
-~~~
-
-![凡例の追加](/images/slds/ch8/bar-graph-style2.png)
-
-デザインのすべてのパターンをここで扱うことは出来ないので,
-やりたいことに応じて,
-[matplotlubの公式ドキュメント](https://matplotlib.org/stable/users/index)を確認しましょう.
-
-## for 文を利用したグラフ {#for-graph}
-
-これまでのように単純な一つのグラフを作成するだけであれば,恐らくExcelなどのほうが手軽ですが,多数のグラフを作成したり, 複数のデータを組み合わせた複雑なグラフを作成する場合にはプログラミングの方が便利になります.
-
-
-例えば[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/temperature_10location.csv)のデータを利用して棒グラフを作成することを考えてみましょう.このデータは10箇所の気温が記録された時系列データです.
-
-~~~ sh
-          Date  Location_1  Location_2  ...  Location_8  Location_9  Location_10
-0   2023-01-01   18.211700   21.553371  ...   18.665620   29.108637    21.634069
-1   2023-01-02   15.108630   16.172744  ...   20.135756    9.212193    24.209877
-2   2023-01-03   14.938279   24.593193  ...   16.778431   22.291269    19.815977
-3   2023-01-04   20.640249   18.862405  ...   13.282269   16.040627    15.993132
-4   2023-01-05   14.218562   16.281882  ...   15.729466   24.951213    18.053277
-..         ...         ...         ...  ...         ...         ...          ...
-95  2023-04-06   21.312739   19.613363  ...   16.497553   20.446656    13.644605
-96  2023-04-07   26.388210   31.533854  ...   18.999736   15.603714    19.215097
-97  2023-04-08   16.914329   20.479892  ...   21.698464   17.705697    16.867517
-98  2023-04-09   14.316258   17.841650  ...   31.885071   20.816917    16.895196
-99  2023-04-10   23.595042   19.896247  ...   17.534881   15.180066    15.104460
-~~~
-
-このデータの`Location_1`から`Location_10`までの折れ線グラフを一つのグラフに表示することを考えてみます.
-
-`matplotlib`では, `plt.show()`までに要素を重ねることで複数のグラフを重ねることができます.
-
-例えば,10本の折れ線グラフを表示する場合,一つ一つ手書きすると以下のようになります.
-
-~~~ py
-df = pd.read_csv('data/temperature_10location.csv')
-print(df)
-
-#'Date'列を日付型に変更しています.
-df['Date'] = pd.to_datetime(df['Date'])
-
-#一つ一つ手書きする方法
-plt.plot(df['Date'],df['Location_1'],label='Location_1')
-plt.plot(df['Date'],df['Location_2'],label='Location_2')
-plt.plot(df['Date'],df['Location_3'],label='Location_3')
-plt.plot(df['Date'],df['Location_4'],label='Location_4')
-plt.plot(df['Date'],df['Location_5'],label='Location_5')
-plt.plot(df['Date'],df['Location_6'],label='Location_6')
-plt.plot(df['Date'],df['Location_7'],label='Location_7')
-plt.plot(df['Date'],df['Location_8'],label='Location_8')
-plt.plot(df['Date'],df['Location_9'],label='Location_9')
-plt.plot(df['Date'],df['Location_10'],label='Location_10')
-
-plt.legend()
-plt.xticks(rotation=15) #x軸を15度傾かせています
-plt.show()
-
-~~~
-
-![10本の折れ線グラフ](/images/slds/ch8/temperature-10location.png)
-
-10本程度であれば,まだ書けなくもありませんが,それでも手間がかかります.こういった繰り返しの作業は`for文`を利用しましょう.
-
-`for文`を利用した場合には以下のようになります.
-
-~~~ py
-for x in df.columns[1:]:
-    plt.plot(df['Date'],df[x],label=x)
-plt.legend()
-plt.xticks(rotation=15)
-plt.show()
-~~~
-
-グラフの内容は同じですが,こちらのほうが労力が少なく,コードもスッキリしており,何か修正を加える場合でも修正箇所が少なくて済みます.
-繰り返し作業は積極的に`for文`や`while文`を利用するようにしましょう.
-
-## グラフの分割
-
-先程は一つのグラフ内に複数の折れ線グラフを表示しましたが,個別に表示する場合にはどのようになるでしょうか.
-一つの方法として,以下の用に複数のグラフを個別に作成することも可能です.
-(先に保存先のディレクトリ `result/multi_plot` を作成しておきましょう.)
-
-~~~ py
-for x in df.columns[1:]:
-    plt.plot(df['Date'],df[x])
-    plt.title(x)
-    plt.xticks(rotation=15)
-    plt.savefig('result/multi_plot/' + x + '.png')
-    plt.close()
-~~~
-
-![保存された10個のグラフ](/images/slds/ch8/temperature-10location2.png)
-
-しかし,レポートなどに10枚の画像を貼り付けるのは手間がかかりますし,余白など無駄も多いです.
-
-- subplots()
-
-`matplotlib`には1枚の画像を分割して複数のグラフを載せるためのメソッド`.subplots()`があるので,関連するグラフや比較のためのグラフなどはできるだけ1枚の画像に集約しましょう.
-
-`.subplots()`は1枚の画像を`n行`,`n列`に分割し,それぞれの領域にグラフを描画します.
-
-各領域は `axes`などと呼ばれ,画像全体を`figure`などと呼びます.
-利用するためには,まず `fig, axes = plt.subplots()`の形で宣言します. 引数として,行数は`nrows=`,列数は`ncols=`にそれぞれ`int`で指定します.
-
-![FigureとAxes](/images/slds/ch8/figure-axes.png)
-
-~~~ py
-
-fig, axes = plt.subplots(nrows= 5 #行数の指定
-                       ,ncols= 2 #列数の指定
-                        )
-~~~
-
-宣言のあと,各領域のグラフを `axes[行,列]`の形で指定していきます.行や列は`0`から始まるので注意してください.
-
-~~~ py
-axes[0,0].plot(df['Date'],df['Location_1'],label='Location_1')
-axes[0,1].plot(df['Date'],df['Location_2'],label='Location_2')
-axes[1,0].plot(df['Date'],df['Location_3'],label='Location_3')
-axes[1,1].plot(df['Date'],df['Location_4'],label='Location_4')
-axes[2,0].plot(df['Date'],df['Location_5'],label='Location_5')
-axes[2,1].plot(df['Date'],df['Location_6'],label='Location_6')
-axes[3,0].plot(df['Date'],df['Location_7'],label='Location_7')
-axes[3,1].plot(df['Date'],df['Location_8'],label='Location_8')
-axes[4,0].plot(df['Date'],df['Location_9'],label='Location_9')
-axes[4,1].plot(df['Date'],df['Location_10'],label='Location_10')
-plt.show()
-~~~
-
-以下のようなグラフが作成されます. しかし, 少し見にくいですね.
-
-![subplots](/images/slds/ch8/subplot1.png)
-
-`.subplots(sharex=True)`とすると,x軸を共有することができます.今回のグラフはx軸がすべて同じなので,共有してみましょう.
-また,それぞれのグラフにタイトルを付けてみます.
-更に,一つ一つ手で入力するのは手間なので`for文`を利用してみましょう.
-
-タイトルを付けるには今までの`plt.title()`ではなく`axes[r,c].set_title()`になります. `axes`毎の要素に関しては[公式サイト](https://matplotlib.org/stable/users/explain/axes/axes_intro.html)を参考にしてください.
-
-![axesの要素(https://matplotlib.orgより)](https://matplotlib.org/stable/_images/anatomy.png)
-
-
-~~~ py
-fig, axes = plt.subplots(nrows= 5 #行数の指定
-                        ,ncols= 2 #列数の指定
-                        ,sharex=True)
-
-count = 0
-for i in range(5):
-    for j in range(2):
-        col = df.columns[1:]
-        axes[i,j].plot(df['Date'],df[col[count]])
-        axes[i,j].set_title(col[count])
-        axes[i,j].tick_params(axis='x', rotation=15)
-        count +=1
-plt.show()
-~~~
-
-![subplots](/images/slds/ch8/subplot2.png)
-
-グラフ全体の要素は`fig.`の形で指定します.
-タイトルを付ける場合は`fig.suptitle('title')`となります.
-
-~~~ py
-fig, axes = plt.subplots(nrows= 5 #行数の指定
-                        ,ncols= 2 #列数の指定
-                        ,sharex=True)
-
-count = 0
-for i in range(5):
-    for j in range(2):
-        col = df.columns[1:]
-        axes[i,j].plot(df['Date'],df[col[count]])
-        axes[i,j].set_title(col[count])
-        axes[i,j].tick_params(axis='x', rotation=15)
-        count +=1
-fig.suptitle('subplots title')
-plt.show()
-~~~
-
-![subplots](/images/slds/ch8/subplot3.png)
-
-::: note
-
-- flatten()
-
-`for文`を二重ループで記述するのは大変なので,しばしば`axes.flatten()`を利用して,連番に変換すると便利です.
-
-![flatten](/images/slds/ch8/figure-axes-flatten.png)
-
-~~~ py
-fig, axes = plt.subplots(nrows= 5 #行数の指定
-                        ,ncols= 2 #列数の指定
-                        ,sharex=True)
-
-#連番に変換
-axes = axes.flatten()
-for i in range(10):
-    col = df.columns[1:][i] #countをiで共通化
-    axes[i].plot(df['Date'],df[col])
-    axes[i].set_title(col)
-    axes[i].tick_params(axis='x', rotation=15)
-fig.suptitle('subplots title')
-plt.show()
-~~~
-
-:::
-
-
-## カーネル密度プロット
-
-データの分布を表現する手法としてヒストグラムは非常に便利ですが,階級数や階級幅を自分で定める必要があり,その設定によって見た目が変わってしまいます. また, データ数が少ないときには正確なデータの分布をつかめないという問題点もあります.
-
-そこで, データを階級で区分せずに,度数ではなく確率密度を直接推定する手法に**カーネル密度推定(Kernel Density Estimation, KDE)**があります.
-
-カーネル密度推定では, 一つ一つのデータ点の上に**カーネル**と呼ばれる小さな山(多くはガウス関数)を置き, それらをすべて足し合わせて1本のなめらかな曲線をつくります. データ点 $x_1, x_2, \dots, x_n$ に対する密度の推定値 $\hat{f}(x)$ は次の式で表されます.
-
-$$\hat{f}(x) = \frac{1}{nh}\sum_{i=1}^{n} K\!\left(\frac{x - x_i}{h}\right)$$
-
-ここで $K$ はカーネル関数(山の形)を, $h$ は**バンド幅(bandwidth)**と呼ばれるなめらかさを決めるパラメータを表します. $h$ を小さくするとデータ点ごとの凹凸が強く出て, 大きくするとよりなめらかになります. ヒストグラムにおける階級幅と同じような役割を持つ量です.
-
-`seaborn`では`.histplot()`の引数`kde=True`を指定することで, ヒストグラムに重ねてカーネル密度推定の曲線を描くことができます. ここでは, ヒストグラムの節で用いた[量的データ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/histogram_quantitative.csv)を使ってみましょう.
-
-~~~ py
-df = pd.read_csv('data/histogram_quantitative.csv')
-# stat='density' で縦軸を度数から密度(棒の面積の合計が1)に変換します.
-# kde=True を渡すと, ヒストグラムに重ねてカーネル密度推定の曲線が描かれます.
-sns.histplot(df['Values'], stat='density', kde=True)
-plt.xlabel('Values')
-plt.show()
-plt.close()
-~~~
-
-![カーネル密度プロット](/images/slds/ch8/kde-plot.png)
-
-ヒストグラムの階段状のグラフと異なり, 分布のなめらかな形をつかむことができます. 曲線だけを描きたい場合は`sns.kdeplot(df['Values'])`とします. ただし, カーネル密度推定はあくまで手元のデータからの**推定**であり, バンド幅の取り方によって形が変わる点には注意しましょう.
-
-## 同時度数分布表
-
-2つの観測項目の関係を調べる手法として散布図を学びましたが,散布図は量的データにしか使えません. 質的変数同士の関係性を調べるにはどのようにしたらいいのでしょうか.
-
-質的変数同士の関係性を調べる手法として代表的なものに**同時度数分布表(クロス表)**があります.
-例えば[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/cross_table_data.csv)のデータはある講義の成績情報ですが,観測項目として成績以外に1時限から5時限までの時限が記録されています. 時限が早い講義と遅い講義で成績が変わるのかという関係性を調べてみます.
-
-~~~ sh
-     Period Grade
-0         2     B
-1         5     A
-2         4     A
-3         3     C
-4         1     C
-..      ...   ...
-195       2     C
-196       4     C
-197       5     C
-198       5     F
-199       4     C
-~~~
-
-試しに,散布図で`Period`と`Grade`の関係を表してみましょう.
-成績をそのままでは,散布図の軸上に配置できないので数値に変換します.
-
-~~~ py
-df = pd.read_csv('data/cross_table_data.csv')
-print(df)
-
-#あえて散布図を作ってみる
-grade_num_map = {'S':1
-                ,'A':2
-                ,'B':3
-                ,'C':4
-                ,'F':5}
-
-df['Grade_num'] = df['Grade'].map(lambda x: grade_num_map[x])
-
-plt.scatter(df['Period'],df['Grade'])
-plt.xlabel('Period')
-plt.ylabel('Grade')
-plt.show()
-~~~
-
-![質的データの散布図](/images/slds/ch8/cross-table1.png)
-
-質的データを数値に変換したとしても,離散値となるため,散布図はこのように基本的にはすべての交点に点があるだけのなんの情報も得られないグラフとなります.
-
-散布図としてプロットすると, 点がありうる場所が少なすぎるため情報がとれません. 元々知りたいことは,講義の時限と成績にどのような関係があるのかということでした.
-そこで, 講義の時間ごとの成績の偏りが分かるように可視化することを考えてみます.
-
-講義の時限ごとの成績の分布がわかり,それぞれに違いがあれば時限によって成績に偏りが出ていると言えそうです.
-そこで,以下のように講義の時限毎の成績の度数分布表を作ってみましょう.
-
-![同時度数分布表](/images/slds/ch8/cross-table2.png)
-
-この度数分布表では,時限毎にその成績を取った学生の度数が数えられています($n_{11}$は1時限にSを取った学生の度数,$n_{ij}$は`j時限`に上から`i番目`の成績をとった学生の度数.)
-
-このような2観測項目の度数分布表を**同時度数分布表**あるいは,**クロス表(cross table)**といいます.
-
-それでは,Pythonで同時度数分布表を作成してみましょう.
-`pandas` では,`.crosstab(行,列)`メソッドを利用することで,クロス表が作成できます.
-
-~~~ py
-#クロス表の作成
-cross = pd.crosstab(df['Grade'],df['Period'])
-
-#表示順の設定
-cross = cross.reindex([1,2,3,4,5],axis='columns')
-cross = cross.reindex(['S','A','B','C','F'],axis='index')
-print(cross)
-~~~
-
-~~~ sh
-Period   1   2   3   4   5
-Grade
-S        9  10  12   4   2
-A        7  14   7   5   4
-B        9  10   7  11   7
-C       14   6   3  15  18
-F        7   4   3   1  11
-~~~
-
-このようにしてみることで,それぞれの時限毎にそれぞれの成績がどのような分布なのかが分かります.
-しかし,各時限の人数が同じとは限らないため,各列の値をその列の和で割って,列相対度数に変更してみましょう.
-
-~~~ py
-#列相対度数に変更する
-for c in cross.columns:
-    cross[c] = cross[c] / cross[c].sum()
-
-print(cross)
-~~~
-
-~~~ sh
-Period         1         2        3         4         5
-Grade
-S       0.195652  0.227273  0.37500  0.111111  0.047619
-A       0.152174  0.318182  0.21875  0.138889  0.095238
-B       0.195652  0.227273  0.21875  0.305556  0.166667
-C       0.304348  0.136364  0.09375  0.416667  0.428571
-F       0.152174  0.090909  0.09375  0.027778  0.261905
-~~~
-
-このようにすると,時限毎にどの程度の割合がSやAなどの良い成績をとっているのかが分かります.
-通常度数分布表を作成したあとには,**χ二乗検定**や,**標準化残差**を利用した**残差分析**によって,**偏り**が統計的に存在するかを判定します. しかし,それらは「データ活用の統計学実践」に譲るとして,これを一目で判断しやすいように可視化する方法は, [ヒートマップ](#heatmap)の節で扱います.
-
-## 変数の関係を図で表す {#relation-diagram}
-
-[散布図行列](#scatter-matrix)や[ヒートマップ](#heatmap)は, 変数の組ごとの関係を並べて見せます. 変数が多くなると, どの変数がどの変数とつながっているかという全体の構造は, これらの図からは読み取りにくくなります. そこで, 変数を楕円 (ノード) で, 変数の間の関係を線 (エッジ) で表す図を描きます.
-
-ここでは, 都道府県別のデータの 5 つの変数について, 相関係数 ([第4章](dsp4.html)で扱う, 2 つの量的データの直線的な関係の強さを -1 から 1 で表す指標) の絶対値が 0.3 以上の組を線で結びます. 図の作成には, グラフ (ノードとエッジからなる図) を描くソフトウェア Graphviz を Python から使うライブラリ `graphviz` を使います. `uv add graphviz` に加えて, Graphviz 本体のインストール (macOS なら `brew install graphviz`, Windows なら公式サイトのインストーラ) が必要です.
-
-~~~ py
-import pandas as pd
-import graphviz
-
-df = pd.read_csv('data/pref_stats.csv', encoding='utf-8-sig', index_col='pref')
-corr = df.corr()   # 5 つの項目の, すべての組み合わせの相関係数
-
-names = {'height': '身長', 'weight': '体重', 'food': '食費'
-        ,'sleep': '睡眠時間', 'sports': '運動時間'}
-
-g = graphviz.Graph(format='png')   # 向きの無い線で結ぶ図
-g.attr(dpi='150')                   # 画像の解像度
-g.attr('node', fontname='Hiragino Sans', shape='ellipse')
-g.attr('edge', fontname='Hiragino Sans')
-for col, label in names.items():
-    g.node(col, label)
-
-cols = list(names)
-for i in range(len(cols)):
-    for j in range(i + 1, len(cols)):
-        r = corr.loc[cols[i], cols[j]]
-        if abs(r) >= 0.3:   # 相関係数の絶対値が 0.3 以上の組だけ線で結ぶ
-            g.edge(cols[i], cols[j]
-                  ,label=f'{r:.2f}'
-                  ,style='solid' if r > 0 else 'dashed'   # 負の相関は破線
-                  ,penwidth=str(1 + 4 * abs(r)))          # 強い相関ほど太く
-g.render('pref_corr_graph', cleanup=True)   # pref_corr_graph.png が保存されます
-~~~
-
-`fontname='Hiragino Sans'` は macOS の日本語フォントです. Windows では `'Yu Gothic'` などに替えます.
-
-![都道府県別のデータの変数の関係](/images/dsp/ch3/relation-graph.png)
-
-身長は食費 (0.65), 体重 (0.51) と正の相関で, 運動時間 (-0.42) と負の相関で結ばれ, 5 つの変数の中で最も多くの線が集まります. 睡眠時間は体重と正の相関 (0.38), 食費と負の相関 (-0.41) を持ちます. 散布図行列では 10 組の散布図を 1 つずつ見比べる必要がありましたが, この図では関係の強い組と, 関係が集まる変数を一度に見渡せます.
-
-この図の線は相関を表すだけで, どちらがどちらに影響するかという向きは表していません. 変数の間の影響の向きを仮説として矢印で描いた図は**パス図**と呼ばれ, パス図の仮説をデータで確かめる手法が, [第12章](dsp12.html#共分散構造分析)で扱う共分散構造分析です.
