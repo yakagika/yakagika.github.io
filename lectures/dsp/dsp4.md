@@ -390,6 +390,8 @@ Name: count, dtype: int64
 
 :::
 
+この節に対応する演習は, 章末の[Exercise DSP4-1](#exercise-dsp4-1)です.
+
 
 ## データの広がりを表す統計量 {#dispersion}
 
@@ -552,88 +554,7 @@ Name: data, dtype: float64
 
 :::
 
-### Exercise DSP4-1
-
-**基本統計量を求める関数とヒストグラムのデータの基本統計量**
-
-1. 数値のリストを受け取り, 算術平均, 幾何平均, 調和平均, 中央値, 標本標準偏差 ($n$ で割る標準偏差) をそれぞれ返す関数を, `pandas` や `numpy` の統計量の関数を使わずに作成してください. 本文の例 (165, 171, 189 の算術平均, 売上の前年比の幾何平均, 60 km/h と 30 km/h の調和平均, `[3,4,7,9,11,12,15]` と `[4,5,6,10,14,17]` の中央値, `[9,6,12,18,10]` の標準偏差) で結果を確かめてください.
-2. 章の冒頭のヒストグラムの[データ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch9/histogram_A_B_data.csv)について, 列ごとの算術平均, 中央値, 最頻階級 (値の範囲を 10 の区間に分けたとき), 標本分散, 標本標準偏差を求めてください.
-
-提出ファイル名: `dsp4-1.py`
-
-<details class="protected" data-pass="yakagika">
-    <summary> 回答例 </summary>
-
-~~~ py
-import pandas as pd
-
-# 問1
-def arith_mean(xs):
-    return sum(xs) / len(xs)
-
-def geo_mean(xs):
-    prod = 1
-    for x in xs:
-        prod = prod * x
-    return prod ** (1 / len(xs))
-
-def harm_mean(xs):
-    return len(xs) / sum(1 / x for x in xs)
-
-def median(xs):
-    s = sorted(xs)
-    n = len(s)
-    return (s[(n - 1) // 2] + s[n // 2]) / 2
-
-def sample_std(xs):
-    m = arith_mean(xs)
-    return (sum((x - m) ** 2 for x in xs) / len(xs)) ** 0.5
-
-print(arith_mean([165, 171, 189]))
-print(geo_mean([350/300, 600/350, 1000/600]))
-print(harm_mean([60, 30]))
-print(median([3, 4, 7, 9, 11, 12, 15]))
-print(median([4, 5, 6, 10, 14, 17]))
-print(sample_std([9, 6, 12, 18, 10]))
-"""
-175.0
-1.4938015821857216
-40.0
-9.0
-8.0
-4.0
-"""
-
-# 問2
-df = pd.read_csv('data/histogram_A_B_data.csv')
-for c in df.columns:
-    print(c)
-    print('算術平均:', df[c].mean())
-    print('中央値:', df[c].median())
-    freq = df[c].value_counts(bins=10, sort=False)
-    print('最頻階級:', freq.idxmax())
-    print('標本分散:', df[c].var(ddof=0))
-    print('標本標準偏差:', df[c].std(ddof=0))
-"""
-Histogram_A
-算術平均: 60.28998083741
-中央値: 60.37950918
-最頻階級: (53.945, 64.586]
-標本分散: 215.52862269245915
-標本標準偏差: 14.680893116307985
-Histogram_B
-算術平均: 50.708362372379995
-中央値: 50.630771325
-最頻階級: (45.13, 51.264]
-標本分散: 99.39203194350507
-標本標準偏差: 9.969555253044394
-"""
-~~~
-
-A は B より平均が約 9.6 大きく, 標準偏差は B の約 1.5 倍です. 章の冒頭のヒストグラムで A の中心が右にあり散らばりが大きく見えたことを, 数値で言い表せます.
-
-</details>
-
+この節に対応する演習は, 章末の[Exercise DSP4-1](#exercise-dsp4-1)です.
 
 ## 相関 {#correlation}
 
@@ -1296,64 +1217,9 @@ print(v) #0.232896792395609
 
 ![因果があっても相関がない例](/images/slds/ch9/y-x-8.png)
 
-相関に似た概念として, 3 つ目の変数の影響を除いた相関を表す**偏相関係数**があります. 演習のあとの[偏相関係数 (発展)](#partial-correlation)で扱います.
+相関に似た概念として, 3 つ目の変数の影響を除いた相関を表す**偏相関係数**があります. 続く[偏相関係数 (発展)](#partial-correlation)で扱います.
 
-### Exercise DSP4-2
-
-**都道府県別データの相関係数と散布図の解釈**
-
-[相関係数のヒートマップ](#相関係数のヒートマップ)で使った都道府県別のデータについて, 次の問いに答えてください.
-
-1. 食費 (`food`) と睡眠時間 (`sleep`) のピアソンの積率相関係数を, `np.corrcoef` と `scipy.stats.pearsonr` の両方で求めてください.
-2. 横軸を食費, 縦軸を睡眠時間とする散布図を, 各点に都道府県名を添えて描いてください. 散布図から読み取れることと相関係数の値を合わせて, 2 つの変数の関係を解釈してください.
-3. 食費が他の都道府県から大きく離れている沖縄県を除いて相関係数を求め直し, 問 1 の値と比べてください.
-4. 「食費が多いと睡眠時間が短くなる」といえるかを, [因果関係と相関](#因果関係と相関)の内容をもとに説明してください.
-
-提出ファイル名: `dsp4-2.py`
-
-<details class="protected" data-pass="yakagika">
-    <summary> 回答例 </summary>
-
-~~~ py
-import pandas as pd
-import numpy as np
-import scipy.stats as st
-import matplotlib.pyplot as plt
-import matplotlib_fontja
-
-df = pd.read_csv('data/coeff_multi.csv', encoding='utf-8-sig')
-
-# 問1: 食費と睡眠時間の相関係数
-print(np.corrcoef(df['food'], df['sleep'])[0][1])
-r, p = st.pearsonr(df['food'], df['sleep'])
-print(r)
-"""
--0.40822961572269567
--0.4082296157226958
-"""
-
-# 問2: 散布図に都道府県名を添える
-plt.scatter(df['food'], df['sleep'])
-for i in df.index:
-    plt.annotate(df.loc[i, 'pref'], (df.loc[i, 'food'], df.loc[i, 'sleep']), fontsize=7)
-plt.xlabel('食費 (円)')
-plt.ylabel('睡眠時間 (分)')
-plt.show()
-
-# 問3: 沖縄県を除いた相関係数
-df2 = df[df['pref'] != '沖縄県']
-print(np.corrcoef(df2['food'], df2['sleep'])[0][1])
-"""
--0.3966182673912843
-"""
-~~~
-
-1. 相関係数は約 -0.41 で, 目安の表では弱い負の相関にあたります. 2 つの関数の結果は, 計算誤差の範囲で一致します.
-2. 散布図では, 東京都, 神奈川県, 千葉県, 埼玉県など大都市圏の都道府県が右下 (食費が多く睡眠時間が短い) に, 山形県, 秋田県, 青森県, 岩手県など東北の県が上側 (睡眠時間が長い) に集まっています. 右下がりの傾向はあるものの, 点は直線から大きく散らばっており, 相関係数が -0.41 にとどまることと合っています.
-3. 沖縄県を除くと約 -0.40 になり, ほとんど変わりません. 沖縄県は食費が極端に少ない一方, 睡眠時間は全体の中ほどにあるため, 相関係数への影響は小さくなっています.
-4. いえません. 相関係数は, 食費の多い都道府県ほど睡眠時間が短い傾向を表すだけです. 大都市圏であること (所得や物価の高さ, 通勤時間の長さなど) が食費と睡眠時間の両方に影響する共通要因になっている可能性があり, その影響を取り除かない限り, 食費が睡眠時間を短くするという因果関係は主張できません.
-
-</details>
+この節に対応する演習は, 章末の[Exercise DSP4-2](#exercise-dsp4-2)です.
 
 ## 偏相関係数 (発展) {#partial-correlation}
 
@@ -1639,3 +1505,148 @@ for p in ['青森県', '沖縄県', '東京都']:
 北海道は体重が平均より大きく, 食費が平均より小さく, 睡眠時間が平均より長い都道府県です. 東京都はこの 3 項目がすべて逆なので, コサイン類似度が負になります.
 
 コサイン類似度は矢印の長さ (値の大きさ) を無視します. そのため, 単語の出現回数のように, 長い文章ほど全体の値が大きくなるデータを比べるのに向いています. [第10章](dsp10.html)では, 文章をベクトルに変換してコサイン類似度で比べます.
+
+# 演習
+
+### Exercise DSP4-1
+
+**基本統計量を求める関数とヒストグラムのデータの基本統計量**
+
+対応する節: [中心を表す基本統計量](#central-tendency), [データの広がりを表す統計量](#dispersion)
+
+1. 数値のリストを受け取り, 算術平均, 幾何平均, 調和平均, 中央値, 標本標準偏差 ($n$ で割る標準偏差) をそれぞれ返す関数を, `pandas` や `numpy` の統計量の関数を使わずに作成してください. 本文の例 (165, 171, 189 の算術平均, 売上の前年比の幾何平均, 60 km/h と 30 km/h の調和平均, `[3,4,7,9,11,12,15]` と `[4,5,6,10,14,17]` の中央値, `[9,6,12,18,10]` の標準偏差) で結果を確かめてください.
+2. 章の冒頭のヒストグラムの[データ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch9/histogram_A_B_data.csv)について, 列ごとの算術平均, 中央値, 最頻階級 (値の範囲を 10 の区間に分けたとき), 標本分散, 標本標準偏差を求めてください.
+
+提出ファイル名: `dsp4-1.py`
+
+<details class="protected" data-pass="yakagika">
+    <summary> 回答例 </summary>
+
+~~~ py
+import pandas as pd
+
+# 問1
+def arith_mean(xs):
+    return sum(xs) / len(xs)
+
+def geo_mean(xs):
+    prod = 1
+    for x in xs:
+        prod = prod * x
+    return prod ** (1 / len(xs))
+
+def harm_mean(xs):
+    return len(xs) / sum(1 / x for x in xs)
+
+def median(xs):
+    s = sorted(xs)
+    n = len(s)
+    return (s[(n - 1) // 2] + s[n // 2]) / 2
+
+def sample_std(xs):
+    m = arith_mean(xs)
+    return (sum((x - m) ** 2 for x in xs) / len(xs)) ** 0.5
+
+print(arith_mean([165, 171, 189]))
+print(geo_mean([350/300, 600/350, 1000/600]))
+print(harm_mean([60, 30]))
+print(median([3, 4, 7, 9, 11, 12, 15]))
+print(median([4, 5, 6, 10, 14, 17]))
+print(sample_std([9, 6, 12, 18, 10]))
+"""
+175.0
+1.4938015821857216
+40.0
+9.0
+8.0
+4.0
+"""
+
+# 問2
+df = pd.read_csv('data/histogram_A_B_data.csv')
+for c in df.columns:
+    print(c)
+    print('算術平均:', df[c].mean())
+    print('中央値:', df[c].median())
+    freq = df[c].value_counts(bins=10, sort=False)
+    print('最頻階級:', freq.idxmax())
+    print('標本分散:', df[c].var(ddof=0))
+    print('標本標準偏差:', df[c].std(ddof=0))
+"""
+Histogram_A
+算術平均: 60.28998083741
+中央値: 60.37950918
+最頻階級: (53.945, 64.586]
+標本分散: 215.52862269245915
+標本標準偏差: 14.680893116307985
+Histogram_B
+算術平均: 50.708362372379995
+中央値: 50.630771325
+最頻階級: (45.13, 51.264]
+標本分散: 99.39203194350507
+標本標準偏差: 9.969555253044394
+"""
+~~~
+
+A は B より平均が約 9.6 大きく, 標準偏差は B の約 1.5 倍です. 章の冒頭のヒストグラムで A の中心が右にあり散らばりが大きく見えたことを, 数値で言い表せます.
+
+</details>
+
+### Exercise DSP4-2
+
+**都道府県別データの相関係数と散布図の解釈**
+
+対応する節: [ピアソンの積率相関係数](#ピアソンの積率相関係数), [相関係数のヒートマップ](#相関係数のヒートマップ), [因果関係と相関](#因果関係と相関)
+
+[相関係数のヒートマップ](#相関係数のヒートマップ)で使った都道府県別のデータについて, 次の問いに答えてください.
+
+1. 食費 (`food`) と睡眠時間 (`sleep`) のピアソンの積率相関係数を, `np.corrcoef` と `scipy.stats.pearsonr` の両方で求めてください.
+2. 横軸を食費, 縦軸を睡眠時間とする散布図を, 各点に都道府県名を添えて描いてください. 散布図から読み取れることと相関係数の値を合わせて, 2 つの変数の関係を解釈してください.
+3. 食費が他の都道府県から大きく離れている沖縄県を除いて相関係数を求め直し, 問 1 の値と比べてください.
+4. 「食費が多いと睡眠時間が短くなる」といえるかを, [因果関係と相関](#因果関係と相関)の内容をもとに説明してください.
+
+提出ファイル名: `dsp4-2.py`
+
+<details class="protected" data-pass="yakagika">
+    <summary> 回答例 </summary>
+
+~~~ py
+import pandas as pd
+import numpy as np
+import scipy.stats as st
+import matplotlib.pyplot as plt
+import matplotlib_fontja
+
+df = pd.read_csv('data/coeff_multi.csv', encoding='utf-8-sig')
+
+# 問1: 食費と睡眠時間の相関係数
+print(np.corrcoef(df['food'], df['sleep'])[0][1])
+r, p = st.pearsonr(df['food'], df['sleep'])
+print(r)
+"""
+-0.40822961572269567
+-0.4082296157226958
+"""
+
+# 問2: 散布図に都道府県名を添える
+plt.scatter(df['food'], df['sleep'])
+for i in df.index:
+    plt.annotate(df.loc[i, 'pref'], (df.loc[i, 'food'], df.loc[i, 'sleep']), fontsize=7)
+plt.xlabel('食費 (円)')
+plt.ylabel('睡眠時間 (分)')
+plt.show()
+
+# 問3: 沖縄県を除いた相関係数
+df2 = df[df['pref'] != '沖縄県']
+print(np.corrcoef(df2['food'], df2['sleep'])[0][1])
+"""
+-0.3966182673912843
+"""
+~~~
+
+1. 相関係数は約 -0.41 で, 目安の表では弱い負の相関にあたります. 2 つの関数の結果は, 計算誤差の範囲で一致します.
+2. 散布図では, 東京都, 神奈川県, 千葉県, 埼玉県など大都市圏の都道府県が右下 (食費が多く睡眠時間が短い) に, 山形県, 秋田県, 青森県, 岩手県など東北の県が上側 (睡眠時間が長い) に集まっています. 右下がりの傾向はあるものの, 点は直線から大きく散らばっており, 相関係数が -0.41 にとどまることと合っています.
+3. 沖縄県を除くと約 -0.40 になり, ほとんど変わりません. 沖縄県は食費が極端に少ない一方, 睡眠時間は全体の中ほどにあるため, 相関係数への影響は小さくなっています.
+4. いえません. 相関係数は, 食費の多い都道府県ほど睡眠時間が短い傾向を表すだけです. 大都市圏であること (所得や物価の高さ, 通勤時間の長さなど) が食費と睡眠時間の両方に影響する共通要因になっている可能性があり, その影響を取り除かない限り, 食費が睡眠時間を短くするという因果関係は主張できません.
+
+</details>
