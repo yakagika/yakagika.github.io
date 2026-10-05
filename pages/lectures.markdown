@@ -30,6 +30,12 @@ title: Lectures
     <span class="series-desc">VSCode, CLI, 基本コマンドなど, 各講義で共通のプログラミング環境設定.</span>
     <span class="series-cta">設定を見る →</span>
   </a>
+  <a class="series-card" href="lectures/python1.html">
+    <span class="series-badge">Python</span>
+    <span class="series-title">プログラミング基礎 (Python)</span>
+    <span class="series-desc">uv による Python の環境構築, 基本的な文法, pandas などのライブラリの利用, データの取得と編集, アルゴリズムと基本構文を学ぶ全 5 章の共通資料. データサイエンス系の講義で参照する.</span>
+    <span class="series-cta">資料を見る →</span>
+  </a>
 </div>
 ```
 
