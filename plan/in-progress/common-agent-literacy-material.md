@@ -320,7 +320,7 @@ VM 内のローカル repo (GitHub 不使用, 検証後に削除) で確認し�
 
 ## 変更履歴
 
-- 2026-10-05: 2026-10-02 の改稿を記録. 手順を 7 つに絞り Exercise AGENT-1 を「1 周の手順」に置換, 詳細を note へ移動, 差分確認とコミットを codex へ頼む形に変更, モデル節 (Astra / Sol / Luna, /model) と無料アカウントの案内を追加, 末尾に関連講義へのリンクを追加. 学生に Muse Code を勧めるかは未裁定 (Todoist 6hfX6vj2Rqp9PHJX). git.md への波及は plan git-md-revision-after-agent.
+- 2026-10-05: 2026-10-02 の改稿を記録. 手順を 7 つに絞り Exercise AGENT-1 を「1 周の手順」に置換, 詳細を note へ移動, 差分確認とコミットを codex へ頼む形に変更, モデル節 (Astra / Sol / Luna, /model) と無料アカウントの案内を追加, 末尾に関連講義へのリンクを追加. 学生に Muse Code を勧めるかは未裁定 (Todoist 6hfX6vj2Rqp9PHJX). git.md への波及は plan git-md-revision-after-agent (2026-10-05 に git.md へ反映済み, plan/landed/2026-10-05-git-md-revision-after-agent.md).
 
 - 2026-10-02: agent.md の「環境構築」の冒頭に「この講義で codex を使う理由」の note を追加 (他モデルでも同じ操作ができること, OpenAI を選んだ理由, Muse Code / Muse Spark の概要). 出典は Meta の公開文書と The Register (2026-08-06). Windows 対応は公開時の案内に無く, 実機未確認.
 

@@ -1,18 +1,18 @@
 ---
 plan_id: git-md-revision-after-agent
-status: proposed
+status: landed
 created: 2026-10-02
-updated: 2026-10-02
+updated: 2026-10-05
 priority: high
-next_actor: user
-next_action: "修正案の採否を決める (§決めること の 3 点). 採用分を git.md に反映し, 演習 GIT-1〜3 の回答例も追随させる"
+next_actor: none
+next_action: "なし (2026-10-05 に反映済み)"
 ---
 
 # git.md の修正案 (agent.md の改稿を受けて)
 
 ## メタ情報
 
-- **状態**: proposed (修正案. git.md はまだ変更していない)
+- **状態**: landed (2026-10-05 に本人が §決めること の 3 点を採用し, git.md に反映した)
 - **親計画**: [common-agent-literacy-material.md](../in-progress/common-agent-literacy-material.md)
 - **根拠**: 2026-10-02 の agent.md の改稿 (`0f606e2` から `8c24fa8` まで). 初日に CLI を使い始め, git をほとんど触ったことのない学生を想定する.
 - **対象**: `lectures/common/git.md` (696 行, 見出し 19 節, 演習 GIT-1〜3)
@@ -94,3 +94,9 @@ git.md は agent.md より先に読む, git そのものを学ぶ資料である
 
 - 演習をまとめると, `git status` などを自分で打つ回数が減る. 小演習 (新 GIT-2) と, 一度は通す、という位置づけで補う.
 - 演習の統合で, 回答例のコマンド列を直す必要がある. 他の資料から GIT-2 を参照している箇所は, 調べた範囲 (講義資料と進行中の計画) には無かった.
+
+## 裁定と反映 (2026-10-05)
+
+1. 演習の再構成は案 A を採用. 旧 GIT-1 と GIT-2 を新 GIT-1 (clone から push までの 1 周, `git add README.md .gitignore`) に統合し, 新 GIT-2 を「新規ファイルは `git diff` に出ず `Untracked` に出る」ことを確かめる小演習にした. GIT-3 は変更なし.
+2. 「並列作業とコンフリクト」と「既定のエディタの設定」を note に降ろした. noreply アドレスの説明は note へ降ろし (本文には公開に関する注意を 1 文残した), 同期サービスの 4 項目の列挙は warn の直後の note へ降ろした.
+3. 冒頭に位置づけの段落と情報が古くなる旨の warn, push の節に取り消しにくさの warn, 末尾に「この資料を使う講義」の節を足した. `diff` の warn には codex に差分を頼むときの添え書きを足した.
