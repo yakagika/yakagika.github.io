@@ -54,7 +54,7 @@ $$
 
 :::
 
-## 発展: 回帰分析は何を行っているのか
+## 回帰分析は何を行っているのか (発展) {#発展-回帰分析は何を行っているのか}
 
 回帰分析が何を行っているのかについて, 単回帰で行っている最小二乗法を事例に確認していきましょう.
 重回帰に関しては, 行列の計算 (線形代数) が必要になるので, 今回は扱いません. あくまで, 回帰というものがどのような意味であるかに関して簡単に説明します.
@@ -1015,7 +1015,7 @@ $$
 モデル選択においては**多重共線性**などいくつかの判断基準に基づいて変数の選択を行います.
 
 ::: warn
-今回は明らかに利用できない変数をモデルから除外するという処理のみを行いますが, より多くの変数を扱う場合には, **ステップワイズ法**などの手法を用いて機械的に最適な組み合わせを選択する場合があります. 説明変数の組み合わせを予測の誤差で比べる方法は, 章末の発展 [説明変数の組み合わせをテスト MSE で比べる](#variable-selection-test-mse)で扱います.
+今回は明らかに利用できない変数をモデルから除外するという処理のみを行いますが, より多くの変数を扱う場合には, **ステップワイズ法**などの手法を用いて機械的に最適な組み合わせを選択する場合があります. 説明変数の組み合わせを予測の誤差で比べる方法は, [回帰の評価](#regression-evaluation)のあとの[説明変数の組み合わせをテスト MSE で比べる (発展)](#variable-selection-test-mse)で扱います.
 :::
 
 - 注意点 2: データの正規化
@@ -1742,6 +1742,50 @@ plt.close()
 
 横軸が予測値, 縦軸が実測値で, 予測が実測値と一致した点は赤い点線 (45 度線) の上に乗ります. テストデータの点 (三角) も, 訓練データの点と同じように 45 度線のまわりに集まっていて, 散らばりの幅にも違いは見えません. 一方, 左下では, 実測値が 0 の学生に対する予測値が 0 を下回っています (最も外れた学生では -1.1). GPA は 0 から 4 の範囲に収まる値ですが, 線形回帰の予測値には上限も下限もないためです. MSE は大きく外れた予測を強く数えるので, この範囲の端の学生が誤差を押し上げています.
 
+## 説明変数の組み合わせをテスト MSE で比べる (発展) {#variable-selection-test-mse}
+
+[重回帰分析](#multiple-regression)では, 多重共線性と P 値を手がかりに説明変数を選びました. 予測が目的なら, 候補の説明変数から作れる組み合わせごとに回帰式を求め, テストデータの MSE で比べる方法もあります. 候補が `Scholarship_True`, `Study_Hours`, `Sports_hours`, `Part_time_Work` の 4 つなら, 組み合わせは 15 通りです.
+
+~~~ py
+import itertools
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+
+df = pd.read_csv('multiple_regression.csv')
+df = pd.get_dummies(df, columns=['Scholarship'], dtype='int')
+candidates = ['Scholarship_True', 'Study_Hours', 'Sports_hours', 'Part_time_Work']
+train, test = train_test_split(df, test_size=0.3, random_state=0)
+
+rows = []
+for k in range(1, len(candidates) + 1):
+    for cols in itertools.combinations(candidates, k):
+        cols = list(cols)
+        model = LinearRegression().fit(train[cols], train['GPA'])
+        rows.append({'説明変数': ' + '.join(cols),
+                     '訓練 MSE': mean_squared_error(train['GPA'], model.predict(train[cols])),
+                     'テスト MSE': mean_squared_error(test['GPA'], model.predict(test[cols]))})
+
+result = pd.DataFrame(rows).sort_values('テスト MSE')
+print(result.head(5).round(3).to_string(index=False))
+
+"""
+                                                          説明変数  訓練 MSE  テスト MSE
+               Scholarship_True + Study_Hours + Part_time_Work   0.046    0.034
+Scholarship_True + Study_Hours + Sports_hours + Part_time_Work   0.046    0.034
+                                Scholarship_True + Study_Hours   0.070    0.067
+                 Scholarship_True + Study_Hours + Sports_hours   0.069    0.069
+                                  Study_Hours + Part_time_Work   0.108    0.117
+"""
+~~~
+
+`itertools.combinations(candidates, k)` は, 候補から $k$ 個を選ぶ組み合わせを順に返します. データの分け方は本文と同じなので, 3 行目のモデルのテスト MSE (0.067) は [回帰の評価](#regression-evaluation)の値と一致します.
+
+テスト MSE が最も小さいのは `Part_time_Work` を含むモデル (0.034) で, 本文で選んだモデルの約半分です. [多重共線性 (弱い多重共線性)](#weak-multicollinearity)の節では, `Study_Hours` との相関 (-0.77) を理由に `Part_time_Work` を除外しました. 2 つの結論が違うのは, 目的が違うためです. 多重共線性は個々の回帰係数の推定を不安定にするので, 係数を解釈して何が GPA に影響するかを論じるときに問題になります. 予測値そのものは, 相関の強い説明変数を含んでいても安定していることが多く, 予測が目的ならテスト MSE が判断の基準になります.
+
+ただし, テスト MSE が最小の組み合わせを選ぶと, テストデータを変数の選択に使ったことになります. 選んだモデルのテスト MSE は, 多くの候補の中から最も良かったものなので, 新しいデータでの誤差より小さめに出ます. 変数の選択まで行うときは, 訓練データをさらに分けた**検証データ**で組み合わせを選び, テストデータは選んだモデルの最後の評価に 1 回だけ使います.
+
 # 実データでの事例
 
 本章の事例はダミーデータでしたが, 実際の研究データで回帰分析を行うには, データの取得・整形・結合という前処理が分析そのもの以上に重要になります. 国の開示システム EDINET から上場企業の財務データを取得し, 株価・業種と結合して本章の重回帰分析 (産業ダミー・年度ダミーによる統制を含む) を適用するまでの一連の流れを, 特別講義 (データサイエンス) の資料 [補足A EDINET API による財務データの取得と回帰分析](slds_a1.html)で解説しています. この補足資料は特別講義の受講生の研究 ([ESGスコアと財務指標の重回帰分析](/slds_papers.html#2026_ピエレット), 論文化済み) のコードを元にしており, 変数選択の注意点 (p 値を見てからの変数選択の問題) も扱っているので, 研究で回帰分析を使う人は一読を推奨します.
@@ -1868,49 +1912,3 @@ $$
 RMSE が約 0.28 なので, この回帰式の予測は GPA でおよそ 0.28 程度外れています.
 
 </details>
-
-# 発展
-
-## 説明変数の組み合わせをテスト MSE で比べる {#variable-selection-test-mse}
-
-[重回帰分析](#multiple-regression)では, 多重共線性と P 値を手がかりに説明変数を選びました. 予測が目的なら, 候補の説明変数から作れる組み合わせごとに回帰式を求め, テストデータの MSE で比べる方法もあります. 候補が `Scholarship_True`, `Study_Hours`, `Sports_hours`, `Part_time_Work` の 4 つなら, 組み合わせは 15 通りです.
-
-~~~ py
-import itertools
-import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error
-
-df = pd.read_csv('multiple_regression.csv')
-df = pd.get_dummies(df, columns=['Scholarship'], dtype='int')
-candidates = ['Scholarship_True', 'Study_Hours', 'Sports_hours', 'Part_time_Work']
-train, test = train_test_split(df, test_size=0.3, random_state=0)
-
-rows = []
-for k in range(1, len(candidates) + 1):
-    for cols in itertools.combinations(candidates, k):
-        cols = list(cols)
-        model = LinearRegression().fit(train[cols], train['GPA'])
-        rows.append({'説明変数': ' + '.join(cols),
-                     '訓練 MSE': mean_squared_error(train['GPA'], model.predict(train[cols])),
-                     'テスト MSE': mean_squared_error(test['GPA'], model.predict(test[cols]))})
-
-result = pd.DataFrame(rows).sort_values('テスト MSE')
-print(result.head(5).round(3).to_string(index=False))
-
-"""
-                                                          説明変数  訓練 MSE  テスト MSE
-               Scholarship_True + Study_Hours + Part_time_Work   0.046    0.034
-Scholarship_True + Study_Hours + Sports_hours + Part_time_Work   0.046    0.034
-                                Scholarship_True + Study_Hours   0.070    0.067
-                 Scholarship_True + Study_Hours + Sports_hours   0.069    0.069
-                                  Study_Hours + Part_time_Work   0.108    0.117
-"""
-~~~
-
-`itertools.combinations(candidates, k)` は, 候補から $k$ 個を選ぶ組み合わせを順に返します. データの分け方は本文と同じなので, 3 行目のモデルのテスト MSE (0.067) は [回帰の評価](#regression-evaluation)の値と一致します.
-
-テスト MSE が最も小さいのは `Part_time_Work` を含むモデル (0.034) で, 本文で選んだモデルの約半分です. [多重共線性 (弱い多重共線性)](#weak-multicollinearity)の節では, `Study_Hours` との相関 (-0.77) を理由に `Part_time_Work` を除外しました. 2 つの結論が違うのは, 目的が違うためです. 多重共線性は個々の回帰係数の推定を不安定にするので, 係数を解釈して何が GPA に影響するかを論じるときに問題になります. 予測値そのものは, 相関の強い説明変数を含んでいても安定していることが多く, 予測が目的ならテスト MSE が判断の基準になります.
-
-ただし, テスト MSE が最小の組み合わせを選ぶと, テストデータを変数の選択に使ったことになります. 選んだモデルのテスト MSE は, 多くの候補の中から最も良かったものなので, 新しいデータでの誤差より小さめに出ます. 変数の選択まで行うときは, 訓練データをさらに分けた**検証データ**で組み合わせを選び, テストデータは選んだモデルの最後の評価に 1 回だけ使います.
