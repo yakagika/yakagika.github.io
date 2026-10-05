@@ -376,16 +376,6 @@ plt.show()
 
 ![円グラフ](/images/slds/ch8/pie-graph1.png)
 
-::: note
-
-- 演習
-
-[円グラフデータ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/pie_chart_practice.csv), [折れ線グラフデータ 2](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/line_chart_practice.csv), [棒グラフデータ 3](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/bar_chart_practice.csv)を利用し, それぞれのグラフを作成してください.
-表示が必要だと思われるデザインを設定してください.
-
-:::
-
-
 ## 積み上げ棒グラフ {#stacked-bar}
 
 円グラフは 1 つの全体の内訳を表します. 複数のグループの内訳を並べて比べるときは, 棒を内訳ごとに色分けして積み上げた**積み上げ棒グラフ**を使います. 棒全体の高さがグループの合計を, 色ごとの長さが内訳を表します.
@@ -980,15 +970,6 @@ plt.show()
 ![量的データのヒストグラム](/images/slds/ch8/histogram-quantitative2.png)
 
 階級幅の設定によって, 見た目が変わることが分かります. 作成手法や階級の設定は目的に応じて, 使い分けるようにしましょう.
-
-::: note
-
-- 演習
-
-[データ 1](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/qualitative_histogram_practice.csv), [データ 2](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/quantitative_histogram_practice.csv)の度数分布表とヒストグラムを作成し, ppt などでグラフとその解釈をまとめてください.
-
-:::
-
 
 ## 箱ひげ図 {#boxplot}
 
@@ -1654,6 +1635,145 @@ Forest D                    11                54                 11             
 問 2: 体長が大きいほど体重も大きい傾向があります (相関係数 0.65). 一方, 4 種類の点は重なり合っていて, 種類ごとの平均も体長 48〜51 mm, 体重 20〜21 g と近いため, 種類による違いはこの図からほとんど読み取れません.
 
 問 3: 森ごとに最も多く採れる種類が異なります. Forest A は Allomyrina dichotoma (47 個体), Forest B は Dynastes hercules (43 個体), Forest C は Megasoma elephas (49 個体), Forest D は Chalcosoma atlas (54 個体) が最も多く, 他の種類は 6〜14 個体にとどまります. 各森の採取数は 74〜84 個体と大きく違わないので, 個体数のまま比べられます.
+
+</details>
+
+### Exercise DSP3-4
+
+**棒グラフ・円グラフ・折れ線グラフを作る**
+
+[円グラフ用のデータ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/pie_chart_practice.csv), [折れ線グラフ用のデータ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/line_chart_practice.csv), [棒グラフ用のデータ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/bar_chart_practice.csv)を使い, それぞれのグラフを作成してください. 図を読むために必要だと思う表示 (タイトル, 軸のラベル, 数値の表示など) を設定してください.
+
+提出ファイル名: `dsp3-4.py`
+
+<details class="protected" data-pass="yakagika">
+    <summary> 回答例 </summary>
+
+~~~ py
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib_fontja
+
+# 円グラフ: 内訳の割合を読むので, 割合を表示します.
+pie = pd.read_csv('data/pie_chart_practice.csv')
+plt.pie(pie['Values'], labels=pie['Category'], autopct='%1.1f%%')
+plt.title('カテゴリ別の割合')
+plt.show()
+
+# 折れ線グラフ: 月の順に並んだ値の変化を読みます.
+line = pd.read_csv('data/line_chart_practice.csv')
+plt.plot(line['Month'], line['Value'], marker='o')
+plt.xlabel('月')
+plt.ylabel('値')
+plt.title('月ごとの値の推移')
+plt.xticks(rotation=15)
+plt.show()
+
+# 棒グラフ: 項目の大小を比べるので, 棒の上に値を表示します.
+bar = pd.read_csv('data/bar_chart_practice.csv')
+bars = plt.bar(bar['Item'], bar['Value'])
+plt.bar_label(bars)
+plt.xlabel('項目')
+plt.ylabel('値')
+plt.title('項目別の値')
+plt.show()
+~~~
+
+円グラフは A から D の割合が 30%, 40%, 20%, 10% で, B が最も大きく D が最も小さいことが読み取れます. 折れ線グラフは 1 月の 100 から 6 月の 350 まで, 毎月 50 ずつ一定の割合で増えています. 棒グラフは Item2 と Item4 が 35 で最も大きく, Item1 が 20 で最も小さいことが分かります. 円グラフには割合, 棒グラフには値を直接表示すると, 目盛りを読み取らなくても大小を比べられます.
+
+</details>
+
+### Exercise DSP3-5
+
+**度数分布表とヒストグラムを作る**
+
+[質的データ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/qualitative_histogram_practice.csv)と[量的データ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/quantitative_histogram_practice.csv)のそれぞれについて, 度数分布表とヒストグラムを作成し, ppt などでグラフとその解釈をまとめてください.
+
+提出ファイル名: `dsp3-5.py` (ppt などの資料も添えてください)
+
+<details class="protected" data-pass="yakagika">
+    <summary> 回答例 </summary>
+
+~~~ py
+import math
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib_fontja
+
+# 質的データ: 値ごとに数え, 相対度数と累積度数を加えます.
+qual = pd.read_csv('data/qualitative_histogram_practice.csv')
+freq = qual['Category'].value_counts().sort_index()
+rel_freq = freq / freq.sum()
+dist = pd.DataFrame({'Freq': freq, 'Rel': rel_freq,
+                     'Cum': freq.cumsum(), 'RelCum': rel_freq.cumsum()})
+print(dist)
+
+plt.bar(dist.index, dist['Freq'], width=1)
+plt.ylabel('度数')
+plt.show()
+
+# 量的データ: スタージェスの公式で階級数を決め, 度数分布表を作ります.
+quant = pd.read_csv('data/quantitative_histogram_practice.csv')
+values = quant['Values']
+
+def make_dist(values):
+    stnum = math.floor(1 + math.log2(len(values)))
+    space = int((values.max() - values.min()) / stnum)
+    bins = np.arange(int(values.min()) - 1, int(values.max()) + 1 + space, space)
+    freq = values.value_counts(bins=bins, sort=False)
+    rel_freq = freq / freq.sum()
+    dist = pd.DataFrame({'Freq': freq, 'Rel': rel_freq,
+                         'Cum': freq.cumsum(), 'RelCum': rel_freq.cumsum()})
+    return dist, bins
+
+dist, bins = make_dist(values)
+print(dist.round(2))
+plt.hist(values, bins=bins)
+plt.show()
+
+# 最大値だけが桁外れに大きい (外れ値) ので, 除いて作り直します.
+print(values.max(), values.drop(values.idxmax()).max())
+values = values.drop(values.idxmax())
+dist, bins = make_dist(values)
+print(dist.round(2))
+plt.hist(values, bins=bins)
+plt.xlabel('値')
+plt.ylabel('度数')
+plt.show()
+~~~
+
+~~~ sh
+            Freq   Rel  Cum  RelCum
+Category
+Category A    21  0.21   21    0.21
+Category B    26  0.26   47    0.47
+Category C    25  0.25   72    0.72
+Category D    28  0.28  100    1.00
+                        Freq   Rel  Cum  RelCum
+(8.999, 821206.0]         99  0.99   99    0.99
+(821206.0, 1642403.0]      0  0.00   99    0.99
+(1642403.0, 2463600.0]     0  0.00   99    0.99
+(2463600.0, 3284797.0]     0  0.00   99    0.99
+(3284797.0, 4105994.0]     0  0.00   99    0.99
+(4105994.0, 4927191.0]     0  0.00   99    0.99
+(4927191.0, 5748388.0]     0  0.00   99    0.99
+(5748388.0, 6569585.0]     1  0.01  100    1.00
+5748392.168 77.78417277
+               Freq   Rel  Cum  RelCum
+(8.999, 18.0]      1  0.01    1    0.01
+(18.0, 27.0]       5  0.05    6    0.06
+(27.0, 36.0]      11  0.11   17    0.17
+(36.0, 45.0]      21  0.21   38    0.38
+(45.0, 54.0]      27  0.27   65    0.66
+(54.0, 63.0]      20  0.20   85    0.86
+(63.0, 72.0]       9  0.09   94    0.95
+(72.0, 81.0]       5  0.05   99    1.00
+~~~
+
+質的データは, 4 つのカテゴリの度数が 21 から 28 でほぼ均等です. 最も多いのは D (28), 最も少ないのは A (21) ですが, 差は小さく, 偏りがあるとは言えません.
+
+量的データは, 最大値の約 575 万が, 他の値の最大値 (約 78) から桁違いに離れた**外れ値**です. この 1 件が階級の幅を押し広げるため, 最初の度数分布表では 99 件が最初の階級に入り, ヒストグラムは 1 本の棒しか読み取れません. 実際の分析では, 外れ値を除く前に入力ミスなどの原因を確認します. 外れ値を除いて作り直すと, 45 を超え 54 以下の階級が最も多い (27 件), 左右ほぼ対称な山の形になっていることが読み取れます.
 
 </details>
 
