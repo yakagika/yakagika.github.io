@@ -632,7 +632,7 @@ CNN を使った主な画像認識モデルの歴史は, 次のようにまと�
 | 2021 | Swin Transformer | 局所的な窓 (ウィンドウ) を使う階層的な Transformer による画像認識モデル. | Transformer の拡張性を改善し, 高い精度を達成した. |
 | 2022 | ConvNeXt | Vision Transformer のアイデアを取り入れた, 畳み込みネットワークの発展版. | 畳み込みベースのモデルが再び最先端の性能を達成できることを示した. |
 
-Vision Transformer は CNN ではありませんが, CNN と比べられる画像認識のモデルとして表に含めています. 仕組みは章末の[Vision Transformer](#vision-transformer)で説明します.
+Vision Transformer は CNN ではありませんが, CNN と比べられる画像認識のモデルとして表に含めています. 仕組みは, 続く[Vision Transformer (発展)](#vision-transformer)で説明します.
 
 ここでは, ConvNeXt を使った画像認識を実行します.
 
@@ -659,6 +659,27 @@ GELU は, 入力が小さい (特に 0 より負の側の) ときは出力を小
 ![GELU](/images/slds/ch14/gelu.png)
 
 Python の CNN のライブラリはいくつかありますが, ConvNeXt は Meta が開発した `PyTorch` の上で実装されています.
+
+## Vision Transformer (発展) {#vision-transformer}
+
+**Vision Transformer (ViT)** は, [第8章](dsp8.html#自己注意と-transformer-の構成)の Transformer を画像の認識に使うモデルです (2020 年). 文章をトークンの並びとして扱ったのと同じように, 画像を小さな正方形の区画 (**パッチ**) の並びとして扱います.
+
+![Vision Transformer の流れ (8 × 8 の手書き数字を 4 つのパッチに分ける場合)](/images/dsp/ch9/vit.png)
+
+図は, 手書き数字の「0」の画像 (8 × 8 画素) を例に, ViT の処理の流れを描いたものです.
+
+1. 画像をパッチに分けます. 図では 4 × 4 画素のパッチ 4 つに分けています. もとの ViT では, 224 × 224 画素の画像を 16 × 16 画素のパッチに分けるので, パッチは $14 \times 14 = 196$ 個になります.
+2. 各パッチの画素の値を 1 列に並べ (図では 16 個の値), 学習で決まる行列を掛けてベクトルにします. このベクトルが, 「猫が鳴く」の各トークンのベクトル ([第8章](dsp8.html#系列データと注意機構)) にあたります. 画像はパッチの並びという「文」になり, 各パッチが「単語」の役割をします.
+3. 先頭に, 分類のための特別なトークン `[CLS]` を加えます. `[CLS]` のベクトルも学習で決まります.
+4. 各ベクトルに, 何番目のパッチかを表す位置の情報を足します. 自己注意の計算には並び順が入らないので, 位置の情報がないと, パッチの配置を入れ替えた画像と区別できません. 文章で「猫が鳴く」と「鳴くが猫」を区別するために位置エンコーディングを足したのと同じ理由です.
+5. Transformer のエンコーダ (自己注意と全結合層の組) を何段も重ねて通します. 各段の自己注意で, 各パッチのベクトルは, すべてのパッチのベクトルを注意の重みで足し合わせたものに更新されます.
+6. 最後の段の `[CLS]` のベクトルを全結合層と softmax 関数に通し, 各クラスの確率を出します. `[CLS]` は, 自己注意を通してすべてのパッチから情報を集めるので, 画像全体を要約したベクトルになります.
+
+CNN と ViT の違いは, 1 つの層で参照する範囲にあります. CNN の畳み込み層は, フィルタの大きさの範囲 ($3 \times 3$ など) の近くの画素だけを見て, 層を重ねるごとに参照する範囲を少しずつ広げます. ViT の自己注意は, 最初の層から, 画像の離れた位置にあるパッチ同士の関係も直接扱えます. 例えば顔の画像なら, 目のパッチと口のパッチの関係を 1 段目から計算できます.
+
+その反面, ViT には「近くの画素ほど関係が深い」という画像の性質が, 仕組みとして組み込まれていません. この性質も学習で身に付ける必要があるので, CNN よりも多くの訓練データが必要になります. もとの ViT は, 1000 万枚を超える規模の画像で事前学習したときに, CNN と同等以上の精度に達しました. [代表的な CNN モデル](#cnn-models)の表にある ConvNeXt は, 逆に ViT の工夫を CNN に取り入れて, CNN でも同等の精度を出せることを示したモデルです.
+
+ViT では, `[CLS]` から各パッチへの注意の重みを画像の上に重ねて表示すると, モデルが画像のどの部分に注目したかを可視化できます. [Grad-CAM と Guided Backpropagation](#grad-cam)と同じく, モデルの判断の根拠を調べる手がかりになります.
 
 ## 顔による年齢識別 {#age-classification}
 
@@ -1111,7 +1132,7 @@ else:
 
 :::
 
-分割した画像を使って, ConvNeXt による学習を行います. コードの全体は, 章末の[年齢識別のコード全体](#age-full-code)に載せています. そのコードは, 学習の後に, [発展](#advanced)で扱う特徴量の次元圧縮, 特徴マップ, Grad-CAM の図も出力します. ImageNet で事前学習した ConvNeXt の重みを読み込み, 最後の全結合層だけを 6 クラスの出力に付け替えてから学習するので, [第8章](dsp8.html#自己教師あり学習)で説明したファインチューニングにあたります.
+分割した画像を使って, ConvNeXt による学習を行います. コードの全体は, 章末の[年齢識別のコード全体 (発展)](#age-full-code)に載せています. そのコードは, 学習の後に, 章末の発展で扱う[特徴量の次元圧縮](#feature-embedding), [特徴マップ](#feature-maps), [Grad-CAM](#grad-cam)の図も出力します. ImageNet で事前学習した ConvNeXt の重みを読み込み, 最後の全結合層だけを 6 クラスの出力に付け替えてから学習するので, [第8章](dsp8.html#自己教師あり学習)で説明したファインチューニングにあたります.
 
 
 ::: warn
@@ -1193,121 +1214,7 @@ val Loss: 1.4121 Acc: 0.4167
 
 スペクトログラムは, 縦と横に数値が並んだ表なので, 1 チャンネルの画像と同じ形をしています. そのため, 画像と同じく CNN に入力して, 音声を認識できます. 話し言葉の認識では, 母音や子音の種類によって, どの周波数の帯が強くなるかが異なります. モデルは, スペクトログラムの帯の配置のパターンから, 話された音や単語を識別するように学習します. 人の聴覚に合わせて周波数の目盛りを付け直したスペクトログラム (メルスペクトログラム) がよく使われます. 最近の音声認識のモデルでは, スペクトログラムを Transformer ([第8章](dsp8.html#自己注意と-transformer-の構成)) に入力して, 文字の並びを出力するものが主流になっています.
 
-# 演習
-
-### Exercise DSP9-1
-
-**分類器を変えた手書き数字の認識**
-
-[ニューラルネットワークによる識別](#digits-mlp)と同じデータと分け方 (`test_size=0.3, random_state=0, stratify=y`) で, 次の 5 つの分類器を学習させ, テストデータでの正解率を比べてください. 最も正解率の高い分類器と低い分類器を挙げ, 低い分類器の正解率が低い理由を考えてください.
-
-- ロジスティック回帰 (`LogisticRegression(max_iter=1000)`)
-- 決定木 (`DecisionTreeClassifier(random_state=0)`, [第6章](dsp6.html))
-- ランダムフォレスト (`RandomForestClassifier(random_state=0)`)
-- サポートベクターマシン (`SVC()`)
-- 本文の MLP (`MLPClassifier(hidden_layer_sizes=(64,), max_iter=1000, random_state=0)`)
-
-提出ファイル名: `dsp9-1.py`
-
-<details class="protected" data-pass="yakagika">
-    <summary> 回答例 </summary>
-
-~~~ py
-from sklearn.datasets import load_digits
-from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LogisticRegression
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.svm import SVC
-from sklearn.neural_network import MLPClassifier
-
-digits = load_digits()
-X = digits.data / 16
-y = digits.target
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.3, random_state=0, stratify=y)
-
-models = {
-    'ロジスティック回帰': LogisticRegression(max_iter=1000),
-    '決定木': DecisionTreeClassifier(random_state=0),
-    'ランダムフォレスト': RandomForestClassifier(random_state=0),
-    'SVM': SVC(),
-    'MLP': MLPClassifier(hidden_layer_sizes=(64,), max_iter=1000, random_state=0),
-}
-for name, model in models.items():
-    model.fit(X_train, y_train)
-    print(name, round(model.score(X_test, y_test), 3))
-"""
-ロジスティック回帰 0.97
-決定木 0.837
-ランダムフォレスト 0.97
-SVM 0.987
-MLP 0.978
-"""
-~~~
-
-最も正解率が高いのは SVM (0.987), 最も低いのは決定木 (0.837) です. 決定木は, 1 回の分岐で 1 つの画素の値だけを見て「ある値以下か」を判定します. 数字の形は多くの画素の組み合わせで決まり, 同じ数字でも書く位置がずれると, 見るべき画素が変わります. 1 画素ずつの分岐を重ねる決定木は, 訓練データの書き方に合わせた分岐を覚え込みやすく, 新しい書き方の数字に通用しにくくなります. 決定木を多数組み合わせるランダムフォレストでは, この弱点が補われ, 正解率が 0.97 まで上がります.
-
-</details>
-
-### Exercise DSP9-2
-
-**隠れ層の大きさと誤認識の傾向**
-
-本文の MLP の隠れ層のニューロンの数を 4, 8, 16, 64 と変えて学習させ (`max_iter=3000, random_state=0` とします), それぞれについて次の 2 つを求めてください.
-
-1. テストデータでの正解率と, 誤認識した枚数
-2. 混同行列で, 誤りの多い (正解, 予測) の組の上位 3 つ
-
-ニューロンの数によって正解率と誤りの傾向がどう変わるかを説明してください.
-
-提出ファイル名: `dsp9-2.py`
-
-<details class="protected" data-pass="yakagika">
-    <summary> 回答例 </summary>
-
-~~~ py
-import numpy as np
-from sklearn.datasets import load_digits
-from sklearn.model_selection import train_test_split
-from sklearn.neural_network import MLPClassifier
-from sklearn.metrics import confusion_matrix
-
-digits = load_digits()
-X = digits.data / 16
-y = digits.target
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.3, random_state=0, stratify=y)
-
-for n in [4, 8, 16, 64]:
-    mlp = MLPClassifier(hidden_layer_sizes=(n,), max_iter=3000, random_state=0)
-    mlp.fit(X_train, y_train)
-    pred = mlp.predict(X_test)
-    cm = confusion_matrix(y_test, pred)
-    np.fill_diagonal(cm, 0)  # 正しく分類した数を 0 にして誤りだけ残す
-    # 誤りの多い (正解, 予測) の組を 3 つ
-    top = np.dstack(np.unravel_index(np.argsort(cm, axis=None)[::-1][:3], cm.shape))[0]
-    pairs = [f'{a}→{b}: {cm[a, b]}' for a, b in top]
-    print(n, round((pred == y_test).mean(), 3), cm.sum(), pairs)
-"""
-4 0.935 35 ['8→9: 6', '9→3: 4', '8→1: 4']
-8 0.957 23 ['2→3: 3', '8→1: 3', '4→8: 2']
-16 0.972 15 ['8→1: 3', '4→1: 2', '5→8: 1']
-64 0.978 12 ['8→1: 2', '6→1: 1', '3→5: 1']
-"""
-~~~
-
-各行は, ニューロンの数, 正解率, 誤認識した枚数, 誤りの多い組の上位 3 つです. 誤りが 1 枚ずつの組が複数あるときは, そのうちのどれが表示されるかは並べ替えの順序で決まります.
-
-ニューロンの数を増やすほど正解率は上がり, 誤認識は 35 枚から 12 枚に減ります. 隠れ層のニューロンの数は, 取り出せる特徴の数にあたります. 4 個では 64 画素の情報を 4 つの値に押し込むことになり, 数字を見分けるのに必要な形の違いを表しきれません. 誤りの組を見ると, どの大きさでも「8」を「1」と答える誤りが上位にあり, ニューロンが 4 個のときは「8」と「9」, 「9」と「3」のように, 輪や曲線の一部を共有する数字の取り違えが目立ちます. ニューロンを増やすと, こうした形の似た数字の間の細かな違いも捉えられるようになり, 誤りが減ります.
-
-</details>
-
-# 発展 {#advanced}
-
-以下は授業では扱いません. 課題では, ここに挙げた手法から好きなものを選んで実施し, 最終回に発表してもらいます.
-
-## 学習した特徴量の次元圧縮 (PCA と t-SNE) {#feature-embedding}
+## 学習した特徴量の次元圧縮 (PCA と t-SNE) (発展) {#feature-embedding}
 
 [年齢識別のコード全体](#age-full-code)は, 学習したモデルが訓練データの各画像について出力した値を特徴量として取り出し, PCA と t-SNE で 2 次元に圧縮した散布図も出力します (`convnext_pca.png` と `convnext_tsne.png`). PCA (主成分分析) は, データのばらつきが大きい方向から順に軸を取り直し, 上位の軸だけを残して次元を減らす手法です. t-SNE は, 高い次元で近くにある点同士が 2 次元でも近くに来るように配置する手法です.
 
@@ -1321,7 +1228,7 @@ for n in [4, 8, 16, 64]:
 
 学習したモデルの特徴量をこのように分析すると, それぞれのクラスの特徴がある程度見えてきます.
 
-## 特徴マップ {#feature-maps}
+## 特徴マップ (発展) {#feature-maps}
 
 学習したモデルがどのような基準で判断しているかを説明するのは難しいのですが, いくつかの方法があります. まずは基本的な方法として, 各層でどのような特徴を取り出しているかを可視化した**特徴マップ**を見てみましょう.
 
@@ -1520,8 +1427,7 @@ print('特徴マップ描画完了')
 
 最終層の特徴マップは 7 × 7 になり, 人が見ても元の画像との対応は分からなくなります. それでも, ネットワークにとって意味のある特徴 (特定の配置や模様, 対象物のおおよその形など) がチャンネルごとに表されていると考えられます. この段階では, 分類に役立つ特徴が少数の値に凝縮されています. なお, コードの `features_-1` と `last_conv` は, どちらも `model.features[-1]` の出力なので, 同じ特徴マップが保存されます.
 
-
-## Grad-CAM と Guided Backpropagation {#grad-cam}
+## Grad-CAM と Guided Backpropagation (発展) {#grad-cam}
 
 特徴マップで, 学習した CNN の内部を可視化できました. しかし, 特徴マップを人が見て, CNN の判断の基準を説明するのは困難です. そこで, CNN の判断を人が説明できるように, 特徴マップの情報を元の画像の上に重ねて示す技法がいくつかあります.
 
@@ -1729,7 +1635,7 @@ Guided Backpropagation の実装で次の 2 点を誤ると, 画像がほぼ一�
 ConvNeXt の活性化関数は ReLU ではなく GELU です. GELU は負の入力に対して 0 に近い小さな負の値を返すだけなので, ReLU の規則 (入力が正の位置にある正の勾配だけを通す) をそのまま当てはめています. GELU の本来の微分で逆伝播したうえで負の勾配を 0 にする方法でも, ほぼ同じ画像 (相関係数は 0.8 程度) になります. フックの登録には, 推奨されなくなった `register_backward_hook` ではなく `register_full_backward_hook` を使っています.
 :::
 
-## 年齢識別のコード全体 {#age-full-code}
+## 年齢識別のコード全体 (発展) {#age-full-code}
 
 [顔による年齢識別](#age-classification)から[Grad-CAM と Guided Backpropagation](#grad-cam)までのコードの全体は, 次のとおりです. 特徴マップ以降を試すたびに学習し直すのは大変なので, 2 回目以降は学習を飛ばし, 保存した重みを読み込むように分岐しています.
 
@@ -2345,23 +2251,112 @@ if __name__ == '__main__':
     main()
 ~~~
 
-## Vision Transformer {#vision-transformer}
+# 演習
 
-**Vision Transformer (ViT)** は, [第8章](dsp8.html#自己注意と-transformer-の構成)の Transformer を画像の認識に使うモデルです (2020 年). 文章をトークンの並びとして扱ったのと同じように, 画像を小さな正方形の区画 (**パッチ**) の並びとして扱います.
+### Exercise DSP9-1
 
-![Vision Transformer の流れ (8 × 8 の手書き数字を 4 つのパッチに分ける場合)](/images/dsp/ch9/vit.png)
+**分類器を変えた手書き数字の認識**
 
-図は, 手書き数字の「0」の画像 (8 × 8 画素) を例に, ViT の処理の流れを描いたものです.
+[ニューラルネットワークによる識別](#digits-mlp)と同じデータと分け方 (`test_size=0.3, random_state=0, stratify=y`) で, 次の 5 つの分類器を学習させ, テストデータでの正解率を比べてください. 最も正解率の高い分類器と低い分類器を挙げ, 低い分類器の正解率が低い理由を考えてください.
 
-1. 画像をパッチに分けます. 図では 4 × 4 画素のパッチ 4 つに分けています. もとの ViT では, 224 × 224 画素の画像を 16 × 16 画素のパッチに分けるので, パッチは $14 \times 14 = 196$ 個になります.
-2. 各パッチの画素の値を 1 列に並べ (図では 16 個の値), 学習で決まる行列を掛けてベクトルにします. このベクトルが, 「猫が鳴く」の各トークンのベクトル ([第8章](dsp8.html#系列データと注意機構)) にあたります. 画像はパッチの並びという「文」になり, 各パッチが「単語」の役割をします.
-3. 先頭に, 分類のための特別なトークン `[CLS]` を加えます. `[CLS]` のベクトルも学習で決まります.
-4. 各ベクトルに, 何番目のパッチかを表す位置の情報を足します. 自己注意の計算には並び順が入らないので, 位置の情報がないと, パッチの配置を入れ替えた画像と区別できません. 文章で「猫が鳴く」と「鳴くが猫」を区別するために位置エンコーディングを足したのと同じ理由です.
-5. Transformer のエンコーダ (自己注意と全結合層の組) を何段も重ねて通します. 各段の自己注意で, 各パッチのベクトルは, すべてのパッチのベクトルを注意の重みで足し合わせたものに更新されます.
-6. 最後の段の `[CLS]` のベクトルを全結合層と softmax 関数に通し, 各クラスの確率を出します. `[CLS]` は, 自己注意を通してすべてのパッチから情報を集めるので, 画像全体を要約したベクトルになります.
+- ロジスティック回帰 (`LogisticRegression(max_iter=1000)`)
+- 決定木 (`DecisionTreeClassifier(random_state=0)`, [第6章](dsp6.html))
+- ランダムフォレスト (`RandomForestClassifier(random_state=0)`)
+- サポートベクターマシン (`SVC()`)
+- 本文の MLP (`MLPClassifier(hidden_layer_sizes=(64,), max_iter=1000, random_state=0)`)
 
-CNN と ViT の違いは, 1 つの層で参照する範囲にあります. CNN の畳み込み層は, フィルタの大きさの範囲 ($3 \times 3$ など) の近くの画素だけを見て, 層を重ねるごとに参照する範囲を少しずつ広げます. ViT の自己注意は, 最初の層から, 画像の離れた位置にあるパッチ同士の関係も直接扱えます. 例えば顔の画像なら, 目のパッチと口のパッチの関係を 1 段目から計算できます.
+提出ファイル名: `dsp9-1.py`
 
-その反面, ViT には「近くの画素ほど関係が深い」という画像の性質が, 仕組みとして組み込まれていません. この性質も学習で身に付ける必要があるので, CNN よりも多くの訓練データが必要になります. もとの ViT は, 1000 万枚を超える規模の画像で事前学習したときに, CNN と同等以上の精度に達しました. [代表的な CNN モデル](#cnn-models)の表にある ConvNeXt は, 逆に ViT の工夫を CNN に取り入れて, CNN でも同等の精度を出せることを示したモデルです.
+<details class="protected" data-pass="yakagika">
+    <summary> 回答例 </summary>
 
-ViT では, `[CLS]` から各パッチへの注意の重みを画像の上に重ねて表示すると, モデルが画像のどの部分に注目したかを可視化できます. [Grad-CAM と Guided Backpropagation](#grad-cam)と同じく, モデルの判断の根拠を調べる手がかりになります.
+~~~ py
+from sklearn.datasets import load_digits
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+from sklearn.neural_network import MLPClassifier
+
+digits = load_digits()
+X = digits.data / 16
+y = digits.target
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=0, stratify=y)
+
+models = {
+    'ロジスティック回帰': LogisticRegression(max_iter=1000),
+    '決定木': DecisionTreeClassifier(random_state=0),
+    'ランダムフォレスト': RandomForestClassifier(random_state=0),
+    'SVM': SVC(),
+    'MLP': MLPClassifier(hidden_layer_sizes=(64,), max_iter=1000, random_state=0),
+}
+for name, model in models.items():
+    model.fit(X_train, y_train)
+    print(name, round(model.score(X_test, y_test), 3))
+"""
+ロジスティック回帰 0.97
+決定木 0.837
+ランダムフォレスト 0.97
+SVM 0.987
+MLP 0.978
+"""
+~~~
+
+最も正解率が高いのは SVM (0.987), 最も低いのは決定木 (0.837) です. 決定木は, 1 回の分岐で 1 つの画素の値だけを見て「ある値以下か」を判定します. 数字の形は多くの画素の組み合わせで決まり, 同じ数字でも書く位置がずれると, 見るべき画素が変わります. 1 画素ずつの分岐を重ねる決定木は, 訓練データの書き方に合わせた分岐を覚え込みやすく, 新しい書き方の数字に通用しにくくなります. 決定木を多数組み合わせるランダムフォレストでは, この弱点が補われ, 正解率が 0.97 まで上がります.
+
+</details>
+
+### Exercise DSP9-2
+
+**隠れ層の大きさと誤認識の傾向**
+
+本文の MLP の隠れ層のニューロンの数を 4, 8, 16, 64 と変えて学習させ (`max_iter=3000, random_state=0` とします), それぞれについて次の 2 つを求めてください.
+
+1. テストデータでの正解率と, 誤認識した枚数
+2. 混同行列で, 誤りの多い (正解, 予測) の組の上位 3 つ
+
+ニューロンの数によって正解率と誤りの傾向がどう変わるかを説明してください.
+
+提出ファイル名: `dsp9-2.py`
+
+<details class="protected" data-pass="yakagika">
+    <summary> 回答例 </summary>
+
+~~~ py
+import numpy as np
+from sklearn.datasets import load_digits
+from sklearn.model_selection import train_test_split
+from sklearn.neural_network import MLPClassifier
+from sklearn.metrics import confusion_matrix
+
+digits = load_digits()
+X = digits.data / 16
+y = digits.target
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.3, random_state=0, stratify=y)
+
+for n in [4, 8, 16, 64]:
+    mlp = MLPClassifier(hidden_layer_sizes=(n,), max_iter=3000, random_state=0)
+    mlp.fit(X_train, y_train)
+    pred = mlp.predict(X_test)
+    cm = confusion_matrix(y_test, pred)
+    np.fill_diagonal(cm, 0)  # 正しく分類した数を 0 にして誤りだけ残す
+    # 誤りの多い (正解, 予測) の組を 3 つ
+    top = np.dstack(np.unravel_index(np.argsort(cm, axis=None)[::-1][:3], cm.shape))[0]
+    pairs = [f'{a}→{b}: {cm[a, b]}' for a, b in top]
+    print(n, round((pred == y_test).mean(), 3), cm.sum(), pairs)
+"""
+4 0.935 35 ['8→9: 6', '9→3: 4', '8→1: 4']
+8 0.957 23 ['2→3: 3', '8→1: 3', '4→8: 2']
+16 0.972 15 ['8→1: 3', '4→1: 2', '5→8: 1']
+64 0.978 12 ['8→1: 2', '6→1: 1', '3→5: 1']
+"""
+~~~
+
+各行は, ニューロンの数, 正解率, 誤認識した枚数, 誤りの多い組の上位 3 つです. 誤りが 1 枚ずつの組が複数あるときは, そのうちのどれが表示されるかは並べ替えの順序で決まります.
+
+ニューロンの数を増やすほど正解率は上がり, 誤認識は 35 枚から 12 枚に減ります. 隠れ層のニューロンの数は, 取り出せる特徴の数にあたります. 4 個では 64 画素の情報を 4 つの値に押し込むことになり, 数字を見分けるのに必要な形の違いを表しきれません. 誤りの組を見ると, どの大きさでも「8」を「1」と答える誤りが上位にあり, ニューロンが 4 個のときは「8」と「9」, 「9」と「3」のように, 輪や曲線の一部を共有する数字の取り違えが目立ちます. ニューロンを増やすと, こうした形の似た数字の間の細かな違いも捉えられるようになり, 誤りが減ります.
+
+</details>
