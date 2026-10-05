@@ -19,7 +19,7 @@ nextChapter: dsp12.html
 
 ::: warn
 
-課題の作業手順は作成中です. 準備ができしだい, [題材](#題材)の節に追加します.
+画像認識と自然言語処理の課題の作業手順は作成中です. 準備ができしだい, [題材](#題材)の節に追加します.
 
 :::
 
@@ -37,7 +37,7 @@ nextChapter: dsp12.html
 
 次の 3 つから 1 つを選びます.
 
-- クラスタリング ([第7章](dsp7.html))
+- クラスタリング ([第7章](dsp7.html)): [図書館の利用者を分ける](#capstone-cluster)
 - 画像認識 ([第9章](dsp9.html))
 - 自然言語処理 ([第10章](dsp10.html))
 
@@ -76,3 +76,314 @@ AI は全面的に使ってかまいません. ただし, AI を使って作っ�
 発表のあとに質疑応答を行います. 質疑応答では, 資料や AI を見ずに答えてもらいます. 質問は, 発表資料に書いた内容から出します. 手法を選んだ理由, 結果の解釈, 条件を変えたときに結果がどう変わると考えるか, などです.
 
 **質疑応答で何も見ずに答えられなかった部分は, 採点の対象に数えません.** 不正として扱うことはありません. グループで取り組んだ場合も, 質疑応答に答えた個人ごとに採点の対象を判断します.
+
+手法は, 講義資料にあるものを優先して使ってください. 講義資料の手法を使った場合は, 講義資料と同じ粒度で説明できれば 100 点として扱います. 講義資料にない別の手法を選んだ場合は, その手法の利点と詳細を, 自分で他人に説明できるように準備しておいてください.
+
+# 題材 1: 図書館の利用者を分ける (クラスタリング) {#capstone-cluster}
+
+[第7章](dsp7.html)の売店の購買記録を, 大学図書館の貸出記録に替えて, 利用者をクラスタリングします. 手順の空欄 (`____`) にコードを書き, 「判断」と書かれた箇所には自分の考えを文章で書きます. 判断は発表資料の各項目に使うので, 書いたものは発表資料の下書きとして残してください. 質疑応答では, 判断の理由を尋ねます.
+
+## 場面とデータ
+
+大学の図書館では, 利用者の層に合わせた企画 (資格の勉強向けの棚の拡充, 返却の案内の文面の変更など) を考えています. 企画の材料にするために, 貸出の仕方で利用者をいくつかの層に分けます.
+
+[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/dsp11/library_loans.csv)のデータは, ある大学の図書館の 4 月から 7 月の貸出記録です (練習用に作成した架空のデータです). 1 行が 1 冊の貸出を表します. 貸出期間は 14 日で, 返却までの日数が 14 日を超えると期限超過になります.
+
+| 列 | 内容 |
+|---|---|
+| `loan_id` | 貸出番号 |
+| `user_id` | 利用者番号 |
+| `date` | 貸出日 |
+| `genre` | ジャンル (文学, 理工, 社会, 語学, 資格, 趣味) |
+| `loan_days` | 返却までの日数 |
+| `overdue` | 期限超過なら 1, そうでなければ 0 |
+
+ファイルを `data/library_loans.csv` として保存します. ライブラリは第7章と同じです.
+
+~~~ sh
+uv add pandas matplotlib matplotlib-fontja scikit-learn
+~~~
+
+## 売店の事例との違い
+
+- 場面が売店から図書館に替わります.
+- 見る項目が 3 つ (貸出冊数, 平均貸出日数, 延滞率) になります. 散布図には描けないので, クラスタ数はエルボー法とシルエット係数で決めます.
+- 指標だけではクラスタ数が決まらない箇所があります. 結果を見て, 自分の判断で選びます.
+
+## 作業手順
+
+### 手順 1: データの読み込みと確認
+
+行数と利用者の数を確認します. 空欄には, 重複を除いた数を数えるメソッド (`nunique`, `count`, `sum` のいずれか) を入れます.
+
+~~~ py
+import pandas as pd
+
+log = pd.read_csv('data/library_loans.csv', encoding='utf-8-sig')
+print(log.head())
+print(len(log), log['user_id'].____())  # 利用者の数
+~~~
+
+### 手順 2: 利用者ごとの集計
+
+利用者ごとに, 貸出冊数, 平均貸出日数, 延滞率を求めます. 延滞率は, `overdue` (0 か 1) の平均です. 空欄には `count`, `mean`, `sum` のいずれかを入れます.
+
+~~~ py
+g = log.groupby('user_id')
+user = pd.DataFrame({
+    'loans': g['loan_id'].____(),         # 貸出冊数
+    'mean_days': g['loan_days'].____(),   # 平均貸出日数
+    'overdue_rate': g['overdue'].____(),  # 延滞率
+})
+print(user.describe().round(2))
+~~~
+
+### 手順 3: 標準化
+
+[第7章](dsp7.html#クラスタリング)と同じく, 項目ごとに平均 0, 標準偏差 1 に標準化します. 空欄には `mean`, `std` を入れます.
+
+~~~ py
+z = (user - user.____()) / user.____(ddof=0)
+~~~
+
+**判断 1**: 標準化が必要な理由を 1 文で書いてください. (発表資料の「使った手法」に使います.)
+
+### 手順 4: クラスタ数の選択
+
+クラスタ数 $K$ を 2 から 8 まで変えて, クラスタ内誤差平方和 (エルボー法) とシルエット係数の平均を求め, 図にします. 空欄には, $K$ を表す変数, 誤差平方和を表す属性 `inertia_`, クラスタ番号を表す属性 `labels_` を入れます.
+
+~~~ py
+import matplotlib.pyplot as plt
+import matplotlib_fontja
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+
+ks = range(2, 9)
+inertias, scores = [], []
+for k in ks:
+    km = KMeans(n_clusters=____, random_state=0, n_init=10).fit(z)
+    inertias.append(km.____)                     # クラスタ内誤差平方和
+    scores.append(silhouette_score(z, km.____))  # シルエット係数の平均
+
+fig, axes = plt.subplots(1, 2, figsize=(9, 3.5))
+axes[0].plot(ks, inertias, marker='o')
+axes[0].set_xlabel('クラスタ数 k')
+axes[0].set_ylabel('クラスタ内誤差平方和')
+axes[1].plot(ks, scores, marker='o')
+axes[1].set_xlabel('クラスタ数 k')
+axes[1].set_ylabel('シルエット係数の平均')
+plt.tight_layout()
+plt.show()
+~~~
+
+2 つの図から, $K$ の候補を挙げます. 指標が候補を 1 つに絞れない場合は, 候補ごとにクラスタの平均を求め ([手順 5](#手順-5-k-means-法の実行と読み取り), [手順 7](#手順-7-結果の確かめ)), 特徴を言葉で説明できる分け方を選びます.
+
+**判断 2**: $K$ をいくつにしたか, 2 つの図のどこを根拠にしたかを書いてください. (発表資料の「使った手法」に使います.)
+
+### 手順 5: k-means 法の実行と読み取り
+
+手順 4 で決めた $K$ で k-means 法を実行します. クラスタごとの平均と, ジャンル別の貸出の割合を求めて, クラスタの特徴を読み取ります. 空欄には, クラスタ番号を返すメソッド (`fit_predict`), 平均を求めるメソッド (`mean`), 行数を数える集計 (`count`) を入れます.
+
+~~~ py
+K = 4  # 手順 4 で決めた値に書き換える
+km = KMeans(n_clusters=K, random_state=0, n_init=10)
+user['cluster'] = km.____(z)
+print(user['cluster'].value_counts().sort_index())
+print(user.groupby('cluster')[['loans', 'mean_days', 'overdue_rate']].____().round(2))
+
+share = log.pivot_table(index='user_id', columns='genre', values='loan_id',
+                        aggfunc='____', fill_value=0)
+share = share.div(share.sum(axis=1), axis=0)  # 利用者ごとのジャンル別の割合
+print(share.join(user['cluster']).groupby('cluster').mean().round(2))
+
+plt.scatter(user['loans'], user['mean_days'], c=user['cluster'], cmap='viridis', s=15)
+plt.xlabel('貸出冊数')
+plt.ylabel('平均貸出日数')
+plt.show()
+~~~
+
+クラスタの番号は, 実行する環境によって入れ替わることがあります. 番号ではなく平均を見て, どのクラスタかを判断してください.
+
+### 手順 6: クラスタの命名と施策
+
+**判断 3**: 各クラスタに名前を付け, 図書館が取れる施策を 1 つずつ書いてください. 名前と施策の根拠として, 手順 5 の表のどの値を見たかも書いてください. (発表資料の「結果の解釈」に使います.)
+
+### 手順 7: 結果の確かめ
+
+この結果がどのくらい確かかを調べます. 乱数の種を変えて初期値が 1 通りだけの実行を 5 回行い, クラスタ内誤差平方和を比べます. また, $K$ を 1 つ増やした場合と減らした場合の結果も求めます. 空欄には, 乱数の種を表す変数, 初期値の試行回数 (`n_init` に入れる値), $K$ の値を入れます.
+
+~~~ py
+for seed in range(5):
+    w = KMeans(n_clusters=K, random_state=____, n_init=____).fit(z).inertia_
+    print(seed, round(w, 1))
+
+for k in (K - 1, K + 1):
+    labels = KMeans(n_clusters=____, random_state=0, n_init=10).fit_predict(z)
+    print(k, pd.Series(labels).value_counts().sort_index().tolist())
+    print(user[['loans', 'mean_days', 'overdue_rate']].groupby(labels).mean().round(2))
+
+print(user[['loans', 'mean_days', 'overdue_rate']].corr().round(2))
+~~~
+
+**判断 4**: この分析の限界を 2 つ書いてください. (発表資料の「結果の限界」に使います.)
+
+## 発表資料との対応
+
+| 発表資料の項目 | 使うもの |
+|---|---|
+| 目的 | 場面の説明 (図書館の企画の材料にするために, 利用者を分ける) |
+| 使用したデータ | 手順 1, 2 |
+| 使った手法 | 手順 3, 4, 5 と判断 1, 判断 2 |
+| 結果の提示 | 手順 5 のクラスタごとの平均, ジャンル別の割合, 散布図 |
+| 結果の解釈 | 判断 3 |
+| 結果の限界 | 手順 7 と判断 4 |
+| AI の利用方法の工夫 | 作業中の AI の使い方の記録 |
+
+<details class="protected" data-pass="yakagika">
+    <summary> 回答例 </summary>
+
+~~~ py
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib_fontja
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+
+# 手順 1: 読み込みと確認
+log = pd.read_csv('data/library_loans.csv', encoding='utf-8-sig')
+print(log.head())
+print(len(log), log['user_id'].nunique())
+
+# 手順 2: 利用者ごとの集計
+g = log.groupby('user_id')
+user = pd.DataFrame({
+    'loans': g['loan_id'].count(),          # 貸出冊数
+    'mean_days': g['loan_days'].mean(),     # 平均貸出日数
+    'overdue_rate': g['overdue'].mean(),    # 延滞率 (0/1 の平均)
+})
+print(user.describe().round(2))
+
+# 手順 3: 標準化
+z = (user - user.mean()) / user.std(ddof=0)
+
+# 手順 4: クラスタ数の選択
+ks = range(2, 9)
+inertias, scores = [], []
+for k in ks:
+    km = KMeans(n_clusters=k, random_state=0, n_init=10).fit(z)
+    inertias.append(km.inertia_)
+    scores.append(silhouette_score(z, km.labels_))
+print(pd.DataFrame({'W': inertias, 'silhouette': scores}, index=ks).round(3))
+
+fig, axes = plt.subplots(1, 2, figsize=(9, 3.5))
+axes[0].plot(ks, inertias, marker='o')
+axes[0].set_xlabel('クラスタ数 k')
+axes[0].set_ylabel('クラスタ内誤差平方和')
+axes[1].plot(ks, scores, marker='o')
+axes[1].set_xlabel('クラスタ数 k')
+axes[1].set_ylabel('シルエット係数の平均')
+plt.tight_layout()
+plt.show()
+
+# 手順 5: k-means 法の実行と読み取り
+K = 4
+km = KMeans(n_clusters=K, random_state=0, n_init=10)
+user['cluster'] = km.fit_predict(z)
+print(user['cluster'].value_counts().sort_index())
+print(user.groupby('cluster')[['loans', 'mean_days', 'overdue_rate']].mean().round(2))
+
+share = log.pivot_table(index='user_id', columns='genre', values='loan_id',
+                        aggfunc='count', fill_value=0)
+share = share.div(share.sum(axis=1), axis=0)
+print(share.join(user['cluster']).groupby('cluster').mean().round(2))
+
+plt.scatter(user['loans'], user['mean_days'], c=user['cluster'], cmap='viridis', s=15)
+plt.xlabel('貸出冊数')
+plt.ylabel('平均貸出日数')
+plt.show()
+
+# 手順 7: 結果の確かめ
+for seed in range(5):  # 初期値を 1 通りだけ試す実行を, 乱数の種を変えて 5 回行う
+    w = KMeans(n_clusters=K, random_state=seed, n_init=1).fit(z).inertia_
+    print(seed, round(w, 1))
+for k in (K - 1, K + 1):
+    labels = KMeans(n_clusters=k, random_state=0, n_init=10).fit_predict(z)
+    print(k, pd.Series(labels).value_counts().sort_index().tolist())
+    print(user[['loans', 'mean_days', 'overdue_rate']].groupby(labels).mean().round(2))
+print(user[['loans', 'mean_days', 'overdue_rate']].corr().round(2))
+~~~
+
+~~~ sh
+   loan_id  user_id        date genre  loan_days  overdue
+0        1     1004  2026-04-13    資格         13        0
+1        2     1008  2026-04-13    理工          5        0
+2        3     1018  2026-04-13    語学          6        0
+3        4     1023  2026-04-13    資格         14        0
+4        5     1030  2026-04-13    資格         14        0
+2373 180
+        loans  mean_days  overdue_rate
+count  180.00     180.00        180.00
+mean    13.18      11.14          0.24
+std      8.64       4.00          0.29
+min      2.00       4.29          0.00
+25%      6.00       8.16          0.00
+50%     10.00      10.90          0.12
+75%     19.00      13.50          0.39
+max     37.00      21.12          1.00
+         W  silhouette
+2  253.790       0.505
+3  128.164       0.523
+4   79.387       0.523
+5   61.994       0.489
+6   52.890       0.437
+7   47.675       0.407
+8   43.967       0.404
+cluster
+0    46
+1    40
+2    44
+3    50
+Name: count, dtype: int64
+         loans  mean_days  overdue_rate
+cluster                                
+0        12.09      12.04          0.22
+1         6.85      16.91          0.72
+2        26.50      10.25          0.10
+3         7.54       6.46          0.00
+           文学    理工    社会    語学    資格    趣味
+cluster                                    
+0        0.10  0.11  0.08  0.10  0.53  0.08
+1        0.19  0.10  0.20  0.08  0.15  0.28
+2        0.29  0.05  0.11  0.09  0.08  0.39
+3        0.03  0.48  0.29  0.12  0.07  0.00
+0 80.1
+1 79.4
+2 80.1
+3 80.1
+4 80.1
+3 [49, 57, 74]
+   loans  mean_days  overdue_rate
+0   7.67      16.33          0.67
+1  24.28      10.62          0.12
+2   8.28       8.09          0.05
+5 [44, 41, 50, 23, 22]
+   loans  mean_days  overdue_rate
+0  26.50      10.25          0.10
+1  12.22      11.74          0.20
+2   7.54       6.46          0.00
+3   8.91      15.17          0.56
+4   5.64      18.18          0.83
+              loans  mean_days  overdue_rate
+loans          1.00      -0.14         -0.31
+mean_days     -0.14       1.00          0.92
+overdue_rate  -0.31       0.92          1.00
+~~~
+
+判断の回答例を示します. 次の内容と同じである必要はなく, 根拠を説明できれば別の判断でもかまいません.
+
+- **判断 1**: 貸出冊数 (冊), 平均貸出日数 (日), 延滞率 (0 から 1) は単位も散らばりも違い, 標準化しないと値の大きい貸出冊数が距離をほぼ決めてしまうためです.
+- **判断 2**: $K = 4$ にしました. クラスタ内誤差平方和は $K = 4$ まで大きく減り (128 → 79), $K = 5$ 以降は緩やかです. 一方, シルエット係数の平均は $K = 3$ と $K = 4$ のどちらも 0.523 で, 指標だけでは決まりません. $K = 4$ では「資格の勉強をする利用者」のクラスタが独立して取り出せ, 特徴を説明できるので $K = 4$ を選びました. ($K = 3$ を選ぶ場合は, 3 つの層で説明が足りることを根拠に書きます.)
+- **判断 3**: クラスタ 2 は「常連の読書家」で, 貸出冊数が約 27 冊と多く, 文学と趣味が多いので, 新着図書の案内を貸出履歴に合わせて送ります. クラスタ 0 は「資格の勉強をする利用者」で, 資格の割合が 0.53 と高いので, 資格の棚の拡充と, 試験前の貸出期間の延長を検討します. クラスタ 3 は「レポートを書く利用者」で, 理工と社会が多く, 平均貸出日数が約 6.5 日と短く延滞もないので, 参考図書の案内を出します. クラスタ 1 は「返却が遅れがちな利用者」で, 延滞率が 0.72, 平均貸出日数が約 17 日なので, 返却期限の事前の案内を送ります.
+- **判断 4**: (1) $K$ の選び方で分け方が変わります. シルエット係数が $K = 3$ と $K = 4$ で同じなので, 分け方は 1 つに決まりません. (2) 平均貸出日数と延滞率の相関が 0.92 と高く, 延滞は返却まで 14 日を超えたかどうかで決まるので, 3 項目は実質 2 項目に近いです. このほかに, 1 学期分の架空のデータであり, 実際の図書館に一般化できないことも限界です. 乱数の種を変えた誤差平方和は 79.4 から 80.1 で, 初期値の影響は小さいことが確かめられました.
+
+</details>
