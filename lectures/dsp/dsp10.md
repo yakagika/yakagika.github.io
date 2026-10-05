@@ -774,371 +774,250 @@ PC における計算は通常 CPU によって行われます.
 
 :::
 
-これから BERT を利用してマルチラベル分類を実施してみます. ただし, ニューラルモデルを利用するにあたって, 学生それぞれのノート PC で GPU 計算の環境を構築することが困難なので, Google の提供するオンライン上の Python の実行環境である `Colaboratory` を利用します.
+これから BERT を利用してマルチラベル分類を実施してみます. 大きなニューラルネットワークの学習は GPU を使うと速く終わるので, プログラムは[第9章](dsp9.html#cuda-compute-unified-device-architecture)と同じく, CUDA か MPS が使えればそれを使い, 使えなければ CPU で計算します.
 
-まずは, [Google](https://www.google.com)のサービスを利用するための Google アカウントを作成しましょう (既にある人はスキップ).
+ただし, GPU のない PC でも数分で終わるように, 学習の規模を小さくしてあります. 規模は, プログラムの冒頭にある 3 つの値で決まります.
 
-プログラムやデータなどは Google のクラウドストレージである Google Drive に保存されます.
-Google Drive 上に作業用ディレクトリを作りましょう.
+- `EPOCHS`: 訓練データを繰り返して学習する回数
+- `MAX_LENGTH`: 1 文から読み込む最大のトークン数 (これより長い文は切り捨てます)
+- `N_TRAIN`: 学習に使う文の数
 
-![](/images/slds/ch15/google2.png)
+次の表は, Apple M5 Max の Mac で実行したときの学習の時間と, テストデータでの正解率です. 「元の設定」は, 学習用の文をすべて使い, 5 エポック, 最大長 128 で学習した場合です.
 
+| 設定 | `EPOCHS` | `MAX_LENGTH` | `N_TRAIN` | MPS | CPU のみ | 正解率 |
+|:---|---:|---:|---:|---:|---:|---:|
+| 本文の設定 | 2 | 64 | 640 | 7 秒 | 68 秒 | 0.73 から 0.75 |
+| 元の設定 | 5 | 128 | 1929 (全件) | 91 秒 | 約 30 分 | 0.87 |
 
-新規作成からフォルダを作成し, 適当な名前をつけましょう. フォルダ内にはデータを保存するフォルダ `data` を作成しておきましょう.
-![](/images/slds/ch15/google3.png)
+元の設定で CPU のみの時間は, 実測した 1 ステップあたりの時間から換算した値です. Apple M5 Max はノート PC の中でも高性能なので, 一般的な PC の CPU ではこれより長くかかります. 元の設定で試したい場合や, GPU のない PC で時間を気にせず試したい場合は, 共通資料の[Google Colaboratory による GPU 計算](colab.html)の手順で Colab の GPU を使い, 3 つの値を元の設定に変えて, 同じプログラムを実行してください.
 
-作成したフォルダにプログラムやデータをドラッグアンドドロップすることでアップロードできます.
+次のライブラリを使います. `uv add` しておいてください. なお, 以下のマルチラベル文章分類に関するコードは, **[BERT による自然言語処理入門 オーム社](https://www.ohmsha.co.jp/book/9784274227264/)**を参考にしています.
 
-実際にコードやデータを利用する前に Google Drive 上で `Colaboratory` のファイルを扱えるようにしましょう.
-
-右下 `+` ボタンをクリックして, `Colaboratory` のアドオンを検索し, インストールしましょう.
-
-![](/images/slds/ch15/google4.png)
-
-::: warn
-インストールが完了したら一度ページを再読み込みしましょう.
-:::
-
-今回はマルチラベル用のプログラムを新規作成します. フォルダの何もない部分を右クリックして, その他から, Colaboratory のファイル (拡張子 `.ipynb`) を作成しましょう.
-
-![](/images/slds/ch15/google5.png)
-
-
-作成したファイルをダブルクリックすると Colaboratory が起動します.
-まずは, 右上の設定から GPU 計算が可能なように設定を変更しましょう.
-
-![](/images/slds/ch15/colab.png)
-
-
-Colaboratory は対話型環境になっており, プログラムを書いてブロックごとに実行します. 各ブロックの左側にある再生ボタンを押すか, `Runtime` から実行方法を選択して実行します. `Run all` をクリックするとすべてのブロックが上から順に実行されます.
-
-![](/images/slds/ch15/colab1.png)
-
-![](/images/slds/ch15/colab2.png)
-
-
-`!` に続けて入力することでシェルコマンドも実行可能です.
-
-最初に, 今回のプログラムで必要となるライブラリをインストールしてみましょう. なお, 以下のマルチラベル文章分類に関するコードは, **[BERT による自然言語処理入門 オーム社](https://www.ohmsha.co.jp/book/9784274227264/)**を参考にしています.
-
-~~~ py
-#ライブラリのインストール
-!pip install transformers fugashi ipadic pytorch_lightning
+~~~ sh
+uv add torch transformers fugashi unidic-lite pandas
 ~~~
 
-まずは, 学習済みのモデルを読み込みます. ニューラルモデルに関するこれらのコードをすべて理解するには, 膨大な時間が必要になります.
+まずは, 学習の設定と, 学習済みのモデルを読み込みます. ニューラルモデルに関するこれらのコードをすべて理解するには, 膨大な時間が必要になります.
 ここでは, それぞれの部分で何をしているのかを大まかに把握しましょう.
-
 
 ~~~ py
 import random
-import glob
-import json
-from tqdm import tqdm
+import time
 
+import numpy as np
+import pandas as pd
 import torch
-from torch.utils.data import DataLoader
-from transformers import BertJapaneseTokenizer, BertModel
-import pytorch_lightning as pl
+from transformers import AutoTokenizer, BertModel
 
-# 日本語の学習モデル
+# 日本語の学習済みモデル
 MODEL_NAME = 'tohoku-nlp/bert-base-japanese-whole-word-masking'
 
-# ------------------------------------------------------------------
-# マルチラベル文章分類用のクラス
-# ------------------------------------------------------------------
-class BertForSequenceClassificationMultiLabel(torch.nn.Module):
+# 学習の設定. GPU がない PC でも数分で終わる大きさにしている
+EPOCHS = 2  # 訓練データを繰り返して学習する回数
+MAX_LENGTH = 64  # 1 文から読み込む最大のトークン数
+N_TRAIN = 640  # 学習に使う文の数
+LEARNING_RATE = 3e-5
+BATCH_SIZE = 32
 
+# 使うデバイスの選択 (第 9 章と同じ)
+if torch.backends.mps.is_available():
+    device = torch.device('mps')  # Mac GPU
+elif torch.cuda.is_available():
+    device = torch.device('cuda:0')  # Win GPU
+else:
+    device = torch.device('cpu')  # CPU
+print(f'Using device: {device}')
+
+
+# マルチラベル文章分類用のモデル
+class BertForMultiLabel(torch.nn.Module):
     def __init__(self, model_name, num_labels):
         super().__init__()
-        # BertModelのロード
+        # 学習済みの BERT を読み込む
         self.bert = BertModel.from_pretrained(model_name)
-        # 線形変換を初期化しておく
-        self.linear = torch.nn.Linear(
-            self.bert.config.hidden_size, num_labels
-        )
+        # BERT の出力を各ラベルのスコアに変える線形変換
+        self.linear = torch.nn.Linear(self.bert.config.hidden_size, num_labels)
 
-    def forward(
-        self,
-        input_ids=None,
-        attention_mask=None,
-        token_type_ids=None,
-        labels=None
-    ):
-        # データを入力しBERTの最終層の出力を得る。
-        bert_output = self.bert(
+    def forward(self, input_ids, attention_mask, token_type_ids=None):
+        output = self.bert(
             input_ids=input_ids,
             attention_mask=attention_mask,
-            token_type_ids=token_type_ids)
-        last_hidden_state = bert_output.last_hidden_state
-
-        # [PAD]以外のトークンで隠れ状態の平均をとる
-        averaged_hidden_state = \
-            (last_hidden_state*attention_mask.unsqueeze(-1)).sum(1) \
-            / attention_mask.sum(1, keepdim=True)
-
-        # 線形変換
-        scores = self.linear(averaged_hidden_state)
-
-        # 出力の形式を整える。
-        output = {'logits': scores}
-
-        # labelsが入力に含まれていたら、損失を計算し出力する。
-        if labels is not None:
-            loss = torch.nn.BCEWithLogitsLoss()(scores, labels.float())
-            output['loss'] = loss
-
-        # 属性でアクセスできるようにする。
-        output = type('bert_output', (object,), output)
-
-        return output
-
-# モデルとトークナイザのロード
-# num_label:カテゴリー数
-tokenizer = BertJapaneseTokenizer.from_pretrained(MODEL_NAME)
-bert_scml = BertForSequenceClassificationMultiLabel(
-    MODEL_NAME, num_labels=2
-)
-bert_scml = bert_scml.cuda()
-~~~
-
-これで BERT のマルチラベル分類用のモデルが利用できるようになりました. 続いて, ファインチューニングを実施します.
-今回は先述の TIS 株式会社による上場企業の有価証券報告書を用いて作成されたマルチラベルのネガポジデータセット [`chABSA-dataset`](https://www.tis.co.jp/news/2018/tis_news/20180410_1.html)を利用します.
-
-データとしては `json` でそれぞれの文章が, ネガティブなのか, ポジティブなのかが記録されています.
-
-~~~ py
-# データのダウンロード
-!wget https://s3-ap-northeast-1.amazonaws.com/dev.tech-sketch.jp/chakki/public/chABSA-dataset.zip
-# データの解凍
-!unzip chABSA-dataset.zip
-
-# chABSA-dataset
-#     - xxx.json
-# の形で保存
-
-data = json.load(open('chABSA-dataset/e00030_ann.json'))
-print( data['sentences'][0] )
-
-#データから文章とカテゴリーを抜き出して整形しておく
-category_id = {'negative':0, 'neutral':1 , 'positive':2}
-
-dataset = []
-for file in glob.glob('chABSA-dataset/*.json'):
-    data = json.load(open(file))
-    # 各データから文章（text）を抜き出し、ラベル（'labels'）を作成
-    for sentence in data['sentences']:
-        text = sentence['sentence']
-        labels = [0,0,0]
-        for opinion in sentence['opinions']:
-            labels[category_id[opinion['polarity']]] = 1
-        sample = {'text': text, 'labels': labels}
-        dataset.append(sample)
-
-print(dataset[0])
-
-"""
-{'text': '当連結会計年度（平成28年１月１日から平成29年３月31日まで）におけるわが国経済は...
-"""
-
-~~~
-
-`print` による表示結果は省略していますが, もとのデータセットが表示されているかと思います.
-
-
-続いて, 文章をトークン化した後, 学習用 (60%), 検証用 (20%), テスト用 (20%) にそれぞれ分割します.
-文章のトークン化には, BERT のトークナイザを利用します.
-
-~~~ py
-# トークナイザのロード
-tokenizer = BertJapaneseTokenizer.from_pretrained(MODEL_NAME)
-
-# 各データの形式を整える
-max_length = 128
-dataset_for_loader = []
-for sample in dataset:
-    text = sample['text']
-    labels = sample['labels']
-    encoding = tokenizer(
-        text,
-        max_length=max_length,
-        padding='max_length',
-        truncation=True
-    )
-    encoding['labels'] = labels
-    encoding = { k: torch.tensor(v) for k, v in encoding.items() }
-    dataset_for_loader.append(encoding)
-
-# データセットの分割
-random.shuffle(dataset_for_loader)
-n = len(dataset_for_loader)
-n_train = int(0.6*n)
-n_val = int(0.2*n)
-dataset_train = dataset_for_loader[:n_train] # 学習データ
-dataset_val = dataset_for_loader[n_train:n_train+n_val] # 検証データ
-dataset_test = dataset_for_loader[n_train+n_val:] # テストデータ
-
-# データセットからデータローダを作成
-dataloader_train = DataLoader(
-    dataset_train, batch_size=32, shuffle=True
-)
-dataloader_val = DataLoader(dataset_val, batch_size=256)
-dataloader_test = DataLoader(dataset_test, batch_size=256)
-
-~~~
-
-データの準備が整ったので, ファインチューニングを行います. 今回はエポック数を 5 として, 決め打ちで行っていますが,
-実際に研究等で使用する場合には, [第9章](dsp9.html)の画像認識と同じく過学習の確認や学習率 (`lr`) の調整などを行いましょう.
-
-以下の処理は, およそ 10 分程度かかるので, 時間的に余裕のあるときに実行してください.
-
-~~~ py
-class BertForSequenceClassificationMultiLabel_pl(pl.LightningModule):
-
-    def __init__(self, model_name, num_labels, lr):
-        super().__init__()
-        self.save_hyperparameters()
-        self.bert_scml = BertForSequenceClassificationMultiLabel(
-            model_name, num_labels=num_labels
+            token_type_ids=token_type_ids,
         )
+        # [PAD] 以外のトークンの出力を平均して, 文のベクトルにする
+        mask = attention_mask.unsqueeze(-1)
+        sentence_vector = (output.last_hidden_state * mask).sum(1) / mask.sum(1)
+        return self.linear(sentence_vector)
 
-    def training_step(self, batch, batch_idx):
-        output = self.bert_scml(**batch)
-        loss = output.loss
-        self.log('train_loss', loss)
-        return loss
 
-    def validation_step(self, batch, batch_idx):
-        output = self.bert_scml(**batch)
-        val_loss = output.loss
-        self.log('val_loss', val_loss)
-
-    def test_step(self, batch, batch_idx):
-        labels = batch.pop('labels')
-        output = self.bert_scml(**batch)
-        scores = output.logits
-        labels_predicted = ( scores > 0 ).int()
-        num_correct = ( labels_predicted == labels ).all(-1).sum().item()
-        accuracy = num_correct/scores.size(0)
-        self.log('accuracy', accuracy)
-
-    def configure_optimizers(self):
-        return torch.optim.Adam(self.parameters(), lr=self.hparams.lr)
-
-checkpoint = pl.callbacks.ModelCheckpoint(
-    monitor='val_loss',
-    mode='min',
-    save_top_k=1,
-    save_weights_only=True,
-    dirpath='model/',
-)
-
-trainer = pl.Trainer(
-    max_epochs=5,
-    callbacks = [checkpoint]
-)
-
-model = BertForSequenceClassificationMultiLabel_pl(
-    MODEL_NAME,
-    num_labels=3,
-    lr=1e-5
-)
-trainer.fit(model, dataloader_train, dataloader_val)
-test = trainer.test(dataloaders=dataloader_test)
-print(f'Accuracy: {test[0]["accuracy"]:.2f}')
-
-# Accuracy: 0.90
+torch.manual_seed(0)  # 線形変換の初期値を固定する
+tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+model = BertForMultiLabel(MODEL_NAME, num_labels=3).to(device)
 ~~~
 
-テストデータに対する正解率は 90% ほどになりました.
+続いて, ファインチューニングを実施します. 今回は, TIS 株式会社が上場企業の有価証券報告書から作成したマルチラベルのネガポジデータセット [`chABSA-dataset`](https://www.tis.co.jp/news/2018/tis_news/20180410_1.html)を利用します. 文ごとに, ネガティブ, ニュートラル, ポジティブの評価が付いています. 文の数は 3215 で, 1 つの文にポジティブとネガティブの両方が付く場合を含め, 複数の評価が付く文が 916 あります.
+
+このデータは CC BY 4.0 で公開されています. 元の配布先は現在閉鎖されているため, Hugging Face で公開されている同じデータ ([zenless-lab/chABSA](https://huggingface.co/datasets/zenless-lab/chABSA)) から, 文と 3 つのラベルを列にした CSV を作りました. [chABSA.csv](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch15/chABSA.csv)をダウンロードして, プログラムを置くディレクトリの `data` ディレクトリに保存してください.
+
+データを学習用 (60%), 検証用 (20%), テスト用 (20%) に分けます. 学習に使うのは, 学習用のうち `N_TRAIN` 文です. 検証用は, エポックごとの損失を見て, [第9章](dsp9.html)と同じく過学習を確認するために使います. 文のトークン化には, BERT のトークナイザを使います.
+
+~~~ py
+# データの読み込み. ラベルは (ネガティブ, ニュートラル, ポジティブ)
+df = pd.read_csv('data/chABSA.csv')
+texts = df['text'].tolist()
+labels = df[['negative', 'neutral', 'positive']].values.astype(np.float32)
+
+# 学習用 (60%), 検証用 (20%), テスト用 (20%) に分ける
+random.seed(0)
+index = list(range(len(df)))
+random.shuffle(index)
+n_train_all = int(0.6 * len(index))
+n_val = int(0.2 * len(index))
+train_index = index[:n_train_all][:N_TRAIN]
+val_index = index[n_train_all : n_train_all + n_val]
+test_index = index[n_train_all + n_val :]
+print(f'学習: {len(train_index)} 文, 検証: {len(val_index)} 文, テスト: {len(test_index)} 文')
+
+
+def make_batch(batch_index):
+    """文を BERT への入力に変え, device へ送る."""
+    encoding = tokenizer(
+        [texts[i] for i in batch_index],
+        max_length=MAX_LENGTH,
+        padding='longest',
+        truncation=True,
+        return_tensors='pt',
+    )
+    encoding = {key: value.to(device) for key, value in encoding.items()}
+    y = torch.tensor(labels[batch_index]).to(device)
+    return encoding, y
+
+
+def evaluate(data_index):
+    """損失と, 3 つのラベルがすべて一致した割合を返す."""
+    model.eval()
+    total_loss, n_correct = 0.0, 0
+    with torch.no_grad():
+        for i in range(0, len(data_index), 128):
+            encoding, y = make_batch(data_index[i : i + 128])
+            scores = model(**encoding)
+            total_loss += torch.nn.BCEWithLogitsLoss()(scores, y).item() * len(y)
+            n_correct += ((scores > 0).float() == y).all(dim=1).sum().item()
+    return total_loss / len(data_index), n_correct / len(data_index)
+~~~
+
+データの準備が整ったので, ファインチューニングを行います. 今回はエポック数を 2 として, 決め打ちで行っています. 実際に研究等で使用する場合には, 検証用データの損失を見て, エポック数や学習率 (`LEARNING_RATE`) を調整しましょう. 学習の時間は, 本文の設定で数秒から数分です.
+
+~~~ py
+optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
+loss_function = torch.nn.BCEWithLogitsLoss()
+start = time.time()
+for epoch in range(EPOCHS):
+    model.train()
+    random.shuffle(train_index)
+    for i in range(0, len(train_index), BATCH_SIZE):
+        encoding, y = make_batch(train_index[i : i + BATCH_SIZE])
+        loss = loss_function(model(**encoding), y)
+        loss.backward()
+        optimizer.step()
+        optimizer.zero_grad()
+    val_loss, val_accuracy = evaluate(val_index)
+    print(f'Epoch {epoch + 1}/{EPOCHS}', end=' ')
+    print(f'val_loss: {val_loss:.3f} val_accuracy: {val_accuracy:.3f}')
+print(f'学習時間: {time.time() - start:.0f} 秒')
+
+test_loss, test_accuracy = evaluate(test_index)
+print(f'Accuracy: {test_accuracy:.2f}')
+
+"""
+Using device: mps
+学習: 640 文, 検証: 643 文, テスト: 643 文
+Epoch 1/2 val_loss: 0.309 val_accuracy: 0.706
+Epoch 2/2 val_loss: 0.253 val_accuracy: 0.756
+学習時間: 8 秒
+Accuracy: 0.73
+"""
+~~~
+
+テストデータに対する正解率は 7 割ほどでした. この正解率は, 3 つのラベルがすべて一致した割合です. 値は PC や環境によって少し変わります. 元の設定で学習すると, 5 エポックのうち検証用データの損失は 2 エポック目で最小になり (0.180), 5 エポック目には 0.227 まで大きくなりました. 訓練データへの当てはまりだけが進む過学習です. 正解率は 0.87 になりました.
 
 それではファインチューニングしたモデルを利用して, マルチラベル分類を行ってみます.
 
 最初の `text_list` 部分に適当に作成した文章をリスト形式で与えます. 研究などではここに CSV などで取得した外部のデータを指定します. それぞれのネガティブ, ニュートラル, ポジティブの判定結果を見てみましょう.
 
 ~~~ py
-# 入力する文章
-# 結果はネガティブ,ニュートラル,ポジティブの順
-text_list = ["当連結会計年度の売上高は前期比5.8%増加し、業績は堅調に推移しました。"
-            ,"海外市場での需要拡大が寄与し、売上および営業利益が過去最高を記録しました。"
-            ,"一部事業における原材料価格の高騰の影響を受け、収益性が低下しました。"
-            ,"国内景気は緩やかな回復基調を維持したものの、インフレ率の上昇が購買力に影響を及ぼしました。"
-            ,"新興市場における競争激化により、当社製品のシェアは微減しましたが、全体的な市場拡大により売上は増加しました。"
-            ,"為替変動が利益にプラスの影響を与えた一方で、サプライチェーンの遅延が一部事業の成長を抑制しました。"
-            ,"2025年度に向けて、成長市場への積極的な投資と新規事業の開発に注力する予定です。"
-            ,"業界全体の需要鈍化が予想される中で、コスト構造の見直しにより安定的な収益を確保していきます。"
-            ,"カーボンニュートラル達成を目指し、再生可能エネルギーへのシフトを加速させます。"
-            ,"当社は、デジタル化の遅れが競争力に与える影響を認識しており、ITシステムへの投資を増強する方針です。"
-            ,"地政学的リスクの高まりにより、一部の輸出取引に不確実性が生じています。"
-            ,"半導体不足の影響を受け、特定製品の納期が遅延する可能性があります。"
-            ]
-
-# モデルのロード
-best_model_path = checkpoint.best_model_path
-model = BertForSequenceClassificationMultiLabel_pl.load_from_checkpoint(best_model_path)
-bert_scml = model.bert_scml.cuda()
-
-# データの符号化
+# 入力する文章. 結果はネガティブ, ニュートラル, ポジティブの順
+text_list = [
+    '当連結会計年度の売上高は前期比5.8%増加し、業績は堅調に推移しました。',
+    '海外市場での需要拡大が寄与し、売上および営業利益が過去最高を記録しました。',
+    '一部事業における原材料価格の高騰の影響を受け、収益性が低下しました。',
+    '国内景気は緩やかな回復基調を維持したものの、インフレ率の上昇が購買力に影響を及ぼしました。',
+    '新興市場における競争激化により、当社製品のシェアは微減しましたが、全体的な市場拡大により売上は増加しました。',
+    '為替変動が利益にプラスの影響を与えた一方で、サプライチェーンの遅延が一部事業の成長を抑制しました。',
+    '2025年度に向けて、成長市場への積極的な投資と新規事業の開発に注力する予定です。',
+    '業界全体の需要鈍化が予想される中で、コスト構造の見直しにより安定的な収益を確保していきます。',
+    'カーボンニュートラル達成を目指し、再生可能エネルギーへのシフトを加速させます。',
+    '当社は、デジタル化の遅れが競争力に与える影響を認識しており、ITシステムへの投資を増強する方針です。',
+    '地政学的リスクの高まりにより、一部の輸出取引に不確実性が生じています。',
+    '半導体不足の影響を受け、特定製品の納期が遅延する可能性があります。',
+]
 encoding = tokenizer(
     text_list,
-    padding = 'longest',
-    return_tensors='pt'
+    max_length=MAX_LENGTH,
+    padding='longest',
+    truncation=True,
+    return_tensors='pt',
 )
-encoding = { k: v.cuda() for k, v in encoding.items() }
-
-# BERTへデータを入力し分類スコアを得る。
+encoding = {key: value.to(device) for key, value in encoding.items()}
+model.eval()
 with torch.no_grad():
-    output = bert_scml(**encoding)
-scores = output.logits
-labels_predicted = ( scores > 0 ).int().cpu().numpy().tolist()
-
-# 結果を表示
+    scores = model(**encoding)
+labels_predicted = (scores > 0).int().cpu().numpy().tolist()
 for text, label in zip(text_list, labels_predicted):
     print('--')
-    print(f'入力：{text}')
-    print(f'出力：{label}')
-
+    print(f'入力: {text}')
+    print(f'出力: {label}')
 """
 --
-入力：当連結会計年度の売上高は前期比5.8%増加し、業績は堅調に推移しました。
-出力：[0, 0, 1]
+入力: 当連結会計年度の売上高は前期比5.8%増加し、業績は堅調に推移しました。
+出力: [0, 0, 1]
 --
-入力：海外市場での需要拡大が寄与し、売上および営業利益が過去最高を記録しました。
-出力：[0, 0, 1]
+入力: 海外市場での需要拡大が寄与し、売上および営業利益が過去最高を記録しました。
+出力: [0, 0, 1]
 --
-入力：一部事業における原材料価格の高騰の影響を受け、収益性が低下しました。
-出力：[1, 0, 0]
+入力: 一部事業における原材料価格の高騰の影響を受け、収益性が低下しました。
+出力: [1, 0, 0]
 --
-入力：国内景気は緩やかな回復基調を維持したものの、インフレ率の上昇が購買力に影響を及ぼしました。
-出力：[1, 0, 1]
+入力: 国内景気は緩やかな回復基調を維持したものの、インフレ率の上昇が購買力に影響を及ぼしました。
+出力: [0, 0, 1]
 --
-入力：新興市場における競争激化により、当社製品のシェアは微減しましたが、全体的な市場拡大により売上は増加しました。
-出力：[1, 0, 1]
+入力: 新興市場における競争激化により、当社製品のシェアは微減しましたが、全体的な市場拡大により売上は増加しました。
+出力: [1, 0, 1]
 --
-入力：為替変動が利益にプラスの影響を与えた一方で、サプライチェーンの遅延が一部事業の成長を抑制しました。
-出力：[1, 0, 1]
+入力: 為替変動が利益にプラスの影響を与えた一方で、サプライチェーンの遅延が一部事業の成長を抑制しました。
+出力: [1, 0, 0]
 --
-入力：2025年度に向けて、成長市場への積極的な投資と新規事業の開発に注力する予定です。
-出力：[0, 0, 0]
+入力: 2025年度に向けて、成長市場への積極的な投資と新規事業の開発に注力する予定です。
+出力: [0, 0, 1]
 --
-入力：業界全体の需要鈍化が予想される中で、コスト構造の見直しにより安定的な収益を確保していきます。
-出力：[0, 0, 1]
+入力: 業界全体の需要鈍化が予想される中で、コスト構造の見直しにより安定的な収益を確保していきます。
+出力: [0, 0, 1]
 --
-入力：カーボンニュートラル達成を目指し、再生可能エネルギーへのシフトを加速させます。
-出力：[0, 0, 0]
+入力: カーボンニュートラル達成を目指し、再生可能エネルギーへのシフトを加速させます。
+出力: [0, 0, 1]
 --
-入力：当社は、デジタル化の遅れが競争力に与える影響を認識しており、ITシステムへの投資を増強する方針です。
-出力：[0, 0, 0]
+入力: 当社は、デジタル化の遅れが競争力に与える影響を認識しており、ITシステムへの投資を増強する方針です。
+出力: [0, 0, 1]
 --
-入力：地政学的リスクの高まりにより、一部の輸出取引に不確実性が生じています。
-出力：[1, 0, 0]
+入力: 地政学的リスクの高まりにより、一部の輸出取引に不確実性が生じています。
+出力: [1, 0, 0]
 --
-入力：半導体不足の影響を受け、特定製品の納期が遅延する可能性があります。
-出力：[1, 0, 0]
+入力: 半導体不足の影響を受け、特定製品の納期が遅延する可能性があります。
+出力: [1, 0, 0]
 """
 ~~~
 
-結果を見てみるとかなり正確に文章のネガティブポジティブ判定ができていることが分かります.
+結果を見てみると, 業績が良いことだけを述べた 1 文目と 2 文目はポジティブ, 悪化したことを述べた 3 文目と 12 文目はネガティブと判定されています. 好材料と悪材料が混じる 4 文目から 6 文目は, 5 文目では両方が判定された一方, 4 文目はポジティブだけ, 6 文目はネガティブだけが判定されています. 学習の規模を小さくしたことが影響している可能性があります. 3 つの設定の値を変えて, 判定がどう変わるかを比べてみましょう.
 文章を変える, 外部からデータを取り込むなどして, これ以外の事例でも試してみましょう.
 
 
@@ -1192,30 +1071,19 @@ $T = 1$ のときは, [第8章](dsp8.html#ニューラルネットワークの�
 続いて, BERT を利用して文章をベクトルに変換しクラスタリングや類似度の評価を行ってみます.
 事例として, 異なる言語 (アラビア語, 中国語, 英語, フランス語, ドイツ語, ヒンディー語, インドネシア語, イタリア語, 日本語, 韓国語, ポルトガル語, ロシア語, スペイン語, トルコ語) での Wikipedia における LGBTQ に関する記事の類似度を評価してみます.
 
-[各言語の記事を日本語に翻訳したデータ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch15/LGBTWiki.csv)をダウンロードして, Google Drive の作業用ディレクトリの `Data` フォルダ内に配置しましょう. 本来は, 英語に翻訳したほうが翻訳精度の関係から望ましいですが, ここでは分かりやすいように日本語に翻訳してあります.
+[各言語の記事を日本語に翻訳したデータ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch15/LGBTWiki.csv)をダウンロードして, プログラムを置くディレクトリの `data` ディレクトリに保存しましょう. 本来は, 英語に翻訳したほうが翻訳精度の関係から望ましいですが, ここでは分かりやすいように日本語に翻訳してあります.
 
-また, `Colaboratory` 上で日本語のワードクラウドなどを作成するために, 日本語のフォントを Google Drive にアップロードしておく必要があります. [日本語フォント](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch15/fonts-japanese-gothic.ttf)をダウンロードして, `Data` フォルダ内に配置しておきましょう.
+また, 日本語のワードクラウドを作成するために, 日本語のフォントも `data` ディレクトリに保存しておきます. [日本語フォント](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch15/fonts-japanese-gothic.ttf)をダウンロードして, `data` ディレクトリに保存しておきましょう.
 
-まずは, Google Drive のマウントと必要なライブラリのインストールを行います.
+この節の BERT は, 学習をせずに文章をベクトルに変えるだけなので, GPU がなくても短い時間で終わります (14 記事で, Apple M5 Max の CPU のみで約 2 秒です). 次のライブラリを使います. `uv add` しておいてください.
 
-~~~ py
-#Google Drive上のデータを利用できるようにする
-from google.colab import drive
-drive.mount('/content/drive')
-#ディレクトリの移動
-#ここを自分のディレクトリにすればデータが利用可能
-%cd /content/drive/My Drive/slds
-
-!pip install transformers==4.18.0 fugashi==1.1.0 ipadic==1.0.0
-!pip install matplotlib-fontja
-!pip install adjustText
+~~~ sh
+uv add torch transformers fugashi unidic-lite pandas scikit-learn scipy matplotlib matplotlib-fontja seaborn adjustText tqdm
 ~~~
 
 続いて各種インポートと, 設定を行います.
 
 ~~~ py
-import random
-import glob
 from tqdm import tqdm
 import numpy as np
 from sklearn.manifold import TSNE
@@ -1224,7 +1092,6 @@ import matplotlib.pyplot as plt
 import matplotlib_fontja
 import pandas as pd
 import torch
-from torch.utils.data import DataLoader
 from transformers import BertJapaneseTokenizer, BertModel
 import seaborn as sns
 from adjustText import adjust_text
@@ -1234,6 +1101,13 @@ plt.style.use('ggplot') #グラフスタイル
 plt.rcParams['figure.figsize'] = [20, 15] #グラフサイズ
 plt.rcParams['font.size'] = 14 #フォントサイズ
 
+# 使うデバイスの選択 (第9章と同じ)
+if torch.backends.mps.is_available():
+    device = torch.device('mps') #Mac GPU
+elif torch.cuda.is_available():
+    device = torch.device('cuda:0') #Win GPU
+else:
+    device = torch.device('cpu') #CPU
 
 # BERTの日本語モデル
 MODEL_NAME = 'tohoku-nlp/bert-base-japanese-whole-word-masking'
@@ -1265,7 +1139,7 @@ df_wiki['Text'] = df_wiki['Text'].astype(str)
 # トークナイザとモデルのロード
 tokenizer = BertJapaneseTokenizer.from_pretrained(MODEL_NAME)
 model = BertModel.from_pretrained(MODEL_NAME)
-model = model.cuda()
+model = model.to(device)
 
 # 各データの形式を整える
 max_length = 256
@@ -1280,7 +1154,7 @@ for i in tqdm(df_wiki.index):
         truncation=True,
         return_tensors='pt'
     )
-    encoding = { k: v.cuda() for k, v in encoding.items() }
+    encoding = { k: v.to(device) for k, v in encoding.items() }
     attention_mask = encoding['attention_mask']
 
     # 文章ベクトルを計算
@@ -1333,57 +1207,57 @@ df_cos.to_csv('data/cos.csv',encoding='utf-8-sig')
 
 """
 コサイン距離------
-              German   Spanish  Portuguese    France   Italian   Russian  \
-German      1.000000  0.979876    0.977262  0.972203  0.971380  0.969898
-Spanish     0.979876  1.000000    0.982863  0.978872  0.979864  0.978996
-Portuguese  0.977262  0.982863    1.000000  0.976089  0.981436  0.982457
-France      0.972203  0.978872    0.976089  1.000000  0.976741  0.970900
-Italian     0.971380  0.979864    0.981436  0.976741  1.000000  0.976250
-Russian     0.969898  0.978996    0.982457  0.970900  0.976250  1.000000
-Hindi       0.968832  0.973127    0.980610  0.963404  0.976204  0.975082
-Arabic      0.967984  0.970234    0.980389  0.958874  0.968162  0.975689
-Japanese    0.956910  0.962005    0.955607  0.964237  0.967997  0.953722
-Turkish     0.940751  0.944137    0.937296  0.952527  0.953905  0.943392
-Chinise     0.933739  0.952394    0.945277  0.935895  0.951706  0.941210
-Korean      0.927201  0.927902    0.905628  0.919758  0.928268  0.904069
-English     0.912216  0.912019    0.890923  0.910977  0.916483  0.889809
-Indonesian  0.882634  0.879143    0.856105  0.877627  0.882631  0.857904
+              German   Spanish  Portuguese    Arabic     Hindi   Italian  \
+German      1.000000  0.976203    0.975127  0.971573  0.970698  0.969747
+Spanish     0.976203  1.000000    0.981414  0.972422  0.969167  0.979055
+Portuguese  0.975127  0.981414    1.000000  0.984561  0.978703  0.981902
+Arabic      0.971573  0.972422    0.984561  1.000000  0.979478  0.974308
+Hindi       0.970698  0.969167    0.978703  0.979478  1.000000  0.976511
+Italian     0.969747  0.979055    0.981902  0.974308  0.976511  1.000000
+France      0.967945  0.979471    0.977836  0.963222  0.961492  0.975864
+Russian     0.966447  0.974909    0.982041  0.977697  0.975407  0.976528
+Japanese    0.954630  0.954573    0.952049  0.947444  0.963872  0.967003
+Turkish     0.939331  0.937166    0.937905  0.937141  0.943376  0.953529
+Chinise     0.933493  0.951283    0.943161  0.935953  0.944198  0.952429
+Korean      0.927303  0.938399    0.917036  0.899642  0.900244  0.932856
+English     0.918245  0.925514    0.907207  0.887589  0.890674  0.922525
+Indonesian  0.876889  0.887521    0.866018  0.841958  0.843015  0.880764
 
-               Hindi    Arabic  Japanese   Turkish   Chinise    Korean  \
-German      0.968832  0.967984  0.956910  0.940751  0.933739  0.927201
-Spanish     0.973127  0.970234  0.962005  0.944137  0.952394  0.927902
-Portuguese  0.980610  0.980389  0.955607  0.937296  0.945277  0.905628
-France      0.963404  0.958874  0.964237  0.952527  0.935895  0.919758
-Italian     0.976204  0.968162  0.967997  0.953905  0.951706  0.928268
-Russian     0.975082  0.975689  0.953722  0.943392  0.941210  0.904069
-Hindi       1.000000  0.976721  0.962024  0.939230  0.945298  0.889991
-Arabic      0.976721  1.000000  0.944017  0.932226  0.924914  0.881642
-Japanese    0.962024  0.944017  1.000000  0.952746  0.918798  0.903691
-Turkish     0.939230  0.932226  0.952746  1.000000  0.902123  0.894593
-Chinise     0.945298  0.924914  0.918798  0.902123  1.000000  0.927152
-Korean      0.889991  0.881642  0.903691  0.894593  0.927152  1.000000
-English     0.875571  0.867936  0.895869  0.893318  0.898600  0.978736
-Indonesian  0.837501  0.831484  0.856639  0.860593  0.869281  0.970492
+              France   Russian  Japanese   Turkish   Chinise    Korean  \
+German      0.967945  0.966447  0.954630  0.939331  0.933493  0.927303
+Spanish     0.979471  0.974909  0.954573  0.937166  0.951283  0.938399
+Portuguese  0.977836  0.982041  0.952049  0.937905  0.943161  0.917036
+Arabic      0.963222  0.977697  0.947444  0.937141  0.935953  0.899642
+Hindi       0.961492  0.975407  0.963872  0.943376  0.944198  0.900244
+Italian     0.975864  0.976528  0.967003  0.953529  0.952429  0.932856
+France      1.000000  0.971557  0.956259  0.949862  0.934714  0.931158
+Russian     0.971557  1.000000  0.951799  0.944928  0.940381  0.905520
+Japanese    0.956259  0.951799  1.000000  0.949200  0.919489  0.911559
+Turkish     0.949862  0.944928  0.949200  1.000000  0.903424  0.903760
+Chinise     0.934714  0.940381  0.919489  0.903424  1.000000  0.924830
+Korean      0.931158  0.905520  0.911559  0.903760  0.924830  1.000000
+English     0.923854  0.898786  0.900241  0.898590  0.903045  0.981151
+Indonesian  0.887053  0.857061  0.853968  0.860300  0.858218  0.964330
 
              English  Indonesian
-German      0.912216    0.882634
-Spanish     0.912019    0.879143
-Portuguese  0.890923    0.856105
-France      0.910977    0.877627
-Italian     0.916483    0.882631
-Russian     0.889809    0.857904
-Hindi       0.875571    0.837501
-Arabic      0.867936    0.831484
-Japanese    0.895869    0.856639
-Turkish     0.893318    0.860593
-Chinise     0.898600    0.869281
-Korean      0.978736    0.970492
-English     1.000000    0.972170
-Indonesian  0.972170    1.000000
+German      0.918245    0.876889
+Spanish     0.925514    0.887521
+Portuguese  0.907207    0.866018
+Arabic      0.887589    0.841958
+Hindi       0.890674    0.843015
+Italian     0.922525    0.880764
+France      0.923854    0.887053
+Russian     0.898786    0.857061
+Japanese    0.900241    0.853968
+Turkish     0.898590    0.860300
+Chinise     0.903045    0.858218
+Korean      0.981151    0.964330
+English     1.000000    0.974397
+Indonesian  0.974397    1.000000
 """
 ~~~
 
-各言語間の記事の内容のコサイン類似度をヒートマップで表現すると以下のようになりました.
+各言語間の記事の内容のコサイン類似度をヒートマップで表現すると以下のようになりました. 数値は, 使っているライブラリのバージョンによって少し変わります. 以降の図も細部は変わりますが, 階層クラスタリングで分かれるクラスタの組み合わせは同じになることを確かめてあります.
 
 ![](/images/slds/ch15/wiki-cos.png)
 
@@ -1486,8 +1360,8 @@ plt.show()
 
 ワードクラウドの作成に必要なライブラリをインストールします.
 
-~~~ py
-!pip install mecab-python3 unidic-lite wordcloud gensim
+~~~ sh
+uv add mecab-python3 unidic-lite wordcloud gensim
 ~~~
 
 各クラスタごとにワードクラウドを作成してみます.
@@ -1616,7 +1490,7 @@ API という仕組みの説明と, X API による取得手順 (認証トーク
 LDA によるトピックモデルを利用するためにライブラリ `gensim` と, LDA の可視化用のライブラリ `pyLDAvis` をインストールしましょう.
 
 ~~~ sh
-pip install gensim pyLDAvis
+uv add gensim pyLDAvis
 ~~~
 
 `import` と形態素解析のための関数を定義しておきます.
