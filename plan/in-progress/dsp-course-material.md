@@ -5,7 +5,7 @@ created: 2026-09-04
 updated: 2026-09-25
 priority: high
 next_actor: user
-next_action: "総合実習 (Ch11) の 3 題材の課題文と作業手順を作る (Ch7/Ch9/Ch10 の事例から少し変え穴埋め形式). ユーザは open: true の各章を通読して修正点を指示する"
+next_action: "総合実習の題材 3 (ニュース記事の分類) の本文を dsp11.md に作る (方針と実測は dsp-capstone-exercises.md). ユーザは open: true の各章を通読して修正点を指示する"
 ---
 
 # データサイエンス実践 (dsp) 講義資料の新設
