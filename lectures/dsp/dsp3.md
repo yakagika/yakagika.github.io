@@ -76,51 +76,35 @@ import seaborn as sns
 
 グラフを作る前に, まず **どのグラフを使うか** を決めましょう. 使うべきグラフは, 同時に見る観測項目の数 (データの **次元**) と, 各項目が **質的データ** か **量的データ** かで, おおよそ決まります.
 
-下の早見表は, データの次元と種別から代表的なグラフを選ぶための地図です. 各グラフ名をクリックすると, 本章の対応する解説に移動します.
+下の樹形図は, 観測項目の数 (データの次元) と各項目の種別を上から順にたどって, 代表的なグラフを選ぶためのものです. 各グラフ名をクリックすると, 本章の対応する解説に移動します.
 
-<div class="graph-flowchart" role="group" aria-label="データの次元と種別からグラフを選ぶ早見表">
+<div class="graph-flowchart" role="group" aria-label="データの次元と種別からグラフを選ぶ樹形図">
 <style>
-.graph-flowchart{margin:28px 0;padding:20px 20px 16px;border:1px solid var(--border-color);border-radius:8px;background:var(--bg-soft);max-width:100%;box-sizing:border-box}
-.graph-flowchart p{margin:0}
-.graph-flowchart .gf-root{width:max-content;max-width:100%;margin:0 auto;padding:6px 22px;background:var(--accent-color);color:#fff;font-weight:700;border-radius:6px;text-align:center}
-.graph-flowchart .gf-stem{width:2px;height:16px;margin:0 auto;background:var(--border-color)}
-.graph-flowchart .gf-cols{display:flex;flex-wrap:wrap;gap:16px;justify-content:center;align-items:flex-start;margin-top:0}
-.graph-flowchart .gf-col{flex:1 1 210px;min-width:0;max-width:360px;border:1px solid var(--border-color);border-radius:6px;background:var(--bg-color);overflow:hidden}
-.graph-flowchart .gf-dim{padding:8px 12px;background:var(--accent-color);color:#fff;font-weight:700;text-align:center;font-size:.98em}
-.graph-flowchart .gf-branch{padding:2px 14px 6px}
-.graph-flowchart .gf-row{display:flex;align-items:baseline;flex-wrap:wrap;gap:2px 8px;padding:8px 0;border-bottom:1px dashed var(--border-color)}
-.graph-flowchart .gf-row:last-child{border-bottom:none}
-.graph-flowchart .gf-type{flex:0 0 auto;font-size:.85em;font-weight:600;color:var(--text-soft)}
-.graph-flowchart .gf-arrow{flex:0 0 auto;color:var(--text-soft)}
-.graph-flowchart .gf-graph{flex:1 1 60%;font-weight:600}
+.graph-flowchart{margin:28px 0;padding:14px 18px;border:1px solid var(--rule-hair);background:var(--fill-soft);max-width:100%;box-sizing:border-box}
+.graph-flowchart .gf-ul{list-style:none;margin:0;padding:0}
+.graph-flowchart .gf-ul .gf-ul{padding-left:26px}
+.graph-flowchart .gf-ul li{position:relative;margin:0;padding:0}
+.graph-flowchart .gf-ul li::before{content:none}
+.graph-flowchart .gf-ul .gf-ul>li::before{content:"";position:absolute;left:-14px;top:0;bottom:0;width:0;border-left:2px solid var(--ink-soft)}
+.graph-flowchart .gf-ul .gf-ul>li:last-child::before{bottom:auto;height:22px}
+.graph-flowchart .gf-ul .gf-ul>li::after{content:"";position:absolute;left:-14px;top:22px;width:12px;border-top:2px solid var(--ink-soft)}
+.graph-flowchart .gf-line{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;min-height:44px}
+.graph-flowchart .gf-root,.graph-flowchart .gf-dim{padding:3px 14px;background:var(--ink);color:var(--paper);font-weight:700}
+.graph-flowchart .gf-type{font-size:.9em;font-weight:600;color:var(--ink-soft)}
+.graph-flowchart .gf-arrow{color:var(--ink-soft)}
+.graph-flowchart a.gf-g{display:inline-flex;align-items:center;gap:6px;padding:2px 10px 2px 6px;border:1px solid var(--rule-hair);background:var(--paper);font-weight:600}
+.graph-flowchart a.gf-g:hover{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.graph-flowchart .gf-ico{width:26px;height:26px;flex:0 0 auto;margin:0;max-width:none;max-height:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.graph-flowchart .gf-ico .f{fill:currentColor;fill-opacity:.22}
+.graph-flowchart .gf-ico .d{fill:currentColor;stroke:none}
 </style>
-<div class="gf-root">データ</div>
-<div class="gf-stem"></div>
-<div class="gf-cols">
-<div class="gf-col">
-<div class="gf-dim">1次元データ</div>
-<div class="gf-branch">
-<div class="gf-row"><span class="gf-type">量的</span><span class="gf-arrow">→</span><span class="gf-graph"><a href="#histogram">ヒストグラム</a></span></div>
-<div class="gf-row"><span class="gf-type">質的</span><span class="gf-arrow">→</span><span class="gf-graph"><a href="#bar">棒グラフ</a> ・ <a href="#pie">円グラフ</a></span></div>
-</div>
-</div>
-<div class="gf-col">
-<div class="gf-dim">2次元データ</div>
-<div class="gf-branch">
-<div class="gf-row"><span class="gf-type">質的 × 質的</span><span class="gf-arrow">→</span><span class="gf-graph"><a href="#heatmap">ヒートマップ</a></span></div>
-<div class="gf-row"><span class="gf-type">質的 × 量的</span><span class="gf-arrow">→</span><span class="gf-graph"><a href="#bar">棒グラフ</a> ・ <a href="#boxplot">箱ひげ図</a></span></div>
-<div class="gf-row"><span class="gf-type">時系列 (時間 × 量的)</span><span class="gf-arrow">→</span><span class="gf-graph"><a href="#line">折れ線グラフ</a></span></div>
-<div class="gf-row"><span class="gf-type">量的 × 量的</span><span class="gf-arrow">→</span><span class="gf-graph"><a href="#scatter">散布図</a></span></div>
-</div>
-</div>
-<div class="gf-col">
-<div class="gf-dim">多次元データ</div>
-<div class="gf-branch">
-<div class="gf-row"><span class="gf-type">量的が多数</span><span class="gf-arrow">→</span><span class="gf-graph"><a href="#scatter-matrix">散布図行列</a></span></div>
-<div class="gf-row"><span class="gf-type">3変数</span><span class="gf-arrow">→</span><span class="gf-graph"><a href="#scatter-3d">3次元プロット・色/大きさ付き散布図</a></span></div>
-</div>
-</div>
-</div>
+<ul class="gf-ul">
+<li><div class="gf-line"><span class="gf-root">データ</span></div><ul class="gf-ul">
+<li><div class="gf-line"><span class="gf-dim">1次元データ</span></div><ul class="gf-ul"><li><div class="gf-line"><span class="gf-type">量的</span><span class="gf-arrow">→</span><a class="gf-g" href="#histogram"><svg class="gf-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M4 28h24"/><rect class="f" x="6" y="20" width="5" height="8"/><rect class="f" x="11" y="10" width="5" height="18"/><rect class="f" x="16" y="6" width="5" height="22"/><rect class="f" x="21" y="16" width="5" height="12"/></svg>ヒストグラム</a></div></li><li><div class="gf-line"><span class="gf-type">質的</span><span class="gf-arrow">→</span><a class="gf-g" href="#bar"><svg class="gf-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M4 28h24"/><rect class="f" x="5" y="18" width="5" height="10"/><rect class="f" x="13" y="8" width="5" height="20"/><rect class="f" x="21" y="21" width="5" height="7"/></svg>棒グラフ</a><a class="gf-g" href="#pie"><svg class="gf-ico" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="11"/><path class="f" d="M16 16V5A11 11 0 0 1 25.5 21.5Z"/></svg>円グラフ</a></div></li></ul></li>
+<li><div class="gf-line"><span class="gf-dim">2次元データ</span></div><ul class="gf-ul"><li><div class="gf-line"><span class="gf-type">質的 × 質的</span><span class="gf-arrow">→</span><a class="gf-g" href="#heatmap"><svg class="gf-ico" viewBox="0 0 32 32" aria-hidden="true"><rect class="f" style="fill-opacity:0.9" x="4" y="4" width="7" height="7"/><rect class="f" style="fill-opacity:0.5" x="12" y="4" width="7" height="7"/><rect class="f" style="fill-opacity:0.15" x="20" y="4" width="7" height="7"/><rect class="f" style="fill-opacity:0.4" x="4" y="12" width="7" height="7"/><rect class="f" style="fill-opacity:0.8" x="12" y="12" width="7" height="7"/><rect class="f" style="fill-opacity:0.3" x="20" y="12" width="7" height="7"/><rect class="f" style="fill-opacity:0.15" x="4" y="20" width="7" height="7"/><rect class="f" style="fill-opacity:0.35" x="12" y="20" width="7" height="7"/><rect class="f" style="fill-opacity:0.9" x="20" y="20" width="7" height="7"/></svg>ヒートマップ</a></div></li><li><div class="gf-line"><span class="gf-type">質的 × 量的</span><span class="gf-arrow">→</span><a class="gf-g" href="#bar"><svg class="gf-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M4 28h24"/><rect class="f" x="5" y="18" width="5" height="10"/><rect class="f" x="13" y="8" width="5" height="20"/><rect class="f" x="21" y="21" width="5" height="7"/></svg>棒グラフ</a><a class="gf-g" href="#boxplot"><svg class="gf-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4v6M16 22v6M12 4h8M12 28h8"/><rect class="f" x="9" y="10" width="14" height="12"/><path d="M9 16h14"/></svg>箱ひげ図</a></div></li><li><div class="gf-line"><span class="gf-type">量的 × 量的</span><span class="gf-arrow">→</span><a class="gf-g" href="#scatter"><svg class="gf-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 4v24h23"/><circle class="d" cx="10" cy="22" r="1.7"/><circle class="d" cx="14" cy="18" r="1.7"/><circle class="d" cx="18" cy="20" r="1.7"/><circle class="d" cx="20" cy="13" r="1.7"/><circle class="d" cx="25" cy="9" r="1.7"/><circle class="d" cx="13" cy="24" r="1.7"/></svg>散布図</a></div></li><li><div class="gf-line"><span class="gf-type">時間 × 量的</span><span class="gf-arrow">→</span><a class="gf-g" href="#line"><svg class="gf-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 4v24h23"/><path d="M8 22l6-7 5 4 8-11"/></svg>折れ線グラフ</a></div></li></ul></li>
+<li><div class="gf-line"><span class="gf-dim">3次元以上のデータ</span></div><ul class="gf-ul"><li><div class="gf-line"><span class="gf-type">量的 3 つ</span><span class="gf-arrow">→</span><a class="gf-g" href="#scatter-3d"><svg class="gf-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M14 20V4M14 20L4 28M14 20l14 6"/><circle class="d" cx="18" cy="10" r="1.7"/><circle class="d" cx="21" cy="17" r="1.7"/><circle class="d" cx="9" cy="22" r="1.7"/><circle class="d" cx="16" cy="15" r="1.7"/><circle class="d" cx="23" cy="23" r="1.7"/></svg>3次元プロット</a><a class="gf-g" href="#scatter-3d"><svg class="gf-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 4v24h23"/><circle class="f" cx="11" cy="21" r="2.3"/><circle class="f" style="fill-opacity:.5" cx="17" cy="15" r="4"/><circle class="f" cx="24" cy="9" r="3"/><circle class="f" style="fill-opacity:.1" cx="23" cy="22" r="3"/></svg>色・大きさ付き散布図</a></div></li><li><div class="gf-line"><span class="gf-type">量的が多数</span><span class="gf-arrow">→</span><a class="gf-g" href="#scatter-matrix"><svg class="gf-ico" viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="4" width="24" height="24"/><path d="M12 4v24M20 4v24M4 12h24M4 20h24"/><rect class="f" x="4" y="4" width="8" height="8"/><rect class="f" x="12" y="12" width="8" height="8"/><rect class="f" x="20" y="20" width="8" height="8"/><circle class="d" cx="14.5" cy="9.5" r="0.9"/><circle class="d" cx="17.5" cy="6.5" r="0.9"/><circle class="d" cx="22.5" cy="9.5" r="0.9"/><circle class="d" cx="25.5" cy="6.5" r="0.9"/><circle class="d" cx="6.5" cy="17.5" r="0.9"/><circle class="d" cx="9.5" cy="14.5" r="0.9"/><circle class="d" cx="22.5" cy="17.5" r="0.9"/><circle class="d" cx="25.5" cy="14.5" r="0.9"/><circle class="d" cx="6.5" cy="25.5" r="0.9"/><circle class="d" cx="9.5" cy="22.5" r="0.9"/><circle class="d" cx="14.5" cy="25.5" r="0.9"/><circle class="d" cx="17.5" cy="22.5" r="0.9"/></svg>散布図行列</a></div></li></ul></li>
+</ul></li>
+</ul>
 </div>
 
 ::: note
@@ -143,7 +127,7 @@ import seaborn as sns
 
 :::
 
-早見表はデータの形からグラフを選ぶ方法です. グラフを選ぶもう 1 つの手がかりは, 図で何を見せたいか (比較, 構成, 分布, 変化, 関係) です. 見せたいことと本章の節の対応は次のとおりです.
+樹形図はデータの形からグラフを選ぶ方法です. グラフを選ぶもう 1 つの手がかりは, 図で何を見せたいか (比較, 構成, 分布, 変化, 関係) です. 見せたいことと本章の節の対応は次のとおりです.
 
 - **比較**: [棒グラフ](#bar)
 - **構成**: [円グラフ](#pie), [積み上げ棒グラフ](#stacked-bar)
