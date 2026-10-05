@@ -341,6 +341,108 @@ plt.close()
 
 シルエット係数の平均は $K = 4$ で最大 (0.673) になり, エルボー法と同じ $K$ を支持します. ただし $K = 2$ (0.643) や $K = 3$ (0.646) との差は小さく, 指標だけで $K$ がはっきり決まるわけではありません. 指標の差が小さいときは, 候補の $K$ ごとにクラスタの平均を求め, 特徴を言葉で説明できる分け方を選びます ([Exercise DSP7-1](#exercise-dsp7-1)).
 
+## 密度と確率モデルに基づくクラスタリング (発展) {#密度と確率モデルに基づくクラスタリング}
+
+k-means 法には 2 つの制約があります. 1 つは, 各データを最も近い重心のクラスタに割り当てるので, 重心のまわりに丸くまとまったクラスタしか取り出せないことです. もう 1 つは, 各データがどれか 1 つのクラスタに必ず属し, どの塊にも当てはまらないデータや, 塊と塊の境界にあるデータも, どこかのクラスタに割り当てられることです. DBSCAN はどちらの制約も持たず, 混合ガウスモデルは各データの所属を確率で表すことで 2 つ目の制約を緩めます.
+
+### DBSCAN
+
+**DBSCAN** (Density-Based Spatial Clustering of Applications with Noise) は, データが密に集まっている領域をクラスタとみなす手法です. 半径 `eps` と個数 `min_samples` を決め, 次のようにクラスタを作ります.
+
+1. 半径 `eps` の範囲に (自分を含めて) `min_samples` 個以上のデータがある点を**コア点**とします.
+2. 互いに `eps` 以内にあるコア点をつなぎ, つながったコア点とその `eps` 以内にあるデータを 1 つのクラスタとします.
+3. どのコア点からも `eps` 以内にないデータは, どのクラスタにも属さない**ノイズ**とします.
+
+密な領域がつながっている限り 1 つのクラスタになるので, 形が丸くないクラスタも見つけられます. クラスタの数を先に決める必要もありません.
+
+売店の会員のデータに DBSCAN を適用し, k-means 法の結果と比べます.
+
+~~~ py
+from sklearn.cluster import DBSCAN
+
+# 標準化した2項目に適用する. ノイズのクラスタ番号は -1
+member['db'] = DBSCAN(eps=0.25, min_samples=5).fit_predict(z[['visits', 'amount_per_visit']])
+print(member['db'].value_counts().sort_index())
+"""
+db
+-1    10
+ 0    70
+ 1    53
+ 2    38
+ 3    29
+"""
+
+fig, axes = plt.subplots(1, 2, figsize=(11, 4.3))
+axes[0].scatter(member['visits'], member['amount_per_visit'], c=member['cluster'], cmap='viridis', s=15)
+axes[0].set_title('k-means (k=4)')
+ok = member['db'] != -1  # ノイズでない会員
+axes[1].scatter(member.loc[ok, 'visits'], member.loc[ok, 'amount_per_visit'],
+                c=member.loc[ok, 'db'], cmap='viridis', s=15)
+axes[1].scatter(member.loc[~ok, 'visits'], member.loc[~ok, 'amount_per_visit'],
+                c='gray', marker='x', s=50, label='ノイズ')
+axes[1].set_title('DBSCAN (eps=0.25, min_samples=5)')
+axes[1].legend()
+plt.show()
+plt.close()
+~~~
+
+![k-means 法と DBSCAN の比較](/images/dsp/ch7/dbscan.png)
+
+DBSCAN も 4 つの塊を 4 つのクラスタとして取り出しましたが, 10 人の会員をノイズとして, どのクラスタにも入れていません. ノイズになったのは, 塊と塊の間のまばらな位置にいる会員と, 塊の端にいる会員です. k-means 法ではこれらの会員もいずれかのクラスタに入り, そのクラスタの平均を動かします. どの層にも当てはまらない会員を別に扱いたいときは, DBSCAN が向いています.
+
+ただし, 結果は `eps` と `min_samples` に大きく左右されます. このデータで `eps` を 0.3 に広げると, 昼食の会員とカフェ利用の会員の塊が, 間にいる会員を伝って 1 つのクラスタにつながります. 逆に `eps` を小さくしすぎると, ノイズになる会員が増えます.
+
+### 混合ガウスモデル
+
+**混合ガウスモデル** (Gaussian Mixture Model) は, データが $K$ 個の正規分布を重ね合わせた分布から生成されたと考え, 各正規分布の平均, 広がり (分散と共分散), 混ざり具合 (混合比) をデータから推定する手法です. 推定した分布を使うと, 各データがそれぞれのクラスタ (正規分布) から生成された確率を計算できます. k-means 法が各データを 1 つのクラスタに割り当てるのに対し, 混合ガウスモデルはどのクラスタにどれだけの確率で属するかを出力します.
+
+売店の会員のデータに適用し, 所属の確率が最も低い会員を見てみます.
+
+~~~ py
+from sklearn.mixture import GaussianMixture
+
+X = z[['visits', 'amount_per_visit']]
+gm = GaussianMixture(n_components=4, random_state=0).fit(X)
+prob = gm.predict_proba(X)            # 会員ごとの, 各クラスタに属する確率
+member['max_prob'] = prob.max(axis=1)  # 最も確率の高いクラスタの確率
+print(member.sort_values('max_prob').head(3)[['visits', 'amount_per_visit', 'cluster', 'max_prob']].round(2))
+"""
+           visits  amount_per_visit  cluster  max_prob
+member_id
+1074           34            267.35        3      0.85
+1096           42            309.76        3      0.98
+1117           46            318.70        0      0.99
+"""
+~~~
+
+ほとんどの会員は, いずれか 1 つのクラスタに確率 0.99 以上で属します. このデータでは 4 つの塊が互いに離れているためです. 最も確率が低いのは会員 1074 で, カフェ利用の会員のクラスタに 0.85, 昼食の会員のクラスタに 0.15 の確率で属します. 来店回数 (34 回) は昼食の会員に近く, 1 回あたりの購入額 (267 円) はカフェ利用の会員に近い会員です. k-means 法はこの会員を昼食のクラスタ (3) に割り当てましたが, 混合ガウスモデルはどちらとも言い切れないことを確率で表しています.
+
+塊同士が重なり合っているデータでは, 各データを 1 つのクラスタに決める k-means 法と, 所属を確率で表す混合ガウスモデルの違いがはっきり現れます. 次の例は, 中心が (0, 0) と (3, 0) の 2 つの塊を, 重なるように生成したデータです.
+
+~~~ py
+from sklearn.datasets import make_blobs
+
+# 中心が (0, 0) と (3, 0) の2つの塊を, 重なるように生成する
+Xb, _ = make_blobs(n_samples=300, centers=[[0, 0], [3, 0]], cluster_std=1.0, random_state=0)
+
+gb = GaussianMixture(n_components=2, random_state=0).fit(Xb)
+print(gb.means_.round(2))  # 推定した正規分布の平均
+"""
+[[-0.09  0.08]
+ [ 2.91 -0.13]]
+"""
+pb = gb.predict_proba(Xb)
+
+sc = plt.scatter(Xb[:, 0], Xb[:, 1], c=pb[:, 1], cmap='coolwarm', s=20)
+plt.colorbar(sc, label='右側のクラスタに属する確率')
+plt.show()
+plt.close()
+~~~
+
+![混合ガウスモデルによる所属確率](/images/dsp/ch7/gmm-proba.png)
+
+推定した 2 つの平均は, データを生成したときの中心 (0, 0) と (3, 0) に近い値です. 塊から離れた点の確率は 0 か 1 に近く, 2 つの塊の間にある点は 0.5 前後になります. 境界付近のデータを無理にどちらかへ割り当てず, 所属の不確かさとして扱えます.
+
 # パターン発見: アソシエーション分析
 
 **アソシエーション分析**は, 大量の取引の記録から「おにぎりを買う人はお茶も買う」のような, 同時に起こりやすい項目の組み合わせを取り出す手法です. 買い物かごの中身を分析する用途から, **バスケット分析**とも呼ばれます. 取り出した組み合わせは, 「$X$ を含む取引は $Y$ も含む」という**ルール** $X \Rightarrow Y$ の形で表します. $X$ を条件部, $Y$ を結論部といいます.
@@ -617,105 +719,3 @@ print(confidence_lift(log[log['cluster'] == cafe], 'コーヒー', 'クッキー
 確信度はほとんど変わりませんが, リフト値は 2.10 から 1.20 に下がります. 全レシートではクッキーを含む割合が 27% なのに対し, カフェ利用の会員のレシートに限ると 48% あるためです. 全体でのリフト値が大きいのは, 「コーヒーを買うとクッキーも買いたくなる」ことよりも, 「コーヒーもクッキーもカフェ利用の会員がよく買う」ことによる部分が大きいと分かります. カフェ利用の会員の中でも, コーヒーを買ったレシートではクッキーが少し買われやすい (リフト値が 1 を上回る) ので, 2 つの品目の関係はゼロではありません. クラスタリングで会員を分けてからアソシエーション分析をすると, 誰が買っているかの違いと, 1 回の買い物の中での組み合わせの関係を分けて見られます.
 
 </details>
-
-# 発展: 密度と確率モデルに基づくクラスタリング
-
-k-means 法には 2 つの制約があります. 1 つは, 各データを最も近い重心のクラスタに割り当てるので, 重心のまわりに丸くまとまったクラスタしか取り出せないことです. もう 1 つは, 各データがどれか 1 つのクラスタに必ず属し, どの塊にも当てはまらないデータや, 塊と塊の境界にあるデータも, どこかのクラスタに割り当てられることです. DBSCAN はどちらの制約も持たず, 混合ガウスモデルは各データの所属を確率で表すことで 2 つ目の制約を緩めます.
-
-## DBSCAN
-
-**DBSCAN** (Density-Based Spatial Clustering of Applications with Noise) は, データが密に集まっている領域をクラスタとみなす手法です. 半径 `eps` と個数 `min_samples` を決め, 次のようにクラスタを作ります.
-
-1. 半径 `eps` の範囲に (自分を含めて) `min_samples` 個以上のデータがある点を**コア点**とします.
-2. 互いに `eps` 以内にあるコア点をつなぎ, つながったコア点とその `eps` 以内にあるデータを 1 つのクラスタとします.
-3. どのコア点からも `eps` 以内にないデータは, どのクラスタにも属さない**ノイズ**とします.
-
-密な領域がつながっている限り 1 つのクラスタになるので, 形が丸くないクラスタも見つけられます. クラスタの数を先に決める必要もありません.
-
-売店の会員のデータに DBSCAN を適用し, k-means 法の結果と比べます.
-
-~~~ py
-from sklearn.cluster import DBSCAN
-
-# 標準化した2項目に適用する. ノイズのクラスタ番号は -1
-member['db'] = DBSCAN(eps=0.25, min_samples=5).fit_predict(z[['visits', 'amount_per_visit']])
-print(member['db'].value_counts().sort_index())
-"""
-db
--1    10
- 0    70
- 1    53
- 2    38
- 3    29
-"""
-
-fig, axes = plt.subplots(1, 2, figsize=(11, 4.3))
-axes[0].scatter(member['visits'], member['amount_per_visit'], c=member['cluster'], cmap='viridis', s=15)
-axes[0].set_title('k-means (k=4)')
-ok = member['db'] != -1  # ノイズでない会員
-axes[1].scatter(member.loc[ok, 'visits'], member.loc[ok, 'amount_per_visit'],
-                c=member.loc[ok, 'db'], cmap='viridis', s=15)
-axes[1].scatter(member.loc[~ok, 'visits'], member.loc[~ok, 'amount_per_visit'],
-                c='gray', marker='x', s=50, label='ノイズ')
-axes[1].set_title('DBSCAN (eps=0.25, min_samples=5)')
-axes[1].legend()
-plt.show()
-plt.close()
-~~~
-
-![k-means 法と DBSCAN の比較](/images/dsp/ch7/dbscan.png)
-
-DBSCAN も 4 つの塊を 4 つのクラスタとして取り出しましたが, 10 人の会員をノイズとして, どのクラスタにも入れていません. ノイズになったのは, 塊と塊の間のまばらな位置にいる会員と, 塊の端にいる会員です. k-means 法ではこれらの会員もいずれかのクラスタに入り, そのクラスタの平均を動かします. どの層にも当てはまらない会員を別に扱いたいときは, DBSCAN が向いています.
-
-ただし, 結果は `eps` と `min_samples` に大きく左右されます. このデータで `eps` を 0.3 に広げると, 昼食の会員とカフェ利用の会員の塊が, 間にいる会員を伝って 1 つのクラスタにつながります. 逆に `eps` を小さくしすぎると, ノイズになる会員が増えます.
-
-## 混合ガウスモデル
-
-**混合ガウスモデル** (Gaussian Mixture Model) は, データが $K$ 個の正規分布を重ね合わせた分布から生成されたと考え, 各正規分布の平均, 広がり (分散と共分散), 混ざり具合 (混合比) をデータから推定する手法です. 推定した分布を使うと, 各データがそれぞれのクラスタ (正規分布) から生成された確率を計算できます. k-means 法が各データを 1 つのクラスタに割り当てるのに対し, 混合ガウスモデルはどのクラスタにどれだけの確率で属するかを出力します.
-
-売店の会員のデータに適用し, 所属の確率が最も低い会員を見てみます.
-
-~~~ py
-from sklearn.mixture import GaussianMixture
-
-X = z[['visits', 'amount_per_visit']]
-gm = GaussianMixture(n_components=4, random_state=0).fit(X)
-prob = gm.predict_proba(X)            # 会員ごとの, 各クラスタに属する確率
-member['max_prob'] = prob.max(axis=1)  # 最も確率の高いクラスタの確率
-print(member.sort_values('max_prob').head(3)[['visits', 'amount_per_visit', 'cluster', 'max_prob']].round(2))
-"""
-           visits  amount_per_visit  cluster  max_prob
-member_id
-1074           34            267.35        3      0.85
-1096           42            309.76        3      0.98
-1117           46            318.70        0      0.99
-"""
-~~~
-
-ほとんどの会員は, いずれか 1 つのクラスタに確率 0.99 以上で属します. このデータでは 4 つの塊が互いに離れているためです. 最も確率が低いのは会員 1074 で, カフェ利用の会員のクラスタに 0.85, 昼食の会員のクラスタに 0.15 の確率で属します. 来店回数 (34 回) は昼食の会員に近く, 1 回あたりの購入額 (267 円) はカフェ利用の会員に近い会員です. k-means 法はこの会員を昼食のクラスタ (3) に割り当てましたが, 混合ガウスモデルはどちらとも言い切れないことを確率で表しています.
-
-塊同士が重なり合っているデータでは, 各データを 1 つのクラスタに決める k-means 法と, 所属を確率で表す混合ガウスモデルの違いがはっきり現れます. 次の例は, 中心が (0, 0) と (3, 0) の 2 つの塊を, 重なるように生成したデータです.
-
-~~~ py
-from sklearn.datasets import make_blobs
-
-# 中心が (0, 0) と (3, 0) の2つの塊を, 重なるように生成する
-Xb, _ = make_blobs(n_samples=300, centers=[[0, 0], [3, 0]], cluster_std=1.0, random_state=0)
-
-gb = GaussianMixture(n_components=2, random_state=0).fit(Xb)
-print(gb.means_.round(2))  # 推定した正規分布の平均
-"""
-[[-0.09  0.08]
- [ 2.91 -0.13]]
-"""
-pb = gb.predict_proba(Xb)
-
-sc = plt.scatter(Xb[:, 0], Xb[:, 1], c=pb[:, 1], cmap='coolwarm', s=20)
-plt.colorbar(sc, label='右側のクラスタに属する確率')
-plt.show()
-plt.close()
-~~~
-
-![混合ガウスモデルによる所属確率](/images/dsp/ch7/gmm-proba.png)
-
-推定した 2 つの平均は, データを生成したときの中心 (0, 0) と (3, 0) に近い値です. 塊から離れた点の確率は 0 か 1 に近く, 2 つの塊の間にある点は 0.5 前後になります. 境界付近のデータを無理にどちらかへ割り当てず, 所属の不確かさとして扱えます.
