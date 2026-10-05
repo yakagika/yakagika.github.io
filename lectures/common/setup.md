@@ -23,140 +23,6 @@ nextChapter: git.html
 - [共通資料 バージョン管理とGitHub](git.html): git と GitHub の導入, 変更の確認と記録, 公開してよいものの判断
 - [共通資料 コーディングエージェントの利用](agent.html): codex と herdr の導入と操作, `AGENTS.md` と skill, 分からないまま承認しないための手順
 
-## ソフトウェアの管理
-
-**パッケージマネージャ**は, ソフトウェアのインストールと更新をコマンドで管理する仕組みです. Web サイトからインストーラーを個別に探す方法と比べて, 同じ名前のソフトウェアを同じ手順で導入できます.
-
-本講義で使うソフトウェアは, 個別に別の手順を指定したものを除き, Windows では **winget**, macOS では **Homebrew** で管理します.
-
-### Windows: winget
-
-winget は Microsoft が提供する Windows のパッケージマネージャです. Windows 11 には標準で含まれています. PowerShell で次を実行し, バージョンが表示されることを確認します.
-
-~~~ powershell
-winget --version
-~~~
-
-`winget` が認識されない場合は, Microsoft Store で「アプリ インストーラー」(App Installer) をインストールまたは更新し, PowerShell を開き直します.
-
-### macOS: Homebrew
-
-Homebrew は macOS のパッケージマネージャです. macOS には最初から入っていないため, 未導入の場合は [Homebrew の公式サイト](https://brew.sh/index_ja)にある手順でインストールします. インストール後に次を実行し, バージョンが表示されることを確認します.
-
-~~~ bash
-brew --version
-~~~
-
-Homebrew のインストール完了時に, `brew` を利用できるようにするための追加コマンドが表示されることがあります. 表示された場合は, そのコマンドも実行してからターミナルを開き直します.
-
-## テキストエディタのインストール
-
-テキストエディタとは, プログラムを書くためのソフトウェアです.
-プログラムを書くことをコーディング (Coding) といいます.
-
-テキストエディタにはたくさんの種類があり, それぞれ独自の機能を持っています.
-Windows に最初から入っている「メモ帳」もテキストエディタですが, プログラムを書くために様々な機能が追加された高機能なテキストエディタもたくさんあります.
-
-例えば, シンタックスハイライト機能は, 以下のプログラムのように, プログラムの記述を役割や意味に応じて色付けして見やすくしてくれます.
-
-~~~ python
-## シンタックスハイライト
-from datetime import datetime
-
-def greet_based_on_time():
-    now = datetime.now()
-    current_hour = now.hour
-
-    if 5 <= current_hour < 12:
-        greeting = "Good morning, world!"
-    elif 12 <= current_hour < 18:
-        greeting = "Good afternoon, world!"
-    else:
-        greeting = "Good night, world!"
-
-    return greeting
-
-# 関数を呼び出して結果を表示
-print(greet_based_on_time())
-~~~
-
-また, スペースをタブに変換するなどの機能もあります.
-
-この資料では世界的に人気のある Microsoft の開発したテキストエディタである **VSCode (Visual Studio Code)** を利用します. 最近では生成 AI を利用した自動補完機能が付いた **Cursor (有料)** などもあります. AI 利用法は[共通資料 コーディングエージェントの利用](agent.html)で扱います. Cursor を既に利用している場合は, そちらを使っても構いません. それ以外のテキストエディタを使う場合は, 必要な設定を各自で行ってください.
-
-Windows は PowerShell で次を実行します.
-
-~~~ powershell
-winget install -e --id Microsoft.VisualStudioCode
-~~~
-
-macOS はターミナルで次を実行します.
-
-~~~ bash
-brew install --cask visual-studio-code
-~~~
-
-インストールが終了したら VSCode を起動します. サインインを求められますが, ここでは「Continue without Signing In」を選択してサインインせずに進めます.
-
-![VSCode Sign In](/images/common/vscode-sign-in.png)
-
-表示モードは好きなものを選択してください.
-![VSCode Mode](/images/common/vscode-mode.png)
-
-拡張機能はこのあと入れるので Skip してください.
-![VSCode Extensions](/images/common/vscode-extensions.png)
-
-
-VSCode は様々な拡張機能があり, 利用しやすいようにカスタマイズすることが可能です.
-
-::: warn
-その他の便利な拡張機能等に関しては自己責任で調べて導入してください.
-:::
-
-左側にある四角が 4 つ並んだアイコンを選択します.
-
-![VSCode Install Extensions](/images/common/vscode-install-extensions.png)
-
-::: note
-**拡張機能: データサイエンス実践**
-
-検索窓に `Python` と入力して `Python` の `install` を押します.
-
-![VSCode Install Python](/images/common/vscode-install-python.png)
-
-検索窓に `latex` と入力して `LaTeX Workshop` の `install` を押します.
-
-![VSCode Install LaTeX Workshop](/images/common/vscode-install-latexworkshop.png)
-:::
-
-::: note
-**拡張機能: 関数型プログラミング**
-
-検索窓に `Haskell` と入力して `Haskell Syntax Highlighting` の `install` を押します.
-
-![VSCode Install Haskell Syntax](/images/common/vscode-install-haskell-syntax.png)
-:::
-
-これで基本的な設定は完了です.
-
-ファイルを編集する際には, 左側のファイルアイコンをクリックして, プログラムの保存されているフォルダを選択します.
-
-![VSCode Files](/images/common/vscode-files.png)
-
-ディレクトリが表示されるので, 編集したいファイルをクリックすることで編集が可能となります.
-![VSCode Edit](/images/common/vscode-edit.png)
-
-その他細かな利用法に関しては, 今後実際に利用する際に説明します. また, 基本的な操作やショートカット等に関しては, 各自で調べてみてください.
-
-## IME の設定
-
-プログラムは基本的に **「半角英数字」** で記述されます. プログラム中に全角の空白や記号が混じるとエラーの原因となる場合があります. そのため, プログラムを書く前に, そういったミスが起きないように IME の設定をしましょう.
-
-タスクトレーから IME の設定ができます. 基本的に記号をすべて半角に設定しましょう (スペースは必ず半角にしましょう). 特に, 句読点をコンマとピリオドに変更しましょう.
-
-![IME](/images/common/ime.png)
-
-
 ## CLI の基本操作
 
 プログラムの開発環境にはマウスなどでクリックして操作する GUI (Graphical User Interface) をもった IDE (Integrated Development Environment) などもありますが, 基本的には文字によってコンピュータに命令を送る CLI (Command Line Interface) を利用します. 映画やマンガなどで, ハッカーが黒い画面に文字を打ち込んでいる場面の, あの画面です.
@@ -169,7 +35,7 @@ Windows 11 の検索バーで `Terminal` と検索して, 出てきた `Terminal
 
 ![Screenshot Terminal](/images/common/terminal-launch.png)
 
-自動的に `Windows PowerShell` が起動します. 立ち上がった黒色の画面に文字でコマンド (命令) を入力して, コンピュータを操作します.
+自動的に `Windows PowerShell` が起動します. 立ち上がった黒色の画面に文字でコマンド (命令) を入力して, コンピュータを操作します. macOS では, Spotlight (Command + Space) で「ターミナル」と検索して開きます.
 
 ![Screenshot Terminal](/images/common/terminal-window.png)
 
@@ -321,7 +187,7 @@ C:\USERS\AKAGI\DOCUMENTS
 
 ::: warn
 
-macOS には `tree` コマンドが最初から入っていないため, Homebrew でインストールします.
+macOS には `tree` コマンドが最初から入っていないため, Homebrew でインストールします. Homebrew は, 後述の[ソフトウェアの管理](#ソフトウェアの管理)で導入します. 導入したあとで, 次を実行してください.
 
 ~~~ bash
 brew install tree
@@ -492,3 +358,136 @@ Documents やデスクトップは使いません. Windows では OneDrive, macO
 
 → [関数型プログラミング Haskell セットアップへ進む](fp2.html)
 :::
+
+## ソフトウェアの管理
+
+**パッケージマネージャ**は, ソフトウェアのインストールと更新を, [CLI の基本操作](#cli-の基本操作)で扱った CLI のコマンドで管理する仕組みです. Web サイトからインストーラーを個別に探す方法と比べて, 同じ名前のソフトウェアを同じ手順で導入できます.
+
+本講義で使うソフトウェアは, 個別に別の手順を指定したものを除き, Windows では **winget**, macOS では **Homebrew** で管理します.
+
+### Windows: winget
+
+winget は Microsoft が提供する Windows のパッケージマネージャです. Windows 11 には標準で含まれています. PowerShell で次を実行し, バージョンが表示されることを確認します.
+
+~~~ powershell
+winget --version
+~~~
+
+`winget` が認識されない場合は, Microsoft Store で「アプリ インストーラー」(App Installer) をインストールまたは更新し, PowerShell を開き直します.
+
+### macOS: Homebrew
+
+Homebrew は macOS のパッケージマネージャです. macOS には最初から入っていないため, 未導入の場合は [Homebrew の公式サイト](https://brew.sh/index_ja)にある手順でインストールします. インストール後に次を実行し, バージョンが表示されることを確認します.
+
+~~~ bash
+brew --version
+~~~
+
+Homebrew のインストール完了時に, `brew` を利用できるようにするための追加コマンドが表示されることがあります. 表示された場合は, そのコマンドも実行してからターミナルを開き直します.
+
+## テキストエディタのインストール
+
+テキストエディタとは, プログラムを書くためのソフトウェアです.
+プログラムを書くことをコーディング (Coding) といいます.
+
+テキストエディタにはたくさんの種類があり, それぞれ独自の機能を持っています.
+Windows に最初から入っている「メモ帳」もテキストエディタですが, プログラムを書くために様々な機能が追加された高機能なテキストエディタもたくさんあります.
+
+例えば, シンタックスハイライト機能は, 以下のプログラムのように, プログラムの記述を役割や意味に応じて色付けして見やすくしてくれます.
+
+~~~ python
+## シンタックスハイライト
+from datetime import datetime
+
+def greet_based_on_time():
+    now = datetime.now()
+    current_hour = now.hour
+
+    if 5 <= current_hour < 12:
+        greeting = "Good morning, world!"
+    elif 12 <= current_hour < 18:
+        greeting = "Good afternoon, world!"
+    else:
+        greeting = "Good night, world!"
+
+    return greeting
+
+# 関数を呼び出して結果を表示
+print(greet_based_on_time())
+~~~
+
+また, スペースをタブに変換するなどの機能もあります.
+
+この資料では世界的に人気のある Microsoft の開発したテキストエディタである **VSCode (Visual Studio Code)** を利用します. 最近では生成 AI を利用した自動補完機能が付いた **Cursor (有料)** などもあります. AI 利用法は[共通資料 コーディングエージェントの利用](agent.html)で扱います. Cursor を既に利用している場合は, そちらを使っても構いません. それ以外のテキストエディタを使う場合は, 必要な設定を各自で行ってください.
+
+[ソフトウェアの管理](#ソフトウェアの管理)で確かめた winget と Homebrew で入れます. Windows は PowerShell で次を実行します.
+
+~~~ powershell
+winget install -e --id Microsoft.VisualStudioCode
+~~~
+
+macOS はターミナルで次を実行します.
+
+~~~ bash
+brew install --cask visual-studio-code
+~~~
+
+インストールが終了したら VSCode を起動します. サインインを求められますが, ここでは「Continue without Signing In」を選択してサインインせずに進めます.
+
+![VSCode Sign In](/images/common/vscode-sign-in.png)
+
+表示モードは好きなものを選択してください.
+![VSCode Mode](/images/common/vscode-mode.png)
+
+拡張機能はこのあと入れるので Skip してください.
+![VSCode Extensions](/images/common/vscode-extensions.png)
+
+
+VSCode は様々な拡張機能があり, 利用しやすいようにカスタマイズすることが可能です.
+
+::: warn
+その他の便利な拡張機能等に関しては自己責任で調べて導入してください.
+:::
+
+左側にある四角が 4 つ並んだアイコンを選択します.
+
+![VSCode Install Extensions](/images/common/vscode-install-extensions.png)
+
+::: note
+**拡張機能: データサイエンス実践**
+
+検索窓に `Python` と入力して `Python` の `install` を押します.
+
+![VSCode Install Python](/images/common/vscode-install-python.png)
+
+検索窓に `latex` と入力して `LaTeX Workshop` の `install` を押します.
+
+![VSCode Install LaTeX Workshop](/images/common/vscode-install-latexworkshop.png)
+:::
+
+::: note
+**拡張機能: 関数型プログラミング**
+
+検索窓に `Haskell` と入力して `Haskell Syntax Highlighting` の `install` を押します.
+
+![VSCode Install Haskell Syntax](/images/common/vscode-install-haskell-syntax.png)
+:::
+
+これで基本的な設定は完了です.
+
+ファイルを編集する際には, 左側のファイルアイコンをクリックして, プログラムの保存されているフォルダを選択します.
+
+![VSCode Files](/images/common/vscode-files.png)
+
+ディレクトリが表示されるので, 編集したいファイルをクリックすることで編集が可能となります.
+![VSCode Edit](/images/common/vscode-edit.png)
+
+その他細かな利用法に関しては, 今後実際に利用する際に説明します. また, 基本的な操作やショートカット等に関しては, 各自で調べてみてください.
+
+## IME の設定
+
+プログラムは基本的に **「半角英数字」** で記述されます. プログラム中に全角の空白や記号が混じるとエラーの原因となる場合があります. そのため, プログラムを書く前に, そういったミスが起きないように IME の設定をしましょう.
+
+タスクトレーから IME の設定ができます. 基本的に記号をすべて半角に設定しましょう (スペースは必ず半角にしましょう). 特に, 句読点をコンマとピリオドに変更しましょう.
+
+![IME](/images/common/ime.png)
