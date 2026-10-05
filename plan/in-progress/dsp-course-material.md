@@ -410,6 +410,10 @@ dsp2 の title の em ダッシュ (dsp1 の章立ても追随).
 - **Ch2 執筆済み (2026-09-26)**. 仮説検証サイクル (成績と勉強時間の抽象例, 循環図), 分析目的の書き方 (対象・結果・要因の候補),
   例は抽象的なものでよい, 演習は設けない (ユーザ決定). 2026-10-02: 様々なデータ可視化手法の節は Ch3 の「グラフの選び方」と重複するため Ch2 から削り, 共通資料 (setup / python1-5 / git / agent) の案内に置き換えた (ユーザ指示. 対応表の行 9 は Ch3 へ移動).
   字下げでコード表示になっていた例文と, 既存部分の表記・誤記 (受容度など) を直した. 日本語チェック (規約 + Gemini) 済み. 確認用に `open: true`.
+- **構成図 4 枚の描き直し (2026-10-02)**: Ch2 の仮説検証サイクル, Ch8 の Transformer の構成と学習・評価・運用・監視の循環, Ch9 の ViT の流れを,
+  図作成 skill (loop / architecture / flowchart / process の型, 機械検査つき) で描き直した. 画像は `images/dsp/chN/` の同名 PNG (余白は trim 済み).
+  SVG の原本と生成の指示は git 管理外の `_scratch/dsp2/`, `_scratch/dsp8/`, `_scratch/dsp9/` (`fig/`) にあり, 図を直すときはここの SVG を編集して
+  PNG を出し直す (ViT の画素は `_scratch/dsp9/pixels_gen.py` が出す). ViT の注記 (矢印の横の 3 行) は最終行が矢印の先端にやや近い (未調整. 通読で気になれば直す).
 - **Ch6 執筆済み (2026-09-26)**. 売店の会員の退会 (`slds_data/dsp6/member_churn.csv`, Ch7 の購買記録を会員ごとに集計 + 架空の退会ラベル,
   生成コードは `_scratch/dsp6/gen_renewal.py`) で, 活用事例とモデル化 → 決定木 (plot_tree に変更し Graphviz の導入手順を削除)
   → 訓練/テストと過学習 → 混同行列, Accuracy/Precision/Recall → ROC/AUC. 発展は RF と SVM (このデータでは決定木の AUC が最も高い, と正直に書いた).
