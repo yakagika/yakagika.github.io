@@ -7,7 +7,7 @@ tags:
     - lecture
 featured: false
 date: 2026-09-04
-open: false
+open: true
 tableOfContents: true
 previousChapter: python1.html
 nextChapter: python3.html
@@ -17,7 +17,7 @@ nextChapter: python3.html
 
 この章では,Pythonの基礎の基礎を学習します.
 この資料はプログラミング自体の学習を対象としているわけではないので,
-講義内で必要な技能を紹介するのみに留めます.
+データ分析に必要な技能を紹介するのみに留めます.
 
 基本的には,公式の[Pythonチュートリアル](https://docs.python.org/ja/3/tutorial/index.html)の内容で必要十分ですので,そちらにそって学習を進めます.
 より詳しい内容を勉強したい場合には,プログラミングの講義を履修するか,
@@ -94,7 +94,7 @@ REPL上でもスクリプトでも,\#を先頭につけると,その行はコメ
 
 ## データ型
 
-第1回の検査に関する説明で軽く触れましたが, プログラミングで扱うデータはコンピュータのメモリ上に数値の羅列として存在します. それらの数値に人間が解釈可能な意味を与えたものをデータ型といいます.
+[プログラミング基礎 1](python1.html)で軽く触れましたが,  プログラミングで扱うデータはコンピュータのメモリ上に数値の羅列として存在します. それらの数値に人間が解釈可能な意味を与えたものをデータ型といいます.
 
 Pythonで最初から準備されているデータ型(**組み込み型**)には以下のようなものがあります.
 詳細はこのあと順番に見ていきますので, こんなものがあるということだけ,頭に入れておきましょう.
@@ -1340,7 +1340,7 @@ print(df['salary'])
 ~~~ sh
 ❯ python3 error_sample.py
 Traceback (most recent call last):
-  File "/Users/akagi/Documents/Programs/Python/slds/error_sample.py", line 2, in <module>
+  File "/Users/akagi/work/dsp/error_sample.py", line 2, in <module>
     df = pd.read_csv('data/arara_sample.csv')
   File "/Library/Frameworks/Python.framework/Versions/3.10/lib/python3.10/site-packages/pandas/io/parsers/readers.py", line 912, in read_csv
     return _read(filepath_or_buffer, kwds)
@@ -1392,7 +1392,7 @@ KeyError: 'sarary'
 The above exception was the direct cause of the following exception:
 
 Traceback (most recent call last):
-  File "/Users/akagi/Documents/Programs/Python/slds/error_sample.py", line 3, in <module>
+  File "/Users/akagi/work/dsp/error_sample.py", line 3, in <module>
     print(df['sarary'])
   File "/Library/Frameworks/Python.framework/Versions/3.10/lib/python3.10/site-packages/pandas/core/frame.py", line 3761, in __getitem__
     indexer = self.columns.get_loc(key)
@@ -1403,7 +1403,7 @@ KeyError: 'sarary'
 
 今度のエラー文を見てみると,先ほど変更を加えた
 
-`File "/Users/akagi/Documents/Programs/Python/slds/error_sample.py", line 3, in <module>`
+`File "/Users/akagi/work/dsp/error_sample.py", line 3, in <module>`
 
 の  `print(df['sarary'])`でエラーが発生しており,エラーの内容は,`sarary`という`Key`が存在しないという意味の`KeyError: 'sarary'`です. pandasのDataFrameにおけるKeyについてはまだ扱っていませんが,辞書型で発生するエラーと同様なので,辞書型を参考にして大まかな意味を掴みましょう.
 

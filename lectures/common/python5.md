@@ -7,7 +7,7 @@ tags:
     - lecture
 featured: false
 date: 2026-09-04
-open: false
+open: true
 tableOfContents: true
 previousChapter: python4.html
 ---
@@ -66,7 +66,7 @@ Pythonで処理を記述するためにはそのための**構文**を学習す�
 最近小学生などの教育で良く耳にする**論理的思考力**や**プログラミング的思考**とは,この①から②への変換ができることを意味しているようです.
 プログラミングの学習では,①から②への変換は前提として,プログラムの知識,文法,記法,利用方法などを学習し,②から③への変換を扱います.
 
-最近の小学生は,この学習のために,フローチャートを作ることでプログラムが書ける[Scratch](https://scratch.mit.edu )などを使っているようですが,この講義ではそこからやっている時間はないので,この章でフローチャートの作成と,そのプログラムへの変換の基礎を学習します.
+最近の小学生は,この学習のために,フローチャートを作ることでプログラムが書ける[Scratch](https://scratch.mit.edu )などを使っているようですが,この資料ではそこから始める余裕はないので, この章でフローチャートの作成と,そのプログラムへの変換の基礎を学習します.
 
 ::: note
 
@@ -831,7 +831,7 @@ df['year'] = df['year'].astype('int')
 
 ~~~ sh
 Traceback (most recent call last):
-  File "/Users/akagi/Documents/Programs/Python/slds/while_and_for.py", line 74, in <module>
+  File "/Users/akagi/work/dsp/while_and_for.py", line 74, in <module>
     df['year'] = df['year'].astype('int')
                  ^^^^^^^^^^^^^^^^^^^^^^^^
 ValueError: invalid literal for int() with base 10: '1800年'
@@ -1445,7 +1445,7 @@ print(afb.evaluate())  # Buzz (スーパークラスのメソッドが呼ばれ�
 
 # (発展) その他のデータの処理
 
-この資料では基本的に, 扱うデータの種類をExcel及びCSVに限定しています. しかし, 世の中には多くのデータが存在し,選択したテーマによってはCSV以外のデータを読み込む必要があります. ここでは, 本講義において過去に使用されたデータの基本と,その処理方法に関して扱います. ただし,他の章と整合性を取るため基本的な方針として,それらのデータを直接操作するのではなくCSVに変換,あるいは直接pandasのDataFrameオブジェクトへ変換する方針を取ります.
+この資料では基本的に, 扱うデータの種類をExcel及びCSVに限定しています. しかし, 世の中には多くのデータが存在し,選択したテーマによってはCSV以外のデータを読み込む必要があります. ここでは, 過去の研究で使用されたデータの基本と, その処理方法を扱います. ただし,他の章と整合性を取るため基本的な方針として,それらのデータを直接操作するのではなくCSVに変換,あるいは直接pandasのDataFrameオブジェクトへ変換する方針を取ります.
 
 
 
