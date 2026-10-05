@@ -34,6 +34,11 @@ Python の環境構築と基礎は, 共通資料の[プログラミング基礎]
 本資料には, 授業に必要な技術的な内容に限定して掲載します. 授業概要, 授業の注意点, 成績などについては講義中に別資料で説明します.
 
 
+## 発展の節
+
+見出しに **(発展)** が付いた節は, 授業では扱いません. 資料には載せているので, 自習で読むときや, 課題で手法を選ぶときに使ってください. 課題では, (発展) の節の手法から好きなものを選んで実施し, 最終回に発表してもらいます. 演習の文面に (発展) の節を使うと書いてある場合は, その節を読んでから取り組んでください. 節の一覧は, [章立て](#章立て)の「発展の節の一覧」にあります.
+
+
 ## デザインについて
 
 文章中で色の変わっているブロックはオレンジ色が注意(warn),青色が演習や強調(note)など独立した部分を表しています.
@@ -88,6 +93,21 @@ Python の環境構築と基礎は, 共通資料の[プログラミング基礎]
 [第11章 一般化線形モデル](dsp11.html)
 
 [第12章 質問紙調査とカテゴリーデータ](dsp12.html)
+
+### 発展の節の一覧
+
+授業では扱わない (発展) の節の一覧です. 第11章と第12章は章ごと授業で扱いません.
+
+| 章 | (発展) の節 |
+|:---|:---|
+| [第3章](dsp3.html) | [同時度数分布表](dsp3.html#同時度数分布表), [グラフのデザインの変更](dsp3.html#design), [for 文を利用したグラフ](dsp3.html#for-graph), [グラフの分割](dsp3.html#グラフの分割), [カーネル密度プロット](dsp3.html#カーネル密度プロット), [観測項目が複数ある場合の散布図](dsp3.html#scatter-3d), [クラスタリングにおける散布図](dsp3.html#クラスタリングにおける散布図), [変数の関係を図で表す](dsp3.html#relation-diagram) |
+| [第4章](dsp4.html) | [偏相関係数](dsp4.html#partial-correlation) |
+| [第5章](dsp5.html) | [回帰分析は何を行っているのか](dsp5.html#発展-回帰分析は何を行っているのか), [説明変数の組み合わせをテスト MSE で比べる](dsp5.html#variable-selection-test-mse) |
+| [第6章](dsp6.html) | [ランダムフォレスト](dsp6.html#ランダムフォレスト), [サポートベクターマシン](dsp6.html#サポートベクターマシン) |
+| [第7章](dsp7.html) | [密度と確率モデルに基づくクラスタリング (DBSCAN, 混合ガウスモデル)](dsp7.html#密度と確率モデルに基づくクラスタリング) |
+| [第9章](dsp9.html) | [Vision Transformer](dsp9.html#vision-transformer), [学習した特徴量の次元圧縮 (PCA と t-SNE)](dsp9.html#feature-embedding), [特徴マップ](dsp9.html#feature-maps), [Grad-CAM と Guided Backpropagation](dsp9.html#grad-cam), [年齢識別のコード全体](dsp9.html#age-full-code) |
+| [第10章](dsp10.html) | [機械翻訳と文章生成](dsp10.html#translation-generation), [生成 AI の仕組み: 事前学習と生成](dsp10.html#pretraining-and-generation), [トピックモデル](dsp10.html#トピックモデル), [n-gram と文章間類似度](dsp10.html#ngram-similarity), [CLIP](dsp10.html#clip) |
+
 
 ## 授業準備・環境構築
 
