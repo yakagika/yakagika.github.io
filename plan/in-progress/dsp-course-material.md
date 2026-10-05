@@ -700,3 +700,6 @@ branch `feat/dsp-phase1`, worktree `.claude/worktrees/dsp-phase1`. 7 commit.
 - 2026-09-04: grill-me で共通資料の設計を確定. `common/llm.md` を `common/git.md` と
   `common/agent.md` の 2 本に分割し, `git.md` を執筆. 学生の環境を herdr + codex
   (ChatGPT Plus $20/月 x 3 ヶ月) に確定. 詳細は common-agent-literacy-material.md.
+
+- 2026-10-05: プログラミング基礎の分離を仕上げた (commit 3f75ba4). `common/python1-5.md` の旧科目前提の記述 (「この講義」「昨年まで pyenv」「第 1 回」, 作業フォルダ名 slds, 実行例のパス) を共通資料向けに直し, `open: true` にした.
+  内容の作り替えはしていない. 補足 A への案内 (python4) は 2026-09-26 の決定どおり slds_a1 へのリンクを残した. `docs/` は再生成したが commit していない.
