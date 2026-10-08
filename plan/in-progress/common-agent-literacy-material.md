@@ -5,7 +5,7 @@ created: 2026-09-04
 updated: 2026-10-02
 priority: high
 next_actor: agent
-next_action: "(1) 授業前に Windows と macOS の実機で, 空のリポジトリから agent.md の Exercise AGENT-1 (1 周の手順) を通し, VSCode を開く依頼, 右の pane への差分表示, /model の画面, 無料アカウントの利用量の持ちを確かめて本文を直す. (2) モデルと料金の数字 (Astra / Sol / Luna, Plus の目安) を公式の料金ページで再確認する. (3) Windows の /diff 不具合を codex の新版で再確認し, 直っていれば note を外す (外部待ち: OpenAI の修正)"
+next_action: "(1) Windows と macOS の実機で, 空のリポジトリから Exercise AGENT-1 を通して本文を直す (VSCode を開く依頼, 右 pane の差分, /model, 無料枠の持ち). (2) モデルと料金の数字を公式の料金ページで再確認する. (3) Windows の /diff 不具合を codex の新版で再確認する (外部待ち)"
 ---
 
 # 共通資料 - git とエージェント利用のリテラシー
@@ -303,6 +303,7 @@ VM 内のローカル repo (GitHub 不使用, 検証後に削除) で確認し�
 | GitHub 手順のスクリーンショット | git.md の GitHub 節 | resolved | - | - | - | 8 枚を 2026-09-04 に撮影して収録. 撮影の過程で New repository の UI 記述の誤りが 3 件見つかり修正 |
 | 初回認証画面の図 (`credential.png`) | git.md の clone 節 | resolved | - | - | - | 本文は `gh auth login` 経由なので GCM の画面は出ない. 撮る対象を GitHub の Device Activation 画面に変更して撮影 (2026-09-25) |
 | 作業場所を `~/work` に統一した後の fp2 の出力例 (教員環境の `Documents/Programs/Haskell/...` がエラー出力に残る) | setup.md の作業場所の統一 (2026-09-25) | branched | fp 講義の改稿 | - | fp2 の実行例を撮り直すとき (fp-v2 の Ch2 改稿時) | 実際の出力なので今回は触らない (2026-09-25) |
+| 教員の記事への案内 (ハーネスエンジニアリング節の note) に全体設計の更新記事を足すか | assistant からの依頼 (2026-10-03) | branched | blog 記事の公開 | - | 全体設計の更新記事が公開されたとき | 既存の全体像の記事と記事の一覧へのリンクで先に追加済み (2026-10-08). 未公開の記事にはリンクしない |
 | `<details data-pass>` のパスワードがページソースに平文で入る | 回答例の埋め込み | branched | サイト基盤 (範囲外) | 未起票 | 回答を隠す仕組みの見直しを基盤側で起票 | 本資料では現行方式を踏襲 (2026-09-25 台帳へ移記) |
 
 **先送りの理由**: Windows の `/diff` 不具合は OpenAI 側の修正待ち (b). 次に codex を更新したときに VM で再確認する (next_action).
@@ -320,6 +321,7 @@ VM 内のローカル repo (GitHub 不使用, 検証後に削除) で確認し�
 
 ## 変更履歴
 
+- 2026-10-08: assistant からの依頼で, ハーネスエンジニアリング節の末尾に「エージェントは自分で改良して使いこなす」の note を追加し, 教員の記事 (全体像の記事と記事の一覧) を一例として案内した (commit 9ecd440, 公開 e2c4a18). 更新記事の公開後のリンク追加は台帳へ.
 - 2026-10-05: 2026-10-02 の改稿を記録. 手順を 7 つに絞り Exercise AGENT-1 を「1 周の手順」に置換, 詳細を note へ移動, 差分確認とコミットを codex へ頼む形に変更, モデル節 (Astra / Sol / Luna, /model) と無料アカウントの案内を追加, 末尾に関連講義へのリンクを追加. 学生に Muse Code を勧めるかは未裁定 (Todoist 6hfX6vj2Rqp9PHJX). git.md への波及は plan git-md-revision-after-agent (2026-10-05 に git.md へ反映済み, plan/landed/2026-10-05-git-md-revision-after-agent.md).
 
 - 2026-10-02: agent.md の「環境構築」の冒頭に「この講義で codex を使う理由」の note を追加 (他モデルでも同じ操作ができること, OpenAI を選んだ理由, Muse Code / Muse Spark の概要). 出典は Meta の公開文書と The Register (2026-08-06). Windows 対応は公開時の案内に無く, 実機未確認.
