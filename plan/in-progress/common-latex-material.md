@@ -5,7 +5,7 @@ created: 2026-10-08
 updated: 2026-10-08
 priority: medium
 next_actor: agent
-next_action: "git.md の Collaborator 節を図つきに拡充し, latex.md を執筆して空のリポジトリから手順どおりにビルドを確かめる"
+next_action: "Collaborator 節と latex.md の VSCode の画面の図を撮って差し込む (本人の撮影か Chrome 拡張の導入後). 合わせて Windows の TeX Live で手順を通す"
 ---
 
 # 共通資料 - LaTeX による原稿作成と, 共通資料の一覧の分割
@@ -101,6 +101,9 @@ setup.md の「この資料の後に読む資料」に LaTeX を足す. setup.md
 
 ## ロードマップ
 
+進み具合 (2026-10-08): 1 は本文のみ済 (図は未), 2〜5 は済 (commit dc00af5). macOS の TeX Live 2026 で, 空のリポジトリから手順どおりにビルドし, `git pull` の取り込みも手元の擬似リポジトリで確かめた.
+
+
 1. git.md の Collaborator 節を拡充し, Chrome で図を撮る
 2. latex.md を執筆する (図は VSCode と GitHub の画面, ビルド結果の PDF)
 3. 手元の TeX Live で, 資料の手順どおりに空のリポジトリからビルドして確かめる
@@ -117,6 +120,7 @@ latex.md の執筆が本体 (1 session). 図の撮影に本人の Chrome の許�
 |---|---|
 | 投稿先は SSI でよいか (他の SICE の研究会は様式が違う) | resolved: SSI (2026-10-08 本人) |
 | PDF を commit するか | resolved: commit する (2026-10-08 本人) |
+| 図の撮影 (GitHub の Collaborators の画面, VSCode の LaTeX Workshop の画面) | 2026-10-08 は Chrome の拡張を使わない判断になり撮れなかった. 本人の撮影か, 拡張の導入後に撮る (理由 a: 本人の判断待ち) |
 | Windows の TeX Live 導入の実機確認 | 本人の Windows 機か VM で後日 (common-agent-literacy-material の実機確認と同じ機会) |
 
 ## 関連ファイル
