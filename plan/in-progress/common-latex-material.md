@@ -122,7 +122,7 @@ latex.md の執筆が本体 (1 session). 図の撮影に本人の Chrome の許�
 | PDF を commit するか | resolved: commit しない (2026-10-09 本人. 10-08 の「commit する」を撤回) |
 | 図の撮影 (GitHub の Collaborators の画面, VSCode の LaTeX Workshop の画面) | 2026-10-08 は Chrome の拡張を使わない判断になり撮れなかった. 本人の撮影か, 拡張の導入後に撮る (理由 a: 本人の判断待ち) |
 | サイトへの公開 (docs/ の Publish と push) | 2026-10-09 時点で未実施. 本人が手元のプレビューで確認してから指示する (理由 a). commit は dc00af5, 6390570, 02b193d, adf02f8 (いずれも未 push) |
-| 図の撮影の受け取り | 本人が `_scratch/` に collab-settings.png, collab-add.png, collab-pending.png, latex-vscode.png を置く. 置かれたら個人情報の写り込みを確かめ, 余白を詰めて git.md の Collaborator 節と latex.md の保存でビルドの節に差し込む |
+| 図の撮影の受け取り | collab-settings.png と collab-add.png は 2026-10-09 に git.md の手順 3, 4 へ差し込み済み. collab-pending.png は実際に招待しないと撮れないため図なし (2026-10-09 本人). 残りは latex-vscode.png (本人が撮って置いたら latex.md の「保存でビルドされることの確認」へ差し込む) |
 | Windows の TeX Live 導入の実機確認 | 本人の Windows 機か VM で後日 (common-agent-literacy-material の実機確認と同じ機会) |
 
 ## 関連ファイル
@@ -137,3 +137,4 @@ latex.md の執筆が本体 (1 session). 図の撮影に本人の Chrome の許�
 - 2026-10-08: 承認. エンジンを pLaTeX に変更 (1 か所の書き換えで動作確認), Python の資料を共通資料の枠へ, PDF は commit, 様式は SSI
 - 2026-10-09: 本人指示で git.md に pull と merge の節 (コンフリクトの解決を含む), add/commit/push を荷物の発送にたとえた図, Exercise GIT-4 を追加. pull の設定を rebase から merge (pull.rebase false) に変え, latex.md の添削の取り込みと PDF のコンフリクトの解決 (原稿から作り直す) を git.md に合わせた. いずれも手元の擬似リポジトリで出力を取って確認
 - 2026-10-09: 本人指示で PDF を記録しない方針へ変更. latex.md は clone 直後に `.gitignore` へ `/*.pdf` を足す手順を加え, 「PDF のコンフリクト」の節を削って, 取り込んだ後に PDF を作り直す案内に替えた. git.md のバイナリのコンフリクトの注記も合わせた. `/*.pdf` が `paper.pdf` と `sample.pdf` だけを外し `figures/*.pdf` を残すことを擬似リポジトリで確認
+- 2026-10-09: Collaborator の画面の図 2 枚を git.md に入れた. 手順 5 のボタン名 `Add <アカウント名> to <リポジトリ名>` が HTML のタグと解釈されて消えていたので, コードの表記に直した
