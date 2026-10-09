@@ -56,7 +56,7 @@
     <title>yakagika - 共通資料 バージョン管理とGitHub</title>
 
     <!-- Stylesheets. -->
-    <link rel="stylesheet" type="text/css" href="../style.css?v=1791445341">
+    <link rel="stylesheet" type="text/css" href="../style.css?v=1791535590">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
@@ -257,63 +257,14 @@ gh version 2.100.0</code></pre>
 <p>private にすれば何でも置ける, とはなりません. private でも, データは GitHub というアメリカの事業者のサーバへ送られます. 個人情報や提供を受けたデータは, private であっても外部へ送ってよいかを先に確認してください. 提供元との取り決め, 大学の規程, 倫理審査で承認した利用範囲が判断の根拠になります.</p>
 <p>判断がつかないデータは, 手元に置いたまま <code>.gitignore</code> で除外し, リポジトリには取得手順だけ書きます.</p>
 <div class="warn">
+<p><strong>鍵とデータは, <code>.gitignore</code> で記録の対象から外します.</strong> <code>.gitignore</code> はリポジトリの一番上に置くファイルで, 記録しないファイルの名前を 1 行に 1 つ書きます. 書かれたファイルを, git は記録の候補に入れません. 鍵はソースコードに直接書かず, <code>.env</code> という別のファイルに書いて, <code>.env</code> を <code>.gitignore</code> で除外します. 書き方は, リポジトリを手元に <code>clone</code> した後の<a href="#gitignore-に書く除外の設定">.gitignore に書く除外の設定</a>で扱います.</p>
+</div>
+<div class="warn">
 <p><code>data/</code> と <code>.env</code> をリポジトリから除外し, クラウド同期からも外すと, <strong>提供を受けたデータと鍵はどこにもバックアップされません.</strong> 端末が壊れると失われます. 原本は外付けディスクや大学のストレージなど, リポジトリの外に別途保管してください.</p>
 </div>
 <h3 id="鍵を記録に入れてしまった場合">鍵を記録に入れてしまった場合</h3>
 <p>git は履歴を残すので, 一度記録した鍵はファイルから消しても履歴に残ります.</p>
 <p>やるべきことは, ファイルを直すことではなく, <strong>その鍵を無効にして発行し直すこと</strong>です. 教員から配布された鍵なら教員に連絡してください. 履歴からの完全な削除は手順が複雑で, 既に誰かが取得していた場合には意味がありません.</p>
-<h2 id="gitignore-に書く除外の設定">.gitignore に書く除外の設定</h2>
-<p>鍵をソースコードに直接書くと, 記録するときに一緒に入ります. 鍵は <code>.env</code> のような別のファイルに書き, そのファイルを追跡の対象から外します.</p>
-<p>対象から外すには, リポジトリの一番上に <code>.gitignore</code> という名前のファイルを作り, 除外したいものを 1 行に 1 つ書きます.</p>
-<pre class="text"><code># --- 認証情報 ---
-.env
-.env.local
-
-# --- データ ---
-data/
-*.csv
-*.xlsx
-*.xls
-
-# --- Python と uv が作るもの ---
-.venv/
-__pycache__/
-*.pyc
-.ipynb_checkpoints/
-
-# --- OS が作るもの ---
-.DS_Store
-Thumbs.db</code></pre>
-<h3 id="パターンの読み方">パターンの読み方</h3>
-<ul>
-<li><code>/</code> を含まない行は, どの階層にも効きます. <code>*.csv</code> はリポジトリのどこにある CSV も除外し, <code>data/</code> は <code>src/data/</code> のような下位の <code>data</code> ディレクトリも除外します</li>
-<li>末尾の <code>/</code> はディレクトリだけに一致します</li>
-<li><code>*</code> は任意の文字列に一致しますが, <code>/</code> には一致しません. このため <code>data/*.csv</code> は <code>data/a.csv</code> に一致し, <code>data/sub/a.csv</code> には一致しません</li>
-</ul>
-<h3 id="各行の意図">各行の意図</h3>
-<p><strong>認証情報</strong>. <code>.env</code> は鍵を書くためのファイルです. <code>.env.local</code> のような派生も作られるので併せて外します.</p>
-<div class="note">
-<p>GitHub でリポジトリを作るときに Add .gitignore で Python を選ぶと, <code>.env</code> <code>.venv</code> <code>__pycache__</code> <code>.ipynb_checkpoints</code> は最初から入っています. 足りないのは <code>data/</code> と表計算ファイルなので, そこを追記します.</p>
-</div>
-<p><strong>データ</strong>. <code>data/</code> を丸ごと外したうえで, <code>*.csv</code> と <code>*.xlsx</code> も外します. 分析の途中で作った中間ファイルが <code>data/</code> の外へ散らばりやすく, その中に個人情報や提供データが混じるためです. 公開してよいデータを意図的に記録するときは, <code>-f</code> を付けて明示します.</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add <span class="at">-f</span> data/pref_stats_2026.csv</span></code></pre></div>
-<p><strong>Python と uv が作るもの</strong>. <code>.venv/</code> は uv が作る仮想環境で, 数百 MB になることもあります. 各自の端末で作り直せるので記録しません. <code>__pycache__/</code> と <code>*.pyc</code> は Python が実行時に作る中間ファイルです.</p>
-<div class="warn">
-<p><strong><code>uv.lock</code> は除外しません.</strong> <code>pyproject.toml</code> を置いて uv でプロジェクトを管理する場合, <code>uv.lock</code> にはどのライブラリのどのバージョンを使ったかが書かれます. これがあると他の端末で同じ環境を再現できるので, 自動生成されるファイルですが記録します.</p>
-</div>
-<p><strong>OS が作るもの</strong>. <code>.DS_Store</code> は macOS が, <code>Thumbs.db</code> は Windows がフォルダごとに作るファイルです.</p>
-<p><code>AGENTS.md</code> は除外しません. エージェントへの指示を書くファイルで, リポジトリの一部として記録します. ただし記録される以上, ここに鍵やアカウント名を書けません. 中身は<a href="agent.html">共通資料 コーディングエージェントの利用</a>で扱います.</p>
-<div class="warn">
-<p><strong>Jupyter Notebook (<code>.ipynb</code>) は, 実行結果をファイル本体に埋め込みます.</strong> <code>df.head()</code> で表示した個人情報の行も, <code>.ipynb</code> の中に文字列として残ります. <code>data/</code> と <code>*.csv</code> を除外しても, notebook を記録すればデータが出ていきます.</p>
-<p>notebook を記録するときは, 保存する前に出力をすべて消してください. VSCode では notebook の上部にある Clear All Outputs で消せます.</p>
-</div>
-<div class="warn">
-<p><strong><code>.gitignore</code> に書いても, 既に記録したファイルは追跡から外れません.</strong> <code>.gitignore</code> は追跡していないファイルを候補に入れない設定であり, 追跡済みのファイルには効きません.</p>
-<p>誤って記録したファイルを外すには, 次のようにします.</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> rm <span class="at">--cached</span> .env</span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;.env を追跡の対象から外す&quot;</span></span></code></pre></div>
-<p><code>--cached</code> を付けると, 手元のファイルは残したまま追跡からだけ外れます. ただし<strong>それ以前の履歴には残る</strong>ので, 鍵であれば無効にして発行し直してください.</p>
-</div>
 <h2 id="github-のアカウントとリポジトリ">GitHub のアカウントとリポジトリ</h2>
 <h3 id="アカウントの作成">アカウントの作成</h3>
 <p><a href="https://github.com/">github.com</a> を開きます. 右上に Sign in と Sign up が並んでいるので, <strong>Sign up</strong> を押します.</p>
@@ -392,7 +343,7 @@ Thumbs.db</code></pre>
 </div>
 <h3 id="github-cli-での認証">GitHub CLI での認証</h3>
 <p><code>clone</code> や <code>push</code> のたびに GitHub は本人確認を求めます. 先に入れた GitHub CLI で一度だけ済ませます.</p>
-<div class="sourceCode" id="cb11"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ex">gh</span> auth login</span></code></pre></div>
+<div class="sourceCode" id="cb8"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">gh</span> auth login</span></code></pre></div>
 <p>対話形式で聞かれるので, 次のように答えます.</p>
 <ul>
 <li>Where do you use GitHub? → <strong>GitHub.com</strong></li>
@@ -416,13 +367,89 @@ Thumbs.db</code></pre>
 <figcaption aria-hidden="true">Code ボタンを押した状態. HTTPS のタブの URL をコピーする</figcaption>
 </figure>
 <p>先に作った作業用ディレクトリへ移動してから実行します.</p>
-<div class="sourceCode" id="cb12"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/work</span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/<span class="op">&lt;</span>自分のユーザ名<span class="op">&gt;</span>/<span class="op">&lt;</span>リポジトリ名<span class="op">&gt;</span>.git</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> <span class="op">&lt;</span>リポジトリ名<span class="op">&gt;</span></span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/work</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/<span class="op">&lt;</span>自分のユーザ名<span class="op">&gt;</span>/<span class="op">&lt;</span>リポジトリ名<span class="op">&gt;</span>.git</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> <span class="op">&lt;</span>リポジトリ名<span class="op">&gt;</span></span></code></pre></div>
+<h3 id="clone-したディレクトリの中身を確認する">clone したディレクトリの中身を確認する</h3>
+<p><code>clone</code> したディレクトリに何が入っているかを, <a href="setup.html">共通資料 プログラミング用の設定</a>で扱った <code>tree</code> で確認します.</p>
+<p>macOS では次のように実行します.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">tree</span> <span class="at">-a</span> <span class="at">-L</span> 1</span></code></pre></div>
+<pre class="text"><code>.
+├── .git
+├── .gitignore
+└── README.md
+
+2 directories, 2 files</code></pre>
+<p><code>-a</code> は名前が <code>.</code> で始まるファイルも表示する指定です. 付けないと <code>.git</code> と <code>.gitignore</code> が表示されません. <code>-L 1</code> は一番上の階層だけを表示する指定です. <code>.git</code> の中には多数のファイルがあるので, 階層を制限します.</p>
+<p>Windows の PowerShell では <code>tree /f</code> を実行すると, <code>.gitignore</code> と <code>README.md</code> が表示されます. <code>.git</code> は隠しフォルダなので <code>tree</code> には表示されません. 隠しフォルダも含めて確認するには <code>ls -Force</code> を実行します.</p>
+<p>エクスプローラーも, 既定の設定では <code>.git</code> のような隠しフォルダを表示しません. エクスプローラーの上部にある <strong>表示</strong> を押し, メニューの一番下の <strong>表示</strong> から <strong>隠しファイル</strong> にチェックを入れておくことを勧めます. <code>.git</code> が見えれば, そのディレクトリが git のリポジトリかどうかをエクスプローラーで見分けられます. macOS の Finder では <code>Cmd + Shift + .</code> で隠しファイルの表示を切り替えられます.</p>
+<figure>
+<img src="../images/common/git/explorer-hidden-files.png" alt="エクスプローラーの表示のメニュー. 表示の中の表示から, 隠しファイルにチェックを入れる" />
+<figcaption aria-hidden="true">エクスプローラーの表示のメニュー. 表示の中の表示から, 隠しファイルにチェックを入れる</figcaption>
+</figure>
+<p><code>tree</code> で表示されたファイルとディレクトリは, それぞれ次のものです.</p>
+<ul>
+<li><strong><code>README.md</code></strong>: リポジトリを作るときに Add README を On にしたので作られたファイルです. リポジトリの説明を書きます</li>
+<li><strong><code>.gitignore</code></strong>: Add .gitignore で Python を選んだので作られたファイルです. 記録しないファイルを書きます. 書き方は次の節で扱います</li>
+<li><strong><code>.git</code></strong>: git の記録の実体です. これまでの変更の履歴はすべてこの中にあります. 手で編集したり消したりしません. 消すと手元の履歴が失われます</li>
+</ul>
+<p>VSCode でこのディレクトリを開くと, エクスプローラーに <code>.gitignore</code> と <code>README.md</code> が表示されます. <code>.git</code> は VSCode の既定の設定で表示されません.</p>
+<h2 id="gitignore-に書く除外の設定">.gitignore に書く除外の設定</h2>
+<p>鍵をソースコードに直接書くと, 記録するときに一緒に入ります. 鍵は <code>.env</code> という別のファイルに書き, そのファイルを追跡の対象から外します. <code>.env</code> は必要になったときに自分でリポジトリの一番上に作るファイルで, <code>clone</code> した直後にはありません.</p>
+<p>対象から外すには, リポジトリの一番上にある <code>.gitignore</code> に, 除外したいものを 1 行に 1 つ書きます. <a href="#clone-したディレクトリの中身を確認する">clone したディレクトリの中身を確認する</a>で見たとおり, このファイルはリポジトリを作ったときに作られています. この講義で除外するものは次のとおりです.</p>
+<pre class="text"><code># --- 認証情報 ---
+.env
+.env.local
+
+# --- データ ---
+data/
+*.csv
+*.xlsx
+*.xls
+
+# --- Python と uv が作るもの ---
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# --- OS が作るもの ---
+.DS_Store
+Thumbs.db</code></pre>
+<h3 id="パターンの読み方">パターンの読み方</h3>
+<ul>
+<li><code>/</code> を含まない行は, どの階層にも効きます. <code>*.csv</code> はリポジトリのどこにある CSV も除外し, <code>data/</code> は <code>src/data/</code> のような下位の <code>data</code> ディレクトリも除外します</li>
+<li>末尾の <code>/</code> はディレクトリだけに一致します</li>
+<li><code>*</code> は任意の文字列に一致しますが, <code>/</code> には一致しません. このため <code>data/*.csv</code> は <code>data/a.csv</code> に一致し, <code>data/sub/a.csv</code> には一致しません</li>
+</ul>
+<h3 id="各行の意図">各行の意図</h3>
+<p><strong>認証情報</strong>. <code>.env</code> は鍵を書くためのファイルです. <code>.env.local</code> のような派生も作られるので併せて外します.</p>
+<div class="note">
+<p>GitHub でリポジトリを作るときに Add .gitignore で Python を選ぶと, <code>.env</code> <code>.venv</code> <code>__pycache__</code> <code>.ipynb_checkpoints</code> は最初から入っています. 足りないのは <code>data/</code> と表計算ファイルなので, そこを追記します.</p>
+</div>
+<p><strong>データ</strong>. <code>data/</code> を丸ごと外したうえで, <code>*.csv</code> と <code>*.xlsx</code> も外します. 分析の途中で作った中間ファイルが <code>data/</code> の外へ散らばりやすく, その中に個人情報や提供データが混じるためです. 公開してよいデータを意図的に記録するときは, <code>-f</code> を付けて明示します.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add <span class="at">-f</span> data/pref_stats_2026.csv</span></code></pre></div>
+<p><strong>Python と uv が作るもの</strong>. <code>.venv/</code> は uv が作る仮想環境で, 数百 MB になることもあります. 各自の端末で作り直せるので記録しません. <code>__pycache__/</code> と <code>*.pyc</code> は Python が実行時に作る中間ファイルです.</p>
+<div class="warn">
+<p><strong><code>uv.lock</code> は除外しません.</strong> <code>pyproject.toml</code> を置いて uv でプロジェクトを管理する場合, <code>uv.lock</code> にはどのライブラリのどのバージョンを使ったかが書かれます. これがあると他の端末で同じ環境を再現できるので, 自動生成されるファイルですが記録します.</p>
+</div>
+<p><strong>OS が作るもの</strong>. <code>.DS_Store</code> は macOS が, <code>Thumbs.db</code> は Windows がフォルダごとに作るファイルです.</p>
+<p><code>AGENTS.md</code> は除外しません. エージェントへの指示を書くファイルで, リポジトリの一部として記録します. ただし記録される以上, ここに鍵やアカウント名を書けません. 中身は<a href="agent.html">共通資料 コーディングエージェントの利用</a>で扱います.</p>
+<div class="warn">
+<p><strong>Jupyter Notebook (<code>.ipynb</code>) は, 実行結果をファイル本体に埋め込みます.</strong> <code>df.head()</code> で表示した個人情報の行も, <code>.ipynb</code> の中に文字列として残ります. <code>data/</code> と <code>*.csv</code> を除外しても, notebook を記録すればデータが出ていきます.</p>
+<p>notebook を記録するときは, 保存する前に出力をすべて消してください. VSCode では notebook の上部にある Clear All Outputs で消せます.</p>
+</div>
+<div class="warn">
+<p><strong><code>.gitignore</code> に書いても, 既に記録したファイルは追跡から外れません.</strong> <code>.gitignore</code> は追跡していないファイルを候補に入れない設定であり, 追跡済みのファイルには効きません.</p>
+<p>誤って記録したファイルを外すには, 次のようにします.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> rm <span class="at">--cached</span> .env</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;.env を追跡の対象から外す&quot;</span></span></code></pre></div>
+<p><code>--cached</code> を付けると, 手元のファイルは残したまま追跡からだけ外れます. ただし<strong>それ以前の履歴には残る</strong>ので, 鍵であれば無効にして発行し直してください.</p>
+</div>
 <h2 id="日常的に使う-9-つのコマンド">日常的に使う 9 つのコマンド</h2>
 <p>以降はすべて, <code>clone</code> したディレクトリの中で実行します.</p>
 <h3 id="status-何が変わっているかを見る">status: 何が変わっているかを見る</h3>
-<div class="sourceCode" id="cb13"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> status</span></code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> status</span></code></pre></div>
 <pre class="text"><code>On branch main
 Changes not staged for commit:
         modified:   src/analysis.py
@@ -431,7 +458,7 @@ Untracked files:
         notes/2026-04-15-groupby.md</code></pre>
 <p><code>modified</code> は追跡済みのファイルが書き換わったこと, <code>Untracked</code> はまだ git が知らないファイルであることを示します. 実際の出力にはこれに加えて操作の案内が数行出ますが, 読むべきはこの 2 つの一覧です.</p>
 <h3 id="diff-中身の変化を行単位で見る">diff: 中身の変化を行単位で見る</h3>
-<div class="sourceCode" id="cb15"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff</span></code></pre></div>
+<div class="sourceCode" id="cb17"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff</span></code></pre></div>
 <pre class="text"><code>diff --git a/src/analysis.py b/src/analysis.py
 --- a/src/analysis.py
 +++ b/src/analysis.py
@@ -458,26 +485,26 @@ Untracked files:
 <li><code>push</code> は, 梱包した箱を GitHub へ<strong>郵送する</strong>操作です</li>
 </ul>
 <p>たとえと違う点が 1 つあります. 郵便では荷物が手元からなくなりますが, <code>push</code> しても手元の記録は消えず, 同じ記録が GitHub にも置かれます.</p>
-<div class="sourceCode" id="cb17"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add src/analysis.py notes/2026-04-15-groupby.md</span></code></pre></div>
+<div class="sourceCode" id="cb19"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add src/analysis.py notes/2026-04-15-groupby.md</span></code></pre></div>
 <p><code>git add .</code> と書くと, <strong>コマンドを実行したディレクトリより下</strong>の変更をまとめて選べます. リポジトリの一番上で実行しないと, 上の階層の変更は入りません. また <code>.gitignore</code> で除外していないファイルは全部入るので, 実行する前に <code>git status</code> で一覧を確認してください.</p>
 <h3 id="diff---staged-記録する直前に中身を確認する"><code>diff --staged</code>: 記録する直前に中身を確認する</h3>
 <p><code>git add</code> したファイルは <code>git diff</code> に出なくなります. これから記録される中身を読むには, 次を使います.</p>
-<div class="sourceCode" id="cb18"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--staged</span></span></code></pre></div>
+<div class="sourceCode" id="cb20"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--staged</span></span></code></pre></div>
 <p>鍵やデータを誤って選んでいないかは, ここで最後に確認できます. 荷物のたとえでは, 箱を閉じる前に中身を確かめる操作です. <strong>commit する前に必ず 1 度実行してください.</strong></p>
 <h3 id="commit-記録する">commit: 記録する</h3>
-<div class="sourceCode" id="cb19"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;欠損値を除いてから平均を取るように修正&quot;</span></span></code></pre></div>
+<div class="sourceCode" id="cb21"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;欠損値を除いてから平均を取るように修正&quot;</span></span></code></pre></div>
 <p><code>-m</code> の後ろは<strong>コミットメッセージ</strong>で, 何をしたかを自分の言葉で書きます. 後から履歴を見たときに, この 1 行だけで何をしたか分かる必要があります. 「修正」「更新」だけでは分かりません.</p>
 <h3 id="push-github-に送る">push: GitHub に送る</h3>
-<div class="sourceCode" id="cb20"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> push</span></code></pre></div>
+<div class="sourceCode" id="cb22"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> push</span></code></pre></div>
 <p>commit しただけでは手元にしか残りません. push して初めて GitHub 側に反映されます. 提出のたびに push してください.</p>
 <div class="warn">
 <p><strong>push は, 記録を GitHub へ送る操作です.</strong> 記録に鍵やデータが入っていると, 送った時点で情報が外へ出て, 取り消せません. 意味の分からないコマンドは実行せず, 調べるか教員に聞いてください. codex に頼んで実行させるときも同じです.</p>
 </div>
 <h3 id="pull-github-側の変更を取り込む">pull: GitHub 側の変更を取り込む</h3>
 <p>教員を Collaborator に招待すると, 教員も同じリポジトリに commit して push できます. 教員が push した変更は, 自分の手元にはまだありません. GitHub 側の変更を手元に取り込むのが <code>pull</code> です.</p>
-<div class="sourceCode" id="cb21"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> pull</span></code></pre></div>
+<div class="sourceCode" id="cb23"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> pull</span></code></pre></div>
 <p>最初に一度だけ, 次の設定をしておきます. 教員と自分の両方が commit しているときに, 2 つの変更を <a href="#merge-2-つの変更を合わせる">merge</a> で合わせるという指定です. 設定しないと, その場面で <code>git pull</code> が <code>Need to specify how to reconcile divergent branches</code> と表示して止まります.</p>
-<div class="sourceCode" id="cb22"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> config <span class="at">--global</span> pull.rebase false</span></code></pre></div>
+<div class="sourceCode" id="cb24"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> config <span class="at">--global</span> pull.rebase false</span></code></pre></div>
 <p>自分が commit していない間に教員だけが push していた場合, <code>pull</code> は教員の commit を手元の履歴の先にそのまま足します.</p>
 <pre class="text"><code>Updating c0ae055..aa51c5d
 Fast-forward
@@ -486,9 +513,9 @@ Fast-forward
 <p><code>Fast-forward</code> は, 手元の履歴を GitHub 側の先頭まで進めただけ, という意味です.</p>
 <p>教員と共同編集するリポジトリでは, <strong>作業を始める前に <code>git pull</code> してください.</strong> 手元を最新にしてから書き換えると, 次の merge で衝突しにくくなります.</p>
 <p>教員の変更を自分の変更と合わせる前に読みたいときは, <code>pull</code> を <code>fetch</code> と <code>merge</code> の 2 つに分けて実行します. <code>fetch</code> は GitHub 側の記録を手元に取ってくるだけで, 自分のファイルは書き換えません.</p>
-<div class="sourceCode" id="cb24"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> fetch</span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> log <span class="at">--oneline</span> main..origin/main</span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff main...origin/main</span></code></pre></div>
+<div class="sourceCode" id="cb26"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> fetch</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> log <span class="at">--oneline</span> main..origin/main</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff main...origin/main</span></code></pre></div>
 <p><code>origin/main</code> は, <code>fetch</code> で取ってきた GitHub 側の <code>main</code> です. 2 行目は GitHub 側にだけある commit の一覧を, 3 行目は自分と分かれた後に GitHub 側で加わった変更を表示します (3 行目の <code>...</code> は点 3 つです). 読み終えたら <code>git merge origin/main</code> で合わせます. <code>git pull</code> は, この <code>fetch</code> と <code>merge</code> を続けて実行するコマンドです.</p>
 <h3 id="merge-2-つの変更を合わせる">merge: 2 つの変更を合わせる</h3>
 <p>教員と自分の両方が commit していると, 履歴は 2 本に分かれています. この状態で <code>push</code> すると, GitHub 側に手元に無い commit があるため拒否されます.</p>
@@ -525,8 +552,8 @@ print(f'平均点: {mean:.1f}')
 <p><code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD</code> から <code>=======</code> までが自分の変更, <code>=======</code> から <code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code> までが教員の変更です. <code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code> の後ろの英数字は, 教員の commit の識別子です. この例では, 自分は欠損値を除くように平均の行を直し, 教員はその次の行の表示を直していました. 次の手順で解決します.</p>
 <ol type="1">
 <li><p>2 つの変更を読み, 残す内容を決めて, 印の行 (<code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code>, <code>=======</code>, <code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code>) を消して書き直します. この例では両方の変更を残します.</p>
-<div class="sourceCode" id="cb30"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>mean <span class="op">=</span> df[<span class="st">'score'</span>].dropna().mean()</span>
-<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'平均点: </span><span class="sc">{</span>mean<span class="sc">:.1f}</span><span class="ss">'</span>)</span></code></pre></div></li>
+<div class="sourceCode" id="cb32"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>mean <span class="op">=</span> df[<span class="st">'score'</span>].dropna().mean()</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'平均点: </span><span class="sc">{</span>mean<span class="sc">:.1f}</span><span class="ss">'</span>)</span></code></pre></div></li>
 <li><p><code>git add src/analysis.py</code> で, 解決したファイルを選びます.</p></li>
 <li><p><code>git commit -m "教員の表示の修正を取り込む"</code> で, 合流の記録を作ります.</p></li>
 <li><p><code>git push</code> で送ります.</p></li>
@@ -537,14 +564,14 @@ print(f'平均点: {mean:.1f}')
 <p>PDF や画像のように中身が文字でないファイルは, 行に分けて合わせられません. 教員と自分の両方が同じファイルを更新していれば, 書き換えた箇所に関係なくコンフリクトになります. 元になるファイルから作り直せるもの (LaTeX の原稿から作る PDF など) は, 初めから記録せず <code>.gitignore</code> で除外しておくと, このコンフリクトは起きません. 作り直せないファイルが衝突したときは, どちらの版を残すかを教員に相談してください. LaTeX の原稿での設定は, <a href="latex.html">共通資料 LaTeX による原稿作成</a>の<a href="latex.html#記録するもの">記録するもの</a>で扱います.</p>
 </div>
 <h3 id="log-履歴を見る">log: 履歴を見る</h3>
-<div class="sourceCode" id="cb31"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> log <span class="at">--oneline</span></span></code></pre></div>
+<div class="sourceCode" id="cb33"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> log <span class="at">--oneline</span></span></code></pre></div>
 <pre class="text"><code>a3f79f8 欠損値を除いてから平均を取るように修正
 f041ec0 README にリポジトリの目的を書く
 568a3c1 Initial commit</code></pre>
 <p>左の 7 文字が記録の識別子です. 発表資料の図がどの記録の状態で出たものかは, これで示せます.</p>
 <h3 id="restore-変更を捨てる">restore: 変更を捨てる</h3>
 <p>エージェントの変更が意図と違っていたとき, 手元の変更を捨てて記録済みの状態に戻します.</p>
-<div class="sourceCode" id="cb33"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> restore <span class="at">--source</span><span class="op">=</span>HEAD src/analysis.py</span></code></pre></div>
+<div class="sourceCode" id="cb35"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> restore <span class="at">--source</span><span class="op">=</span>HEAD src/analysis.py</span></code></pre></div>
 <p><code>--source=HEAD</code> は「最後に commit した状態から取り直す」という指定です. これを省くと <code>git add</code> で選んだ内容から取り直すので, <code>add</code> 済みの変更は残ります.</p>
 <div class="warn">
 <p><strong>restore は取り消せません.</strong> commit していない変更は警告なく消えます. この資料で扱うコマンドのうち, 元に戻せないのはこの操作だけです.</p>
@@ -591,34 +618,34 @@ f041ec0 README にリポジトリの目的を書く
 <summary>
 回答例
 </summary>
-<div class="sourceCode" id="cb35"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> <span class="at">--version</span></span>
-<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a><span class="ex">gh</span> <span class="at">--version</span></span>
-<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> config <span class="at">--global</span> user.name <span class="st">&quot;自分の名前&quot;</span></span>
-<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> config <span class="at">--global</span> user.email <span class="st">&quot;自分のアドレス&quot;</span></span>
-<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a><span class="ex">gh</span> auth login</span>
-<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/work</span>
-<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/yourname/ds-practice-2026.git</span>
-<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ds-practice-2026</span>
-<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a><span class="co"># .gitignore に data/ と *.csv などを追記 (エディタで編集)</span></span>
-<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a><span class="co"># README.md に 1 行書く (エディタで編集)</span></span>
-<span id="cb35-13"><a href="#cb35-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> status</span>
-<span id="cb35-15"><a href="#cb35-15" aria-hidden="true" tabindex="-1"></a><span class="co"># On branch main</span></span>
-<span id="cb35-16"><a href="#cb35-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Changes not staged for commit:</span></span>
-<span id="cb35-17"><a href="#cb35-17" aria-hidden="true" tabindex="-1"></a><span class="co">#         modified:   .gitignore</span></span>
-<span id="cb35-18"><a href="#cb35-18" aria-hidden="true" tabindex="-1"></a><span class="co">#         modified:   README.md</span></span>
-<span id="cb35-19"><a href="#cb35-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-20"><a href="#cb35-20" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add README.md .gitignore</span>
-<span id="cb35-21"><a href="#cb35-21" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> status</span>
-<span id="cb35-22"><a href="#cb35-22" aria-hidden="true" tabindex="-1"></a><span class="co"># Changes to be committed:</span></span>
-<span id="cb35-23"><a href="#cb35-23" aria-hidden="true" tabindex="-1"></a><span class="co">#         modified:   .gitignore</span></span>
-<span id="cb35-24"><a href="#cb35-24" aria-hidden="true" tabindex="-1"></a><span class="co">#         modified:   README.md</span></span>
-<span id="cb35-25"><a href="#cb35-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb35-26"><a href="#cb35-26" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--staged</span>       <span class="co"># 記録される中身を最後に確認する</span></span>
-<span id="cb35-27"><a href="#cb35-27" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;README にリポジトリの目的を書き, .gitignore にデータの除外を追記&quot;</span></span>
-<span id="cb35-28"><a href="#cb35-28" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> push</span></code></pre></div>
+<div class="sourceCode" id="cb37"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> <span class="at">--version</span></span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a><span class="ex">gh</span> <span class="at">--version</span></span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> config <span class="at">--global</span> user.name <span class="st">&quot;自分の名前&quot;</span></span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> config <span class="at">--global</span> user.email <span class="st">&quot;自分のアドレス&quot;</span></span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a><span class="ex">gh</span> auth login</span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/work</span>
+<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/yourname/ds-practice-2026.git</span>
+<span id="cb37-9"><a href="#cb37-9" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ds-practice-2026</span>
+<span id="cb37-10"><a href="#cb37-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-11"><a href="#cb37-11" aria-hidden="true" tabindex="-1"></a><span class="co"># .gitignore に data/ と *.csv などを追記 (エディタで編集)</span></span>
+<span id="cb37-12"><a href="#cb37-12" aria-hidden="true" tabindex="-1"></a><span class="co"># README.md に 1 行書く (エディタで編集)</span></span>
+<span id="cb37-13"><a href="#cb37-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-14"><a href="#cb37-14" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> status</span>
+<span id="cb37-15"><a href="#cb37-15" aria-hidden="true" tabindex="-1"></a><span class="co"># On branch main</span></span>
+<span id="cb37-16"><a href="#cb37-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Changes not staged for commit:</span></span>
+<span id="cb37-17"><a href="#cb37-17" aria-hidden="true" tabindex="-1"></a><span class="co">#         modified:   .gitignore</span></span>
+<span id="cb37-18"><a href="#cb37-18" aria-hidden="true" tabindex="-1"></a><span class="co">#         modified:   README.md</span></span>
+<span id="cb37-19"><a href="#cb37-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-20"><a href="#cb37-20" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add README.md .gitignore</span>
+<span id="cb37-21"><a href="#cb37-21" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> status</span>
+<span id="cb37-22"><a href="#cb37-22" aria-hidden="true" tabindex="-1"></a><span class="co"># Changes to be committed:</span></span>
+<span id="cb37-23"><a href="#cb37-23" aria-hidden="true" tabindex="-1"></a><span class="co">#         modified:   .gitignore</span></span>
+<span id="cb37-24"><a href="#cb37-24" aria-hidden="true" tabindex="-1"></a><span class="co">#         modified:   README.md</span></span>
+<span id="cb37-25"><a href="#cb37-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-26"><a href="#cb37-26" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--staged</span>       <span class="co"># 記録される中身を最後に確認する</span></span>
+<span id="cb37-27"><a href="#cb37-27" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;README にリポジトリの目的を書き, .gitignore にデータの除外を追記&quot;</span></span>
+<span id="cb37-28"><a href="#cb37-28" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> push</span></code></pre></div>
 <p>8 で表示が変わる理由は次のとおりです. <code>git status</code> は変更を 2 つの段階に分けて表示します. <code>git add</code> する前は <code>Changes not staged for commit</code> (記録する対象に入っていない変更), <code>git add</code> した後は <code>Changes to be committed</code> (次の <code>commit</code> に入る変更) です. <code>add</code> はこの変更を次の記録に入れると選ぶ操作で, <code>commit</code> はそこで選んだものをまとめて記録する操作です.</p>
 <p><code>git add .</code> ではなくファイル名を指定したのは, <code>.gitignore</code> で除外できているかを確かめる前に, 全部を選ばないためです.</p>
 </details>
@@ -639,22 +666,22 @@ f041ec0 README にリポジトリの目的を書く
 <summary>
 回答例
 </summary>
-<div class="sourceCode" id="cb36"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> notes</span>
-<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;# 最初の記録&quot;</span> <span class="op">&gt;</span> notes/first.md</span>
-<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff</span>
-<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a><span class="co"># (何も表示されない)</span></span>
-<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> status</span>
-<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Untracked files:</span></span>
-<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a><span class="co">#         notes/</span></span>
-<span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-11"><a href="#cb36-11" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add notes/first.md</span>
-<span id="cb36-12"><a href="#cb36-12" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--staged</span></span>
-<span id="cb36-13"><a href="#cb36-13" aria-hidden="true" tabindex="-1"></a><span class="co"># +# 最初の記録</span></span>
-<span id="cb36-14"><a href="#cb36-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb36-15"><a href="#cb36-15" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;最初のノートを置く&quot;</span></span>
-<span id="cb36-16"><a href="#cb36-16" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> push</span></code></pre></div>
+<div class="sourceCode" id="cb38"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> notes</span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;# 最初の記録&quot;</span> <span class="op">&gt;</span> notes/first.md</span>
+<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff</span>
+<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a><span class="co"># (何も表示されない)</span></span>
+<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> status</span>
+<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Untracked files:</span></span>
+<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a><span class="co">#         notes/</span></span>
+<span id="cb38-10"><a href="#cb38-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-11"><a href="#cb38-11" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add notes/first.md</span>
+<span id="cb38-12"><a href="#cb38-12" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--staged</span></span>
+<span id="cb38-13"><a href="#cb38-13" aria-hidden="true" tabindex="-1"></a><span class="co"># +# 最初の記録</span></span>
+<span id="cb38-14"><a href="#cb38-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb38-15"><a href="#cb38-15" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;最初のノートを置く&quot;</span></span>
+<span id="cb38-16"><a href="#cb38-16" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> push</span></code></pre></div>
 <p><code>git diff</code> が表示するのは, 追跡している (一度でも記録した) ファイルの未ステージの変更だけです. 新しく作ったファイルは追跡していないので, <code>git status</code> の <code>Untracked</code> にだけ出ます. エージェントが新しいファイルを作っても <code>git diff</code> は空のままなので, 作業の後はまず <code>git status</code> で一覧を確認します.</p>
 <p><code>git status</code> は, 中にファイルのあるディレクトリを <code>notes/</code> のようにまとめて表示します. 中のファイルを個別に見るときは <code>git status -uall</code> を使います.</p>
 </details>
@@ -675,7 +702,7 @@ f041ec0 README にリポジトリの目的を書く
 回答例
 </summary>
 <ol type="1">
-<li><strong>入れてよい</strong>です. 自分で書いたコードで, 鍵もデータも含みません.</li>
+<li>コードの中に認証トークンやパスワードを直接書いていなければ, <strong>入れてよい</strong>です. 自分で書いたコードで, 鍵もデータも含まないからです. 直接書いていた場合は, 2 と同じ理由で入れてはいけません. 記録する前に, 鍵を <code>.env</code> に移します.</li>
 <li><strong>入れてはいけません</strong>. 認証トークンは共有の前払い残高に直結します. 公開リポジトリは機械的に走査されるため, 発見されるまでの時間は短いです. <code>.gitignore</code> に <code>.env</code> を書いて除外します.</li>
 <li><strong>利用規約を確認してから判断します</strong>. 公開データでも再配布の可否や出典表示の条件はデータセットごとに違います. e-Stat のデータは出典を明記すれば再配布できますが, 条件の異なるものもあります. なお容量が大きい場合は, リポジトリに入れず取得手順を書く方が扱いやすいです.</li>
 <li><strong>入れてはいけません</strong>. 学籍番号は個人を特定できます. 学籍番号を消しても, 学部と学年と回答の組み合わせで特定できることがあります. <code>data/</code> ごと除外します.</li>
@@ -700,30 +727,30 @@ f041ec0 README にリポジトリの目的を書く
 <summary>
 回答例
 </summary>
-<div class="sourceCode" id="cb37"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> config <span class="at">--global</span> pull.rebase false</span>
-<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a><span class="co"># 3: GitHub 側の変更を取り込まずに commit して push する</span></span>
-<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add .gitignore</span>
-<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;.gitignore に除外の行を足す&quot;</span></span>
-<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> push            <span class="co"># rejected (fetch first) と表示される</span></span>
-<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a><span class="co"># 4: 合わせる前に GitHub 側の変更を読む</span></span>
-<span id="cb37-9"><a href="#cb37-9" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> fetch</span>
-<span id="cb37-10"><a href="#cb37-10" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff main...origin/main</span>
-<span id="cb37-11"><a href="#cb37-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb37-12"><a href="#cb37-12" aria-hidden="true" tabindex="-1"></a><span class="co"># 5: 合流させて送る</span></span>
-<span id="cb37-13"><a href="#cb37-13" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> pull            <span class="co"># エディタが開くので, 既定のメッセージのまま閉じる</span></span>
-<span id="cb37-14"><a href="#cb37-14" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> log <span class="at">--oneline</span> <span class="at">--graph</span></span>
-<span id="cb37-15"><a href="#cb37-15" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> push</span>
-<span id="cb37-16"><a href="#cb37-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb37-17"><a href="#cb37-17" aria-hidden="true" tabindex="-1"></a><span class="co"># 6: 同じ行を書き換えてコンフリクトを起こす</span></span>
-<span id="cb37-18"><a href="#cb37-18" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add README.md</span>
-<span id="cb37-19"><a href="#cb37-19" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;README の 1 行目を書き換える&quot;</span></span>
-<span id="cb37-20"><a href="#cb37-20" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> pull            <span class="co"># CONFLICT (content): Merge conflict in README.md</span></span>
-<span id="cb37-21"><a href="#cb37-21" aria-hidden="true" tabindex="-1"></a><span class="co"># README.md を開いて印を消し, 残す内容に書き直す</span></span>
-<span id="cb37-22"><a href="#cb37-22" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add README.md</span>
-<span id="cb37-23"><a href="#cb37-23" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;README の 1 行目の衝突を解決する&quot;</span></span>
-<span id="cb37-24"><a href="#cb37-24" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> push</span></code></pre></div>
+<div class="sourceCode" id="cb39"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> config <span class="at">--global</span> pull.rebase false</span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a><span class="co"># 3: GitHub 側の変更を取り込まずに commit して push する</span></span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add .gitignore</span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;.gitignore に除外の行を足す&quot;</span></span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> push            <span class="co"># rejected (fetch first) と表示される</span></span>
+<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a><span class="co"># 4: 合わせる前に GitHub 側の変更を読む</span></span>
+<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> fetch</span>
+<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff main...origin/main</span>
+<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-12"><a href="#cb39-12" aria-hidden="true" tabindex="-1"></a><span class="co"># 5: 合流させて送る</span></span>
+<span id="cb39-13"><a href="#cb39-13" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> pull            <span class="co"># エディタが開くので, 既定のメッセージのまま閉じる</span></span>
+<span id="cb39-14"><a href="#cb39-14" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> log <span class="at">--oneline</span> <span class="at">--graph</span></span>
+<span id="cb39-15"><a href="#cb39-15" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> push</span>
+<span id="cb39-16"><a href="#cb39-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-17"><a href="#cb39-17" aria-hidden="true" tabindex="-1"></a><span class="co"># 6: 同じ行を書き換えてコンフリクトを起こす</span></span>
+<span id="cb39-18"><a href="#cb39-18" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add README.md</span>
+<span id="cb39-19"><a href="#cb39-19" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;README の 1 行目を書き換える&quot;</span></span>
+<span id="cb39-20"><a href="#cb39-20" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> pull            <span class="co"># CONFLICT (content): Merge conflict in README.md</span></span>
+<span id="cb39-21"><a href="#cb39-21" aria-hidden="true" tabindex="-1"></a><span class="co"># README.md を開いて印を消し, 残す内容に書き直す</span></span>
+<span id="cb39-22"><a href="#cb39-22" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add README.md</span>
+<span id="cb39-23"><a href="#cb39-23" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;README の 1 行目の衝突を解決する&quot;</span></span>
+<span id="cb39-24"><a href="#cb39-24" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> push</span></code></pre></div>
 <p>3 で拒否されるのは, GitHub 側に手元に無い commit (2 で作ったもの) があるからです. push は GitHub 側の履歴の先に自分の commit を足す操作なので, GitHub 側が先に進んでいると足せません.</p>
 <p>5 では <code>README.md</code> と <code>.gitignore</code> という別々のファイルを書き換えたので, git が自動で合わせます. 6 では同じファイルの同じ行を両方が書き換えたので, git はどちらを残すか決められず, コンフリクトとして止まります.</p>
 </details>
