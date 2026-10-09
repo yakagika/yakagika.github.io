@@ -5,7 +5,7 @@ created: 2026-10-08
 updated: 2026-10-09
 priority: medium
 next_actor: agent
-next_action: "テンプレートリポジトリ yakagika/ssi-paper-template を本人確認の上で作成し, latex.md をテンプレートから作る手順に書き換えて公開する"
+next_action: "LaTeX Workshop の画面の図 (本人撮影) を latex.md の保存でビルドの節に差し込み, Windows の TeX Live で手順を通す"
 ---
 
 # 共通資料 - LaTeX による原稿作成と, 共通資料の一覧の分割
@@ -60,6 +60,7 @@ next_action: "テンプレートリポジトリ yakagika/ssi-paper-template を�
   article / book / inproceedings / misc (URL) の 4 形を基本に, 他の種類も近い形へ寄せてビルドが通るようにする.
 - **画像のフォルダ**: `figure/` (本人指示. それまでの資料は `figures/`).
 - 「テンプレートの書き換え」の節は, 書き換え済みのものを配るので「配布版から変えたところ」の説明に替える (本人指示).
+- 2026-10-09 に `https://github.com/yakagika/ssi-paper-template` (public, is_template=true) を作成 (本人承認). clone してゼロからビルドし, エラーなし, ビルド後の `git status` が空であることを確認. テンプレートの原本はこのリポジトリで, 変更はそこへ commit する.
 - `SICE-SSI.sty` を公開の場に置くことになる. 学会が講演者向けに公開している配布物で, 改変せずに置く.
 
 ### エンジンとビルド
@@ -153,3 +154,4 @@ latex.md の執筆が本体 (1 session). 図の撮影に本人の Chrome の許�
 - 2026-10-09: 本人指示で git.md に pull と merge の節 (コンフリクトの解決を含む), add/commit/push を荷物の発送にたとえた図, Exercise GIT-4 を追加. pull の設定を rebase から merge (pull.rebase false) に変え, latex.md の添削の取り込みと PDF のコンフリクトの解決 (原稿から作り直す) を git.md に合わせた. いずれも手元の擬似リポジトリで出力を取って確認
 - 2026-10-09: 本人指示で PDF を記録しない方針へ変更. latex.md は clone 直後に `.gitignore` へ `/*.pdf` を足す手順を加え, 「PDF のコンフリクト」の節を削って, 取り込んだ後に PDF を作り直す案内に替えた. git.md のバイナリのコンフリクトの注記も合わせた. `/*.pdf` が `paper.pdf` と `sample.pdf` だけを外し `figures/*.pdf` を残すことを擬似リポジトリで確認
 - 2026-10-09: Collaborator の画面の図 2 枚を git.md に入れた. 手順 5 のボタン名 `Add <アカウント名> to <リポジトリ名>` が HTML のタグと解釈されて消えていたので, コードの表記に直した
+- 2026-10-09: 本人指示で, 教員が編集したテンプレート (bib + sice-ssi.bst, figure/, dvipdfmx 指定済み) をテンプレートリポジトリで配る方式に変更. latex.md の「原稿のリポジトリを作る」「テンプレートの中身」「参考文献」と演習を書き換えた. bst は codex が junsrt.bst から作り, 10 通りの文献の出力を Claude が確認
