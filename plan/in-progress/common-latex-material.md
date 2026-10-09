@@ -133,3 +133,4 @@ latex.md の執筆が本体 (1 session). 図の撮影に本人の Chrome の許�
 
 - 2026-10-08: 作成 (SSI テンプレートの LuaLaTeX での動作を確認)
 - 2026-10-08: 承認. エンジンを pLaTeX に変更 (1 か所の書き換えで動作確認), Python の資料を共通資料の枠へ, PDF は commit, 様式は SSI
+- 2026-10-09: 本人指示で git.md に pull と merge の節 (コンフリクトの解決を含む), add/commit/push を荷物の発送にたとえた図, Exercise GIT-4 を追加. pull の設定を rebase から merge (pull.rebase false) に変え, latex.md の添削の取り込みと PDF のコンフリクトの解決 (原稿から作り直す) を git.md に合わせた. いずれも手元の擬似リポジトリで出力を取って確認

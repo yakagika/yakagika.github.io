@@ -50,7 +50,7 @@ git は, ソフトウェアの**バージョン管理**の仕組みです. 変�
 
 ::: note
 
-本資料が扱うのは, エージェントを使ううえで必要になる範囲です. 複数人での共同開発で使う機能 (pull request, レビュー, マージ戦略) までは踏み込みません.
+本資料が扱うのは, エージェントを使ううえで必要になる範囲と, 教員と同じリポジトリを共同編集するための `pull` と `merge` までです. 複数人での開発で使う機能 (pull request, レビュー, マージ戦略) までは踏み込みません.
 
 :::
 
@@ -172,7 +172,7 @@ GitHub が発行する `<数字>+<ユーザ名>@users.noreply.github.com` とい
 
 **既定のエディタの設定**
 
-`git commit` を `-m` 無しで実行すると, メッセージを書くためにエディタが開きます. 既定では `vim` が開き, 使い方を知らないと終了できません. この資料では `-m` を付けて commit するので使いませんが, 付け忘れたときのために VSCode を使うように変えておけます.
+`git commit` を `-m` 無しで実行すると, メッセージを書くためにエディタが開きます. 既定では `vim` が開き, 使い方を知らないと終了できません. この資料では `-m` を付けて commit しますが, 教員と共同編集するときは, `git pull` が合流の記録のメッセージを書くためにエディタを開きます ([merge: 2 つの変更を合わせる](#merge-2-つの変更を合わせる)). VSCode を使うように変えておいてください.
 
 ~~~ bash
 git config --global core.editor "code --wait"
@@ -422,7 +422,7 @@ git clone https://github.com/<自分のユーザ名>/<リポジトリ名>.git
 cd <リポジトリ名>
 ~~~
 
-# 日常的に使う 7 つのコマンド
+# 日常的に使う 9 つのコマンド
 
 以降はすべて, `clone` したディレクトリの中で実行します.
 
@@ -473,6 +473,16 @@ diff --git a/src/analysis.py b/src/analysis.py
 
 ## add: 記録するものを選ぶ
 
+`add`, `commit`, `push` の 3 つで, 書き換えたファイルを GitHub へ届けます. この 3 つは, 荷物を送る手順にたとえられます.
+
+![add はファイルを箱に入れる, commit は箱を梱包して伝票を貼る, push は GitHub へ郵送する](/images/common/git/add-commit-push.png){.wide}
+
+- `add` は, 送るものを**箱に入れる**操作です. 書き換えたファイルのうち, 記録するものだけを選んで入れます. 入れ直しも取り出しもできます
+- `commit` は, 箱を**梱包して伝票を貼る**操作です. 伝票には, 中身の説明 (コミットメッセージ), 記録した人, 日時が書かれます. 梱包した箱は手元に残ります
+- `push` は, 梱包した箱を GitHub へ**郵送する**操作です
+
+たとえと違う点が 1 つあります. 郵便では荷物が手元からなくなりますが, `push` しても手元の記録は消えず, 同じ記録が GitHub にも置かれます.
+
 ~~~ bash
 git add src/analysis.py notes/2026-04-15-groupby.md
 ~~~
@@ -487,7 +497,7 @@ git add src/analysis.py notes/2026-04-15-groupby.md
 git diff --staged
 ~~~
 
-鍵やデータを誤って選んでいないかは, ここで最後に確認できます. **commit する前に必ず 1 度実行してください.**
+鍵やデータを誤って選んでいないかは, ここで最後に確認できます. 荷物のたとえでは, 箱を閉じる前に中身を確かめる操作です. **commit する前に必ず 1 度実行してください.**
 
 ## commit: 記録する
 
@@ -508,6 +518,121 @@ commit しただけでは手元にしか残りません. push して初めて Gi
 ::: warn
 
 **push は, 記録を GitHub へ送る操作です.** 記録に鍵やデータが入っていると, 送った時点で情報が外へ出て, 取り消せません. 意味の分からないコマンドは実行せず, 調べるか教員に聞いてください. codex に頼んで実行させるときも同じです.
+
+:::
+
+## pull: GitHub 側の変更を取り込む
+
+教員を Collaborator に招待すると, 教員も同じリポジトリに commit して push できます. 教員が push した変更は, 自分の手元にはまだありません. GitHub 側の変更を手元に取り込むのが `pull` です.
+
+~~~ bash
+git pull
+~~~
+
+最初に一度だけ, 次の設定をしておきます. 教員と自分の両方が commit しているときに, 2 つの変更を [merge](#merge-2-つの変更を合わせる) で合わせるという指定です. 設定しないと, その場面で `git pull` が `Need to specify how to reconcile divergent branches` と表示して止まります.
+
+~~~ bash
+git config --global pull.rebase false
+~~~
+
+自分が commit していない間に教員だけが push していた場合, `pull` は教員の commit を手元の履歴の先にそのまま足します.
+
+~~~ text
+Updating c0ae055..aa51c5d
+Fast-forward
+ src/analysis.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+~~~
+
+`Fast-forward` は, 手元の履歴を GitHub 側の先頭まで進めただけ, という意味です.
+
+教員と共同編集するリポジトリでは, **作業を始める前に `git pull` してください.** 手元を最新にしてから書き換えると, 次の merge で衝突しにくくなります.
+
+教員の変更を自分の変更と合わせる前に読みたいときは, `pull` を `fetch` と `merge` の 2 つに分けて実行します. `fetch` は GitHub 側の記録を手元に取ってくるだけで, 自分のファイルは書き換えません.
+
+~~~ bash
+git fetch
+git log --oneline main..origin/main
+git diff main...origin/main
+~~~
+
+`origin/main` は, `fetch` で取ってきた GitHub 側の `main` です. 2 行目は GitHub 側にだけある commit の一覧を, 3 行目は自分と分かれた後に GitHub 側で加わった変更を表示します (3 行目の `...` は点 3 つです). 読み終えたら `git merge origin/main` で合わせます. `git pull` は, この `fetch` と `merge` を続けて実行するコマンドです.
+
+## merge: 2 つの変更を合わせる
+
+教員と自分の両方が commit していると, 履歴は 2 本に分かれています. この状態で `push` すると, GitHub 側に手元に無い commit があるため拒否されます.
+
+~~~ text
+ ! [rejected]        main -> main (fetch first)
+error: failed to push some refs to 'https://github.com/<ユーザ名>/<リポジトリ名>.git'
+hint: Updates were rejected because the remote contains work that you do not
+hint: have locally.
+~~~
+
+`git pull` を実行すると, git は 2 本の履歴を **merge** (合流) し, 両方の変更を含む新しい commit を作ります. この commit のメッセージを書くために, エディタが開きます. `Merge branch 'main' of ...` という既定のメッセージが入っているので, そのまま保存して閉じれば合流が終わります. VSCode なら, 開いたタブを閉じます.
+
+~~~ text
+Auto-merging src/analysis.py
+Merge made by the 'ort' strategy.
+ src/analysis.py | 1 +
+ 1 file changed, 1 insertion(+)
+~~~
+
+`git log --oneline --graph` で, 分かれた履歴が合流したことを確かめられます. 左の線が履歴の枝分かれを表します.
+
+~~~ text
+*   4ca528d Merge branch 'main' of https://github.com/<ユーザ名>/<リポジトリ名>
+|\
+| * d5c92fa ファイルの先頭に目的を書く
+* | a00f23b 欠損値を除いてから平均を取るように修正
+|/
+* 4f46cf5 平均点を求める
+~~~
+
+この例では, 教員がファイルの先頭に 1 行足し (`d5c92fa`), 自分が平均の行を直しました (`a00f23b`). 書き換えた行が離れているので, git が自動で合わせました. 合流したら `git push` で GitHub へ送ります.
+
+### コンフリクトの解決
+
+教員と自分が同じ行, または隣り合う行を書き換えていると, git はどちらを採るか決められず, 合流を止めます. これを**コンフリクト** (衝突) といいます.
+
+~~~ text
+Auto-merging src/analysis.py
+CONFLICT (content): Merge conflict in src/analysis.py
+Automatic merge failed; fix conflicts and then commit the result.
+~~~
+
+`git status` では, 衝突したファイルが `both modified` として出ます. ファイルを開くと, 衝突した箇所に git が印を付けています.
+
+~~~ text
+<<<<<<< HEAD
+mean = df['score'].dropna().mean()
+print(mean)
+=======
+mean = df['score'].mean()
+print(f'平均点: {mean:.1f}')
+>>>>>>> 1a942ba6d0c3e8b5f27a94c1e0d8b3f6a2c7e915
+~~~
+
+`<<<<<<< HEAD` から `=======` までが自分の変更, `=======` から `>>>>>>>` までが教員の変更です. `>>>>>>>` の後ろの英数字は, 教員の commit の識別子です. この例では, 自分は欠損値を除くように平均の行を直し, 教員はその次の行の表示を直していました. 次の手順で解決します.
+
+1. 2 つの変更を読み, 残す内容を決めて, 印の行 (`<<<<<<<`, `=======`, `>>>>>>>`) を消して書き直します. この例では両方の変更を残します.
+
+    ~~~ python
+    mean = df['score'].dropna().mean()
+    print(f'平均点: {mean:.1f}')
+    ~~~
+
+2. `git add src/analysis.py` で, 解決したファイルを選びます.
+3. `git commit -m "教員の表示の修正を取り込む"` で, 合流の記録を作ります.
+4. `git push` で送ります.
+
+VSCode で衝突したファイルを開くと, 印の上に Accept Current Change (自分の変更を採る), Accept Incoming Change (教員の変更を採る), Accept Both Changes (両方を残す) のボタンが出ます. ボタンを使っても, 結果が意図どおりかは自分で読んで確かめます.
+
+どちらを残すか判断できないときは, `git merge --abort` を実行すると, 合流を始める前の状態に戻ります. そのうえで教員に相談してください.
+
+::: note
+
+PDF や画像のように中身が文字でないファイルは, 行に分けて合わせられません. 教員と自分の両方が同じファイルを更新していれば, 書き換えた箇所に関係なくコンフリクトになります. このときは印を書き直すのでなく, 元になるファイルからもう一度作り直します. LaTeX の原稿の PDF の場合の手順は, [共通資料 LaTeX による原稿作成](latex.html)の[教員の添削を取り込む](latex.html#教員の添削を取り込む)で扱います.
 
 :::
 
@@ -707,6 +832,61 @@ git push
 3. **利用規約を確認してから判断します**. 公開データでも再配布の可否や出典表示の条件はデータセットごとに違います. e-Stat のデータは出典を明記すれば再配布できますが, 条件の異なるものもあります. なお容量が大きい場合は, リポジトリに入れず取得手順を書く方が扱いやすいです.
 4. **入れてはいけません**. 学籍番号は個人を特定できます. 学籍番号を消しても, 学部と学年と回答の組み合わせで特定できることがあります. `data/` ごと除外します.
 5. **元データによります**. 集計結果そのものは個人を特定しませんが, 元データが 4 のような非公開データで, かつ集計の区分が細かいと (たとえば該当者が 1 人しかいない区分があると), その値から個人が特定できます. 元データが 3 なら, 3 と同じ条件で判断します.
+
+</details>
+
+:::
+
+::: note
+
+### Exercise GIT-4
+
+**GitHub 側の変更を取り込んで合流させる**
+
+教員の添削の代わりに, GitHub の画面で自分のリポジトリを直し, 手元の変更と合流させます. [Exercise GIT-1](#exercise-git-1) のリポジトリを使います.
+
+1. `git config --global pull.rebase false` を設定する.
+2. GitHub のリポジトリのページで `README.md` を開き, 右上の鉛筆のアイコン (Edit this file) を押す. 末尾に 1 行書き足し, Commit changes を押して commit する.
+3. 手元では `git pull` をしないまま, `.gitignore` の末尾に 1 行書き足して commit し, `git push` する. 拒否されることを確認する.
+4. `git fetch` してから `git diff main...origin/main` を実行し, 2 で書き足した文が表示されることを確認する.
+5. `git pull` で合流させ, `git log --oneline --graph` で履歴が合流したことを確認してから, `git push` する.
+6. もう一度 GitHub の画面で `README.md` の 1 行目を書き換えて commit し, 手元でも `git pull` をしないまま同じ 1 行目を別の内容に書き換えて commit する. `git pull` でコンフリクトを起こし, 解決して push する.
+
+3 で push が拒否された理由と, 6 でだけコンフリクトになった理由を説明できるようにしてください.
+
+<details class="protected" data-pass="yakagika">
+<summary>回答例</summary>
+
+~~~ bash
+git config --global pull.rebase false
+
+# 3: GitHub 側の変更を取り込まずに commit して push する
+git add .gitignore
+git commit -m ".gitignore に除外の行を足す"
+git push            # rejected (fetch first) と表示される
+
+# 4: 合わせる前に GitHub 側の変更を読む
+git fetch
+git diff main...origin/main
+
+# 5: 合流させて送る
+git pull            # エディタが開くので, 既定のメッセージのまま閉じる
+git log --oneline --graph
+git push
+
+# 6: 同じ行を書き換えてコンフリクトを起こす
+git add README.md
+git commit -m "README の 1 行目を書き換える"
+git pull            # CONFLICT (content): Merge conflict in README.md
+# README.md を開いて印を消し, 残す内容に書き直す
+git add README.md
+git commit -m "README の 1 行目の衝突を解決する"
+git push
+~~~
+
+3 で拒否されるのは, GitHub 側に手元に無い commit (2 で作ったもの) があるからです. push は GitHub 側の履歴の先に自分の commit を足す操作なので, GitHub 側が先に進んでいると足せません.
+
+5 では `README.md` と `.gitignore` という別々のファイルを書き換えたので, git が自動で合わせます. 6 では同じファイルの同じ行を両方が書き換えたので, git はどちらを残すか決められず, コンフリクトとして止まります.
 
 </details>
 

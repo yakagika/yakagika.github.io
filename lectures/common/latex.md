@@ -422,31 +422,30 @@ git push
 
 ## 教員の添削を取り込む
 
-教員は, GitHub の画面で PDF を読み, 原稿を直接直して commit することがあります. 教員が push した変更は, 自分の手元にはまだありません. GitHub 側の変更を手元に取り込むコマンドが `git pull` です.
+教員は, GitHub の画面で PDF を読み, 原稿を直接直して commit することがあります. 教員が push した変更は `git pull` で手元に取り込み, 自分の変更と合わせます. `pull` と `merge` の使い方, 最初に一度だけ行う設定, コンフリクトの解決の手順は, [共通資料 バージョン管理とGitHub](git.html)の[pull: GitHub 側の変更を取り込む](git.html#pull-github-側の変更を取り込む)と[merge: 2 つの変更を合わせる](git.html#merge-2-つの変更を合わせる)で扱います.
 
-教員と自分の両方が commit していると, 2 つの変更をどう合わせるかを決めていない git は `Need to specify how to reconcile divergent branches` と表示して止まります. 最初に一度だけ, 次の設定をしておきます.
+原稿のリポジトリでは, 作業を始める前に毎回 `git pull` します. 取り込んだ後に `git log` を実行すると, 教員の commit が履歴に並んでいます. どこを直されたかは, `git show <commit の識別子>` で差分として確認できます.
 
-~~~ bash
-git config --global pull.rebase true
+### PDF のコンフリクト
+
+`paper.pdf` は中身が文字でないので, git は行に分けて合わせられません. 教員と自分の両方が PDF を commit していると, 本文の別々の箇所を直していても, `git pull` は次のように PDF のコンフリクトで止まります.
+
+~~~ text
+warning: Cannot merge binary files: paper.pdf (HEAD vs. 5fc7ea3...)
+Auto-merging paper.pdf
+CONFLICT (content): Merge conflict in paper.pdf
+Auto-merging paper.tex
+Automatic merge failed; fix conflicts and then commit the result.
 ~~~
 
-この設定をすると, `git pull` は教員の commit を取り込み, その後ろに自分の commit を付け直します. 履歴は 1 本の列のまま保たれます.
+この例では `paper.tex` は自動で合わさっていて (`Auto-merging paper.tex` の後に `CONFLICT` が出ていない), 衝突したのは PDF だけです. PDF は原稿から作り直せるので, 次の手順で解決します.
 
-作業を始める前に, 毎回次を実行します.
+1. VSCode で `paper.tex` を開いて保存し, 合わさった原稿から `paper.pdf` を作り直す.
+2. PDF を開き, 教員の添削と自分の変更の両方が入っていることを確かめる.
+3. `git add paper.tex paper.pdf` で選び, `git commit -m "教員の添削を取り込む"` で合流の記録を作る.
+4. `git push` で送る.
 
-~~~ bash
-git pull
-~~~
-
-取り込んだ後に `git log` を実行すると, 教員の commit が履歴に並んでいます. どこを直されたかは, `git show <commit の番号>` で差分として確認できます.
-
-::: warn
-
-教員の添削を取り込まないまま自分も commit して push しようとすると, GitHub 側に自分の手元に無い変更があるため, push が拒否されます. その場合は `git pull` で取り込んでから push し直します.
-
-`git pull` は, 同じ行を両方が書き換えていた場合にコンフリクト (変更の衝突) として止まります. `paper.pdf` は中身が文字でなく行に分けて合わせられないので, 本文の別々の箇所を直していても, 両方が PDF を commit していればコンフリクトになります. `CONFLICT` と表示されたら, ファイルの種類にかかわらず, 自分では解決せず教員に相談してください. 作業を始める前に `git pull` し, 区切りがついたらすぐ push すると, コンフリクトは起きにくくなります.
-
-:::
+`paper.tex` にも `CONFLICT` が出ていたら, 先に [コンフリクトの解決](git.html#コンフリクトの解決)の手順で `paper.tex` の印を消して書き直し, それから 1 に進みます. どちらを残すか判断できないときは, `git merge --abort` で合流を始める前の状態に戻し, 教員に相談してください.
 
 # 演習
 
