@@ -40,7 +40,7 @@ paper.tex  --(platex)-->  paper.dvi  --(dvipdfmx)-->  paper.pdf
 
 # TeX Live のインストール
 
-**TeX Live** は, pLaTeX, dvipdfmx, latexmk と日本語のフォントをまとめた配布です. 容量が数 GB あり, インストールには 1 時間以上かかることがあります. 時間に余裕のあるときに, 電源とネットワークにつないだ状態で始めてください.
+**TeX Live** は, pLaTeX, dvipdfmx, latexmk と日本語のフォントをまとめた配布です. 容量が約 10 GB あり, インストールには数時間かかることがあります. 時間に余裕のあるときに, 電源とネットワークにつないだ状態で始めてください.
 
 ## macOS
 
@@ -56,7 +56,17 @@ brew install --cask mactex-no-gui
 
 winget には TeX Live がありません. TeX Live の公式サイトからインストーラ [install-tl-windows.exe](https://mirror.ctan.org/systems/texlive/tlnet/install-tl-windows.exe) をダウンロードし, ダブルクリックで実行します. 警告が出たら「詳細情報」から「実行」を選びます.
 
-インストーラの画面では, 設定を変えずに Install (インストール) を押します. 必要なファイルを 1 つずつダウンロードするので, 回線によっては終わるまで 1 時間以上かかります. 終わったら PowerShell を開き直します.
+最初に開く画面で **Install** を押します.
+
+![最初に開く TeX Live installer の画面. 右下に Install のボタンがある](/images/common/latex/texlive-win-start.png)
+
+しばらくすると, TeX Live 2026 インストーラの画面が開きます. インストール先と用紙の大きさ (A4) は, 設定を変えずに **インストール** を押します. 必要なディスク容量は約 10 GB です. 空き容量が足りるかを, この画面で確かめてください.
+
+![TeX Live 2026 インストーラの画面. インストール先は C:/texlive/2026, 必要なディスク容量は 10213 MB, 用紙は A4](/images/common/latex/texlive-win-settings.png)
+
+インストールが始まると, 入れたパッケージが 1 行ずつ表示されます. 5,000 を超えるパッケージを 1 つずつダウンロードするので, 回線によっては終わるまで数時間かかります. 途中でウィンドウを閉じたり, パソコンをスリープさせたりしないでください. 右下の「閉じる」が押せるようになったら完了です. 閉じたら PowerShell を開き直します.
+
+![インストール中の画面. Installing [0014/5187, ...] のように, パッケージの番号と経過時間, 予想の合計時間が表示される](/images/common/latex/texlive-win-progress.png)
 
 ::: warn
 
