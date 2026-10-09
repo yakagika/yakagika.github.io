@@ -9,6 +9,7 @@ date: 2026-09-04
 open: true
 tableOfContents: true
 previousChapter: git.html
+nextChapter: latex.html
 ---
 
 本資料は複数の講義で共通に使う資料です. コーディングエージェントに課題のプログラムを書かせ, その結果を読んで直せるようになるために必要な環境と操作, および判断の仕方を扱います.

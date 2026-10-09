@@ -23,6 +23,10 @@ nextChapter: git.html
 - [共通資料 バージョン管理とGitHub](git.html): git と GitHub の導入, 変更の確認と記録, 公開してよいものの判断
 - [共通資料 コーディングエージェントの利用](agent.html): codex と herdr の導入と操作, `AGENTS.md` と skill, 分からないまま承認しないための手順
 
+学会発表の原稿を書く講義では, さらに次を読みます.
+
+- [共通資料 LaTeX による原稿作成](latex.html): TeX Live の導入, VSCode で保存したらビルドする設定, 学会のテンプレートによる原稿の書き方, GitHub での教員との共有
+
 ## IME の設定
 
 プログラムは基本的に **「半角英数字」** で記述されます. プログラム中に全角の空白や記号が混じるとエラーの原因となる場合があります. [CLI の基本操作](#cli-の基本操作)で入力するコマンドも同じで, 全角の空白や記号が 1 文字混じるだけで, コマンドとして認識されません. そのため, コマンドやプログラムを書く前に, そういったミスが起きないように IME の設定をしましょう.
@@ -471,6 +475,8 @@ VSCode は様々な拡張機能があり, 利用しやすいようにカスタ�
 検索窓に `latex` と入力して `LaTeX Workshop` の `install` を押します.
 
 ![VSCode Install LaTeX Workshop](/images/common/vscode-install-latexworkshop.png)
+
+LaTeX の本体 (TeX Live) の導入とビルドの設定は, [共通資料 LaTeX による原稿作成](latex.html)で扱います.
 :::
 
 ::: note
