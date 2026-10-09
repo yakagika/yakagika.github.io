@@ -7,12 +7,435 @@
         <description><![CDATA[Personal blog of yakagika]]></description>
         <atom:link href="/tags/programming.xml" rel="self"
                    type="application/rss+xml" />
-        <lastBuildDate>Mon, 05 Oct 2026 00:00:00 UT</lastBuildDate>
+        <lastBuildDate>Thu, 08 Oct 2026 00:00:00 UT</lastBuildDate>
         
         <managingEditor>kaya3728@gmail.com (yakagika)</managingEditor>
         <webMaster>kaya3728@gmail.com (yakagika)</webMaster>
         
         <item>
+    <title>共通資料 LaTeX による原稿作成</title>
+    <link>/lectures/latex.html</link>
+    <description><![CDATA[<p>本資料は複数の講義で共通に使う資料です. 学会発表の原稿を LaTeX で書き, GitHub の private リポジトリで教員と共有するまでを扱います. 原稿の様式には, 計測自動制御学会 (SICE) のシステム・情報部門 学術講演会 (SSI) のテンプレートを使います.</p>
+<p>前提として<a href="setup.html">共通資料 プログラミング用の設定</a>で VSCode を, <a href="git.html">共通資料 バージョン管理とGitHub</a>で git と GitHub CLI を導入しておいてください.</p>
+<div class="warn">
+<p><strong>この資料の情報は, 短い期間で古くなります.</strong> TeX Live の版, 学会のテンプレートの配布場所, VSCode の拡張機能の画面は変わります. 資料と実際の画面が食い違ったら, 配布元の最新の情報を確かめてください.</p>
+</div>
+<h1 id="latex-で原稿を書く理由">LaTeX で原稿を書く理由</h1>
+<p>LaTeX は, 文章と書式の指示を書いたテキストファイルから PDF を組版する仕組みです. Word と比べると, 原稿をテキストで書くことで次の 3 つができます.</p>
+<ul>
+<li><strong>差分を読める</strong>: 原稿がテキストなので, git で何を書き換えたかを行単位で確認できます. 教員の添削も差分として残ります.</li>
+<li><strong>番号と参照を自動で振れる</strong>: 図, 表, 数式, 参考文献の番号は LaTeX が振ります. 図を 1 枚足しても, 本文中の「Fig. 2」を手で直す必要はありません.</li>
+<li><strong>学会の様式に合わせられる</strong>: 多くの学会が LaTeX のテンプレートを配布しています. 余白や文字の大きさはテンプレートが決めるので, 書き手は中身に集中できます.</li>
+</ul>
+<p>LaTeX の原稿 (<code>.tex</code>) から PDF ができるまでには, 2 つのプログラムを順に動かします. 本資料では日本語に対応した <strong>pLaTeX</strong> で原稿を組版して <code>.dvi</code> という中間ファイルを作り, <strong>dvipdfmx</strong> で <code>.dvi</code> を PDF に変換します. SSI のテンプレートは pLaTeX 用に作られているので, それに合わせます.</p>
+<pre class="text"><code>paper.tex  --(platex)--&gt;  paper.dvi  --(dvipdfmx)--&gt;  paper.pdf</code></pre>
+<p>図や数式の番号を確定させるには pLaTeX を 2 回以上動かす必要があります. この手順は <strong>latexmk</strong> というプログラムが必要な回数だけ自動で繰り返すので, 書き手が回数を数える必要はありません.</p>
+<h1 id="tex-live-のインストール">TeX Live のインストール</h1>
+<p><strong>TeX Live</strong> は, pLaTeX, dvipdfmx, latexmk と日本語のフォントをまとめた配布です. 容量が数 GB あり, インストールには 1 時間以上かかることがあります. 時間に余裕のあるときに, 電源とネットワークにつないだ状態で始めてください.</p>
+<h2 id="macos">macOS</h2>
+<p><a href="setup.html">共通資料 プログラミング用の設定</a>で入れた Homebrew で, TeX Live の macOS 版 (MacTeX) を入れます. <code>-no-gui</code> は, 付属のエディタなどを除いた版です. エディタには VSCode を使うので, こちらで足ります.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">brew</span> install <span class="at">--cask</span> mactex-no-gui</span></code></pre></div>
+<p>途中で macOS のパスワードを求められたら入力します. 終わったらターミナルを開き直します.</p>
+<h2 id="windows">Windows</h2>
+<p>winget には TeX Live がありません. TeX Live の公式サイトからインストーラ <a href="https://mirror.ctan.org/systems/texlive/tlnet/install-tl-windows.exe">install-tl-windows.exe</a> をダウンロードし, ダブルクリックで実行します. 警告が出たら「詳細情報」から「実行」を選びます.</p>
+<p>インストーラの画面では, 設定を変えずに Install (インストール) を押します. 必要なファイルを 1 つずつダウンロードするので, 回線によっては終わるまで 1 時間以上かかります. 終わったら PowerShell を開き直します.</p>
+<div class="warn">
+<p>インストール先のパスに日本語などの ASCII 以外の文字が含まれると, インストールに失敗することがあります. 既定のインストール先 (<code>C:\texlive\2026</code> のような場所) から変えないでください.</p>
+</div>
+<div class="note">
+<p>Windows には MiKTeX という別の配布もあり, winget で入れられます. MiKTeX は, 足りないパッケージをビルドのたびに取りに行く仕組みで, latexmk の実行には別途 Perl が必要です. 本資料の設定は TeX Live を前提にしているので, TeX Live を使ってください.</p>
+</div>
+<h2 id="インストールの確認">インストールの確認</h2>
+<p>ターミナル (Windows は PowerShell) で次の 3 つを実行し, いずれもバージョンが表示されることを確認します.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">platex</span> <span class="at">--version</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">dvipdfmx</span> <span class="at">--version</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="ex">latexmk</span> <span class="at">--version</span></span></code></pre></div>
+<p><code>platex</code> が見つからないと表示された場合は, ターミナルを開き直してからもう一度試します. それでも見つからない場合は, パソコンを再起動します.</p>
+<p>TeX Live を入れる前から VSCode を開いていた場合は, VSCode もすべて終了して起動し直します (macOS はウィンドウを閉じるだけでは終了しないので, <code>Cmd + Q</code> で終了します). 起動中の VSCode は, TeX Live を入れる前のコマンドの探し場所 (環境変数 <code>PATH</code>) を持ち続けるので, ターミナルで確認できても VSCode からのビルドでは <code>latexmk</code> が見つからないことがあります.</p>
+<h1 id="vscode-の-latex-workshop">VSCode の LaTeX Workshop</h1>
+<p>VSCode では, 拡張機能 <strong>LaTeX Workshop</strong> で LaTeX の原稿を編集します. <a href="setup.html">共通資料 プログラミング用の設定</a>の拡張機能の手順と同じく, 左の拡張機能のアイコンを押し, 検索窓に <code>latex</code> と入力して <code>LaTeX Workshop</code> の <code>install</code> を押します. すでに入れていれば, この手順は不要です.</p>
+<p>LaTeX Workshop は, 既定では <code>.tex</code> を書き換えるたびに pdfLaTeX という英語向けのプログラムでビルドしようとします. 日本語の原稿は pdfLaTeX では組版できないので, 後の<a href="#ビルドの設定ファイル">ビルドの設定ファイル</a>で pLaTeX を使うように設定します.</p>
+<h1 id="原稿のリポジトリを作る">原稿のリポジトリを作る</h1>
+<p>原稿は, 講義の進捗を記録するリポジトリとは別のリポジトリで管理します. 共著者である教員と共有する範囲を, 原稿だけに限るためです.</p>
+<p><a href="git.html">共通資料 バージョン管理とGitHub</a>のリポジトリの作成の手順で, private のリポジトリを 1 つ作ります. 手順との違いは次の 2 点です.</p>
+<ul>
+<li><strong>Repository name</strong>: 原稿だと分かる名前にします (例: <code>ssi2026-paper</code>)</li>
+<li><strong>Add .gitignore</strong>: Python でなく <strong>TeX</strong> を選びます. ビルドで生まれる中間ファイル (<code>.aux</code>, <code>.log</code>, <code>.dvi</code> など) が記録の対象から外れます</li>
+</ul>
+<p>作成したら, <a href="git.html#教員を-collaborator-に招待する">教員を Collaborator に招待する</a>の手順で教員を招待し, 作業用のディレクトリへ <code>clone</code> します.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/work</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/<span class="op">&lt;</span>自分のユーザ名<span class="op">&gt;</span>/ssi2026-paper.git</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ssi2026-paper</span></code></pre></div>
+<p>clone したら, VSCode で <code>.gitignore</code> を開き, 末尾に次の 2 行を書き足して保存します.</p>
+<pre class="text"><code># 原稿の PDF
+/*.pdf</code></pre>
+<p><code>/*.pdf</code> は, リポジトリの一番上にある PDF (<code>paper.pdf</code> など) を記録の対象から外す指定です. 先頭の <code>/</code> があるので, <code>figures/</code> に置いた PDF の図は外れません. PDF を記録しない理由は<a href="#記録するもの">記録するもの</a>で説明します. 書き足した <code>.gitignore</code> は, 原稿と一緒に最初の commit に入れます.</p>
+<h1 id="ssi-のテンプレートを入れる">SSI のテンプレートを入れる</h1>
+<h2 id="テンプレートのダウンロード">テンプレートのダウンロード</h2>
+<p>SSI の大会のページにある発表要領から, LaTeX のテンプレートの <strong>UTF-8 版</strong> をダウンロードします. 2026 年の大会では<a href="https://www.sice.or.jp/org/SSI2026/presentation.html">SSI2026 の発表要領</a>にあります. 年度が変わったら, その年の大会のページを探してください.</p>
+<p>ダウンロードした ZIP を展開すると, 次の 4 つのファイルが入っています.</p>
+<table>
+<thead>
+<tr class="header">
+<th>ファイル</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>SICE-SSI.sty</code></td>
+<td>余白, 文字の大きさ, 題目の書式などを決める様式のファイル</td>
+</tr>
+<tr class="even">
+<td><code>sample.tex</code></td>
+<td>原稿の見本. 原稿の書き方の注意も本文に書かれている</td>
+</tr>
+<tr class="odd">
+<td><code>sample.pdf</code></td>
+<td><code>sample.tex</code> を組版した結果</td>
+</tr>
+<tr class="even">
+<td><code>fig1.ps</code></td>
+<td>見本に載っている図</td>
+</tr>
+</tbody>
+</table>
+<p>このうち <code>SICE-SSI.sty</code>, <code>sample.tex</code>, <code>fig1.ps</code> の 3 つを, clone したリポジトリのディレクトリへ移します.</p>
+<h2 id="テンプレートの書き換え">テンプレートの書き換え</h2>
+<p><code>sample.tex</code> の 21 行目付近に, 図を読み込むパッケージの指定があります.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode latex"><code class="sourceCode latex"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="bu">\usepackage</span>[dvips]{<span class="ex">graphicx</span>}</span></code></pre></div>
+<p><code>dvips</code> は, <code>.dvi</code> を PDF でなく PostScript という形式に変換するプログラムです. 見本の図 <code>fig1.ps</code> は PostScript の図なので, この指定のままでも表示されます. しかし Python で作った PNG の図を読み込むと, <code>dvips</code> の指定では図の大きさを読み取れず, <code>Cannot determine size of graphic</code> というエラーでビルドが止まります. 本資料では dvipdfmx で PDF を作るので, 指定を <code>dvipdfmx</code> に変えます.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode latex"><code class="sourceCode latex"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="bu">\usepackage</span>[dvipdfmx]{<span class="ex">graphicx</span>}</span></code></pre></div>
+<p>書き換えはこの 1 か所だけです. テンプレートのそれ以外の部分は, そのまま使えます.</p>
+<h2 id="ビルドの設定ファイル">ビルドの設定ファイル</h2>
+<p>リポジトリの直下に, 次の 2 つのファイルを作ります. どちらもリポジトリに記録するので, 教員が clone したときも同じ設定でビルドできます.</p>
+<p>1 つ目は, latexmk の設定ファイル <code>.latexmkrc</code> です. ファイル名は <code>.</code> から始まります.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode perl"><code class="sourceCode perl"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="dt">$latex</span> = <span class="ot">&#39;</span><span class="ss">platex -synctex=1 -interaction=nonstopmode -file-line-error %O %S</span><span class="ot">&#39;</span>;</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="dt">$dvipdf</span> = <span class="ot">&#39;</span><span class="ss">dvipdfmx %O -o %D %S</span><span class="ot">&#39;</span>;</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="dt">$pdf_mode</span> = <span class="dv">3</span>;</span></code></pre></div>
+<p>1 行目は, 組版に <code>platex</code> を使う指定です. 後ろの 3 つのオプションは, PDF と原稿の行を対応づける情報を作ること, エラーで止まらず最後まで処理すること, エラーの位置をファイル名と行番号で表示することを指定します. 2 行目は, <code>.dvi</code> から PDF への変換に <code>dvipdfmx</code> を使う指定です. 3 行目の <code>$pdf_mode = 3</code> は, latexmk に「<code>.dvi</code> を作り, dvipdfmx で PDF にする」という手順を選ばせます.</p>
+<p>2 つ目は, VSCode の設定ファイル <code>.vscode/settings.json</code> です. リポジトリの直下に <code>.vscode</code> というディレクトリを作り, その中に置きます.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode json"><code class="sourceCode json"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;latex-workshop.latex.recipe.default&quot;</span><span class="fu">:</span> <span class="st">&quot;latexmk (latexmkrc)&quot;</span><span class="fu">,</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;latex-workshop.latex.autoBuild.run&quot;</span><span class="fu">:</span> <span class="st">&quot;onSave&quot;</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>1 行目は, LaTeX Workshop に <code>.latexmkrc</code> の設定どおりに latexmk を動かす手順 (recipe) を選ばせます. 2 行目は, ファイルを保存したときにビルドする指定です. このファイルはこのリポジトリを開いたときだけ効くので, 他のリポジトリの VSCode の設定は変わりません.</p>
+<p>ここまでで, リポジトリは次の構成になります (<code>README.md</code> と <code>.gitignore</code> はリポジトリの作成時にできたものです).</p>
+<pre class="text"><code>ssi2026-paper/
+├── .gitignore
+├── .latexmkrc
+├── .vscode/
+│   └── settings.json
+├── README.md
+├── SICE-SSI.sty
+├── fig1.ps
+└── sample.tex</code></pre>
+<h2 id="保存でビルドされることの確認">保存でビルドされることの確認</h2>
+<p>VSCode でリポジトリのディレクトリを開き, <code>sample.tex</code> を開きます. 何か 1 文字書き足して消し, <code>Ctrl + S</code> (macOS は <code>Cmd + S</code>) で保存します.</p>
+<p>保存するとビルドが始まり, 画面の下端のステータスバーに進み具合が表示されます. 終わると <code>sample.tex</code> と同じディレクトリに <code>sample.pdf</code> ができます. エディタの右上にある View LaTeX PDF のアイコンを押すと, PDF がエディタの右側に開きます. 開いた PDF は, 保存してビルドし直すたびに更新されます.</p>
+<p>ビルドに失敗すると, 画面の下の「問題」(Problems) の欄にエラーが表示されます. エラーの読み方は<a href="#エラーが出たとき">エラーが出たとき</a>で扱います.</p>
+<h1 id="原稿の書き方">原稿の書き方</h1>
+<p><code>sample.tex</code> は SSI の注意書きを兼ねた見本なので, 自分の原稿は別のファイル <code>paper.tex</code> に書きます. 見本の <code>sample.tex</code> と <code>fig1.ps</code> は, 自分の原稿がビルドできたら削除して構いません.</p>
+<h2 id="原稿の骨組み">原稿の骨組み</h2>
+<p>次の <code>paper.tex</code> は, SSI の原稿に必要な要素をひととおり含む骨組みです. 研究の内容は架空のもので, 参考文献も実在しません.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode latex"><code class="sourceCode latex"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="bu">\documentclass</span>{<span class="ex">jarticle</span>}</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="bu">\usepackage</span>{<span class="ex">SICE-SSI</span>}</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="bu">\usepackage</span>[dvipdfmx]{<span class="ex">graphicx</span>}</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="bu">\usepackage</span>{<span class="ex">amsmath</span>}</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="kw">\begin</span>{<span class="ex">document</span>}</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="fu">\title</span>{大学図書館の貸出記録による利用者の類型化}</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="fu">\author</span>{○千葉太郎<span class="fu">\ \ </span>商科花子<span class="fu">\ </span>（千葉商科大学）}</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="fu">\abstract</span>{</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>  大学図書館の貸出記録から利用者の行動を類型化した．</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>  （ここに 3〜5 行で目的，方法，結果を書く．）</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a><span class="fu">\keyword</span>{クラスタリング，図書館，貸出記録}</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a><span class="fu">\maketitle\thispagestyle</span>{empty}</span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a><span class="fu">\pagestyle</span>{empty}</span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a><span class="kw">\section</span>{はじめに}</span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>大学図書館の利用者は，目的によって借りる本の分野と期間が異なる<span class="fu">\cite</span>{tanaka2020}．</span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>本研究では，貸出記録をクラスタリングして利用者を類型化する<span class="fu">\footnote</span>{データは匿名化されたものを用いた．}．</span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a><span class="kw">\section</span>{方法}</span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a><span class="kw">\subsection</span>{データ}</span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a>2025 年度の貸出記録 1,200 件を用いた．記録の内訳を Table~<span class="kw">\ref</span>{<span class="ex">tab:data</span>} に示す．</span>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a><span class="kw">\begin</span>{<span class="ex">table</span>}[t]</span>
+<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">\centering</span></span>
+<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">\caption</span>{Number of loans by field.}</span>
+<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a>  <span class="kw">\label</span>{<span class="ex">tab:data</span>}</span>
+<span id="cb11-34"><a href="#cb11-34" aria-hidden="true" tabindex="-1"></a>  <span class="kw">\begin</span>{<span class="ex">tabular</span>}{lr}</span>
+<span id="cb11-35"><a href="#cb11-35" aria-hidden="true" tabindex="-1"></a>    <span class="fu">\hline</span></span>
+<span id="cb11-36"><a href="#cb11-36" aria-hidden="true" tabindex="-1"></a>    Field <span class="op">&amp;</span> Loans <span class="fu">\\</span></span>
+<span id="cb11-37"><a href="#cb11-37" aria-hidden="true" tabindex="-1"></a>    <span class="fu">\hline</span></span>
+<span id="cb11-38"><a href="#cb11-38" aria-hidden="true" tabindex="-1"></a>    Literature <span class="op">&amp;</span> 480 <span class="fu">\\</span></span>
+<span id="cb11-39"><a href="#cb11-39" aria-hidden="true" tabindex="-1"></a>    Science <span class="op">&amp;</span> 420 <span class="fu">\\</span></span>
+<span id="cb11-40"><a href="#cb11-40" aria-hidden="true" tabindex="-1"></a>    Qualification <span class="op">&amp;</span> 300 <span class="fu">\\</span></span>
+<span id="cb11-41"><a href="#cb11-41" aria-hidden="true" tabindex="-1"></a>    <span class="fu">\hline</span></span>
+<span id="cb11-42"><a href="#cb11-42" aria-hidden="true" tabindex="-1"></a>  <span class="kw">\end</span>{<span class="ex">tabular</span>}</span>
+<span id="cb11-43"><a href="#cb11-43" aria-hidden="true" tabindex="-1"></a><span class="kw">\end</span>{<span class="ex">table</span>}</span>
+<span id="cb11-44"><a href="#cb11-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-45"><a href="#cb11-45" aria-hidden="true" tabindex="-1"></a><span class="kw">\subsection</span>{分析の手法}</span>
+<span id="cb11-46"><a href="#cb11-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-47"><a href="#cb11-47" aria-hidden="true" tabindex="-1"></a>利用者 <span class="ss">$i$</span> の特徴量を <span class="ss">$</span><span class="sc">\boldsymbol</span><span class="ss">{x}_i$</span>，クラスタ <span class="ss">$k$</span> の中心を <span class="ss">$</span><span class="sc">\boldsymbol</span><span class="ss">{</span><span class="sc">\mu</span><span class="ss">}_k$</span> とし，</span>
+<span id="cb11-48"><a href="#cb11-48" aria-hidden="true" tabindex="-1"></a>式 <span class="kw">\eqref</span>{<span class="ex">eq:kmeans</span>} の <span class="ss">$J$</span> を最小にする k-means 法を用いた．</span>
+<span id="cb11-49"><a href="#cb11-49" aria-hidden="true" tabindex="-1"></a><span class="kw">\begin</span>{<span class="ex">equation</span>}</span>
+<span id="cb11-50"><a href="#cb11-50" aria-hidden="true" tabindex="-1"></a><span class="ss">  J = </span><span class="sc">\sum</span><span class="ss">_{k=1}^{K} </span><span class="sc">\sum</span><span class="ss">_{i </span><span class="sc">\in</span><span class="ss"> C_k} </span><span class="sc">\|</span><span class="ss"> </span><span class="sc">\boldsymbol</span><span class="ss">{x}_i - </span><span class="sc">\boldsymbol</span><span class="ss">{</span><span class="sc">\mu</span><span class="ss">}_k </span><span class="sc">\|</span><span class="ss">^2</span></span>
+<span id="cb11-51"><a href="#cb11-51" aria-hidden="true" tabindex="-1"></a><span class="ss">  </span><span class="sc">\label</span><span class="ss">{eq:kmeans}</span></span>
+<span id="cb11-52"><a href="#cb11-52" aria-hidden="true" tabindex="-1"></a><span class="kw">\end</span>{<span class="ex">equation</span>}</span>
+<span id="cb11-53"><a href="#cb11-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-54"><a href="#cb11-54" aria-hidden="true" tabindex="-1"></a><span class="kw">\section</span>{結果}</span>
+<span id="cb11-55"><a href="#cb11-55" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-56"><a href="#cb11-56" aria-hidden="true" tabindex="-1"></a>週ごとの貸出件数を Fig.~<span class="kw">\ref</span>{<span class="ex">fig:count</span>} に示す．</span>
+<span id="cb11-57"><a href="#cb11-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-58"><a href="#cb11-58" aria-hidden="true" tabindex="-1"></a><span class="kw">\begin</span>{<span class="ex">figure</span>}[t]</span>
+<span id="cb11-59"><a href="#cb11-59" aria-hidden="true" tabindex="-1"></a>  <span class="fu">\centering</span></span>
+<span id="cb11-60"><a href="#cb11-60" aria-hidden="true" tabindex="-1"></a>  <span class="bu">\includegraphics</span>[width=0.9<span class="fu">\linewidth</span>]{<span class="ex">figures/count.png</span>}</span>
+<span id="cb11-61"><a href="#cb11-61" aria-hidden="true" tabindex="-1"></a>  <span class="fu">\caption</span>{Number of loans per week.}</span>
+<span id="cb11-62"><a href="#cb11-62" aria-hidden="true" tabindex="-1"></a>  <span class="kw">\label</span>{<span class="ex">fig:count</span>}</span>
+<span id="cb11-63"><a href="#cb11-63" aria-hidden="true" tabindex="-1"></a><span class="kw">\end</span>{<span class="ex">figure</span>}</span>
+<span id="cb11-64"><a href="#cb11-64" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-65"><a href="#cb11-65" aria-hidden="true" tabindex="-1"></a><span class="kw">\section</span>{おわりに}</span>
+<span id="cb11-66"><a href="#cb11-66" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-67"><a href="#cb11-67" aria-hidden="true" tabindex="-1"></a>（ここに結論を書く．）</span>
+<span id="cb11-68"><a href="#cb11-68" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-69"><a href="#cb11-69" aria-hidden="true" tabindex="-1"></a><span class="fu">\small</span></span>
+<span id="cb11-70"><a href="#cb11-70" aria-hidden="true" tabindex="-1"></a><span class="kw">\begin</span>{<span class="ex">thebibliography</span>}{9}</span>
+<span id="cb11-71"><a href="#cb11-71" aria-hidden="true" tabindex="-1"></a><span class="fu">\bibitem</span>{tanaka2020}</span>
+<span id="cb11-72"><a href="#cb11-72" aria-hidden="true" tabindex="-1"></a>田中一郎：大学図書館の利用実態，図書館学研究，<span class="fu">\textbf</span>{12}-3，45/56（2020）</span>
+<span id="cb11-73"><a href="#cb11-73" aria-hidden="true" tabindex="-1"></a><span class="kw">\end</span>{<span class="ex">thebibliography</span>}</span>
+<span id="cb11-74"><a href="#cb11-74" aria-hidden="true" tabindex="-1"></a><span class="fu">\normalsize</span></span>
+<span id="cb11-75"><a href="#cb11-75" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-76"><a href="#cb11-76" aria-hidden="true" tabindex="-1"></a><span class="kw">\end</span>{<span class="ex">document</span>}</span></code></pre></div>
+<p>図のファイル <code>figures/count.png</code> を用意してから保存すると, 次の PDF ができます. 表と図は <code>[t]</code> の指定によりページの上端に置かれ, 本文は 2 段組になります.</p>
+<figure>
+<img src="/images/common/latex/paper-skeleton.png" alt="骨組みをビルドした結果. 題目からキーワードまでが 1 段組, 本文と参考文献が 2 段組になり, 図, 表, 数式, 脚注, 参考文献に番号が振られている" />
+<figcaption aria-hidden="true">骨組みをビルドした結果. 題目からキーワードまでが 1 段組, 本文と参考文献が 2 段組になり, 図, 表, 数式, 脚注, 参考文献に番号が振られている</figcaption>
+</figure>
+<p>LaTeX の原稿は, <code>\</code> で始まる<strong>コマンド</strong>と, <code>\begin{...}</code> から <code>\end{...}</code> までで範囲を指定する<strong>環境</strong>で書式を指示します. <code>\begin{document}</code> より前を<strong>プリアンブル</strong>といい, 使う様式とパッケージを宣言します. 骨組みの 1〜4 行目は, <code>jarticle</code> (日本語の論文の基本の書式) に SSI の様式 <code>SICE-SSI</code> を重ね, 図を読み込む <code>graphicx</code> と数式を書く <code>amsmath</code> を使う宣言です.</p>
+<div class="note">
+<p>SSI の見本は, 句読点に全角の「，」と「．」を使っています. 骨組みもそれに合わせています. どちらに揃えるかは, 投稿先の見本と共著者の指示に従ってください.</p>
+</div>
+<h2 id="題目-著者-概要-キーワード">題目, 著者, 概要, キーワード</h2>
+<p><code>\title</code>, <code>\author</code>, <code>\abstract</code>, <code>\keyword</code> に書いた内容は, <code>\maketitle</code> の位置に 1 段組で組まれます. SSI の様式では次の点に従います.</p>
+<ul>
+<li><strong>著者</strong>: 発表する人 (登壇者) の名前の前に <code>○</code> を付けます. 名前の間は <code>\ \</code> で空白を空け, 最後に所属を全角の括弧で書きます</li>
+<li><strong>概要</strong>: 目的, 方法, 結果を 3〜5 行にまとめます</li>
+<li><strong>キーワード</strong>: 3〜5 語を <code>，</code> で区切ります</li>
+</ul>
+<p><code>\maketitle</code> の後の <code>\thispagestyle{empty}</code> と <code>\pagestyle{empty}</code> は, ページ番号を付けない指定です. SSI の見本のとおりに残してください.</p>
+<h2 id="節と小節">節と小節</h2>
+<p><code>\section{...}</code> で節, <code>\subsection{...}</code> で小節を作ります. 番号 (1, 2.1 など) は LaTeX が振ります. 番号を付けたくない見出しには <code>\section*{...}</code> と <code>*</code> を付けます.</p>
+<p>本文の段落は, 空行で区切ります. 1 行の改行だけでは段落は変わりません. 原稿のテキストでは 1 文ごとに改行しておくと, git の差分が文単位で表示され, 教員の添削がどの文に入ったかを読みやすくなります.</p>
+<h2 id="数式">数式</h2>
+<p>文中の数式は <code>$</code> で囲みます. <code>$\boldsymbol{x}_i$</code> は太字のベクトル <span class="math inline">\boldsymbol{x}_i</span> に, <code>_</code> は下付き, <code>^</code> は上付きになります.</p>
+<p>番号を付けて別の行に置く数式は <code>equation</code> 環境で書き, <code>\label{...}</code> で名前を付けます. 本文からは <code>\eqref{...}</code> で参照すると, 括弧つきの番号 (1) が入ります.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode latex"><code class="sourceCode latex"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="kw">\begin</span>{<span class="ex">equation</span>}</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="ss">  J = </span><span class="sc">\sum</span><span class="ss">_{k=1}^{K} </span><span class="sc">\sum</span><span class="ss">_{i </span><span class="sc">\in</span><span class="ss"> C_k} </span><span class="sc">\|</span><span class="ss"> </span><span class="sc">\boldsymbol</span><span class="ss">{x}_i - </span><span class="sc">\boldsymbol</span><span class="ss">{</span><span class="sc">\mu</span><span class="ss">}_k </span><span class="sc">\|</span><span class="ss">^2</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="ss">  </span><span class="sc">\label</span><span class="ss">{eq:kmeans}</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="kw">\end</span>{<span class="ex">equation</span>}</span></code></pre></div>
+<p><code>\sum_{k=1}^{K}</code> は <span class="math inline">\sum_{k=1}^{K}</span> に, <code>\in</code> は <span class="math inline">\in</span> に, <code>\|</code> はノルムの記号 <span class="math inline">\|</span> になります. 記号の書き方が分からないときは, 「LaTeX 記号名」で検索するか, 書きたい数式をコーディングエージェントに伝えて LaTeX の書き方を尋ねてください. 尋ねた結果は, ビルドした PDF で意図した数式になっているかを必ず確認します.</p>
+<h2 id="図">図</h2>
+<p>図のファイルは, リポジトリに <code>figures</code> というディレクトリを作って置きます. Python で作った図は, <code>savefig</code> で解像度を指定して PNG で保存します.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>fig.savefig(<span class="st">&quot;figures/count.png&quot;</span>, dpi<span class="op">=</span><span class="dv">300</span>)</span></code></pre></div>
+<p><code>dpi=300</code> は, 1 インチあたり 300 画素で保存する指定です. 2 段組の原稿では図が小さく印刷されるので, 既定の解像度では文字がにじみます.</p>
+<p>原稿では <code>figure</code> 環境の中で <code>\includegraphics</code> を使って読み込みます. <code>width=0.9\linewidth</code> は, 図の幅を段の幅の 9 割にする指定です. 段をまたいで横いっぱいに置きたい図は, <code>figure</code> を <code>figure*</code> に変えます.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode latex"><code class="sourceCode latex"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="kw">\begin</span>{<span class="ex">figure</span>}[t]</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">\centering</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="bu">\includegraphics</span>[width=0.9<span class="fu">\linewidth</span>]{<span class="ex">figures/count.png</span>}</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">\caption</span>{Number of loans per week.}</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">\label</span>{<span class="ex">fig:count</span>}</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="kw">\end</span>{<span class="ex">figure</span>}</span></code></pre></div>
+<p>SSI の様式では, 図の説明文 (<code>\caption</code>) と図の中の文字を英語で書き, 本文からは「Fig.~ に示す」のように <code>Fig.</code> を付けて参照します. <code>~</code> は改行しない空白で, 「Fig.」と番号が行をまたいで分かれるのを防ぎます. Python で図を作るときも, 軸の名前などを英語にしておきます.</p>
+<h2 id="表">表</h2>
+<p>表は <code>table</code> 環境の中に <code>tabular</code> 環境で書きます. <code>{lr}</code> は列ごとの文字の寄せ方で, <code>l</code> は左寄せ, <code>r</code> は右寄せ, <code>c</code> は中央です. 列は <code>&amp;</code> で区切り, 行の終わりに <code>\\</code> を書きます. <code>\hline</code> は横線です.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode latex"><code class="sourceCode latex"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="kw">\begin</span>{<span class="ex">table</span>}[t]</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">\centering</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">\caption</span>{Number of loans by field.}</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">\label</span>{<span class="ex">tab:data</span>}</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>  <span class="kw">\begin</span>{<span class="ex">tabular</span>}{lr}</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">\hline</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    Field <span class="op">&amp;</span> Loans <span class="fu">\\</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    <span class="fu">\hline</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    Literature <span class="op">&amp;</span> 480 <span class="fu">\\</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">\hline</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>  <span class="kw">\end</span>{<span class="ex">tabular</span>}</span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a><span class="kw">\end</span>{<span class="ex">table</span>}</span></code></pre></div>
+<p>表の説明文は表の上に置くので, <code>\caption</code> を <code>tabular</code> より前に書きます. 本文からは <code>Table~\ref{tab:data}</code> で参照します.</p>
+<h2 id="参考文献">参考文献</h2>
+<p>参考文献は, 原稿の最後の <code>thebibliography</code> 環境に <code>\bibitem{名前}</code> で 1 件ずつ書き, 本文からは <code>\cite{名前}</code> で引用します. SSI の様式では, 引用した箇所に上付きの番号 <code>1)</code> が入ります. 番号は <code>\bibitem</code> を書いた順に振られます.</p>
+<p>文献の書き方は, SSI の見本が次の形式を推奨しています. 巻の番号は <code>\textbf{...}</code> で太字にします.</p>
+<pre class="text"><code>雑誌論文: 著者：論文題目，雑誌名，巻-号，始ページ/終ページ（年）
+単行本:   著者：書名，始ページ/終ページ，発行所（発行年）</code></pre>
+<h2 id="脚注">脚注</h2>
+<p><code>\footnote{...}</code> を書いた位置に番号が入り, 内容は段の下に置かれます. 題目に付ける注 (他の学会で発表済みであることの断り書きなど) は, <code>\title</code> の中で <code>\thanks{...}</code> を使います.</p>
+<h2 id="エラーが出たとき">エラーが出たとき</h2>
+<p>ビルドに失敗すると, 「問題」(Problems) の欄にエラーの内容と行番号が出ます. 行番号の位置か, その少し前に原因があります. 初めのうちによく出るエラーは次の 3 つです.</p>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>エラーの表示</th>
+<th>よくある原因</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>Undefined control sequence</code></td>
+<td>コマンドの綴りの誤り, またはそのコマンドを含むパッケージを <code>\usepackage</code> していない</td>
+</tr>
+<tr class="even">
+<td><code>Missing $ inserted</code></td>
+<td><code>_</code> や <code>^</code> を <code>$</code> の外で使った. 文中で記号として書くときは <code>\_</code> と書く</td>
+</tr>
+<tr class="odd">
+<td><code>File 'figures/count.png' not found</code></td>
+<td>図のファイルの名前か置き場所の誤り. <code>.tex</code> からの相対パスで書く</td>
+</tr>
+<tr class="even">
+<td><code>Cannot determine size of graphic</code></td>
+<td><code>graphicx</code> の指定が <code>dvips</code> のまま. <a href="#テンプレートの書き換え">テンプレートの書き換え</a>を参照</td>
+</tr>
+</tbody>
+</table>
+<p><code>%</code> から行末まではコメントとして無視されます. 本文で <code>%</code> を記号として書くときは <code>\%</code> と書きます.</p>
+<p>PDF の参照が <code>??</code> と表示される場合は, 番号がまだ確定していません. もう一度保存すると latexmk が組版を繰り返し, 番号が入ります. それでも <code>??</code> のままなら, <code>\label</code> と <code>\ref</code> の名前が一致しているかを確認します.</p>
+<h1 id="github-で教員と共有する">GitHub で教員と共有する</h1>
+<h2 id="記録するもの">記録するもの</h2>
+<p>リポジトリには, 原稿を組版し直すのに必要なファイルだけを記録します.</p>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>記録するもの</th>
+<th>理由</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>paper.tex</code>, <code>SICE-SSI.sty</code></td>
+<td>原稿と様式</td>
+</tr>
+<tr class="even">
+<td><code>figures/</code> の図</td>
+<td>原稿が読み込む</td>
+</tr>
+<tr class="odd">
+<td><code>.latexmkrc</code>, <code>.vscode/settings.json</code></td>
+<td>誰が clone しても同じ設定でビルドするため</td>
+</tr>
+<tr class="even">
+<td><code>.gitignore</code></td>
+<td>誰が clone しても同じものを記録の対象から外すため</td>
+</tr>
+</tbody>
+</table>
+<p>組版した <code>paper.pdf</code> は記録しません. PDF は中身が文字でないので, git は行に分けて合わせられません. 教員と自分の両方が PDF を記録すると, 本文の別々の箇所を直していても, <code>git pull</code> のたびに PDF がコンフリクトになります. PDF は原稿からいつでも作り直せるので, 記録するのは原稿だけにし, PDF は各自の手元でビルドします.</p>
+<p><code>.aux</code>, <code>.log</code>, <code>.dvi</code>, <code>.synctex.gz</code> などの中間ファイルは, リポジトリの作成時に選んだ TeX 用の <code>.gitignore</code> によって, <code>paper.pdf</code> は clone の後に書き足した <code>/*.pdf</code> によって, 記録の対象から外れます. どちらも <code>git status</code> に出てこないことを確認してください.</p>
+<h2 id="記録して送る">記録して送る</h2>
+<p><a href="git.html">共通資料 バージョン管理とGitHub</a>の日常的に使うコマンドで, 原稿の変更を記録して送ります.</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> status</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff paper.tex</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add paper.tex figures/</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;結果の節に貸出件数の図を加える&quot;</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> push</span></code></pre></div>
+<p>変更の確認は <code>paper.tex</code> の差分で行い, 紙面はビルドした PDF を目で確かめます.</p>
+<h2 id="教員の添削を取り込む">教員の添削を取り込む</h2>
+<p>教員は, 原稿を手元に取り込んでビルドした PDF を読み, 原稿を直接直して commit することがあります. 教員が push した変更は <code>git pull</code> で手元に取り込み, 自分の変更と合わせます. <code>pull</code> と <code>merge</code> の使い方, 最初に一度だけ行う設定, コンフリクトの解決の手順は, <a href="git.html">共通資料 バージョン管理とGitHub</a>の<a href="git.html#pull-github-側の変更を取り込む">pull: GitHub 側の変更を取り込む</a>と<a href="git.html#merge-2-つの変更を合わせる">merge: 2 つの変更を合わせる</a>で扱います.</p>
+<p>原稿のリポジトリでは, 作業を始める前に毎回 <code>git pull</code> します. 取り込んだ後に <code>git log</code> を実行すると, 教員の commit が履歴に並んでいます. どこを直されたかは, <code>git show &lt;commit の識別子&gt;</code> で差分として確認できます.</p>
+<p>手元の <code>paper.pdf</code> は記録していないので, <code>git pull</code> では更新されません. 取り込んだ後に VSCode で <code>paper.tex</code> を開いて保存し, PDF を作り直してから, 教員の添削が紙面に入っていることを確かめます.</p>
+<p>教員と自分が <code>paper.tex</code> の同じ行を直していると, <code>git pull</code> はコンフリクトで止まります. そのときは<a href="git.html#コンフリクトの解決">コンフリクトの解決</a>の手順で印を消して書き直し, 保存して PDF を作り直し, 紙面を確かめてから commit します. どちらを残すか判断できないときは, <code>git merge --abort</code> で合流を始める前の状態に戻し, 教員に相談してください.</p>
+<h1 id="演習">演習</h1>
+<section id="exercise-latex-1" class="note">
+<h3>Exercise LATEX-1</h3>
+<p><strong>SSI のテンプレートを保存でビルドする</strong></p>
+<ol type="1">
+<li><code>platex --version</code>, <code>dvipdfmx --version</code>, <code>latexmk --version</code> がすべて表示されることを確認する.</li>
+<li>GitHub で原稿用の private のリポジトリを作り (Add .gitignore は TeX), 教員を Collaborator に招待して, 手元に clone する. clone したら <code>.gitignore</code> の末尾に <code>/*.pdf</code> を書き足す.</li>
+<li>SSI のテンプレートの UTF-8 版をダウンロードし, <code>SICE-SSI.sty</code>, <code>sample.tex</code>, <code>fig1.ps</code> をリポジトリに移す.</li>
+<li><code>sample.tex</code> の <code>dvips</code> を <code>dvipdfmx</code> に書き換える.</li>
+<li><code>.latexmkrc</code> と <code>.vscode/settings.json</code> を作る.</li>
+<li>VSCode で <code>sample.tex</code> を開いて保存し, <code>sample.pdf</code> ができることと, 見本の <code>sample.pdf</code> と同じ紙面になることを確かめる.</li>
+</ol>
+<p>4 の書き換えが必要な理由を説明できるようにしてください.</p>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答例
+</summary>
+<p>6 で, 題目から参考文献までが 1 ページに収まり, 右の段の上端に図が入った PDF ができれば成功です.</p>
+<p>見本の図 <code>fig1.ps</code> は PostScript なので, 4 の書き換えをしなくても表示されます. 書き換えが必要になるのは, PNG の図を読み込むときです. <code>dvips</code> の指定のままだと PNG の図の大きさを読み取れず, <code>Cannot determine size of graphic</code> というエラーでビルドが止まります. 本資料は dvipdfmx で PDF を作るので, <code>graphicx</code> にもそれを伝えます.</p>
+</details>
+</section>
+<section id="exercise-latex-2" class="note">
+<h3>Exercise LATEX-2</h3>
+<p><strong>自分の原稿の骨組みを作る</strong></p>
+<p>自分の研究の題目で <code>paper.tex</code> を作ります. 次をすべて含めてください.</p>
+<ul>
+<li>題目, 著者 (自分に <code>○</code>), 概要, キーワード</li>
+<li>「はじめに」「方法」「結果」「おわりに」の 4 つの節</li>
+<li>番号つきの数式を 1 つと, 本文からのその参照</li>
+<li>Python で作った図を 1 枚 (説明文は英語) と, 本文からのその参照</li>
+<li>表を 1 つと, 本文からのその参照</li>
+<li>参考文献を 2 件と, 本文からの引用</li>
+</ul>
+<p>中身はまだ仮の文章で構いません. ビルドした PDF で, 図, 表, 数式, 参考文献の番号が <code>??</code> でなく数字になっていることを確認してください.</p>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答例
+</summary>
+<p><a href="#原稿の骨組み">原稿の骨組み</a>の <code>paper.tex</code> が 1 つの回答例です. 参考文献を 2 件にするには, <code>thebibliography</code> に <code>\bibitem</code> をもう 1 つ足し, 本文のどこかで <code>\cite</code> します.</p>
+<p>番号が <code>??</code> のまま残る場合は, <code>\label{...}</code> と <code>\ref{...}</code> (<code>\eqref{...}</code>, <code>\cite{...}</code>) の名前の綴りが一致しているかを確認します. <code>\label</code> は <code>\caption</code> より後に書きます. 前に書くと, 図や表でなく節の番号を指します.</p>
+</details>
+</section>
+<section id="exercise-latex-3" class="note">
+<h3>Exercise LATEX-3</h3>
+<p><strong>原稿を push して教員と共有する</strong></p>
+<ol type="1">
+<li><code>git status</code> で, 中間ファイル (<code>.aux</code>, <code>.log</code>, <code>.dvi</code> など) と <code>paper.pdf</code> が出てこないことを確認する.</li>
+<li><code>paper.tex</code>, <code>figures/</code>, <code>SICE-SSI.sty</code>, <code>.latexmkrc</code>, <code>.vscode/settings.json</code>, <code>.gitignore</code> を commit して push する.</li>
+<li>GitHub のリポジトリのページで, 2 のファイルが並び, <code>paper.pdf</code> と中間ファイルが無いことを確認する.</li>
+<li>リポジトリの Settings の Collaborators で, 教員が招待を受け取ったか (Pending のままでないか) を確認する.</li>
+</ol>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答例
+</summary>
+<div class="sourceCode" id="cb18"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> status</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add paper.tex figures/ SICE-SSI.sty .latexmkrc .vscode/settings.json .gitignore</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--staged</span> <span class="at">--stat</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;SSI の原稿の骨組みを作る&quot;</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> push</span></code></pre></div>
+<p><code>git diff --staged --stat</code> は, 記録するファイルの一覧と変更した行数だけを表示します. 中間ファイルと <code>paper.pdf</code> が一覧に入っていないことを, commit の前にもう一度確かめられます.</p>
+<p>4 で Pending のままなら, 教員がまだ招待を受け取っていません. 招待は 7 日で失効するので, 失効していたら招待し直します.</p>
+</details>
+</section>
+<h1 id="この資料を使う講義">この資料を使う講義</h1>
+<p>この資料は, 次の講義から参照されます. 講義ごとの扱いは, それぞれの資料の最初の章で案内します.</p>
+<ul>
+<li><a href="slds1.html">特別講義DS</a></li>
+<li><a href="dsp1.html">データサイエンス実践</a></li>
+</ul>]]></description>
+    <pubDate>Thu, 08 Oct 2026 00:00:00 UT</pubDate>
+    <guid>/lectures/latex.html</guid>
+    
+    <author>kaya3728@gmail.com (yakagika)</author>
+    
+    <dc:creator>yakagika</dc:creator>
+</item>
+<item>
     <title>共通資料 Google Colaboratory による GPU 計算</title>
     <link>/lectures/colab.html</link>
     <description><![CDATA[<p>本資料は複数の講義で共通に使う資料です. 手元の PC に GPU がなく, 計算に時間がかかりすぎるときに, Google が提供するオンラインの Python の実行環境 <strong>Google Colaboratory</strong> (略して Colab) の GPU を使う手順を扱います.</p>
@@ -5130,7 +5553,7 @@ Terminalを開いて, <code>python --version</code>と入力しましょう. す
 <p>エージェントを複数同時に動かすと, 全員が同じディレクトリを触って, 後から書いたエージェントが先の変更を上書きします. 上書きされた側は, 自分の変更が消えたことを検知しません. git は branch で記録を枝分かれさせ, worktree で作業する場所を分けて, この上書きを防ぎます. 分けた作業を合流させるときに, 同じ行を両方が変えていれば, git がコンフリクトとして止めます. この 2 つは<a href="agent.html">共通資料 コーディングエージェントの利用</a>の発展節で扱います.</p>
 </div>
 <div class="note">
-<p>本資料が扱うのは, エージェントを使ううえで必要になる範囲です. 複数人での共同開発で使う機能 (pull request, レビュー, マージ戦略) までは踏み込みません.</p>
+<p>本資料が扱うのは, エージェントを使ううえで必要になる範囲と, 教員と同じリポジトリを共同編集するための <code>pull</code> と <code>merge</code> までです. 複数人での開発で使う機能 (pull request, レビュー, マージ戦略) までは踏み込みません.</p>
 </div>
 <h1 id="リポジトリを置くディレクトリ">リポジトリを置くディレクトリ</h1>
 <p>作業用のディレクトリを 1 つ作ります. 置き場所を間違えると, 後から直すのが面倒です.</p>
@@ -5191,7 +5614,7 @@ gh version 2.100.0</code></pre>
 </div>
 <div class="note">
 <p><strong>既定のエディタの設定</strong></p>
-<p><code>git commit</code> を <code>-m</code> 無しで実行すると, メッセージを書くためにエディタが開きます. 既定では <code>vim</code> が開き, 使い方を知らないと終了できません. この資料では <code>-m</code> を付けて commit するので使いませんが, 付け忘れたときのために VSCode を使うように変えておけます.</p>
+<p><code>git commit</code> を <code>-m</code> 無しで実行すると, メッセージを書くためにエディタが開きます. 既定では <code>vim</code> が開き, 使い方を知らないと終了できません. この資料では <code>-m</code> を付けて commit しますが, 教員と共同編集するときは, <code>git pull</code> が合流の記録のメッセージを書くためにエディタを開きます (<a href="#merge-2-つの変更を合わせる">merge: 2 つの変更を合わせる</a>). VSCode を使うように変えておいてください.</p>
 <div class="sourceCode" id="cb7"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> config <span class="at">--global</span> core.editor <span class="st">&quot;code --wait&quot;</span></span></code></pre></div>
 <p>設定前に <code>vim</code> が開いてしまったときは, <code>Esc</code> を押してから <code>:q!</code> と入力して <code>Enter</code> を押すと, 保存せずに閉じます.</p>
 </div>
@@ -5323,8 +5746,27 @@ Thumbs.db</code></pre>
 </ul>
 <p>Create repository を押すと作成されます.</p>
 <h2 id="教員を-collaborator-に招待する">教員を Collaborator に招待する</h2>
-<p>作成したリポジトリのページで Settings を開き, 左のメニューから Collaborators を選びます. Add people を押し, 講義で案内する教員のアカウント名を入力して Add を押します. 教員が届いた招待を受け取ると, リポジトリを閲覧できます.</p>
-<p>private のリポジトリでも, Collaborator として招待した相手は中身を読めます.</p>
+<p>教員が private のリポジトリを読めるようにするには, 教員を <strong>Collaborator</strong> (共同編集者) として招待します. 招待した相手だけが, private のリポジトリの中身を読めます. 招待には教員の GitHub のアカウント名が要るので, 講義で案内されたものを手元に用意してください.</p>
+<ol type="1">
+<li><p>作成したリポジトリのページを開き, リポジトリ名の下に並ぶタブから <strong>Settings</strong> を押します. 画面の幅が狭いとタブが畳まれるので, その場合は <code>...</code> のメニューの中から選びます.</p></li>
+<li><p>左のメニューの Access という見出しの下にある <strong>Collaborators</strong> を押します. パスワードか二段階認証のコードを求められたら入力します. 設定を変える操作の前に, GitHub が本人かどうかを確かめるためです.</p></li>
+<li><p>Manage access の欄にある <strong>Add people</strong> を押します.</p>
+<figure>
+<img src="/images/common/git/collab-settings.png" alt="Settings の Collaborators の画面. まだ誰も招待していないので, Manage access の欄の中央に Add people のボタンがある" />
+<figcaption aria-hidden="true">Settings の Collaborators の画面. まだ誰も招待していないので, Manage access の欄の中央に Add people のボタンがある</figcaption>
+</figure></li>
+<li><p>開いた入力欄に教員のアカウント名を入力し, 下に出る候補から教員のアカウントを選びます. 名前の似た別人のアカウントが候補に並ぶことがあるので, 講義で案内されたアカウント名と 1 文字ずつ一致しているかを確かめてから選んでください.</p>
+<figure>
+<img src="/images/common/git/collab-add.png" alt="Add people を押すと開く入力欄. 上端にはリポジトリ名が表示され (図では塗りつぶしています), 相手を選ぶまでは右下のボタンが Add to repository のまま押せない" />
+<figcaption aria-hidden="true">Add people を押すと開く入力欄. 上端にはリポジトリ名が表示され (図では塗りつぶしています), 相手を選ぶまでは右下のボタンが Add to repository のまま押せない</figcaption>
+</figure></li>
+<li><p>相手を選ぶと, 右下のボタンの表示が <code>Add &lt;アカウント名&gt; to &lt;リポジトリ名&gt;</code> に変わります. このボタンを押します.</p></li>
+</ol>
+<p>招待を送ると, Manage access の一覧に教員のアカウントが <strong>Pending Invite</strong> という表示つきで並びます. 教員にはメールで招待が届き, 教員が受け取ると Pending Invite の表示が消えます. この時点から, 教員はリポジトリの中身を読めます.</p>
+<p>招待は送ってから 7 日で失効します. 失効したら, 一覧から古い招待を消し, 同じ手順で招待し直します.</p>
+<div class="note">
+<p>個人のアカウントのリポジトリでは, Collaborator は読むだけでなく, 変更を commit して push することもできます. 読むだけの権限を選ぶ設定はありません. 教員は, この権限を使って原稿やプログラムに直接添削を入れることがあります. 教員が push した変更を手元に取り込む方法は, <a href="latex.html">共通資料 LaTeX による原稿作成</a>の<a href="latex.html#教員の添削を取り込む">教員の添削を取り込む</a>で扱います.</p>
+</div>
 <h2 id="github-cli-での認証">GitHub CLI での認証</h2>
 <p><code>clone</code> や <code>push</code> のたびに GitHub は本人確認を求めます. 先に入れた GitHub CLI で一度だけ済ませます.</p>
 <div class="sourceCode" id="cb11"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ex">gh</span> auth login</span></code></pre></div>
@@ -5354,7 +5796,7 @@ Thumbs.db</code></pre>
 <div class="sourceCode" id="cb12"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/work</span>
 <span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/<span class="op">&lt;</span>自分のユーザ名<span class="op">&gt;</span>/<span class="op">&lt;</span>リポジトリ名<span class="op">&gt;</span>.git</span>
 <span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> <span class="op">&lt;</span>リポジトリ名<span class="op">&gt;</span></span></code></pre></div>
-<h1 id="日常的に使う-7-つのコマンド">日常的に使う 7 つのコマンド</h1>
+<h1 id="日常的に使う-9-つのコマンド">日常的に使う 9 つのコマンド</h1>
 <p>以降はすべて, <code>clone</code> したディレクトリの中で実行します.</p>
 <h2 id="status-何が変わっているかを見る">status: 何が変わっているかを見る</h2>
 <div class="sourceCode" id="cb13"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> status</span></code></pre></div>
@@ -5382,12 +5824,23 @@ Untracked files:
 <p>エージェントに作業させたら, <strong>まず <code>git status</code> で一覧を見て, 新規ファイルは中身を開いて読んでください.</strong> 変更されたファイルは <code>git diff</code> で読みます. 次の資料で codex に差分を頼むときも同じで, 依頼に「新しく作ったファイルも含めて」と添えます.</p>
 </div>
 <h2 id="add-記録するものを選ぶ">add: 記録するものを選ぶ</h2>
+<p><code>add</code>, <code>commit</code>, <code>push</code> の 3 つで, 書き換えたファイルを GitHub へ届けます. この 3 つは, 荷物を送る手順にたとえられます.</p>
+<figure>
+<img src="/images/common/git/add-commit-push.png" class="wide" alt="add はファイルを箱に入れる, commit は箱を梱包して伝票を貼る, push は GitHub へ郵送する" />
+<figcaption aria-hidden="true">add はファイルを箱に入れる, commit は箱を梱包して伝票を貼る, push は GitHub へ郵送する</figcaption>
+</figure>
+<ul>
+<li><code>add</code> は, 送るものを<strong>箱に入れる</strong>操作です. 書き換えたファイルのうち, 記録するものだけを選んで入れます. 入れ直しも取り出しもできます</li>
+<li><code>commit</code> は, 箱を<strong>梱包して伝票を貼る</strong>操作です. 伝票には, 中身の説明 (コミットメッセージ), 記録した人, 日時が書かれます. 梱包した箱は手元に残ります</li>
+<li><code>push</code> は, 梱包した箱を GitHub へ<strong>郵送する</strong>操作です</li>
+</ul>
+<p>たとえと違う点が 1 つあります. 郵便では荷物が手元からなくなりますが, <code>push</code> しても手元の記録は消えず, 同じ記録が GitHub にも置かれます.</p>
 <div class="sourceCode" id="cb17"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add src/analysis.py notes/2026-04-15-groupby.md</span></code></pre></div>
 <p><code>git add .</code> と書くと, <strong>コマンドを実行したディレクトリより下</strong>の変更をまとめて選べます. リポジトリの一番上で実行しないと, 上の階層の変更は入りません. また <code>.gitignore</code> で除外していないファイルは全部入るので, 実行する前に <code>git status</code> で一覧を確認してください.</p>
 <h2 id="diff---staged-記録する直前に中身を確認する"><code>diff --staged</code>: 記録する直前に中身を確認する</h2>
 <p><code>git add</code> したファイルは <code>git diff</code> に出なくなります. これから記録される中身を読むには, 次を使います.</p>
 <div class="sourceCode" id="cb18"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--staged</span></span></code></pre></div>
-<p>鍵やデータを誤って選んでいないかは, ここで最後に確認できます. <strong>commit する前に必ず 1 度実行してください.</strong></p>
+<p>鍵やデータを誤って選んでいないかは, ここで最後に確認できます. 荷物のたとえでは, 箱を閉じる前に中身を確かめる操作です. <strong>commit する前に必ず 1 度実行してください.</strong></p>
 <h2 id="commit-記録する">commit: 記録する</h2>
 <div class="sourceCode" id="cb19"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;欠損値を除いてから平均を取るように修正&quot;</span></span></code></pre></div>
 <p><code>-m</code> の後ろは<strong>コミットメッセージ</strong>で, 何をしたかを自分の言葉で書きます. 後から履歴を見たときに, この 1 行だけで何をしたか分かる必要があります. 「修正」「更新」だけでは分かりません.</p>
@@ -5397,15 +5850,78 @@ Untracked files:
 <div class="warn">
 <p><strong>push は, 記録を GitHub へ送る操作です.</strong> 記録に鍵やデータが入っていると, 送った時点で情報が外へ出て, 取り消せません. 意味の分からないコマンドは実行せず, 調べるか教員に聞いてください. codex に頼んで実行させるときも同じです.</p>
 </div>
+<h2 id="pull-github-側の変更を取り込む">pull: GitHub 側の変更を取り込む</h2>
+<p>教員を Collaborator に招待すると, 教員も同じリポジトリに commit して push できます. 教員が push した変更は, 自分の手元にはまだありません. GitHub 側の変更を手元に取り込むのが <code>pull</code> です.</p>
+<div class="sourceCode" id="cb21"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> pull</span></code></pre></div>
+<p>最初に一度だけ, 次の設定をしておきます. 教員と自分の両方が commit しているときに, 2 つの変更を <a href="#merge-2-つの変更を合わせる">merge</a> で合わせるという指定です. 設定しないと, その場面で <code>git pull</code> が <code>Need to specify how to reconcile divergent branches</code> と表示して止まります.</p>
+<div class="sourceCode" id="cb22"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> config <span class="at">--global</span> pull.rebase false</span></code></pre></div>
+<p>自分が commit していない間に教員だけが push していた場合, <code>pull</code> は教員の commit を手元の履歴の先にそのまま足します.</p>
+<pre class="text"><code>Updating c0ae055..aa51c5d
+Fast-forward
+ src/analysis.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)</code></pre>
+<p><code>Fast-forward</code> は, 手元の履歴を GitHub 側の先頭まで進めただけ, という意味です.</p>
+<p>教員と共同編集するリポジトリでは, <strong>作業を始める前に <code>git pull</code> してください.</strong> 手元を最新にしてから書き換えると, 次の merge で衝突しにくくなります.</p>
+<p>教員の変更を自分の変更と合わせる前に読みたいときは, <code>pull</code> を <code>fetch</code> と <code>merge</code> の 2 つに分けて実行します. <code>fetch</code> は GitHub 側の記録を手元に取ってくるだけで, 自分のファイルは書き換えません.</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> fetch</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> log <span class="at">--oneline</span> main..origin/main</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff main...origin/main</span></code></pre></div>
+<p><code>origin/main</code> は, <code>fetch</code> で取ってきた GitHub 側の <code>main</code> です. 2 行目は GitHub 側にだけある commit の一覧を, 3 行目は自分と分かれた後に GitHub 側で加わった変更を表示します (3 行目の <code>...</code> は点 3 つです). 読み終えたら <code>git merge origin/main</code> で合わせます. <code>git pull</code> は, この <code>fetch</code> と <code>merge</code> を続けて実行するコマンドです.</p>
+<h2 id="merge-2-つの変更を合わせる">merge: 2 つの変更を合わせる</h2>
+<p>教員と自分の両方が commit していると, 履歴は 2 本に分かれています. この状態で <code>push</code> すると, GitHub 側に手元に無い commit があるため拒否されます.</p>
+<pre class="text"><code> ! [rejected]        main -&gt; main (fetch first)
+error: failed to push some refs to &#39;https://github.com/&lt;ユーザ名&gt;/&lt;リポジトリ名&gt;.git&#39;
+hint: Updates were rejected because the remote contains work that you do not
+hint: have locally.</code></pre>
+<p><code>git pull</code> を実行すると, git は 2 本の履歴を <strong>merge</strong> (合流) し, 両方の変更を含む新しい commit を作ります. この commit のメッセージを書くために, エディタが開きます. <code>Merge branch 'main' of ...</code> という既定のメッセージが入っているので, そのまま保存して閉じれば合流が終わります. VSCode なら, 開いたタブを閉じます.</p>
+<pre class="text"><code>Auto-merging src/analysis.py
+Merge made by the &#39;ort&#39; strategy.
+ src/analysis.py | 1 +
+ 1 file changed, 1 insertion(+)</code></pre>
+<p><code>git log --oneline --graph</code> で, 分かれた履歴が合流したことを確かめられます. 左の線が履歴の枝分かれを表します.</p>
+<pre class="text"><code>*   4ca528d Merge branch &#39;main&#39; of https://github.com/&lt;ユーザ名&gt;/&lt;リポジトリ名&gt;
+|\
+| * d5c92fa ファイルの先頭に目的を書く
+* | a00f23b 欠損値を除いてから平均を取るように修正
+|/
+* 4f46cf5 平均点を求める</code></pre>
+<p>この例では, 教員がファイルの先頭に 1 行足し (<code>d5c92fa</code>), 自分が平均の行を直しました (<code>a00f23b</code>). 書き換えた行が離れているので, git が自動で合わせました. 合流したら <code>git push</code> で GitHub へ送ります.</p>
+<h3 id="コンフリクトの解決">コンフリクトの解決</h3>
+<p>教員と自分が同じ行, または隣り合う行を書き換えていると, git はどちらを採るか決められず, 合流を止めます. これを<strong>コンフリクト</strong> (衝突) といいます.</p>
+<pre class="text"><code>Auto-merging src/analysis.py
+CONFLICT (content): Merge conflict in src/analysis.py
+Automatic merge failed; fix conflicts and then commit the result.</code></pre>
+<p><code>git status</code> では, 衝突したファイルが <code>both modified</code> として出ます. ファイルを開くと, 衝突した箇所に git が印を付けています.</p>
+<pre class="text"><code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD
+mean = df[&#39;score&#39;].dropna().mean()
+print(mean)
+=======
+mean = df[&#39;score&#39;].mean()
+print(f&#39;平均点: {mean:.1f}&#39;)
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; 1a942ba6d0c3e8b5f27a94c1e0d8b3f6a2c7e915</code></pre>
+<p><code>&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD</code> から <code>=======</code> までが自分の変更, <code>=======</code> から <code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code> までが教員の変更です. <code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code> の後ろの英数字は, 教員の commit の識別子です. この例では, 自分は欠損値を除くように平均の行を直し, 教員はその次の行の表示を直していました. 次の手順で解決します.</p>
+<ol type="1">
+<li><p>2 つの変更を読み, 残す内容を決めて, 印の行 (<code>&lt;&lt;&lt;&lt;&lt;&lt;&lt;</code>, <code>=======</code>, <code>&gt;&gt;&gt;&gt;&gt;&gt;&gt;</code>) を消して書き直します. この例では両方の変更を残します.</p>
+<div class="sourceCode" id="cb30"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>mean <span class="op">=</span> df[<span class="st">&#39;score&#39;</span>].dropna().mean()</span>
+<span id="cb30-2"><a href="#cb30-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&#39;平均点: </span><span class="sc">{</span>mean<span class="sc">:.1f}</span><span class="ss">&#39;</span>)</span></code></pre></div></li>
+<li><p><code>git add src/analysis.py</code> で, 解決したファイルを選びます.</p></li>
+<li><p><code>git commit -m "教員の表示の修正を取り込む"</code> で, 合流の記録を作ります.</p></li>
+<li><p><code>git push</code> で送ります.</p></li>
+</ol>
+<p>VSCode で衝突したファイルを開くと, 印の上に Accept Current Change (自分の変更を採る), Accept Incoming Change (教員の変更を採る), Accept Both Changes (両方を残す) のボタンが出ます. ボタンを使っても, 結果が意図どおりかは自分で読んで確かめます.</p>
+<p>どちらを残すか判断できないときは, <code>git merge --abort</code> を実行すると, 合流を始める前の状態に戻ります. そのうえで教員に相談してください.</p>
+<div class="note">
+<p>PDF や画像のように中身が文字でないファイルは, 行に分けて合わせられません. 教員と自分の両方が同じファイルを更新していれば, 書き換えた箇所に関係なくコンフリクトになります. 元になるファイルから作り直せるもの (LaTeX の原稿から作る PDF など) は, 初めから記録せず <code>.gitignore</code> で除外しておくと, このコンフリクトは起きません. 作り直せないファイルが衝突したときは, どちらの版を残すかを教員に相談してください. LaTeX の原稿での設定は, <a href="latex.html">共通資料 LaTeX による原稿作成</a>の<a href="latex.html#記録するもの">記録するもの</a>で扱います.</p>
+</div>
 <h2 id="log-履歴を見る">log: 履歴を見る</h2>
-<div class="sourceCode" id="cb21"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> log <span class="at">--oneline</span></span></code></pre></div>
+<div class="sourceCode" id="cb31"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> log <span class="at">--oneline</span></span></code></pre></div>
 <pre class="text"><code>a3f79f8 欠損値を除いてから平均を取るように修正
 f041ec0 README にリポジトリの目的を書く
 568a3c1 Initial commit</code></pre>
 <p>左の 7 文字が記録の識別子です. 発表資料の図がどの記録の状態で出たものかは, これで示せます.</p>
 <h2 id="restore-変更を捨てる">restore: 変更を捨てる</h2>
 <p>エージェントの変更が意図と違っていたとき, 手元の変更を捨てて記録済みの状態に戻します.</p>
-<div class="sourceCode" id="cb23"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> restore <span class="at">--source</span><span class="op">=</span>HEAD src/analysis.py</span></code></pre></div>
+<div class="sourceCode" id="cb33"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> restore <span class="at">--source</span><span class="op">=</span>HEAD src/analysis.py</span></code></pre></div>
 <p><code>--source=HEAD</code> は「最後に commit した状態から取り直す」という指定です. これを省くと <code>git add</code> で選んだ内容から取り直すので, <code>add</code> 済みの変更は残ります.</p>
 <div class="warn">
 <p><strong>restore は取り消せません.</strong> commit していない変更は警告なく消えます. この資料で扱うコマンドのうち, 元に戻せないのはこの操作だけです.</p>
@@ -5452,34 +5968,34 @@ f041ec0 README にリポジトリの目的を書く
 <summary>
 回答例
 </summary>
-<div class="sourceCode" id="cb25"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> <span class="at">--version</span></span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="ex">gh</span> <span class="at">--version</span></span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> config <span class="at">--global</span> user.name <span class="st">&quot;自分の名前&quot;</span></span>
-<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> config <span class="at">--global</span> user.email <span class="st">&quot;自分のアドレス&quot;</span></span>
-<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="ex">gh</span> auth login</span>
-<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/work</span>
-<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/yourname/ds-practice-2026.git</span>
-<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ds-practice-2026</span>
-<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a><span class="co"># .gitignore に data/ と *.csv などを追記 (エディタで編集)</span></span>
-<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a><span class="co"># README.md に 1 行書く (エディタで編集)</span></span>
-<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> status</span>
-<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a><span class="co"># On branch main</span></span>
-<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Changes not staged for commit:</span></span>
-<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a><span class="co">#         modified:   .gitignore</span></span>
-<span id="cb25-18"><a href="#cb25-18" aria-hidden="true" tabindex="-1"></a><span class="co">#         modified:   README.md</span></span>
-<span id="cb25-19"><a href="#cb25-19" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-20"><a href="#cb25-20" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add README.md .gitignore</span>
-<span id="cb25-21"><a href="#cb25-21" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> status</span>
-<span id="cb25-22"><a href="#cb25-22" aria-hidden="true" tabindex="-1"></a><span class="co"># Changes to be committed:</span></span>
-<span id="cb25-23"><a href="#cb25-23" aria-hidden="true" tabindex="-1"></a><span class="co">#         modified:   .gitignore</span></span>
-<span id="cb25-24"><a href="#cb25-24" aria-hidden="true" tabindex="-1"></a><span class="co">#         modified:   README.md</span></span>
-<span id="cb25-25"><a href="#cb25-25" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-26"><a href="#cb25-26" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--staged</span>       <span class="co"># 記録される中身を最後に確認する</span></span>
-<span id="cb25-27"><a href="#cb25-27" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;README にリポジトリの目的を書き, .gitignore にデータの除外を追記&quot;</span></span>
-<span id="cb25-28"><a href="#cb25-28" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> push</span></code></pre></div>
+<div class="sourceCode" id="cb35"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> <span class="at">--version</span></span>
+<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a><span class="ex">gh</span> <span class="at">--version</span></span>
+<span id="cb35-3"><a href="#cb35-3" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> config <span class="at">--global</span> user.name <span class="st">&quot;自分の名前&quot;</span></span>
+<span id="cb35-4"><a href="#cb35-4" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> config <span class="at">--global</span> user.email <span class="st">&quot;自分のアドレス&quot;</span></span>
+<span id="cb35-5"><a href="#cb35-5" aria-hidden="true" tabindex="-1"></a><span class="ex">gh</span> auth login</span>
+<span id="cb35-6"><a href="#cb35-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-7"><a href="#cb35-7" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ~/work</span>
+<span id="cb35-8"><a href="#cb35-8" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone https://github.com/yourname/ds-practice-2026.git</span>
+<span id="cb35-9"><a href="#cb35-9" aria-hidden="true" tabindex="-1"></a><span class="bu">cd</span> ds-practice-2026</span>
+<span id="cb35-10"><a href="#cb35-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-11"><a href="#cb35-11" aria-hidden="true" tabindex="-1"></a><span class="co"># .gitignore に data/ と *.csv などを追記 (エディタで編集)</span></span>
+<span id="cb35-12"><a href="#cb35-12" aria-hidden="true" tabindex="-1"></a><span class="co"># README.md に 1 行書く (エディタで編集)</span></span>
+<span id="cb35-13"><a href="#cb35-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-14"><a href="#cb35-14" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> status</span>
+<span id="cb35-15"><a href="#cb35-15" aria-hidden="true" tabindex="-1"></a><span class="co"># On branch main</span></span>
+<span id="cb35-16"><a href="#cb35-16" aria-hidden="true" tabindex="-1"></a><span class="co"># Changes not staged for commit:</span></span>
+<span id="cb35-17"><a href="#cb35-17" aria-hidden="true" tabindex="-1"></a><span class="co">#         modified:   .gitignore</span></span>
+<span id="cb35-18"><a href="#cb35-18" aria-hidden="true" tabindex="-1"></a><span class="co">#         modified:   README.md</span></span>
+<span id="cb35-19"><a href="#cb35-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-20"><a href="#cb35-20" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add README.md .gitignore</span>
+<span id="cb35-21"><a href="#cb35-21" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> status</span>
+<span id="cb35-22"><a href="#cb35-22" aria-hidden="true" tabindex="-1"></a><span class="co"># Changes to be committed:</span></span>
+<span id="cb35-23"><a href="#cb35-23" aria-hidden="true" tabindex="-1"></a><span class="co">#         modified:   .gitignore</span></span>
+<span id="cb35-24"><a href="#cb35-24" aria-hidden="true" tabindex="-1"></a><span class="co">#         modified:   README.md</span></span>
+<span id="cb35-25"><a href="#cb35-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb35-26"><a href="#cb35-26" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--staged</span>       <span class="co"># 記録される中身を最後に確認する</span></span>
+<span id="cb35-27"><a href="#cb35-27" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;README にリポジトリの目的を書き, .gitignore にデータの除外を追記&quot;</span></span>
+<span id="cb35-28"><a href="#cb35-28" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> push</span></code></pre></div>
 <p>8 で表示が変わる理由は次のとおりです. <code>git status</code> は変更を 2 つの段階に分けて表示します. <code>git add</code> する前は <code>Changes not staged for commit</code> (記録する対象に入っていない変更), <code>git add</code> した後は <code>Changes to be committed</code> (次の <code>commit</code> に入る変更) です. <code>add</code> はこの変更を次の記録に入れると選ぶ操作で, <code>commit</code> はそこで選んだものをまとめて記録する操作です.</p>
 <p><code>git add .</code> ではなくファイル名を指定したのは, <code>.gitignore</code> で除外できているかを確かめる前に, 全部を選ばないためです.</p>
 </details>
@@ -5500,22 +6016,22 @@ f041ec0 README にリポジトリの目的を書く
 <summary>
 回答例
 </summary>
-<div class="sourceCode" id="cb26"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> notes</span>
-<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;# 最初の記録&quot;</span> <span class="op">&gt;</span> notes/first.md</span>
-<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff</span>
-<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a><span class="co"># (何も表示されない)</span></span>
-<span id="cb26-6"><a href="#cb26-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-7"><a href="#cb26-7" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> status</span>
-<span id="cb26-8"><a href="#cb26-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Untracked files:</span></span>
-<span id="cb26-9"><a href="#cb26-9" aria-hidden="true" tabindex="-1"></a><span class="co">#         notes/</span></span>
-<span id="cb26-10"><a href="#cb26-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-11"><a href="#cb26-11" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add notes/first.md</span>
-<span id="cb26-12"><a href="#cb26-12" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--staged</span></span>
-<span id="cb26-13"><a href="#cb26-13" aria-hidden="true" tabindex="-1"></a><span class="co"># +# 最初の記録</span></span>
-<span id="cb26-14"><a href="#cb26-14" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb26-15"><a href="#cb26-15" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;最初のノートを置く&quot;</span></span>
-<span id="cb26-16"><a href="#cb26-16" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> push</span></code></pre></div>
+<div class="sourceCode" id="cb36"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> notes</span>
+<span id="cb36-2"><a href="#cb36-2" aria-hidden="true" tabindex="-1"></a><span class="bu">echo</span> <span class="st">&quot;# 最初の記録&quot;</span> <span class="op">&gt;</span> notes/first.md</span>
+<span id="cb36-3"><a href="#cb36-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-4"><a href="#cb36-4" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff</span>
+<span id="cb36-5"><a href="#cb36-5" aria-hidden="true" tabindex="-1"></a><span class="co"># (何も表示されない)</span></span>
+<span id="cb36-6"><a href="#cb36-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-7"><a href="#cb36-7" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> status</span>
+<span id="cb36-8"><a href="#cb36-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Untracked files:</span></span>
+<span id="cb36-9"><a href="#cb36-9" aria-hidden="true" tabindex="-1"></a><span class="co">#         notes/</span></span>
+<span id="cb36-10"><a href="#cb36-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-11"><a href="#cb36-11" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add notes/first.md</span>
+<span id="cb36-12"><a href="#cb36-12" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff <span class="at">--staged</span></span>
+<span id="cb36-13"><a href="#cb36-13" aria-hidden="true" tabindex="-1"></a><span class="co"># +# 最初の記録</span></span>
+<span id="cb36-14"><a href="#cb36-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb36-15"><a href="#cb36-15" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;最初のノートを置く&quot;</span></span>
+<span id="cb36-16"><a href="#cb36-16" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> push</span></code></pre></div>
 <p><code>git diff</code> が表示するのは, 追跡している (一度でも記録した) ファイルの未ステージの変更だけです. 新しく作ったファイルは追跡していないので, <code>git status</code> の <code>Untracked</code> にだけ出ます. エージェントが新しいファイルを作っても <code>git diff</code> は空のままなので, 作業の後はまず <code>git status</code> で一覧を確認します.</p>
 <p><code>git status</code> は, 中にファイルのあるディレクトリを <code>notes/</code> のようにまとめて表示します. 中のファイルを個別に見るときは <code>git status -uall</code> を使います.</p>
 </details>
@@ -5542,6 +6058,51 @@ f041ec0 README にリポジトリの目的を書く
 <li><strong>入れてはいけません</strong>. 学籍番号は個人を特定できます. 学籍番号を消しても, 学部と学年と回答の組み合わせで特定できることがあります. <code>data/</code> ごと除外します.</li>
 <li><strong>元データによります</strong>. 集計結果そのものは個人を特定しませんが, 元データが 4 のような非公開データで, かつ集計の区分が細かいと (たとえば該当者が 1 人しかいない区分があると), その値から個人が特定できます. 元データが 3 なら, 3 と同じ条件で判断します.</li>
 </ol>
+</details>
+</section>
+<section id="exercise-git-4" class="note">
+<h3>Exercise GIT-4</h3>
+<p><strong>GitHub 側の変更を取り込んで合流させる</strong></p>
+<p>教員の添削の代わりに, GitHub の画面で自分のリポジトリを直し, 手元の変更と合流させます. <a href="#exercise-git-1">Exercise GIT-1</a> のリポジトリを使います.</p>
+<ol type="1">
+<li><code>git config --global pull.rebase false</code> を設定する.</li>
+<li>GitHub のリポジトリのページで <code>README.md</code> を開き, 右上の鉛筆のアイコン (Edit this file) を押す. 末尾に 1 行書き足し, Commit changes を押して commit する.</li>
+<li>手元では <code>git pull</code> をしないまま, <code>.gitignore</code> の末尾に 1 行書き足して commit し, <code>git push</code> する. 拒否されることを確認する.</li>
+<li><code>git fetch</code> してから <code>git diff main...origin/main</code> を実行し, 2 で書き足した文が表示されることを確認する.</li>
+<li><code>git pull</code> で合流させ, <code>git log --oneline --graph</code> で履歴が合流したことを確認してから, <code>git push</code> する.</li>
+<li>もう一度 GitHub の画面で <code>README.md</code> の 1 行目を書き換えて commit し, 手元でも <code>git pull</code> をしないまま同じ 1 行目を別の内容に書き換えて commit する. <code>git pull</code> でコンフリクトを起こし, 解決して push する.</li>
+</ol>
+<p>3 で push が拒否された理由と, 6 でだけコンフリクトになった理由を説明できるようにしてください.</p>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答例
+</summary>
+<div class="sourceCode" id="cb37"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> config <span class="at">--global</span> pull.rebase false</span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a><span class="co"># 3: GitHub 側の変更を取り込まずに commit して push する</span></span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add .gitignore</span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;.gitignore に除外の行を足す&quot;</span></span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> push            <span class="co"># rejected (fetch first) と表示される</span></span>
+<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a><span class="co"># 4: 合わせる前に GitHub 側の変更を読む</span></span>
+<span id="cb37-9"><a href="#cb37-9" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> fetch</span>
+<span id="cb37-10"><a href="#cb37-10" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> diff main...origin/main</span>
+<span id="cb37-11"><a href="#cb37-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-12"><a href="#cb37-12" aria-hidden="true" tabindex="-1"></a><span class="co"># 5: 合流させて送る</span></span>
+<span id="cb37-13"><a href="#cb37-13" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> pull            <span class="co"># エディタが開くので, 既定のメッセージのまま閉じる</span></span>
+<span id="cb37-14"><a href="#cb37-14" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> log <span class="at">--oneline</span> <span class="at">--graph</span></span>
+<span id="cb37-15"><a href="#cb37-15" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> push</span>
+<span id="cb37-16"><a href="#cb37-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb37-17"><a href="#cb37-17" aria-hidden="true" tabindex="-1"></a><span class="co"># 6: 同じ行を書き換えてコンフリクトを起こす</span></span>
+<span id="cb37-18"><a href="#cb37-18" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add README.md</span>
+<span id="cb37-19"><a href="#cb37-19" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;README の 1 行目を書き換える&quot;</span></span>
+<span id="cb37-20"><a href="#cb37-20" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> pull            <span class="co"># CONFLICT (content): Merge conflict in README.md</span></span>
+<span id="cb37-21"><a href="#cb37-21" aria-hidden="true" tabindex="-1"></a><span class="co"># README.md を開いて印を消し, 残す内容に書き直す</span></span>
+<span id="cb37-22"><a href="#cb37-22" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> add README.md</span>
+<span id="cb37-23"><a href="#cb37-23" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> commit <span class="at">-m</span> <span class="st">&quot;README の 1 行目の衝突を解決する&quot;</span></span>
+<span id="cb37-24"><a href="#cb37-24" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> push</span></code></pre></div>
+<p>3 で拒否されるのは, GitHub 側に手元に無い commit (2 で作ったもの) があるからです. push は GitHub 側の履歴の先に自分の commit を足す操作なので, GitHub 側が先に進んでいると足せません.</p>
+<p>5 では <code>README.md</code> と <code>.gitignore</code> という別々のファイルを書き換えたので, git が自動で合わせます. 6 では同じファイルの同じ行を両方が書き換えたので, git はどちらを残すか決められず, コンフリクトとして止まります.</p>
 </details>
 </section>
 <h1 id="この資料を使う講義">この資料を使う講義</h1>
@@ -5654,12 +6215,8 @@ f041ec0 README にリポジトリの目的を書く
 </div>
 <h2 id="codex-を入れる">codex を入れる</h2>
 <p>codex は OpenAI が配布しているコーディングエージェントです.</p>
-<p>Windows は<a href="setup.html">共通資料 プログラミング用の設定</a>で導入を確かめた winget で入ります. ただし入れる前に, <strong>開発者モード</strong>をオンにします. 「設定」を開き, 「システム」の「詳細設定」にある「開発者向け」の欄で, 開発者モードをオンにします. 確認が出たら「はい」を押します.</p>
-<figure>
-<img src="/images/common/agent/windows-developer-mode.png" alt="Windows の「設定」の「システム」&gt;「詳細設定」. 「開発者向け」の欄で開発者モードをオンにした状態" />
-<figcaption aria-hidden="true">Windows の「設定」の「システム」&gt;「詳細設定」. 「開発者向け」の欄で開発者モードをオンにした状態</figcaption>
-</figure>
-<p>開発者モードをオンにしてから, PowerShell で次を実行します. 終わったら PowerShell を開き直します.</p>
+<p>Windows は<a href="setup.html">共通資料 プログラミング用の設定</a>で導入を確かめた winget で入ります. 入れる前に, 同じ資料の <a href="setup.html#windows-winget">Windows: winget</a> の手順で<strong>開発者モード</strong>をオンにしたかを確かめます. 「設定」の「システム」の「詳細設定」にある「開発者向け」の欄で, 開発者モードがオンになっていれば済んでいます.</p>
+<p>開発者モードがオンになっていることを確かめてから, PowerShell で次を実行します. 終わったら PowerShell を開き直します.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode powershell"><code class="sourceCode powershell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>winget install <span class="op">-</span>e <span class="op">--</span>id OpenAI<span class="op">.</span><span class="fu">Codex</span></span></code></pre></div>
 <div class="note">
 <p>開発者モードがオフのまま入れると, 「インストールが完了しました」と表示されても, PowerShell を開き直したあとに <code>codex</code> が認識されません. winget はコマンド名 <code>codex</code> を実行ファイルへ結び付けるリンクを作りますが, 開発者モードがオフだとこのリンクを作れず, 実行ファイルが <code>codex-x86_64-pc-windows-msvc.exe</code> のような長い名前のまま残るためです. herdr も codex を見つけられなくなります.</p>
