@@ -107,6 +107,15 @@ git clone https://github.com/<自分のユーザ名>/ssi2026-paper.git
 cd ssi2026-paper
 ~~~
 
+clone したら, VSCode で `.gitignore` を開き, 末尾に次の 2 行を書き足して保存します.
+
+~~~ text
+# 原稿の PDF
+/*.pdf
+~~~
+
+`/*.pdf` は, リポジトリの一番上にある PDF (`paper.pdf` など) を記録の対象から外す指定です. 先頭の `/` があるので, `figures/` に置いた PDF の図は外れません. PDF を記録しない理由は[記録するもの](#記録するもの)で説明します. 書き足した `.gitignore` は, 原稿と一緒に最初の commit に入れます.
+
 # SSI のテンプレートを入れる
 
 ## テンプレートのダウンロード
@@ -395,57 +404,42 @@ PDF の参照が `??` と表示される場合は, 番号がまだ確定して�
 
 ## 記録するもの
 
-リポジトリには, 原稿を組版し直すのに必要なファイルと, 組版した PDF を記録します.
+リポジトリには, 原稿を組版し直すのに必要なファイルだけを記録します.
 
 | 記録するもの | 理由 |
 |---|---|
 | `paper.tex`, `SICE-SSI.sty` | 原稿と様式 |
 | `figures/` の図 | 原稿が読み込む |
 | `.latexmkrc`, `.vscode/settings.json` | 誰が clone しても同じ設定でビルドするため |
-| `paper.pdf` | 教員がビルドせずに GitHub の画面で読むため |
+| `.gitignore` | 誰が clone しても同じものを記録の対象から外すため |
 
-`.aux`, `.log`, `.dvi`, `.synctex.gz` などの中間ファイルは, リポジトリの作成時に選んだ TeX 用の `.gitignore` によって記録の対象から外れます. `git status` に出てこないことを確認してください.
+組版した `paper.pdf` は記録しません. PDF は中身が文字でないので, git は行に分けて合わせられません. 教員と自分の両方が PDF を記録すると, 本文の別々の箇所を直していても, `git pull` のたびに PDF がコンフリクトになります. PDF は原稿からいつでも作り直せるので, 記録するのは原稿だけにし, PDF は各自の手元でビルドします.
+
+`.aux`, `.log`, `.dvi`, `.synctex.gz` などの中間ファイルは, リポジトリの作成時に選んだ TeX 用の `.gitignore` によって, `paper.pdf` は clone の後に書き足した `/*.pdf` によって, 記録の対象から外れます. どちらも `git status` に出てこないことを確認してください.
 
 ## 記録して送る
 
-[共通資料 バージョン管理とGitHub](git.html)の日常的に使うコマンドで, 原稿の変更を記録して送ります. 原稿を保存すると PDF も作り直されるので, `paper.tex` と `paper.pdf` は同じ commit に入れます. 原稿だけを commit すると, GitHub 上の PDF が古いままになります.
+[共通資料 バージョン管理とGitHub](git.html)の日常的に使うコマンドで, 原稿の変更を記録して送ります.
 
 ~~~ bash
 git status
 git diff paper.tex
-git add paper.tex paper.pdf figures/
+git add paper.tex figures/
 git commit -m "結果の節に貸出件数の図を加える"
 git push
 ~~~
 
-`git diff` に `paper.pdf` を指定しても, PDF は中身が文字でないので差分は読めません. 変更の確認は `paper.tex` の差分で行い, PDF はビルドした結果を目で確かめます.
+変更の確認は `paper.tex` の差分で行い, 紙面はビルドした PDF を目で確かめます.
 
 ## 教員の添削を取り込む
 
-教員は, GitHub の画面で PDF を読み, 原稿を直接直して commit することがあります. 教員が push した変更は `git pull` で手元に取り込み, 自分の変更と合わせます. `pull` と `merge` の使い方, 最初に一度だけ行う設定, コンフリクトの解決の手順は, [共通資料 バージョン管理とGitHub](git.html)の[pull: GitHub 側の変更を取り込む](git.html#pull-github-側の変更を取り込む)と[merge: 2 つの変更を合わせる](git.html#merge-2-つの変更を合わせる)で扱います.
+教員は, 原稿を手元に取り込んでビルドした PDF を読み, 原稿を直接直して commit することがあります. 教員が push した変更は `git pull` で手元に取り込み, 自分の変更と合わせます. `pull` と `merge` の使い方, 最初に一度だけ行う設定, コンフリクトの解決の手順は, [共通資料 バージョン管理とGitHub](git.html)の[pull: GitHub 側の変更を取り込む](git.html#pull-github-側の変更を取り込む)と[merge: 2 つの変更を合わせる](git.html#merge-2-つの変更を合わせる)で扱います.
 
 原稿のリポジトリでは, 作業を始める前に毎回 `git pull` します. 取り込んだ後に `git log` を実行すると, 教員の commit が履歴に並んでいます. どこを直されたかは, `git show <commit の識別子>` で差分として確認できます.
 
-### PDF のコンフリクト
+手元の `paper.pdf` は記録していないので, `git pull` では更新されません. 取り込んだ後に VSCode で `paper.tex` を開いて保存し, PDF を作り直してから, 教員の添削が紙面に入っていることを確かめます.
 
-`paper.pdf` は中身が文字でないので, git は行に分けて合わせられません. 教員と自分の両方が PDF を commit していると, 本文の別々の箇所を直していても, `git pull` は次のように PDF のコンフリクトで止まります.
-
-~~~ text
-warning: Cannot merge binary files: paper.pdf (HEAD vs. 5fc7ea3...)
-Auto-merging paper.pdf
-CONFLICT (content): Merge conflict in paper.pdf
-Auto-merging paper.tex
-Automatic merge failed; fix conflicts and then commit the result.
-~~~
-
-この例では `paper.tex` は自動で合わさっていて (`Auto-merging paper.tex` の後に `CONFLICT` が出ていない), 衝突したのは PDF だけです. PDF は原稿から作り直せるので, 次の手順で解決します.
-
-1. VSCode で `paper.tex` を開いて保存し, 合わさった原稿から `paper.pdf` を作り直す.
-2. PDF を開き, 教員の添削と自分の変更の両方が入っていることを確かめる.
-3. `git add paper.tex paper.pdf` で選び, `git commit -m "教員の添削を取り込む"` で合流の記録を作る.
-4. `git push` で送る.
-
-`paper.tex` にも `CONFLICT` が出ていたら, 先に [コンフリクトの解決](git.html#コンフリクトの解決)の手順で `paper.tex` の印を消して書き直し, それから 1 に進みます. どちらを残すか判断できないときは, `git merge --abort` で合流を始める前の状態に戻し, 教員に相談してください.
+教員と自分が `paper.tex` の同じ行を直していると, `git pull` はコンフリクトで止まります. そのときは[コンフリクトの解決](git.html#コンフリクトの解決)の手順で印を消して書き直し, 保存して PDF を作り直し, 紙面を確かめてから commit します. どちらを残すか判断できないときは, `git merge --abort` で合流を始める前の状態に戻し, 教員に相談してください.
 
 # 演習
 
@@ -456,7 +450,7 @@ Automatic merge failed; fix conflicts and then commit the result.
 **SSI のテンプレートを保存でビルドする**
 
 1. `platex --version`, `dvipdfmx --version`, `latexmk --version` がすべて表示されることを確認する.
-2. GitHub で原稿用の private のリポジトリを作り (Add .gitignore は TeX), 教員を Collaborator に招待して, 手元に clone する.
+2. GitHub で原稿用の private のリポジトリを作り (Add .gitignore は TeX), 教員を Collaborator に招待して, 手元に clone する. clone したら `.gitignore` の末尾に `/*.pdf` を書き足す.
 3. SSI のテンプレートの UTF-8 版をダウンロードし, `SICE-SSI.sty`, `sample.tex`, `fig1.ps` をリポジトリに移す.
 4. `sample.tex` の `dvips` を `dvipdfmx` に書き換える.
 5. `.latexmkrc` と `.vscode/settings.json` を作る.
@@ -509,9 +503,9 @@ Automatic merge failed; fix conflicts and then commit the result.
 
 **原稿を push して教員と共有する**
 
-1. `git status` で, 中間ファイル (`.aux`, `.log`, `.dvi` など) が出てこないことを確認する.
-2. `paper.tex`, `paper.pdf`, `figures/`, `SICE-SSI.sty`, `.latexmkrc`, `.vscode/settings.json` を commit して push する.
-3. GitHub のリポジトリのページで `paper.pdf` を開き, 自分の原稿が表示されることを確認する.
+1. `git status` で, 中間ファイル (`.aux`, `.log`, `.dvi` など) と `paper.pdf` が出てこないことを確認する.
+2. `paper.tex`, `figures/`, `SICE-SSI.sty`, `.latexmkrc`, `.vscode/settings.json`, `.gitignore` を commit して push する.
+3. GitHub のリポジトリのページで, 2 のファイルが並び, `paper.pdf` と中間ファイルが無いことを確認する.
 4. リポジトリの Settings の Collaborators で, 教員が招待を受け取ったか (Pending のままでないか) を確認する.
 
 <details class="protected" data-pass="yakagika">
@@ -519,13 +513,13 @@ Automatic merge failed; fix conflicts and then commit the result.
 
 ~~~ bash
 git status
-git add paper.tex paper.pdf figures/ SICE-SSI.sty .latexmkrc .vscode/settings.json
+git add paper.tex figures/ SICE-SSI.sty .latexmkrc .vscode/settings.json .gitignore
 git diff --staged --stat
 git commit -m "SSI の原稿の骨組みを作る"
 git push
 ~~~
 
-`git diff --staged --stat` は, 記録するファイルの一覧と変更した行数だけを表示します. 中間ファイルが一覧に入っていないことを, commit の前にもう一度確かめられます.
+`git diff --staged --stat` は, 記録するファイルの一覧と変更した行数だけを表示します. 中間ファイルと `paper.pdf` が一覧に入っていないことを, commit の前にもう一度確かめられます.
 
 4 で Pending のままなら, 教員がまだ招待を受け取っていません. 招待は 7 日で失効するので, 失効していたら招待し直します.
 
