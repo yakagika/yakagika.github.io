@@ -2,10 +2,10 @@
 plan_id: common-latex-material
 status: in-progress
 created: 2026-10-08
-updated: 2026-10-08
+updated: 2026-10-09
 priority: medium
 next_actor: agent
-next_action: "Collaborator 節と latex.md の VSCode の画面の図を撮って差し込む (本人の撮影か Chrome 拡張の導入後). 合わせて Windows の TeX Live で手順を通す"
+next_action: "テンプレートリポジトリ yakagika/ssi-paper-template を本人確認の上で作成し, latex.md をテンプレートから作る手順に書き換えて公開する"
 ---
 
 # 共通資料 - LaTeX による原稿作成と, 共通資料の一覧の分割
@@ -14,7 +14,7 @@ next_action: "Collaborator 節と latex.md の VSCode の画面の図を撮っ�
 
 - **状態**: in-progress (2026-10-08 承認. エンジンは pLaTeX に変更, Python の資料も共通資料の枠に入れる)
 - **作成日**: 2026-10-08
-- **最終更新**: 2026-10-08
+- **最終更新**: 2026-10-09
 - **対象**: `lectures/common/latex.md` (新規), `lectures/common/git.md` (Collaborator 節の拡充),
   `lectures/common/setup.md` (次に読む資料の一覧), `lectures/common/agent.md` (章ナビ),
   `pages/lectures.markdown` (共通設定のカードを 4 枚に分割), `images/common/git/` と `images/common/latex/` (図)
@@ -46,6 +46,21 @@ next_action: "Collaborator 節と latex.md の VSCode の画面の図を撮っ�
   - 参考: LuaLaTeX でも 3 か所 (`ltjarticle`, `graphicx` の指定外し, `1zw` → `1\zw`) の書き換えで動くことを確認したが, テンプレートが pLaTeX 用なので本人裁定で pLaTeX にした (2026-10-08).
   - `.ps` の図は dvipdfmx が Ghostscript で変換する. Windows の TeX Live で同じく通るかは実機確認の論点.
 - テンプレートそのものは資料に再掲せず, 学生が SICE の配布元から取得して自分で書き換える.
+
+### 教員が編集したテンプレートの配布 (2026-10-09 本人指示, 上の「学生が取得して書き換える」を置き換える)
+
+- **配り方**: GitHub の公開のテンプレートリポジトリ `yakagika/ssi-paper-template` (本人選択). 学生は Use this template で
+  自分のアカウントに private のリポジトリを作り, それを clone する. 新しいリポジトリは履歴もテンプレートとのつながりも持たない
+  独立したコピーなので, clone すれば origin は学生のリポジトリになり, remote の付け替えは要らない. テンプレートそのものを
+  clone すると origin が教員のリポジトリになる (push は権限がなく拒否される) ので, 資料で注意する.
+- **中身**: `SICE-SSI.sty` (配布元のまま), `paper.tex` (骨組み. `graphicx` は `dvipdfmx` 指定済み, `url` パッケージ),
+  `references.bib`, `sice-ssi.bst` (junsrt.bst を元に SSI の推奨形式へ), `figure/count.png`, `.latexmkrc` (`$bibtex = 'pbibtex %O %B'` を追加),
+  `.vscode/settings.json`, `.gitignore` (GitHub の TeX テンプレート + `/*.pdf`), `README.md`.
+- **参考文献**: bib + pbibtex (本人指示). bst は SICE の推奨形式を作る (本人選択). 和文は全角の「：」「，」「（）」, 英文は半角.
+  article / book / inproceedings / misc (URL) の 4 形を基本に, 他の種類も近い形へ寄せてビルドが通るようにする.
+- **画像のフォルダ**: `figure/` (本人指示. それまでの資料は `figures/`).
+- 「テンプレートの書き換え」の節は, 書き換え済みのものを配るので「配布版から変えたところ」の説明に替える (本人指示).
+- `SICE-SSI.sty` を公開の場に置くことになる. 学会が講演者向けに公開している配布物で, 改変せずに置く.
 
 ### エンジンとビルド
 

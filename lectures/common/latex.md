@@ -88,82 +88,103 @@ TeX Live を入れる前から VSCode を開いていた場合は, VSCode もす
 
 VSCode では, 拡張機能 **LaTeX Workshop** で LaTeX の原稿を編集します. [共通資料 プログラミング用の設定](setup.html)の拡張機能の手順と同じく, 左の拡張機能のアイコンを押し, 検索窓に `latex` と入力して `LaTeX Workshop` の `install` を押します. すでに入れていれば, この手順は不要です.
 
-LaTeX Workshop は, 既定では `.tex` を書き換えるたびに pdfLaTeX という英語向けのプログラムでビルドしようとします. 日本語の原稿は pdfLaTeX では組版できないので, 後の[ビルドの設定ファイル](#ビルドの設定ファイル)で pLaTeX を使うように設定します.
+LaTeX Workshop は, 既定では `.tex` を書き換えるたびに pdfLaTeX という英語向けのプログラムでビルドしようとします. 日本語の原稿は pdfLaTeX では組版できません. 次に作る原稿のリポジトリには, pLaTeX でビルドする設定のファイルが入っています ([ビルドの設定ファイル](#ビルドの設定ファイル)).
 
 # 原稿のリポジトリを作る
 
 原稿は, 講義の進捗を記録するリポジトリとは別のリポジトリで管理します. 共著者である教員と共有する範囲を, 原稿だけに限るためです.
 
-[共通資料 バージョン管理とGitHub](git.html)のリポジトリの作成の手順で, private のリポジトリを 1 つ作ります. 手順との違いは次の 2 点です.
+## テンプレートから作る
 
-- **Repository name**: 原稿だと分かる名前にします (例: `ssi2026-paper`)
-- **Add .gitignore**: Python でなく **TeX** を選びます. ビルドで生まれる中間ファイル (`.aux`, `.log`, `.dvi` など) が記録の対象から外れます
+原稿のリポジトリは, 教員が用意した**テンプレートリポジトリ** [yakagika/ssi-paper-template](https://github.com/yakagika/ssi-paper-template) から作ります. SSI の配布するテンプレートに, 本資料の設定 (ビルドの設定, 参考文献の書式, 記録しないファイルの指定) を加えたものです. 何を変えてあるかは[テンプレートの中身](#テンプレートの中身)で説明します.
 
-作成したら, [教員を Collaborator に招待する](git.html#教員を-collaborator-に招待する)の手順で教員を招待し, 作業用のディレクトリへ `clone` します.
+1. ブラウザで GitHub にログインした状態で, テンプレートリポジトリのページを開きます.
+2. 右上の緑のボタン **Use this template** を押し, **Create a new repository** を選びます.
+3. 入力画面で次のようにします.
+    - **Owner**: 自分のアカウント
+    - **Repository name**: 原稿だと分かる名前 (例: `ssi2026-paper`)
+    - **visibility**: **Private** を選びます
+    - **Include all branches**: チェックを入れないままにします
+4. **Create repository** を押します.
+
+自分のアカウントに, テンプレートと同じファイルを持つ private のリポジトリができます. このリポジトリは中身を複写した別のリポジトリで, テンプレートの変更の履歴も, テンプレートとのつながりも持ちません. 自分のリポジトリなので, 自由に commit して push できます.
+
+作成したら, [教員を Collaborator に招待する](git.html#教員を-collaborator-に招待する)の手順で教員を招待し, 作業用のディレクトリへ `clone` します. clone するのは, いま作った**自分のリポジトリ**です.
 
 ~~~ bash
 cd ~/work
 git clone https://github.com/<自分のユーザ名>/ssi2026-paper.git
 cd ssi2026-paper
+git remote -v
 ~~~
 
-clone したら, VSCode で `.gitignore` を開き, 末尾に次の 2 行を書き足して保存します.
+`git remote -v` は, push の送り先 (`origin`) を表示します. 自分のユーザ名のリポジトリが表示されていれば, そのまま使えます.
+
+::: warn
+
+テンプレートリポジトリ (`yakagika/ssi-paper-template`) を直接 clone しないでください. 送り先が教員のテンプレートになり, push は権限がないので拒否されます. `git remote -v` に `yakagika/ssi-paper-template` と表示されたら, そのディレクトリは削除し, 自分のリポジトリを clone し直します.
+
+:::
+
+# テンプレートの中身
+
+## 入っているファイル
+
+clone したリポジトリには, 次のファイルが入っています.
 
 ~~~ text
-# 原稿の PDF
-/*.pdf
+ssi2026-paper/
+├── .gitignore
+├── .latexmkrc
+├── .vscode/
+│   └── settings.json
+├── README.md
+├── SICE-SSI.sty
+├── figure/
+│   └── count.png
+├── paper.tex
+├── references.bib
+└── sice-ssi.bst
 ~~~
-
-`/*.pdf` は, リポジトリの一番上にある PDF (`paper.pdf` など) を記録の対象から外す指定です. 先頭の `/` があるので, `figures/` に置いた PDF の図は外れません. PDF を記録しない理由は[記録するもの](#記録するもの)で説明します. 書き足した `.gitignore` は, 原稿と一緒に最初の commit に入れます.
-
-# SSI のテンプレートを入れる
-
-## テンプレートのダウンロード
-
-SSI の大会のページにある発表要領から, LaTeX のテンプレートの **UTF-8 版** をダウンロードします. 2026 年の大会では[SSI2026 の発表要領](https://www.sice.or.jp/org/SSI2026/presentation.html)にあります. 年度が変わったら, その年の大会のページを探してください.
-
-ダウンロードした ZIP を展開すると, 次の 4 つのファイルが入っています.
 
 | ファイル | 内容 |
 |---|---|
-| `SICE-SSI.sty` | 余白, 文字の大きさ, 題目の書式などを決める様式のファイル |
-| `sample.tex` | 原稿の見本. 原稿の書き方の注意も本文に書かれている |
-| `sample.pdf` | `sample.tex` を組版した結果 |
-| `fig1.ps` | 見本に載っている図 |
+| `paper.tex` | 原稿. はじめは見本の骨組みが書いてあり, これを書き換えて自分の原稿にする |
+| `references.bib` | 参考文献の一覧 ([参考文献](#参考文献)) |
+| `figure/` | 原稿に載せる図を置くディレクトリ. 見本の図が 1 枚入っている |
+| `SICE-SSI.sty` | 余白, 文字の大きさ, 題目の書式などを決める SSI の様式のファイル. 配布元のまま |
+| `sice-ssi.bst` | 参考文献を SSI の推奨する形式に整える設定 |
+| `.latexmkrc`, `.vscode/settings.json` | 保存したら pLaTeX でビルドする設定 ([ビルドの設定ファイル](#ビルドの設定ファイル)) |
+| `.gitignore` | 記録の対象から外すファイルの指定 ([記録するもの](#記録するもの)) |
 
-このうち `SICE-SSI.sty`, `sample.tex`, `fig1.ps` の 3 つを, clone したリポジトリのディレクトリへ移します.
+SSI の様式そのもの (`SICE-SSI.sty`) は, 大会のページの発表要領で配布されています. 2026 年の大会では[SSI2026 の発表要領](https://www.sice.or.jp/org/SSI2026/presentation.html)にあり, 原稿の分量などの決まりもそこに書かれています. 投稿の前に, その年の発表要領を読んでください.
 
-## テンプレートの書き換え
+## SSI の配布版から変えたところ
 
-`sample.tex` の 21 行目付近に, 図を読み込むパッケージの指定があります.
+SSI の配布する見本 (`sample.tex`) から, 次の 3 点を変えてあります.
 
-~~~ latex
-\usepackage[dvips]{graphicx}
-~~~
+**図を読み込む指定**. 配布版は, 図を読み込むパッケージを `\usepackage[dvips]{graphicx}` と指定しています. `dvips` は, `.dvi` を PDF でなく PostScript という形式に変換するプログラムです. この指定のまま Python で作った PNG の図を読み込むと, 図の大きさを読み取れず, `Cannot determine size of graphic` というエラーでビルドが止まります. 本資料では dvipdfmx で PDF を作るので, テンプレートでは `\usepackage[dvipdfmx]{graphicx}` に変えてあります. 他の学会のテンプレートを使うときも, この指定を確かめてください.
 
-`dvips` は, `.dvi` を PDF でなく PostScript という形式に変換するプログラムです. 見本の図 `fig1.ps` は PostScript の図なので, この指定のままでも表示されます. しかし Python で作った PNG の図を読み込むと, `dvips` の指定では図の大きさを読み取れず, `Cannot determine size of graphic` というエラーでビルドが止まります. 本資料では dvipdfmx で PDF を作るので, 指定を `dvipdfmx` に変えます.
+**参考文献**. 配布版は参考文献を原稿の末尾に手で書く方式です. テンプレートでは, 文献の情報を `references.bib` にまとめて書き, 番号と書式は自動で整える方式に変えてあります. 書式を決める `sice-ssi.bst` は, 配布版の見本が推奨する形式に合わせて作ったものです.
 
-~~~ latex
-\usepackage[dvipdfmx]{graphicx}
-~~~
-
-書き換えはこの 1 か所だけです. テンプレートのそれ以外の部分は, そのまま使えます.
+**ビルドと記録の設定**. `.latexmkrc`, `.vscode/settings.json`, `.gitignore` を加えてあります. 中身は次の節で説明します.
 
 ## ビルドの設定ファイル
 
-リポジトリの直下に, 次の 2 つのファイルを作ります. どちらもリポジトリに記録するので, 教員が clone したときも同じ設定でビルドできます.
+ビルドの設定は 2 つのファイルにあります. どちらもリポジトリに記録されているので, 教員が clone したときも同じ設定でビルドできます.
 
 1 つ目は, latexmk の設定ファイル `.latexmkrc` です. ファイル名は `.` から始まります.
 
 ~~~ perl
 $latex = 'platex -synctex=1 -interaction=nonstopmode -file-line-error %O %S';
+$bibtex = 'pbibtex %O %B';
 $dvipdf = 'dvipdfmx %O -o %D %S';
 $pdf_mode = 3;
 ~~~
 
-1 行目は, 組版に `platex` を使う指定です. 後ろの 3 つのオプションは, PDF と原稿の行を対応づける情報を作ること, エラーで止まらず最後まで処理すること, エラーの位置をファイル名と行番号で表示することを指定します. 2 行目は, `.dvi` から PDF への変換に `dvipdfmx` を使う指定です. 3 行目の `$pdf_mode = 3` は, latexmk に「`.dvi` を作り, dvipdfmx で PDF にする」という手順を選ばせます.
+1 行目は, 組版に `platex` を使う指定です. 後ろの 3 つのオプションは, PDF と原稿の行を対応づける情報を作ること, エラーで止まらず最後まで処理すること, エラーの位置をファイル名と行番号で表示することを指定します. 2 行目は, 参考文献の一覧を作るのに日本語に対応した `pbibtex` を使う指定です. 3 行目は, `.dvi` から PDF への変換に `dvipdfmx` を使う指定です. 4 行目の `$pdf_mode = 3` は, latexmk に「`.dvi` を作り, dvipdfmx で PDF にする」という手順を選ばせます.
 
-2 つ目は, VSCode の設定ファイル `.vscode/settings.json` です. リポジトリの直下に `.vscode` というディレクトリを作り, その中に置きます.
+2 つ目は, VSCode の設定ファイル `.vscode/settings.json` です.
 
 ~~~ json
 {
@@ -174,41 +195,28 @@ $pdf_mode = 3;
 
 1 行目は, LaTeX Workshop に `.latexmkrc` の設定どおりに latexmk を動かす手順 (recipe) を選ばせます. 2 行目は, ファイルを保存したときにビルドする指定です. このファイルはこのリポジトリを開いたときだけ効くので, 他のリポジトリの VSCode の設定は変わりません.
 
-ここまでで, リポジトリは次の構成になります (`README.md` と `.gitignore` はリポジトリの作成時にできたものです).
-
-~~~ text
-ssi2026-paper/
-├── .gitignore
-├── .latexmkrc
-├── .vscode/
-│   └── settings.json
-├── README.md
-├── SICE-SSI.sty
-├── fig1.ps
-└── sample.tex
-~~~
-
 ## 保存でビルドされることの確認
 
-VSCode でリポジトリのディレクトリを開き, `sample.tex` を開きます. 何か 1 文字書き足して消し, `Ctrl + S` (macOS は `Cmd + S`) で保存します.
+VSCode でリポジトリのディレクトリを開き, `paper.tex` を開きます. 何か 1 文字書き足して消し, `Ctrl + S` (macOS は `Cmd + S`) で保存します.
 
-保存するとビルドが始まり, 画面の下端のステータスバーに進み具合が表示されます. 終わると `sample.tex` と同じディレクトリに `sample.pdf` ができます. エディタの右上にある View LaTeX PDF のアイコンを押すと, PDF がエディタの右側に開きます. 開いた PDF は, 保存してビルドし直すたびに更新されます.
+保存するとビルドが始まり, 画面の下端のステータスバーに進み具合が表示されます. 終わると `paper.tex` と同じディレクトリに `paper.pdf` ができます. エディタの右上にある View LaTeX PDF のアイコンを押すと, PDF がエディタの右側に開きます. 開いた PDF は, 保存してビルドし直すたびに更新されます.
 
 ビルドに失敗すると, 画面の下の「問題」(Problems) の欄にエラーが表示されます. エラーの読み方は[エラーが出たとき](#エラーが出たとき)で扱います.
 
 # 原稿の書き方
 
-`sample.tex` は SSI の注意書きを兼ねた見本なので, 自分の原稿は別のファイル `paper.tex` に書きます. 見本の `sample.tex` と `fig1.ps` は, 自分の原稿がビルドできたら削除して構いません.
+テンプレートの `paper.tex` には, はじめから原稿の骨組みが書いてあります. この節では骨組みを例に書き方を説明します. 自分の原稿は, `paper.tex` の中身を書き換えて作ります.
 
 ## 原稿の骨組み
 
-次の `paper.tex` は, SSI の原稿に必要な要素をひととおり含む骨組みです. 研究の内容は架空のもので, 参考文献も実在しません.
+次がテンプレートの `paper.tex` です. SSI の原稿に必要な要素をひととおり含みます. 研究の内容は架空のもので, 参考文献のうち日本語の 2 件も実在しません.
 
 ~~~ latex
 \documentclass{jarticle}
 \usepackage{SICE-SSI}
 \usepackage[dvipdfmx]{graphicx}
 \usepackage{amsmath}
+\usepackage{url}
 
 \begin{document}
 
@@ -232,7 +240,7 @@ VSCode でリポジトリのディレクトリを開き, `sample.tex` を開き�
 
 \subsection{データ}
 
-2025 年度の貸出記録 1,200 件を用いた．記録の内訳を Table~\ref{tab:data} に示す．
+2025 年度の貸出記録 1,200 件を，分野ごとに集計して用いた\cite{suzuki2018}．記録の内訳を Table~\ref{tab:data} に示す．
 
 \begin{table}[t]
   \centering
@@ -252,7 +260,7 @@ VSCode でリポジトリのディレクトリを開き, `sample.tex` を開き�
 \subsection{分析の手法}
 
 利用者 $i$ の特徴量を $\boldsymbol{x}_i$，クラスタ $k$ の中心を $\boldsymbol{\mu}_k$ とし，
-式 \eqref{eq:kmeans} の $J$ を最小にする k-means 法を用いた．
+式 \eqref{eq:kmeans} の $J$ を最小にする k-means 法\cite{macqueen1967}を用いた．
 \begin{equation}
   J = \sum_{k=1}^{K} \sum_{i \in C_k} \| \boldsymbol{x}_i - \boldsymbol{\mu}_k \|^2
   \label{eq:kmeans}
@@ -264,7 +272,7 @@ VSCode でリポジトリのディレクトリを開き, `sample.tex` を開き�
 
 \begin{figure}[t]
   \centering
-  \includegraphics[width=0.9\linewidth]{figures/count.png}
+  \includegraphics[width=0.9\linewidth]{figure/count.png}
   \caption{Number of loans per week.}
   \label{fig:count}
 \end{figure}
@@ -274,20 +282,18 @@ VSCode でリポジトリのディレクトリを開き, `sample.tex` を開き�
 （ここに結論を書く．）
 
 \small
-\begin{thebibliography}{9}
-\bibitem{tanaka2020}
-田中一郎：大学図書館の利用実態，図書館学研究，\textbf{12}-3，45/56（2020）
-\end{thebibliography}
+\bibliographystyle{sice-ssi}
+\bibliography{references}
 \normalsize
 
 \end{document}
 ~~~
 
-図のファイル `figures/count.png` を用意してから保存すると, 次の PDF ができます. 表と図は `[t]` の指定によりページの上端に置かれ, 本文は 2 段組になります.
+保存すると, 次の PDF ができます. 表と図は `[t]` の指定によりページの上端に置かれ, 本文は 2 段組になります.
 
 ![骨組みをビルドした結果. 題目からキーワードまでが 1 段組, 本文と参考文献が 2 段組になり, 図, 表, 数式, 脚注, 参考文献に番号が振られている](/images/common/latex/paper-skeleton.png)
 
-LaTeX の原稿は, `\` で始まる**コマンド**と, `\begin{...}` から `\end{...}` までで範囲を指定する**環境**で書式を指示します. `\begin{document}` より前を**プリアンブル**といい, 使う様式とパッケージを宣言します. 骨組みの 1〜4 行目は, `jarticle` (日本語の論文の基本の書式) に SSI の様式 `SICE-SSI` を重ね, 図を読み込む `graphicx` と数式を書く `amsmath` を使う宣言です.
+LaTeX の原稿は, `\` で始まる**コマンド**と, `\begin{...}` から `\end{...}` までで範囲を指定する**環境**で書式を指示します. `\begin{document}` より前を**プリアンブル**といい, 使う様式とパッケージを宣言します. 骨組みの 1〜5 行目は, `jarticle` (日本語の論文の基本の書式) に SSI の様式 `SICE-SSI` を重ね, 図を読み込む `graphicx`, 数式を書く `amsmath`, 参考文献の URL を書く `url` を使う宣言です.
 
 ::: note
 
@@ -328,10 +334,10 @@ SSI の見本は, 句読点に全角の「，」と「．」を使っていま�
 
 ## 図
 
-図のファイルは, リポジトリに `figures` というディレクトリを作って置きます. Python で作った図は, `savefig` で解像度を指定して PNG で保存します.
+図のファイルは, リポジトリの `figure` というディレクトリに置きます. Python で作った図は, `savefig` で解像度を指定して PNG で保存します.
 
 ~~~ python
-fig.savefig("figures/count.png", dpi=300)
+fig.savefig("figure/count.png", dpi=300)
 ~~~
 
 `dpi=300` は, 1 インチあたり 300 画素で保存する指定です. 2 段組の原稿では図が小さく印刷されるので, 既定の解像度では文字がにじみます.
@@ -341,7 +347,7 @@ fig.savefig("figures/count.png", dpi=300)
 ~~~ latex
 \begin{figure}[t]
   \centering
-  \includegraphics[width=0.9\linewidth]{figures/count.png}
+  \includegraphics[width=0.9\linewidth]{figure/count.png}
   \caption{Number of loans per week.}
   \label{fig:count}
 \end{figure}
@@ -372,14 +378,83 @@ SSI の様式では, 図の説明文 (`\caption`) と図の中の文字を英語
 
 ## 参考文献
 
-参考文献は, 原稿の最後の `thebibliography` 環境に `\bibitem{名前}` で 1 件ずつ書き, 本文からは `\cite{名前}` で引用します. SSI の様式では, 引用した箇所に上付きの番号 `1)` が入ります. 番号は `\bibitem` を書いた順に振られます.
+参考文献は, 文献の情報を `references.bib` に 1 件ずつ書き, 本文からは `\cite{名前}` で引用します. 番号と書式は, ビルドのときに自動で整います. 次がテンプレートの `references.bib` です.
 
-文献の書き方は, SSI の見本が次の形式を推奨しています. 巻の番号は `\textbf{...}` で太字にします.
+~~~ bibtex
+@article{tanaka2020,
+  author  = {田中 一郎},
+  title   = {大学図書館の利用実態},
+  journal = {図書館学研究},
+  volume  = {12},
+  number  = {3},
+  pages   = {45--56},
+  year    = {2020}
+}
+
+@book{suzuki2018,
+  author    = {鈴木 次郎 and 佐藤 花子},
+  title     = {データ分析入門},
+  publisher = {商科出版},
+  year      = {2018}
+}
+
+@inproceedings{macqueen1967,
+  author    = {MacQueen, J.},
+  title     = {Some methods for classification and analysis of multivariate observations},
+  booktitle = {Proceedings of the Fifth Berkeley Symposium on Mathematical Statistics and Probability},
+  volume    = {1},
+  pages     = {281--297},
+  year      = {1967}
+}
+
+@misc{ssi2026,
+  author = {{計測自動制御学会 システム・情報部門}},
+  title  = {SSI2026 発表要領},
+  url    = {https://www.sice.or.jp/org/SSI2026/presentation.html},
+  note   = {2026 年 10 月 9 日参照}
+}
+~~~
+
+1 件は `@種類{名前, 項目 = {値}, ...}` の形です. `名前` は本文の `\cite{...}` に書く名前で, 著者と年を組み合わせると覚えやすくなります. よく使う種類は次の 4 つです.
+
+| 種類 | 文献 | 主な項目 |
+|---|---|---|
+| `article` | 学術雑誌の論文 | `author`, `title`, `journal`, `volume`, `number`, `pages`, `year` |
+| `inproceedings` | 学会の予稿集の論文 (SSI の原稿もこれ) | `author`, `title`, `booktitle`, `pages`, `year` |
+| `book` | 書籍 | `author`, `title`, `publisher`, `year` |
+| `misc` | Web のページなど | `author`, `title`, `url`, `note` |
+
+項目の書き方は次のとおりです.
+
+- **著者**: 複数の著者は ` and ` でつなぎます. 日本語の名前は姓と名の間に空白を入れます. 学会や組織のように姓と名に分けない名前は, `{{...}}` と二重の括弧で囲みます
+- **ページ**: `45--56` のように `-` を 2 つ続けます. 書式の指定により `45/56` と表示されます
+- **Web のページ**: `url` にアドレスを, `note` に参照した日を書きます
+
+原稿の側では, 参考文献を置く位置 (本文の最後) に次の 4 行を書きます.
+
+~~~ latex
+\small
+\bibliographystyle{sice-ssi}
+\bibliography{references}
+\normalsize
+~~~
+
+`\bibliographystyle{sice-ssi}` は書式の指定で, `sice-ssi.bst` を使います. `\bibliography{references}` は文献の一覧のファイル `references.bib` の指定で, 拡張子は付けません. 前後の `\small` と `\normalsize` は, 参考文献の文字を本文より一段小さくする指定です.
+
+ビルドすると, 本文で引用した文献だけが, 引用した順に番号つきで並びます. 引用した箇所には上付きの番号 `1)` が入ります. テンプレートの `references.bib` には 4 件ありますが, 本文で引用していない `ssi2026` は一覧に載りません. 書式は SSI の見本が推奨する次の形で, 英語の文献は句読点が半角になります.
 
 ~~~ text
-雑誌論文: 著者：論文題目，雑誌名，巻-号，始ページ/終ページ（年）
-単行本:   著者：書名，始ページ/終ページ，発行所（発行年）
+雑誌論文: 田中一郎：大学図書館の利用実態，図書館学研究，12-3，45/56（2020）
+単行本:   鈴木次郎，佐藤花子：データ分析入門，商科出版（2018）
+予稿集:   J. MacQueen: Some methods for classification ..., Proceedings of ..., 1, 281/297 (1967)
+Web:      計測自動制御学会 システム・情報部門：SSI2026 発表要領，https://...（2026 年 10 月 9 日参照）
 ~~~
+
+巻の番号 (`12`, `1`) は太字で表示されます.
+
+論文の検索サイト (Google Scholar, CiNii Research など) では, 文献の情報を BibTeX の形式で書き出せます. 書き出したものを `references.bib` に貼り付け, `名前` を分かりやすいものに変えて使えます. ただし書き出した情報は, 項目が欠けていたり, 日本語の著者名が崩れていたりすることがあります. ビルドした PDF で, 著者, 題目, 巻, ページ, 年を元の文献と見比べてください.
+
+`references.bib` を書き換えても PDF に反映されないときは, `paper.tex` を開いて保存し直します.
 
 ## 脚注
 
@@ -387,14 +462,14 @@ SSI の様式では, 図の説明文 (`\caption`) と図の中の文字を英語
 
 ## エラーが出たとき
 
-ビルドに失敗すると, 「問題」(Problems) の欄にエラーの内容と行番号が出ます. 行番号の位置か, その少し前に原因があります. 初めのうちによく出るエラーは次の 3 つです.
+ビルドに失敗すると, 「問題」(Problems) の欄にエラーの内容と行番号が出ます. 行番号の位置か, その少し前に原因があります. 初めのうちによく出るエラーと警告は次の 4 つです.
 
 | エラーの表示 | よくある原因 |
 |---|---|
 | `Undefined control sequence` | コマンドの綴りの誤り, またはそのコマンドを含むパッケージを `\usepackage` していない |
 | `Missing $ inserted` | `_` や `^` を `$` の外で使った. 文中で記号として書くときは `\_` と書く |
-| `File 'figures/count.png' not found` | 図のファイルの名前か置き場所の誤り. `.tex` からの相対パスで書く |
-| `Cannot determine size of graphic` | `graphicx` の指定が `dvips` のまま. [テンプレートの書き換え](#テンプレートの書き換え)を参照 |
+| `File 'figure/count.png' not found` | 図のファイルの名前か置き場所の誤り. `.tex` からの相対パスで書く |
+| `Citation 'tanaka2020' on page 1 undefined` | `\cite` の名前が `references.bib` の文献の名前と一致しない, または `references.bib` を保存していない |
 
 `%` から行末まではコメントとして無視されます. 本文で `%` を記号として書くときは `\%` と書きます.
 
@@ -404,18 +479,19 @@ PDF の参照が `??` と表示される場合は, 番号がまだ確定して�
 
 ## 記録するもの
 
-リポジトリには, 原稿を組版し直すのに必要なファイルだけを記録します.
+リポジトリには, 原稿を組版し直すのに必要なファイルだけを記録します. テンプレートから作ったリポジトリには, 次のファイルがはじめから記録されています.
 
 | 記録するもの | 理由 |
 |---|---|
-| `paper.tex`, `SICE-SSI.sty` | 原稿と様式 |
-| `figures/` の図 | 原稿が読み込む |
+| `paper.tex`, `references.bib` | 原稿と参考文献の一覧 |
+| `figure/` の図 | 原稿が読み込む |
+| `SICE-SSI.sty`, `sice-ssi.bst` | 原稿と参考文献の様式 |
 | `.latexmkrc`, `.vscode/settings.json` | 誰が clone しても同じ設定でビルドするため |
 | `.gitignore` | 誰が clone しても同じものを記録の対象から外すため |
 
 組版した `paper.pdf` は記録しません. PDF は中身が文字でないので, git は行に分けて合わせられません. 教員と自分の両方が PDF を記録すると, 本文の別々の箇所を直していても, `git pull` のたびに PDF がコンフリクトになります. PDF は原稿からいつでも作り直せるので, 記録するのは原稿だけにし, PDF は各自の手元でビルドします.
 
-`.aux`, `.log`, `.dvi`, `.synctex.gz` などの中間ファイルは, リポジトリの作成時に選んだ TeX 用の `.gitignore` によって, `paper.pdf` は clone の後に書き足した `/*.pdf` によって, 記録の対象から外れます. どちらも `git status` に出てこないことを確認してください.
+テンプレートの `.gitignore` は, `.aux`, `.log`, `.dvi`, `.bbl`, `.synctex.gz` などの中間ファイルと, リポジトリの一番上にある PDF (`paper.pdf`) を記録の対象から外します. PDF の指定は `/*.pdf` で, 先頭の `/` があるので `figure/` に置いた PDF の図は外れません. ビルドした後に `git status` を実行し, 中間ファイルと `paper.pdf` が出てこないことを確認してください.
 
 ## 記録して送る
 
@@ -424,7 +500,7 @@ PDF の参照が `??` と表示される場合は, 番号がまだ確定して�
 ~~~ bash
 git status
 git diff paper.tex
-git add paper.tex figures/
+git add paper.tex references.bib figure/
 git commit -m "結果の節に貸出件数の図を加える"
 git push
 ~~~
@@ -447,23 +523,27 @@ git push
 
 ### Exercise LATEX-1
 
-**SSI のテンプレートを保存でビルドする**
+**テンプレートから原稿のリポジトリを作り, 保存でビルドする**
 
 1. `platex --version`, `dvipdfmx --version`, `latexmk --version` がすべて表示されることを確認する.
-2. GitHub で原稿用の private のリポジトリを作り (Add .gitignore は TeX), 教員を Collaborator に招待して, 手元に clone する. clone したら `.gitignore` の末尾に `/*.pdf` を書き足す.
-3. SSI のテンプレートの UTF-8 版をダウンロードし, `SICE-SSI.sty`, `sample.tex`, `fig1.ps` をリポジトリに移す.
-4. `sample.tex` の `dvips` を `dvipdfmx` に書き換える.
-5. `.latexmkrc` と `.vscode/settings.json` を作る.
-6. VSCode で `sample.tex` を開いて保存し, `sample.pdf` ができることと, 見本の `sample.pdf` と同じ紙面になることを確かめる.
+2. テンプレートリポジトリから, 自分のアカウントに原稿用の private のリポジトリを作る.
+3. 教員を Collaborator に招待し, 自分のリポジトリを手元に clone する.
+4. `git remote -v` で, 送り先が自分のリポジトリになっていることを確認する.
+5. VSCode で `paper.tex` を開いて保存し, `paper.pdf` ができることを確かめる.
 
-4 の書き換えが必要な理由を説明できるようにしてください.
+次の 2 つを説明できるようにしてください.
+
+- テンプレートリポジトリを直接 clone してはいけない理由
+- テンプレートの `paper.tex` で, `graphicx` の指定を `dvips` から `dvipdfmx` に変えてある理由
 
 <details class="protected" data-pass="yakagika">
 <summary>回答例</summary>
 
-6 で, 題目から参考文献までが 1 ページに収まり, 右の段の上端に図が入った PDF ができれば成功です.
+5 で, 題目から参考文献までが 1 ページに収まり, 右の段の上端に図, 末尾に参考文献が 2 件入った PDF ができれば成功です.
 
-見本の図 `fig1.ps` は PostScript なので, 4 の書き換えをしなくても表示されます. 書き換えが必要になるのは, PNG の図を読み込むときです. `dvips` の指定のままだと PNG の図の大きさを読み取れず, `Cannot determine size of graphic` というエラーでビルドが止まります. 本資料は dvipdfmx で PDF を作るので, `graphicx` にもそれを伝えます.
+テンプレートリポジトリを直接 clone すると, 送り先 (`origin`) が教員のテンプレートになります. 学生には書き込む権限がないので push が拒否され, 教員と原稿を共有できません. Use this template で作ったリポジトリは自分のものなので, それを clone すれば送り先も自分のリポジトリになります.
+
+`dvips` の指定のままだと, PNG の図の大きさを読み取れず, `Cannot determine size of graphic` というエラーでビルドが止まります. 本資料は dvipdfmx で PDF を作るので, `graphicx` にもそれを伝えます.
 
 </details>
 
@@ -489,7 +569,7 @@ git push
 <details class="protected" data-pass="yakagika">
 <summary>回答例</summary>
 
-[原稿の骨組み](#原稿の骨組み)の `paper.tex` が 1 つの回答例です. 参考文献を 2 件にするには, `thebibliography` に `\bibitem` をもう 1 つ足し, 本文のどこかで `\cite` します.
+[原稿の骨組み](#原稿の骨組み)の `paper.tex` が 1 つの回答例です. 参考文献は `references.bib` に 2 件書き, 本文でそれぞれを `\cite` します. `references.bib` に書いても, 本文で引用しない文献は一覧に載りません.
 
 番号が `??` のまま残る場合は, `\label{...}` と `\ref{...}` (`\eqref{...}`, `\cite{...}`) の名前の綴りが一致しているかを確認します. `\label` は `\caption` より後に書きます. 前に書くと, 図や表でなく節の番号を指します.
 
@@ -503,9 +583,9 @@ git push
 
 **原稿を push して教員と共有する**
 
-1. `git status` で, 中間ファイル (`.aux`, `.log`, `.dvi` など) と `paper.pdf` が出てこないことを確認する.
-2. `paper.tex`, `figures/`, `SICE-SSI.sty`, `.latexmkrc`, `.vscode/settings.json`, `.gitignore` を commit して push する.
-3. GitHub のリポジトリのページで, 2 のファイルが並び, `paper.pdf` と中間ファイルが無いことを確認する.
+1. Exercise LATEX-2 で書いた原稿をビルドした後, `git status` で, 中間ファイル (`.aux`, `.log`, `.dvi` など) と `paper.pdf` が出てこないことを確認する.
+2. `paper.tex`, `references.bib`, `figure/` の変更を commit して push する.
+3. GitHub のリポジトリのページで `paper.tex` を開き, 書き換えた原稿になっていること, `paper.pdf` と中間ファイルが無いことを確認する.
 4. リポジトリの Settings の Collaborators で, 教員が招待を受け取ったか (Pending のままでないか) を確認する.
 
 <details class="protected" data-pass="yakagika">
@@ -513,7 +593,7 @@ git push
 
 ~~~ bash
 git status
-git add paper.tex figures/ SICE-SSI.sty .latexmkrc .vscode/settings.json .gitignore
+git add paper.tex references.bib figure/
 git diff --staged --stat
 git commit -m "SSI の原稿の骨組みを作る"
 git push
