@@ -364,3 +364,4 @@ VM 内のローカル repo (GitHub 不使用, 検証後に削除) で確認し�
 - 2026-09-06: `agent.md` のレビューは作者 (codex) と別ベンダの Claude-Fable が全文で行い, 作者≠reviewer を充足.
   Cursor-Fable は主戦と同一モデルになるため追加しない. 事実の根拠は codex / herdr の公式文書
   (2026-09-06 取得) で, brief に載せた一覧以外のコマンドは本文に無いことを codex の報告と grep で確認.
+- 2026-10-09: 開発者モードの設定を setup.md の「Windows: winget」へ移した (本人裁定). 共通資料の winget のうち portable は codex だけ (VSCode, Git は inno, GitHub CLI は既定で wix) で, 順番の上では agent.md のままでも動くが, winget の前に一度だけ済ませる OS の設定として環境構築にまとめた. コーディングエージェントを使う講義に限る条件を付け, agent.md は確認とリンク, 入れ直しの手順を残す.

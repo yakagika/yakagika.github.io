@@ -120,11 +120,9 @@ Meta も 2026 年 8 月 5 日に, ターミナルで動くエージェントの 
 
 codex は OpenAI が配布しているコーディングエージェントです.
 
-Windows は[共通資料 プログラミング用の設定](setup.html)で導入を確かめた winget で入ります. ただし入れる前に, **開発者モード**をオンにします. 「設定」を開き, 「システム」の「詳細設定」にある「開発者向け」の欄で, 開発者モードをオンにします. 確認が出たら「はい」を押します.
+Windows は[共通資料 プログラミング用の設定](setup.html)で導入を確かめた winget で入ります. 入れる前に, 同じ資料の [Windows: winget](setup.html#windows-winget) の手順で**開発者モード**をオンにしたかを確かめます. 「設定」の「システム」の「詳細設定」にある「開発者向け」の欄で, 開発者モードがオンになっていれば済んでいます.
 
-![Windows の「設定」の「システム」>「詳細設定」. 「開発者向け」の欄で開発者モードをオンにした状態](/images/common/agent/windows-developer-mode.png)
-
-開発者モードをオンにしてから, PowerShell で次を実行します. 終わったら PowerShell を開き直します.
+開発者モードがオンになっていることを確かめてから, PowerShell で次を実行します. 終わったら PowerShell を開き直します.
 
 ~~~ powershell
 winget install -e --id OpenAI.Codex
