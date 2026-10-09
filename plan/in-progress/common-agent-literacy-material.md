@@ -68,6 +68,9 @@ next_action: "(1) Windows と macOS の実機で, 空のリポジトリから Ex
    (public リポジトリではメールアドレスが読めることに注意)
 4. **GitHub のアカウントとリポジトリを作る** - Sign up, 二段階認証 (2023 年から push 利用者に必須),
    New repository (private / README / Python の .gitignore), Code から HTTPS の URL を取って clone.
+   clone 直後に `tree` で中身 (`.git` / `.gitignore` / `README.md`) を確かめ, その後に `.env` と `.gitignore` の書き方を置く
+   (2026-10-09 本人指示で public/private の節から移動. public/private の節には warn で要旨だけ残す).
+   Windows の `tree /f` が隠しフォルダ (`.git`) を表示しないことは 2026-10-09 に本人の Windows 機で確認 (`ls -Force` では `.git` が出ることも同日に確認). エクスプローラーの「隠しファイル」を勧める段落と図 (`explorer-hidden-files.png`) も同日に追加.
    認証はブラウザ経由 (パスワード認証は 2021 年に廃止)
 5. **public と private の違い** - 何を public に置いてはいけないか
    - API キー, 認証トークン (補足 B で配布する X の共有トークンが直接該当する)
@@ -79,6 +82,7 @@ next_action: "(1) Windows と macOS の実機で, 空のリポジトリから Ex
 ### `common/agent.md` - コーディングエージェントの利用
 
 1. **ハーネスとは何か** - エージェントが動くよう設計された環境 (ツール・情報形式・フィードバック・足場).
+   AI の使い方の移り変わり (ハーネスエンジニアリングまで) を先に置き, ハーネスの定義はその後に置く (2026-10-09 本人指示).
    「言語モデルにとってインターフェースが認知アーキテクチャ」
    - 素材: `Research/audit-harness/slides/2026-08-31-audit-harness-overview/00-common-a.md` の冒頭 3 節.
      **private repo なのでリンクせず, 学部生向けに書き直す**
@@ -170,10 +174,9 @@ agent.md 127 行 + Ch2 となり 90 分に収まらなかったため). codex �
 `new-repo.png` のリポジトリ名は動作確認時の `aaaaa` のままだが, 本文で
 「図では動作確認のため `aaaaa` と入れている」と補って使う (2026-09-04 決定).
 
-**未収録**: 初回 `clone` / `push` のブラウザ認証画面 (`credential.png`).
-手元の macOS は資格情報が保存済みでこの画面が出ないため撮れない.
-Windows 実機での herdr + codex 疎通確認のときに Git Credential Manager の画面を
-1 枚撮って追加する (2026-09-04 決定). 本文は文章のみで完結させてある.
+**収録済み (2026-09-25)**: 初回認証の画面 (`credential.png`). 本文が `gh auth login` 経由に
+変わったので, Git Credential Manager の画面でなく GitHub の Device Activation 画面を撮った
+(下の未決事項の表の「初回認証画面の図」の行).
 
 ## git.md の cross-check (2026-09-04)
 

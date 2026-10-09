@@ -5,7 +5,7 @@ created: 2026-10-08
 updated: 2026-10-09
 priority: medium
 next_actor: agent
-next_action: "LaTeX Workshop の画面の図 (本人撮影) を latex.md の保存でビルドの節に差し込み, Windows の TeX Live で手順を通す"
+next_action: "Windows の TeX Live で .ps の図 (dvipdfmx が Ghostscript で変換) が通るかを確かめ, 済めば landed へ移す"
 ---
 
 # 共通資料 - LaTeX による原稿作成と, 共通資料の一覧の分割
@@ -136,10 +136,10 @@ latex.md の執筆が本体 (1 session). 図の撮影に本人の Chrome の許�
 |---|---|
 | 投稿先は SSI でよいか (他の SICE の研究会は様式が違う) | resolved: SSI (2026-10-08 本人) |
 | PDF を commit するか | resolved: commit しない (2026-10-09 本人. 10-08 の「commit する」を撤回) |
-| 図の撮影 (GitHub の Collaborators の画面, VSCode の LaTeX Workshop の画面) | 2026-10-08 は Chrome の拡張を使わない判断になり撮れなかった. 本人の撮影か, 拡張の導入後に撮る (理由 a: 本人の判断待ち) |
+| 図の撮影 (GitHub の Collaborators の画面, VSCode の LaTeX Workshop の画面) | 2026-10-09 に本人撮影の Windows のビルド後の画面を「保存でビルドされることの確認」に差し込んだ (`build-result-win.png`). PDF を開くショートカット (Ctrl + Alt + V / Cmd + Option + V) も同じ節に追記 |
 | サイトへの公開 (docs/ の Publish と push) | 2026-10-09 に公開済み (222d369). LaTeX Workshop の画面の図は TeX Live の導入が長引いたため, 図なしで先に公開する (本人指示). 図を差し込んだら再度 Publish する |
-| 図の撮影の受け取り | collab-settings.png と collab-add.png は 2026-10-09 に git.md の手順 3, 4 へ差し込み済み. collab-pending.png は実際に招待しないと撮れないため図なし (2026-10-09 本人). 残りは latex-vscode.png (本人が撮って置いたら latex.md の「保存でビルドされることの確認」へ差し込む) |
-| Windows の TeX Live 導入の実機確認 | 本人の Windows 機か VM で後日 (common-agent-literacy-material の実機確認と同じ機会) |
+| 図の撮影の受け取り | collab-settings.png と collab-add.png は 2026-10-09 に git.md の手順 3, 4 へ差し込み済み. collab-pending.png は実際に招待しないと撮れないため図なし (2026-10-09 本人). LaTeX Workshop の画面は 2026-10-09 に build-result-win.png として差し込み済み. 撮影の残りは無い |
+| Windows の TeX Live 導入の実機確認 | 2026-10-09 に本人の Windows 機でテンプレートのビルドと PDF の右側表示まで通った (スクリーンショットで確認). `.ps` の図だけ未確認 (next_action) |
 
 ## 関連ファイル
 
