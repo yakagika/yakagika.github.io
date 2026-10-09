@@ -121,6 +121,8 @@ latex.md の執筆が本体 (1 session). 図の撮影に本人の Chrome の許�
 | 投稿先は SSI でよいか (他の SICE の研究会は様式が違う) | resolved: SSI (2026-10-08 本人) |
 | PDF を commit するか | resolved: commit する (2026-10-08 本人) |
 | 図の撮影 (GitHub の Collaborators の画面, VSCode の LaTeX Workshop の画面) | 2026-10-08 は Chrome の拡張を使わない判断になり撮れなかった. 本人の撮影か, 拡張の導入後に撮る (理由 a: 本人の判断待ち) |
+| サイトへの公開 (docs/ の Publish と push) | 2026-10-09 時点で未実施. 本人が手元のプレビューで確認してから指示する (理由 a). commit は dc00af5, 6390570, 02b193d, adf02f8 (いずれも未 push) |
+| 図の撮影の受け取り | 本人が `_scratch/` に collab-settings.png, collab-add.png, collab-pending.png, latex-vscode.png を置く. 置かれたら個人情報の写り込みを確かめ, 余白を詰めて git.md の Collaborator 節と latex.md の保存でビルドの節に差し込む |
 | Windows の TeX Live 導入の実機確認 | 本人の Windows 機か VM で後日 (common-agent-literacy-material の実機確認と同じ機会) |
 
 ## 関連ファイル
