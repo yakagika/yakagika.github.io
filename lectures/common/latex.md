@@ -100,6 +100,9 @@ LaTeX Workshop は, 既定では `.tex` を書き換えるたびに pdfLaTeX と
 
 1. ブラウザで GitHub にログインした状態で, テンプレートリポジトリのページを開きます.
 2. 右上の緑のボタン **Use this template** を押し, **Create a new repository** を選びます.
+
+    ![テンプレートリポジトリのページ. 右上の Use this template を押すと, Create a new repository と Open in a codespace の 2 つが出る](/images/common/latex/use-template.png)
+
 3. 入力画面で次のようにします.
     - **Owner**: 自分のアカウント
     - **Repository name**: 原稿だと分かる名前 (例: `ssi2026-paper`)
