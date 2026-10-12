@@ -56,7 +56,7 @@
     <title>yakagika - 関数型プログラミング Ch10 モナドと入出力</title>
 
     <!-- Stylesheets. -->
-    <link rel="stylesheet" type="text/css" href="../style.css?v=1791535590">
+    <link rel="stylesheet" type="text/css" href="../style.css?v=1791792303">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
@@ -136,7 +136,7 @@
     <p class="article-description">資料</p>
     <div class="article-meta">
         <span class="meta-item">公開: 2025-06-06</span>
-        <span class="meta-item">更新: 2026-07-23</span>
+        <span class="meta-item">更新: 2026-10-12</span>
     </div>
     <div class="tag-chips"><a href="../tags/algebra.html">algebra</a><a href="../tags/lecture.html">lecture</a><a href="../tags/statistics.html">statistics</a><a href="../tags/haskell.html">haskell</a></div>
 </header>
@@ -1520,7 +1520,11 @@
 </table>
 <h3 id="アクションと参照透過性">アクションと参照透過性</h3>
 <p>「<code>getLine</code> の結果は毎回違う. それなら純粋性が壊れているのではないか?」という疑問が湧きます. ここが <code>IO</code> の設計の要です.</p>
-<p>式をその値で置き換えても意味が変わらない性質を <strong>参照透過性 (referential transparency)</strong> といいます (<a href="fp1.html">第1章</a> の「同じ入力なら同じ出力」の言い換えです). <code>getLine</code> を実行した<strong>結果</strong>は毎回違いますが, <code>getLine</code> という<strong>式の値</strong>は「1 行読む」という手順書であって, いつどこに書いても同じです. 変わるのは実行の結果であって, 値ではありません. 実行を処理系に任せ, プログラムは手順書の<strong>組み立て</strong>に徹することで, 値の世界の参照透過性が守られています.</p>
+<p>式をその値で置き換えても意味が変わらない性質を <strong>参照透過性 (referential transparency)</strong> といいます (<a href="fp1.html">第1章</a> の「同じ入力なら同じ出力」の言い換えです). 純粋な関数では, この置き換えがいつでもできます.</p>
+<div class="sourceCode" id="cb38"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="ot">nextId ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
+<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a>nextId n <span class="ot">=</span> n <span class="op">+</span> <span class="dv">1</span></span></code></pre></div>
+<p><code>nextId 1</code> は, プログラムのどこで評価しても <code>2</code> です. そのため <code>let y = nextId 1 in y + y</code> は <code>nextId 1 + nextId 1</code> と同じ意味を持ち, さらに <code>2 + 2</code> に置き換えても結果は変わりません. この置き換えができるので, 純粋な関数を確かめるには入力と期待する出力の組を用意すればよく, 外の状態を準備する必要がありません. 一方, <a href="fp11.html">第11章</a>の冒頭で見る Python の <code>fresh()</code> のように, 同じ呼び出しが呼ぶたびに違う値を返す関数では, この置き換えはできません.</p>
+<p><code>getLine</code> は <code>fresh()</code> と違い, 参照透過性を壊しません. <code>getLine</code> を実行した<strong>結果</strong>は毎回違いますが, <code>getLine</code> という<strong>式の値</strong>は「1 行読む」という手順書であって, いつどこに書いても同じです. 変わるのは実行の結果であって, 値ではありません. 実行を処理系に任せ, プログラムは手順書の<strong>組み立て</strong>に徹することで, 値の世界の参照透過性が守られています.</p>
 <p>この設計の見返りが, <a href="fp1.html">第1章</a> で予告した「<strong>副作用は型で区別する</strong>」です.</p>
 <ul>
 <li><code>String -&gt; String</code>: 純粋. 外の世界に触れないことが<strong>型から</strong>分かります.</li>
@@ -1533,21 +1537,21 @@
 <h3 id="標準入出力">標準入出力</h3>
 <p>基本の道具は 3 つです. <code>getLine :: IO String</code> (1 行読む), <code>putStrLn :: String -&gt; IO ()</code> (1 行書く), そして <code>print</code>. 実は <code>print = putStrLn . show</code> であり, これまで全章の実行例で使ってきた <code>print</code> は「<a href="fp8.html">第8章</a> の <code>show</code> で文字列にして表示する」IO アクションでした. つまり, みなさんは第4章からずっと IO モナドを使っていたのです.</p>
 <p>名前を尋ねて挨拶するプログラムを書いてみます. <strong>ロジックは純粋関数に, IO は薄い殻に</strong>分けるのが Haskell の基本設計です.</p>
-<div class="sourceCode" id="cb38"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 純粋コア: ロジックはただの関数</span></span>
-<span id="cb38-2"><a href="#cb38-2" aria-hidden="true" tabindex="-1"></a><span class="ot">greet ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span></span>
-<span id="cb38-3"><a href="#cb38-3" aria-hidden="true" tabindex="-1"></a>greet name <span class="ot">=</span> <span class="st">&quot;こんにちは, &quot;</span> <span class="op">++</span> name <span class="op">++</span> <span class="st">&quot; さん!&quot;</span></span>
-<span id="cb38-4"><a href="#cb38-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb38-5"><a href="#cb38-5" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb38-6"><a href="#cb38-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb38-7"><a href="#cb38-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStrLn</span> <span class="st">&quot;お名前は?&quot;</span></span>
-<span id="cb38-8"><a href="#cb38-8" aria-hidden="true" tabindex="-1"></a>  name <span class="ot">&lt;-</span> <span class="fu">getLine</span>          <span class="co">-- アクションの実行結果を name に束縛</span></span>
-<span id="cb38-9"><a href="#cb38-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStrLn</span> (greet name)    <span class="co">-- 純粋関数は IO の中で自由に使える</span></span></code></pre></div>
+<div class="sourceCode" id="cb39"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 純粋コア: ロジックはただの関数</span></span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a><span class="ot">greet ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span></span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>greet name <span class="ot">=</span> <span class="st">&quot;こんにちは, &quot;</span> <span class="op">++</span> name <span class="op">++</span> <span class="st">&quot; さん!&quot;</span></span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStrLn</span> <span class="st">&quot;お名前は?&quot;</span></span>
+<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a>  name <span class="ot">&lt;-</span> <span class="fu">getLine</span>          <span class="co">-- アクションの実行結果を name に束縛</span></span>
+<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStrLn</span> (greet name)    <span class="co">-- 純粋関数は IO の中で自由に使える</span></span></code></pre></div>
 <p><code>name &lt;- getLine</code> は, モナドの部の <code>do</code> とまったく同じ「<code>&gt;&gt;=</code> の糖衣」です. <code>Maybe</code> の <code>do</code> では「<code>Just</code> の中身」を取り出しましたが, ここでは「アクションの実行結果」を取り出します.</p>
 <p>入力全体を一括で変換するなら <code>interact :: (String -&gt; String) -&gt; IO ()</code> が便利です. 標準入力の全文を純粋関数に渡し, その返り値を標準出力に書き出します. 「純粋コア + IO の殻」という設計をそのまま 1 つの関数にしたような道具です.</p>
-<div class="sourceCode" id="cb39"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Data.Char</span> (toUpper)</span>
-<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">interact</span> (<span class="fu">map</span> <span class="fu">toUpper</span>)   <span class="co">-- 入力をすべて大文字にして出力する</span></span></code></pre></div>
+<div class="sourceCode" id="cb40"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Data.Char</span> (toUpper)</span>
+<span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb40-3"><a href="#cb40-3" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb40-4"><a href="#cb40-4" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">interact</span> (<span class="fu">map</span> <span class="fu">toUpper</span>)   <span class="co">-- 入力をすべて大文字にして出力する</span></span></code></pre></div>
 <p>行ごとの処理は <code>lines</code> / <code>unlines</code> と組み合わせて <code>interact (unlines . map f . lines)</code> の形にします (<a href="fp6.html">第6章</a> の関数合成が, そのまま設計図になります).</p>
 <section id="exercise-ch10-4" class="note">
 <h4>Exercise CH10-4</h4>
@@ -1564,16 +1568,16 @@
 <summary>
 回答例
 </summary>
-<div class="sourceCode" id="cb41"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Text.Read</span> (readMaybe)</span>
-<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a><span class="ot">addInputs ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Int</span></span>
-<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>addInputs s t <span class="ot">=</span> (<span class="op">+</span>) <span class="op">&lt;$&gt;</span> readMaybe s <span class="op">&lt;*&gt;</span> readMaybe t</span>
-<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a>  s <span class="ot">&lt;-</span> <span class="fu">getLine</span></span>
-<span id="cb41-9"><a href="#cb41-9" aria-hidden="true" tabindex="-1"></a>  t <span class="ot">&lt;-</span> <span class="fu">getLine</span></span>
-<span id="cb41-10"><a href="#cb41-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStrLn</span> (<span class="fu">maybe</span> <span class="st">&quot;数値を入力してください&quot;</span> <span class="fu">show</span> (addInputs s t))</span></code></pre></div>
+<div class="sourceCode" id="cb42"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="kw">import</span> <span class="dt">Text.Read</span> (readMaybe)</span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a><span class="ot">addInputs ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">Maybe</span> <span class="dt">Int</span></span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>addInputs s t <span class="ot">=</span> (<span class="op">+</span>) <span class="op">&lt;$&gt;</span> readMaybe s <span class="op">&lt;*&gt;</span> readMaybe t</span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a>  s <span class="ot">&lt;-</span> <span class="fu">getLine</span></span>
+<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a>  t <span class="ot">&lt;-</span> <span class="fu">getLine</span></span>
+<span id="cb42-10"><a href="#cb42-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStrLn</span> (<span class="fu">maybe</span> <span class="st">&quot;数値を入力してください&quot;</span> <span class="fu">show</span> (addInputs s t))</span></code></pre></div>
 <p><code>readMaybe</code> が失敗を <code>Maybe</code> で返し, <code>&lt;$&gt;</code> / <code>&lt;*&gt;</code> が「両方成功したときだけ足す」を場合分けなしで実現します (Exercise CH10-1 と同じ形です). IO の殻は「読む・読む・表示する」の 3 行だけで, 判断はすべて純粋コア側にあります. 純粋コアは IO 抜きで ghci からテストできます. これが「純粋コア + IO の殻」設計の利点です.</p>
 </details>
 </section>
@@ -1581,24 +1585,24 @@
 <p>最後に, <a href="fp2.html">第2章</a> 以来「おまじない」としてきた <code>main = do ...</code> の種明かしです.</p>
 <p>Haskell のプログラムとは, つまるところ <strong><code>main :: IO ()</code> という 1 つのアクション (手順書) を組み立てるもの</strong>です. 処理系はプログラムから <code>main</code> という名前の手順書を探し出し, それを実行します. ほかの関数や定義は, <code>main</code> から直接・間接に組み込まれた分だけ働きます.</p>
 <p>そして <code>main = do ...</code> の <code>do</code> は, モナドの部の「do 記法」で見た <strong><code>&gt;&gt;=</code> / <code>&gt;&gt;</code> の糖衣そのもの</strong>です. 先ほどの挨拶プログラムを脱糖すると, こうなります.</p>
-<div class="sourceCode" id="cb42"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="ot">greet ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span></span>
-<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>greet name <span class="ot">=</span> <span class="st">&quot;こんにちは, &quot;</span> <span class="op">++</span> name <span class="op">++</span> <span class="st">&quot; さん!&quot;</span></span>
-<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a><span class="co">-- do を &gt;&gt;= / &gt;&gt; に脱糖した形. do 版とまったく同じプログラム.</span></span>
-<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span></span>
-<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStrLn</span> <span class="st">&quot;お名前は?&quot;</span> <span class="op">&gt;&gt;</span></span>
-<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">getLine</span> <span class="op">&gt;&gt;=</span> \name <span class="ot">-&gt;</span></span>
-<span id="cb42-9"><a href="#cb42-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStrLn</span> (greet name)</span></code></pre></div>
-<p><a href="fp4.html">第4章</a> からずっと書いてきた <code>main = do ...</code> は <code>IO</code> モナドの <code>do</code> であり, モナドの部の <code>Maybe</code> の <code>do</code> と同じ規則で動いていました. これで本章の伏線はすべて回収です. なお, <code>do</code> の中では「アクションの結果の束縛」と「純粋な計算の名前付け」を区別します.</p>
 <div class="sourceCode" id="cb43"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="ot">greet ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span></span>
 <span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>greet name <span class="ot">=</span> <span class="st">&quot;こんにちは, &quot;</span> <span class="op">++</span> name <span class="op">++</span> <span class="st">&quot; さん!&quot;</span></span>
 <span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>  name <span class="ot">&lt;-</span> <span class="fu">getLine</span>          <span class="co">-- &lt;-  : アクションを実行して結果を束縛する</span></span>
-<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> msg <span class="ot">=</span> greet name     <span class="co">-- let : 純粋な計算に名前を付ける (実行するものはない)</span></span>
-<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStrLn</span> msg</span></code></pre></div>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a><span class="co">-- do を &gt;&gt;= / &gt;&gt; に脱糖した形. do 版とまったく同じプログラム.</span></span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span></span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStrLn</span> <span class="st">&quot;お名前は?&quot;</span> <span class="op">&gt;&gt;</span></span>
+<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">getLine</span> <span class="op">&gt;&gt;=</span> \name <span class="ot">-&gt;</span></span>
+<span id="cb43-9"><a href="#cb43-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStrLn</span> (greet name)</span></code></pre></div>
+<p><a href="fp4.html">第4章</a> からずっと書いてきた <code>main = do ...</code> は <code>IO</code> モナドの <code>do</code> であり, モナドの部の <code>Maybe</code> の <code>do</code> と同じ規則で動いていました. これで本章の伏線はすべて回収です. なお, <code>do</code> の中では「アクションの結果の束縛」と「純粋な計算の名前付け」を区別します.</p>
+<div class="sourceCode" id="cb44"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="ot">greet ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span></span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a>greet name <span class="ot">=</span> <span class="st">&quot;こんにちは, &quot;</span> <span class="op">++</span> name <span class="op">++</span> <span class="st">&quot; さん!&quot;</span></span>
+<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb44-5"><a href="#cb44-5" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb44-6"><a href="#cb44-6" aria-hidden="true" tabindex="-1"></a>  name <span class="ot">&lt;-</span> <span class="fu">getLine</span>          <span class="co">-- &lt;-  : アクションを実行して結果を束縛する</span></span>
+<span id="cb44-7"><a href="#cb44-7" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> msg <span class="ot">=</span> greet name     <span class="co">-- let : 純粋な計算に名前を付ける (実行するものはない)</span></span>
+<span id="cb44-8"><a href="#cb44-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStrLn</span> msg</span></code></pre></div>
 <p>本章では, <code>fmap</code> の限界から出発して Applicative → Monad と道具を強め, <code>do</code> の正体を明かし, <code>Maybe</code>・<code>Either</code> で固めた骨格が <code>IO</code> にもそのまま当てはまることを見ました. <a href="fp11.html">第11章</a> では, この道具立ての上で <strong>可変状態</strong> (<a href="fp5.html">第5章</a>で予告した <code>State</code> や <code>ST</code>) を扱います.</p>
 <section id="exercise-ch10-5" class="note">
 <h4>Exercise CH10-5</h4>
@@ -1616,11 +1620,11 @@
 <summary>
 回答例
 </summary>
-<div class="sourceCode" id="cb45"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="ot">revLines ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span></span>
-<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>revLines <span class="ot">=</span> <span class="fu">unlines</span> <span class="op">.</span> <span class="fu">map</span> <span class="fu">reverse</span> <span class="op">.</span> <span class="fu">lines</span></span>
-<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">interact</span> revLines</span></code></pre></div>
+<div class="sourceCode" id="cb46"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="ot">revLines ::</span> <span class="dt">String</span> <span class="ot">-&gt;</span> <span class="dt">String</span></span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>revLines <span class="ot">=</span> <span class="fu">unlines</span> <span class="op">.</span> <span class="fu">map</span> <span class="fu">reverse</span> <span class="op">.</span> <span class="fu">lines</span></span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="fu">interact</span> revLines</span></code></pre></div>
 <p><code>lines</code> で行のリストに分け, <code>map reverse</code> で各行を逆順にし, <code>unlines</code> で 1 つの文字列に戻します. 純粋コア <code>revLines</code> は普通の関数なので, ghci で <code>revLines "abc\ndef\n"</code> のように IO 抜きで試せます. <code>main</code> は殻の 1 行だけです.</p>
 </details>
 </section>

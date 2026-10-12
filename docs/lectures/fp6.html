@@ -56,7 +56,7 @@
     <title>yakagika - 関数型プログラミング Ch6 関数(応用編)</title>
 
     <!-- Stylesheets. -->
-    <link rel="stylesheet" type="text/css" href="../style.css?v=1791535590">
+    <link rel="stylesheet" type="text/css" href="../style.css?v=1791792303">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
@@ -136,7 +136,7 @@
     <p class="article-description">資料</p>
     <div class="article-meta">
         <span class="meta-item">公開: 2024-10-18</span>
-        <span class="meta-item">更新: 2026-06-08</span>
+        <span class="meta-item">更新: 2026-10-12</span>
     </div>
     <div class="tag-chips"><a href="../tags/algebra.html">algebra</a><a href="../tags/lecture.html">lecture</a><a href="../tags/haskell.html">haskell</a></div>
 </header>
@@ -421,6 +421,42 @@ Haskellの組み込み関数はライブラリ<code>Prelude</code>として提�
 <span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a>    <span class="co">-- 定義</span></span>
 <span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a>    <span class="kw">let</span> h <span class="ot">=</span> f <span class="op">.</span> g</span>
 <span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> h <span class="dv">2</span> <span class="co">-- 10</span></span></code></pre></div>
+<h4 id="小さな関数を合成して組み立てる">小さな関数を合成して組み立てる</h4>
+<p>関数合成を使うと, プログラムを小さな関数の組み合わせとして書けます. 例として, 整数のリストの各要素を 2 乗した合計を求める関数を考えます.</p>
+<div class="sourceCode" id="cb24"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="ot">square ::</span> <span class="dt">Int</span> <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>square x <span class="ot">=</span> x <span class="op">*</span> x</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="ot">sumOfSquares ::</span> [<span class="dt">Int</span>] <span class="ot">-&gt;</span> <span class="dt">Int</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>sumOfSquares <span class="ot">=</span> <span class="fu">sum</span> <span class="op">.</span> <span class="fu">map</span> square</span></code></pre></div>
+<p><code>sumOfSquares</code> は, 2 乗する <code>square</code>, リストの各要素に関数を適用する <code>map</code>, 合計を求める <code>sum</code> の 3 つを合成しただけの関数です. <code>square</code> は 2 乗するだけの関数なので, この用途以外にもそのまま使えます. <code>map</code> と <code>sum</code> は標準ライブラリの汎用の関数を再利用しています. 大きな処理を独立した小さな関数に分け, それぞれを別の場所でも使えるこの性質を <strong>モジュラー性</strong> といいます.</p>
+<p>合成で組み立てたプログラムは, 数式と同じ要領で書き換えられます. 例えば <code>map</code> については, 任意の関数 <code>f</code>, <code>g</code> について次の等式が成り立ちます.</p>
+<p><span class="math display">
+\mathrm{map}\ f \circ \mathrm{map}\ g = \mathrm{map}\ (f \circ g)
+</span></p>
+<p>左辺はリストを 2 回走査し, 右辺は 1 回で済みますが, どちらも同じリストを返します. この等式を使えば, プログラムの意味を変えずに書き換えられます.</p>
+<div class="sourceCode" id="cb25"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 2 乗してから 1 を足す. 左辺の形 (リストを 2 回走査する)</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="ot">squarePlusOneTwice ::</span> [<span class="dt">Int</span>] <span class="ot">-&gt;</span> [<span class="dt">Int</span>]</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>squarePlusOneTwice <span class="ot">=</span> <span class="fu">map</span> (<span class="op">+</span> <span class="dv">1</span>) <span class="op">.</span> <span class="fu">map</span> square</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="co">-- 右辺の形 (リストを 1 回走査する)</span></span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a><span class="ot">squarePlusOneOnce ::</span> [<span class="dt">Int</span>] <span class="ot">-&gt;</span> [<span class="dt">Int</span>]</span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>squarePlusOneOnce <span class="ot">=</span> <span class="fu">map</span> ((<span class="op">+</span> <span class="dv">1</span>) <span class="op">.</span> square)</span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a><span class="co">-- 実行例</span></span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> sumOfSquares [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>]        <span class="co">-- 14</span></span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> squarePlusOneTwice [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>]  <span class="co">-- [2,5,10]</span></span>
+<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a>    <span class="fu">print</span> <span class="op">$</span> squarePlusOneOnce [<span class="dv">1</span>, <span class="dv">2</span>, <span class="dv">3</span>]   <span class="co">-- [2,5,10]</span></span></code></pre></div>
+<p>このように, 等式を使って意味を変えずにプログラムを書き換えることを <strong>等式推論 (equational reasoning)</strong> と呼びます. 書き換えの前後で結果が変わらないことが等式で保証されるので, リファクタリングや最適化を安心して行えます.</p>
+<p>同じ計算を手続き型の Python で書くと, 次のようになります.</p>
+<div class="sourceCode" id="cb26"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> sum_of_squares(xs):</span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>    total <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> x <span class="kw">in</span> xs:</span>
+<span id="cb26-4"><a href="#cb26-4" aria-hidden="true" tabindex="-1"></a>        total <span class="op">=</span> total <span class="op">+</span> x <span class="op">*</span> x</span>
+<span id="cb26-5"><a href="#cb26-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> total</span></code></pre></div>
+<p>ここでは <code>total</code> という書き換えられる変数とループが一体となって計算を構成しています. <code>x * x</code> の部分を別の関数として切り出すことはできても, 「合計を求める」部分と「2 乗する」部分を独立した部品として切り離して再利用することは難しく, 上の等式のような書き換えも行えません.</p>
+<p>モジュラー性と等式推論は, <a href="fp1.html">第1章</a>で関数型言語の利点として名前を挙げたものです.</p>
 <h3 id="練習問題関数応用">練習問題(関数応用)</h3>
 <section id="exercise-ch6-3" class="note">
 <h4>Exercise CH6-3</h4>
@@ -439,45 +475,45 @@ r = \frac{\sum_{i=1}^{n}(x_i - \bar{x})(y_i - \bar{y})}{\sqrt{\sum_{i=1}^{n}(x_i
 <div class="warn">
 <p>この演習は本章で学んだ <code>map</code> ・ <code>zipWith</code> ・ ラムダ式と, 前章の <code>where</code> 節を組み合わせて解く <strong>応用総合問題</strong> です. 各要素の偏差を <code>map</code> で, 2 リストの積和を <code>zipWith</code> で計算するのがポイントです.</p>
 </div>
-<div class="sourceCode" id="cb24"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 実行例</span></span>
-<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> xs <span class="ot">=</span> [<span class="dv">1</span>, <span class="dv">2</span> <span class="op">..</span> <span class="dv">5</span>]</span>
-<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>      ys <span class="ot">=</span> [<span class="dv">5</span>, <span class="dv">4</span> <span class="op">..</span> <span class="dv">1</span>]</span>
-<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStrLn</span> <span class="op">$</span> <span class="st">&quot;標準偏差: &quot;</span> <span class="op">++</span> <span class="fu">show</span> (stddev xs) <span class="co">--  1.4142135623730951</span></span>
-<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStrLn</span> <span class="op">$</span> <span class="st">&quot;相関係数: &quot;</span> <span class="op">++</span> <span class="fu">show</span> (correlation xs ys) <span class="co">-- -0.9999999999999998</span></span></code></pre></div>
+<div class="sourceCode" id="cb27"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 実行例</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> xs <span class="ot">=</span> [<span class="dv">1</span>, <span class="dv">2</span> <span class="op">..</span> <span class="dv">5</span>]</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>      ys <span class="ot">=</span> [<span class="dv">5</span>, <span class="dv">4</span> <span class="op">..</span> <span class="dv">1</span>]</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStrLn</span> <span class="op">$</span> <span class="st">&quot;標準偏差: &quot;</span> <span class="op">++</span> <span class="fu">show</span> (stddev xs) <span class="co">--  1.4142135623730951</span></span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStrLn</span> <span class="op">$</span> <span class="st">&quot;相関係数: &quot;</span> <span class="op">++</span> <span class="fu">show</span> (correlation xs ys) <span class="co">-- -0.9999999999999998</span></span></code></pre></div>
 <details class="protected" data-pass="yakagika">
 <summary>
 回答例
 </summary>
-<div class="sourceCode" id="cb25"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 平均値を求める関数</span></span>
-<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="ot">mean ::</span> [<span class="dt">Double</span>] <span class="ot">-&gt;</span> <span class="dt">Double</span></span>
-<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>mean xs <span class="ot">=</span> <span class="fu">sum</span> xs <span class="op">/</span> <span class="fu">fromIntegral</span> (<span class="fu">length</span> xs)</span>
-<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="co">-- 標本標準偏差を求める関数</span></span>
-<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a><span class="ot">stddev ::</span> [<span class="dt">Double</span>] <span class="ot">-&gt;</span> <span class="dt">Double</span></span>
-<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>stddev xs <span class="ot">=</span> <span class="fu">sqrt</span> variance</span>
-<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>  <span class="kw">where</span></span>
-<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>    m <span class="ot">=</span> mean xs</span>
-<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a>    n <span class="ot">=</span> <span class="fu">fromIntegral</span> (<span class="fu">length</span> xs)</span>
-<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a>    variance <span class="ot">=</span> <span class="fu">sum</span> (<span class="fu">map</span> (\x <span class="ot">-&gt;</span> (x <span class="op">-</span> m)<span class="op">^</span><span class="dv">2</span>) xs) <span class="op">/</span> n</span>
-<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a><span class="co">-- 積率相関係数を求める関数</span></span>
-<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a><span class="ot">correlation ::</span> [<span class="dt">Double</span>] <span class="ot">-&gt;</span> [<span class="dt">Double</span>] <span class="ot">-&gt;</span> <span class="dt">Double</span></span>
-<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a>correlation xs ys <span class="ot">=</span> covariance <span class="op">/</span> (stddev xs <span class="op">*</span> stddev ys)</span>
-<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a>  <span class="kw">where</span></span>
-<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a>    mx <span class="ot">=</span> mean xs</span>
-<span id="cb25-18"><a href="#cb25-18" aria-hidden="true" tabindex="-1"></a>    my <span class="ot">=</span> mean ys</span>
-<span id="cb25-19"><a href="#cb25-19" aria-hidden="true" tabindex="-1"></a>    n  <span class="ot">=</span> <span class="fu">fromIntegral</span> (<span class="fu">length</span> xs)</span>
-<span id="cb25-20"><a href="#cb25-20" aria-hidden="true" tabindex="-1"></a>    covariance <span class="ot">=</span> <span class="fu">sum</span> (<span class="fu">zipWith</span> (\x y <span class="ot">-&gt;</span> (x <span class="op">-</span> mx)<span class="op">*</span>(y <span class="op">-</span> my)) xs ys) <span class="op">/</span> n</span>
-<span id="cb25-21"><a href="#cb25-21" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb25-22"><a href="#cb25-22" aria-hidden="true" tabindex="-1"></a><span class="co">-- 実行例</span></span>
-<span id="cb25-23"><a href="#cb25-23" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
-<span id="cb25-24"><a href="#cb25-24" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
-<span id="cb25-25"><a href="#cb25-25" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> xs <span class="ot">=</span> [<span class="dv">1</span>, <span class="dv">2</span> <span class="op">..</span> <span class="dv">5</span>]</span>
-<span id="cb25-26"><a href="#cb25-26" aria-hidden="true" tabindex="-1"></a>      ys <span class="ot">=</span> [<span class="dv">5</span>, <span class="dv">4</span> <span class="op">..</span> <span class="dv">1</span>]</span>
-<span id="cb25-27"><a href="#cb25-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStrLn</span> <span class="op">$</span> <span class="st">&quot;標準偏差: &quot;</span> <span class="op">++</span> <span class="fu">show</span> (stddev xs) <span class="co">--  1.4142135623730951</span></span>
-<span id="cb25-28"><a href="#cb25-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStrLn</span> <span class="op">$</span> <span class="st">&quot;相関係数: &quot;</span> <span class="op">++</span> <span class="fu">show</span> (correlation xs ys) <span class="co">-- -0.9999999999999998</span></span></code></pre></div>
+<div class="sourceCode" id="cb28"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a><span class="co">-- 平均値を求める関数</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a><span class="ot">mean ::</span> [<span class="dt">Double</span>] <span class="ot">-&gt;</span> <span class="dt">Double</span></span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>mean xs <span class="ot">=</span> <span class="fu">sum</span> xs <span class="op">/</span> <span class="fu">fromIntegral</span> (<span class="fu">length</span> xs)</span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a><span class="co">-- 標本標準偏差を求める関数</span></span>
+<span id="cb28-6"><a href="#cb28-6" aria-hidden="true" tabindex="-1"></a><span class="ot">stddev ::</span> [<span class="dt">Double</span>] <span class="ot">-&gt;</span> <span class="dt">Double</span></span>
+<span id="cb28-7"><a href="#cb28-7" aria-hidden="true" tabindex="-1"></a>stddev xs <span class="ot">=</span> <span class="fu">sqrt</span> variance</span>
+<span id="cb28-8"><a href="#cb28-8" aria-hidden="true" tabindex="-1"></a>  <span class="kw">where</span></span>
+<span id="cb28-9"><a href="#cb28-9" aria-hidden="true" tabindex="-1"></a>    m <span class="ot">=</span> mean xs</span>
+<span id="cb28-10"><a href="#cb28-10" aria-hidden="true" tabindex="-1"></a>    n <span class="ot">=</span> <span class="fu">fromIntegral</span> (<span class="fu">length</span> xs)</span>
+<span id="cb28-11"><a href="#cb28-11" aria-hidden="true" tabindex="-1"></a>    variance <span class="ot">=</span> <span class="fu">sum</span> (<span class="fu">map</span> (\x <span class="ot">-&gt;</span> (x <span class="op">-</span> m)<span class="op">^</span><span class="dv">2</span>) xs) <span class="op">/</span> n</span>
+<span id="cb28-12"><a href="#cb28-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-13"><a href="#cb28-13" aria-hidden="true" tabindex="-1"></a><span class="co">-- 積率相関係数を求める関数</span></span>
+<span id="cb28-14"><a href="#cb28-14" aria-hidden="true" tabindex="-1"></a><span class="ot">correlation ::</span> [<span class="dt">Double</span>] <span class="ot">-&gt;</span> [<span class="dt">Double</span>] <span class="ot">-&gt;</span> <span class="dt">Double</span></span>
+<span id="cb28-15"><a href="#cb28-15" aria-hidden="true" tabindex="-1"></a>correlation xs ys <span class="ot">=</span> covariance <span class="op">/</span> (stddev xs <span class="op">*</span> stddev ys)</span>
+<span id="cb28-16"><a href="#cb28-16" aria-hidden="true" tabindex="-1"></a>  <span class="kw">where</span></span>
+<span id="cb28-17"><a href="#cb28-17" aria-hidden="true" tabindex="-1"></a>    mx <span class="ot">=</span> mean xs</span>
+<span id="cb28-18"><a href="#cb28-18" aria-hidden="true" tabindex="-1"></a>    my <span class="ot">=</span> mean ys</span>
+<span id="cb28-19"><a href="#cb28-19" aria-hidden="true" tabindex="-1"></a>    n  <span class="ot">=</span> <span class="fu">fromIntegral</span> (<span class="fu">length</span> xs)</span>
+<span id="cb28-20"><a href="#cb28-20" aria-hidden="true" tabindex="-1"></a>    covariance <span class="ot">=</span> <span class="fu">sum</span> (<span class="fu">zipWith</span> (\x y <span class="ot">-&gt;</span> (x <span class="op">-</span> mx)<span class="op">*</span>(y <span class="op">-</span> my)) xs ys) <span class="op">/</span> n</span>
+<span id="cb28-21"><a href="#cb28-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb28-22"><a href="#cb28-22" aria-hidden="true" tabindex="-1"></a><span class="co">-- 実行例</span></span>
+<span id="cb28-23"><a href="#cb28-23" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb28-24"><a href="#cb28-24" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb28-25"><a href="#cb28-25" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> xs <span class="ot">=</span> [<span class="dv">1</span>, <span class="dv">2</span> <span class="op">..</span> <span class="dv">5</span>]</span>
+<span id="cb28-26"><a href="#cb28-26" aria-hidden="true" tabindex="-1"></a>      ys <span class="ot">=</span> [<span class="dv">5</span>, <span class="dv">4</span> <span class="op">..</span> <span class="dv">1</span>]</span>
+<span id="cb28-27"><a href="#cb28-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStrLn</span> <span class="op">$</span> <span class="st">&quot;標準偏差: &quot;</span> <span class="op">++</span> <span class="fu">show</span> (stddev xs) <span class="co">--  1.4142135623730951</span></span>
+<span id="cb28-28"><a href="#cb28-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">putStrLn</span> <span class="op">$</span> <span class="st">&quot;相関係数: &quot;</span> <span class="op">++</span> <span class="fu">show</span> (correlation xs ys) <span class="co">-- -0.9999999999999998</span></span></code></pre></div>
 </details>
 </section>
 
