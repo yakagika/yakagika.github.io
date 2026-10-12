@@ -2,10 +2,10 @@
 plan_id: fp-v2-unified-rebuild
 status: in-progress
 created: 2026-07-10
-updated: 2026-09-25
+updated: 2026-10-12
 priority: high
 next_actor: agent
-next_action: "Phase B0 = Ch1 thesis 章の設計を起こす (2026-09-10 裁定で着手確定, dispatch d712c24b2, Todoist 確認 due 10-01. 番号替えは含めない). 並行して fp11 はユーザレビュー待ち (open: true をローカルのみ, 未 commit)"
+next_action: "Phase B0: fp1v2 草稿 (lectures/fp/fp1v2.md, open: false) の本人レビュー. 未決 = 外した候補事例 (投票, 複数表現, ネットワーク・家系, レヴィ=ストロース) の扱い, じゃんけんと図書貸出を Haskell 化する後続章での回収先, 現行 fp1 素材の行き先. 並行して fp11 はユーザレビュー待ち"
 ---
 
 # fp 講義 v2 — 統一視座 (組+法則) に基づく全面再構築
@@ -14,7 +14,7 @@ next_action: "Phase B0 = Ch1 thesis 章の設計を起こす (2026-09-10 裁定�
 
 - **状態**: in-progress (Phase 0 確定 = 折衷案, 実装中)
 - **作成日**: 2026-07-10
-- **最終更新**: 2026-09-08
+- **最終更新**: 2026-10-12
 - **対象**: `lectures/fp/` 全体 (Phase A: fp7〜fp12 / Phase B: fp1〜fp6), `fp-examples/`
 - **関連計画**: [fp-typeclass-monad-arc.md](../landed/2026-09-08-fp-typeclass-monad-arc.md) (現行版の執筆 arc — Phase 0 で調停, 2026-09-08 landed), [fp-examples-verification.md](../landed/2026-09-08-fp-examples-verification.md) (2026-09-08 landed), [../proposed/teaching-reification-cognitive-skills.md](../proposed/teaching-reification-cognitive-skills.md) (fp1 thesis の認知科学的裏付け)
 
@@ -67,6 +67,18 @@ fp10 レビュー討議 (2026-07-09〜10) で得た **統一視座** — 数学�
 - **レヴィ=ストロースの親族体系・神話の変換**: 文化を数式へ還元する例ではなく, 対立項・対応・変換を取り出し, 複数事例の間で何が保存されるかを比較する例として位置づける. ある読解が何を同一視し, 何を差異として残すかを明示可能にする.
 
 演習では, まず学生自身に「公平な割当」や「安全な成績処理」の曖昧な仕様を書かせ, 他班が境界ケース・反例を出す. その後に対象・操作・法則へ分解させる. これは数学的記述を, 他者と検証可能に話すための技術として経験させる入口になる.
+
+##### 2026-10-12 裁定 (本人, Phase B0)
+
+1. **Ch1 では Haskell を実行しない**. 紙と自然言語だけで「曖昧な記述 → 対象・操作・法則に分ける → 反例で確かめる」を回す. 理由 = 新構成では Ch2 が環境構築で, Ch1 時点では実行環境が無い. したがって上の反復単位のうち「Haskell で実行する」と「QuickCheck 的な反例探索 (性質検査)」は Ch1 では外し, 後続章で**同じ題材を使って回収する** (回収先の章・節は未決, 下記). Ch1 の反例は人手で出す (他者が反例を出す演習). 不採用: ブラウザ上の Haskell で少し動かす / 環境構築を Ch1 より前に出す.
+2. **題材は「関係と規則」を軸に 2 例で回す** (1 例に絞る案と 5 例を並べる案の中間).
+3. **2 例 = じゃんけん + 制度の仕様**. じゃんけん = 関係と規則 (循環する勝敗 vs 推移的な順位). 制度の仕様 = 履修または図書貸出 (状態・許される操作・不変条件). 「関係を取り出す見方」と「操作と不変条件を書く見方」を 1 回ずつ回し, Ch5 (データ型) と Ch6 (関係) へ伏線を張る. 草稿 (fp1v2) では制度の例に図書貸出を採った (状態が「どの本を誰が借りているか」の 1 種類で済み, 操作と不変条件が少なく紙で回しやすいため. 履修は演習の題材に回した).
+
+未決 (本人判断):
+
+- 他の候補事例 (投票, 同じ対象の複数表現, ネットワーク・家系, レヴィ=ストロース) の本文での扱い (外す / 短い補足). 草稿では本筋に入れていない.
+- 後続章での回収先: じゃんけんの関係 (Ch5 の列挙型 + Ch6 の関係・推移性の全数検査), 図書貸出の状態と不変条件 (Ch5 のデータ型 + 性質検査を置く章) を, どの章のどの節で Haskell 化するか.
+- 現行 fp1 の素材 (ウサギの問題, 言語比較, 実世界の Haskell 等) を新 Ch1 に残すか, 別の章・補足へ移すか. 草稿は thesis の流れに絞り, 現行素材は使っていない (理由は変更履歴 2026-10-12).
 
 ### (3) スコープ境界
 
@@ -192,7 +204,7 @@ Obsidian Learn note「Haskell の再帰的データ型を数学的に読む — 
 - **Phase A4 — fp9v2 作成** ✅ (2026-07-13, 確定済み圏先行骨子どおり). 構成 = 導入 (台の転換: 値の集まり → 射の集まり, fp7/fp8 の総括 + 対応表) → **# 圏 — 関数を台に据える** (圏の定義 = 組+法則 / Hask + 可換図式 SVG / 圏はモノイドの一般化 = **一点圏** (リストのモノイドを圏として読む成分対応表. 俯瞰の階段は**完成形で章冒頭へ移設** — 2026-07-13 構成改訂, 上記) + アリティ発展 note 維持 / **関手 = 圏の準同型** (**手作りの関手** = Bool/Int/String → リスト世界の具体的構成 (対象表・射表・圏 C→D SVG・保存則の実行検査) → 一般の定義 + fp8v2 一般化表 → 図1+図2 → リスト関手と fmap = 射の対応の一般化 (抽象度の段差を明示) + モノイド準同型もまた関手 = 一点圏 SVG)) → **# 多相データ型 — 関手のモデルたち** (型構築子と種 = 関手のデータ部 + **反変位置 warn 新設** (`Pred a = a -> Bool` は fmap 不能 = 関手の候補にすぎない, fp7v2 負の位置 note と接続) / Maybe (「関数 — 特別な関係」の出力を広げる道として動機づけ直し + Maybe は関手) / Either (専用エラー型の実用動機を完全温存 + Either a は関手) / 基本操作 / リスト (再帰型・モノイド・関手の 3 つの顔, Φ_List 1 文追加) / Map / ツリー (+ ツリーは関手) / **発展 note 新設: data 宣言は多項式** (翻訳レシピ +・×・1・X → 多項式関手, F-代数・始代数, Lambek: List a ≅ 1 + a×List a — 素材送付の回収, 深追いしない)) → **# 自然変換** (定義 + listToMaybe/maybeToList + 自然性 + toEither 回収) → まとめ (物語表 + 俯瞰の階段の空欄が埋まる + fp10 への橋 = 最上段でモノイドのレシピをもう一度). 演習 5 本 (エラー修正演習なし, 設計原理 7): **CH9-1 = 旧4 (Box Functor, 種の節直後へ前倒し)** / CH9-2 = 旧1 (safeLast) / CH9-3 = 旧2 (checkAge) / CH9-4 = 旧3 (toEither, 回答の自然変換言及を後方参照に改稿) / CH9-5 温存 (firstTwo). 本文コードブロックは検証済み v1 を byte 単位で温存. `fp9v2.md` 1173 行, `open: true`, prev = fp8v2 / fp8v2 の next = fp9v2 (v2 チェーン fp7v2⇄fp8v2⇄fp9v2 完結) / next = fp10 (**片方向**, fp10 の prev は fp9 のまま). 削除済み旧 fp7 エラー演習への参照 (旧 CH7-7 radius) は「レコード構文」節の `dogAge` 参照へ差し替え. fp-examples `test/Fp9V2/` 15 spec (全 15 移植, Ex 4 本を新番号へ rename), `stack test` 866 examples green. サイトビルド確認済 (演習アンカー ch9-1〜5, fp8v2⇄fp9v2 ナビ, fp9v2→fp10 ナビ).
 - **Phase A5 — fp11** ✅ (2026-07-15 執筆完了, レビュー待ち). 構成案 (下記) をパターン語彙に更新の上そのまま実装. 構成 = 導入 (fp5 予告回収 + パターン↔効果 (effect) の橋 1 文 + 道筋 note + 地図表) → **# 状態を運ぶ計算** (Python の再代入 → 唯一の道 `s -> (a, s)` → 手書き配管 `three` の 2 難点) → **# State モナド** (`newtype State` + パターンの読み「場合分けなし・包まれた値が関数」→ 手作り `bindS` → 正体 (T a = s→(a×s), η/μ を数式∥Haskell, 単位律を let 展開で確認) → **インスタンスを自分の手で書く** (Functor/Applicative/Monad, `<*>` の左→右注記) → get/put/modify/gets + eval/execState → 実例 3 連 (fresh = Python 対訳 / label = forM×State / LCG 乱数 + replicateM 導入) + mtl 互換 note) → **# 本物の可変セル** (IORef (IO 伝染の問題) → ST (runST の rank-2 は名前まで) → 三者の使い分け表) → **# Reader と Writer** (Reader = put のない State, μ = 同じ環境を二重に配る, Config/税率例 / Writer = **Monoid w が部品** (η=mempty, μ=<>, モナド則がモノイド則から従う = 第8章の見せ場), Collatz ログ + Sum Int 取り替え + モナド変換子 note) → **# 構造を走査する** (traverse = forM の一般形 (Applicative に弱まる) → 一括検証/sequenceA → traverseTree 手作り (Node の liftA3 イディオム) → State を流す labelTree = 連番の一般化 → Traversable クラス (Functor/Foldable 前提, sum/length の恩恵, 3 クラス役割表) → **なぜ Applicative で十分か** (走査の順路は構造で静的 vs fp10 依存 2 重ループ)) → # まとめ (カタログ表 + fp12 への橋). 演習 CH11-1〜5 (algebra-first: 等式仕様→実装. 配管→State / コイン投げ LCG / minMax を State と ST / 互除法 Writer ログ + Monoid 取り替え / traverse 一括検証 + Applicative で十分な理由の記述). ユーザ決定 (AUQ 2026-07-15): Traversable = **fp11 末尾** (案 a) / 語彙 = パターン維持, State は「パターンのないデータ型で値が関数 (状態) になっている」という読み / 章題「可変状態と効果」維持 + 導入で効果を文献語彙として導入. `fp11.md` 986 行, `open: true` (レビュー用). fp-examples `test/Fp11/` 11 spec (Plumbing/State/IORef/ST/Reader/Writer/Traverse + Ex111〜115), `stack test` **703 examples green** (+62). サイトビルド + リンク・アンカー検査 84 ページ 0 件. fp12 の前提 (runState/evalState/modify/gets/mapM/replicateM, `Control.Monad.State`) は mtl note と各節でカバー済み.
 - **Phase A6** — fp12 小改訂 (+ ~~fp7〜9 の swap~~ → **2026-07-13 に前倒し実施済み**, 下記「v2 入れ替え (swap) 実施記録」)
-- **Phase B0** — Ch1 (thesis 章) の設計 (来年度に向け)
+- **Phase B0** — Ch1 (thesis 章) の設計 (来年度に向け). 2026-10-12 本人裁定 (§(2) の「2026-10-12 裁定」) に沿って草稿 `lectures/fp/fp1v2.md` (open: false) を作成, 本人レビュー待ち
 - **Phase B1** — Ch5/Ch6 再編 (fp7v2 の 2 分割 + 現 fp5 の関係ベース再基礎づけ). **[fp7-10-readability-restructure](../proposed/fp7-10-readability-restructure.md) を統合実施** (2026-07-23 ユーザ決定): 読みやすさ 2 層化 (本筋/発展) と重複統合を章再編と同じパスで行う. 開始 trigger = 2026-08-10 の Todoist タスク → **2026-09-08 に Todoist 上で見当たらず, 当日付 FromAI タスクとして再登録** (着手時期の判断待ち).
 - **Phase B2** — Ch7 (fp6 改稿)
 - **Phase B3** — Ch2〜4 微修正 + 番号替え・新旧対応表・統合
@@ -409,3 +421,4 @@ fp10 は Phase A1' 完了時点の語彙のままで, 本日確定した原則 1
 - 2026-07-23: **Phase B に fp7-10-readability-restructure を統合** (ユーザ決定): fp7〜fp10 の読みやすさ再構成 (本筋/発展の 2 層化, plan/proposed/) は単独実施せず, Phase B の章構成変更と同じパスで行う. fp7 の 2 章分離 (Phase B1 の Ch5/Ch6) が前提. 開始 trigger として Todoist タスク (due 2026-08-10) を登録.
 - 2026-09-08: **計画と実態の監査 (ユーザ依頼「修正計画を確認」)**. 検出と処置: (1) next_action の「fp11 ユーザレビュー」が未了のまま 2026-07-15 から止まっていた (fp11 は `open: false` で commit 済み) → ユーザ確認の上, `open: true` に倒してローカル :8000 でレビューを再開 (未 commit. 確定後に open の扱いを決める). (2) Phase B の開始 trigger (Todoist, due 2026-08-10) が open にも完了済みにも存在しなかった → 当日付 FromAI タスクとして再登録. (3) fp-typeclass-monad-arc (Phase 4 = fp11 が「未着手」のまま stale) と fp-examples-verification (フェーズ 4 の要否判断が 2 ヶ月保留) をそれぞれ実態反映して `plan/landed/` へ移動 (フェーズ 4 = CI 統合は見送り, ユーザ判断). (4) 関連ファイル節の「現行版 (不変で温存)」を swap 後の実態に修正. `fp-examples` の `stack test` は本日も全 pass. 教材本文は未変更.
 - 2026-09-25: next_action を Phase B0 (Ch1 thesis 章の設計) へ更新. 2026-09-10 の裁定 (今週着手, ただし fp5↔fp7 入れ替えと番号替えは後続 phase) を反映. fp11 はユーザレビュー継続 (公開は保留, ユーザ判断).
+- 2026-10-12: **Phase B0 の本人裁定 3 点を記録し, Ch1 草稿 fp1v2 を作成** (dispatch dee301a4d. 裁定の記録だけの dispatch de33bcc0f を統合). 裁定 = Ch1 では Haskell を実行しない (実行と性質検査は後続章で同じ題材を使って回収) / 題材は「関係と規則」を軸に 2 例 / 2 例 = じゃんけん + 制度の仕様 (§(2) の小節). 旧 next_action の dispatch d712c24b2 と Todoist 確認 (due 10-01) は, 成果物が plan にも lectures/fp にも無かった (本 dispatch が引き継いだ). 草稿の構成 = はじめに (講義で辿る道筋 note) → 自然言語の規則が答えられない問い (じゃんけんの「一番強い手」, 図書貸出の 3 つの問い) → じゃんけんの勝敗 (関係 $W \subseteq H\times H$, 非反射・非対称・全域比較可能性, 推移律の反例, 着順 = 狭義の全順序との対比) → 図書貸出の規則 (状態 $L \subseteq B\times U$, 借りる/返すの前提条件, 不変条件 I1/I2, 法則 L1/L2, 前提条件を外した反例, 右一意 = 関数への伏線) → 対象・操作・法則への分解 (2 例の対照表) → 数学と型と Haskell を使う理由 (第5章 データ型, 第6章 関係への予告) + 紙の演習 3 本 (CH1-1 4 手・5 手じゃんけん / CH1-2 履修登録の仕様と班間の反例 / CH1-3 総当たり戦の順位), 解答例つき. Haskell のコードブロックは置いていない (fp-examples の spec は不要). 章内リンクの第5章・第6章は Phase B の新番号を指す (番号替え前は現行 fp5/fp6 に飛ぶ). 現行 fp1 の素材 (ウサギの問題, 言語比較, 実世界の Haskell, その他の関数型言語) は使っていない: ウサギは数列の計算で「関係と規則」の 2 例の軸に乗らず, 手続き vs 宣言の対比は Haskell の実行を前提にするため. 行き先は §(2) の未決. サイトビルドは一時 open: true で確認 (アンカー解決 0 件の破損) し false に戻した.
