@@ -376,6 +376,47 @@ pairs = [ (x,y) | x <- [1..3], y <- [1..3], x /= y ]
 -- [(1,2),(1,3),(2,1),(2,3),(3,1),(3,2)]
 ~~~
 
+内包表記で書いたプログラムは数式とほぼ一対一に対応するので, プログラムが数式どおりかを目で確かめられます. $1$ から $5$ の自然数の組 $(x, y)$ のうち $x > y$ を満たすものの集合
+
+$$
+S = \{(x, y) \mid x \in \{1,2,3,4,5\}, y \in \{1,2,3,4,5\}, x > y \}
+$$
+
+を, 3 つの言語で書き比べてみます. Haskell のリスト内包表記では, 数式の各部分をそのまま書き写せます.
+
+~~~ haskell
+greaterPairs :: [(Int, Int)]
+greaterPairs = [ (x, y) | x <- [1 .. 5], y <- [1 .. 5], x > y ]
+~~~
+
+Python にも内包表記があるため, 数式に近い書き方ができます.
+
+~~~ python
+greater_pairs = [(x, y) for x in range(1, 6) for y in range(1, 6) if x > y]
+~~~
+
+一方, 内包表記を持たない VBA (Excel で利用できるプログラミング言語) では, ループを積み重ねて手順として組み立てる形になります.
+
+~~~ vb
+Dim result As Variant
+Dim tuple(1) As Integer
+Dim count As Integer
+count = 0
+For i = 1 To 5
+    For j = 1 To 5
+        If i > j Then
+            ReDim Preserve result(count + 1)
+            tuple(0) = i
+            tuple(1) = j
+            result(count) = tuple
+            count = count + 1
+        End If
+    Next
+Next
+~~~
+
+この VBA のコードが上の数式と一致していることをひと目で判断するのは難しいでしょう. Haskell と Python のコードでは, $x \in \{1,2,3,4,5\}$ が `x <- [1 .. 5]` に, 条件 $x > y$ が `x > y` に当たる, というように数式の各部分がプログラムのどこに当たるかを順に指せます. 数式による仕様とプログラムのこの対応が, [第1章](fp1.html)で挙げた **形式的証明可能性** です.
+
 ただし, リスト内包表記は **値のレベル** での構成であり, 得られるのはあくまで `[Int]` などのリストです. 「型として偶数のみからなる新しいデータ型」を定義しているわけではない点に注意してください.
 
 ::: warn

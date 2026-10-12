@@ -414,6 +414,61 @@ main = do
     print $ h 2 -- 10
 ~~~
 
+### 小さな関数を合成して組み立てる
+
+関数合成を使うと, プログラムを小さな関数の組み合わせとして書けます. 例として, 整数のリストの各要素を 2 乗した合計を求める関数を考えます.
+
+~~~ haskell
+square :: Int -> Int
+square x = x * x
+
+sumOfSquares :: [Int] -> Int
+sumOfSquares = sum . map square
+~~~
+
+`sumOfSquares` は, 2 乗する `square`, リストの各要素に関数を適用する `map`, 合計を求める `sum` の 3 つを合成しただけの関数です. `square` は 2 乗するだけの関数なので, この用途以外にもそのまま使えます. `map` と `sum` は標準ライブラリの汎用の関数を再利用しています. 大きな処理を独立した小さな関数に分け, それぞれを別の場所でも使えるこの性質を **モジュラー性** といいます.
+
+合成で組み立てたプログラムは, 数式と同じ要領で書き換えられます. 例えば `map` については, 任意の関数 `f`, `g` について次の等式が成り立ちます.
+
+$$
+\mathrm{map}\ f \circ \mathrm{map}\ g = \mathrm{map}\ (f \circ g)
+$$
+
+左辺はリストを 2 回走査し, 右辺は 1 回で済みますが, どちらも同じリストを返します. この等式を使えば, プログラムの意味を変えずに書き換えられます.
+
+~~~ haskell
+-- 2 乗してから 1 を足す. 左辺の形 (リストを 2 回走査する)
+squarePlusOneTwice :: [Int] -> [Int]
+squarePlusOneTwice = map (+ 1) . map square
+
+-- 右辺の形 (リストを 1 回走査する)
+squarePlusOneOnce :: [Int] -> [Int]
+squarePlusOneOnce = map ((+ 1) . square)
+
+-- 実行例
+main :: IO ()
+main = do
+    print $ sumOfSquares [1, 2, 3]        -- 14
+    print $ squarePlusOneTwice [1, 2, 3]  -- [2,5,10]
+    print $ squarePlusOneOnce [1, 2, 3]   -- [2,5,10]
+~~~
+
+このように, 等式を使って意味を変えずにプログラムを書き換えることを **等式推論 (equational reasoning)** と呼びます. 書き換えの前後で結果が変わらないことが等式で保証されるので, リファクタリングや最適化を安心して行えます.
+
+同じ計算を手続き型の Python で書くと, 次のようになります.
+
+~~~ python
+def sum_of_squares(xs):
+    total = 0
+    for x in xs:
+        total = total + x * x
+    return total
+~~~
+
+ここでは `total` という書き換えられる変数とループが一体となって計算を構成しています. `x * x` の部分を別の関数として切り出すことはできても, 「合計を求める」部分と「2 乗する」部分を独立した部品として切り離して再利用することは難しく, 上の等式のような書き換えも行えません.
+
+モジュラー性と等式推論は, [第1章](fp1.html)で関数型言語の利点として名前を挙げたものです.
+
 
 ## 練習問題(関数応用)
 

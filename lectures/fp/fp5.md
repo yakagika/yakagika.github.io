@@ -498,6 +498,45 @@ main = do
 
 特徴関数におけるifの位置が先に来ている以外は,基本的に対応関係にあるのがわかるかと思います. なお, 上のガードでは負の整数が来た場合に備えて `otherwise` で `error` を投げています. これは次節でも扱う通り「どのガードにも該当しない値」が来た場合に `Non-exhaustive guards` で落ちるのを防ぐためのフォールバックです.
 
+#### ガードと数式の対応
+
+ガードを使うと, 場合分けで定義した数式とプログラムを一対一に近い形で対応させられます. この対応は, 場合分けを持たない手続き型の書き方と並べると分かりやすくなります. 階乗 $n!$ を場合分けで定義すると以下のようになります.
+
+$$
+n! = \begin{cases}
+        1 & (n = 0) \\
+        n \times (n-1)! & (n > 0)
+     \end{cases}
+$$
+
+Haskellではガードを用いて, この定義にほぼ対応する形で実装できます.
+
+~~~ haskell
+factorial :: Int -> Int
+factorial n | n == 0    = 1
+            | n > 0     = n * factorial (n - 1)
+            | otherwise = error "factorial: negative input"
+~~~
+
+一方, Excel で利用できるプログラミング言語の VBA では, for ループと累積代入によって手順として書き下す形になります.
+
+~~~ vb
+Function Factorial(n As Integer) As Integer
+    Dim result As Integer
+    result = 1
+    If n = 0 Then
+        Factorial = 1
+    Else
+        For i = 1 To n
+            result = result * i
+        Next
+        Factorial = result
+    End If
+End Function
+~~~
+
+このプログラムが $n!$ の定義と一致していることを確かめるには, for 文が定義のどの行に対応しているかを頭の中で復元する必要があります. 処理が複雑になるほど, 数式から手順へ翻訳する途中で誤りが入りやすくなります. Haskell のガードでは, 定義の各行とプログラムの各行が同じ順序で並ぶので, この翻訳が要りません. 数式による仕様とプログラムの対応が強いこの性質は, [第1章](fp1.html)で **形式的証明可能性** として挙げたものです.
+
 #### otherwise
 
 ガードの最後の分岐には, 慣例的に **`otherwise`** を置きます. `otherwise` は `Prelude` で次のように定義されている単なる `True` の別名であり, 必ず真と評価されるため「それまでのどのガードにも当てはまらなかった場合」のフォールバックとして機能します.
