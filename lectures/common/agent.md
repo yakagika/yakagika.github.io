@@ -120,24 +120,23 @@ Meta も 2026 年 8 月 5 日に, ターミナルで動くエージェントの 
 
 codex は OpenAI が配布しているコーディングエージェントです.
 
-Windows は[共通資料 プログラミング用の設定](setup.html)で導入を確かめた winget で入ります. 入れる前に, 同じ資料の [Windows: winget](setup.html#windows-winget) の手順で**開発者モード**をオンにしたかを確かめます. 「設定」の「システム」の「詳細設定」にある「開発者向け」の欄で, 開発者モードがオンになっていれば済んでいます.
-
-開発者モードがオンになっていることを確かめてから, PowerShell で次を実行します. 終わったら PowerShell を開き直します.
+Windows は, codex の公式リポジトリ ([openai/codex](https://github.com/openai/codex)) が案内しているインストーラで入れます. PowerShell で次を実行します.
 
 ~~~ powershell
-winget install -e --id OpenAI.Codex
+powershell -ExecutionPolicy ByPass -c "irm https://chatgpt.com/codex/install.ps1 | iex"
 ~~~
+
+インストーラはコマンド `codex` の場所を PATH に加えます. 最後に `Start Codex now? [y/N]` と聞かれたら, 何も入力せずに Enter を押します. codex は[動作確認](#動作確認)で, 作業するディレクトリへ移動してから起動します. 終わったら PowerShell を開き直します.
 
 ::: note
 
-開発者モードがオフのまま入れると, 「インストールが完了しました」と表示されても, PowerShell を開き直したあとに `codex` が認識されません. winget はコマンド名 `codex` を実行ファイルへ結び付けるリンクを作りますが, 開発者モードがオフだとこのリンクを作れず, 実行ファイルが `codex-x86_64-pc-windows-msvc.exe` のような長い名前のまま残るためです. herdr も codex を見つけられなくなります.
-
-すでにこの状態になった場合は, 開発者モードをオンにしてから, 次の 2 つを実行して入れ直します.
+**winget の codex は使いません.** winget にも codex のパッケージ (`OpenAI.Codex`) がありますが, これで入れた codex は起動時にエラーが出ることがあります. すでに winget で入れた場合は, 次を実行して削除してから, 上のコマンドで入れ直します. 残したままにすると `codex` という名前のコマンドが 2 つでき, どちらが起動するかが分かりにくくなります.
 
 ~~~ powershell
 winget uninstall -e --id OpenAI.Codex
-winget install -e --id OpenAI.Codex
 ~~~
+
+codex にも herdr にも開発者モードは要りません. winget の codex のために開発者モードをオンにした場合は, 削除したあとでオフに戻してかまいません.
 
 :::
 

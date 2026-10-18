@@ -2,10 +2,10 @@
 plan_id: common-agent-literacy-material
 status: in-progress
 created: 2026-09-04
-updated: 2026-10-02
+updated: 2026-10-18
 priority: high
 next_actor: agent
-next_action: "(1) Windows と macOS の実機で, 空のリポジトリから Exercise AGENT-1 を通して本文を直す (VSCode を開く依頼, 右 pane の差分, /model, 無料枠の持ち). (2) モデルと料金の数字を公式の料金ページで再確認する. (3) Windows の /diff 不具合を codex の新版で再確認する (外部待ち)"
+next_action: "(1) Windows と macOS の実機で, 空のリポジトリから Exercise AGENT-1 を通して本文を直す (VSCode を開く依頼, 右 pane の差分, /model, 無料枠の持ち). (2) モデルと料金の数字を公式の料金ページで再確認する. (3) 同じ実機で, 公式インストーラによる codex の導入と /diff の不具合を最新版で確かめる"
 ---
 
 # 共通資料 - git とエージェント利用のリテラシー
@@ -135,12 +135,16 @@ agent.md 127 行 + Ch2 となり 90 分に収まらなかったため). codex �
 |---|---|---|---|
 | git | `winget install -e --id Git.Git` | `brew install git` | `git.md` |
 | GitHub CLI | `winget install -e --id GitHub.cli` | `brew install gh` | `git.md` (認証を `gh auth login` で済ませる) |
-| codex | `winget install -e --id OpenAI.Codex` | `brew install codex` | `agent.md` |
+| codex | **winget 不可** (2026-10-18). 公式 PowerShell インストーラ `irm https://chatgpt.com/codex/install.ps1 \| iex` | `brew install --cask codex` | `agent.md` |
 | herdr | **winget 不可**. 公式 PowerShell インストーラ | 公式 sh インストーラ | `agent.md` |
 
 - winget は Windows 11 に標準搭載. Windows 10 の古い版は Microsoft Store の
   「アプリ インストーラー」(App Installer) を入れさせる (2026-09-04 決定).
-- codex の winget パッケージ `OpenAI.Codex` は **OpenAI, Inc. 発行の公式** (Apache-2.0).
+- codex の winget パッケージ `OpenAI.Codex` は **OpenAI, Inc. 発行の公式** (Apache-2.0) だが, 2026-10-18 に使わないことにした.
+  学生の試用で, winget で入れた codex は起動時にエラーが出て `--no-daemon` を付けたときしか起動せず, 公式リポジトリ
+  (openai/codex の README) の `install.ps1` では成功した. 2026-09-25 の不具合 (symlink が無く `codex` が見つからない) とは別の症状.
+  `install.ps1` は `%LOCALAPPDATA%\Programs\OpenAI\Codex\bin` をジャンクションで作ってユーザの PATH へ加えるので, 開発者モードは要らない.
+  既存の codex の検出は npm / bun だけで winget 版は検出しないため, 本文で winget 版の削除を先に案内した.
 - herdr の winget にある `hdosys.herdr-win` は **第三者による非公式ディストリビューション**なので使わない.
 - Windows のエンドポイントセキュリティが herdr の PowerShell ワンライナーを止めることがある.
   公式に `install.cmd` の代替手順がある.
@@ -298,7 +302,7 @@ VM 内のローカル repo (GitHub 不使用, 検証後に削除) で確認し�
 | `AGENTS.md` を学生は書くのか読むのか | agent.md 4 | resolved | - | - | - | 最低限を事例として配布し以後は各自が改善. 研究用 repo の規約から採る (2026-09-04) |
 | 学生 repo の中身の見本を配るか | 学生が各自で作る | resolved | - | - | - | 資料に最小構成を載せる. `git.md` の §リポジトリの構成 に記載済み (2026-09-04) |
 | 配布する `AGENTS.md` に何を書くか | AGENTS.md の扱い | resolved | - | - | - | 配布しない. 既存の 7 行を 1 事例とし, 研究規約から採った候補 11 行 (問いと理解 3 / 文献 2 / データ 3 / 作業の進め方 3) を「書き足す決まりの候補」の表で示し, 学生が自分で構築する. 問いと理解の 2 行 (設計を先に議論する = grill-me 型, 理解を AI と確かめる) はユーザ指示で追加. skill の事例に学生版 lit-verify を 2 つ目として追加し, 記録先は `references/` (codex が書く) (2026-09-25) |
-| Windows で herdr + codex が動くか | 学生の環境 | resolved | - | - | - | 動く. ただし winget の codex は `codex` で起動できない (§Windows 実機検証). 本文の修正は next_action (2026-09-25) |
+| Windows で herdr + codex が動くか | 学生の環境 | resolved | - | - | - | 動く. ただし winget の codex は `codex` で起動できない (§Windows 実機検証). 本文の修正は next_action (2026-09-25). 2026-10-18 に winget 版で別の起動エラーが学生から報告され, codex の導入を公式インストーラへ切り替えた (§導入コマンド) |
 | skill をどこに公開するか (原典 `mattpocock/skills` MIT の表示を含む) | agent.md 5 | resolved | - | - | - | 公開しない. 資料の文章に SKILL.md を載せ, codex に `.agents/skills/` へ導入させる手順 (`/diff` → `/skills` → `$名前` → commit) を教える. 公開 skill は grill-me (mattpocock/skills, MIT) を紹介し, `$skill-installer` で grill-me と grilling を入れる手順と使い方 (答える側が主導する, 実物を見ないと決められない問いは作って確かめる) を書く. installer の導入は 2026-09-25 に一時フォルダで試験済み (ユーザ裁定 2026-09-25) |
 | 第 2 回が重い問題 | 回への割付 | resolved | - | - | - | branch/worktree 節を agent.md の発展節へ移し, `git.md` を第 1 回へ前倒し (2026-09-06). 第 1 回 = setup + git, 第 2 回 = agent 1-7 + Ch2 |
 | エージェントの作業モデル (main を触るか worktree を分けるか) | git.md と agent.md の整合 | resolved | - | - | - | 1 ディレクトリ (main) で codex を動かし, 差分は `git diff` と `/diff` で読む. worktree は agent.md の発展節のみ (2026-09-06) |
@@ -368,3 +372,4 @@ VM 内のローカル repo (GitHub 不使用, 検証後に削除) で確認し�
   Cursor-Fable は主戦と同一モデルになるため追加しない. 事実の根拠は codex / herdr の公式文書
   (2026-09-06 取得) で, brief に載せた一覧以外のコマンドは本文に無いことを codex の報告と grep で確認.
 - 2026-10-09: 開発者モードの設定を setup.md の「Windows: winget」へ移した (本人裁定). 共通資料の winget のうち portable は codex だけ (VSCode, Git は inno, GitHub CLI は既定で wix) で, 順番の上では agent.md のままでも動くが, winget の前に一度だけ済ませる OS の設定として環境構築にまとめた. コーディングエージェントを使う講義に限る条件を付け, agent.md は確認とリンク, 入れ直しの手順を残す.
+- 2026-10-18: Windows の codex の導入を winget から公式 PowerShell インストーラ (`install.ps1`) へ切り替えた (本人指示). 学生の試用で winget 版が起動時にエラーを出し `--no-daemon` 付きでしか起動しなかったため. agent.md は winget 版を削除してから入れ直す手順と, 開発者モードが codex にも herdr にも要らないことを note に置いた. 開発者モードの理由は winget の codex だけだったので, setup.md の開発者モードの段落と図 `windows-developer-mode.png` を削除した (2026-10-09 の移設を取り消す). macOS は README が案内する Homebrew のまま. Windows の実機での通しは next_action (1) で行う.
