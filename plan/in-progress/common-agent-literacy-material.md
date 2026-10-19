@@ -2,7 +2,7 @@
 plan_id: common-agent-literacy-material
 status: in-progress
 created: 2026-09-04
-updated: 2026-10-18
+updated: 2026-10-19
 priority: high
 next_actor: agent
 next_action: "(1) Windows と macOS の実機で, 空のリポジトリから Exercise AGENT-1 を通して本文を直す (VSCode を開く依頼, 右 pane の差分, /model, 無料枠の持ち). (2) モデルと料金の数字を公式の料金ページで再確認する. (3) 同じ実機で, 公式インストーラによる codex の導入と /diff の不具合を最新版で確かめる"
@@ -328,6 +328,7 @@ VM 内のローカル repo (GitHub 不使用, 検証後に削除) で確認し�
 
 ## 変更履歴
 
+- 2026-10-19: 本人の指示 (既定のモデルが高単価だと学生が利用量の上限にすぐ達する) で, モデル節を「操作の最小セット」から「環境構築」の初回の起動の直後へ移し, 最初の指示より先にモデルを切り替える順にした. 「動作確認」を「初回の起動 → モデルの切り替え → 動作確認」に分け, 起動のたびに /status で確かめる注記と, Exercise AGENT-1 の手順 1 に Luna の確認を加えた. 既定のモデル名は実機で未確認のため「なっていることがある」と書いた (next_action (1) の実機確認で確かめる). 他の導入資料 (setup, git, python1-5, fp1) にはモデル選択の手順が無く, 対象は agent.md のみ.
 - 2026-10-08: assistant からの依頼で, ハーネスエンジニアリング節の末尾に「エージェントは自分で改良して使いこなす」の note を追加し, 教員の記事 (全体像の記事と記事の一覧) を一例として案内した (commit 9ecd440, 公開 e2c4a18). 更新記事の公開後のリンク追加は台帳へ.
 - 2026-10-05: 2026-10-02 の改稿を記録. 手順を 7 つに絞り Exercise AGENT-1 を「1 周の手順」に置換, 詳細を note へ移動, 差分確認とコミットを codex へ頼む形に変更, モデル節 (Astra / Sol / Luna, /model) と無料アカウントの案内を追加, 末尾に関連講義へのリンクを追加. 学生に Muse Code を勧めるかは未裁定 (Todoist 6hfX6vj2Rqp9PHJX). git.md への波及は plan git-md-revision-after-agent (2026-10-05 に git.md へ反映済み, plan/landed/2026-10-05-git-md-revision-after-agent.md).
 
