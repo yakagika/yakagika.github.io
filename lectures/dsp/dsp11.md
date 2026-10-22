@@ -17,12 +17,6 @@ nextChapter: dsp12.html
 
 第 11 回から第 13 回では, これまでに学んだ手法を使ってデータを分析し, データと分析内容を発表します. 本章は, その進め方と採点の考え方をまとめた要綱です.
 
-::: warn
-
-自然言語処理の課題の作業手順は作成中です. 準備ができしだい, [題材](#題材)の節に追加します.
-
-:::
-
 ## 3 回の流れ
 
 | 回 | 内容 |
@@ -39,7 +33,7 @@ nextChapter: dsp12.html
 
 - クラスタリング ([第7章](dsp7.html)): [図書館の利用者を分ける](#capstone-cluster)
 - 画像認識 ([第9章](dsp9.html)): [花の写真の種類を当てる](#capstone-image)
-- 自然言語処理 ([第10章](dsp10.html))
+- 自然言語処理 ([第10章](dsp10.html)): [ニュース記事のカテゴリを当てる](#capstone-nlp)
 
 各題材では, 該当する章の事例からデータや条件を少し変えた課題を用意します. 作業手順が示してあるので, 手順に沿って分析を進めます. 基本的な処理は指示だけが書いてあり, 具体的な分析は, 資料のどの節のコードを参照し, どこを変えるかのヒントが書いてあります. また, 分析の判断 (パラメータや手法の選択とその理由, 結果の解釈) を書く箇所があります.
 
@@ -478,5 +472,284 @@ tulips       0          0      1           1       8
 - **判断 1**: tulips を roses や sunflowers と, dandelion を daisy や sunflowers と取り違えています. sunflowers は 10 枚すべて正解でした. tulips と roses は花びらが重なった丸い形が似ていて, dandelion と daisy は小さな花が黄色や白の中心を持つ点が似ているためと推測します.
 - **判断 2**: 各 50 枚で 6 エポックを採用します. 6 エポックでは訓練データの正解率が 1.0 に達していますが, テストデータの損失は 3 エポック目の 0.46 から 6 エポック目の 0.28 へまだ下がり続けていて, 過学習の兆候は見えません. 3 エポックから 6 エポックへの正解率の差は 0.02 で, 所要時間は 2 倍 (114 秒から 227 秒) です. 各 100 枚 3 エポックは正解率 0.91 で最も高く, 時間は 143 秒ですが, 画像を増やすと準備の手間も増えるので, 時間の制約が厳しければこちらを採ります.
 - **判断 3**: (1) テストデータが 1 種類 10 枚 (計 50 枚) だけなので, 1 枚の違いで正解率が 0.02 動き, 条件間の差 (0.88, 0.90, 0.91) は偶然の範囲かもしれません. (2) 5 種類の花だけを, 撮影条件の違う写真から選んでいて, アプリで実際に撮られる写真 (ピンぼけ, 複数の花など) には一般化できません. 乱数シードを変えると結果が多少変わることも, 限界として挙げられます.
+
+</details>
+
+# 題材 3: ニュース記事のカテゴリを当てる (自然言語処理) {#capstone-nlp}
+
+[第10章](dsp10.html)の有価証券報告書の文のネガポジ分類を, ニュース記事のカテゴリの分類に替えて, BERT のファインチューニングを行います. コードは第10章の[マルチラベル分類](dsp10.html#マルチラベル分類)のものをほぼそのまま使います. 各手順の指示に従ってコードを書き, 「判断」と書かれた箇所には自分の考えを文章で書きます. 判断は発表資料の各項目に使うので, 書いたものは発表資料の下書きとして残してください. 質疑応答では, 判断の理由を尋ねます.
+
+## 場面とデータ
+
+ニュースサイトで, 記事を見出しと書き出しからカテゴリに自動で振り分けることを考えます. 少ない学習でどこまで振り分けられるかを調べ, 学習の規模 (エポック数, 1 記事から読み込む長さ, 学習に使う記事の数) を決めます.
+
+データは, 株式会社ロンウイットが公開している livedoor ニュースコーパスです. ニュースサイトの livedoor ニュースの 9 つのカテゴリ (配信元のサイト) の記事, 約 7400 件が入っています. 次の URL からダウンロードします (約 9 MB).
+
+~~~ sh
+https://www.rondhuit.com/download/ldcc-20140209.tar.gz
+~~~
+
+ダウンロードしたファイルを, プログラムを置くディレクトリに移して展開します. macOS ではファイルをダブルクリックします. Windows ではターミナルでそのディレクトリに移動し, `tar -xzf ldcc-20140209.tar.gz` を実行します. 展開すると `text` フォルダができ, その中にカテゴリごとのフォルダがあります. 1 つの記事が 1 つのテキストファイルで, 1 行目が記事の URL, 2 行目が日付, 3 行目が見出し, 4 行目以降が本文です. カテゴリごとのフォルダには, 記事のファイルのほかに `LICENSE.txt` が 1 つ入っています.
+
+記事は, クリエイティブ・コモンズの「表示 - 改変禁止」(CC BY-ND 2.1) のライセンスで公開されています. 発表資料に記事の見出しや本文を載せるときは, 文章を書き換えずに載せ, `LICENSE.txt` に書かれている提供元 (各カテゴリのサイト名) を表示してください.
+
+ライブラリは第10章のものに, 混同行列を描くための `scikit-learn`, `matplotlib`, `matplotlib-fontja` を加えます.
+
+~~~ sh
+uv add torch transformers fugashi unidic-lite pandas scikit-learn matplotlib matplotlib-fontja
+~~~
+
+::: warn
+
+学習の時間は, 学習の規模で大きく変わります. Apple M5 Max の PC では, 第10章と同じ規模 (手順 5 の表の「小」) が GPU (MPS) で約 10 秒, CPU だけで約 1 分, 手順 5 の「中」が GPU で約 40 秒, CPU だけで約 4 分半でした. 「大」は GPU でも約 3 分かかり, CPU だけでは中の 4 倍以上かかる見込みです. 一般的な PC の CPU では, これより長くかかります. GPU を使えない PC で時間がかかりすぎるときは, 共通資料の[Google Colaboratory による GPU 計算](colab.html)の手順で, Colab の GPU を使ってください.
+
+:::
+
+## 第10章の事例との違い
+
+- 有価証券報告書の文に付いたネガポジの評価 (3 つのラベル) が, ニュース記事のカテゴリ (自分で選んだ 4 つか 5 つ) に替わります.
+- 1 つの記事に付くカテゴリは 1 つです. 第10章のコードをそのまま使うために, ラベルは選んだカテゴリごとの 0/1 の列にし, 記事ごとに 1 つの列だけを 1 にします.
+- 学習の規模を決める 3 つの値 (`EPOCHS`, `MAX_LENGTH`, `N_TRAIN`) を, 結果を比べて自分で決めます. 取り違えの多いカテゴリの組をどう扱うかも判断します.
+
+## 作業手順
+
+### 手順 1: データの取得と確認
+
+データをダウンロードして展開し, カテゴリの数, 各カテゴリの記事の数, 本文の長さなど, データの基礎的な情報を集計してください. 各カテゴリの記事のファイルをいくつか開き, 見出しと本文がどのように書かれているかを確かめてください.
+
+### 手順 2: カテゴリの選択と CSV の作成
+
+カテゴリを 4 つか 5 つ選び, 記事ごとに, 見出しと本文をつないだ文章 (`text` の列) と, 選んだカテゴリの 0/1 の列を持つ表を作って, `data/news.csv` に保存してください.
+
+- 参照: [第10章](dsp10.html)の[マルチラベル分類](dsp10.html#マルチラベル分類)で読み込む `chABSA.csv` の形 (`text` の列と, 3 つのラベルの 0/1 の列).
+- ヒント: 3 つのラベルの列を, 選んだカテゴリの列に替えます. 記事のカテゴリは, 記事のファイルが入っているフォルダの名前で分かります. カテゴリの名前の列から 0/1 の列を作るには, `pd.get_dummies` が使えます.
+
+**判断 1**: どのカテゴリを選んだか, その理由を書いてください. 選ぶカテゴリによって, 分類の難しさが変わります. (発表資料の「使用したデータ」に使います.)
+
+### 手順 3: 学習
+
+第10章と同じ規模 (`EPOCHS = 2`, `MAX_LENGTH = 64`, `N_TRAIN = 640`) で BERT をファインチューニングし, テストデータの正解率を求めてください. `MAX_LENGTH` が 64 のとき, モデルが読み込むのは記事の見出しと本文の書き出しまでです.
+
+- 参照: [第10章](dsp10.html)の[マルチラベル分類](dsp10.html#マルチラベル分類)の, 学習の設定からテストデータの正解率までのコード.
+- ヒント: 読み込むファイルを `data/news.csv` に, ラベルの列名の一覧 `['negative', 'neutral', 'positive']` を手順 2 で選んだカテゴリの列名の一覧に, `num_labels=3` を選んだカテゴリの数に替えます.
+
+### 手順 4: 混同行列と取り違えの読み取り
+
+テストデータについて混同行列を作り, 取り違えの多いカテゴリの組を探してください.
+
+- 参照: [第9章](dsp9.html)の[混同行列と誤認識した画像](dsp9.html#digits-errors)のコード.
+- ヒント: 1 つの記事のカテゴリは 1 つなので, 予測にはスコアが最大のカテゴリ (`argmax(dim=1)`) を使い, 正解には 0/1 の列で 1 になっているカテゴリ (`argmax(axis=1)`) を使います. テストデータをモデルに入力する部分は, 第10章の `evaluate` 関数と同じ書き方で書けます.
+
+手順 3 の正解率は, カテゴリごとの 0/1 の判定が, 1 つの記事のすべてのカテゴリで正解と一致した割合です. 0/1 の判定では, 1 が 2 つ付いた記事や, 1 が 1 つも付かなかった記事は誤りに数えます. 混同行列はスコアが最大のカテゴリを予測とするので, 混同行列から求めた正解率は, 手順 3 の正解率より高くなることがあります. 発表資料では, どちらの正解率かを明記してください.
+
+**判断 2**: 取り違えの多いカテゴリの組を挙げ, 取り違えた理由を, 記事の見出しや本文を読んで推測してください. そのうえで, その組をそのまま受け入れるか, 分類を変える (カテゴリを統合する, 一方を外すなど) かを決め, 理由を書いてください. (発表資料の「結果の解釈」に使います.)
+
+### 手順 5: 学習の規模を変えて比べる
+
+学習の規模を変えて, 正解率, 混同行列, 学習の時間を手順 3 の結果と比べてください. 次の表の 3 つが目安です. 「小」は手順 3 と同じです.
+
+| 規模 | `EPOCHS` | `MAX_LENGTH` | `N_TRAIN` |
+|---|---:|---:|---:|
+| 小 | 2 | 64 | 640 |
+| 中 | 4 | 64 | 1500 |
+| 大 | 5 | 128 | 学習用の全件 |
+
+- ヒント: 3 つの値は, プログラムの冒頭で変えます. `N_TRAIN` に学習用の記事の数より大きな値を入れると, 学習用の記事をすべて使います. エポックごとに出力される検証用データの損失 (`val_loss`) も記録します.
+
+**判断 3**: 採用する学習の規模を決め, 根拠を書いてください. 根拠には, 正解率, 検証用データの損失の推移, 学習にかかった時間を使います. (発表資料の「使った手法」に使います.)
+
+### 手順 6: 結果の確かめ
+
+手順 5 で採用した規模で, 乱数シードを変えて 2 回以上学習し直し, 正解率と混同行列を比べてください.
+
+- 参照: [第10章](dsp10.html)の[マルチラベル分類](dsp10.html#マルチラベル分類)のコードの `torch.manual_seed(0)`.
+- ヒント: `torch.manual_seed` の値だけを変えます. このシードは, BERT の出力をカテゴリのスコアに変える線形変換の初期値など, 学習に使う乱数を決めています. `random.seed(0)` の値を変えると, 学習用, 検証用, テスト用への分け方が変わり, テストデータそのものが替わります.
+
+**判断 4**: この分析の限界を 2 つ書いてください. (発表資料の「結果の限界」に使います.)
+
+## 発表資料との対応
+
+| 発表資料の項目 | 使うもの |
+|---|---|
+| 目的 | 場面の説明 (ニュースサイトで, 少ない学習でどこまで記事をカテゴリに振り分けられるかを調べる) |
+| 使用したデータ | 手順 1, 2 と判断 1 (提供元の表示を含む) |
+| 使った手法 | 手順 3, 5 と判断 3 |
+| 結果の提示 | 手順 3, 5 の正解率と学習の時間, 手順 4 の混同行列 |
+| 結果の解釈 | 判断 2 |
+| 結果の限界 | 手順 6 と判断 4 |
+| AI の利用方法の工夫 | 作業中の AI の使い方の記録 |
+
+<details class="protected" data-pass="yakagika">
+    <summary> 回答例 </summary>
+
+手順 1 と手順 2 のコードの例です. 展開した `text` フォルダを, プログラムと同じディレクトリに置いています.
+
+~~~ py
+import pathlib
+
+import pandas as pd
+
+# 手順 1: カテゴリの数と記事の数
+text_dir = pathlib.Path('text')
+all_categories = sorted(p.name for p in text_dir.iterdir() if p.is_dir())
+rows = []
+for c in all_categories:
+    for f in sorted((text_dir / c).glob(f'{c}-*.txt')):
+        lines = f.read_text(encoding='utf-8').splitlines()
+        # 1 行目は URL, 2 行目は日付, 3 行目は見出し, 4 行目以降は本文
+        rows.append({'category': c, 'title': lines[2], 'body': ' '.join(lines[3:])})
+articles = pd.DataFrame(rows)
+print(len(all_categories), len(articles))
+print(articles['category'].value_counts().sort_index())
+print(articles.groupby('category')['body'].apply(lambda s: s.str.len().median()))
+
+# 手順 2: 使うカテゴリを選び, text と 0/1 の列を持つ CSV を作る
+categories = ['dokujo-tsushin', 'it-life-hack', 'smax', 'sports-watch', 'movie-enter']
+news = articles[articles['category'].isin(categories)].reset_index(drop=True)
+news['text'] = news['title'] + ' ' + news['body']
+onehot = pd.get_dummies(news['category']).astype(int)[categories]
+out = pd.concat([news['text'], onehot], axis=1)
+pathlib.Path('data').mkdir(exist_ok=True)
+out.to_csv('data/news.csv', index=False, encoding='utf-8')
+print(out.shape)
+print(out[categories].sum())
+~~~
+
+~~~ sh
+9 7367
+category
+dokujo-tsushin    870
+it-life-hack      870
+kaden-channel     864
+livedoor-homme    511
+movie-enter       870
+peachy            842
+smax              870
+sports-watch      900
+topic-news        770
+Name: count, dtype: int64
+category
+dokujo-tsushin    1531.5
+it-life-hack      1167.0
+kaden-channel      700.5
+livedoor-homme    1380.0
+movie-enter       1237.0
+peachy            1170.5
+smax              1427.0
+sports-watch       614.0
+topic-news         673.5
+Name: body, dtype: float64
+(4380, 6)
+dokujo-tsushin    870
+it-life-hack      870
+smax              870
+sports-watch      900
+movie-enter       870
+dtype: int64
+~~~
+
+本文の長さ (文字数) の中央値は, カテゴリによって 600 字から 1500 字です. `MAX_LENGTH` が 64 のとき, モデルが読み込むのは見出しを含めて先頭の 100 字前後で, 128 のときは 200 字前後です.
+
+手順 3 は, 第10章のコードを次の 3 か所だけ替えて実行します.
+
+~~~ py
+model = BertForMultiLabel(MODEL_NAME, num_labels=5).to(device)  # 3 を 5 に替える
+
+# データの読み込み. ラベルは手順 2 で選んだ 5 つのカテゴリ
+df = pd.read_csv('data/news.csv')
+texts = df['text'].tolist()
+categories = ['dokujo-tsushin', 'it-life-hack', 'smax', 'sports-watch', 'movie-enter']
+labels = df[categories].values.astype(np.float32)
+~~~
+
+~~~ sh
+Using device: mps
+学習: 640 文, 検証: 876 文, テスト: 876 文
+Epoch 1/2 val_loss: 0.303 val_accuracy: 0.568
+Epoch 2/2 val_loss: 0.135 val_accuracy: 0.846
+学習時間: 11 秒
+Accuracy: 0.82
+~~~
+
+手順 4 の混同行列のコードです. 手順 3 のコードの後に続けて実行します.
+
+~~~ py
+import matplotlib.pyplot as plt
+import matplotlib_fontja
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+
+model.eval()
+pred = []
+with torch.no_grad():
+    for i in range(0, len(test_index), 128):
+        encoding, y = make_batch(test_index[i : i + 128])
+        pred += model(**encoding).argmax(dim=1).cpu().tolist()  # スコアが最大のカテゴリ
+true = labels[test_index].argmax(axis=1)  # 1 が立っているカテゴリ
+cm = confusion_matrix(true, pred)
+print(pd.DataFrame(cm, index=categories, columns=categories))
+print(f'argmax の正解率: {(np.array(pred) == true).mean():.3f}')
+
+ConfusionMatrixDisplay(cm, display_labels=categories).plot(cmap='Blues', colorbar=False)
+plt.xlabel('予測')
+plt.ylabel('正解')
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+plt.close()
+~~~
+
+小の規模の結果です. 行が正解のカテゴリ, 列が予測したカテゴリです.
+
+~~~ sh
+                dokujo-tsushin  it-life-hack  smax  sports-watch  movie-enter
+dokujo-tsushin             156            14     1             2           20
+it-life-hack                 4           137    38             1            1
+smax                         0            27   135             0            0
+sports-watch                 0             0     0           168            1
+movie-enter                  1             2     0             1          167
+argmax の正解率: 0.871
+~~~
+
+手順 5 の結果です. Apple M5 Max の GPU (MPS) で実行しました. 学習の時間は, 同じ設定でも実行のたびに数割変わります. 同じ PC の CPU だけで実行すると, 学習の時間は小が 62 秒, 中が 274 秒で, 正解率 (argmax) は小が 0.872, 中が 0.951 と, GPU の結果から少し変わりました.
+
+| 規模 | 検証用データの損失 (エポックごと) | 正解率 (すべて一致) | 正解率 (argmax) | 学習の時間 |
+|---|---|---:|---:|---:|
+| 小 | 0.303, 0.135 | 0.82 | 0.871 | 11 秒 |
+| 中 | 0.105, 0.068, 0.060, 0.058 | 0.96 | 0.973 | 38 秒 |
+| 大 (学習用の 2628 件) | 0.093, 0.046, 0.042, 0.043, 0.049 | 0.97 | 0.970 | 173 秒 |
+
+中と大の混同行列です.
+
+~~~ sh
+中
+                dokujo-tsushin  it-life-hack  smax  sports-watch  movie-enter
+dokujo-tsushin             179             6     1             2            5
+it-life-hack                 3           177     1             0            0
+smax                         0             5   157             0            0
+sports-watch                 0             0     0           169            0
+movie-enter                  0             0     0             1          170
+大
+                dokujo-tsushin  it-life-hack  smax  sports-watch  movie-enter
+dokujo-tsushin             185             3     1             1            3
+it-life-hack                 1           165    14             0            1
+smax                         0             0   162             0            0
+sports-watch                 0             0     0           169            0
+movie-enter                  0             0     1             1          169
+~~~
+
+手順 6 で, 中の規模のまま `torch.manual_seed` の値を 0, 1, 2 と変えた結果です.
+
+| シード | 正解率 (すべて一致) | 正解率 (argmax) | it-life-hack と smax の取り違え | dokujo-tsushin を it-life-hack と予測 |
+|---:|---:|---:|---:|---:|
+| 0 | 0.96 | 0.973 | 6 件 | 6 件 |
+| 1 | 0.96 | 0.966 | 5 件 | 9 件 |
+| 2 | 0.96 | 0.960 | 6 件 | 9 件 |
+
+判断の回答例を示します. 次の内容と同じである必要はなく, 根拠を説明できれば別の判断でもかまいません.
+
+- **判断 1**: dokujo-tsushin (独女通信, 働く女性向けの話題), it-life-hack (IT ライフハック, パソコンやネットサービス), smax (エスマックス, スマートフォンやアプリ), sports-watch (スポーツ), movie-enter (映画) の 5 つを選びました. 記事の数が 870 件から 900 件でそろっています. 内容の近い it-life-hack と smax をあえて両方入れ, 近いカテゴリをどこまで区別できるかを確かめることにしました.
+- **判断 2**: 小の規模では, it-life-hack と smax の取り違えが最も多く (it-life-hack を smax と予測したものが 38 件, 逆が 27 件), 次に dokujo-tsushin を movie-enter と予測したもの (20 件) が多いです. it-life-hack と smax は, どちらも iPhone や Android のアプリ, 新しい機種を扱う記事が多いためと推測します. dokujo-tsushin には映画を紹介する連載 (見出しに【オトナ女子映画部】と付く記事が 56 件) があり, 内容は映画の記事です. 2 つの組とも, 分類は変えずに受け入れます. 中の規模では it-life-hack と smax の取り違えが合わせて 6 件, dokujo-tsushin を movie-enter と予測したものが 5 件に減り, 学習を増やせば区別できるからです. it-life-hack と smax を統合すると, パソコン全般の記事とスマートフォンの記事を分けたいという目的に合わなくなります.
+- **判断 3**: 中の規模を採用します. 中と大の正解率 (argmax) は 0.973 と 0.970 でほぼ同じで, シードを変えたときの幅 (0.960 から 0.973) に収まります. 大は検証用データの損失が 3 エポック目の 0.042 から 5 エポック目の 0.049 へ上がっていて, 過学習の兆候があります. 学習の時間は大が中の約 4.5 倍 (38 秒と 173 秒) です. 小は時間が短いものの, 正解率が 0.871 で, it-life-hack と smax の取り違えが合わせて 65 件あります.
+- **判断 4**: (1) 記事に, カテゴリを表す決まった語句が含まれています. sports-watch の見出しの 900 件中 487 件に【Sports Watch】が付いていて, 見出しは文章の先頭にあるので, モデルは必ずこの語句を読みます. smax の記事は 870 件中 862 件が, 本文の末尾の関連リンクにエスマックスの名前を含みます. `MAX_LENGTH` を大きくして本文の末尾まで読ませると, この名前も判定の手がかりになります. モデルが内容でなくこれらの語句で判定している可能性があり, 語句の無い他のサイトの記事に同じ正解率が出るとは限りません. (2) 記事は 2012 年 9 月ごろまでの 1 つのニュースサイトのもので, 機種名などの話題が今の記事と違います. テストデータは 1 つの分け方の 876 件だけで, シードを変えるだけで正解率 (argmax) が 0.013 動くので, 0.01 程度の差で規模の優劣は決められないことも限界です.
 
 </details>
