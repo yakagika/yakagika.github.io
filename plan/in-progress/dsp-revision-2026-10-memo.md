@@ -81,7 +81,7 @@ source_handoff: assistant-2026-10-26T16-20-03-239461-データサイエンス実
 - **Jev** (TypeSafe AI 公式文書 https://docs.typesafe.ai/concepts/system-one): "System One models are a class of AI models built to make fast, structured decisions that software can use directly." / "Jev is TypeSafe's flagship model and the first System One model." / "System One models do not write replies, produce code, or generate explanations of their reasoning." / "It returns typed decisions and probabilities rather than generated text." / "Calibration is measured across groups of predictions; it does not guarantee that an individual answer is correct." / 使い方: "Combine the answers with deterministic checks in code, then route the case for action or review." / 入力は文章のみ. 公式文書には出力の再現性 (同じ入力に同じ確率値) の記述は無い.
 - 第三者の記述 (公式でない. 本文では使わないか, 出典を付けて控えめに): 2026-09-15 に早期提供, 入力 100 万トークンあたり約 0.042 ドル (出力は無料), 「LLM より 193 倍速く 445 倍安い」(Tom's Hardware の見出し. 比較の対象は未確認).
 - 本人は Jev を「LLM」と呼ぶが, 公式は文章を生成しない決定モデルとしている. 本文では「LLM とは別の種類のモデル」として紹介し, 「決まった選択肢から選ぶ」形が決定性と低コストにつながる戦略だと書く.
-- **LLM の決定性**: 温度 0 でも同じ出力が返らないことがある. 原因の説明として Thinking Machines Lab の "Defeating Nondeterminism in LLM Inference" (2025-09) がある (書く前に本文を確かめる).
+- **LLM の決定性**: 温度 0 でも同じ出力が返らないことがある. 出典は Horace He ほか (Thinking Machines Lab), "Defeating Nondeterminism in LLM Inference", 2025-09-10 (本文を確認済み). 原文: "even when we adjust the temperature down to 0" ... "LLM APIs are still not deterministic in practice." 主な原因は, サーバの負荷によって一緒に処理する要求の数 (バッチの大きさ) が変わり, それによって計算の結果が変わること (batch invariance の欠如) で, よく言われる「並列計算と浮動小数点の誤差」だけでは説明できないとしている.
 
 ## リスク
 
