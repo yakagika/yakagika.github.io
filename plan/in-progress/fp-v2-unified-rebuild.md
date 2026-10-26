@@ -2,10 +2,10 @@
 plan_id: fp-v2-unified-rebuild
 status: in-progress
 created: 2026-07-10
-updated: 2026-10-12
+updated: 2026-10-26
 priority: high
-next_actor: user
-next_action: "Phase B1 (fp7 を Ch5 集合 / Ch6 関係に分け, 現 fp5 を関係から組み直す. fp7-10-readability-restructure も同じパスで行う) の着手時期を決める. 開講は 2027-04"
+next_actor: agent
+next_action: "dsp の総合実習 (AI フル利用の試走と配点の相談) が片付いたら Phase B1 (fp7 を Ch5 集合 / Ch6 関係に分け, 現 fp5 を関係から組み直す. fp7-10-readability-restructure も同じパスで行う) に着手する. 開講は 2027-04"
 ---
 
 # fp 講義 v2 — 統一視座 (組+法則) に基づく全面再構築
@@ -432,3 +432,4 @@ fp10 は Phase A1' 完了時点の語彙のままで, 本日確定した原則 1
 - 2026-10-12: fp1「Haskellの特徴」の比較表のうち未説明だった実行方式と評価戦略を一言ずつ説明 (前者は「既に述べた」と誤って書いていた). 実行速度に関わる話題は本文で扱わず, 「補足資料の候補」節を新設して候補を積む運用にした (本人指示).
 - 2026-10-12: fp1「ウサギの問題で確かめたこと」の後にコラム「統計の作成手順と代数的仕様記述」を追加 (本人指示). 素材の調査 = spec-styles-econ-cs (代数的仕様の本文なし, 不採用) / data-transparency (産業連関表作成手順の副業分割: 3 条件 8 通りのうち処理の記載は 2 通り. 出典は公開の手順書と 2024 年の経済統計学会報告に限り, 査読中の論文の文面は使わない) / 内閣府向けの構想資料 (論点のみ借用, 出典に挙げない. 本人裁定). Haskell は 2 条件の型と書き漏れのある関数を読む例として示し, GHC 9.6.6 の -Wincomplete-patterns の警告を実測して掲載. Peyton Jones の発言 (Seibel 2009, pp.262-264, data-transparency で原文確認済み) で型 = 検査できる構造記述につなぎ, シグネチャ / 公理の説明は fp12 へ送る. spec `Fp1/SplitMethodSpec` (732 examples green).
 - 2026-10-12: Phase B0 を完了扱いにし (本人「一旦これで良い」, publish 済み b6b79ed), next_action を Phase B1 の着手時期の判断 (user) へ更新.
+- 2026-10-26: next_action を 200 字以内に縮め (lint 警告. handoff 2026-10-15 / 2026-10-19), 草稿の事例の使い道は「草稿の扱い」の項に任せた. 前版の next_action にあった「2026-09-08 に再登録した Todoist の着手判断タスクは 2026-10-12 時点で見当たらない」はここへ移す. 本人裁定 (2026-10-26): Phase B1 の着手は dsp の総合実習 (AI フル利用の試走と配点の相談) が片付いてから. next_actor を agent に戻した.
