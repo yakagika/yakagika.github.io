@@ -68,8 +68,8 @@ next_action: "総合実習 (Ch11) の 3 題材が 2026-10-22 に揃ったので,
 | 169 | 3-7. 予測・判断 | OPT | ランダムフォレスト | Ch6 | 発展 | 自習 | `dsp6.html#ランダムフォレスト` | 本文のみ (発展) | 執筆済 (2026-09-26) |
 | 170 | 3-7. 予測・判断 | OPT | サポートベクターマシン (SVM) | Ch6 | 発展 | 自習 | `dsp6.html#サポートベクターマシン` | 本文のみ (発展) | 執筆済 (2026-09-26) |
 | 173 | 3-8. 言語・知識 | KW | 自然言語処理の活用事例 | Ch9 | 必修 | 第9回 | `dsp9.html#nlp-applications` | 本文のみ (第9回) | 新規 |
-| 174 | 3-8. 言語・知識 | KW | 形態素解析, 単語分割, 係り受け解析 | Ch9 | 必修 | 第9回 | `dsp9.html#トークン化と形態素解析`, `dsp9.html#dependency-parsing` | Exercise DSP9-1 | 形態素・単語分割=既存 / 係り受け=新規 |
-| 175 | 3-8. 言語・知識 | KW | ユーザ定義辞書 | Ch9 | 必修 | 第9回 | `dsp9.html#user-dictionary` | Exercise DSP9-2 | 新規 |
+| 174 | 3-8. 言語・知識 | KW | 形態素解析, 単語分割, 係り受け解析 | Ch9 | 必修 | 第9回 | `dsp9.html#トークン化と形態素解析`, `dsp9.html#dependency-parsing` | Exercise DSP9-2 | 形態素・単語分割=既存 / 係り受け=新規 |
+| 175 | 3-8. 言語・知識 | KW | ユーザ定義辞書 | Ch9 | 必修 | 第9回 | `dsp9.html#user-dictionary` | Exercise DSP9-1 | 新規 |
 | 176 | 3-8. 言語・知識 | KW | かな漢字変換 | Ch9 | 必修 | 第9回 | `dsp9.html#kana-kanji-conversion` | 本文のみ (第9回. 概念のみ) | 新規 (概念のみ) |
 | 177 | 3-8. 言語・知識 | OPT | n-gram, 文章間類似度 | Ch9 | 発展 | 自習 | `dsp9.html#ngram-similarity` | 課題 (発展) | 新規 |
 | 178 | 3-8. 言語・知識 | OPT | 機械翻訳, 文章生成 | Ch9 | 発展 | 自習 | `dsp9.html#translation-generation`, `dsp9.html#pretraining-and-generation` | 課題 (発展) | 新規 |
