@@ -82,9 +82,9 @@ Python の環境構築と基礎は, 共通資料の[プログラミング基礎]
 
 [第8章 ニューラルネットワークと Transformer](dsp8.html)
 
-[第9章 画像認識](dsp9.html)
+[第9章 自然言語処理](dsp9.html)
 
-[第10章 自然言語処理](dsp10.html)
+[第10章 画像認識](dsp10.html)
 
 [第11章 総合実習](dsp11.html)
 
@@ -107,8 +107,8 @@ Python の環境構築と基礎は, 共通資料の[プログラミング基礎]
 | [第5章](dsp5.html) | [回帰分析は何を行っているのか](dsp5.html#発展-回帰分析は何を行っているのか), [説明変数の組み合わせをテスト MSE で比べる](dsp5.html#variable-selection-test-mse) |
 | [第6章](dsp6.html) | [ランダムフォレスト](dsp6.html#ランダムフォレスト), [サポートベクターマシン](dsp6.html#サポートベクターマシン) |
 | [第7章](dsp7.html) | [密度と確率モデルに基づくクラスタリング (DBSCAN, 混合ガウスモデル)](dsp7.html#密度と確率モデルに基づくクラスタリング) |
-| [第9章](dsp9.html) | [Vision Transformer](dsp9.html#vision-transformer), [学習した特徴量の次元圧縮 (PCA と t-SNE)](dsp9.html#feature-embedding), [特徴マップ](dsp9.html#feature-maps), [Grad-CAM と Guided Backpropagation](dsp9.html#grad-cam), [年齢識別のコード全体](dsp9.html#age-full-code) |
-| [第10章](dsp10.html) | [機械翻訳と文章生成](dsp10.html#translation-generation), [生成 AI の仕組み: 事前学習と生成](dsp10.html#pretraining-and-generation), [トピックモデル](dsp10.html#トピックモデル), [n-gram と文章間類似度](dsp10.html#ngram-similarity), [CLIP](dsp10.html#clip) |
+| [第9章](dsp9.html) | [機械翻訳と文章生成](dsp9.html#translation-generation), [生成 AI の仕組み: 事前学習と生成](dsp9.html#pretraining-and-generation), [トピックモデル](dsp9.html#トピックモデル), [n-gram と文章間類似度](dsp9.html#ngram-similarity), [CLIP](dsp9.html#clip) |
+| [第10章](dsp10.html) | [Vision Transformer](dsp10.html#vision-transformer), [学習した特徴量の次元圧縮 (PCA と t-SNE)](dsp10.html#feature-embedding), [特徴マップ](dsp10.html#feature-maps), [Grad-CAM と Guided Backpropagation](dsp10.html#grad-cam), [年齢識別のコード全体](dsp10.html#age-full-code) |
 
 
 ## 授業準備・環境構築

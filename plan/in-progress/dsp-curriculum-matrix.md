@@ -53,12 +53,12 @@ next_action: "総合実習 (Ch11) の 3 題材が 2026-10-22 に揃ったので,
 | 122 | 3-10. AIの構築・運用 ☆ | KW | AIの学習と推論, 評価, 再学習 | Ch8 | 必修 | 第8回 | `dsp8.html#ai-の学習と推論-評価-再学習`, `#モデルの評価`, `#運用中の監視と再学習` | Exercise DSP8-4 (学習と推論の区別, 過学習, 混同行列, 再学習の流れ) | 執筆済 (2026-09-26) |
 | 123 | 3-10. AIの構築・運用 ☆ | KW | AIの開発環境と実行環境 | common/agent | 必修 | 第1〜2回 | `agent.html#ai-の開発環境と実行環境` | 本文のみ (開発環境の構築と実行は Exercise AGENT-1 の手順で行う. 学習と推論, 実行場所の区別を問う演習は設けていない) | 執筆済 |
 | 151 | 3-5. 生成AIの基礎と展望 ☆ | OPT | Transformer, 注意機構, 自己教師あり学習 | Ch8 | 必修 | 第8回 | `dsp8.html#transformer-と注意機構`, `#自己教師あり学習` | Exercise DSP8-2 (注意機構と Transformer), DSP8-3 (自己教師あり学習) | 執筆済 (2026-09-26) |
-| 152 | 3-5. 生成AIの基礎と展望 ☆ | OPT | Vision Transformer, CLIP | Ch9 (ViT) / Ch10 (CLIP) | 発展 | 自習 | `dsp9.html#vision-transformer`, `dsp10.html#clip` | 課題 (発展) | 執筆済み (2026-09-26 に Ch8 から移動) |
-| 156 | 3-6. 認識 | KW | 認識技術の活用事例 | Ch9 | 必修 | 第9回 | `dsp9.html#recognition-applications` | 本文のみ (第9回) | 新規 |
-| 157 | 3-6. 認識 | KW | パターン認識, 特徴抽出, 識別 | Ch9 | 必修 | 第9回 | `dsp9.html#pattern-recognition`, `dsp9.html#hand-crafted-features` | 本文のみ (第9回) | 新規 |
-| 158 | 3-6. 認識 | KW | 数字認識, 文字認識 | Ch9 | 必修 | 第9回 | `dsp9.html#digit-recognition`, `dsp9.html#character-recognition` | Exercise DSP9-1, DSP9-2 | 新規 (scikit-learn digits) |
-| 159 | 3-6. 認識 | KW | 画像認識, 音声認識 | Ch9 | 必修 | 第9回 | `dsp9.html#cnn`, `dsp9.html#speech-recognition` | 本文のみ (第9回. 音声は概念のみ) | 画像=既存 / 音声=新規 (概念のみ) |
-| 160 | 3-6. 認識 | OPT | 画像分類 | Ch9 | 必修 | 第9回 | `dsp9.html#age-classification` | 本文のみ (第9回) | 既存 (6 クラス分類) |
+| 152 | 3-5. 生成AIの基礎と展望 ☆ | OPT | Vision Transformer, CLIP | Ch10 (ViT) / Ch9 (CLIP) | 発展 | 自習 | `dsp10.html#vision-transformer`, `dsp9.html#clip` | 課題 (発展) | 執筆済み (2026-09-26 に Ch8 から移動) |
+| 156 | 3-6. 認識 | KW | 認識技術の活用事例 | Ch10 | 必修 | 第10回 | `dsp10.html#recognition-applications` | 本文のみ (第10回) | 新規 |
+| 157 | 3-6. 認識 | KW | パターン認識, 特徴抽出, 識別 | Ch10 | 必修 | 第10回 | `dsp10.html#pattern-recognition`, `dsp10.html#hand-crafted-features` | 本文のみ (第10回) | 新規 |
+| 158 | 3-6. 認識 | KW | 数字認識, 文字認識 | Ch10 | 必修 | 第10回 | `dsp10.html#digit-recognition`, `dsp10.html#character-recognition` | Exercise DSP10-1, DSP10-2 | 新規 (scikit-learn digits) |
+| 159 | 3-6. 認識 | KW | 画像認識, 音声認識 | Ch10 | 必修 | 第10回 | `dsp10.html#cnn`, `dsp10.html#speech-recognition` | 本文のみ (第10回. 音声は概念のみ) | 画像=既存 / 音声=新規 (概念のみ) |
+| 160 | 3-6. 認識 | OPT | 画像分類 | Ch10 | 必修 | 第10回 | `dsp10.html#age-classification` | 本文のみ (第10回) | 既存 (6 クラス分類) |
 | 163 | 3-7. 予測・判断 | KW | 予測技術の活用事例 | Ch6 | 必修 | 第6回 | `dsp6.html#予測技術の活用事例と現象のモデル化` | (本文の事例表. 演習なし) | 執筆済 (2026-09-26) |
 | 164 | 3-7. 予測・判断 | KW | 現象のモデル化 | Ch6 | 必修 | 第6回 | `dsp6.html#予測技術の活用事例と現象のモデル化` | Exercise DSP6-3 (説明変数を絞ったモデル) | 執筆済 (2026-09-26) |
 | 165 | 3-7. 予測・判断 | KW | 決定木 (Decision Tree) | Ch6 | 必修 | 第6回 | `dsp6.html#決定木分析` | Exercise DSP6-1 (深さと過学習) | 執筆済 (2026-09-26) |
@@ -67,12 +67,12 @@ next_action: "総合実習 (Ch11) の 3 題材が 2026-10-22 に揃ったので,
 | 168 | 3-7. 予測・判断 | KW | ROC曲線, AUC (Area Under the Curve) | Ch6 | 必修 | 第6回 | `dsp6.html#roc-曲線と-auc` | Exercise DSP6-2, DSP6-3 (AUC の比較) | 執筆済 (2026-09-26) |
 | 169 | 3-7. 予測・判断 | OPT | ランダムフォレスト | Ch6 | 発展 | 自習 | `dsp6.html#ランダムフォレスト` | 本文のみ (発展) | 執筆済 (2026-09-26) |
 | 170 | 3-7. 予測・判断 | OPT | サポートベクターマシン (SVM) | Ch6 | 発展 | 自習 | `dsp6.html#サポートベクターマシン` | 本文のみ (発展) | 執筆済 (2026-09-26) |
-| 173 | 3-8. 言語・知識 | KW | 自然言語処理の活用事例 | Ch10 | 必修 | 第10回 | `dsp10.html#nlp-applications` | 本文のみ (第10回) | 新規 |
-| 174 | 3-8. 言語・知識 | KW | 形態素解析, 単語分割, 係り受け解析 | Ch10 | 必修 | 第10回 | `dsp10.html#トークン化と形態素解析`, `dsp10.html#dependency-parsing` | Exercise DSP10-1 | 形態素・単語分割=既存 / 係り受け=新規 |
-| 175 | 3-8. 言語・知識 | KW | ユーザ定義辞書 | Ch10 | 必修 | 第10回 | `dsp10.html#user-dictionary` | Exercise DSP10-2 | 新規 |
-| 176 | 3-8. 言語・知識 | KW | かな漢字変換 | Ch10 | 必修 | 第10回 | `dsp10.html#kana-kanji-conversion` | 本文のみ (第10回. 概念のみ) | 新規 (概念のみ) |
-| 177 | 3-8. 言語・知識 | OPT | n-gram, 文章間類似度 | Ch10 | 発展 | 自習 | `dsp10.html#ngram-similarity` | 課題 (発展) | 新規 |
-| 178 | 3-8. 言語・知識 | OPT | 機械翻訳, 文章生成 | Ch10 | 発展 | 自習 | `dsp10.html#translation-generation`, `dsp10.html#pretraining-and-generation` | 課題 (発展) | 新規 |
+| 173 | 3-8. 言語・知識 | KW | 自然言語処理の活用事例 | Ch9 | 必修 | 第9回 | `dsp9.html#nlp-applications` | 本文のみ (第9回) | 新規 |
+| 174 | 3-8. 言語・知識 | KW | 形態素解析, 単語分割, 係り受け解析 | Ch9 | 必修 | 第9回 | `dsp9.html#トークン化と形態素解析`, `dsp9.html#dependency-parsing` | Exercise DSP9-1 | 形態素・単語分割=既存 / 係り受け=新規 |
+| 175 | 3-8. 言語・知識 | KW | ユーザ定義辞書 | Ch9 | 必修 | 第9回 | `dsp9.html#user-dictionary` | Exercise DSP9-2 | 新規 |
+| 176 | 3-8. 言語・知識 | KW | かな漢字変換 | Ch9 | 必修 | 第9回 | `dsp9.html#kana-kanji-conversion` | 本文のみ (第9回. 概念のみ) | 新規 (概念のみ) |
+| 177 | 3-8. 言語・知識 | OPT | n-gram, 文章間類似度 | Ch9 | 発展 | 自習 | `dsp9.html#ngram-similarity` | 課題 (発展) | 新規 |
+| 178 | 3-8. 言語・知識 | OPT | 機械翻訳, 文章生成 | Ch9 | 発展 | 自習 | `dsp9.html#translation-generation`, `dsp9.html#pretraining-and-generation` | 課題 (発展) | 新規 |
 
 ## 集計
 
@@ -94,11 +94,12 @@ next_action: "総合実習 (Ch11) の 3 題材が 2026-10-22 に揃ったので,
 | Ch6 | 7 | 第6回, 自習 |
 | Ch7 | 2 | 第7回 |
 | Ch8 | 2 | 第8回 |
-| Ch9 | 5 (+ 原典行 152 の ViT) | 第9回, 自習 |
-| Ch10 | 6 (+ 原典行 152 の CLIP) | 第10回, 自習 |
+| Ch9 | 6 (+ 原典行 152 の CLIP) | 第9回, 自習 |
+| Ch10 | 5 (+ 原典行 152 の ViT) | 第10回, 自習 |
 | common/agent | 1 | 第1〜2回 |
 
 ## 未確定
 
 - 節アンカーと評価証拠は 34 行すべて記入済み (2026-10-26. 未定は 0 行). 残るのは, 総合実習 (Ch11) の 3 題材 (2026-10-22 に揃った) を Ch7, Ch9, Ch10 の項目の評価証拠へ反映することと, 骨子段階で記入したアンカーを本文の見出しの変更に追随させること.
 - 章を動かしたときは本表を必ず追随させること (親計画の CLAUDE.md 節にも明記).
+- 2026-10-26 に Ch9 と Ch10 を入れ替えた (Ch9 が自然言語処理, Ch10 が画像認識). 上の表の章, 回, アンカー, 演習のラベルは入れ替え後の番号. 各回の割付は章の番号に合わせて入れ替えた (第9回が自然言語処理, 第10回が画像認識).
