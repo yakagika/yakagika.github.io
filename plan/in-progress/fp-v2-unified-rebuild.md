@@ -5,7 +5,7 @@ created: 2026-07-10
 updated: 2026-10-12
 priority: high
 next_actor: user
-next_action: "Phase B1 (fp7 を Ch5 集合 / Ch6 関係に分け, 現 fp5 を関係から組み直す. fp7-10-readability-restructure を同じパスで実施) の着手時期を決める. 開講は 2027-04. 着手時は草稿の事例 (archive/fp-v2-drafts/fp1v2.md) を Ch5/Ch6 の演習に使う. 2026-09-08 に再登録した Todoist の着手判断タスクは 2026-10-12 時点で見当たらない"
+next_action: "Phase B1 (fp7 を Ch5 集合 / Ch6 関係に分け, 現 fp5 を関係から組み直す. fp7-10-readability-restructure も同じパスで行う) の着手時期を決める. 開講は 2027-04"
 ---
 
 # fp 講義 v2 — 統一視座 (組+法則) に基づく全面再構築
