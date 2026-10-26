@@ -2,10 +2,10 @@
 plan_id: dsp-course-material
 status: in-progress
 created: 2026-09-04
-updated: 2026-10-22
+updated: 2026-10-26
 priority: high
 next_actor: user
-next_action: "総合実習の配点・採点基準と, 題材 3 の提出 ZIP に記事データを入れてよいかを決める (材料は dsp-capstone-exercises.md). ユーザは open: true の各章を通読して修正点を指示する"
+next_action: "総合実習の配点・採点基準を決める (材料は dsp-capstone-exercises.md の試走の結果). ユーザは open: true の各章を通読して修正点を指示する"
 ---
 
 # データサイエンス実践 (dsp) 講義資料の新設
