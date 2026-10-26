@@ -76,6 +76,13 @@ source_handoff: assistant-2026-10-26T16-20-03-239461-データサイエンス実
 
 段 1 の入れ替えで自然言語処理が第 8 章の直後に来るため, (b) の利点 (使う場所との距離) は小さくなった. 変更の量とリスクは (a) のほうが小さい. (b) を選ぶ場合も, 移した先で (a) の図を入れることになる.
 
+## 段 2 の材料 (2026-10-26 に確認した一次情報)
+
+- **Jev** (TypeSafe AI 公式文書 https://docs.typesafe.ai/concepts/system-one): "System One models are a class of AI models built to make fast, structured decisions that software can use directly." / "Jev is TypeSafe's flagship model and the first System One model." / "System One models do not write replies, produce code, or generate explanations of their reasoning." / "It returns typed decisions and probabilities rather than generated text." / "Calibration is measured across groups of predictions; it does not guarantee that an individual answer is correct." / 使い方: "Combine the answers with deterministic checks in code, then route the case for action or review." / 入力は文章のみ. 公式文書には出力の再現性 (同じ入力に同じ確率値) の記述は無い.
+- 第三者の記述 (公式でない. 本文では使わないか, 出典を付けて控えめに): 2026-09-15 に早期提供, 入力 100 万トークンあたり約 0.042 ドル (出力は無料), 「LLM より 193 倍速く 445 倍安い」(Tom's Hardware の見出し. 比較の対象は未確認).
+- 本人は Jev を「LLM」と呼ぶが, 公式は文章を生成しない決定モデルとしている. 本文では「LLM とは別の種類のモデル」として紹介し, 「決まった選択肢から選ぶ」形が決定性と低コストにつながる戦略だと書く.
+- **LLM の決定性**: 温度 0 でも同じ出力が返らないことがある. 原因の説明として Thinking Machines Lab の "Defeating Nondeterminism in LLM Inference" (2025-09) がある (書く前に本文を確かめる).
+
 ## リスク
 
 - 授業の進行中に章番号を替えると, 学生の提出ファイル名 (`dspN-k.py`) とずれる. 論点 1 で進み具合を確かめる.
