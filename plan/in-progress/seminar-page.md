@@ -4,8 +4,8 @@ status: in-progress
 created: 2026-10-27
 updated: 2026-10-27
 priority: low
-next_actor: agent
-next_action: "branch feat/seminar-page で骨組みを作り build を通す. その後は本人が中身を書き, 書き終えたら main へ取り込む"
+next_actor: user
+next_action: "本人が worktree .claude/worktrees/seminar-page の pages/seminar.markdown の (記入: ...) を書く. 書き終えたら agent が main へ取り込む"
 source_handoff: assistant-2026-10-26T16-20-03-271171-ゼミのページを-blog-に作る-骨組みの下書き
 ---
 
@@ -57,3 +57,7 @@ agent の作業は 15 分程度. 中身の執筆は本人.
 ## 本人の裁定 (2026-10-27)
 
 - 骨組みは branch に置き, 本人が中身を書き終えてから main へ取り込む (仮の文のページを公開しない). 見出しの案はこのまま.
+
+## 変更履歴
+
+- 2026-10-27: branch feat/seminar-page (fc71a57) に骨組みを作り, build が通った (`/seminar.html` が出力され, 全ページのメニューに link が入る). 本人が書く箇所は `pages/seminar.markdown` の「(記入: ...)」の 10 箇所. worktree で build するには main の CLAUDE.md の一時コピーが要る (AGENTS.md が symlink のため). 取り込み前に `docs/` を戻し, コピーを消す.
