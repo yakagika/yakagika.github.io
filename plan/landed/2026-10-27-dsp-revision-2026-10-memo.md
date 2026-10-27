@@ -1,11 +1,11 @@
 ---
 plan_id: dsp-revision-2026-10-memo
-status: in-progress
+status: landed
 created: 2026-10-26
 updated: 2026-10-27
 priority: medium
-next_actor: user
-next_action: "本人が branch feat/dsp-revision-2026-10 の下書きを読み, 散布図を残すか, 第 8 章の図 B の数値をこのままにするかを決める. 確認後に main へ取り込む"
+next_actor: none
+next_action: "なし (2026-10-27 に main へ取り込み済み. push は本人の確認待ち)"
 source_handoff: assistant-2026-10-26T16-20-03-239461-データサイエンス実践の資料の改訂-本人の変更メモ-7-件-の変更案を作る
 ---
 
@@ -13,7 +13,7 @@ source_handoff: assistant-2026-10-26T16-20-03-239461-データサイエンス実
 
 ## メタ情報
 
-- **状態**: in-progress (2026-10-26 に本人承認)
+- **状態**: landed (2026-10-26 に本人承認, 2026-10-27 に main へ取り込み)
 - **作成日**: 2026-10-26
 - **出所**: 本人の Todoist メモ (2026-10-23) を assistant が handoff にしたもの. 原文は handoff の本文にある.
 - **親計画**: [dsp-course-material.md](../in-progress/dsp-course-material.md)
@@ -100,3 +100,5 @@ source_handoff: assistant-2026-10-26T16-20-03-239461-データサイエンス実
 - 2026-10-27: 段 6 (8173fd5, 総合実習の題材を章の順に並べ替え) と段 5 (b0d5ebb, 第 8 章の注意機構) を受領. プレビューの出力でアンカーの欠落 0. 第 8 章の作図スクリプトは main の `_scratch/dsp8-fig/` に保全.
   本人に確かめる点: (1) 散布図 (グループ 1, 2) を残すか. (2) 第 8 章の図 B: 表の数値のままだと「鳴く」の新しいベクトル (0.76, 0.45) は「猫」の方向へは寄らない (元の (1, 0.5) から, 自分自身への重み 0.41 のため元の近くにとどまる). subagent は数値を変えず, 図と読み取りを数値に合わせた. 「猫」へ寄る様子を見せたいなら, ベクトルを作り直し, 表, ヒートマップ, 図 A, 図 B, Exercise DSP8-2 の回答を直す. (3) 式は本文の列ベクトルの規約に合わせて $X W_Q^{\top}$ と書き, θ の式は節末に置いた.
   取り込みの前に: worktree の `docs/` (プレビューの出力) を `git checkout -- docs/ && git clean -fdq docs/` で戻し, build のためにコピーした CLAUDE.md を消す. 取り込み後に main の CLAUDE.md (git 管理外) の dsp の節 (章構成, 章ナビの鎖 dsp1 → dsp16, Ch9 自然言語処理 / Ch10 画像認識) を直す.
+- 2026-10-27: 本人の裁定. 散布図は元の図に戻す (5be0c4c). 第 8 章の数値は作り直す: 猫のベクトルを (2, 0.5) にし, 「鳴く」の注意の重みを 猫 0.56 / が 0.16 / 鳴く 0.28, 新しいベクトルを (1.40, 0.58) にして, 表, 重み付きの和, 図 3 枚 (矢印, ベクトル, ヒートマップ) を同じ数値から作り直した (443a4f9). 演習の回答は数値を使わないので変更なし. 猫を (2, 0) にする案は, が・鳴く・猫の 3 点が一直線に並び三角形が潰れるので採らなかった. 作図は main の `_scratch/dsp8-fig/make_fig.py` (ヒートマップも同じ file に統合).
+- 2026-10-27: 本人の指示 (2 件を直してから取り込む) で main へ ff-merge した (recovery tag `recovery/pre-dsp-revision-2026-10-27`). worktree と branch は削除. main の CLAUDE.md (git 管理外) の dsp の節を新しい章構成と章ナビ (dsp1 → dsp16) に直した. landed へ移した. push は本人の確認待ち.
