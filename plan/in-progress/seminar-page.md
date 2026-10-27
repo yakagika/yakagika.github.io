@@ -5,7 +5,7 @@ created: 2026-10-27
 updated: 2026-10-27
 priority: low
 next_actor: user
-next_action: "本人が下書き (研究便覧から作成) を確かめ, 残りの記入欄 3 箇所 (開講の形, 過去の題目の例, 説明会と応募) を書く. その後 agent が main へ取り込む"
+next_action: "本人がプレビュー (/lectures/seminar.html) を確かめ, 取り込みを指示したら agent が main へ ff-merge し, CLAUDE.md に lectures/seminar/ を追記する"
 source_handoff: assistant-2026-10-26T16-20-03-271171-ゼミのページを-blog-に作る-骨組みの下書き
 ---
 
@@ -62,3 +62,5 @@ agent の作業は 15 分程度. 中身の執筆は本人.
 
 - 2026-10-27: branch feat/seminar-page (fc71a57) に骨組みを作り, build が通った (`/seminar.html` が出力され, 全ページのメニューに link が入る). 本人が書く箇所は `pages/seminar.markdown` の「(記入: ...)」の 9 箇所. worktree で build するには main の CLAUDE.md の一時コピーが要る (AGENTS.md が symlink のため). 取り込み前に `docs/` を戻し, コピーを消す.
 - 2026-10-27: 本人の指示で, 研究便覧 (本人が大学へ出した PDF) を元に下書きを書いた (7420539). 記入欄は 3 箇所に減った. メールアドレスは載せず, 連絡は Contact と同じ方針にした. 研究便覧の誤記 (計算社会科科学, 利用方) は直して移した.
+- 2026-10-27: 本人の指示で残りの記入欄を埋めた (開講の形は未定, 1 年目の募集なので過去の研究は無し, 説明会と応募は大学の告示を見る) (f1b0f0e). 「データサイエンス実践」と「データサイエンスプロジェクト」は別の科目 (本人). 便覧どおりの科目名を残した.
+- 2026-10-27: 本人の指示で置き場所を `lectures/seminar/seminar.md` に変えた (e3ebe3f). URL は `/lectures/seminar.html`. 固定ページの一覧 (`src/Main.hs`) からは外し, 上部のメニューの link を新しい URL に向け, 講義一覧のページに「ゼミ」の項を足した. lectures 配下は basename でフラットに出力されるので, 取り込み後に CLAUDE.md へ `lectures/seminar/` の行を足す.
