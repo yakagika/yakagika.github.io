@@ -4,8 +4,8 @@ status: in-progress
 created: 2026-10-26
 updated: 2026-10-27
 priority: medium
-next_actor: agent
-next_action: "段 2 (第 6 章) と段 3 (第 1 章と新章 3 つ) を受領し, build を通して本人に下書きを見せる. 本人の確認後に main へ取り込む"
+next_actor: user
+next_action: "本人が branch feat/dsp-revision-2026-10 の下書きを読み, 注意機構の案 (a/b), 総合実習の題材の並び, 新節と新章の扱いを決める. 確認後に main へ取り込む"
 source_handoff: assistant-2026-10-26T16-20-03-239461-データサイエンス実践の資料の改訂-本人の変更メモ-7-件-の変更案を作る
 ---
 
@@ -94,3 +94,4 @@ source_handoff: assistant-2026-10-26T16-20-03-239461-データサイエンス実
 - 2026-10-26: handoff から起こした (proposed). 同日に本人が論点 3 つを裁定して承認し, in-progress へ移した.
 - 2026-10-26: 段 1 を受領 (branch feat/dsp-revision-2026-10, 78341eb + 7af1077). 第 9 章が自然言語処理, 第 10 章が画像認識になり, GPU の節を第 9 章へ移した. あわせて, 入れ替え前から本文の節の順と逆だった第 9 章の演習番号 (ユーザ定義辞書が DSP9-1, 係り受けが DSP9-2) と, 過学習の再定義を直した. 総合実習の題材の並び (題材 2 が画像, 題材 3 が自然言語処理で章の順と逆) は本人に確かめる.
 - 2026-10-27: 段 2 と段 3 を並行で起動した (同じ worktree で書き込むファイルを分け, commit は親が行う).
+- 2026-10-27: 段 2 (2b4c1ea) と段 3 (a9c5e06) を受領. worktree で Hakyll の build が成功し, dsp と共通資料のアンカー参照は build 出力の id とすべて一致した (欠落 0). 教師なし学習の図の作図スクリプトは main の `_scratch/dsp6-fig/` に保全.
