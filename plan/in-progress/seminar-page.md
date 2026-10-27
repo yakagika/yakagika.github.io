@@ -60,4 +60,4 @@ agent の作業は 15 分程度. 中身の執筆は本人.
 
 ## 変更履歴
 
-- 2026-10-27: branch feat/seminar-page (fc71a57) に骨組みを作り, build が通った (`/seminar.html` が出力され, 全ページのメニューに link が入る). 本人が書く箇所は `pages/seminar.markdown` の「(記入: ...)」の 10 箇所. worktree で build するには main の CLAUDE.md の一時コピーが要る (AGENTS.md が symlink のため). 取り込み前に `docs/` を戻し, コピーを消す.
+- 2026-10-27: branch feat/seminar-page (fc71a57) に骨組みを作り, build が通った (`/seminar.html` が出力され, 全ページのメニューに link が入る). 本人が書く箇所は `pages/seminar.markdown` の「(記入: ...)」の 9 箇所. worktree で build するには main の CLAUDE.md の一時コピーが要る (AGENTS.md が symlink のため). 取り込み前に `docs/` を戻し, コピーを消す.
