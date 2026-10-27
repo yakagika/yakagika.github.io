@@ -29,6 +29,19 @@ title: Lectures
 </div>
 ```
 
+## ゼミ
+
+```{=html}
+<div class="lecture-series-grid">
+  <a class="series-card" href="lectures/seminar.html">
+    <span class="series-badge">Seminar</span>
+    <span class="series-title">研究ゼミ (赤木ゼミ)</span>
+    <span class="series-desc">情報・データサイエンス・AI を使って社会や経済の現象を説明する研究 (計算社会科学) を行う全学共通研究ゼミ. 研究テーマ, 進め方, 求める学生, 履修上の注意.</span>
+    <span class="series-cta">紹介を見る →</span>
+  </a>
+</div>
+```
+
 ## 共通資料
 
 複数の講義で共通に使う資料です. 講義ごとにどれを読むかは, 各講義の最初の章で案内します.
