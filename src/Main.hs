@@ -425,6 +425,7 @@ main = do
         [ "pages/contact.markdown"
         , "pages/lectures.markdown"
         , "pages/slds_papers.markdown"
+        , "pages/seminar.markdown"
         ]
 
     writeXeTex :: Item Pandoc.Pandoc -> Compiler (Item String)
