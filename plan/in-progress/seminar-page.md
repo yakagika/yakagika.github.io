@@ -1,11 +1,11 @@
 ---
 plan_id: seminar-page
-status: proposed
+status: in-progress
 created: 2026-10-27
 updated: 2026-10-27
 priority: low
-next_actor: user
-next_action: "本人が公開の扱い (navigation の link を今足すか, 中身を書くまで branch に置くか) と見出しの案を決めて承認する"
+next_actor: agent
+next_action: "branch feat/seminar-page で骨組みを作り build を通す. その後は本人が中身を書き, 書き終えたら main へ取り込む"
 source_handoff: assistant-2026-10-26T16-20-03-271171-ゼミのページを-blog-に作る-骨組みの下書き
 ---
 
@@ -13,7 +13,7 @@ source_handoff: assistant-2026-10-26T16-20-03-271171-ゼミのページを-blog-
 
 ## メタ情報
 
-- **状態**: proposed
+- **状態**: in-progress (2026-10-27 に本人承認)
 - **作成日**: 2026-10-27
 - **最終更新**: 2026-10-27
 - **出所**: 本人の Todoist メモ「ゼミのページをblogに作る」(2026-10-23) を assistant が handoff にしたもの. 下書きは agent が作り, 中身は本人が書く進め方を本人が選んだ (2026-10-26).
@@ -53,3 +53,7 @@ agent の作業は 15 分程度. 中身の執筆は本人.
 ## 未解決事項 / リスク
 
 - `publish.sh` は main を build して push するので, main へ取り込むと, 次の公開で placeholder だけのページが navigation から見える. 中身が揃うまで branch に置くか, link を外して取り込むかを本人が決める.
+
+## 本人の裁定 (2026-10-27)
+
+- 骨組みは branch に置き, 本人が中身を書き終えてから main へ取り込む (仮の文のページを公開しない). 見出しの案はこのまま.
