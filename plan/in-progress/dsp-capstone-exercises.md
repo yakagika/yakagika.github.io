@@ -5,7 +5,7 @@ created: 2026-10-05
 updated: 2026-10-26
 priority: high
 next_actor: user
-next_action: "agent が 3 題材を AI フル利用で解く試走を行い, 対応表 dsp-curriculum-matrix.md の評価証拠に 3 題材を反映する. 試走の結果を材料に, 本人と配点・採点基準を決める"
+next_action: "agent が 3 題材を AI フル利用で解く試走を行う (対応表 dsp-curriculum-matrix.md の評価証拠への反映は 2026-10-28 に済んだ). 試走の結果を材料に, 本人と配点・採点基準を決める"
 ---
 
 # 総合実習の演習案 (Ch11 の 3 題材)
