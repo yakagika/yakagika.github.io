@@ -47,7 +47,7 @@ next_action: "隔離 worktree で番号の付け替えと第 8 章からの移�
 
 1. **ファイル**: `git mv` で dsp10〜16.md を新番号へ (一時名を経由して衝突を避ける). 画像フォルダ `images/dsp/ch10` → `ch11`, `ch14` → `ch15`.
 2. **各章の中**: frontmatter の `title` (ChN), `previousChapter` / `nextChapter`, 演習の見出し `Exercise DSPn-k`, アンカー `#exercise-dspn-k`, 提出ファイル名 `dspn-k.py`, 画像のパス.
-3. **章をまたぐ参照**: 全章の `dspN.html` と「第N章」を, 旧→新の対応表で一度に置き換える (順に置き換えると二重にずれるので, 1 回の置換で写像する).
+3. **章をまたぐ参照**: 全章の `dspN.html` と「第N章」を, 旧→新の対応表で一度に置き換える (順に置き換えると二重にずれるので, 1 回の置換で写像する). dsp の外にも `dspN.html` への参照がある (2026-10-28 時点: `lectures/common/` の python4, agent, git, latex, colab と `pages/lectures.markdown`). python4 の欠損値の処理の節には「第14章 欠損値補定」へのリンクを 2026-10-28 に足したので, 第15章へ直す.
 4. **第 1 章**: 章立て一覧 (Ch10 を「発展, 一部は第 8 回で扱う」として第 9 章の後に置く), 発展の節の一覧 (第10章の行は Ch11 へ), 「第12章から第16章は章ごと授業で扱いません」の範囲 (Ch10 の一部と Ch13〜16 に直す).
 5. **計画文書**: 対応表 (`dsp-curriculum-matrix.md`) の章番号とアンカーをすべて新番号へ. 項目 122 (AIの構築・運用 ☆) は `dsp10.html` の移した節を指し, 「必修 (第 8 回), 資料の位置は Ch10」と書く. `dsp-course-material.md`, `dsp-capstone-exercises.md`, `dsp14-imputation-chapter.md` (→ 第 15 章), proposed の `dsp9-lighter-age-classification.md` の章番号. landed の計画は経緯の記録なので書き換えない.
 6. **CLAUDE.md**: dsp の章構成と章ナビの記述.
