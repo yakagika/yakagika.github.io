@@ -99,3 +99,4 @@ next_action: "隔離 worktree で番号の付け替えと第 8 章からの移�
 
 - 2026-10-28: 作成
 - 2026-10-28: 本人承認 (AskUserQuestion「この計画で進める」). in-progress へ移す
+- 2026-10-28: 付け替えと移設を実施 (main の a3d035f を base に作り直した worktree で. 別 session の第 14 章の変更 (b9ca801〜003e195) と python4 のリンクを含めて付け替えた). slds_data/dsp11, dsp14 も dsp12, dsp15 へ移した. 第 15 章の多重代入法に流れの図を足した

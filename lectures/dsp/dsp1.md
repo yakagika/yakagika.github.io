@@ -86,31 +86,31 @@ Python の環境構築と基礎は, 共通資料の[プログラミング基礎]
 
 [第9章 自然言語処理](dsp9.html)
 
-[第10章 画像認識](dsp10.html)
+[第10章 Transformer の学習](dsp10.html) (このうち[AI の学習と推論, 評価, 再学習](dsp10.html#ai-の学習と推論-評価-再学習)の節だけを第 8 回で扱います. それ以外は作成中の発展です)
 
-[第11章 総合実習](dsp11.html)
+[第11章 画像認識](dsp11.html)
+
+[第12章 総合実習](dsp12.html)
 
 ### 選択の章
 
 授業では扱いませんが, 課題や研究で必要になったときに読んでください.
 
-[第12章 一般化線形モデル](dsp12.html)
+[第13章 一般化線形モデル](dsp13.html)
 
-[第13章 質問紙調査とカテゴリーデータ](dsp13.html)
+[第14章 質問紙調査とカテゴリーデータ](dsp14.html)
 
-[第14章 欠損値補定](dsp14.html)
+[第15章 欠損値補定](dsp15.html)
 
 ### 追加の章 (作成中)
 
 資料に追加していく章です. 授業で扱う章の選択肢として, 見出しと扱う内容の予定だけを載せています. 選択の章と同じく, 授業では扱いません.
 
-[第15章 因果推論](dsp15.html)
-
-[第16章 自然言語処理の学習](dsp16.html)
+[第16章 因果推論](dsp16.html)
 
 ### 発展の節の一覧
 
-授業では扱わない (発展) の節の一覧です. 第12章から第16章は章ごと授業で扱いません.
+授業では扱わない (発展) の節の一覧です. 第13章から第16章は章ごと授業で扱いません. 第10章は[AI の学習と推論, 評価, 再学習](dsp10.html#ai-の学習と推論-評価-再学習)の節を除いて授業で扱いません.
 
 | 章 | (発展) の節 |
 |:---|:---|
@@ -120,7 +120,7 @@ Python の環境構築と基礎は, 共通資料の[プログラミング基礎]
 | [第6章](dsp6.html) | [ランダムフォレスト](dsp6.html#ランダムフォレスト), [サポートベクターマシン](dsp6.html#サポートベクターマシン) |
 | [第7章](dsp7.html) | [密度と確率モデルに基づくクラスタリング (DBSCAN, 混合ガウスモデル)](dsp7.html#密度と確率モデルに基づくクラスタリング) |
 | [第9章](dsp9.html) | [機械翻訳と文章生成](dsp9.html#translation-generation), [生成 AI の仕組み: 事前学習と生成](dsp9.html#pretraining-and-generation), [トピックモデル](dsp9.html#トピックモデル), [n-gram と文章間類似度](dsp9.html#ngram-similarity), [CLIP](dsp9.html#clip) |
-| [第10章](dsp10.html) | [Vision Transformer](dsp10.html#vision-transformer), [学習した特徴量の次元圧縮 (PCA と t-SNE)](dsp10.html#feature-embedding), [特徴マップ](dsp10.html#feature-maps), [Grad-CAM と Guided Backpropagation](dsp10.html#grad-cam), [年齢識別のコード全体](dsp10.html#age-full-code) |
+| [第11章](dsp11.html) | [Vision Transformer](dsp11.html#vision-transformer), [学習した特徴量の次元圧縮 (PCA と t-SNE)](dsp11.html#feature-embedding), [特徴マップ](dsp11.html#feature-maps), [Grad-CAM と Guided Backpropagation](dsp11.html#grad-cam), [年齢識別のコード全体](dsp11.html#age-full-code) |
 
 
 ## 授業準備・環境構築
