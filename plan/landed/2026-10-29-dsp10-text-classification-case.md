@@ -1,18 +1,18 @@
 ---
 plan_id: dsp10-text-classification-case
-status: in-progress
+status: landed
 created: 2026-10-28
-updated: 2026-10-28
+updated: 2026-10-29
 priority: medium
-next_actor: user
-next_action: "本人が第10章の事例の節と演習 DSP10-2, 3 をプレビューで読み, 直す点を伝える. 承認後に計画を landed へ移す"
+next_actor: none
+next_action: "なし (2026-10-29 本人承認で完了)"
 ---
 
 # dsp 第10章 (Transformer の学習) の事例: 品目名から製造業の中分類を当てる多クラス分類
 
 ## メタ情報
 
-- **状態**: in-progress (本文と演習を書いた. 本人の確認待ち)
+- **状態**: landed (2026-10-29 本人が事例の節と演習を承認. 結果の出力は本文の表へ移した)
 - **作成日**: 2026-10-28
 - **親計画**: [dsp-course-material.md](dsp-course-material.md)
 - **関連**: [2026-10-28-dsp-transformer-training-chapter.md](../landed/2026-10-28-dsp-transformer-training-chapter.md) (第10章を新設した計画. 本文は骨組みのまま)
