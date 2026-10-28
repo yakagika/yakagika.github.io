@@ -1,18 +1,18 @@
 ---
 plan_id: dsp-transformer-training-chapter
-status: in-progress
+status: landed
 created: 2026-10-28
 updated: 2026-10-28
 priority: medium
-next_actor: agent
-next_action: "隔離 worktree で番号の付け替えと第 8 章からの移設を行い, ビルドと参照切れ検査を通して本人の確認に出す"
+next_actor: none
+next_action: "なし (landed)"
 ---
 
 # dsp に「Transformer の学習」の章を第 10 章として置き, 第 10〜15 章を 1 つずつ繰り下げる
 
 ## メタ情報
 
-- **状態**: in-progress (2026-10-28 に本人承認)
+- **状態**: landed (2026-10-28)
 - **作成日**: 2026-10-28
 - **最終更新**: 2026-10-28
 - **親計画**: [dsp-course-material.md](../in-progress/dsp-course-material.md)
@@ -100,3 +100,4 @@ next_action: "隔離 worktree で番号の付け替えと第 8 章からの移�
 - 2026-10-28: 作成
 - 2026-10-28: 本人承認 (AskUserQuestion「この計画で進める」). in-progress へ移す
 - 2026-10-28: 付け替えと移設を実施 (main の a3d035f を base に作り直した worktree で. 別 session の第 14 章の変更 (b9ca801〜003e195) と python4 のリンクを含めて付け替えた). slds_data/dsp11, dsp14 も dsp12, dsp15 へ移した. 第 15 章の多重代入法に流れの図を足した
+- 2026-10-28: main へ ff-merge (37c1772, recovery tag recovery/dsp-ch10-transformer-2026-10-28). CLAUDE.md の dsp の章構成を直した. 新しい第 10 章の骨組み (学習の手順と自然言語の事例) の本文の執筆は未着手で, 別の計画で扱う. landed へ移す

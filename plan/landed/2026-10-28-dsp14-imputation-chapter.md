@@ -1,18 +1,18 @@
 ---
 plan_id: dsp15-imputation-chapter
-status: in-progress
+status: landed
 created: 2026-10-28
 updated: 2026-10-28
 priority: medium
-next_actor: user
-next_action: "本人が dsp15 を通読して修正点を指示する. 指示が無ければ landed へ移す"
+next_actor: none
+next_action: "なし (landed)"
 ---
 
 # dsp 第 14 章 (欠損値補定) の本文を書く
 
 ## メタ情報
 
-- **状態**: in-progress (2026-10-28 に本人承認し, 同日に本文を書いた. 本人の通読待ち)
+- **状態**: landed (2026-10-28)
 - **作成日**: 2026-10-28
 - **最終更新**: 2026-10-28
 - **親計画**: [dsp-course-material.md](../in-progress/dsp-course-material.md)
@@ -101,3 +101,4 @@ agent の作業は 2-3 時間程度. 本人の通読 30 分程度.
 - 未決: なし. 本人の通読で出た指示をここに記録する.
 
 - 2026-10-28: 章番号を繰り下げた (新 Ch10 = Transformer の学習 (旧 Ch16), 画像認識 Ch10→Ch11, 総合実習 Ch11→Ch12, 一般化線形モデル Ch12→Ch13, 質問紙調査 Ch13→Ch14, 欠損値補定 Ch14→Ch15, 因果推論 Ch15→Ch16). 計画 dsp-transformer-training-chapter. 本文の章番号, ファイル名, 演習のラベルは新番号に書き換えた.
+- 2026-10-28: 本人が「14 章自体はこれで一旦 OK」とした (執筆した session から引き継ぎ). landed へ移す
