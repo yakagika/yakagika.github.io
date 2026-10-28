@@ -4,15 +4,15 @@ status: in-progress
 created: 2026-10-28
 updated: 2026-10-28
 priority: medium
-next_actor: user
-next_action: "本人が, 追加する章と図の形式 (HTML の樹形図か PNG の流れ図か) を決める"
+next_actor: agent
+next_action: "章番号の繰り下げ (dsp-transformer-training-chapter) が main に入った後に, 第2, 4, 6, 14 章 (新番号) のチャートを作る"
 ---
 
 # dsp の各章の冒頭に「手法を選ぶチャート」を置く (追加案)
 
 ## メタ情報
 
-- **状態**: in-progress (提案段階. 本人の選択待ち)
+- **状態**: in-progress (2026-10-28 に本人承認. 繰り下げ待ち)
 - **作成日**: 2026-10-28
 - **最終更新**: 2026-10-28
 - **親計画**: [dsp-course-material.md](dsp-course-material.md)
@@ -124,3 +124,4 @@ next_action: "本人が, 追加する章と図の形式 (HTML の樹形図か PN
 ## 変更履歴
 
 - 2026-10-28: 追加案を作成した.
+- 2026-10-28 (本人の選択): 追加する章は優先度 高の 4 章 (第2, 4, 6 章と質問紙調査の章). 形式は使い分ける (第6章の評価指標だけ PNG の流れ図, 他は HTML の樹形図. 樹形図の style は共通の CSS に移す). 作業は章番号の繰り下げの後. 第14章 (欠損値補定) の流れ図を樹形図に揃えるかは, 樹形図の共通の形ができた時点で本人に見せて決める.
