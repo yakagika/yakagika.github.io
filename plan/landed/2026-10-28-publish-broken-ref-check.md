@@ -1,18 +1,18 @@
 ---
 plan_id: publish-broken-ref-check
-status: proposed
+status: landed
 created: 2026-10-28
 updated: 2026-10-28
 priority: medium
 next_actor: user
-next_action: "本人が下の設計 (検査の範囲, 止め方) を承認したら, agent が隔離 worktree で検査 script と publish.sh の変更を作り, 画像を 1 枚消した copy で検出を確かめてから main へ取り込む"
+next_action: "次の publish.sh の実行で検査の段が通ることを本人が確かめる"
 ---
 
 # 公開前に参照切れを検査する
 
 ## メタ情報
 
-- **状態**: proposed
+- **状態**: landed (2026-10-28)
 - **作成日**: 2026-10-28
 - **出所**: 本人の裁定 (2026-10-28, 「入れる」). 2026-04 の画像整理 (3f73931) が, 本文が参照している画像 5 枚を消していた (57f48b0 で復元).
 
@@ -37,3 +37,7 @@ next_action: "本人が下の設計 (検査の範囲, 止め方) を承認した
 
 - 外部 URL の死活は見ない (公開のたびにネットワークへ出るため).
 - anchor の検査を足すかは, 導入後に誤検出の量を見て決める.
+
+## 変更履歴
+
+- 2026-10-28: 本人が設計を承認. 1f4b592 で `scripts/check_local_refs.py` と `publish.sh` の変更を main へ取り込んだ. 試作の対象に `link` の href と `script` の src を足した (CSS と script の欠落も拾うため). 現在の `docs/` で 0 件. `docs/` の copy から画像 1 枚を消すと 1 件, `style.css` を消すと全ページ分を報告し, 終了コード 1 を返すことを確かめた. publish.sh は `set -e` で, 検査が失敗すると commit と push に進まない. 実行は `uv run --no-project python`.
