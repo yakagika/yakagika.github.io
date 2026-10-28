@@ -1,0 +1,1379 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+    <script>
+      (function () {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+        function stored() {
+          var t = null;
+          try { t = localStorage.getItem('theme'); } catch (e) {}
+          return (t === 'dark' || t === 'light') ? t : null;
+        }
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
+        if (mq) {
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
+        }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
+      })();
+    </script>
+    <title>yakagika - データサイエンス実践 Ch15 欠損値補定 (選択)</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../style.css?v=1793162442">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+      <meta property="og:description" content="資料" />
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../" class="site-brand" aria-label="Home">
+          <span class="site-mark" aria-hidden="true">▮</span>
+          <span class="site-word">yakagika</span>
+        </a>
+      </div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../">Home</a>
+      <a href="../posts.html">Blog</a>
+      <a href="../lectures.html">Lecture</a>
+      <a href="../research.html">Research</a>
+      <a href="../lectures/seminar.html">Seminar</a>
+      <a href="../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      <div id="lecture-toc" data-mode="series">
+        <h2>Index</h2>
+        <ul class="toc-root"><li class="toc-item toc-series-item"><div class="toc-row"><span class="toc-toggle">▾</span><a href="dsp1.html">データサイエンス実践 Ch1 本資料の読み方</a></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item"><div class="toc-row"><span class="toc-toggle">▾</span><a href="dsp2.html">データサイエンス実践 Ch2 分析設計: データ分析の進め方</a></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item"><div class="toc-row"><span class="toc-toggle">▾</span><a href="dsp3.html">データサイエンス実践 Ch3 データの可視化</a></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item"><div class="toc-row"><span class="toc-toggle">▾</span><a href="dsp4.html">データサイエンス実践 Ch4 データの数値化</a></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item"><div class="toc-row"><span class="toc-toggle">▾</span><a href="dsp5.html">データサイエンス実践 Ch5 線形回帰分析</a></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item"><div class="toc-row"><span class="toc-toggle">▾</span><a href="dsp6.html">データサイエンス実践 Ch6 機械学習の枠組みと決定木</a></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item"><div class="toc-row"><span class="toc-toggle">▾</span><a href="dsp7.html">データサイエンス実践 Ch7 クラスタリングとパターン発見</a></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item"><div class="toc-row"><span class="toc-toggle">▾</span><a href="dsp8.html">データサイエンス実践 Ch8 ニューラルネットワークと Transformer</a></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item"><div class="toc-row"><span class="toc-toggle">▾</span><a href="dsp9.html">データサイエンス実践 Ch9 自然言語処理</a></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item"><div class="toc-row"><span class="toc-toggle">▾</span><a href="dsp10.html">データサイエンス実践 Ch10 Transformer の学習</a></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item"><div class="toc-row"><span class="toc-toggle">▾</span><a href="dsp11.html">データサイエンス実践 Ch11 画像認識</a></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item"><div class="toc-row"><span class="toc-toggle">▾</span><a href="dsp12.html">データサイエンス実践 Ch12 総合実習</a></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item"><div class="toc-row"><span class="toc-toggle">▾</span><a href="dsp13.html">データサイエンス実践 Ch13 一般化線形モデル (選択)</a></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item"><div class="toc-row"><span class="toc-toggle">▾</span><a href="dsp14.html">データサイエンス実践 Ch14 質問紙調査とカテゴリーデータ (選択)</a></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item current"><div class="toc-row"><span class="toc-toggle">▾</span><a href="dsp15.html">データサイエンス実践 Ch15 欠損値補定 (選択)</a></div><ul class="toc-sublist"></ul></li><li class="toc-item toc-series-item"><div class="toc-row"><span class="toc-toggle">▾</span><a href="dsp16.html">データサイエンス実践 Ch16 因果推論 (選択)</a></div><ul class="toc-sublist"></ul></li></ul>
+      </div>
+      
+      
+    </nav>
+
+    <div id="content">
+    <article>
+<header class="article-header">
+    <span class="category-badge">Lecture</span>
+    <h1 class="article-title">データサイエンス実践 Ch15 欠損値補定 (選択)</h1>
+    <p class="article-description">資料</p>
+    <div class="article-meta">
+        <span class="meta-item">公開: 2026-10-27</span>
+        <span class="meta-item">更新: 2026-10-28</span>
+    </div>
+    <div class="tag-chips"><a href="../tags/dsp.html">dsp</a><a href="../tags/datascience.html">datascience</a><a href="../tags/statistics.html">statistics</a><a href="../tags/python.html">python</a></div>
+</header>
+
+<!-- 上部: カード型の章ナビゲーション -->
+<nav class="chapter-nav-card">
+    
+        <a class="prev" href="dsp14.html">
+            <span class="nav-label">← Previous</span>
+            <span class="nav-title">データサイエンス実践 Ch14 質問紙調査とカテゴリーデータ (選択)</span>
+        </a>
+    
+    
+        <a class="next" href="dsp16.html">
+            <span class="nav-label">Next →</span>
+            <span class="nav-title">データサイエンス実践 Ch16 因果推論 (選択)</span>
+        </a>
+    
+</nav>
+
+<p>本章は, データの一部が欠けているときの扱い方をまとめる章です. 最初の<a href="#missing-and-imputation">欠損値と補定</a>で 2 つの言葉の意味を確かめ, 次の<a href="#choose-method">補定方法の選び方</a>で手元のデータに合う方法を決めてから, 必要な節へ進んでください.</p>
+<h2 id="前提となる章">前提となる章</h2>
+<ul>
+<li><a href="dsp4.html">第4章</a>: 平均や中央値などの<a href="dsp4.html#basic-stats">基本統計量</a>と<a href="dsp4.html#central-tendency">中心を表す基本統計量</a>, 変数どうしの関係を表す<a href="dsp4.html#correlation">相関</a>. 補定に使う値の計算と, 補定が相関に与える影響の確認に使います.</li>
+<li><a href="dsp5.html">第5章</a>: <a href="dsp5.html#multiple-regression">重回帰分析</a>と<a href="dsp5.html#regression-evaluation">回帰の評価</a>. 回帰による補定と, 補定後の分析結果の比較に使います. すでに<a href="dsp5.html#simple-regression">単回帰分析</a>のデータの準備で, データの無い国を <code>dropna</code> で除外しています. 本章はこの処理を一般化します.</li>
+<li><a href="dsp6.html">第6章</a>: <a href="dsp6.html#決定木分析">決定木分析</a>による分類と, <a href="dsp6.html#訓練データとテストデータ">訓練データとテストデータ</a>の分け方. カテゴリー変数の補定と, 補定をどの段階で行うかの判断に使います.</li>
+<li><a href="dsp14.html">第14章</a>: 質問紙調査では無回答が欠損の主な原因になります.</li>
+</ul>
+<div class="warn">
+<p>本章では次のライブラリを使います. <code>uv add</code> しておいてください (<code>scikit-learn</code> は, <code>import</code> するときには <code>sklearn</code> と書きます).</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> add pandas matplotlib matplotlib-fontja scikit-learn statsmodels</span></code></pre></div>
+</div>
+<h2 id="欠損値補定">欠損値補定</h2>
+<h3 id="missing-and-imputation">欠損値と補定</h3>
+<p>データの中で, 本来は値があるはずなのに記録されていない箇所を<strong>欠損値</strong> (missing value) といいます. 調査の質問に答えてもらえなかった, 測定機器が故障して記録できなかった, といった理由で生じます. 次の表では, 学生 C の支出が無回答のため欠損値になっています.</p>
+<table>
+<thead>
+<tr class="header">
+<th>学生</th>
+<th>週のアルバイト時間</th>
+<th>1 か月の支出 (千円)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>A</td>
+<td>5</td>
+<td>50</td>
+</tr>
+<tr class="even">
+<td>B</td>
+<td>10</td>
+<td>60</td>
+</tr>
+<tr class="odd">
+<td>C</td>
+<td>15</td>
+<td>(無回答)</td>
+</tr>
+</tbody>
+</table>
+<p>欠損値があると, そのままでは計算できない分析があります. 支出の平均は C の値が無いと 3 人分では求められず, 回帰分析は欠損値のある行を使えません. 欠損値のある行を除けば計算はできますが, データが減り, 除いた行が特定の学生に偏っていれば結果も偏ります.</p>
+<p>欠けた値を, 他の情報から推測した値で埋めることを<strong>欠損値補定</strong> (imputation, 本章では単に<strong>補定</strong>とも書きます) といいます. 上の表の C の支出なら, 次のような埋め方があります.</p>
+<ul>
+<li>回答した A と B の支出の平均 55 千円で埋める.</li>
+<li>アルバイトが 5 時間長いと支出が 10 千円多いという A と B の関係から, 70 千円と推測して埋める.</li>
+</ul>
+<p>どちらの値も推測であり, C の本当の支出ではありません. 埋め方によって補った値が変わり, 補ったデータで求める平均や回帰係数も変わります. そのため埋め方は, データの欠け方と分析の目的に合わせて選びます.</p>
+<h3 id="choose-method">補定方法の選び方</h3>
+<p>補定の方法は, 欠損がどれだけあるか, どのように欠けているか, 補ったデータを何に使うかで決まります. 次の図を上からたどって方法を選んでください. 最初に欠損を数え, 欠け方を調べます. そのあと 4 つの問いに順に答え, 「はい」なら右の方法へ, 「いいえ」なら下の問いへ進みます.</p>
+<figure>
+<img src="../images/dsp/ch15/choose-method.png" alt="補定方法の選び方" />
+<figcaption aria-hidden="true">補定方法の選び方</figcaption>
+</figure>
+<p>図の各箱は, 次の節で説明します.</p>
+<ul>
+<li>欠損を数え, 欠け方を調べる: <a href="#missing-check">欠損値を見つけて数える</a>, <a href="#missing-types">欠損の種類</a></li>
+<li>どの補定でも偏りは除けない: <a href="#missing-types">欠損の種類</a></li>
+<li>欠損のある行を削除する: <a href="#deletion">欠損のある行を削除する方法</a></li>
+<li>カテゴリー変数の補完: <a href="#categorical-imputation">カテゴリー変数の補完</a></li>
+<li>多重代入法: <a href="#multiple-imputation">複数回補って結果を統合する方法 (多重代入法)</a></li>
+<li>回帰補完, 確率的回帰補完: <a href="#regression-imputation">回帰補完と確率的回帰補完</a></li>
+</ul>
+<p>最初の箱の確認は, どの方法を使う場合にも行います. 欠け方の見当が付かないまま方法を選ぶと, 補った結果が偏っているかを判断できないためです. 1 つ目の問い (欠けるかどうかが欠けた値そのものに左右されるか) は, 欠けた値を見ないと確かめられないので, 調査の内容から判断します. この場合は観測された変数から欠けた値を予測しても偏りを除けないので, 最初に問います.</p>
+<p>カテゴリー変数と数値の変数の両方が欠けているときは, 変数ごとに 3 つ目の問いから進みます. 図に無い平均値補完や, 時刻順に並んだデータの補完は, <a href="#other-methods">その他の手法</a>にまとめています.</p>
+<p>「欠損がごく少ない」の目安として 5% 程度以下が挙げられることがありますが, 根拠のある境界ではありません. 割合が小さくても, 欠けた行が特定の集団に偏っていれば, 削除で結果が偏ります.</p>
+<p>どの方法で補った場合も, 補った値は実際に観測した値ではありません. 報告では, どの変数をどの方法で補ったかと, 補った値の数を書きます. 補ったデータと補う前のデータで結果が大きく変わるときは, その違いも書きます.</p>
+<h3 id="survey-data">例題のデータ: 学生生活調査</h3>
+<p><a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/dsp15/student_survey.csv">こちら</a>のデータは, ある大学で学生 400 人に行った生活調査の回答です (練習用に作成した架空のデータです). 質問紙調査 (<a href="dsp14.html">第14章</a>) では, 答えたくない質問や答えにくい質問が無回答になり, それがデータの欠損になります.</p>
+<table>
+<thead>
+<tr class="header">
+<th>列</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>student_id</code></td>
+<td>学生番号</td>
+</tr>
+<tr class="even">
+<td><code>grade</code></td>
+<td>学年 (1 から 4)</td>
+</tr>
+<tr class="odd">
+<td><code>housing</code></td>
+<td>居住形態 (自宅, 一人暮らし, 寮)</td>
+</tr>
+<tr class="even">
+<td><code>commute_min</code></td>
+<td>通学時間 (分)</td>
+</tr>
+<tr class="odd">
+<td><code>work_hours</code></td>
+<td>週のアルバイト時間 (時間)</td>
+</tr>
+<tr class="even">
+<td><code>spending</code></td>
+<td>1 か月の支出 (千円)</td>
+</tr>
+<tr class="odd">
+<td><code>sleep_hours</code></td>
+<td>平均の睡眠時間 (時間)</td>
+</tr>
+</tbody>
+</table>
+<p>架空のデータなので, 無回答だった項目の本当の値も分かっています. <a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/dsp15/student_survey_true.csv">こちら</a>の答え合わせ用のデータには, 全員の本当の値が入っています. 実際の調査では本当の値は分かりません. 本章では, 補った値がどれだけ本当の値に近いかを確かめるためにだけ使います.</p>
+<p>2 つのファイルを <code>data/student_survey.csv</code> と <code>data/student_survey_true.csv</code> として保存します.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/student_survey.csv'</span>, encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>true <span class="op">=</span> pd.read_csv(<span class="st">'data/student_survey_true.csv'</span>, encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>)  <span class="co"># 答え合わせ用</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df.head())</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co">   student_id  grade housing  commute_min  work_hours  spending  sleep_hours</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co">0           1      4   一人暮らし           17        15.0      99.0          6.7</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="co">1           2      1   一人暮らし            7        11.0      90.0          6.8</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="co">2           3      4      自宅           39        10.0      47.0          5.5</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="co">3           4      4     NaN           50        14.0       NaN          7.0</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="co">4           5      3     NaN           32         9.0      48.0          6.3</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<h3 id="missing-check">欠損値を見つけて数える</h3>
+<p>pandas は, CSV の空欄を <code>NaN</code> (Not a Number) として読み込みます. 上の出力の 4 行目 (学生番号 4) は, 居住形態と支出が空欄だったので <code>NaN</code> になっています. <code>work_hours</code> と <code>spending</code> が <code>15.0</code> のように小数で表示されるのは, <code>NaN</code> が小数の型の値なので, <code>NaN</code> を含む列全体が小数の型になるためです.</p>
+<p>欠損は空欄で表されるとは限りません. 調査票の集計によっては, 999 や -1 のような, 実際にはありえない値を欠損の印として入れていることがあります. この場合は, 読み込むときに <code>pd.read_csv('...', na_values=[999, -1])</code> と指定するか, 読み込んだ後に <code>df.replace(999, np.nan)</code> で <code>NaN</code> に置き換えてから数えます. 置き換えずに平均を求めると, 999 がそのまま平均に入ります.</p>
+<p>変数ごとの欠損の数は <code>isna().sum()</code> で, 割合は <code>isna().mean()</code> で求めます. <code>isna()</code> は欠損なら <code>True</code>, そうでなければ <code>False</code> を返し, <code>True</code> は 1, <code>False</code> は 0 として足し合わされます.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df.isna().<span class="bu">sum</span>())</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df.isna().mean().<span class="bu">round</span>(<span class="dv">3</span>))</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'欠損の無い行:'</span>, <span class="bu">len</span>(df.dropna()))</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co">student_id      0</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="co">grade           0</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="co">housing        40</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="co">commute_min     0</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="co">work_hours     28</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="co">spending       97</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="co">sleep_hours     0</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="co">dtype: int64</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="co">student_id     0.000</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="co">grade          0.000</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="co">housing        0.100</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="co">commute_min    0.000</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a><span class="co">work_hours     0.070</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a><span class="co">spending       0.242</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a><span class="co">sleep_hours    0.000</span></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a><span class="co">dtype: float64</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a><span class="co">欠損の無い行: 249</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>支出が 24.2%, 居住形態が 10.0%, アルバイト時間が 7.0% 欠けています. 欠けている変数が 3 つあるので, どれか 1 つでも欠けている行を除くと, 400 行のうち 249 行しか残りません.</p>
+<p>欠損が生じる原因には, 無回答のほかに, 測定の失敗 (機器の故障, 記録漏れ), 調査の対象外 (一人暮らしでない学生に家賃を聞かない), データの結合時の不一致 (<a href="dsp5.html">第5章</a>で国名の表記が合わずに結合できなかった国) があります. 調査の対象外による欠損は, 補うべき値がそもそも存在しないので, 補定の対象にしません.</p>
+<p>この節に対応する演習は, 章末の<a href="#exercise-dsp15-1">Exercise DSP15-1</a>です.</p>
+<h3 id="missing-types">欠損の種類: MCAR, MAR, MNAR</h3>
+<p>欠損は, 値が欠けるかどうかが何に左右されるかで 3 種類に分けられます.</p>
+<ul>
+<li><strong>MCAR</strong> (Missing Completely At Random, 完全にランダムな欠損): 値が欠けるかどうかが, どの変数の値にも左右されない. 例: 回収した調査票の一部を, 集計の途中で無作為に紛失した.</li>
+<li><strong>MAR</strong> (Missing At Random, ランダムな欠損): 値が欠けるかどうかが, 観測された他の変数の値だけに左右される. 例: アルバイトの時間が長い学生ほど, 支出の質問を飛ばしやすい (アルバイトの時間は答えている).</li>
+<li><strong>MNAR</strong> (Missing Not At Random, ランダムでない欠損): 値が欠けるかどうかが, 欠けた値そのものに左右される. 例: 支出が多い学生ほど, 支出の質問に答えたがらない.</li>
+</ul>
+<p>欠損の種類によって, 以降の節の方法で補った結果に偏りが出るかどうかが変わります.</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>欠損の種類</th>
+<th>欠損のある行の削除</th>
+<th>他の変数を使う補定 (回帰補完, 多重代入法)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>MCAR</td>
+<td>偏らない (行が減る分, 推定の精度は下がる)</td>
+<td>偏らない</td>
+</tr>
+<tr class="even">
+<td>MAR</td>
+<td>偏ることがある</td>
+<td>欠け方に関係する変数を補定に使えば, 平均や回帰係数の偏りを除ける (標準誤差を正しく求めるには多重代入法が要る)</td>
+</tr>
+<tr class="odd">
+<td>MNAR</td>
+<td>偏る</td>
+<td>偏る</td>
+</tr>
+</tbody>
+</table>
+<p>MAR のときに補定で偏りを除けるのは, 補定が観測された変数から欠けた値を予測するからです. 欠け方を左右している変数 (MAR の例ではアルバイト時間) を予測に使えば, 欠けた行の特徴を補定に反映できます. MNAR では, 欠け方を左右しているのが欠けた値そのものなので, 観測された変数からの予測ではその偏りを捉えられません.</p>
+<p>欠損の種類は, 欠けた値を見ずには確定できません. MAR と MNAR を区別するには, 欠けた値そのものと欠け方の関係を調べる必要があるからです. ただし, 欠損の有無で他の変数の値を比べると, 手がかりが得られます. 支出を答えたかどうかで, 他の変数の平均を比べます.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 支出を答えたかどうかで, 他の変数の平均を比べる</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>answered <span class="op">=</span> df[<span class="st">'spending'</span>].isna().<span class="bu">map</span>({<span class="va">False</span>: <span class="st">'回答あり'</span>, <span class="va">True</span>: <span class="st">'無回答'</span>})</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>columns <span class="op">=</span> [<span class="st">'grade'</span>, <span class="st">'commute_min'</span>, <span class="st">'work_hours'</span>, <span class="st">'sleep_hours'</span>]</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df.groupby(answered)[columns].mean().<span class="bu">round</span>(<span class="dv">2</span>))</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="co">          grade  commute_min  work_hours  sleep_hours</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="co">spending                                             </span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="co">回答あり       2.23        40.08        9.34         6.59</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="co">無回答        2.64        37.46       16.67         6.11</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>支出が無回答の学生は, 週のアルバイト時間の平均が 16.67 時間で, 回答した学生の 9.34 時間より 7 時間ほど長くなっています. 支出の欠け方はアルバイト時間と関係しているので, MCAR ではありません. アルバイト時間で欠け方が説明できるなら MAR です. 同じアルバイト時間の学生の中で, 支出が多い学生ほど答えていないなら MNAR ですが, それは欠けた支出を見ないと確かめられません.</p>
+<p>居住形態の欠け方も, 学年ごとに比べます.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 学年ごとの, 居住形態が無回答の割合</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df[<span class="st">'housing'</span>].isna().groupby(df[<span class="st">'grade'</span>]).mean().<span class="bu">round</span>(<span class="dv">3</span>))</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="co">grade</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co">1    0.054</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co">2    0.084</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="co">3    0.103</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="co">4    0.192</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="co">Name: housing, dtype: float64</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>学年が上がるほど居住形態の無回答が増え, 4 年生では 19.2% です. 居住形態の欠け方は学年と関係しています.</p>
+<p>実際の分析では, MNAR かどうかを調査の内容から考えます. 収入, 支出, 健康状態のように, 値そのものが答えにくさにつながる質問は MNAR を疑います. MNAR が疑われるときは, 補った値を少し大きく (または小さく) ずらした場合にも結論が変わらないかを確かめ, その結果を並べて報告します.</p>
+<div class="note">
+<ul>
+<li><strong>感度分析と δ 調整</strong></li>
+</ul>
+<p>MNAR かどうかは, 検定では判定できません. χ二乗検定や t 検定で欠損の有無と他の変数の関係を調べると, 欠け方が他の変数と関係していること (MCAR でないこと) は示せます. しかし MAR と MNAR の違いは, 欠けた値そのものと欠け方の関係にあります. 欠けた値は観測されていないので, この関係はどの検定にもかけられません.</p>
+<p>そのため MNAR が疑われるときは, 欠け方の仮定を変えると結論がどれだけ変わるかを調べます. このような分析を<strong>感度分析</strong> (sensitivity analysis) といいます. 補った値を一定の量 δ だけずらして分析をやり直す方法は, <strong>δ 調整</strong> (delta adjustment) と呼ばれます. δ を少しずつ大きくして結論が変わる δ を探し, その大きさのずれが現実にありうるかを調査の内容から判断します. 感度分析の詳しい手順は, 本章では扱いません.</p>
+</div>
+<p>この節に対応する演習は, 章末の<a href="#exercise-dsp15-1">Exercise DSP15-1</a>です.</p>
+<h3 id="deletion">欠損のある行を削除する方法</h3>
+<p>分析に使う変数のどれかが欠けている行をすべて除き, 全部が揃った行だけで分析する方法を<strong>完全ケース分析</strong> (リストワイズ削除) といいます. <code>dropna()</code> で行えます. 次のコードは 7 列すべてを分析に使う場合で, どれか 1 つでも欠けた行を除きます.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>complete <span class="op">=</span> df.dropna()</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="bu">len</span>(df), <span class="st">'行から'</span>, <span class="bu">len</span>(complete), <span class="st">'行へ'</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'支出の平均 (支出を答えた全員):'</span>, <span class="bu">round</span>(df[<span class="st">'spending'</span>].mean(), <span class="dv">2</span>))</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'支出の平均 (完全ケース):'</span>, <span class="bu">round</span>(complete[<span class="st">'spending'</span>].mean(), <span class="dv">2</span>))</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="co">400 行から 249 行へ</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="co">支出の平均 (支出を答えた全員): 69.0</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="co">支出の平均 (完全ケース): 66.71</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>答え合わせ用のデータで求めた本当の支出の平均は 71.69 千円です. 支出を答えた学生だけの平均 (69.0) も, 完全ケースの平均 (66.71) も, 本当の値より小さくなっています. アルバイト時間が長く支出も多い学生ほど支出を答えていないので, 答えた学生だけで平均すると, 支出の少ない学生に偏ります. 完全ケースでは, 支出の多い学生ほどアルバイト時間も答えていない分の偏りが加わります.</p>
+<p>削除には次の 2 つの問題があります.</p>
+<ul>
+<li>サンプルサイズが減ります. この例では 151 行 (38%) を捨てており, 推定の精度が下がります.</li>
+<li>欠損が MCAR でないとき, 残った行が元の集団を代表しなくなり, 推定が偏ります.</li>
+</ul>
+<p>分析に使う変数の組ごとに, その組の両方が揃った行だけを使う方法を<strong>ペアワイズ削除</strong>といいます. pandas の <code>corr()</code> は, 変数の組ごとに両方が揃った行で相関係数を求めるので, ペアワイズ削除になっています. 組ごとに使う行が違うため, 相関係数どうしを比べるときに, 対象の学生が揃っていないことに注意が要ります.</p>
+<p>欠損の割合が大きい変数 (例えば半分以上が欠けている変数) は, 補っても補った値の割合が大きくなるので, 分析から除くことも検討します.</p>
+<h3 id="single-imputation">1 つの値で補う方法 (単一代入法)</h3>
+<p>欠けた値ごとに 1 つの値を決めて補う方法を<strong>単一代入法</strong>といいます. 補った後は欠損の無い 1 つのデータになるので, 以降の分析を通常どおり行えます. 一方, 補った値を観測した値と同じ確かさで扱うので, 分析結果の標準誤差は実際より小さく出ます. この問題は<a href="#multiple-imputation">多重代入法</a>で扱います.</p>
+<h4 id="categorical-imputation">カテゴリー変数の補完</h4>
+<p>居住形態 (自宅, 一人暮らし, 寮) が 40 人分欠けています. カテゴリー変数の補い方を 3 つ比べます.</p>
+<p><strong>最頻値補完</strong>: 最も多いカテゴリで補います. 平均を求められないカテゴリー変数での, 最も簡単な方法です.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df[<span class="st">'housing'</span>].value_counts(dropna<span class="op">=</span><span class="va">False</span>))</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>mode <span class="op">=</span> df[<span class="st">'housing'</span>].mode()[<span class="dv">0</span>]</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>housing_mode <span class="op">=</span> df[<span class="st">'housing'</span>].fillna(mode)</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'最頻値:'</span>, mode)</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(housing_mode.value_counts(normalize<span class="op">=</span><span class="va">True</span>).<span class="bu">round</span>(<span class="dv">3</span>))</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(true[<span class="st">'housing'</span>].value_counts(normalize<span class="op">=</span><span class="va">True</span>).<span class="bu">round</span>(<span class="dv">3</span>))  <span class="co"># 本当の値</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="co">housing</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="co">自宅       191</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="co">一人暮らし    120</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a><span class="co">寮         49</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="co">NaN       40</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a><span class="co">Name: count, dtype: int64</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a><span class="co">最頻値: 自宅</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a><span class="co">housing</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="co">自宅       0.578</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a><span class="co">一人暮らし    0.300</span></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a><span class="co">寮        0.122</span></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a><span class="co">Name: proportion, dtype: float64</span></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a><span class="co">housing</span></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a><span class="co">自宅       0.528</span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a><span class="co">一人暮らし    0.340</span></span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a><span class="co">寮        0.132</span></span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a><span class="co">Name: proportion, dtype: float64</span></span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>無回答の 40 人をすべて自宅としたので, 自宅の割合が 57.8% になり, 本当の 52.8% より 5 ポイント大きくなりました. 最頻値補完は, 欠損が多いほど最も多いカテゴリの割合を大きくします.</p>
+<p><strong>「無回答」を 1 つのカテゴリとして残す</strong>: 欠けた値を推測せず, 「無回答」という 4 つ目のカテゴリにします.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>housing_unknown <span class="op">=</span> df[<span class="st">'housing'</span>].fillna(<span class="st">'無回答'</span>)</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(housing_unknown.value_counts())</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co">housing</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co">自宅       191</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="co">一人暮らし    120</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="co">寮         49</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="co">無回答       40</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="co">Name: count, dtype: int64</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>この方法は値を推測しないので, 推測の誤りが入りません. 無回答であること自体に意味がある場合 (例えば, 無回答の学生は退学しやすい) には, 「無回答」のカテゴリが分析に役立ちます. 一方, 自宅, 一人暮らし, 寮の割合を知りたい場合には使えません.</p>
+<p><strong>分類モデルで予測して補う</strong>: 居住形態を答えた学生のデータで, 他の変数から居住形態を当てる分類モデルを学習します. 学習したモデルで, 無回答の学生の居住形態を予測して補います. ここでは<a href="dsp6.html">第6章</a>の<a href="dsp6.html#決定木分析">決定木</a>を使います. 予測に使う変数は, 欠損の無い通学時間, 学年, 睡眠時間にします. 自宅生は通学時間が長いので, 通学時間が居住形態の手がかりになります.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.tree <span class="im">import</span> DecisionTreeClassifier</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>features <span class="op">=</span> [<span class="st">'commute_min'</span>, <span class="st">'grade'</span>, <span class="st">'sleep_hours'</span>]  <span class="co"># 欠損の無い変数</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>known <span class="op">=</span> df[<span class="st">'housing'</span>].notna()</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> DecisionTreeClassifier(max_depth<span class="op">=</span><span class="dv">3</span>, random_state<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>model.fit(df.loc[known, features], df.loc[known, <span class="st">'housing'</span>])</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>housing_model <span class="op">=</span> df[<span class="st">'housing'</span>].copy()</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>housing_model[<span class="op">~</span>known] <span class="op">=</span> model.predict(df.loc[<span class="op">~</span>known, features])</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(housing_model[<span class="op">~</span>known].value_counts())</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(housing_model.value_counts(normalize<span class="op">=</span><span class="va">True</span>).<span class="bu">round</span>(<span class="dv">3</span>))</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a><span class="co">housing</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a><span class="co">自宅       21</span></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a><span class="co">一人暮らし    19</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a><span class="co">Name: count, dtype: int64</span></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a><span class="co">housing</span></span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a><span class="co">自宅       0.530</span></span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a><span class="co">一人暮らし    0.348</span></span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a><span class="co">寮        0.122</span></span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a><span class="co">Name: proportion, dtype: float64</span></span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>無回答の 40 人は, 自宅 21 人, 一人暮らし 19 人と予測されました. 補った後の自宅の割合は 53.0% で, 本当の割合 (52.8%) に近くなっています. 一方, 寮と予測された学生はいません. 寮生も一人暮らしの学生も通学時間が短く, 予測に使った 3 つの変数では 2 つを区別できないためです. 分類モデルでの補完は, 予測に使える変数が補う変数と関係しているときに役立ちます. 関係する変数が無ければ, 予測はほぼ最頻値になり, 最頻値補完と同じ結果になります.</p>
+<p>1 人ずつの予測がどれだけ当たっているかは, 答え合わせ用のデータで確かめられます. この節に対応する演習は, 章末の<a href="#exercise-dsp15-2">Exercise DSP15-2</a>です.</p>
+<h4 id="regression-imputation">回帰補完と確率的回帰補完</h4>
+<p>数値の変数は, 他の変数から<a href="dsp5.html#multiple-regression">重回帰分析</a>で予測して補えます. これを<strong>回帰補完</strong>といいます. 支出を, アルバイト時間と通学時間から予測して補います. 支出とアルバイト時間の両方を答えた学生のデータで回帰式を求め, 支出が無回答の学生に当てはめます. 通学時間には欠損が無いので, 除く行を決める <code>dropna</code> の <code>subset</code> には支出とアルバイト時間だけを指定します (このデータでは, 支出が無回答の学生は全員アルバイト時間を答えています).</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.linear_model <span class="im">import</span> LinearRegression</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>features <span class="op">=</span> [<span class="st">'work_hours'</span>, <span class="st">'commute_min'</span>]</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>train <span class="op">=</span> df.dropna(subset<span class="op">=</span>[<span class="st">'spending'</span>, <span class="st">'work_hours'</span>])  <span class="co"># 両方を答えた行で学習する</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>target <span class="op">=</span> df[<span class="st">'spending'</span>].isna()  <span class="co"># 支出が無回答の行を補う</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>reg <span class="op">=</span> LinearRegression()</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>reg.fit(train[features], train[<span class="st">'spending'</span>])</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'係数:'</span>, reg.coef_.<span class="bu">round</span>(<span class="dv">3</span>), <span class="st">'切片:'</span>, <span class="bu">round</span>(reg.intercept_, <span class="dv">3</span>))</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>spending_reg <span class="op">=</span> df[<span class="st">'spending'</span>].copy()</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>spending_reg[target] <span class="op">=</span> reg.predict(df.loc[target, features])</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(spending_reg[target].head().<span class="bu">round</span>(<span class="dv">1</span>))</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a><span class="co">係数: [ 1.384 -0.469] 切片: 73.495</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a><span class="co">3     69.4</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a><span class="co">12    86.8</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a><span class="co">15    42.1</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a><span class="co">18    57.7</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a><span class="co">19    63.7</span></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a><span class="co">Name: spending, dtype: float64</span></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>回帰式は「支出 = 73.495 + 1.384 × アルバイト時間 - 0.469 × 通学時間」です. アルバイトが週 1 時間長いと支出が 1.384 千円多く, 通学時間が 1 分長いと 0.469 千円少ないという関係です (通学時間の長い学生には自宅生が多く, 家賃や食費がかからないためです).</p>
+<p>回帰補完で補った値は, すべて回帰式の上に乗ります. 実際の支出は, 同じアルバイト時間と通学時間の学生の間でもばらつきますが, 回帰補完の値にはそのばらつきがありません. そのため, 補った後のデータでは支出の標準偏差が小さくなり, 支出とアルバイト時間の相関が強めに出ます.</p>
+<p>このばらつきを補うために, 予測値に残差と同じ大きさのばらつきを持つ乱数を足す方法を<strong>確率的回帰補完</strong>といいます. 残差の標準偏差を求め, 平均 0, その標準偏差の正規分布から乱数を作って足します (<code>ddof=3</code> は, 推定した係数 2 つと切片 1 つの分だけ自由度を減らす指定です).</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>residual_sd <span class="op">=</span> np.std(train[<span class="st">'spending'</span>] <span class="op">-</span> reg.predict(train[features]), ddof<span class="op">=</span><span class="dv">3</span>)</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'残差の標準偏差:'</span>, <span class="bu">round</span>(residual_sd, <span class="dv">2</span>))</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.default_rng(<span class="dv">0</span>)</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>spending_stoch <span class="op">=</span> spending_reg.copy()</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>spending_stoch[target] <span class="op">+=</span> rng.normal(<span class="dv">0</span>, residual_sd, target.<span class="bu">sum</span>())</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="co">残差の標準偏差: 17.31</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>2 つの補い方で補った値を, 回答と重ねて描きます.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib_fontja</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">4</span>), sharey<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>pairs <span class="op">=</span> [(spending_reg, <span class="st">'回帰補完'</span>), (spending_stoch, <span class="st">'確率的回帰補完'</span>)]</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ax, (s, title) <span class="kw">in</span> <span class="bu">zip</span>(axes, pairs):</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    ax.scatter(df.loc[<span class="op">~</span>target, <span class="st">'work_hours'</span>], s[<span class="op">~</span>target], s<span class="op">=</span><span class="dv">12</span>, c<span class="op">=</span><span class="st">'gray'</span>, label<span class="op">=</span><span class="st">'回答'</span>)</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    ax.scatter(df.loc[target, <span class="st">'work_hours'</span>], s[target], s<span class="op">=</span><span class="dv">12</span>, c<span class="op">=</span><span class="st">'tab:red'</span>,</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>               label<span class="op">=</span><span class="st">'補った値'</span>)</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    ax.set_title(title)</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    ax.set_xlabel(<span class="st">'週のアルバイト時間 (時間)'</span>)</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_ylabel(<span class="st">'1 か月の支出 (千円)'</span>)</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].legend()</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>plt.close(fig)</span></code></pre></div>
+<figure>
+<img src="../images/dsp/ch15/regression-imputation.png" alt="回帰補完と確率的回帰補完で補った支出" />
+<figcaption aria-hidden="true">回帰補完と確率的回帰補完で補った支出</figcaption>
+</figure>
+<p>左の回帰補完では, 補った値 (赤) が回答 (灰) より狭い範囲に集まっています. 同じアルバイト時間の回答は, 例えば 10 時間の学生で 29 千円から 109 千円まで散らばっていますが, 補った値はアルバイト時間と通学時間だけで決まるからです. 右の確率的回帰補完では, 補った値が回答と同じ程度に散らばっています.</p>
+<p>補った後の支出の標準偏差と, アルバイト時間との相関を, 平均値補完 (支出の平均で補う方法) とも比べます. 「本当の値」の行は, 答え合わせ用のデータの支出で求めた値です.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>spending_mean <span class="op">=</span> df[<span class="st">'spending'</span>].fillna(df[<span class="st">'spending'</span>].mean())</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>candidates <span class="op">=</span> {</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">'本当の値'</span>: true[<span class="st">'spending'</span>],</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    <span class="st">'回答のみ'</span>: df[<span class="st">'spending'</span>],</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">'平均値補完'</span>: spending_mean,</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">'回帰補完'</span>: spending_reg,</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">'確率的回帰補完'</span>: spending_stoch,</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> name, s <span class="kw">in</span> candidates.items():</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>    corr <span class="op">=</span> s.corr(df[<span class="st">'work_hours'</span>])</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'</span><span class="sc">{</span>name<span class="sc">:8s}</span><span class="ss"> 標準偏差 </span><span class="sc">{</span>s<span class="sc">.</span>std()<span class="sc">:6.2f}</span><span class="ss">  アルバイト時間との相関 </span><span class="sc">{</span>corr<span class="sc">:.3f}</span><span class="ss">'</span>)</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a><span class="co">本当の値     標準偏差  24.78  アルバイト時間との相関 0.418</span></span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a><span class="co">回答のみ     標準偏差  24.28  アルバイト時間との相関 0.353</span></span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a><span class="co">平均値補完    標準偏差  21.12  アルバイト時間との相関 0.294</span></span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a><span class="co">回帰補完     標準偏差  22.92  アルバイト時間との相関 0.431</span></span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a><span class="co">確率的回帰補完  標準偏差  24.33  アルバイト時間との相関 0.426</span></span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<ul>
+<li>平均値補完は, 97 人に同じ値を入れるので標準偏差が最も小さく (21.12), 相関も 0.294 まで弱まります. 補った 97 人は, アルバイト時間がいくらでも支出が同じになるからです.</li>
+<li>回帰補完は, 相関 (0.431) が本当の値 (0.418) よりやや強く, 標準偏差 (22.92) は小さくなっています.</li>
+<li>確率的回帰補完は, 標準偏差 (24.33) が本当の値 (24.78) に近づきます.</li>
+<li>回答のみの相関 (0.353) が本当の値より弱いのは, アルバイト時間が長く支出も多い学生が抜けているからです.</li>
+</ul>
+<p>確率的回帰補完は, 1 人ずつの値の当たり方では回帰補完より劣ります. 乱数を足した分だけ, 補った値が本当の値から離れるからです. 1 人ずつの値を当てたいなら回帰補完, 分布や変数間の関係を保ちたいなら確率的回帰補完を選びます.</p>
+<p>この節に対応する演習は, 章末の<a href="#exercise-dsp15-3">Exercise DSP15-3</a>です.</p>
+<h4 id="other-methods">その他の手法</h4>
+<p>ほかの単一代入法を, 使いどころと pandas, scikit-learn の関数名だけ挙げます.</p>
+<ul>
+<li><strong>平均値補完, 中央値補完</strong>: 変数の平均か中央値で補います. <code>df['x'].fillna(df['x'].mean())</code>, scikit-learn では <code>SimpleImputer(strategy='mean')</code> (中央値は <code>'median'</code>). 同じ値を多くの行に入れるので, <a href="#regression-imputation">回帰補完と確率的回帰補完</a>で確かめたとおり分散が小さくなり, 他の変数との相関が弱まります. 外れ値の多い変数には, 外れ値に引きずられない中央値を使います.</li>
+<li><strong>直前の値による補完 (時系列)</strong>: 時刻順に並んだデータで, 欠けた時点を直前の時点の値で補います. <code>df['x'].ffill()</code>. 気温や株価のように, 隣り合う時点の値が近いデータに使います.</li>
+<li><strong>線形補間 (時系列)</strong>: 欠けた時点の前後の値を直線で結んで補います. <code>df['x'].interpolate()</code>. 欠けた期間の値の変化を直線で近似できるときに使います.</li>
+<li><strong>k 近傍法による補完</strong>: 他の変数の値が近い k 人 (行) を探し, その k 人の値の平均で補います. scikit-learn の <code>KNNImputer(n_neighbors=5)</code>. 変数間の関係が直線で表せないときにも使えます. 変数の単位がそろっていないと, 値の幅が大きい変数だけで近さが決まってしまうので, 先に標準化します.</li>
+</ul>
+<h3 id="multiple-imputation">複数回補って結果を統合する方法 (多重代入法)</h3>
+<h4 id="補った値の不確かさを推定に反映する">補った値の不確かさを推定に反映する</h4>
+<p>単一代入法で補った値は, 本当の値の推測にすぎません. それを観測した値と同じに扱って回帰分析をすると, 標準誤差が実際より小さく出て, 検定で差があると判定しやすくなります.</p>
+<p><strong>多重代入法</strong> (multiple imputation) は, 確率的回帰補完のように乱数を含む補定を m 回行い, 補った値の違う m 個のデータセットを作ります. 各データセットで同じ分析を行い, m 個の結果のばらつきを, 補った値の不確かさとして標準誤差に加えます. 手順は次の 3 段です.</p>
+<ol type="1">
+<li>欠けた値を補ったデータセットを m 個作る.</li>
+<li>m 個のデータセットそれぞれで, 同じ分析 (回帰分析など) を行う.</li>
+<li>m 個の結果を, Rubin の統合則で 1 つにまとめる.</li>
+</ol>
+<p>次の図は, m = 3 のときの 3 段の流れです. 無回答の支出に補う値はデータセットごとに違うので, 各データセットで推定したアルバイト時間の係数も少しずつずれます. <a href="#手順-3-rubin-の統合則で結果をまとめる">手順 3</a>の Rubin の統合則は, 3 つの係数の平均を推定値とし, 各データセットでの分散 (補定内の分散) に係数のずれ (補定間の分散) を足して全体の分散とします. そのため, 統合した分布は各データセットの分布より幅が広くなります. 図の数値は説明のために作った例です.</p>
+<figure>
+<img src="../images/dsp/ch15/multiple-imputation.png" alt="多重代入法の流れ: 補ったデータを 3 個作り, それぞれで推定した係数を統合する" />
+<figcaption aria-hidden="true">多重代入法の流れ: 補ったデータを 3 個作り, それぞれで推定した係数を統合する</figcaption>
+</figure>
+<p>手順 1 の補定には, <strong>連鎖方程式による多重代入法</strong> (MICE, Multivariate Imputation by Chained Equations) をよく使います. 欠けた変数が複数あるとき, 次の操作を繰り返します.</p>
+<ol type="1">
+<li>欠けた値をいったん平均などで埋める.</li>
+<li>欠損のある変数を 1 つ選び, 他の変数から確率的回帰補完で補い直す.</li>
+<li>次の変数を選び, 補い直した値も使って同じように補い直す. すべての変数を補い直したら 1 周.</li>
+<li>補った値が安定するまで, 周を繰り返す.</li>
+</ol>
+<p>支出を補うにはアルバイト時間が要り, アルバイト時間を補うには支出が要るという, 互いに欠けている変数を交互に補えます.</p>
+<p>この節では, 支出をアルバイト時間と通学時間で説明する重回帰分析を, 多重代入法で行います. 例題では支出, アルバイト時間, 居住形態の 3 つが欠けています. 以下で使う scikit-learn の <code>IterativeImputer</code> は数値の変数しか補えないので, カテゴリー変数の居住形態は使いません. カテゴリー変数も含めて補いたいときは, R の <code>mice</code> パッケージなどを使います.</p>
+<h4 id="手順-1-補ったデータセットを-m-個作る">手順 1: 補ったデータセットを m 個作る</h4>
+<p>scikit-learn の <code>IterativeImputer</code> は, 連鎖方程式の考え方で欠けた値を補います. <code>sample_posterior=True</code> を指定すると, 予測値そのものではなく, 予測の不確かさに応じた乱数を含む値で補います. <code>random_state</code> を変えて m 回実行すると, m 個の違うデータセットができます. <code>IterativeImputer</code> は scikit-learn で試験的な機能の扱いなので, 1 行目の <code>enable_iterative_imputer</code> を先に読み込む必要があります.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.experimental <span class="im">import</span> enable_iterative_imputer  <span class="co"># noqa: F401</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.impute <span class="im">import</span> IterativeImputer</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>num_cols <span class="op">=</span> [<span class="st">'grade'</span>, <span class="st">'commute_min'</span>, <span class="st">'work_hours'</span>, <span class="st">'spending'</span>, <span class="st">'sleep_hours'</span>]</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>m <span class="op">=</span> <span class="dv">20</span>  <span class="co"># 作るデータセットの数</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>imputed <span class="op">=</span> []</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(m):</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    imputer <span class="op">=</span> IterativeImputer(sample_posterior<span class="op">=</span><span class="va">True</span>, max_iter<span class="op">=</span><span class="dv">20</span>, random_state<span class="op">=</span>i)</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>    values <span class="op">=</span> imputer.fit_transform(df[num_cols])</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    imputed.append(pd.DataFrame(values, columns<span class="op">=</span>num_cols))</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a><span class="co"># 1 人目の無回答の学生について, データセットごとに補った支出を見る</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>first <span class="op">=</span> df.index[df[<span class="st">'spending'</span>].isna()][<span class="dv">0</span>]</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>([<span class="bu">round</span>(<span class="bu">float</span>(d.loc[first, <span class="st">'spending'</span>]), <span class="dv">1</span>) <span class="cf">for</span> d <span class="kw">in</span> imputed[:<span class="dv">5</span>]])</span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a><span class="co">[73.5, 89.9, 100.3, 41.6, 69.3]</span></span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>同じ学生の支出が, データセットによって 41.6 千円から 100.3 千円まで違う値で補われています. この違いが, その学生の支出についての不確かさを表します. 回答のある値は, どのデータセットでも同じです. 多重代入法では, この 20 個の値を平均して 1 つのデータにまとめることはしません. 20 個のデータセットのまま分析し, 分析の結果をまとめます.</p>
+<h4 id="手順-2-各データセットで分析する">手順 2: 各データセットで分析する</h4>
+<p>20 個のデータセットそれぞれで, <a href="dsp5.html">第5章</a>と同じ statsmodels の重回帰分析を行い, 係数と標準誤差を集めます. 標準誤差は 2 乗して分散にしておきます (統合則が分散で計算するためです).</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> statsmodels.formula.api <span class="im">as</span> smf</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>formula <span class="op">=</span> <span class="st">'spending ~ work_hours + commute_min'</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>estimates, variances <span class="op">=</span> [], []</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> data <span class="kw">in</span> imputed:</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    result <span class="op">=</span> smf.ols(formula, data<span class="op">=</span>data).fit()</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>    estimates.append(result.params)</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>    variances.append(result.bse<span class="op">**</span><span class="dv">2</span>)</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>estimates <span class="op">=</span> pd.DataFrame(estimates)</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>variances <span class="op">=</span> pd.DataFrame(variances)</span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(estimates.head().<span class="bu">round</span>(<span class="dv">3</span>))</span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a><span class="co">   Intercept  work_hours  commute_min</span></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a><span class="co">0     74.082       1.410       -0.475</span></span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a><span class="co">1     75.832       1.297       -0.488</span></span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a><span class="co">2     76.095       1.401       -0.504</span></span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a><span class="co">3     74.467       1.366       -0.485</span></span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a><span class="co">4     74.008       1.525       -0.479</span></span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>アルバイト時間の係数は, 最初の 5 個のデータセットだけでも 1.297 から 1.525 まで違います.</p>
+<h4 id="手順-3-rubin-の統合則で結果をまとめる">手順 3: Rubin の統合則で結果をまとめる</h4>
+<p>m 個の推定値 <span class="math inline">\hat{Q}_1, \dots, \hat{Q}_m</span> と, その分散 (標準誤差の 2 乗) <span class="math inline">U_1, \dots, U_m</span> を, 次の式で 1 つにまとめます. これを <strong>Rubin の統合則</strong> (Rubin’s rules) といいます.</p>
+<div class="note">
+<ul>
+<li><strong>Rubin の統合則</strong></li>
+</ul>
+<p><span class="math display"> \bar{Q} = \frac{1}{m} \sum_{i=1}^{m} \hat{Q}_i \qquad \bar{U} = \frac{1}{m} \sum_{i=1}^{m} U_i \qquad B = \frac{1}{m-1} \sum_{i=1}^{m} \left( \hat{Q}_i - \bar{Q} \right)^2 </span></p>
+<p><span class="math display"> T = \bar{U} + \left( 1 + \frac{1}{m} \right) B </span></p>
+<p><span class="math inline">\bar{Q}</span>: 統合した推定値, <span class="math inline">\bar{U}</span>: 補定内の分散, <span class="math inline">B</span>: 補定間の分散, <span class="math inline">T</span>: 全体の分散 (統合した標準誤差は <span class="math inline">\sqrt{T}</span>).</p>
+</div>
+<p>点推定 <span class="math inline">\bar{Q}</span> は m 個の推定値の平均です. 分散 <span class="math inline">T</span> は 2 つの部分からなります.</p>
+<ul>
+<li><strong>補定内の分散</strong> <span class="math inline">\bar{U}</span>: 各データセットでの推定の分散の平均. 欠損が無かったとしても残る, 標本から推定することによる不確かさです.</li>
+<li><strong>補定間の分散</strong> <span class="math inline">B</span>: m 個の推定値のばらつき. 補った値が分からないことによる不確かさです. 補った値の違いで推定値が大きく変わるほど大きくなります.</li>
+</ul>
+<p><span class="math inline">B</span> に掛かる <span class="math inline">(1 + 1/m)</span> は, m が有限であることによる補正です. 単一代入法は <span class="math inline">B</span> に当たる不確かさを入れないので, 標準誤差が小さく出ます.</p>
+<p>式をそのまま関数にします. 最後の列は, 全体の分散 <span class="math inline">T</span> のうち補定間の分散による部分の割合です.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> pool(estimates, variances):</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;Rubin の統合則で, m 個の推定値と分散を 1 つにまとめる.&quot;&quot;&quot;</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>    m <span class="op">=</span> <span class="bu">len</span>(estimates)</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    q_bar <span class="op">=</span> estimates.mean()  <span class="co"># 点推定: 推定値の平均</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>    w <span class="op">=</span> variances.mean()  <span class="co"># 補定内の分散</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    b <span class="op">=</span> estimates.var(ddof<span class="op">=</span><span class="dv">1</span>)  <span class="co"># 補定間の分散</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>    t <span class="op">=</span> w <span class="op">+</span> (<span class="dv">1</span> <span class="op">+</span> <span class="dv">1</span> <span class="op">/</span> m) <span class="op">*</span> b  <span class="co"># 全体の分散</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> pd.DataFrame({</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>        <span class="st">'推定値'</span>: q_bar,</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>        <span class="st">'標準誤差'</span>: np.sqrt(t),</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>        <span class="st">'補定内'</span>: w,</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>        <span class="st">'補定間'</span>: b,</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>        <span class="st">'補定間の割合'</span>: (<span class="dv">1</span> <span class="op">+</span> <span class="dv">1</span> <span class="op">/</span> m) <span class="op">*</span> b <span class="op">/</span> t,</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>    })</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(pool(estimates, variances).<span class="bu">round</span>(<span class="dv">3</span>))</span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a><span class="co">                推定値   標準誤差    補定内    補定間  補定間の割合</span></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a><span class="co">Intercept    74.545  2.404  4.835  0.900   0.164</span></span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a><span class="co">work_hours    1.442  0.162  0.019  0.007   0.277</span></span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a><span class="co">commute_min  -0.488  0.034  0.001  0.000   0.205</span></span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>アルバイト時間の係数は 1.442, 標準誤差は 0.162 です. 全体の分散のうち 27.7% が補定間の分散で, その分は補った値が分からないことによる不確かさです.</p>
+<p>statsmodels にも, 連鎖方程式による多重代入法と統合までを行う <code>statsmodels.imputation.mice</code> があります. 本章では, 統合則の式と計算の対応が見えるように, 統合を自分で書きました.</p>
+<p>m をいくつにするかの目安として, 欠損のある行の割合 (%) と同じくらいの数がよく挙げられます. 例題で使った 5 つの変数では, 支出かアルバイト時間が欠けている行が 31% なので, 30 程度です. m が小さいと, 乱数の種を変えただけで統合した結果が変わります.</p>
+<p>この節に対応する演習は, 章末の<a href="#exercise-dsp15-4">Exercise DSP15-4</a>です.</p>
+<h3 id="evaluation">補定方法の評価</h3>
+<h4 id="本当の値が分かるデータで比べる">本当の値が分かるデータで比べる</h4>
+<p>例題では本当の値が分かっているので, 補定の方法ごとに, 回帰分析の結果と支出の平均を本当の値と比べられます. 完全ケース分析は, 回帰に使う 3 つの変数 (支出, アルバイト時間, 通学時間) が揃った 275 人で行います. 居住形態は回帰に使わないので, 欠けていても除きません. そのため, <a href="#deletion">欠損のある行を削除する方法</a>の 249 行とは人数と平均が違います.</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fit(data):</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>    result <span class="op">=</span> smf.ols(formula, data<span class="op">=</span>data).fit()</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> result.params[<span class="st">'work_hours'</span>], result.bse[<span class="st">'work_hours'</span>]</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>rows <span class="op">=</span> {</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">'本当の値'</span>: fit(true),</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">'完全ケース分析'</span>: fit(df.dropna(subset<span class="op">=</span>[<span class="st">'spending'</span>, <span class="st">'work_hours'</span>])),</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">'平均値補完'</span>: fit(df.assign(spending<span class="op">=</span>spending_mean).dropna(subset<span class="op">=</span>[<span class="st">'work_hours'</span>])),</span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">'回帰補完'</span>: fit(df.assign(spending<span class="op">=</span>spending_reg).dropna(subset<span class="op">=</span>[<span class="st">'work_hours'</span>])),</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>pooled <span class="op">=</span> pool(estimates, variances).loc[<span class="st">'work_hours'</span>]</span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>rows[<span class="st">'多重代入法'</span>] <span class="op">=</span> (pooled[<span class="st">'推定値'</span>], pooled[<span class="st">'標準誤差'</span>])</span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a>means <span class="op">=</span> [d[<span class="st">'spending'</span>].mean() <span class="cf">for</span> d <span class="kw">in</span> imputed]</span>
+<span id="cb17-15"><a href="#cb17-15" aria-hidden="true" tabindex="-1"></a>spending_means <span class="op">=</span> {</span>
+<span id="cb17-16"><a href="#cb17-16" aria-hidden="true" tabindex="-1"></a>    <span class="st">'本当の値'</span>: true[<span class="st">'spending'</span>].mean(),</span>
+<span id="cb17-17"><a href="#cb17-17" aria-hidden="true" tabindex="-1"></a>    <span class="st">'完全ケース分析'</span>: df.dropna(subset<span class="op">=</span>[<span class="st">'spending'</span>, <span class="st">'work_hours'</span>])[<span class="st">'spending'</span>].mean(),</span>
+<span id="cb17-18"><a href="#cb17-18" aria-hidden="true" tabindex="-1"></a>    <span class="st">'平均値補完'</span>: spending_mean.mean(),</span>
+<span id="cb17-19"><a href="#cb17-19" aria-hidden="true" tabindex="-1"></a>    <span class="st">'回帰補完'</span>: spending_reg.mean(),</span>
+<span id="cb17-20"><a href="#cb17-20" aria-hidden="true" tabindex="-1"></a>    <span class="st">'多重代入法'</span>: np.mean(means),</span>
+<span id="cb17-21"><a href="#cb17-21" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb17-22"><a href="#cb17-22" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> name, (coef, se) <span class="kw">in</span> rows.items():</span>
+<span id="cb17-23"><a href="#cb17-23" aria-hidden="true" tabindex="-1"></a>    mean <span class="op">=</span> spending_means[name]</span>
+<span id="cb17-24"><a href="#cb17-24" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'</span><span class="sc">{</span>name<span class="sc">:8s}</span><span class="ss"> 係数 </span><span class="sc">{</span>coef<span class="sc">:.3f}</span><span class="ss">  標準誤差 </span><span class="sc">{</span>se<span class="sc">:.3f}</span><span class="ss">  支出の平均 </span><span class="sc">{</span>mean<span class="sc">:.2f}</span><span class="ss">'</span>)</span>
+<span id="cb17-25"><a href="#cb17-25" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb17-26"><a href="#cb17-26" aria-hidden="true" tabindex="-1"></a><span class="co">本当の値     係数 1.408  標準誤差 0.139  支出の平均 71.69</span></span>
+<span id="cb17-27"><a href="#cb17-27" aria-hidden="true" tabindex="-1"></a><span class="co">完全ケース分析  係数 1.384  標準誤差 0.183  支出の平均 67.07</span></span>
+<span id="cb17-28"><a href="#cb17-28" aria-hidden="true" tabindex="-1"></a><span class="co">平均値補完    係数 0.839  標準誤差 0.136  支出の平均 69.00</span></span>
+<span id="cb17-29"><a href="#cb17-29" aria-hidden="true" tabindex="-1"></a><span class="co">回帰補完     係数 1.384  標準誤差 0.122  支出の平均 71.42</span></span>
+<span id="cb17-30"><a href="#cb17-30" aria-hidden="true" tabindex="-1"></a><span class="co">多重代入法    係数 1.442  標準誤差 0.162  支出の平均 71.68</span></span>
+<span id="cb17-31"><a href="#cb17-31" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>方法</th>
+<th>アルバイト時間の係数</th>
+<th>支出の平均</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>完全ケース分析</td>
+<td>本当の値に近いが, 標準誤差が最も大きい (行が 3 割減ったため)</td>
+<td>4.6 千円小さい</td>
+</tr>
+<tr class="even">
+<td>平均値補完</td>
+<td>0.839 で, 本当の値 (1.408) の 6 割程度に弱まる</td>
+<td>2.7 千円小さい</td>
+</tr>
+<tr class="odd">
+<td>回帰補完</td>
+<td>本当の値に近いが, 標準誤差 (0.122) が本当の値 (0.139) より小さい</td>
+<td>ほぼ本当の値</td>
+</tr>
+<tr class="even">
+<td>多重代入法</td>
+<td>本当の値に近く, 標準誤差は補った値の不確かさの分だけ大きい</td>
+<td>ほぼ本当の値</td>
+</tr>
+</tbody>
+</table>
+<p>支出の欠け方は, 回帰式の説明変数であるアルバイト時間で決まっています. 目的変数 (支出) の欠け方が説明変数 (アルバイト時間) だけで決まる場合, 欠損のある行を削除しても回帰係数は偏りません. アルバイト時間の欠け方は支出に左右されていますが, 欠けているのは 28 人と少なく, このデータでは係数への影響は小さく出ました. 一方, 支出の平均は削除で偏ります. 平均値補完は, 補った 97 人の支出をアルバイト時間と無関係な値にしたので, 係数を弱めます. 回帰補完は係数と平均を本当の値に近づけますが, 補った値を確かな値として扱うので, 標準誤差を小さく見積もります.</p>
+<p>多重代入法の標準誤差 (0.162) は, 欠損の無い本当のデータでの標準誤差 (0.139) より大きくなっています. 欠損で失った情報の分だけ推定は不確かになるので, 標準誤差が大きくなるのが正しい結果です. 多重代入法は, その不確かさを標準誤差に入れています.</p>
+<h4 id="本当の値が分からないデータで比べる">本当の値が分からないデータで比べる</h4>
+<p>実際のデータでは本当の値が分かりません. その場合は, 回答のある値の一部をわざと隠して補い, 隠した値との誤差で方法を比べます. 誤差の大きさには<a href="dsp5.html#regression-evaluation">回帰の評価</a>と同じ RMSE (平方根平均二乗誤差) を使います.</p>
+<div class="sourceCode" id="cb18"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 回答のある支出の 20% をわざと隠し, 補った値と隠した値の誤差を求める</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.default_rng(<span class="dv">1</span>)</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>observed <span class="op">=</span> df.dropna(subset<span class="op">=</span>[<span class="st">'spending'</span>, <span class="st">'work_hours'</span>]).index</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>hidden <span class="op">=</span> rng.choice(observed, size<span class="op">=</span><span class="bu">len</span>(observed) <span class="op">//</span> <span class="dv">5</span>, replace<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>masked <span class="op">=</span> df.copy()</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>masked.loc[hidden, <span class="st">'spending'</span>] <span class="op">=</span> np.nan</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>train_masked <span class="op">=</span> masked.dropna(subset<span class="op">=</span>[<span class="st">'spending'</span>, <span class="st">'work_hours'</span>])</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>reg_masked <span class="op">=</span> LinearRegression().fit(train_masked[features], train_masked[<span class="st">'spending'</span>])</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a>pred <span class="op">=</span> reg_masked.predict(df.loc[hidden, features])</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a>mean_value <span class="op">=</span> train_masked[<span class="st">'spending'</span>].mean()</span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> rmse(pred):</span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> np.sqrt(np.mean((df.loc[hidden, <span class="st">'spending'</span>] <span class="op">-</span> pred) <span class="op">**</span> <span class="dv">2</span>))</span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'平均値補完の RMSE:'</span>, <span class="bu">round</span>(rmse(mean_value), <span class="dv">2</span>))</span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'回帰補完の RMSE:'</span>, <span class="bu">round</span>(rmse(pred), <span class="dv">2</span>))</span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a><span class="co">平均値補完の RMSE: 22.83</span></span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a><span class="co">回帰補完の RMSE: 17.98</span></span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>回帰補完の RMSE (17.98 千円) は, 平均値補完 (22.83 千円) より 5 千円ほど小さくなっています. この方法で比べられるのは, 回答のある値の中での当たり方です. 隠すのは無作為に選んだ値なので, 欠け方が MCAR でない場合, 本当に欠けている値での当たり方とは違うことがあります. また, RMSE は 1 人ずつの値の当たり方なので, 標準誤差を正しく見積もれるかどうか (多重代入法の利点) は RMSE では比べられません.</p>
+<p>補定の前後で, 平均, 標準偏差, 相関, 回帰係数がどう変わるかも並べて確かめます. 補定で大きく変わる統計量があれば, その統計量は補定の方法に左右されやすいので, 報告で補定前の値も示します.</p>
+<h4 id="訓練データとテストデータに分けるときの補定">訓練データとテストデータに分けるときの補定</h4>
+<p>予測モデルを作るためにデータを訓練データとテストデータに分ける場合 (<a href="dsp6.html#訓練データとテストデータ">第6章</a>), 補定に使う値 (平均, 回帰式など) は訓練データだけから求めます. 分ける前のデータ全体で平均を求めて補うと, テストデータの値が補定を通じて訓練に入り, テストデータでの性能が実際より良く見えます. scikit-learn では, 補定の手順 (<code>SimpleImputer</code> など) を訓練データで <code>fit</code> し, テストデータには <code>transform</code> だけを使います.</p>
+<h2 id="演習">演習</h2>
+<h4 id="exercise-dsp15-1">Exercise DSP15-1</h4>
+<p><strong>アルバイト時間の欠け方を調べる</strong></p>
+<p>対応する節: <a href="#missing-check">欠損値を見つけて数える</a>, <a href="#missing-types">欠損の種類</a></p>
+<p>アルバイト時間 (<code>work_hours</code>) を答えたかどうかで学生を分け, 学年, 通学時間, 支出, 睡眠時間の平均を比べてください. その結果から, アルバイト時間の欠け方が MCAR かどうかを判断し, MAR か MNAR かを見分けるには何が分かればよいかを説明してください.</p>
+<p>提出ファイル名: <code>dsp15-1.py</code></p>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答例
+</summary>
+<div class="sourceCode" id="cb19"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/student_survey.csv'</span>, encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>)</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>answered <span class="op">=</span> df[<span class="st">'work_hours'</span>].isna().<span class="bu">map</span>({<span class="va">False</span>: <span class="st">'回答あり'</span>, <span class="va">True</span>: <span class="st">'無回答'</span>})</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(answered.value_counts())</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a>columns <span class="op">=</span> [<span class="st">'grade'</span>, <span class="st">'commute_min'</span>, <span class="st">'spending'</span>, <span class="st">'sleep_hours'</span>]</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df.groupby(answered)[columns].mean().<span class="bu">round</span>(<span class="dv">2</span>))</span></code></pre></div>
+<div class="sourceCode" id="cb20"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="ex">work_hours</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="ex">回答あり</span>    372</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="ex">無回答</span>      28</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a><span class="ex">Name:</span> count, dtype: int64</span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>            <span class="ex">grade</span>  commute_min  spending  sleep_hours</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="ex">work_hours</span>                                           </span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a><span class="ex">回答あり</span>         2.34        40.25     67.07         6.48</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a><span class="ex">無回答</span>          2.14        28.79     87.93         6.42</span></code></pre></div>
+<p>アルバイト時間が無回答の 28 人は, 支出の平均が 87.93 千円で, 回答した学生 (67.07 千円) より 20 千円ほど多くなっています. 通学時間も 11 分ほど短くなっています. 欠け方が他の変数と関係しているので, MCAR ではありません.</p>
+<p>支出が多い学生ほどアルバイト時間を答えていないことは, 観測された支出から分かります. 支出 (と通学時間) で欠け方が説明できるなら MAR です. 同じ支出の学生の中で, アルバイト時間が長い学生ほど答えていないなら MNAR です. それを見分けるには, 無回答の学生の本当のアルバイト時間が必要です. 答え合わせ用のデータで確かめられますが, 実際の調査ではできません.</p>
+</details>
+<h4 id="exercise-dsp15-2">Exercise DSP15-2</h4>
+<p><strong>居住形態の予測に使う変数を変える</strong></p>
+<p>対応する節: <a href="#categorical-imputation">カテゴリー変数の補完</a></p>
+<p>居住形態を, 最頻値補完と, 決定木 (<code>max_depth=3, random_state=0</code>) で補ってください. 決定木の予測に使う変数は, (a) 学年と睡眠時間, (b) それに通学時間を加えた 3 つ, の 2 通りとします. 無回答だった 40 人について, 補った値が答え合わせ用のデータの居住形態と一致した割合を求め, 決定木については本当の値と補った値のクロス集計表も作ってください. 結果から, 分類モデルで補うときに予測に使う変数をどう選べばよいかを説明してください.</p>
+<p>提出ファイル名: <code>dsp15-2.py</code></p>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答例
+</summary>
+<div class="sourceCode" id="cb21"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.tree <span class="im">import</span> DecisionTreeClassifier</span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/student_survey.csv'</span>, encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>)</span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a>true <span class="op">=</span> pd.read_csv(<span class="st">'data/student_survey_true.csv'</span>, encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>)</span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-7"><a href="#cb21-7" aria-hidden="true" tabindex="-1"></a>known <span class="op">=</span> df[<span class="st">'housing'</span>].notna()</span>
+<span id="cb21-8"><a href="#cb21-8" aria-hidden="true" tabindex="-1"></a>answer <span class="op">=</span> true.loc[<span class="op">~</span>known, <span class="st">'housing'</span>]  <span class="co"># 無回答だった学生の本当の居住形態</span></span>
+<span id="cb21-9"><a href="#cb21-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-10"><a href="#cb21-10" aria-hidden="true" tabindex="-1"></a>mode <span class="op">=</span> df[<span class="st">'housing'</span>].mode()[<span class="dv">0</span>]</span>
+<span id="cb21-11"><a href="#cb21-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'最頻値補完:'</span>, <span class="bu">round</span>((answer <span class="op">==</span> mode).mean(), <span class="dv">3</span>))</span>
+<span id="cb21-12"><a href="#cb21-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb21-13"><a href="#cb21-13" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> features <span class="kw">in</span> [[<span class="st">'grade'</span>, <span class="st">'sleep_hours'</span>], [<span class="st">'commute_min'</span>, <span class="st">'grade'</span>, <span class="st">'sleep_hours'</span>]]:</span>
+<span id="cb21-14"><a href="#cb21-14" aria-hidden="true" tabindex="-1"></a>    model <span class="op">=</span> DecisionTreeClassifier(max_depth<span class="op">=</span><span class="dv">3</span>, random_state<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb21-15"><a href="#cb21-15" aria-hidden="true" tabindex="-1"></a>    model.fit(df.loc[known, features], df.loc[known, <span class="st">'housing'</span>])</span>
+<span id="cb21-16"><a href="#cb21-16" aria-hidden="true" tabindex="-1"></a>    pred <span class="op">=</span> model.predict(df.loc[<span class="op">~</span>known, features])</span>
+<span id="cb21-17"><a href="#cb21-17" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(features, <span class="bu">round</span>((answer <span class="op">==</span> pred).mean(), <span class="dv">3</span>))</span>
+<span id="cb21-18"><a href="#cb21-18" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(pd.crosstab(answer, pred, rownames<span class="op">=</span>[<span class="st">'本当'</span>], colnames<span class="op">=</span>[<span class="st">'補った値'</span>]))</span></code></pre></div>
+<div class="sourceCode" id="cb22"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a><span class="ex">最頻値補完:</span> 0.5</span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a><span class="ex">[</span><span class="st">'grade'</span><span class="ex">,</span> <span class="st">'sleep_hours'</span>] 0.5</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a><span class="ex">補った値</span>   自宅</span>
+<span id="cb22-4"><a href="#cb22-4" aria-hidden="true" tabindex="-1"></a><span class="ex">本当</span>       </span>
+<span id="cb22-5"><a href="#cb22-5" aria-hidden="true" tabindex="-1"></a><span class="ex">一人暮らし</span>  16</span>
+<span id="cb22-6"><a href="#cb22-6" aria-hidden="true" tabindex="-1"></a><span class="ex">寮</span>       4</span>
+<span id="cb22-7"><a href="#cb22-7" aria-hidden="true" tabindex="-1"></a><span class="ex">自宅</span>     20</span>
+<span id="cb22-8"><a href="#cb22-8" aria-hidden="true" tabindex="-1"></a><span class="ex">[</span><span class="st">'commute_min'</span><span class="ex">,</span> <span class="st">'grade'</span>, <span class="st">'sleep_hours'</span>] 0.775</span>
+<span id="cb22-9"><a href="#cb22-9" aria-hidden="true" tabindex="-1"></a><span class="ex">補った値</span>   一人暮らし  自宅</span>
+<span id="cb22-10"><a href="#cb22-10" aria-hidden="true" tabindex="-1"></a><span class="ex">本当</span>              </span>
+<span id="cb22-11"><a href="#cb22-11" aria-hidden="true" tabindex="-1"></a><span class="ex">一人暮らし</span>     13   3</span>
+<span id="cb22-12"><a href="#cb22-12" aria-hidden="true" tabindex="-1"></a><span class="ex">寮</span>          4   0</span>
+<span id="cb22-13"><a href="#cb22-13" aria-hidden="true" tabindex="-1"></a><span class="ex">自宅</span>         2  18</span></code></pre></div>
+<p>最頻値補完は 40 人全員を自宅としたので, 本当に自宅だった 20 人だけが当たり, 一致した割合は 50% です. 学年と睡眠時間だけの決定木も全員を自宅と予測し, 最頻値補完と同じ 50% になりました. 学年と睡眠時間は居住形態とほとんど関係しないので, どの学生についても, 最も多い自宅と予測するのが最善になるためです.</p>
+<p>通学時間を加えると, 一致した割合は 77.5% に上がります. 自宅生は通学時間が長く, 一人暮らしと寮の学生は短いので, 通学時間で自宅かどうかを見分けられます. ただし, 寮の 4 人はすべて一人暮らしと予測されています. 寮生も一人暮らしの学生も通学時間が短いので, 3 つの変数では 2 つを区別できません. 予測に使う変数は, 補う変数のカテゴリごとに値が違うもの (寮と一人暮らしなら家賃や食事の有無) を選びます.</p>
+</details>
+<h4 id="exercise-dsp15-3">Exercise DSP15-3</h4>
+<p><strong>回帰補完の当たり方と分布の保ち方</strong></p>
+<p>対応する節: <a href="#regression-imputation">回帰補完と確率的回帰補完</a></p>
+<p>支出を, 回帰補完と確率的回帰補完で補ってください. 回帰式の説明変数は, (a) アルバイト時間と通学時間, (b) それに睡眠時間と学年を加えた 4 つ, の 2 通りとします. それぞれについて, 補った値と本当の値 (答え合わせ用のデータ) の RMSE を無回答だった 97 人で求め, 補った後の支出の標準偏差も求めてください. 確率的回帰補完の乱数は <code>np.random.default_rng(0)</code> から作ります. 結果から, 2 つの補い方をどう使い分けるかを説明してください.</p>
+<p>提出ファイル名: <code>dsp15-3.py</code></p>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答例
+</summary>
+<div class="sourceCode" id="cb23"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.linear_model <span class="im">import</span> LinearRegression</span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/student_survey.csv'</span>, encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>)</span>
+<span id="cb23-6"><a href="#cb23-6" aria-hidden="true" tabindex="-1"></a>true <span class="op">=</span> pd.read_csv(<span class="st">'data/student_survey_true.csv'</span>, encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>)</span>
+<span id="cb23-7"><a href="#cb23-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-8"><a href="#cb23-8" aria-hidden="true" tabindex="-1"></a>target <span class="op">=</span> df[<span class="st">'spending'</span>].isna()</span>
+<span id="cb23-9"><a href="#cb23-9" aria-hidden="true" tabindex="-1"></a>rng <span class="op">=</span> np.random.default_rng(<span class="dv">0</span>)</span>
+<span id="cb23-10"><a href="#cb23-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-11"><a href="#cb23-11" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> features <span class="kw">in</span> [[<span class="st">'work_hours'</span>, <span class="st">'commute_min'</span>],</span>
+<span id="cb23-12"><a href="#cb23-12" aria-hidden="true" tabindex="-1"></a>                 [<span class="st">'work_hours'</span>, <span class="st">'commute_min'</span>, <span class="st">'sleep_hours'</span>, <span class="st">'grade'</span>]]:</span>
+<span id="cb23-13"><a href="#cb23-13" aria-hidden="true" tabindex="-1"></a>    train <span class="op">=</span> df.dropna(subset<span class="op">=</span>[<span class="st">'spending'</span>] <span class="op">+</span> features)</span>
+<span id="cb23-14"><a href="#cb23-14" aria-hidden="true" tabindex="-1"></a>    reg <span class="op">=</span> LinearRegression().fit(train[features], train[<span class="st">'spending'</span>])</span>
+<span id="cb23-15"><a href="#cb23-15" aria-hidden="true" tabindex="-1"></a>    residual <span class="op">=</span> train[<span class="st">'spending'</span>] <span class="op">-</span> reg.predict(train[features])</span>
+<span id="cb23-16"><a href="#cb23-16" aria-hidden="true" tabindex="-1"></a>    residual_sd <span class="op">=</span> np.std(residual, ddof<span class="op">=</span><span class="bu">len</span>(features) <span class="op">+</span> <span class="dv">1</span>)</span>
+<span id="cb23-17"><a href="#cb23-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-18"><a href="#cb23-18" aria-hidden="true" tabindex="-1"></a>    pred <span class="op">=</span> reg.predict(df.loc[target, features])</span>
+<span id="cb23-19"><a href="#cb23-19" aria-hidden="true" tabindex="-1"></a>    stoch <span class="op">=</span> pred <span class="op">+</span> rng.normal(<span class="dv">0</span>, residual_sd, target.<span class="bu">sum</span>())</span>
+<span id="cb23-20"><a href="#cb23-20" aria-hidden="true" tabindex="-1"></a>    answer <span class="op">=</span> true.loc[target, <span class="st">'spending'</span>]</span>
+<span id="cb23-21"><a href="#cb23-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb23-22"><a href="#cb23-22" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(features)</span>
+<span id="cb23-23"><a href="#cb23-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> name, values <span class="kw">in</span> [(<span class="st">'回帰補完'</span>, pred), (<span class="st">'確率的回帰補完'</span>, stoch)]:</span>
+<span id="cb23-24"><a href="#cb23-24" aria-hidden="true" tabindex="-1"></a>        filled <span class="op">=</span> df[<span class="st">'spending'</span>].copy()</span>
+<span id="cb23-25"><a href="#cb23-25" aria-hidden="true" tabindex="-1"></a>        filled[target] <span class="op">=</span> values</span>
+<span id="cb23-26"><a href="#cb23-26" aria-hidden="true" tabindex="-1"></a>        rmse <span class="op">=</span> np.sqrt(np.mean((answer <span class="op">-</span> values) <span class="op">**</span> <span class="dv">2</span>))</span>
+<span id="cb23-27"><a href="#cb23-27" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f'  </span><span class="sc">{</span>name<span class="sc">:8s}</span><span class="ss"> RMSE </span><span class="sc">{</span>rmse<span class="sc">:6.2f}</span><span class="ss">  標準偏差 </span><span class="sc">{</span>filled<span class="sc">.</span>std()<span class="sc">:6.2f}</span><span class="ss">'</span>)</span>
+<span id="cb23-28"><a href="#cb23-28" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'本当の値の標準偏差'</span>, <span class="bu">round</span>(true[<span class="st">'spending'</span>].std(), <span class="dv">2</span>))</span></code></pre></div>
+<div class="sourceCode" id="cb24"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a><span class="ex">[</span><span class="st">'work_hours'</span><span class="ex">,</span> <span class="st">'commute_min'</span>]</span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="ex">回帰補完</span>     RMSE  17.81  標準偏差  22.92</span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a>  <span class="ex">確率的回帰補完</span>  RMSE  25.30  標準偏差  24.33</span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="ex">[</span><span class="st">'work_hours'</span><span class="ex">,</span> <span class="st">'commute_min'</span>, <span class="st">'sleep_hours'</span>, <span class="st">'grade'</span>]</span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a>  <span class="ex">回帰補完</span>     RMSE  17.76  標準偏差  22.97</span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a>  <span class="ex">確率的回帰補完</span>  RMSE  25.81  標準偏差  24.14</span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a><span class="ex">本当の値の標準偏差</span> 24.78</span></code></pre></div>
+<p>どちらの説明変数でも, 1 人ずつの当たり方 (RMSE) は回帰補完のほうが小さく, 補った後の標準偏差は確率的回帰補完のほうが本当の値 (24.78) に近くなっています. 確率的回帰補完は, 予測値に乱数を足すので 1 人ずつの値は本当の値から離れますが, 支出のばらつきは回答と同じ程度になります. 1 人ずつの値を当てたい (例えば個人ごとの予測に使う) なら回帰補完, 平均以外の分布の特徴や変数間の関係を分析するなら確率的回帰補完を使います.</p>
+<p>睡眠時間と学年を加えても, RMSE はほとんど変わりません (17.81 から 17.76). この 2 つは, アルバイト時間と通学時間を使った後では, 支出についての情報をほとんど足さないためです. 説明変数は, 補う変数と関係するものを選びます.</p>
+</details>
+<h4 id="exercise-dsp15-4">Exercise DSP15-4</h4>
+<p><strong>多重代入法のデータセットの数 m を変える</strong></p>
+<p>対応する節: <a href="#multiple-imputation">多重代入法</a></p>
+<p>本文の多重代入法を, m = 5, 20, 50 で行ってください. それぞれの m について, 乱数の種を 3 通り変えて (<code>random_state</code> を <code>seed * 1000 + i</code> とし, <code>seed</code> を 0, 1, 2 とする) 実行し, 統合したアルバイト時間の係数と標準誤差を求めてください. 結果から, m を大きくすると統合した結果がどう変わるかを説明してください.</p>
+<p>提出ファイル名: <code>dsp15-4.py</code></p>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答例
+</summary>
+<div class="sourceCode" id="cb25"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> statsmodels.formula.api <span class="im">as</span> smf</span>
+<span id="cb25-4"><a href="#cb25-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.experimental <span class="im">import</span> enable_iterative_imputer  <span class="co"># noqa: F401</span></span>
+<span id="cb25-5"><a href="#cb25-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.impute <span class="im">import</span> IterativeImputer</span>
+<span id="cb25-6"><a href="#cb25-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-7"><a href="#cb25-7" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/student_survey.csv'</span>, encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>)</span>
+<span id="cb25-8"><a href="#cb25-8" aria-hidden="true" tabindex="-1"></a>num_cols <span class="op">=</span> [<span class="st">'grade'</span>, <span class="st">'commute_min'</span>, <span class="st">'work_hours'</span>, <span class="st">'spending'</span>, <span class="st">'sleep_hours'</span>]</span>
+<span id="cb25-9"><a href="#cb25-9" aria-hidden="true" tabindex="-1"></a>formula <span class="op">=</span> <span class="st">'spending ~ work_hours + commute_min'</span></span>
+<span id="cb25-10"><a href="#cb25-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-11"><a href="#cb25-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-12"><a href="#cb25-12" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> multiple_imputation(m, seed):</span>
+<span id="cb25-13"><a href="#cb25-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;m 個のデータセットで回帰し, Rubin の統合則で work_hours の係数をまとめる.&quot;&quot;&quot;</span></span>
+<span id="cb25-14"><a href="#cb25-14" aria-hidden="true" tabindex="-1"></a>    estimates, variances <span class="op">=</span> [], []</span>
+<span id="cb25-15"><a href="#cb25-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(m):</span>
+<span id="cb25-16"><a href="#cb25-16" aria-hidden="true" tabindex="-1"></a>        imputer <span class="op">=</span> IterativeImputer(sample_posterior<span class="op">=</span><span class="va">True</span>, max_iter<span class="op">=</span><span class="dv">20</span>,</span>
+<span id="cb25-17"><a href="#cb25-17" aria-hidden="true" tabindex="-1"></a>                                   random_state<span class="op">=</span>seed <span class="op">*</span> <span class="dv">1000</span> <span class="op">+</span> i)</span>
+<span id="cb25-18"><a href="#cb25-18" aria-hidden="true" tabindex="-1"></a>        data <span class="op">=</span> pd.DataFrame(imputer.fit_transform(df[num_cols]), columns<span class="op">=</span>num_cols)</span>
+<span id="cb25-19"><a href="#cb25-19" aria-hidden="true" tabindex="-1"></a>        result <span class="op">=</span> smf.ols(formula, data<span class="op">=</span>data).fit()</span>
+<span id="cb25-20"><a href="#cb25-20" aria-hidden="true" tabindex="-1"></a>        estimates.append(result.params[<span class="st">'work_hours'</span>])</span>
+<span id="cb25-21"><a href="#cb25-21" aria-hidden="true" tabindex="-1"></a>        variances.append(result.bse[<span class="st">'work_hours'</span>] <span class="op">**</span> <span class="dv">2</span>)</span>
+<span id="cb25-22"><a href="#cb25-22" aria-hidden="true" tabindex="-1"></a>    q_bar <span class="op">=</span> np.mean(estimates)</span>
+<span id="cb25-23"><a href="#cb25-23" aria-hidden="true" tabindex="-1"></a>    b <span class="op">=</span> np.var(estimates, ddof<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb25-24"><a href="#cb25-24" aria-hidden="true" tabindex="-1"></a>    t <span class="op">=</span> np.mean(variances) <span class="op">+</span> (<span class="dv">1</span> <span class="op">+</span> <span class="dv">1</span> <span class="op">/</span> m) <span class="op">*</span> b</span>
+<span id="cb25-25"><a href="#cb25-25" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> q_bar, np.sqrt(t)</span>
+<span id="cb25-26"><a href="#cb25-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-27"><a href="#cb25-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb25-28"><a href="#cb25-28" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> m <span class="kw">in</span> [<span class="dv">5</span>, <span class="dv">20</span>, <span class="dv">50</span>]:</span>
+<span id="cb25-29"><a href="#cb25-29" aria-hidden="true" tabindex="-1"></a>    results <span class="op">=</span> [multiple_imputation(m, seed) <span class="cf">for</span> seed <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">3</span>)]</span>
+<span id="cb25-30"><a href="#cb25-30" aria-hidden="true" tabindex="-1"></a>    text <span class="op">=</span> <span class="st">', '</span>.join(<span class="ss">f'</span><span class="sc">{</span>q<span class="sc">:.3f}</span><span class="ss"> (</span><span class="sc">{</span>se<span class="sc">:.3f}</span><span class="ss">)'</span> <span class="cf">for</span> q, se <span class="kw">in</span> results)</span>
+<span id="cb25-31"><a href="#cb25-31" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'm = </span><span class="sc">{</span>m<span class="sc">:2d}</span><span class="ss">: </span><span class="sc">{</span>text<span class="sc">}</span><span class="ss">'</span>)</span></code></pre></div>
+<div class="sourceCode" id="cb26"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="ex">m</span> =  5: 1.400 <span class="er">(</span><span class="ex">0.166</span><span class="kw">)</span><span class="ex">,</span> 1.419 <span class="er">(</span><span class="ex">0.177</span><span class="kw">)</span><span class="ex">,</span> 1.515 <span class="er">(</span><span class="ex">0.147</span><span class="kw">)</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="ex">m</span> = 20: 1.442 <span class="er">(</span><span class="ex">0.162</span><span class="kw">)</span><span class="ex">,</span> 1.420 <span class="er">(</span><span class="ex">0.163</span><span class="kw">)</span><span class="ex">,</span> 1.446 <span class="er">(</span><span class="ex">0.174</span><span class="kw">)</span></span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a><span class="ex">m</span> = 50: 1.446 <span class="er">(</span><span class="ex">0.165</span><span class="kw">)</span><span class="ex">,</span> 1.450 <span class="er">(</span><span class="ex">0.161</span><span class="kw">)</span><span class="ex">,</span> 1.445 <span class="er">(</span><span class="ex">0.172</span><span class="kw">)</span></span></code></pre></div>
+<p>括弧の中が統合した標準誤差です. m = 5 では, 乱数の種によって係数が 1.400 から 1.515 まで違います. m = 50 では 1.445 から 1.450 で, 種を変えてもほぼ同じ値になります. m が小さいと, 推定値の平均が, どの 5 個のデータセットを引いたかに左右されるためです. m を大きくすると統合した結果は安定しますが, 計算時間は m に比例して増えます. このデータでは, m = 20 で係数の違いが 0.03 程度に収まっています.</p>
+</details>
+
+<!-- 下部: カード型の章ナビゲーション -->
+<nav class="chapter-nav-card">
+    
+        <a class="prev" href="dsp14.html">
+            <span class="nav-label">← Previous</span>
+            <span class="nav-title">データサイエンス実践 Ch14 質問紙調査とカテゴリーデータ (選択)</span>
+        </a>
+    
+    
+        <a class="next" href="dsp16.html">
+            <span class="nav-label">Next →</span>
+            <span class="nav-title">データサイエンス実践 Ch16 因果推論 (選択)</span>
+        </a>
+    
+</nav>
+</article>
+
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        <nav class="footer-nav" aria-label="フッターナビゲーション">
+            <a href="../">Home</a>
+            <a href="../posts.html">Blog</a>
+            <a href="../lectures.html">Lecture</a>
+            <a href="../research.html">Research</a>
+            <a href="../rss.xml">RSS</a>
+            <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+        </nav>
+        <p class="footer-copy">&copy; yakagika &middot; Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>.</p>
+    </div>
+</div>
+
+
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="ページ先頭へ戻る" title="先頭へ戻る">↑</button>
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+            link.classList.add('external-link');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level;
+          switch (heading.tagName.toLowerCase()) {
+            case 'h2': level = 0; break;
+            case 'h3': level = 1; break;
+            case 'h4': level = 2; break;
+            default: return;
+          }
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          // Pandoc は `::: note` + 見出し の組み合わせを <section id="..." class="note">
+          // 内の <hN> として出力するため, 見出し自身に id が無い場合は
+          // 親 section の id を辿る.
+          var anchorId = heading.id;
+          if (!anchorId) {
+            var parentSection = heading.closest('section[id]');
+            if (parentSection) anchorId = parentSection.id;
+          }
+          anchor.href = '#' + anchorId;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+
+      // ----------------------------------------
+      // スクロールスパイ: 表示中の見出しを TOC でハイライト
+      // ----------------------------------------
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0 || typeof IntersectionObserver === 'undefined') return;
+
+      var idToTocItem = new Map();
+      headings.forEach(function(h) {
+        if (!h.id) return;
+        var link = tocContainer.querySelector('a[href="#' + CSS.escape(h.id) + '"]');
+        if (link) {
+          var li = link.closest('.toc-item') || link.closest('li');
+          if (li) idToTocItem.set(h.id, li);
+        }
+      });
+
+      var visible = new Set();
+      var lastActive = null;
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+
+        // ドキュメント順で最初に可視な見出しをアクティブに
+        var firstVisible = null;
+        for (var i = 0; i < headings.length; i++) {
+          if (visible.has(headings[i].id)) {
+            firstVisible = headings[i].id;
+            break;
+          }
+        }
+        if (!firstVisible) return;
+
+        var tocItem = idToTocItem.get(firstVisible);
+        if (!tocItem || tocItem === lastActive) return;
+
+        if (lastActive) lastActive.classList.remove('toc-active');
+        tocItem.classList.add('toc-active');
+        lastActive = tocItem;
+
+        // TOC を必要なときだけスクロール
+        tocItem.scrollIntoView({
+          block: 'nearest',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
+      }, {
+        // ヘッダー (60px) を除いた上部 〜 画面下から60% を判定領域とする
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0
+      });
+
+      headings.forEach(function(h) { if (h.id) observer.observe(h); });
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
+      const pre = codeBlock.parentNode;
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
+      copyButton.textContent = 'Copy';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    // パスワード保護付き details (回答例用)
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll('details.protected').forEach(function (det) {
+        var pass = det.getAttribute('data-pass') || '';
+        var summary = det.querySelector('summary');
+        if (!summary) return;
+
+        var gate = document.createElement('div');
+        gate.className = 'pass-gate';
+        gate.innerHTML =
+          '<label>合言葉: <input type="password" autocomplete="off" spellcheck="false"></label>' +
+          '<button type="button">解除</button>' +
+          '<span class="pass-error" hidden>合言葉が違います</span>';
+        summary.insertAdjacentElement('afterend', gate);
+
+        var input = gate.querySelector('input');
+        var button = gate.querySelector('button');
+        var errorMsg = gate.querySelector('.pass-error');
+
+        function tryUnlock() {
+          if (input.value === pass) {
+            det.classList.add('unlocked');
+            errorMsg.hidden = true;
+          } else {
+            errorMsg.hidden = false;
+            input.select();
+          }
+        }
+
+        button.addEventListener('click', tryUnlock);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
+        });
+
+        det.addEventListener('toggle', function () {
+          if (det.open && !det.classList.contains('unlocked')) {
+            input.focus();
+          }
+        });
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            try {
+              katex.render( texText.data
+                          , mathElements[i]
+                          , { displayMode: mathElements[i].classList.contains("display")
+                            , throwOnError: true
+                           }
+                          );
+            } catch (e) {
+              // 1 つの数式のエラーで残り全ての数式が生 TeX のまま残らないようにする
+              console.error('KaTeX render error:', e.message, texText.data);
+            }
+          }
+      }
+    });
+  </script>
+
+  <!-- 見出しアンカーリンク + Back to top -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 記事見出しに hover で現れる # パーマリンクを付与
+      document.querySelectorAll('article h2[id], article h3[id]').forEach(function (h) {
+        var a = document.createElement('a');
+        a.className = 'heading-anchor';
+        a.href = '#' + h.id;
+        a.setAttribute('aria-label', 'このセクションへのリンク');
+        a.textContent = '#';
+        h.appendChild(a);
+      });
+
+      // Back to top: スクロール量に応じて表示
+      var btt = document.getElementById('back-to-top');
+      if (btt) {
+        var onScroll = function () {
+          if (window.pageYOffset > 600) btt.classList.add('visible');
+          else btt.classList.remove('visible');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        btt.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
+    });
+  </script>
+
+  </body>
+</html>
