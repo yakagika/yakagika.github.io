@@ -8,7 +8,7 @@
 
 使い方:
     pdftotext -layout 000935526.pdf mfg.txt
-    python3 scripts/make_dsp10_items.py mfg.txt slds_data/dsp10/manufacturing_items.csv
+    uv run --no-project python scripts/make_dsp10_items.py mfg.txt slds_data/dsp10/manufacturing_items.csv
 
 抜き出しの規則:
 - 細分類 (4 桁の番号) ごとに, 「○」(その細分類に含まれる例) と「×」(含まれない例. 角括弧に
