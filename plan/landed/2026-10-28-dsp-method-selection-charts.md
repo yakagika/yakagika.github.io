@@ -1,18 +1,18 @@
 ---
 plan_id: dsp-method-selection-charts
-status: in-progress
+status: landed
 created: 2026-10-28
 updated: 2026-10-28
 priority: medium
 next_actor: agent
-next_action: "本人の判断: 第15章 (欠損値補定) の流れ図を樹形図に揃えるか. 揃えないなら landed へ移す"
+next_action: ""
 ---
 
 # dsp の各章の冒頭に「手法を選ぶチャート」を置く (追加案)
 
 ## メタ情報
 
-- **状態**: in-progress (2026-10-28 に本人承認. 4 章のチャートは作成済み. 第15章の形式の判断待ち)
+- **状態**: landed (2026-10-28)
 - **作成日**: 2026-10-28
 - **最終更新**: 2026-10-28
 - **親計画**: [dsp-course-material.md](dsp-course-material.md)
@@ -131,3 +131,4 @@ next_action: "本人の判断: 第15章 (欠損値補定) の流れ図を樹形�
     - 第4章: 冒頭の表を樹形図 (`#choose-stat`) に置き換え, 相関の節の尺度の表は樹形図への参照にした.
     - 第6章: 「分類の評価」の冒頭に「評価指標の選び方」(`#choose-metric`) を置き, 流れ図 `images/dsp/ch6/choose-metric.png` (figure-codex-svg, gate 0 error) と節へのリンクの一覧を付けた.
     - 第14章: 「データ処理」の前に「分析手法の選び方」(`#choose-analysis`) を置いた.
+- 2026-10-28 (本人の選択): 第15章 (欠損値補定) は流れ図のまま残す. はい/いいえを順に答える章 (第6章, 第15章) は流れ図, 目的やデータの種類で枝分かれする章 (第2, 3, 4, 14 章) は樹形図, という使い分けにする. 優先度 中の E〜G は今回は入れない (本人の選択は優先度 高の 4 章だけ). landed へ移した.
