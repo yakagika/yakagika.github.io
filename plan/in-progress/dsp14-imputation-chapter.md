@@ -1,18 +1,18 @@
 ---
 plan_id: dsp14-imputation-chapter
-status: proposed
+status: in-progress
 created: 2026-10-28
 updated: 2026-10-28
 priority: medium
-next_actor: user
-next_action: "本人が章の構成とデータの方針を承認したら, agent が生成 script とデータを作り, コードを実行して確かめながら dsp14.md の本文と演習を書く"
+next_actor: agent
+next_action: "生成 script でデータを作り, コードを実行して確かめながら dsp14.md の本文と演習を書く"
 ---
 
 # dsp 第 14 章 (欠損値補定) の本文を書く
 
 ## メタ情報
 
-- **状態**: proposed
+- **状態**: in-progress (2026-10-28 に本人承認. 構成は案のとおり, データは架空の学生生活調査)
 - **作成日**: 2026-10-28
 - **最終更新**: 2026-10-28
 - **親計画**: [dsp-course-material.md](../in-progress/dsp-course-material.md)
