@@ -15,9 +15,9 @@ next_action: ""
 - **状態**: landed (2026-10-28)
 - **作成日**: 2026-10-28
 - **最終更新**: 2026-10-28
-- **親計画**: [dsp-course-material.md](dsp-course-material.md)
+- **親計画**: [dsp-course-material.md](../in-progress/dsp-course-material.md)
 - **出所**: 本人の指示 (2026-10-28). 「最初の手法を選ぶチャートを他の章でも入れたほうがいい. 可視化の章には既に入っている. 適合しそうな候補を選択して追加案を作成して」.
-- **関連**: [dsp-transformer-training-chapter.md](dsp-transformer-training-chapter.md) (第 10〜15 章を 1 つずつ繰り下げる. 本計画の章番号は繰り下げ前の番号で書き, 括弧に繰り下げ後の番号を添える).
+- **関連**: [2026-10-28-dsp-transformer-training-chapter.md](2026-10-28-dsp-transformer-training-chapter.md) (第 10〜15 章を 1 つずつ繰り下げる. 本計画の章番号は繰り下げ前の番号で書き, 括弧に繰り下げ後の番号を添える).
 
 ## 既存のチャート
 
