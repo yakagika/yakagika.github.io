@@ -368,6 +368,21 @@ print((pred == y_test).mean())  # 正解率
 
 ## 分類の評価
 
+### 評価指標の選び方 {#choose-metric}
+
+モデルの予測の良さを測る指標は, 予測する値の種類と, 予測を何に使うかで選びます. 次の図を上からたどって指標を選んでください. 「はい」なら右の指標へ, 「いいえ」なら下の問いへ進みます.
+
+![評価指標の選び方](/images/dsp/ch6/choose-metric.png)
+
+図の各箱は, 次の節で説明します.
+
+- テストデータで予測し, 正解と比べる: [訓練データとテストデータ](#訓練データとテストデータ)
+- 回帰の評価: [第5章](dsp5.html)の[回帰の評価](dsp5.html#regression-evaluation)
+- Accuracy, Recall, Precision: [Accuracy, Precision, Recall](#accuracy-precision-recall)
+- ROC 曲線と AUC: [ROC 曲線と AUC](#roc-曲線と-auc)
+
+分類の指標はどれも, [混同行列](#混同行列)の 4 つの数から計算します. 図の FN (見逃し) と FP (空振り) は混同行列のマスの名前で, 閾値は [ROC 曲線と AUC](#roc-曲線と-auc) で定義します. クラスの数が偏っているときに Accuracy で判断しない理由と, 見逃しと空振りの損失の比べ方は, [Accuracy, Precision, Recall](#accuracy-precision-recall) で例を使って説明します.
+
 ### 訓練データとテストデータ
 
 モデルの性能を学習に使ったデータで測ると, 実際より良く見えることがあります ([第5章](dsp5.html#regression-train-test)の回帰の評価と同じ理由です). 決定木の深さを制限せずに学習させると, この違いを確かめられます.
