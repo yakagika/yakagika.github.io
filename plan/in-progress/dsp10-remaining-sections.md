@@ -4,15 +4,15 @@ status: in-progress
 created: 2026-10-29
 updated: 2026-10-29
 priority: medium
-next_actor: agent
-next_action: "A (Transformer の学習の手順) の実験を走らせて本文を書き, 本人の確認に出す"
+next_actor: user
+next_action: "本人が A (Transformer の学習の手順) の本文をプレビューで読み, 直す点を伝える. 承認後に B と C を書く"
 ---
 
 # dsp 第10章の残りの節 (Transformer の学習の手順, 事例: 自然言語の Transformer を学習する) を書く
 
 ## メタ情報
 
-- **状態**: in-progress (2026-10-29 構成案を本人が承認. A を執筆中)
+- **状態**: in-progress (2026-10-29 A を書いた. 本人の確認待ち. B と C は確認の後)
 - **作成日**: 2026-10-29
 - **親計画**: [dsp-course-material.md](dsp-course-material.md)
 - **関連**: [2026-10-28-dsp-transformer-training-chapter.md](../landed/2026-10-28-dsp-transformer-training-chapter.md) (章を新設し骨組みを置いた), [2026-10-29-dsp10-text-classification-case.md](../landed/2026-10-29-dsp10-text-classification-case.md) (品目名の事例. 本計画の実験はこの事例のデータとコードを使い回す)
@@ -66,3 +66,14 @@ next_action: "A (Transformer の学習の手順) の実験を走らせて本文�
 - CPU だけの学生には B3 が重い. モデルを小さくし, Colab の案内を付ける.
 - A5 の比較は種によって揺れる可能性がある. 品目名の事例と同じく, 種を変えて差が揺れより大きいことを確かめてから書く.
 - 外部の数値 (スケーリング則) は原論文で確かめる.
+
+## A の実装の結果 (2026-10-29)
+
+試作と実験は `_scratch/dsp10rest/` (git 管理外. ft.py, mon.py, attn_time.py, amp.py, accum.py, lecture_a5.py, runs/*.json).
+
+- 計画から変えた点: A4 の「GPU の利用」は第9章の説明があるので節を立てず, 混合精度の計測 (MPS, 1 エポック 9.1 秒 → 6.2 秒, 2 回目の計測) に含めた. A5 の更新する範囲の比較は, MPS で重みを固定した層のドロップアウトがエラーになる (torch 2.15, 勾配を計算しない注意の計算経路) ので, 3 通りとも `set_attn_implementation('eager')` で揃えて測った.
+- 更新する範囲 (種 3 通り): 全部 3e-5 Acc 0.72〜0.76 / 上位 2 層 1e-4 Acc 0.72〜0.74 / 線形だけ 3e-3 (20 エポック) Acc 0.65〜0.67. マスク予測の損失 (こころ 300 行, 15%): 前 2.68, 全部 2.92〜2.97, 上位 2 層 3.07〜3.09, 線形だけ 2.68.
+- データの量: 10% (EPOCHS 50) Acc 0.47〜0.49, 30% (EPOCHS 30) 0.64〜0.65. EPOCHS 8 のままでは 10% が 0.32〜0.38 (学習不足).
+- 監視: 3e-4 は訓練用の損失が 0.01 まで下がり, 検証用は 1.2〜1.4 で止まる. クリッピング (1.0) を加えても検証用の最小は 1.24 (なし 1.23) で変わらない. 3e-5 でも勾配のノルムは全ステップで 1 を超える (中央値 4〜10).
+- 自己注意の計算時間 (CPU, 4 スレッド): n=2048 で全結合層を上回り, 2048→4096 で 3.9 倍.
+- スケーリング則の数値 (Chinchilla 70B / 1.4T トークン, Gopher 280B / 300B) は arXiv 2203.15556 の本文で確かめた.
