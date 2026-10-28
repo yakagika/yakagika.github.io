@@ -4,15 +4,15 @@ status: in-progress
 created: 2026-10-29
 updated: 2026-10-29
 priority: medium
-next_actor: user
-next_action: "本人が構成案を読み, コーパス, モデルの実装の仕方, 進め方の 3 点を選ぶ"
+next_actor: agent
+next_action: "A (Transformer の学習の手順) の実験を走らせて本文を書き, 本人の確認に出す"
 ---
 
 # dsp 第10章の残りの節 (Transformer の学習の手順, 事例: 自然言語の Transformer を学習する) を書く
 
 ## メタ情報
 
-- **状態**: in-progress (構成案. 本人の承認待ち)
+- **状態**: in-progress (2026-10-29 構成案を本人が承認. A を執筆中)
 - **作成日**: 2026-10-29
 - **親計画**: [dsp-course-material.md](dsp-course-material.md)
 - **関連**: [2026-10-28-dsp-transformer-training-chapter.md](../landed/2026-10-28-dsp-transformer-training-chapter.md) (章を新設し骨組みを置いた), [2026-10-29-dsp10-text-classification-case.md](../landed/2026-10-29-dsp10-text-classification-case.md) (品目名の事例. 本計画の実験はこの事例のデータとコードを使い回す)
@@ -51,7 +51,11 @@ next_action: "本人が構成案を読み, コーパス, モデルの実装の�
 - DSP10-5: トークナイザの語彙の大きさを変えて, トークンの数と学習の結果を比べる (B1, B3).
 - DSP10-6: 学習の長さと温度を変えて, 生成される文章を比べる (B3).
 
-## 本人に選んでもらう点
+## 本人の選択 (2026-10-29)
+
+- コーパス: 青空文庫の夏目漱石. 層: 自分で書く. 進め方: A を先に書いて確認を受け, 次に B と C を書く.
+
+## 選択肢として示したもの
 
 1. B のコーパス. 候補: 青空文庫の夏目漱石の作品 (著作権の切れた作品. 青空文庫の規準に従って底本と入力者などの表記を残す) / 産業分類の説明文 (品目名の事例と同じ資料. 文の量は少ない) / 日本語 Wikipedia の一部 (CC BY-SA. 配布データにすると同じ条件で公開する必要がある).
 2. B3 のモデルの実装. 候補: 自己注意などの層を自分で書く (第8章の式とコードを対応させられる) / PyTorch の `nn.TransformerEncoderLayer` などの既製の層を使う (コードが短い).
