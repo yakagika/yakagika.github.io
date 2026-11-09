@@ -78,6 +78,12 @@ title: Lectures
     <span class="series-desc">uv による Python の環境構築, 基本的な文法, pandas などのライブラリの利用, データの取得と編集, アルゴリズムと基本構文を学ぶ全 5 章の共通資料. データサイエンス系の講義で参照する.</span>
     <span class="series-cta">資料を見る →</span>
   </a>
+  <a class="series-card" href="lectures/colab.html">
+    <span class="series-badge">Colab</span>
+    <span class="series-title">Google Colaboratory による GPU 計算</span>
+    <span class="series-desc">手元の PC に GPU がないときに, Google Colaboratory の GPU で計算する手順. ノートブックの作成, GPU の設定, ライブラリとデータの用意, 使うときの注意.</span>
+    <span class="series-cta">資料を見る →</span>
+  </a>
 </div>
 ```
 
