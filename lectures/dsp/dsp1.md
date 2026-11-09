@@ -118,7 +118,7 @@ Python の環境構築と基礎は, 共通資料の[プログラミング基礎]
 | [第4章](dsp4.html) | [偏相関係数](dsp4.html#partial-correlation) |
 | [第5章](dsp5.html) | [回帰分析は何を行っているのか](dsp5.html#発展-回帰分析は何を行っているのか), [説明変数の組み合わせをテスト MSE で比べる](dsp5.html#variable-selection-test-mse) |
 | [第6章](dsp6.html) | [ランダムフォレスト](dsp6.html#ランダムフォレスト), [サポートベクターマシン](dsp6.html#サポートベクターマシン) |
-| [第7章](dsp7.html) | [密度と確率モデルに基づくクラスタリング (DBSCAN, 混合ガウスモデル)](dsp7.html#密度と確率モデルに基づくクラスタリング) |
+| [第7章](dsp7.html) | [非線形の次元削減: t-SNE](dsp7.html#t-sne), [密度と確率モデルに基づくクラスタリング (DBSCAN, 混合ガウスモデル)](dsp7.html#密度と確率モデルに基づくクラスタリング) |
 | [第9章](dsp9.html) | [機械翻訳と文章生成](dsp9.html#translation-generation), [生成 AI の仕組み: 事前学習と生成](dsp9.html#pretraining-and-generation), [トピックモデル](dsp9.html#トピックモデル), [n-gram と文章間類似度](dsp9.html#ngram-similarity), [CLIP](dsp9.html#clip) |
 | [第11章](dsp11.html) | [Vision Transformer](dsp11.html#vision-transformer), [学習した特徴量の次元圧縮 (PCA と t-SNE)](dsp11.html#feature-embedding), [特徴マップ](dsp11.html#feature-maps), [Grad-CAM と Guided Backpropagation](dsp11.html#grad-cam), [年齢識別のコード全体](dsp11.html#age-full-code) |
 
