@@ -5,7 +5,7 @@ created: 2026-11-20
 updated: 2026-11-20
 priority: high
 next_actor: agent
-next_action: "段 4 (blog-reg-s4-prediction: reg-prediction, reg-evaluate) と段 5 (blog-reg-s5-causal: reg-causal) を codex から受け取って land する. 続けて段 6 (reg-selection 系 3 つ) の brief を書く"
+next_action: "段 6 (blog-reg-s6a-selection: reg-selection と blog-reg-s6b-selection-code: reg-selection-gpa, reg-selection-lab) を codex から受け取って land する. その後に段 8 (講義の並び, 旧 anchor, 対応表) の brief を書く"
 ---
 
 # 講義資料を分野とブロックに分け, 講義はブロックの並びかブロックへのリンクで組む
@@ -217,8 +217,8 @@ next_action: "段 4 (blog-reg-s4-prediction: reg-prediction, reg-evaluate) と�
 | 1 | (9c58140 で land) GPA の生成器 `scripts/make_reg_gpa.py`: 配布版の CSV を再現する, 同じ仕組みから新しい標本 (別の 100 人, 新しい学生) を作る, 打ち切り前の潜在得点を返す, 因果の構造を 2 つ (アルバイト時間が中間の変数になる今の構造と, 交絡になる構造. 勉強時間とアルバイト時間の同時分布は 2 つで同じにする) 持ち, 介入した世界の平均を返す. 照合の試験と, `slds_code/ch11/multi.py` のコメントの誤り (生成の向き, 係数, 誤差の大きさ, 出力先) の修正 | codex Sol | 段 0 |
 | 2 | 理論の土台: `reg-intro`, `reg-ols`, `reg-multiple` | codex (cb08f89 で land. 差し戻し 1 回: 信頼区間の被覆の図を潜在得点にする (1000 回中 950 回. 観測 GPA の 877 回は別の段落), 説明変数の番号, 記号表の $m(x)$) | 段 1 |
 | 3 | `reg-simple` (OECD), `reg-gpa` | codex (c97f532 で land. 差し戻し 2 回: 依頼文の問いの誤り, データの読み込み方など 3 点) | 段 1, トルコの修正の land |
-| 4 | `reg-prediction`, `reg-evaluate` | codex | 段 2, 3 と本人の確認 |
-| 5 | `reg-causal` | codex | 段 2 と本人の確認 |
+| 4 | `reg-prediction`, `reg-evaluate` | codex (aa3ab55 で land. 差し戻し 1 回: 過学習の図を 200 回の平均にする, 図の色の呼び方) | 段 2, 3 と本人の確認 |
+| 5 | `reg-causal` | codex (4276fc4 で land. 差し戻し 1 回: 第 16 章への案内の言い方) | 段 2 と本人の確認 |
 | 6 | `reg-selection`, `reg-selection-gpa`, `reg-selection-lab` | codex | 段 4, 5 |
 | 7 | `reg-glm`, `reg-logit` | codex (5121aba で land. 差し戻し 1 回: データの読み込み方) | 段 2 |
 | 8 | 講義の並び (dsp の回帰の回), 旧 anchor から新しい節に着けることの確認, 対応表の 1 項目の付け替え | codex と coordinator | 段 1〜7 |
