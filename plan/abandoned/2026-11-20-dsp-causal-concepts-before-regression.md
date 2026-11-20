@@ -1,18 +1,18 @@
 ---
 plan_id: dsp-causal-concepts-before-regression
-status: in-progress
+status: abandoned
 created: 2026-11-20
 updated: 2026-11-20
 priority: medium
-next_actor: agent
-next_action: "再編の計画 (lecture-block-restructure) の Phase 2 の 13 ブロックの案を本人が承認したら, 候補 A, B を退けて Phase 2 に統合し, この計画を閉じる"
+next_actor: none
+next_action: "なし (lecture-block-restructure の Phase 2 に統合した)"
 ---
 
 # dsp の構成を改め, 交絡と因果の概念を重回帰より前に導入する
 
 ## メタ情報
 
-- **状態**: in-progress (提案段階. 2026-11-20 起票)
+- **状態**: abandoned (2026-11-20 に lecture-block-restructure の Phase 2 に統合. 候補 A, B は退けた)
 - **作成日**: 2026-11-20
 - **最終更新**: 2026-11-20
 - **関連計画**: [lecture-literature-grounding.md](lecture-literature-grounding.md) (この計画の発端), [dsp-course-material.md](dsp-course-material.md)
@@ -63,3 +63,4 @@ next_action: "再編の計画 (lecture-block-restructure) の Phase 2 の 13 ブ
 
 - 2026-11-20: 作成 (本人の裁定による). 同日, 前提の第5章の書き直しが land し, 構成案は再編の計画の回帰分析の分野の設計の中で作ることにした
 - 2026-11-20: 再編の計画で回帰の目的の整理が決まり, 交絡と因果を重回帰の後の `reg-causal` に置く案になった. 承認後にこの計画を Phase 2 に統合する
+- 2026-11-20: 本人が再編の計画の 13 ブロックの分け方を承認した. 候補 A, B (因果の概念を重回帰より前に置く) を退け, 多重共線性の指針の直し方, 直す箇所, 文献, 例のデータの注意を再編の計画の Phase 2 に引き継いで閉じた
