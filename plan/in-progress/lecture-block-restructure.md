@@ -4,8 +4,8 @@ status: in-progress
 created: 2026-11-20
 updated: 2026-11-20
 priority: high
-next_actor: user
-next_action: "本人が reg-intro の下書き (fields/regression/reg-intro.md) を読み, 立場の書き方を確かめる. 確かめた後に段 4 (reg-prediction, reg-evaluate) と段 5 (reg-causal) の brief を書いて codex に委譲する"
+next_actor: agent
+next_action: "段 4 (blog-reg-s4-prediction: reg-prediction, reg-evaluate) と段 5 (blog-reg-s5-causal: reg-causal) を codex から受け取って land する. 続けて段 6 (reg-selection 系 3 つ) の brief を書く"
 ---
 
 # 講義資料を分野とブロックに分け, 講義はブロックの並びかブロックへのリンクで組む
@@ -209,7 +209,7 @@ next_action: "本人が reg-intro の下書き (fields/regression/reg-intro.md) 
 
 ### Phase 2 の段取り (2026-11-20, coordinator. L1)
 
-ブロックはすべて `open: false` のまま書き, 本人が読んでから開く. 段ごとに codex に委譲し, coordinator が受け入れる. 段 2 の後に本人へ `reg-intro` の下書きを見せ, 立場の書き方を確かめてから段 4 以降へ進む.
+ブロックはすべて `open: false` のまま書き, 本人が読んでから開く. 段ごとに codex に委譲し, coordinator が受け入れる. 段 2 の後に本人へ `reg-intro` の下書きを見せ, 立場の書き方を確かめてから段 4 以降へ進む. 本人は 2026-11-20 に `reg-intro` の書き方で進めることを承認した.
 
 | 段 | 内容 | 担当 | 前提 |
 |---|---|---|---|
