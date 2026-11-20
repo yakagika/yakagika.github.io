@@ -5,7 +5,7 @@ created: 2026-11-20
 updated: 2026-11-20
 priority: high
 next_actor: agent
-next_action: "codex Sol の第5章と slds11 のトルコの修正 (blog-oecd-turkey) を受け取って land する. その後 Phase 2 の brief を書く"
+next_action: "トルコの修正 (blog-oecd-turkey) と Phase 2 段 1 の GPA の生成器 (blog-reg-gpa-generator) を受け取って land する"
 ---
 
 # 講義資料を分野とブロックに分け, 講義はブロックの並びかブロックへのリンクで組む
@@ -150,7 +150,7 @@ next_action: "codex Sol の第5章と slds11 のトルコの修正 (blog-oecd-tu
 - モデルカリキュラムの対応表 (`plan/landed/2026-11-20-dsp-curriculum-matrix.md`) は, 34 項目の節へのリンクと, 評価に使う演習を記録している. 回帰分析の試験移行で 1 項目について「旧節 → 新しいページの節 → dsp が課す演習」を通し, 全件の付け替えは dsp の切り替えの条件にする.
 - 講義一覧 (`pages/lectures.markdown`) の dsp の入口は手で書いているので, 切り替えの日の作業に含める.
 - `CLAUDE.md` の dsp と slds の規則 (演習の見出し, 章ナビ, 演習の配置) を, ブロックと講義の並びの規則に書き換える. 各 Phase で, その Phase で移した範囲に合わせて行う.
-- 特別講義 (slds) は今年度は凍結のまま. 来年度のデータサイエンスプロジェクトの講義のページは新しく作り, 旧 slds のページは残す.
+- 特別講義 (slds) の凍結は 2026-11-20 に本人が解除した. slds も分野とブロックへ移す. 今年度の旧科目の授業に要る修正は旧ページにも入れ, 新しい内容はブロックに書く. 来年度のデータサイエンスプロジェクトの講義のページは新しく作り, 旧 slds のページは年度中は残す.
 
 ## ロードマップ
 
@@ -206,6 +206,24 @@ next_action: "codex Sol の第5章と slds11 のトルコの修正 (blog-oecd-tu
 - DSP5-2 は f914f35 で直した (指定した 2 式の誤差の差を記述し, テストデータで選ぶと選んだ式の誤差が小さめに出る理由を問う). 新しいブロックでもこの問いと `dsp5-2.py` を保ち, 分割を変えた数値だけ更新する.
 - 決めること (本人): 題材の案 (下の「分け方の独立レビューと題材の案」).
 - 今の dsp5 (旧ページ) で食い違っていた記述 (台帳の行の決定どおり f914f35 で直した): 758〜762 行の注記「この講義では一つでも有意でない回帰係数がある場合には, その回帰式は利用できない」(同じ章のモデル選択の節の立場と矛盾), 754〜756 行の国別データの相関から「出生率に影響を及ぼしている」と読む文, 786 行の「調整済み決定係数が 0.5 以上ならある程度予測できている」, 演習 DSP5-2 の選び方.
+
+### Phase 2 の段取り (2026-11-20, coordinator. L1)
+
+ブロックはすべて `open: false` のまま書き, 本人が読んでから開く. 段ごとに codex に委譲し, coordinator が受け入れる. 段 2 の後に本人へ `reg-intro` の下書きを見せ, 立場の書き方を確かめてから段 4 以降へ進む.
+
+| 段 | 内容 | 担当 | 前提 |
+|---|---|---|---|
+| 0 | `fields/regression/field.yaml` と 13 ブロックの空の file (`open: false`, `requires` は上の表) | coordinator (2026-11-20 済み) | |
+| 1 | GPA の生成器 `scripts/make_reg_gpa.py`: 配布版の CSV を再現する, 同じ仕組みから新しい標本 (別の 100 人, 新しい学生) を作る, 打ち切り前の潜在得点を返す, 因果の構造を 2 つ (アルバイト時間が中間の変数になる今の構造と, 交絡になる構造. 勉強時間とアルバイト時間の同時分布は 2 つで同じにする) 持ち, 介入した世界の平均を返す. 照合の試験と, `slds_code/ch11/multi.py` のコメントの誤り (生成の向き, 係数, 誤差の大きさ, 出力先) の修正 | codex Sol | 段 0 |
+| 2 | 理論の土台: `reg-intro`, `reg-ols`, `reg-multiple` | codex | 段 1 |
+| 3 | `reg-simple` (OECD), `reg-gpa` | codex | 段 1, トルコの修正の land |
+| 4 | `reg-prediction`, `reg-evaluate` | codex | 段 2, 3 と本人の確認 |
+| 5 | `reg-causal` | codex | 段 2 と本人の確認 |
+| 6 | `reg-selection`, `reg-selection-gpa`, `reg-selection-lab` | codex | 段 4, 5 |
+| 7 | `reg-glm`, `reg-logit` | codex | 段 2 |
+| 8 | 講義の並び (dsp の回帰の回), 旧 anchor から新しい節に着けることの確認, 対応表の 1 項目の付け替え | codex と coordinator | 段 1〜7 |
+
+図は `images/fields/regression/<ブロック>/` に置く. 新しく引く文献 (Hernán, Hsu and Healy 2019 など, 講義の文献表に無いもの) は, 論文 DB に登録してから本文で引く.
 
 ### 分け方の独立レビューと題材の案 (2026-11-20, codex Astra の read-only の依頼. 結果の全文は session の scratchpad の material_out.md)
 
