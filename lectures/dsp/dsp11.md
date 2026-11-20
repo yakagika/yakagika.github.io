@@ -2248,7 +2248,7 @@ if __name__ == '__main__':
 
 [ニューラルネットワークによる識別](#digits-mlp)と同じデータと分け方 (`test_size=0.3, random_state=0, stratify=y`) で, 次の 5 つの分類器を学習させ, テストデータでの正解率を比べてください. 最も正解率の高い分類器と低い分類器を挙げ, 低い分類器の正解率が低い理由を考えてください.
 
-- ロジスティック回帰 (`LogisticRegression(max_iter=1000)`)
+- ロジスティック回帰 (`LogisticRegression(max_iter=1000)`, [第5章](dsp5.html#logistic-regression))
 - 決定木 (`DecisionTreeClassifier(random_state=0)`, [第6章](dsp6.html))
 - ランダムフォレスト (`RandomForestClassifier(random_state=0)`)
 - サポートベクターマシン (`SVC()`)

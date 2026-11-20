@@ -665,7 +665,7 @@ $$g(E[y_i]) = E[y_i] = \mu_i = \eta_i$$
 他の分布では, 例えば:
 
 - ポアソン分布: 対数リンク関数 $g(E[y_i]) = \log(E[y_i]) = \eta_i$
-- 二項分布: ロジットリンク関数 $g(E[y_i]) = \log\left(\frac{E[y_i]}{1-E[y_i]}\right) = \eta_i$
+- 二項分布: ロジットリンク関数 $g(E[y_i]) = \log\left(\frac{E[y_i]}{1-E[y_i]}\right) = \eta_i$ (目的変数が 2 値のときのロジスティック回帰. 例は[第5章](dsp5.html)の[一般化線形モデル: ロジスティック回帰](dsp5.html#logistic-regression))
 
 などが用いられます.
 
