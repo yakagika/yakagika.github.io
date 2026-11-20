@@ -14,6 +14,8 @@ import           System.FilePath (replaceExtension, takeBaseName, takeDirectory,
 import qualified Data.Text as T
 import qualified System.Process  as Process
 import qualified Text.Pandoc     as Pandoc
+import           Text.Pandoc.Shared (stringify)
+import           Text.Pandoc.Walk (walk)
 import qualified Data.Set as S
 import Control.Monad (foldM, mplus)
 import Data.Char (toLower)
@@ -132,6 +134,52 @@ customWriterOptions = defaultHakyllWriterOptions
   }
 
 --------------------------------------------------------------------------------
+-- | Citations
+--
+-- front matter に @bibliography: <name>@ を書いた章だけ, @bib/<name>.bib@ と
+-- @bib/apa.csl@ で pandoc の引用 (@[\@key]@) を処理し, 文献表を出す.
+-- 文献表は本文の @::: {#refs}@ の位置に入る (無ければ末尾).
+-- 指定の無い章は従来どおり (pandoc は @[\@key]@ を Cite として読むが,
+-- 処理しないので元の文字列のまま出力される).
+lecturePandocCompiler :: Compiler (Item String)
+lecturePandocCompiler = do
+  underlying <- getUnderlying
+  bibName    <- getMetadataField underlying "bibliography"
+  case bibName of
+    Nothing   -> pandocCompilerWith customReaderOptions customWriterOptions
+    Just name -> do
+      csl <- load (fromFilePath "bib/apa.csl")
+      bib <- load (fromFilePath ("bib/" ++ name ++ ".bib"))
+      doc <- getResourceBody >>= readPandocWith customReaderOptions
+      processed <- processPandocBiblio csl bib (fmap addCitationMeta doc)
+      return (writePandocWith customWriterOptions (fmap japaneseTitles processed))
+  where
+    -- 本文中の引用から文献表の項目へリンクする.
+    addCitationMeta (Pandoc.Pandoc (Pandoc.Meta meta) blocks) =
+      Pandoc.Pandoc
+        (Pandoc.Meta (M.insert "link-citations" (Pandoc.MetaBool True) meta))
+        blocks
+
+-- | 文献表 (@#refs@) の中で, 和文を含む斜体 (書名や誌名) を 『』 で囲んだ立体に替える.
+-- APA の CSL は書名と誌名を斜体にするが, 和文の斜体は読みにくく, 和文の文献では
+-- 『』 で書名を示すのが通例のため.
+japaneseTitles :: Pandoc.Pandoc -> Pandoc.Pandoc
+japaneseTitles = walk refsBlock
+  where
+    refsBlock (Pandoc.Div attr@(ident, _, _) blocks)
+      | ident == "refs" = Pandoc.Div attr (walk emphInline blocks)
+    refsBlock block = block
+    emphInline (Pandoc.Emph inlines)
+      | T.any isCJK (stringify inlines) =
+          Pandoc.Span ("", ["ja-title"], [])
+                      ([Pandoc.Str "『"] ++ inlines ++ [Pandoc.Str "』"])
+    emphInline inline = inline
+    isCJK c = let n = fromEnum c
+              in (n >= 0x3040 && n <= 0x30FF)   -- ひらがな, カタカナ
+                 || (n >= 0x3400 && n <= 0x9FFF) -- 漢字
+                 || (n >= 0xFF00 && n <= 0xFFEF) -- 全角英数と記号
+
+--------------------------------------------------------------------------------
 -- | Entry point
 main :: IO ()
 main = do
@@ -163,6 +211,10 @@ main = do
     match "images/*.dot" $ do
         route   $ setExtension "png"
         compile $ getResourceLBS >>= traverse (unixFilterLBS "dot" ["-Tpng"])
+
+    -- Bibliographies and citation styles (lecturePandocCompiler が読む)
+    match "bib/*.bib" $ compile biblioCompiler
+    match "bib/*.csl" $ compile cslCompiler
 
     -- Compress CSS into one file.
     match "css/*" $ compile compressCssCompiler
@@ -297,7 +349,7 @@ main = do
                   field "date" (\_ -> return $ fromMaybe "No Date" date) <>
                   constField "category" "Lecture"
             if open
-              then pandocCompilerWith customReaderOptions customWriterOptions
+              then lecturePandocCompiler
                     >>= saveSnapshot "content"
                     >>= return . fmap demoteHeaders
                     >>= loadAndApplyTemplate "templates/lecture.html" postCtxWithChapters
@@ -553,6 +605,11 @@ config :: Configuration
 config = defaultConfiguration
   { destinationDirectory = "docs"
   , previewHost = "0.0.0.0"
+    -- agent 向けの指示書はサイトの source ではない. CLAUDE.md は .gitignore の対象で,
+    -- AGENTS.md はその symlink なので, worktree では参照先の無い symlink になり,
+    -- file の一覧を作る段階で生成が止まる.
+  , ignoreFile = \path -> ignoreFile defaultConfiguration path
+                       || takeFileName path `elem` ["AGENTS.md", "CLAUDE.md"]
   }
 
 --------------------------------------------------------------------------------
