@@ -5,14 +5,14 @@ created: 2026-11-20
 updated: 2026-11-20
 priority: high
 next_actor: agent
-next_action: "Phase 1 の仕組みの実装 (codex Astra に委譲中) を受け入れる. Phase 0 の棚卸しは付録に記した"
+next_action: "Phase 2: 回帰分析の分野のブロックの分け方 (理論とコード, 必修と発展, 旧アンカーの行き先) の案を, 統計学 第11回と dsp5 を読んで起こし, 本人に示す"
 ---
 
 # 講義資料を分野とブロックに分け, 講義はブロックの並びかブロックへのリンクで組む
 
 ## メタ情報
 
-- **状態**: in-progress (2026-11-20 起票, 同日に本人が承認. Phase 0 と Phase 1 に着手)
+- **状態**: in-progress (2026-11-20 起票, 同日に本人が承認. 同日に Phase 0 と Phase 1 を終えた. 次は Phase 2)
 - **作成日**: 2026-11-20
 - **最終更新**: 2026-11-20
 - **関連計画**: [dsp-course-material.md](dsp-course-material.md) (必修と発展の区分, 第5章冒頭の見取り図), [dsp-causal-concepts-before-regression.md](dsp-causal-concepts-before-regression.md), [lecture-literature-grounding.md](lecture-literature-grounding.md), [2026-11-20-dsp5-logistic-regression.md](../landed/2026-11-20-dsp5-logistic-regression.md)
@@ -154,11 +154,23 @@ next_action: "Phase 1 の仕組みの実装 (codex Astra に委譲中) を受け
 ## ロードマップ
 
 1. **Phase 0 (2026-11-20 済み)**: 本計画の承認. 統計学の各回 (第1〜13回と確率分布の関係図) を 1 行ずつ並べ, 内容がどの分野のどのブロックに当たるか, dsp のどの章と重なるか, 授業だけの活動 (テスト, 発表など) はどれかを記録する. 授業をサイトで行うかスライドで行うかは本人が後で決めるので, この棚卸しはその材料にする (Phase 3 が春学期に間に合わない場合も, 履修の順が欠けないようにするため).
-2. **Phase 1 (〜2026-12)**: 仕組みを作る. 最初に `check_local_refs.py` を fragment まで検査するように直す (2026-11-20 済み, 7b418e0). 次に, 新しい source の置き場, ページの自動分割とリンクの書き換え, 分野の目次とナビ, 講義の並びの file から生成するナビと回のページ, 出力 path と前提の検査, 公開の制御, ページごとの文献表を作る. 見本は「2 つの講義が違う順で読む同じブロック, 固定の URL, ページをまたぐ演習, 引用, 閉じたブロック」を 1 つの履修の経路に載せたものにし, これが通ることを完了の条件にする (見本が build できただけでは完了にしない). Hakyll の変更なので worktree で行う.
+2. **Phase 1 (〜2026-12)**: 仕組みを作る. 最初に `check_local_refs.py` を fragment まで検査するように直す (2026-11-20 済み, 7b418e0). 次に, 新しい source の置き場, ページの自動分割とリンクの書き換え, 分野の目次とナビ, 講義の並びの file から生成するナビと回のページ, 出力 path と前提の検査, 公開の制御, ページごとの文献表を作る (2026-11-20 済み, ac7932d. 入力の形式は下の「Phase 1 で決めた入力の形式」). 見本は「2 つの講義が違う順で読む同じブロック, 固定の URL, ページをまたぐ演習, 引用, 閉じたブロック」を 1 つの履修の経路に載せたものにし, これが通ることを完了の条件にする (見本が build できただけでは完了にしない). Hakyll の変更なので worktree で行う.
 3. **Phase 2 (Phase 1 の後)**: 回帰分析を試験的に移す. 理論の側は統計学 第11回と dsp の第5章の発展の節から, コードの側は dsp 第5章から作る. 第5章冒頭の一般化線形モデルの見取り図 (親計画の未解決事項) と, 交絡と因果の概念を重回帰より前に置く計画は, この分野の設計の中で扱う. 受入の条件: 旧アンカー (第5章の `model-selection` などの節. dsp1 の発展の一覧と slds11 の注記から参照されている) から新しい節に着ける, 入口のコードを配布データで実行できる, 対応表の 1 項目を付け替えられる. 引き取る課題: 探索の例と回帰の評価の例は, 100 人全員の散布図と相関を見て候補の変数を決めた後にデータを分けている. 講義が推奨する「分けてから探す」を必修の例で実演するため, 散布図と相関を見る前に分ける順に組み直す (今は本文に注記がある. 2026-11-20 に第5章を書き直した session から引き継いだ). 同じ session からの引き継ぎの注意: 新しい anchor は `model-selection`, `model-selection-stance`, `model-selection-explanation`, `model-selection-prediction`, `model-selection-exploration`, `multiple-regression-plots`, `post-selection-simulation`, `model-selection-history`, `further-reading` で, dsp1 の発展の一覧と slds11 の注記から参照されている. 章末の「さらに学ぶための文献」と「参考文献」(`::: {#refs}`) は演習の前にある. 冒頭の埋め込み投稿の `@` は pandoc が引用として処理するので `&#64;` にしてある. 多重共線性の節の注記は暫定で, 交絡と因果を前に置く構成にするときに外す. 結果を見て仕組みと書き方の規則を直す.
 4. **Phase 3 (〜2027-03)**: 統計学の残り (記述統計, 確率と確率分布, 推測統計) を Obsidian から移し, 統計学の講義の並びを作る. 移した note ごとに Obsidian 側の扱い (削除かリンクへの置き換え) を本人に示してから行う.
 5. **Phase 4 (〜2027-03)**: データサイエンスプロジェクト (旧 特別講義) とゼミの講義のページを作る. データの取得とプログラミングの基礎の分野を移す.
 6. **Phase 5 (2027 春学期〜夏)**: dsp の残りの分野を移し, dsp の講義の並びと対応表を作る. 秋学期の開始で旧ページから切り替える.
+
+### Phase 1 で決めた入力の形式 (2026-11-20, ac7932d)
+
+見本は `fixtures/` にある (`BLOG_FIXTURES=1 stack exec main rebuild` で `_fixture_site/` に出る. 試験は `scripts/test_block_site.py`).
+
+- 分野: `fields/<field>/field.yaml` に `title`, `description`, `blocks` (教科書の順のブロック名).
+- ブロック: `fields/<field>/<block>.md`. front matter は `title`, `kind` (`theory` か `code`), `requires` (省略可), `open` (省略時は false), `bibliography` (省略可). 最上位の `#` 見出しでページに分け, その見出しには `{#id}` (`[a-z0-9-]+`) を必ず付ける. 最初の `#` より前は導入のページになる. `::: {#refs}` は書かない (引用のあるページに文献表が付く). 演習は `# 演習 {#exercises}` のページに `## Exercise XXX-k {#exercise-xxx-k}` で並べる.
+- 講義: `courses/<course>.yaml` に `title`, `description`, `sessions` (各回に `title`, `intro` (省略可), `blocks` (`block`, `level` (`required` か `advanced`), `exercises` (`id`, `file`))).
+- リンク: 別のブロックへは `[x](block:name)` と `[x](block:name#id)`. 同じブロックの中は `[x](#id)` (別のページにある ID なら build がそのページの URL に直す).
+- 出力: `fields/<f>/<b>/index.html`, `fields/<f>/<b>/<id>.html`, `fields/<f>/index.html`, `courses/<c>/index.html`, `courses/<c>/<n>.html`.
+- 閉じたブロック: ページは準備中の表示と `noindex` になり, 本文と回答は出ない. ページの題名 (見出しの文字列) と前後のページの題名は, 既存の準備中のページと同じく出る. 見出しも隠すかは, 実際の内容を移してから必要なら決める.
+- 受入で確かめたこと: 本番の `docs/` は変わらない (差は file の変更時刻から決まる更新日とトップページの並び, css の版の番号だけ). `watch` で見出しの追加と削除, 講義の yaml だけの編集が出力に反映される.
 
 ## コスト見積もり
 
@@ -242,3 +254,4 @@ next_action: "Phase 1 の仕組みの実装 (codex Astra に委譲中) を受け
 - 2026-11-20: codex (Astra) の独立レビューを反映した. 新しい source を `lectures/` の外に置く, 出力 path の一意性の検査, 固定の ID による URL, ナビを鎖でなく並びから生成, `requires` の意味の限定, 公開の制御と文献表を分割と両立させる設計, fragment まで見る参照の検査, 入口のコードの実行, 統計学の各回の棚卸しを Phase 0 に前倒し. 統計学の資料の数 (14 回分ではなく第1〜13回と関係図) を直し, 統計学の授業の dir との関係を記した. 第5章の書き直しの land (03b9a89, dcd3762, f6b5aaa, e7b81a8) と, 引き取る課題 (分けてから探す順への組み直し) を記した
 - 2026-11-20: 本人が共有するブロックの見え方を案 B に決め, 計画を承認した. 統計学は分野の教科書で網羅的に扱い, 講義では抜粋する. 授業の dir との役割分担は Phase 3 の前に改めて要件を洗い出す
 - 2026-11-20: Phase 0 の統計学の各回の棚卸しを付録に記した (codex Astra). 参照の検査を fragment まで広げた (7b418e0). 棚卸しで見つかった dsp13 の MCMC の説明の誤りを旧ページで直した (60f3c21, codex Sol, 差し戻し 2 回)
+- 2026-11-20: Phase 1 の仕組みを land した (ac7932d, tag `landed/lecture-block-restructure-phase1`. codex Astra が実装し, 差分は Sonnet が判定, coordinator が build, 見本の試験, 本番の出力の比較, watch を確かめた). 入力の形式を設計の節に記した
