@@ -5,7 +5,7 @@ created: 2026-11-20
 updated: 2026-11-20
 priority: medium
 next_actor: agent
-next_action: "agent が文献表の和文の名の後ろの余分な点を生成器で外し, slds 第11章に注記を置き, 第5章を codex の review に出す (本文 03b9a89, bib 0a49cc3 は済み)"
+next_action: "agent が codex の第5章の review の結果を裁定して直し, 本人へ報告する (publish は本人が publish.sh で)"
 ---
 
 # 講義資料を文献に基づいて構築する形式に変える (最初の適用は第5章のモデル選択)
@@ -113,6 +113,10 @@ next_action: "agent が文献表の和文の名の後ろの余分な点を生成
 - 表示の確認 (新しい生成器で scratchpad の worktree に生成): 引用と文献表 (20 件) は出る. 和文の著者名が「隆光 (1979/2020)」「貞則 & 源四郎, 2004」になる. 原因は make_bib.py が和文の名前を「姓 名」で出力し, BibTeX の規則で後ろの語が姓になること. papers へ依頼した (chain `haskell-blog-2026-11-20T12-54-36-598600-make_bibpy-が和文の著者名を姓-名空白区切り-で出力し-citepro`). 直ったら make_lecture_bib.sh で bib を生成し直し, 表示を確かめる. それまで第5章を publish しない.
 - papers が make_bib.py に --profile csl を新設した (和文の「姓 名」を「姓, 名」にする. 既定の出力は他 project の bst のため変えていない). make_lecture_bib.sh に指定して生成し直した (commit 0a49cc3). 表示は「佐和 (1979/2020)」「小西 & 北川 (2004)」. 文献表では「小西貞則., & 北川源四郎.」と, 和文の名の後ろに APA の頭文字の点が付く.
 - 残り: (1) 済み. 追加: 文献表の和文の名の後ろの余分な点を, 生成器の japaneseTitles と同じ段 (#refs 内の後処理) で外す (src/Main.hs, worktree で). (2) slds 第11章のモデル選択の節に注記を置き, dsp5.html#model-selection へリンクする (裁定 5). (3) codex に review を出す (統計の主張と文献の対応, 文体). (4) 対応表 (設計 A の 7, writing/citations/dsp5.tsv) を作る.
+- 文献表の和文の名の後ろの点を外した (commit c690e9a, 暫定). 原因は citeproc 0.8.1.1 (lts-22.43) が CSL の initialize-with の点を和文の名にも付けること. citeproc 0.14.1.1 で直っている (citeproc #189, 非ラテン文字の名を頭文字にしない) が, その版は stackage の nightly にだけあり, LTS (24.66 でも citeproc 0.9.0.1) に無い. 手元の pandoc 3.14 の CLI では点が付かないことを確かめた. 生成器の `japaneseNames` (#refs 内で, 和文の文字の直後の「.,」を「,」にする) は, resolver を citeproc 0.14.1.1 以上を含む snapshot へ上げたときに外す. 同じ版で「ローマ字を含まない文字列を斜体にしない」(citeproc #190) も入るので, そのとき `japaneseTitles` (和文の斜体を『』にする) が和文の書名を検出できるかも確かめる.
+- slds 第11章のモデル選択の節の頭に注記を置いた (commit 69a4bea).
+- 対応表 writing/citations/dsp5.tsv を置いた (commit dcd3762). 作る途中で, 本文が後退除去の結果を Freedman (1983) に帰していたのを見つけた (Freedman の手順は 2 段のふるい分け). 文献が支える範囲と本文のシミュレーションの範囲を分けて書き直した (同じ commit).
+- codex (Astra) に第5章の review を出した (2026-11-20). 結果を受けて直し, 本人へ報告する.
 
 ## 統計学の講義への反映 (2026-11-20 本人の指示)
 
