@@ -81,7 +81,7 @@ next_action: "agent が Phase 1 に着手する: 第5章の候補の文献を論
 
 会話で挙げた候補. いずれも論文 DB に未登録で, 書誌も記憶から書いたので, 取り込みの時点で確かめる.
 
-- 引用文献の候補: 佐和隆光『回帰分析』朝倉書店 (2026-11-20 本人の追加. 本人の指定は「朝倉書店, 1」. CiNii Books では叢書「統計ライブラリー」の 1 冊で, 1979 年の初版 (NCID BN00603384) と 2020 年の新装版 (NCID BB29912590) がある. どちらを引くかは本人の手元の版に合わせる), Shmueli (2010), Freedman (1983), Harrell (2015), Heinze, Wallisch & Dunkler (2018), Burnham & Anderson (2002), Leeb & Pötscher (2005), Westreich & Greenland (2013), Leamer (1983), Hendry & Doornik (2014), Simmons, Nelson & Simonsohn (2011), Gelman & Loken (2014), Wasserstein & Lazar (2016).
+- 引用文献の候補: 佐和隆光『回帰分析』朝倉書店 (2026-11-20 本人の追加. 本人の指定は「朝倉書店, 1」. CiNii Books では叢書「統計ライブラリー」の 1 冊で, 1979 年の初版 (NCID BN00603384) と 2020 年の新装版 (NCID BB29912590) がある. 論文 DB には `sawa1979x` として登録済みで, PDF (`Statistics/Book/回帰分析.pdf`) の奥付は「1979 年 4 月 20 日 初版, 2020 年 1 月 15 日 新装版第 1 刷」. 手元の版は新装版なので, 新装版 (2020) を引く. 本人の指定の「1」は新装版第 1 刷と読める. 論文 DB の note は year 1979 で, 新装版と叢書名の記録が無い. Phase 1 の取り込みの依頼で, 書誌項目の修正 (year 2020, 版 新装版, 叢書 統計ライブラリー, 原本 1979), projects への blog-lectures の追加, verification の記録 (identity) を papers へ頼む. bibkey の改名は papers で本人の判断が要るので頼まない), Shmueli (2010), Freedman (1983), Harrell (2015), Heinze, Wallisch & Dunkler (2018), Burnham & Anderson (2002), Leeb & Pötscher (2005), Westreich & Greenland (2013), Leamer (1983), Hendry & Doornik (2014), Simmons, Nelson & Simonsohn (2011), Gelman & Loken (2014), Wasserstein & Lazar (2016).
 - さらに学ぶための文献の候補: Efron & Hastie (2016, 無料公開), James et al. (2021, 邦訳あり), Gelman, Hill & Vehtari (2020), Hernán & Robins (2020, 無料公開), 小西・北川 (2004), Angrist & Pischke (2009, 邦訳あり).
 
 ## 統計学の講義への反映 (2026-11-20 本人の指示)
