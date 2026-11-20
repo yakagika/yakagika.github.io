@@ -98,7 +98,7 @@ stack exec -- cge         # CGE モデル
 # 今後
 
 - **チュートリアル記事**: 上記プレプリントを正式公表したタイミングで, Exchange Algebra の代数構造と仕訳・振替・シミュレーションの組み立て方を解説する別記事を予定.
-- **Haddock**: <https://htmlpreview.github.io/?https://raw.githubusercontent.com/yakagika/ExchangeAlgebra/master/haddock/index.html>
+- **Haddock**: <https://hackage.haskell.org/package/exchangealgebra/docs/ExchangeAlgebra.html>
 
 # ライセンス
 
