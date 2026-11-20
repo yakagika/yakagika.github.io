@@ -12,6 +12,7 @@ open: true
 tableOfContents: true
 previousChapter: dsp4.html
 nextChapter: dsp6.html
+bibliography: lectures
 ---
 
 # 回帰分析
@@ -281,9 +282,9 @@ $$
 
 それでは, 実際に単回帰分析を実施してみます. 事例として, 以下の分析にどのような問題点があるのかを考えてみましょう.
 
-<blockquote class="twitter-tweet"><p lang="ja" dir="ltr">今回に限らず毎度毎度のことだけど、日本「経済」新聞を名乗りながら、お粗末な統計リテラシーだからな。。。<br>日経に限らず、本邦の大手紙は例外なく全てお粗末な統計リテラシー。<br>統計の基礎を勉強したい人はツッコミを入れると良いよ。ツッコミを入れるところだらけで勉強になるから。<a href="https://twitter.com/IsayaShimizu?ref_src=twsrc%5Etfw">@IsayaShimizu</a> <a href="https://t.co/cxMAFDPRfM">https://t.co/cxMAFDPRfM</a></p>&mdash; 糸石 浩司 (@itoishi) <a href="https://twitter.com/itoishi/status/1445026338885103618?ref_src=twsrc%5Etfw">October 4, 2021</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+<blockquote class="twitter-tweet"><p lang="ja" dir="ltr">今回に限らず毎度毎度のことだけど、日本「経済」新聞を名乗りながら、お粗末な統計リテラシーだからな。。。<br>日経に限らず、本邦の大手紙は例外なく全てお粗末な統計リテラシー。<br>統計の基礎を勉強したい人はツッコミを入れると良いよ。ツッコミを入れるところだらけで勉強になるから。<a href="https://twitter.com/IsayaShimizu?ref_src=twsrc%5Etfw">&#64;IsayaShimizu</a> <a href="https://t.co/cxMAFDPRfM">https://t.co/cxMAFDPRfM</a></p>&mdash; 糸石 浩司 (&#64;itoishi) <a href="https://twitter.com/itoishi/status/1445026338885103618?ref_src=twsrc%5Etfw">October 4, 2021</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 
-<blockquote class="twitter-tweet"><p lang="ja" dir="ltr">相関があることを言いたいなら散布図を描くべきでは？ あと，この16カ国はどうやって選んだのか？ <a href="https://t.co/ncWWtQ8A8L">https://t.co/ncWWtQ8A8L</a></p>&mdash; Haruhiko Okumura (@h_okumura) <a href="https://twitter.com/h_okumura/status/1444983348862996485?ref_src=twsrc%5Etfw">October 4, 2021</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+<blockquote class="twitter-tweet"><p lang="ja" dir="ltr">相関があることを言いたいなら散布図を描くべきでは？ あと，この16カ国はどうやって選んだのか？ <a href="https://t.co/ncWWtQ8A8L">https://t.co/ncWWtQ8A8L</a></p>&mdash; Haruhiko Okumura (&#64;h_okumura) <a href="https://twitter.com/h_okumura/status/1444983348862996485?ref_src=twsrc%5Etfw">October 4, 2021</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 
 
 これらの POST は何を懸念しているのでしょうか.
@@ -1009,13 +1010,10 @@ $$
 - 注意点 1: モデル選択
 ---
 
-前節で扱った単回帰分析では, そもそもデータに説明変数が一つしかなかったためにどの変数を利用するかという選択が必要ありませんでした. しかし, 多数の説明変数の存在を前提とする重回帰分析では, **全ての変数をモデルに採用するのではなく**, 説明力の高い変数の組み合わせを選択する必要があります.
-
-今回は線形重回帰分析のみを扱いますが, 様々なモデルを比較して最適なモデルを選択することを**モデル選択**といいます.
-モデル選択においては**多重共線性**などいくつかの判断基準に基づいて変数の選択を行います.
+前節で扱った単回帰分析では, 説明変数が 1 つしかなかったので, どの変数を使うかを選ぶ必要がありませんでした. 重回帰分析では, 候補の説明変数のうち, どれをモデルに入れるかを決める必要があります. どう決めるかは, 回帰分析を何のために行うか (説明, 予測, 探索) によって変わります. 目的ごとの決め方は, 本章の[モデル選択](#model-selection)の節で扱います.
 
 ::: warn
-今回は明らかに利用できない変数をモデルから除外するという処理のみを行いますが, より多くの変数を扱う場合には, **ステップワイズ法**などの手法を用いて機械的に最適な組み合わせを選択する場合があります. 説明変数の組み合わせを予測の誤差で比べる方法は, [回帰の評価](#regression-evaluation)のあとの[説明変数の組み合わせをテスト MSE で比べる (発展)](#variable-selection-test-mse)で扱います.
+P 値が 0.05 以上の変数を 1 つずつ除いていき, 全ての変数が有意になったモデルから結論を述べる方法や, 変数の出し入れを機械的に繰り返す**ステップワイズ法**は, 探索の手順としては使えますが, その結果をそのまま結論にはできません. 理由は[モデル選択](#model-selection)の節で説明します.
 :::
 
 - 注意点 2: データの正規化
@@ -1191,6 +1189,10 @@ $$x_i \approx \sum_{j \neq i}\alpha_j x_j$$
 
 :::
 
+::: warn
+相関の強い説明変数の片方を除外すると, 残した変数の係数の意味が変わります. 除外した変数が目的変数と関係していると, 残した変数の係数は, 除外した変数の分の関係も含んだ値になるためです. このデータで, 元の単位のまま `Scholarship` と `Study_Hours` を入れて推定すると, `Part_time_Work` を加えたときの `Study_Hours` の係数は 0.220 (95% 信頼区間 0.203〜0.237), 除外したときは 0.273 (0.259〜0.288) で, 2 つの信頼区間は重なりません. どちらの係数を推定すべきかは, 相関の強さではなく, 変数どうしの因果の関係 (どちらがどちらに影響するか) と, どの効果を知りたいかで決まります [@cinelli2024crash]. その考え方は[第16章](dsp16.html)で扱います. 本章の以下の例は, この節の判断どおり `Part_time_Work` を除いたモデルで進めます.
+:::
+
 ### 可視化 (層別とペアプロット)
 
 散布図/ヒートマップを参考に多重共線性に関する示唆を得ることができました.
@@ -1341,25 +1343,61 @@ df[['Scholarship_True'
                                                ,'Sports_hours']])
 ~~~
 
-なお正規化も同様に `MinMaxScaler` を利用することができます.
+なお正規化も同様に `MinMaxScaler` を利用することができます. 以下の分析では標準化したデータを使うので, 正規化した値は別の DataFrame (`df_minmax`) に入れ, `df` は書き換えません.
 
 ~~~ py
 #正規化
 from sklearn.preprocessing import MinMaxScaler
 
-# 正規化（0〜1に変換）
-scaler = MinMaxScaler()
-df[['Scholarship_True',
-    'Study_Hours',
-    'Part_time_Work',
-    'Sports_hours']] = scaler.fit_transform(df[['Scholarship_True'
-                                               ,'Study_Hours'
-                                               ,'Part_time_Work'
-                                               ,'Sports_hours']])
+# 正規化（0〜1に変換）. 以下の分析で使う df は標準化したまま残す
+columns = ['Scholarship_True', 'Study_Hours', 'Part_time_Work', 'Sports_hours']
+df_minmax = df.copy()
+df_minmax[columns] = MinMaxScaler().fit_transform(df[columns])
 ~~~
 
-### モデル選択
-まずは, `Part_time_Work` を除外し, `Scholarship` のダミー変数 `Scholarship_True` を含める**標準化された**説明変数で重回帰分析を実施してみます.
+### モデル選択 {#model-selection}
+
+候補の説明変数のうちどれをモデルに入れるかを決めることを**変数選択**, 変数の組み合わせに限らず候補のモデルの中から 1 つを選ぶことを**モデル選択**といいます. どの変数を入れるべきかは, 回帰分析を何のために行うかによって変わります. 回帰分析の目的は, 次の 3 つに分けられます.
+
+::: note
+- **説明**: 特定の説明変数と目的変数の関係の大きさを推定します. 「勉強時間が 1 時間長い学生は, GPA がどれだけ高いか」のように, 回帰係数の値そのものが結果になります.
+- **予測**: 新しいデータの目的変数の値を, できるだけ正確に当てます. 「この学生の GPA はいくつか」のように, 予測値と, その誤差の小ささが結果になります.
+- **探索**: 次に確かめる仮説を見つけます. 多くの候補の中から, 目的変数と関係がありそうな変数を拾い出すことが結果になります.
+:::
+
+説明と予測では, 良いモデルの基準が違います. 説明では係数が正しく推定できていることが求められ, 予測では新しいデータでの誤差が小さいことが求められます. 予測の誤差が最も小さいモデルが, 係数の解釈に最も適したモデルであるとは限りません [@shmueli2010explain].
+
+目的を区別しないまま, 1 つのデータで変数を選び, 同じデータで検定した結果を結論にする方法には問題があります. 例えば, 次の手順はよく使われています.
+
+1. 候補の変数をすべて入れて回帰分析を行う.
+2. P 値が 0.05 以上の変数のうち, P 値が最も大きいものを除いて推定し直す.
+3. すべての変数の P 値が 0.05 未満になるまで 2 を繰り返し, 残ったモデルの係数から結論を述べる.
+
+この手順で残った変数の P 値は, 実際より小さく出ます. P 値は, 分析の前に決めておいた 1 つのモデルを 1 回だけ検定することを前提に計算されています. 手順 2 は, 手元のデータで**たまたま**目的変数との関係が強く出た変数を残し, 弱く出た変数を除きます. 残った変数の P 値は, そのように選ばれたことを考慮せずに同じデータで計算されるので, 目的変数と本当は関係のない変数でも小さくなりやすくなります. 目的変数と無関係な 50 個の変数からこの手順で選ぶと, ほとんどの場合に「すべての変数が有意なモデル」が残ります [@freedman1983note; @harrell2015regression]. その様子は[目的変数と無関係な変数を P 値で選ぶシミュレーション (発展)](#post-selection-simulation)で確かめます.
+
+#### この講義での目的ごとの進め方 {#model-selection-stance}
+
+この講義では, 分析を始める前に目的を決め, 目的に応じて変数の選び方と結果の報告の仕方を変えます.
+
+::: note
+- **説明が目的のとき**: 入れる変数を, データを見る前に, 仮説と既存の知識から決めます. 推定した後に P 値を見て変数を外すことはせず, 注目する係数を信頼区間とともに報告します. 有意でなかった係数も, 関係の大きさがどの範囲にあるかを信頼区間で示す結果として報告します.
+- **予測が目的のとき**: 回帰式を求めるのに使っていないデータでの予測の誤差で比べて選びます. AIC もこの目的で使う基準です.
+- **探索が目的のとき**: P 値や AIC を手がかりに変数を選んでかまいません. ただし, 選んだモデルの P 値は結論にせず, 仮説として扱います. この講義では, 探索で選んだモデルを**別のデータで確かめる**ところまで行うことを推奨します.
+:::
+
+上の 1〜3 の手順は, 探索の手順としては使えますが, その結果だけでは結論にできません. 探索で選んだモデルを確かめる方法には, 次の 3 つがあります.
+
+- 新しいデータを集めて, 選んだモデルを推定し直す.
+- 分析の前にデータを探索用と確認用に分けておき, 探索用のデータで選んだモデルを確認用のデータで推定し直す. 同じ人を何年も追跡したデータ (パネルデータ) では, 同じ人が両方に入らないように人の単位で分けるか, 時期で分けます.
+- 変数を選んだことを考慮して, P 値や信頼区間を補正する (**選択後の推論**) [@leeb2005model; @efron2016computer].
+
+この講義では, 3 つの目的の区別と, 2 つ目の方法 (データを分けて確かめる方法) を扱います. 選択後の推論の方法と, 係数を因果効果として読むための変数の選び方 ([第16章](dsp16.html)で扱います) は, この章では扱わず, [さらに学ぶための文献](#further-reading)で紹介します. この問題が分野ごとにどう扱われてきたかは, [モデル選択の考え方の分野ごとの経緯 (発展)](#model-selection-history)にまとめています.
+
+以下では, GPA のデータを使って, 3 つの目的ごとの進め方を示します.
+
+#### 説明が目的の場合 {#model-selection-explanation}
+
+本章の GPA のデータでは, 時間の使い方と GPA の関係を調べることを目的にしています. 説明が目的なら, 入れる変数はデータを見る前に決めておきます. ここでは, 奨学生かどうか, 勉強時間, 運動時間の 3 つを説明変数に入れると決めたものとします (`Part_time_Work` は[多重共線性 (弱い多重共線性)](#weak-multicollinearity)の節の判断で除いています). `Scholarship` のダミー変数 `Scholarship_True` を含め, **標準化した**説明変数で重回帰分析を行います.
 
 ~~~ py
 # 説明変数(X)と目的変数(y)に分割
@@ -1404,141 +1442,114 @@ Kurtosis:                       6.590   Cond. No.                         1.09
 """
 ~~~
 
-注目すべきポイントは基本的に単回帰分析と同様です.
+式全体の評価は単回帰分析と同様に読みます. 自由度調整済み決定係数は 0.943 で, 有意 F (`Prob (F-statistic)`) は 4.46e-60 です.
+
+説明変数は標準化してあり, GPA は元の単位のままなので, 各係数は「その説明変数が 1 標準偏差違うと, GPA がいくつ違うか」を表します. 「`Study_Hours` が 1 時間伸びると `GPA` が 1.02 増える」とは読めません. 説明が目的なので, 3 つの係数を信頼区間とともに報告します.
 
 ::: note
-- 自由度調整済み決定係数 (0.943); 予測精度非常に高い
-
-- F 値 (4.46e-60); 説明力あり
-
-- 回帰係数; 勉強時間が一番影響力が強い
-
-ただし, 標準化されているため「`Study_Hours` が 1 時間伸びると `GPA` が 1.02 増える」といった解釈はできないことに注意してください.
-
-- P 値; `Sports_hours` 以外有意
-
-- 区間推定値; `Sports_hours` 以外有意
+- `Study_Hours`: 1.021 (95% 信頼区間 0.968〜1.074). 勉強時間が 1 標準偏差 (約 3.7 時間) 長い学生は, GPA が約 1.0 高い.
+- `Scholarship_True`: 0.256 (0.203〜0.309). 奨学生の方が GPA が高い.
+- `Sports_hours`: 0.015 (-0.038〜0.068). 信頼区間が 0 を含むので有意ではありません. 運動時間が 1 標準偏差 (約 2.0 時間) 違っても, GPA の差は 0.07 未満と見積もられます.
 :::
 
-F 値や $R^2$ が良く概ね良い結果が出たように思えますが, この結果をもってなにか結論を導くことは**できません.**
+`Sports_hours` は有意ではありませんが, モデルから外しません. 説明が目的のとき, 有意でないことは「運動時間と GPA の関係は, あったとしても小さい」という結果であり, 信頼区間がその大きさの範囲を示しています. P 値を見てから `Sports_hours` を外して推定し直すと, [モデル選択](#model-selection)で述べた手順と同じく, 残った係数の P 値と信頼区間が, 選んだことを考慮しない値になります.
 
-::: note
-- できない理由
+各係数は, 他の 2 つの説明変数が同じ学生どうしで比べたときの関係を表します. 「勉強時間を増やせば GPA が上がる」という因果の主張をするには, 入れる変数を因果の関係についての仮定から決める必要があり, その方法は[第16章](dsp16.html)で扱います.
 
-**`Sports_hours` の回帰係数が有意ではない**
+#### 予測が目的の場合 {#model-selection-prediction}
 
-一部の社会科学では, 有意ではない変数を含めて, 有意である変数のみで結果を解釈するという方法論がしばしば用いられますが, モデル全体では有意ではない変数によってその他の変数の結果も影響を受けるため, この講義では有意ではない変数はモデルから除外することを推奨します.
+予測が目的なら, 変数の組み合わせは, 回帰式を求めるのに使っていないデータでの予測の誤差で比べます. その方法は, この後の[回帰の評価](#regression-evaluation)と[説明変数の組み合わせをテスト MSE で比べる (発展)](#variable-selection-test-mse)で扱います. ここでは, データを分けずに予測の良さを比べる基準として, AIC と BIC を紹介します.
 
-その他, 変数ごとの P 値を比較して信頼度として解釈するようなことも行われがちですが, この講義ではそのような手法は行いません.
+自由度調整済み決定係数 ($\mathrm{Adj.}\ R^2$) や有意 F でモデルを比べても, `Sports_hours` を入れたモデルと入れないモデルの差はほとんど見えません.
 
-:::
-多重共線性と P 値を考慮して, `Part_time_Work` を説明変数から除外したモデルでの分析を実施してみます.
+- `Sports_hours` あり: $\mathrm{Adj.}\ R^2$ 0.943, `Prob (F-statistic)` 4.46e-60
+- `Sports_hours` なし: $\mathrm{Adj.}\ R^2$ 0.943, `Prob (F-statistic)` 1.62e-61
+
+予測の良さでモデルを比べるときは, **AIC (赤池情報量規準, Akaike's Information Criterion)** や **BIC (ベイズ情報量規準, Bayesian Information Criterion)** がよく使われます. AIC は, モデルの**対数尤度** $\log L$ と, 推定するパラメータの数 $k$ から計算します.
+
+$$
+\mathrm{AIC} = -2 \log L + 2k
+$$
+
+対数尤度は, そのモデルのもとで手元のデータが得られる確率 (尤度) の対数で, データへの当てはまりが良いほど大きくなります (尤度は[第13章](dsp13.html)の[尤度 (Likelihood)](dsp13.html#尤度-likelihood)で説明しています). AIC は, 同じ仕組みで生まれる新しいデータに対するモデルの予測の良さを, 手元のデータから見積もる量として導かれています [@konishi2004]. 当てはまりが良いほど第 1 項は小さくなり, パラメータが多いほど第 2 項は大きくなります. 値が小さいモデルほど, 新しいデータへの予測が良いと見積もられます. BIC は $2k$ の代わりに $k \log n$ ($n$ はデータの数) を足したものです. パラメータ 1 つあたりに足す値が $\log n$ なので, データが 8 個以上あれば ($\log 8 \approx 2.08$), BIC は AIC より, 変数の多いモデルの値を大きくします.
+
+`summary()` の出力にも AIC と BIC が表示されますが, 2 つのモデルの値を並べて比べます.
 
 ~~~ py
-# Sports_hours を除外し説明変数(X)と目的変数(y)に分割
-X = df[['Scholarship_True', 'Study_Hours']]
-y = df['GPA']
-
-# 切片(定数項)を追加
-X = sm.add_constant(X)
-
-# 回帰モデルを作成・フィット
-result = sm.OLS(y, X).fit()
-
-# 結果を表示
-print(result.summary())
+models = [
+    ['Scholarship_True', 'Study_Hours', 'Sports_hours'],
+    ['Scholarship_True', 'Study_Hours'],
+]
+for cols in models:
+    fit = sm.OLS(df['GPA'], sm.add_constant(df[cols])).fit()
+    print(' + '.join(cols), f'AIC: {fit.aic:.2f}  BIC: {fit.bic:.2f}')
 
 """
-                            OLS Regression Results
-==============================================================================
-Dep. Variable:                    GPA   R-squared:                       0.944
-Model:                            OLS   Adj. R-squared:                  0.943
-Method:                 Least Squares   F-statistic:                     820.8
-Date:                Fri, 24 Oct 2025   Prob (F-statistic):           1.62e-61
-Time:                        12:48:49   Log-Likelihood:                -7.5729
-No. Observations:                 100   AIC:                             21.15
-Df Residuals:                      97   BIC:                             28.96
-Df Model:                           2
-Covariance Type:            nonrobust
-====================================================================================
-                       coef    std err          t      P>|t|      [0.025      0.975]
-------------------------------------------------------------------------------------
-const                1.8366      0.027     69.301      0.000       1.784       1.889
-Scholarship_True     0.2557      0.027      9.613      0.000       0.203       0.308
-Study_Hours          1.0213      0.027     38.398      0.000       0.969       1.074
-==============================================================================
-Omnibus:                       23.472   Durbin-Watson:                   2.005
-Prob(Omnibus):                  0.000   Jarque-Bera (JB):               63.596
-Skew:                           0.769   Prob(JB):                     1.55e-14
-Kurtosis:                       6.591   Cond. No.                         1.09
-==============================================================================
+Scholarship_True + Study_Hours + Sports_hours AIC: 22.81  BIC: 33.23
+Scholarship_True + Study_Hours AIC: 21.15  BIC: 28.96
 """
 ~~~
 
-::: note
-- 自由度調整済み決定係数 (0.943); (変化無し) 予測精度非常に高い
+AIC も BIC も, `Sports_hours` を入れないモデルの方が小さくなります. ただし AIC の差は 1.66 です. AIC の差が 2 程度より小さいモデルどうしは, どちらも同じ程度に支持されると考えるのが目安です [@burnham2002model]. 予測が目的なら, `Sports_hours` を入れても入れなくても, 予測の良さはほとんど変わりません.
 
-- F 値 (1.62e-61); (改善) 説明力あり
+AIC が小さいモデルを選ぶことと, P 値が 0.05 未満の変数だけを残すことは, 別の基準です. 変数を 1 つ加えたときに AIC が下がるのは, 加えたことによる当てはまりの改善を検定したときの P 値が, およそ 0.157 未満のときです. そのため, AIC で選んだモデルに P 値が 0.05 以上の変数が残ることがあり, 予測が目的ならそれで問題ありません. また, AIC で選んだ場合も, 選んだ後に同じデータで計算した P 値は小さく出ます. この点は, P 値で選んだ場合と同じです.
 
-- 回帰係数; 勉強時間が一番影響力が強い
+#### 探索が目的の場合 {#model-selection-exploration}
 
+探索が目的なら, [モデル選択](#model-selection)の 1〜3 の手順で変数を選んでかまいません. ただし, 分析を始める前にデータを探索用と確認用に分けておき, 探索用のデータで選んだモデルを, 確認用のデータで推定し直します. 確認用のデータは変数の選択に使っていないので, そこで計算した P 値と信頼区間は, 選んだことの影響を受けません.
 
-- P 値; 全て有意
+~~~ py
+# 分析の前に, データを探索用と確認用に半分ずつ分ける
+explore = df.sample(frac=0.5, random_state=0)
+confirm = df.drop(explore.index)
 
-- 区間推定値; 全て有意
-:::
+# 探索用のデータで, P 値が 0.05 以上の変数のうち最も大きいものを 1 つずつ除く
+selected = ['Scholarship_True', 'Study_Hours', 'Sports_hours']
+while selected:
+    fit = sm.OLS(explore['GPA'], sm.add_constant(explore[selected])).fit()
+    pvalues = fit.pvalues.drop('const')
+    print(pvalues.round(3).to_dict())
+    if pvalues.max() < 0.05:
+        break
+    selected.remove(pvalues.idxmax())
+print('探索用のデータで残った変数:', selected)
 
-`Sports_hours` を除外したことで全ての変数が有意となり, F 値等も問題がないため選択した説明変数によって, 目的変数が説明するモデルが作成できたことになります.
+# 確認用のデータで, 残った変数のモデルを推定し直す
+check = sm.OLS(confirm['GPA'], sm.add_constant(confirm[selected])).fit()
+print(check.summary().tables[1])
 
+"""
+{'Scholarship_True': 0.0, 'Study_Hours': 0.0, 'Sports_hours': 0.272}
+{'Scholarship_True': 0.0, 'Study_Hours': 0.0}
+探索用のデータで残った変数: ['Scholarship_True', 'Study_Hours']
+====================================================================================
+                       coef    std err          t      P>|t|      [0.025      0.975]
+------------------------------------------------------------------------------------
+const                1.8598      0.041     45.070      0.000       1.777       1.943
+Scholarship_True     0.2542      0.042      6.045      0.000       0.170       0.339
+Study_Hours          0.9750      0.041     23.984      0.000       0.893       1.057
+====================================================================================
+"""
+~~~
 
-::: note
+`df.sample(frac=0.5, random_state=0)` は 100 人から半分の 50 人をランダムに選び, `df.drop(explore.index)` は選ばれなかった残りの 50 人を取り出します. `fit.pvalues` は各係数の P 値で, 定数項 (`const`) を除いた中で最も大きいものを `idxmax()` で見つけて, `selected` から除きます. `summary().tables[1]` は, `summary()` の出力のうち係数の表だけを取り出します.
 
-今回は有意ではないものを除外することで, 信頼のおける回帰式を推論することができました.
+探索用のデータでは, `Sports_hours` の P 値が 0.272 で除かれ, `Scholarship_True` と `Study_Hours` が残りました. 確認用のデータで推定し直しても, 2 つの係数の 95% 信頼区間 (0.170〜0.339 と 0.893〜1.057) はどちらも 0 を含みません. 探索で見つけた「奨学生かどうかと勉強時間が GPA と関係する」という仮説は, 選択に使っていないデータでも成り立ちました.
 
-この結果から,
+データを半分に分けると, 1 つの推定に使えるデータが減るので, 信頼区間は広くなります. 確認用のデータでの `Study_Hours` の信頼区間の幅は 0.16 で, 100 人全員で推定した[説明が目的の場合](#model-selection-explanation)の幅 0.11 より広くなっています. 選んだことの影響を受けない P 値と信頼区間を得る代わりに, 推定の精度が下がります.
 
-- 奨学生の方が GPA が良いこと
+この後の[結果の可視化](#multiple-regression-plots)と[回帰の評価](#regression-evaluation)では, 確認できたこの 2 つの変数のモデルを使います. 可視化のために, 100 人全員のデータで推定し直しておきます.
 
-- 勉強時間が多いほど GPA が高いこと
+~~~ py
+# 確認できたモデルを, 100 人全員のデータで推定し直す
+X = sm.add_constant(df[selected])
+y = df['GPA']
+result = sm.OLS(y, X).fit()
+~~~
 
-- 勉強時間の方が奨学生であることよりも GPA には効果があること
+### 結果の可視化 {#multiple-regression-plots}
 
-- 「奨学生であるか」「勉強時間」から GPA が予測できること
-
-などが示されました.
-
-なお, 今回の結果から
-
-- バイト時間が多いほど GPA が少ない
-
-- バイト時間や運動時間では GPA を説明できない
-
-などの仮説がたてられますが, それが検証されたわけではないことに注意が必要です.
-(仮説検定は, 棄却されて初めて具体的な主張が可能です.)
-
-:::
-
-### AIC について
-
-今回は, 有意ではない, かつ多重共線性のある説明変数を除外することで適当なモデルを選択することができました.
-
-しかし, 全ての変数が有意なモデル同士はどのように比較するのでしょうか.
-例えば, $\mathrm{Adj.}\ R^2$ や `Prob (F-statistic)` を比較してみると
-
-- `Sports_hours` あり $\mathrm{Adj.}\ R^2$: 0.943, `Prob (F-statistic)`: 4.46e-60
-
-- `Sports_hours` なし $\mathrm{Adj.}\ R^2$: 0.943, `Prob (F-statistic)`: 1.62e-61
-
-とそれほどの差はありません.
-
-モデルの比較を行う際には基本的にこれらの値を利用するのではなく, **AIC (赤池情報量基準, Akaike's Information Criterion)**や **BIC (ベイズ情報量規準, Bayesian information criterion)**を利用するのが一般的です.
-
-いずれも「モデルの良さ」を表す基準であり, 値が小さいほど良いモデルとなります.
-`Sports_hours` あり/なしを比較すると, AIC (22.81→21.15), BIC (33.23→28.96) 共に `Sports_hours` を除外したモデルのほうが値が小さいことが分かります.
-
-### 結果の可視化
-
-回帰分析の結果を画像でも確認してみます.
+回帰分析の結果を画像でも確認してみます. [探索が目的の場合](#model-selection-exploration)の最後に 100 人全員のデータで推定した, `Scholarship_True` と `Study_Hours` のモデル (`result`) を使います.
 最も単純な回帰の結果を表すグラフは, 縦軸に実測値 Y, 横軸に予測値をプロットした散布図です.
 
 ~~~ py
@@ -1668,7 +1679,7 @@ $R^2$ は単位を持たない比で, 目的変数のばらつきのうち回帰
 
 ### scikit-learn による MSE の計算 {#mse-sklearn}
 
-[重回帰分析](#multiple-regression)で選んだ, `Scholarship_True` と `Study_Hours` を説明変数とするモデルを評価します. `statsmodels` の代わりに, 予測によく使われる `scikit-learn` の `LinearRegression` を使います. 係数は同じ最小二乗法で求まり, `.fit()` で訓練データから係数を求め, `.predict()` で予測値を計算します. RMSE を GPA の単位で読めるように, CSV を読み直し, 標準化をせずに元の単位のまま使います.
+[探索が目的の場合](#model-selection-exploration)で選び, 確認用のデータで確かめた, `Scholarship_True` と `Study_Hours` を説明変数とするモデルを評価します. `statsmodels` の代わりに, 予測によく使われる `scikit-learn` の `LinearRegression` を使います. 係数は同じ最小二乗法で求まり, `.fit()` で訓練データから係数を求め, `.predict()` で予測値を計算します. RMSE を GPA の単位で読めるように, CSV を読み直し, 標準化をせずに元の単位のまま使います.
 
 ~~~ py
 import numpy as np
@@ -1748,7 +1759,7 @@ plt.close()
 
 ## 説明変数の組み合わせをテスト MSE で比べる (発展) {#variable-selection-test-mse}
 
-[重回帰分析](#multiple-regression)では, 多重共線性と P 値を手がかりに説明変数を選びました. 予測が目的なら, 候補の説明変数から作れる組み合わせごとに回帰式を求め, テストデータの MSE で比べる方法もあります. 候補が `Scholarship_True`, `Study_Hours`, `Sports_hours`, `Part_time_Work` の 4 つなら, 組み合わせは 15 通りです.
+[予測が目的の場合](#model-selection-prediction)では, 回帰式を求めるのに使っていないデータでの誤差で変数の組み合わせを比べると述べました. その方法の 1 つとして, 候補の説明変数から作れる組み合わせごとに回帰式を求め, テストデータの MSE で比べる方法があります. 候補が `Scholarship_True`, `Study_Hours`, `Sports_hours`, `Part_time_Work` の 4 つなら, 組み合わせは 15 通りです.
 
 ~~~ py
 import itertools
@@ -1789,6 +1800,106 @@ Scholarship_True + Study_Hours + Sports_hours + Part_time_Work   0.046    0.034
 テスト MSE が最も小さいのは `Part_time_Work` を含むモデル (0.034) で, 本文で選んだモデルの約半分です. [多重共線性 (弱い多重共線性)](#weak-multicollinearity)の節では, `Study_Hours` との相関 (-0.77) を理由に `Part_time_Work` を除外しました. 2 つの結論が違うのは, 目的が違うためです. 多重共線性は個々の回帰係数の推定を不安定にするので, 係数を解釈して何が GPA に影響するかを論じるときに問題になります. 予測値そのものは, 相関の強い説明変数を含んでいても安定していることが多く, 予測が目的ならテスト MSE が判断の基準になります.
 
 ただし, テスト MSE が最小の組み合わせを選ぶと, テストデータを変数の選択に使ったことになります. 選んだモデルのテスト MSE は, 多くの候補の中から最も良かったものなので, 新しいデータでの誤差より小さめに出ます. 変数の選択まで行うときは, 訓練データをさらに分けた**検証データ**で組み合わせを選び, テストデータは選んだモデルの最後の評価に 1 回だけ使います.
+
+## 目的変数と無関係な変数を P 値で選ぶシミュレーション (発展) {#post-selection-simulation}
+
+[モデル選択](#model-selection)の 1〜3 の手順で, 目的変数と無関係な変数から選ぶと何が起きるかを, シミュレーションで確かめます. 100 人分のデータに 50 個の説明変数の候補を作り, 目的変数も含めて, すべて互いに無関係な正規分布の乱数にします. 本当の回帰係数はすべて 0 なので, 正しい結論は「どの変数も目的変数と関係しない」です. データの大きさは @freedman1983note の設定にそろえています.
+
+~~~ py
+import numpy as np
+import pandas as pd
+import statsmodels.api as sm
+
+rng = np.random.default_rng(0)
+n, k = 100, 50
+names = [f'x{j}' for j in range(k)]
+
+
+def backward_eliminate(X, y):
+    """P 値が 0.05 以上の変数のうち, 最も大きいものを 1 つずつ除く."""
+    selected = list(X.columns)
+    while selected:
+        fit = sm.OLS(y, sm.add_constant(X[selected])).fit()
+        pvalues = fit.pvalues.drop('const')
+        if pvalues.max() < 0.05:
+            return selected, fit
+        selected.remove(pvalues.idxmax())
+    return selected, None
+
+
+# 1 回分: y は x のどれとも無関係に作る
+X = pd.DataFrame(rng.normal(size=(n, k)), columns=names)
+y = pd.Series(rng.normal(size=n))
+selected, fit = backward_eliminate(X, y)
+print('残った変数:', selected)
+if fit is not None:
+    print(fit.pvalues.drop('const').round(3).to_string())
+    print(f'決定係数: {fit.rsquared:.3f}  有意 F: {fit.f_pvalue:.4f}')
+
+# 同じことを 200 回繰り返す
+trials = 200
+counts = []
+n_selected = 0
+n_confirmed = 0
+for _ in range(trials):
+    X = pd.DataFrame(rng.normal(size=(n, k)), columns=names)
+    y = pd.Series(rng.normal(size=n))
+    selected, fit = backward_eliminate(X, y)
+    counts.append(len(selected))
+    if selected:
+        # 同じ作り方で新しいデータを作り, 残った変数で推定し直す
+        X_new = pd.DataFrame(rng.normal(size=(n, k)), columns=names)
+        y_new = pd.Series(rng.normal(size=n))
+        fit_new = sm.OLS(y_new, sm.add_constant(X_new[selected])).fit()
+        n_selected += len(selected)
+        n_confirmed += (fit_new.pvalues.drop('const') < 0.05).sum()
+
+counts = np.array(counts)
+print(f'1 つ以上の変数が残った割合: {(counts > 0).mean():.2f}')
+print(f'残った変数の数の平均: {counts.mean():.1f}')
+rate = n_confirmed / n_selected
+print(f'新しいデータでも有意だった割合: {rate:.3f} ({n_confirmed}/{n_selected})')
+
+"""
+残った変数: ['x10', 'x32', 'x49']
+x10    0.000
+x32    0.011
+x49    0.033
+決定係数: 0.179  有意 F: 0.0003
+1 つ以上の変数が残った割合: 0.92
+残った変数の数の平均: 3.9
+新しいデータでも有意だった割合: 0.045 (35/772)
+"""
+~~~
+
+`backward_eliminate` は, [探索が目的の場合](#model-selection-exploration)と同じく, P 値が最も大きい変数を 1 つずつ除き, 残った変数のリストと, 最後に推定したモデルを返す関数です. 変数がすべて除かれたときは, モデルの代わりに `None` を返します. 実行には, 環境によって 10 秒から数十秒かかります.
+
+1 回目のデータでは `x10`, `x32`, `x49` の 3 つが残り, 3 つとも P 値が 0.05 未満で, 式全体の有意 F も 0.0003 です. このモデルの検定の結果はどれも「関係がある」ことを示していますが, データの作り方から, この 3 つの変数は `y` と無関係です. 200 回繰り返すと, 92% の回で 1 つ以上の変数が有意なまま残り, 残った変数の数は平均 3.9 個でした.
+
+残った変数を, 同じ作り方で作った新しいデータで推定し直すと, P 値が 0.05 未満になったのは 772 個のうち 35 個 (4.5%) でした. 目的変数と関係の無い変数の P 値が 0.05 未満になる確率は 5% なので, 選ばれた変数も, 新しいデータでは他の無関係な変数と同じ割合でしか有意になりません. 選んだデータで計算した P 値が小さかったのは, 変数とデータの関係によるものではなく, 選び方によるものです. 別のデータで確かめる手順 ([探索が目的の場合](#model-selection-exploration)) では, 確認用のデータで計算する P 値が選び方の影響を受けないので, この偏りが入りません.
+
+## モデル選択の考え方の分野ごとの経緯 (発展) {#model-selection-history}
+
+同じデータで変数を選んでから検定すると P 値が小さく出る問題は, 統計学を使う多くの分野で別々に指摘され, 分野ごとに違う名前と対処が発達してきました. 文献を探すときは, 分野ごとの名前で探す必要があります. 主なものを次の表にまとめます.
+
+| 分野 | 問題の呼び方 | 主な対処 | 文献 |
+|:---|:---|:---|:---|
+| 統計学 | 選択後の推論 (post-selection inference), 回帰式のふるい分け (screening) | データの分割, 選んだことを考慮した P 値と信頼区間の補正, 選ばれる変数の安定性の確認 | @freedman1983note, @leeb2005model, @harrell2015regression, @heinze2018variable |
+| 計量経済学 | 特定化の探索 (specification search) | 変数の選び方を変えたときに結果がどれだけ変わるかの報告, 一般的なモデルから検定で絞り込む手順 (general-to-specific) の体系化 | @leamer1983let, @hendry2014empirical |
+| 疫学 | 調整する変数の選択, Table 2 の誤り (Table 2 fallacy) | 因果の関係についての仮定から調整する変数を決める. 調整のために入れた変数の係数は解釈しない | @westreich2013table, @hernan2020causal |
+| 機械学習 | 過学習 | 訓練データとテストデータの分割, 交差検証, 正則化 | @james2021introduction |
+| 心理学 | 研究者の自由度 (researcher degrees of freedom), garden of forking paths | 事前登録 (データを集める前に, 分析の手順を登録して公開する) | @simmons2011false, @gelman2014statistical |
+| 情報量規準 | モデルの比較 | AIC による複数のモデルの比較と, モデルの重み付け (multimodel inference) | @burnham2002model, @konishi2004 |
+
+疫学の **Table 2 の誤り**は, 1 つの説明変数の効果を推定するために作ったモデルの, 調整のために入れた他の変数の係数まで, それぞれの効果として読んでしまうことを指します. 論文の 2 番目の表に回帰の結果が載ることが多いので, この名前が付いています [@westreich2013table]. 心理学の **garden of forking paths** は, 事前に計画していなくても, データを見ながら分析の分かれ道 (どの変数を入れるか, どのデータを除くか) を選ぶと, 結果として多くの分析を試したのと同じことになる問題を指します [@gelman2014statistical].
+
+分野ごとの対処は, 次の 3 つの型に分けられます.
+
+- データを見る前に決める: 事前登録, 因果の関係についての仮定から変数を決める.
+- 選ぶデータと確かめるデータを分ける: 訓練データとテストデータ, 交差検証, 探索用と確認用のデータ.
+- 選んだことを推論や報告に反映させる: 選択後の推論, 選び方を変えたときの結果の変化の報告.
+
+P 値の使い方については, アメリカ統計学会が 2016 年に声明を出しています [@wasserstein2016asa]. 声明は, P 値が一定の値を下回るかどうかだけで科学的な結論を出すべきではないことや, 正しい推論には分析の過程をすべて報告する必要があることなどを述べています.
 
 ## 一般化線形モデル: ロジスティック回帰 (発展) {#logistic-regression}
 
@@ -2016,6 +2127,26 @@ print(pd.crosstab(y, pred_class, rownames=['実測'], colnames=['予測']))
 
 本章の事例はダミーデータでしたが, 実際の研究データで回帰分析を行うには, データの取得・整形・結合という前処理が分析そのもの以上に重要になります. 国の開示システム EDINET から上場企業の財務データを取得し, 株価・業種と結合して本章の重回帰分析 (産業ダミー・年度ダミーによる統制を含む) を適用するまでの一連の流れを, 特別講義 (データサイエンス) の資料 [補足A EDINET API による財務データの取得と回帰分析](slds_a1.html)で解説しています. この補足資料は特別講義の受講生の研究 ([ESGスコアと財務指標の重回帰分析](/slds_papers.html#2026_ピエレット), 論文化済み) のコードを元にしており, 変数選択の注意点 (p 値を見てからの変数選択の問題) も扱っているので, 研究で回帰分析を使う人は一読を推奨します.
 
+# さらに学ぶための文献 {#further-reading}
+
+[モデル選択](#model-selection)の節で扱わなかった内容を学ぶための文献です.
+
+- @sawa1979x: 回帰分析の理論を和文で扱う教科書です. 第7章で, 説明変数を選ぶための基準を扱っています.
+- @james2021introduction: 予測を目的とした回帰と分類の入門書です. 第5章で交差検証, 第6章で変数選択と正則化を扱っています. 第 1 版には邦訳があります.
+- @harrell2015regression: 回帰モデルを組み立てる手順の専門書です. 第4章で, ステップワイズ法の問題点を挙げています.
+- @heinze2018variable: 変数選択の方法を総説し, 実際の分析での推奨をまとめた論文です.
+- @efron2016computer: 現代の統計的推論の教科書です. 第20章で, 変数を選んだ後の推論 (選択後の推論) を扱っています. 著者の web サイトで無料で公開されています.
+- @konishi2004: AIC などの情報量規準の考え方と導出を, 和文で扱う教科書です.
+- @burnham2002model: AIC による複数のモデルの比較と, モデルを重み付けて使う方法の専門書です.
+- @gelman2020regression: 回帰分析を, シミュレーションを多く使いながら, 係数の解釈と予測の両面から扱う教科書です.
+- @hernan2020causal: 因果推論の教科書です. 調整する変数を, 因果の関係についての仮定から選ぶ考え方を扱っています. 著者の web サイトで無料で公開されています.
+- @angrist2009mostly: 計量経済学の立場から, 回帰を因果効果の推定に使う方法を扱う教科書です. 調整に入れてはいけない変数 (bad control) を論じています. 邦訳があります.
+
+# 参考文献
+
+::: {#refs}
+:::
+
 # 演習
 
 ### Exercise DSP5-1
@@ -2119,7 +2250,7 @@ A: 奨学生 + 勉強時間  訓練 MSE: 0.0701  テスト MSE: 0.0666
 B: 奨学生 + 勉強時間 + 運動時間  訓練 MSE: 0.0690  テスト MSE: 0.0694
 ~~~
 
-`Sports_hours` を加えたモデル B は, 訓練データの MSE が 0.0701 から 0.0690 に下がり, テストデータの MSE は 0.0666 から 0.0694 に上がります. 説明変数を加えると訓練データでの誤差は小さくなるか変わらないかのどちらかなので, 訓練データの MSE が下がったことは運動時間が役立つ根拠になりません. テストデータでの差は 0.003 と小さいものの, 運動時間を加えても新しいデータへの予測は良くならないので, `Sports_hours` は加えません. [重回帰分析](#multiple-regression)で P 値と AIC から `Sports_hours` を除外した結論とも一致します.
+`Sports_hours` を加えたモデル B は, 訓練データの MSE が 0.0701 から 0.0690 に下がり, テストデータの MSE は 0.0666 から 0.0694 に上がります. 説明変数を加えると訓練データでの誤差は小さくなるか変わらないかのどちらかなので, 訓練データの MSE が下がったことは運動時間が役立つ根拠になりません. テストデータでの差は 0.003 と小さいものの, 運動時間を加えても新しいデータへの予測は良くならないので, `Sports_hours` は加えません. [予測が目的の場合](#model-selection-prediction)の AIC の比較 (`Sports_hours` を入れると AIC が 21.15 から 22.81 に上がる) とも同じ向きです.
 
 </details>
 
