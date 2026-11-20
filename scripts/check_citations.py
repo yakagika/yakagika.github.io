@@ -43,10 +43,13 @@ BIB_KEY = re.compile(r"^@\w+\s*\{\s*([^,\s]+)\s*,", re.M)
 LEVEL_LINE = re.compile(r"^verification:\s*\n\s+level:\s*([a-z]+)", re.M)
 
 
-def body_lines(text: str):
-    """コードブロックとインラインコードを除いた本文の行を (行番号, 行) で返す."""
+def body_lines(text: str, offset: int = 0):
+    """コードブロックとインラインコードを除いた本文の行を (行番号, 行) で返す.
+
+    offset は本文より前の行数 (front matter). 行番号を file の行番号にそろえる.
+    """
     in_fence = False
-    for no, line in enumerate(text.splitlines(), 1):
+    for no, line in enumerate(text.splitlines(), offset + 1):
         if FENCE.match(line.lstrip()):
             in_fence = not in_fence
             continue
@@ -88,10 +91,11 @@ def main() -> int:
         fm = FRONT_MATTER.match(text)
         meta = fm.group(1) if fm else ""
         body = text[fm.end():] if fm else text
+        offset = text[:fm.end()].count("\n") if fm else 0
         m = re.search(r"^bibliography:\s*(\S+)\s*$", meta, re.M)
 
         if not m:
-            for no, line in body_lines(body):
+            for no, line in body_lines(body, offset):
                 if BRACKET_CITE.search(line):
                     warnings.append(f"{rel}:{no}: bibliography の指定が無い章に引用があります: {line.strip()[:80]}")
             continue
@@ -104,7 +108,7 @@ def main() -> int:
         keys_in_bib = bib_keys(bib)
 
         seen: dict[str, int] = {}
-        for no, line in body_lines(body):
+        for no, line in body_lines(body, offset):
             for key in CITE.findall(line):
                 seen.setdefault(key, no)
         if seen and not REFS_DIV.search(body):
@@ -113,7 +117,10 @@ def main() -> int:
         for key, no in seen.items():
             n_cites += 1
             if key not in keys_in_bib:
-                failures.append(f"{rel}:{no}: @{key} が {bib.relative_to(REPO)} にありません")
+                failures.append(
+                    f"{rel}:{no}: @{key} が {bib.relative_to(REPO)} にありません "
+                    "(引用でない @ は &#64; か \\@ と書く. 埋め込みの HTML の中も引用として処理される)"
+                )
                 continue
             level = papers_level(args.papers, key)
             if level is None:
