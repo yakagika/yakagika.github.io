@@ -5,7 +5,7 @@ created: 2026-11-20
 updated: 2026-11-20
 priority: high
 next_actor: agent
-next_action: "Phase 2 段 1 の GPA の生成器 (blog-reg-gpa-generator) を受け取って land し, 段 2 (reg-intro, reg-ols, reg-multiple) を codex に委譲する"
+next_action: "Phase 2 の段 2 (blog-reg-s2-theory), 段 3 (blog-reg-s3-code), 段 7 (blog-reg-s7-glm) を codex から受け取って land し, reg-intro の下書きを本人に見せる"
 ---
 
 # 講義資料を分野とブロックに分け, 講義はブロックの並びかブロックへのリンクで組む
