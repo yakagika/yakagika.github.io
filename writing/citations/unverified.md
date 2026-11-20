@@ -5,6 +5,36 @@
 
 | 章 | キー | verification |
 |---|---|---|
+| fields/regression/reg-causal.md | hernan2020causal | identity |
+| fields/regression/reg-causal.md | cinelli2024crash | identity |
+| fields/regression/reg-causal.md | westreich2013table | identity |
+| fields/regression/reg-intro.md | hernan2019second | identity |
+| fields/regression/reg-intro.md | leek2015what | identity |
+| fields/regression/reg-intro.md | shmueli2010explain | identity |
+| fields/regression/reg-intro.md | gelman2020regression | identity |
+| fields/regression/reg-prediction.md | hernan2019second | identity |
+| fields/regression/reg-prediction.md | shmueli2010explain | identity |
+| fields/regression/reg-prediction.md | james2021introduction | identity |
+| fields/regression/reg-selection-lab.md | freedman1983note | identity |
+| fields/regression/reg-selection.md | westreich2013table | identity |
+| fields/regression/reg-selection.md | heinze2018variable | identity |
+| fields/regression/reg-selection.md | james2021introduction | identity |
+| fields/regression/reg-selection.md | freedman1983note | identity |
+| fields/regression/reg-selection.md | harrell2015regression | identity |
+| fields/regression/reg-selection.md | konishi2004 | identity |
+| fields/regression/reg-selection.md | burnham2002model | identity |
+| fields/regression/reg-selection.md | leeb2005model | identity |
+| fields/regression/reg-selection.md | leamer1983let | identity |
+| fields/regression/reg-selection.md | hendry2014empirical | identity |
+| fields/regression/reg-selection.md | hernan2020causal | identity |
+| fields/regression/reg-selection.md | simmons2011false | identity |
+| fields/regression/reg-selection.md | gelman2014statistical | identity |
+| fields/regression/reg-selection.md | wasserstein2016asa | identity |
+| fields/regression/reg-selection.md | efron2016computer | identity |
+| fields/regression/reg-selection.md | sawa1979x | identity |
+| fields/regression/reg-selection.md | gelman2020regression | identity |
+| fields/regression/reg-selection.md | angrist2009mostly | identity |
+| fields/regression/reg-selection.md | shmueli2010explain | identity |
 | lectures/dsp/dsp5.md | cinelli2024crash | identity |
 | lectures/dsp/dsp5.md | shmueli2010explain | identity |
 | lectures/dsp/dsp5.md | freedman1983note | identity |
