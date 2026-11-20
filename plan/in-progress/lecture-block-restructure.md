@@ -5,7 +5,7 @@ created: 2026-11-20
 updated: 2026-11-20
 priority: high
 next_actor: agent
-next_action: "Phase 2 の段 2 (blog-reg-s2-theory), 段 3 (blog-reg-s3-code), 段 7 (blog-reg-s7-glm) を codex から受け取って land し, reg-intro の下書きを本人に見せる"
+next_action: "Phase 2 段 2 (blog-reg-s2-theory: reg-intro, reg-ols, reg-multiple) を受け取って land し, reg-intro の下書きを本人に見せる. 段 3 (c97f532) と段 7 (5121aba) は land 済み"
 ---
 
 # 講義資料を分野とブロックに分け, 講義はブロックの並びかブロックへのリンクで組む
@@ -214,13 +214,13 @@ next_action: "Phase 2 の段 2 (blog-reg-s2-theory), 段 3 (blog-reg-s3-code), �
 | 段 | 内容 | 担当 | 前提 |
 |---|---|---|---|
 | 0 | `fields/regression/field.yaml` と 13 ブロックの空の file (`open: false`, `requires` は上の表) | coordinator (2026-11-20 済み) | |
-| 1 | GPA の生成器 `scripts/make_reg_gpa.py`: 配布版の CSV を再現する, 同じ仕組みから新しい標本 (別の 100 人, 新しい学生) を作る, 打ち切り前の潜在得点を返す, 因果の構造を 2 つ (アルバイト時間が中間の変数になる今の構造と, 交絡になる構造. 勉強時間とアルバイト時間の同時分布は 2 つで同じにする) 持ち, 介入した世界の平均を返す. 照合の試験と, `slds_code/ch11/multi.py` のコメントの誤り (生成の向き, 係数, 誤差の大きさ, 出力先) の修正 | codex Sol | 段 0 |
+| 1 | (9c58140 で land) GPA の生成器 `scripts/make_reg_gpa.py`: 配布版の CSV を再現する, 同じ仕組みから新しい標本 (別の 100 人, 新しい学生) を作る, 打ち切り前の潜在得点を返す, 因果の構造を 2 つ (アルバイト時間が中間の変数になる今の構造と, 交絡になる構造. 勉強時間とアルバイト時間の同時分布は 2 つで同じにする) 持ち, 介入した世界の平均を返す. 照合の試験と, `slds_code/ch11/multi.py` のコメントの誤り (生成の向き, 係数, 誤差の大きさ, 出力先) の修正 | codex Sol | 段 0 |
 | 2 | 理論の土台: `reg-intro`, `reg-ols`, `reg-multiple` | codex | 段 1 |
-| 3 | `reg-simple` (OECD), `reg-gpa` | codex | 段 1, トルコの修正の land |
+| 3 | `reg-simple` (OECD), `reg-gpa` | codex (c97f532 で land. 差し戻し 2 回: 依頼文の問いの誤り, データの読み込み方など 3 点) | 段 1, トルコの修正の land |
 | 4 | `reg-prediction`, `reg-evaluate` | codex | 段 2, 3 と本人の確認 |
 | 5 | `reg-causal` | codex | 段 2 と本人の確認 |
 | 6 | `reg-selection`, `reg-selection-gpa`, `reg-selection-lab` | codex | 段 4, 5 |
-| 7 | `reg-glm`, `reg-logit` | codex | 段 2 |
+| 7 | `reg-glm`, `reg-logit` | codex (5121aba で land. 差し戻し 1 回: データの読み込み方) | 段 2 |
 | 8 | 講義の並び (dsp の回帰の回), 旧 anchor から新しい節に着けることの確認, 対応表の 1 項目の付け替え | codex と coordinator | 段 1〜7 |
 
 図は `images/fields/regression/<ブロック>/` に置く. 新しく引く文献 (Hernán, Hsu and Healy 2019 など, 講義の文献表に無いもの) は, 論文 DB に登録してから本文で引く (Hernán, Hsu and Healy 2019 と Leek and Peng 2015 は a4efdb9 で登録済み).
