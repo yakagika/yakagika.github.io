@@ -15,7 +15,7 @@ next_action: "agent が第5章のモデル選択の節を書き直し, 多重共
 - **状態**: in-progress (2026-11-20 起票. 同日に未解決事項 1〜5 を本人が裁定)
 - **作成日**: 2026-11-20
 - **最終更新**: 2026-11-20
-- **関連計画**: [dsp-course-material.md](dsp-course-material.md), [dsp5-logistic-regression.md](dsp5-logistic-regression.md)
+- **関連計画**: [dsp-course-material.md](dsp-course-material.md), [2026-11-20-dsp5-logistic-regression.md](../landed/2026-11-20-dsp5-logistic-regression.md)
 - **出所**: 本人の指示 (2026-11-20). 会話で, 回帰のモデル選択 (ステップワイズ, AIC, 有意性による変数の除外) の方法論を議論した後に, 次の 2 点を求めた.
   1. 講義資料の中で, モデル選択の方法論が分野ごとに発達した経緯をまとめ, 資料がどの立場をとるかを書き, その上で何を扱うかを決める.
   2. 現行の講義資料は文献を参照しておらず, 内容を文献と照合してもいない. 文献に基づいて構築する形式に変える.
