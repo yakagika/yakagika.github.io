@@ -5,7 +5,7 @@ created: 2026-11-20
 updated: 2026-11-20
 priority: medium
 next_actor: agent
-next_action: "agent が papers の和文の著者名の修正を受けて bib を生成し直し表示を確かめ, slds 第11章に注記を置き, 第5章を codex の review に出す (本文は commit 03b9a89 で書き直し済み)"
+next_action: "agent が文献表の和文の名の後ろの余分な点を生成器で外し, slds 第11章に注記を置き, 第5章を codex の review に出す (本文 03b9a89, bib 0a49cc3 は済み)"
 ---
 
 # 講義資料を文献に基づいて構築する形式に変える (最初の適用は第5章のモデル選択)
@@ -111,7 +111,8 @@ next_action: "agent が papers の和文の著者名の修正を受けて bib �
 - 節の書き直しを commit した (2026-11-20, commit 03b9a89). 構成: モデル選択 {#model-selection} (3 つの目的, 同じデータで選んで検定する問題) → この講義での目的ごとの進め方 {#model-selection-stance} → 説明 (3 変数を先に決めて信頼区間で報告. Sports_hours を外さない) → 予測 (AIC と BIC. AIC の差 1.66 < 2, AIC と P 値の基準の違い 0.157) → 探索 (df.sample(frac=0.5, random_state=0) で分け, 探索用で Sports_hours が p=0.272 で除かれ, 確認用で 2 変数とも有意. 最後に 100 人全員で推定し直して result を作るので, 既存の図と回帰の評価はそのまま使える). 発展 2 節 (post-selection-simulation: n=100, k=50, 200 回, 92% で 1 つ以上残る, 平均 3.9 個, 新しいデータでは 4.5%. model-selection-history: 分野ごとの表と 3 つの型, ASA 声明) をテスト MSE の発展の後に置いた. 「さらに学ぶための文献」{#further-reading} と「参考文献」は演習の前に置いた (ESL が書誌の注を演習の前に置く例に合わせ, 演習を章末に置く規約を保つため). 多重共線性の節に注記 (裁定 7). 正規化の例が df を上書きしていたのを df_minmax に直した. 埋め込みの投稿の @ を &#64; にした (検査が引用として検出. pandoc でも引用として処理されることを確かめた). 第1章の発展の一覧に 2 節を足した.
 - 検査の script の行番号のずれ (front matter の分) を直した (commit 1b0f7f7).
 - 表示の確認 (新しい生成器で scratchpad の worktree に生成): 引用と文献表 (20 件) は出る. 和文の著者名が「隆光 (1979/2020)」「貞則 & 源四郎, 2004」になる. 原因は make_bib.py が和文の名前を「姓 名」で出力し, BibTeX の規則で後ろの語が姓になること. papers へ依頼した (chain `haskell-blog-2026-11-20T12-54-36-598600-make_bibpy-が和文の著者名を姓-名空白区切り-で出力し-citepro`). 直ったら make_lecture_bib.sh で bib を生成し直し, 表示を確かめる. それまで第5章を publish しない.
-- 残り: (1) papers の修正の受領と表示の再確認. (2) slds 第11章のモデル選択の節に注記を置き, dsp5.html#model-selection へリンクする (裁定 5). (3) codex に review を出す (統計の主張と文献の対応, 文体). (4) 対応表 (設計 A の 7, writing/citations/dsp5.tsv) を作る.
+- papers が make_bib.py に --profile csl を新設した (和文の「姓 名」を「姓, 名」にする. 既定の出力は他 project の bst のため変えていない). make_lecture_bib.sh に指定して生成し直した (commit 0a49cc3). 表示は「佐和 (1979/2020)」「小西 & 北川 (2004)」. 文献表では「小西貞則., & 北川源四郎.」と, 和文の名の後ろに APA の頭文字の点が付く.
+- 残り: (1) 済み. 追加: 文献表の和文の名の後ろの余分な点を, 生成器の japaneseTitles と同じ段 (#refs 内の後処理) で外す (src/Main.hs, worktree で). (2) slds 第11章のモデル選択の節に注記を置き, dsp5.html#model-selection へリンクする (裁定 5). (3) codex に review を出す (統計の主張と文献の対応, 文体). (4) 対応表 (設計 A の 7, writing/citations/dsp5.tsv) を作る.
 
 ## 統計学の講義への反映 (2026-11-20 本人の指示)
 
