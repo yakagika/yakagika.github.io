@@ -14,7 +14,7 @@ next_action: "なし (2026-10-05 に反映済み)"
 
 - **状態**: landed (2026-10-05 に本人が §決めること の 4 点を採用し, 本文に反映した)
 - **親計画**: [dsp-course-material.md](../in-progress/dsp-course-material.md) §設計 A (必修部分と発展部分)
-- **対応表**: [dsp-curriculum-matrix.md](../in-progress/dsp-curriculum-matrix.md) (章の節を動かすときは追随させる)
+- **対応表**: [dsp-curriculum-matrix.md](2026-11-20-dsp-curriculum-matrix.md) (章の節を動かすときは追随させる)
 - **対象**: `lectures/dsp/dsp1.md`, `dsp3.md`, `dsp4.md`, `dsp5.md`, `dsp6.md`, `dsp7.md`, `dsp9.md`, `dsp10.md`. dsp2 と dsp8 には発展が無い. dsp11 と dsp12 は章ごと授業で扱わない選択章なので対象外.
 
 ## 動機

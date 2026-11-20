@@ -14,7 +14,7 @@ next_action: "案 C の残り (解像度や枚数を減らす設定と, GPU な�
 
 - **状態**: proposed (方針は未決定. 本文はまだ変更していない)
 - **親計画**: [dsp-course-material.md](../in-progress/dsp-course-material.md)
-- **対応表**: [dsp-curriculum-matrix.md](../in-progress/dsp-curriculum-matrix.md) の行 160 (画像分類, `dsp9.html#age-classification`)
+- **対応表**: [dsp-curriculum-matrix.md](../landed/2026-11-20-dsp-curriculum-matrix.md) の行 160 (画像分類, `dsp9.html#age-classification`)
 - **きっかけ**: 2026-10-05 に第 10 章の Colab 利用をローカル実行に改めたとき (共通資料 `colab.md` を新設), 第 9 章の年齢識別も, 学生が手元で扱うには重いと本人が判断した
 
 ## 現状 (第 9 章の「顔による年齢識別」)
