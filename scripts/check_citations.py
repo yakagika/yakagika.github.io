@@ -4,7 +4,8 @@
 使い方:
     uv run --no-project python scripts/check_citations.py [--papers DIR] [--no-write]
 
-対象は front matter に ``bibliography: <name>`` を書いた ``lectures/**/*.md``.
+対象は ``lectures/**/*.md`` と ``fields/**/*.md``. 引用には front matter の
+``bibliography: <name>`` を使う.
 本文の引用キー ([@key], @key) ごとに次を調べる.
 
 失敗 (exit 1, publish を止める):
@@ -13,7 +14,8 @@
   - ``bibliography`` で指定した bib が無い.
 警告 (publish は止めない):
   - 検証の水準が identity か abstract (本文を確かめていない = 未照合の引用).
-  - 引用があるのに文献表の位置 (``::: {#refs}``) が無い.
+  - ``lectures/`` で引用があるのに文献表の位置 (``::: {#refs}``) が無い.
+    ``fields/`` の文献表はページごとに自動生成する.
   - ``bibliography`` の指定が無い章に ``[@key]`` がある (処理されず元の文字列が出る).
 
 未照合の引用の一覧は ``writing/citations/unverified.md`` に書き出す (``--no-write`` で抑止).
@@ -85,7 +87,8 @@ def main() -> int:
     unverified: list[tuple[str, str, str]] = []  # (章, キー, 水準)
     n_pages = n_cites = 0
 
-    for md in sorted((REPO / "lectures").rglob("*.md")):
+    sources = [*REPO.glob("lectures/**/*.md"), *REPO.glob("fields/**/*.md")]
+    for md in sorted(sources):
         rel = md.relative_to(REPO)
         text = md.read_text(encoding="utf-8")
         fm = FRONT_MATTER.match(text)
@@ -111,7 +114,7 @@ def main() -> int:
         for no, line in body_lines(body, offset):
             for key in CITE.findall(line):
                 seen.setdefault(key, no)
-        if seen and not REFS_DIV.search(body):
+        if seen and rel.parts[0] == "lectures" and not REFS_DIV.search(body):
             warnings.append(f"{rel}: 文献表の位置 (::: {{#refs}}) がありません. 文献表は末尾に入ります")
 
         for key, no in seen.items():

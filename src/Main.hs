@@ -6,6 +6,8 @@ module Main (main) where
 
 
 --------------------------------------------------------------------------------
+import           BlockSite (blockRules, checkedRoutes, generatedMtime, sitemapItems)
+import           System.Environment (lookupEnv)
 import           Control.Monad   ((>=>))
 import           Prelude
 import           Data.Functor.Identity (runIdentity)
@@ -148,12 +150,15 @@ lecturePandocCompiler = do
   case bibName of
     Nothing   -> pandocCompilerWith customReaderOptions customWriterOptions
     Just name -> do
-      csl <- load (fromFilePath "bib/apa.csl")
-      bib <- load (fromFilePath ("bib/" ++ name ++ ".bib"))
       doc <- getResourceBody >>= readPandocWith customReaderOptions
-      processed <- processPandocBiblio csl bib (fmap addCitationMeta doc)
-      return (writePandocWith customWriterOptions
-                (fmap (japaneseTitles . japaneseNames) processed))
+      writePandocWith customWriterOptions <$> citeDocument name doc
+
+citeDocument :: String -> Item Pandoc.Pandoc -> Compiler (Item Pandoc.Pandoc)
+citeDocument name doc = do
+  csl <- load (fromFilePath "bib/apa.csl")
+  bib <- load (fromFilePath ("bib/" ++ name ++ ".bib"))
+  processed <- processPandocBiblio csl bib (fmap addCitationMeta doc)
+  pure $ fmap (japaneseTitles . japaneseNames) processed
   where
     -- 本文中の引用から文献表の項目へリンクする.
     addCitationMeta (Pandoc.Pandoc (Pandoc.Meta meta) blocks) =
@@ -207,7 +212,10 @@ main = do
   now <- getPOSIXTime
   let cssVersion = show (round now :: Integer)
       versionCtx = constField "cssVersion" cssVersion
-  hakyllWith config $ do
+  fixtures <- (== Just "1") <$> lookupEnv "BLOG_FIXTURES"
+  let siteConfig = config fixtures
+  hakyllWith siteConfig $ checkedRoutes siteConfig $ \pathKey -> do
+    outputs <- blockRules fixtures customReaderOptions customWriterOptions (versionCtx <> mathCtx) citeDocument
     create ["css/syntax.css"] $ do
       route idRoute
       compile $ do
@@ -479,9 +487,10 @@ main = do
         compile $ do
             posts <- filterOpen =<< loadAllSnapshots "posts/*" "content"
             lectures <- filterOpen =<< loadAllSnapshots "lectures/**" "content"
-            let allPosts = posts ++ lectures
+            newPages <- sitemapItems siteConfig pathKey outputs
+            let allPosts = posts ++ lectures ++ newPages
             let sitemapCtx = constField "root" "https://yakagika.github.io" <>
-                             listField "entries" (postCtx tags) (return allPosts)
+                             listField "entries" (generatedMtime outputs <> postCtx tags) (return allPosts)
 
             makeItem ""
                 >>= loadAndApplyTemplate "templates/sitemap.xml" sitemapCtx
@@ -622,15 +631,18 @@ feedCtx = mconcat
 
 
 --------------------------------------------------------------------------------
-config :: Configuration
-config = defaultConfiguration
-  { destinationDirectory = "docs"
+config :: Bool -> Configuration
+config fixtures = defaultConfiguration
+  { destinationDirectory = if fixtures then "_fixture_site" else "docs"
+  , storeDirectory = if fixtures then "_fixture_cache" else storeDirectory defaultConfiguration
+  , tmpDirectory = if fixtures then "_fixture_cache/tmp" else tmpDirectory defaultConfiguration
   , previewHost = "0.0.0.0"
     -- agent 向けの指示書はサイトの source ではない. CLAUDE.md は .gitignore の対象で,
     -- AGENTS.md はその symlink なので, worktree では参照先の無い symlink になり,
     -- file の一覧を作る段階で生成が止まる.
   , ignoreFile = \path -> ignoreFile defaultConfiguration path
                        || takeFileName path `elem` ["AGENTS.md", "CLAUDE.md"]
+                       || takeFileName path `elem` (if fixtures then ["docs", "_cache"] else ["fixtures", "_fixture_site", "_fixture_cache"])
   }
 
 --------------------------------------------------------------------------------
