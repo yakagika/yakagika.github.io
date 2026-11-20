@@ -2,7 +2,7 @@
 plan_id: dsp-curriculum-matrix
 status: landed
 created: 2026-09-04
-updated: 2026-11-20
+updated: 2026-11-21
 priority: high
 next_actor: agent
 next_action: "なし (対応表は完成. 章の題材・見出し・節を変えるときは, CLAUDE.md の dsp の節の規則に従ってこの表の該当行を追随させる)"
@@ -109,3 +109,4 @@ next_action: "なし (対応表は完成. 章の題材・見出し・節を変�
 - 2026-10-29: Ch10 に事例「品目名から製造業の中分類を当てる」(発展. BERT の追加学習による多クラス分類) と演習 DSP10-2 (学習率の比較), DSP10-3 (誤分類の原因) を加えた. 割り当てられた項目は無く, 表は変えていない. 計画 dsp10-text-classification-case (landed).
 - 2026-11-09: Ch7 に次元削減 (主成分分析は必修, t-SNE は発展) を加え, 階層クラスタリングの例題を 17 項目の主成分得点に替えた. 行 18 のアンカーに `#pca` を, 評価証拠に DSP7-4 を足した. 次元削減はモデルカリキュラムの割当項目に無いので, 新しい行は足していない. 計画 dsp7-dimension-reduction.
 - 2026-11-20: Ch5 の題名を「回帰分析」に変え, 発展の節「一般化線形モデル: ロジスティック回帰」(`#logistic-regression`) を足した. ロジスティック回帰はモデルカリキュラムの割当項目に無いので, 行は足していない. 計画 dsp5-logistic-regression.
+- 2026-11-21: 回帰分析を分野のブロックへ移す試験 (計画 lecture-block-restructure の Phase 2) で, 行 167 の切り替え後の値を決めた. 節アンカーは `fields/regression/reg-prediction/regression-evaluation.html` (`mse.html`) と `fields/regression/reg-evaluate/mse-sklearn.html`, 評価証拠は Exercise REG-EVALUATE-1 (提出 `dsp5-2.py`. 旧 DSP5-2) と REG-PREDICTION-1 (提出なし. 旧 DSP5-3). 講義の並びは `courses/dsp-regression.yaml`. ブロックはまだ閉じている (`open: false`) ので, 表の行 167 は旧ページのアンカーのまま残す. ブロックを開いて第5回を講義の並びへ切り替える日に, 行 167 をこの値に書き換える. 旧 ID から新しい URL への対応は `scripts/check_reg_old_anchors.py docs` が出す.
