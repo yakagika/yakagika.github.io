@@ -34,7 +34,7 @@ bibliography: lectures
 片方を式から外すと, 勉強時間の係数はその変数に条件を付けない比較を表します.
 そろえる条件は問いで先に決め, 推定後に P 値で変数を外す操作は避けます.
 有意でなかった係数も信頼区間とともに示せば, どの程度の大きさの差までデータと整合するかを読めます.
-係数の読み方は[偏回帰係数とそろえる条件](block:reg-multiple#partial-coefficients), 計算は[GPA での関係の定量化](block:reg-selection-gpa#selection-quantification)にあります.
+係数の読み方は[偏回帰係数とそろえる条件](block:reg-multiple#partial-coefficients), GPA での計算は[関係の定量化: 式を問いで決める](block:reg-selection-gpa#selection-quantification)にあります.
 
 ## 予測
 
@@ -43,7 +43,7 @@ bibliography: lectures
 交差検証では検証用にする組を交替させ, 各組で測った誤差をまとめて比べます.
 テストデータは候補を比べる前に取り分け, 式が決まった後に 1 回だけ評価に使います.
 データの役割は[訓練データ・検証データ・テストデータ](block:reg-prediction#training-validation-test),
-候補を比べる計算は[GPA の予測に使う変数の選択](block:reg-selection-gpa#selection-prediction)にあります.
+GPA で候補を比べる計算は[予測: 交差検証で選び, テストデータで 1 回だけ評価する](block:reg-selection-gpa#selection-prediction)にあります.
 
 ## 因果推論
 
@@ -59,7 +59,7 @@ bibliography: lectures
 例えば勉強時間と GPA の散布図を見て, アルバイト時間が似ている学生に絞っても同じ傾向が見られるかを調べます.
 探索中に比べる条件を変えたり, 回帰の P 値を手がかりに調べる変数を絞ったりできます.
 探索で見つけた関係は, 次のデータで調べる仮説になります.
-探索と確認を分ける手順は[GPA での探索](block:reg-selection-gpa#selection-exploration)にあります.
+GPA で探索と確認を分ける手順は[探索: 探索用で選び, 確認用で確かめる](block:reg-selection-gpa#selection-exploration)にあります.
 
 ## 同じデータで選んで検定する手順
 
@@ -247,7 +247,7 @@ $\lambda\geq 0$ は罰則の強さです.
 変数の候補をデータで絞る手順ごと比べる場合は, 候補の絞り込みも各回で当てはめに使う組で行います.
 検証誤差によって選んだ式の最終評価には, 選択と当てはめに使わなかったテストデータを使います.
 テストデータで誤差を測る計算は[未使用のデータで予測の誤差を測る](block:reg-evaluate),
-交差検証で式を選ぶ計算は[GPA の予測に使う変数の選択](block:reg-selection-gpa#selection-prediction)にあります.
+GPA で交差検証により式を選ぶ計算は[予測: 交差検証で選び, テストデータで 1 回だけ評価する](block:reg-selection-gpa#selection-prediction)にあります.
 
 ## 目的と手法の対応
 
@@ -298,7 +298,7 @@ $\lambda\geq 0$ は罰則の強さです.
 パネルデータでは, 同じ個体の観測が両方に入ると, 探索時に見た個体に固有の特徴が確認用にも現れます.
 個体を単位に分け, 各個体の全時点の記録を同じ組に入れます.
 データを分けると, 各組の推定に使える標本が小さくなるため, 確認で求める信頼区間は一般に広くなります.
-分けてから仮説を選ぶ手順は[GPA での探索](block:reg-selection-gpa#selection-exploration)で確かめられます.
+GPA で分けてから仮説を選ぶ手順は[探索: 探索用で選び, 確認用で確かめる](block:reg-selection-gpa#selection-exploration)で確かめられます.
 
 ## 選択の手順を推論に含める
 
