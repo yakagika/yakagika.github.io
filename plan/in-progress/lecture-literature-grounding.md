@@ -4,8 +4,8 @@ status: in-progress
 created: 2026-11-20
 updated: 2026-11-20
 priority: medium
-next_actor: agent
-next_action: "agent が codex の第5章の review の結果を裁定して直し, 本人へ報告する (publish は本人が publish.sh で)"
+next_actor: user
+next_action: "本人が第5章を確認して publish.sh で公開する. その後 agent が Phase 1 を閉じ, Phase 2 (第13章, 第16章, 第14章) の文献の候補を挙げる"
 ---
 
 # 講義資料を文献に基づいて構築する形式に変える (最初の適用は第5章のモデル選択)
@@ -116,7 +116,8 @@ next_action: "agent が codex の第5章の review の結果を裁定して直�
 - 文献表の和文の名の後ろの点を外した (commit c690e9a, 暫定). 原因は citeproc 0.8.1.1 (lts-22.43) が CSL の initialize-with の点を和文の名にも付けること. citeproc 0.14.1.1 で直っている (citeproc #189, 非ラテン文字の名を頭文字にしない) が, その版は stackage の nightly にだけあり, LTS (24.66 でも citeproc 0.9.0.1) に無い. 手元の pandoc 3.14 の CLI では点が付かないことを確かめた. 生成器の `japaneseNames` (#refs 内で, 和文の文字の直後の「.,」を「,」にする) は, resolver を citeproc 0.14.1.1 以上を含む snapshot へ上げたときに外す. 同じ版で「ローマ字を含まない文字列を斜体にしない」(citeproc #190) も入るので, そのとき `japaneseTitles` (和文の斜体を『』にする) が和文の書名を検出できるかも確かめる.
 - slds 第11章のモデル選択の節の頭に注記を置いた (commit 69a4bea).
 - 対応表 writing/citations/dsp5.tsv を置いた (commit dcd3762). 作る途中で, 本文が後退除去の結果を Freedman (1983) に帰していたのを見つけた (Freedman の手順は 2 段のふるい分け). 文献が支える範囲と本文のシミュレーションの範囲を分けて書き直した (同じ commit).
-- codex (Astra) に第5章の review を出した (2026-11-20). 結果を受けて直し, 本人へ報告する.
+- codex (Astra) の review を受けて直した (2026-11-20, commit f6b5aaa). 指摘 16 件と削る候補 5 件のうち 18 件を採った. 主なもの: 探索の例は候補の 3 変数を全員のデータを見て決めているので, 確認用の 50 人を使っていないのは P 値で除く手順だけだと明記した. 回帰の評価も, 変数を全員のデータで選んだ後の予測の誤差だと明記した. 非有意から「関係が小さい」は導けないので, 信頼区間と勉強時間の係数の大きさで述べた. 尤度 (連続値では確率密度), BIC (AIC と別の考え方), p < 0.157 (係数 1 つの入れ子と尤度比検定, Heinze らを引用), ΔAIC (最小の AIC からの差), シミュレーションの分母, 欠落変数の条件, 区間幅の比較 (同じ 2 変数のモデルどうし) を直した. 引用は Freedman を要旨が支える範囲に, 補正を Efron と Hastie に, 難しさを Leeb と Pötscher に分けた. 経緯の表の導入を広げ, 情報量規準の行を外した. 採らなかったもの: p < 0.157 の説明を必修から外す案 (条件を付けて残す. AIC と P 値の基準の関係を示す), Gelman らの教科書を文献の案内から外す案 (役割を書き直して残す. 章は確かめていない), シミュレーションの出力のラベルを変える案 (本文で分母を説明した).
+- 第5章の書き直しは land した. 講義資料を分野とブロックに分ける再編 (plan/in-progress/lecture-block-restructure.md) の例外として旧ページで続けた (blog-c5 経由の本人裁定). land の commit を blog-c5 へ知らせる.
 
 ## 統計学の講義への反映 (2026-11-20 本人の指示)
 
