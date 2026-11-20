@@ -20,7 +20,7 @@ updated: 2026-05-25
 
 ## 動機
 
-Orchestrator から渡されたタスク 「RSS フィードに author 要素が欠落」 への対応. 既存 `feedConfiguration` に `feedAuthorName = "yakagika"`, `feedAuthorEmail = "kaya3728@gmail.com"` は定義済みだが, **email は RSS 出力に使われていない** (Hakyll 標準 RSS テンプレートが `$authorEmail$` を参照していないため). lectures タグ別フィードも同じ問題. 全 RSS フィードに channel/item 両レベルの著者情報を入れる.
+Orchestrator から渡されたタスク 「RSS フィードに author 要素が欠落」 への対応. 既存 `feedConfiguration` に `feedAuthorName = "yakagika"`, `feedAuthorEmail = "<個人のメールアドレス>"` は定義済みだが, **email は RSS 出力に使われていない** (Hakyll 標準 RSS テンプレートが `$authorEmail$` を参照していないため). lectures タグ別フィードも同じ問題. 全 RSS フィードに channel/item 両レベルの著者情報を入れる.
 
 ## 設計
 
@@ -57,7 +57,7 @@ Hakyll 標準 RSS テンプレート (`rss.xml`, `rss-item.xml`) はパッケー
 ## 未解決事項 / リスク
 
 - `feedAuthorEmail` が空文字でも `<author> ()</author>` のような壊れ出力にならないか — Hakyll の context 注入挙動を要確認
-  - 対応: `feedAuthorEmail` は現状 `kaya3728@gmail.com` なので問題化しない. 将来空にしたい場合は `$if(authorEmail)$ ... $endif$` で守る
+  - 対応: `feedAuthorEmail` は現状 `<個人のメールアドレス>` なので問題化しない. 将来空にしたい場合は `$if(authorEmail)$ ... $endif$` で守る
 - Atom フィードは作っていない (将来検討)
 - lectures-only の全件 RSS (`lectures.xml`) は本タスク範囲外
 
@@ -72,3 +72,8 @@ Hakyll 標準 RSS テンプレート (`rss.xml`, `rss-item.xml`) はパッケー
 
 - 2026-05-25: 作成
 - 2026-05-25: 実装完了, landed へ移動. `docs/rss.xml`, `docs/tags/*.xml` で `<managingEditor>` / `<webMaster>` / `<author>` が出力されることを確認 (xmllint OK).
+
+
+## 追記 (2026-11-20)
+
+本人の裁定で `feedAuthorEmail` を空にし, RSS から著者のメールの行を外した. 本文中の値は伏せた.

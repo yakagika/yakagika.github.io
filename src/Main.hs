@@ -618,7 +618,9 @@ feedConfiguration title = FeedConfiguration
     { feedTitle       = "yakagika - " ++ title
     , feedDescription = "Personal blog of yakagika"
     , feedAuthorName  = "yakagika"
-    , feedAuthorEmail = "kaya3728@gmail.com"
+    -- 個人のメールアドレスは公開しない (2026-11-20 本人裁定). 空にすると Hakyll は
+    -- authorEmail を未定義にし, templates/rss*.xml の $if(authorEmail)$ の行が出ない.
+    , feedAuthorEmail = ""
     , feedRoot        = ""
     }
 
