@@ -9,8 +9,8 @@
 | lectures/dsp/dsp5.md | shmueli2010explain | identity |
 | lectures/dsp/dsp5.md | freedman1983note | identity |
 | lectures/dsp/dsp5.md | harrell2015regression | identity |
-| lectures/dsp/dsp5.md | leeb2005model | identity |
 | lectures/dsp/dsp5.md | efron2016computer | identity |
+| lectures/dsp/dsp5.md | leeb2005model | identity |
 | lectures/dsp/dsp5.md | konishi2004 | identity |
 | lectures/dsp/dsp5.md | burnham2002model | identity |
 | lectures/dsp/dsp5.md | heinze2018variable | identity |
