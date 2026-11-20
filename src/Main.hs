@@ -152,7 +152,8 @@ lecturePandocCompiler = do
       bib <- load (fromFilePath ("bib/" ++ name ++ ".bib"))
       doc <- getResourceBody >>= readPandocWith customReaderOptions
       processed <- processPandocBiblio csl bib (fmap addCitationMeta doc)
-      return (writePandocWith customWriterOptions (fmap japaneseTitles processed))
+      return (writePandocWith customWriterOptions
+                (fmap (japaneseTitles . japaneseNames) processed))
   where
     -- 本文中の引用から文献表の項目へリンクする.
     addCitationMeta (Pandoc.Pandoc (Pandoc.Meta meta) blocks) =
@@ -174,10 +175,30 @@ japaneseTitles = walk refsBlock
           Pandoc.Span ("", ["ja-title"], [])
                       ([Pandoc.Str "『"] ++ inlines ++ [Pandoc.Str "』"])
     emphInline inline = inline
-    isCJK c = let n = fromEnum c
-              in (n >= 0x3040 && n <= 0x30FF)   -- ひらがな, カタカナ
-                 || (n >= 0x3400 && n <= 0x9FFF) -- 漢字
-                 || (n >= 0xFF00 && n <= 0xFFEF) -- 全角英数と記号
+
+-- | 文献表 (@#refs@) の中で, 和文の名の後ろに付いた頭文字の点を外す
+-- (「小西貞則., & 北川源四郎.」を「小西貞則, & 北川源四郎.」にする).
+-- 暫定の対処. citeproc 0.8.1.1 は CSL の @initialize-with@ の点を和文の名にも付ける.
+-- citeproc 0.14.1.1 で直った (非ラテン文字の名を頭文字にしない, citeproc #189) が,
+-- その版は stackage の LTS にまだ無い. resolver をその版を含む snapshot へ上げたら外す.
+-- 名が最後の著者のときの点 (「北川源四郎. (2004)」) は APA の区切りなので残す.
+japaneseNames :: Pandoc.Pandoc -> Pandoc.Pandoc
+japaneseNames = walk refsBlock
+  where
+    refsBlock (Pandoc.Div attr@(ident, _, _) blocks)
+      | ident == "refs" = Pandoc.Div attr (walk strInline blocks)
+    refsBlock block = block
+    strInline (Pandoc.Str s)
+      | Just name <- T.stripSuffix ".," s
+      , Just (_, c) <- T.unsnoc name
+      , isCJK c = Pandoc.Str (name <> ",")
+    strInline inline = inline
+
+isCJK :: Char -> Bool
+isCJK c = let n = fromEnum c
+          in (n >= 0x3040 && n <= 0x30FF)   -- ひらがな, カタカナ
+             || (n >= 0x3400 && n <= 0x9FFF) -- 漢字
+             || (n >= 0xFF00 && n <= 0xFFEF) -- 全角英数と記号
 
 --------------------------------------------------------------------------------
 -- | Entry point
