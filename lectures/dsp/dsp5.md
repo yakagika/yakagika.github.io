@@ -400,7 +400,6 @@ print(df_t)
 20  United Kingdom  20.1     9.5   1.6
 21   United States  20.4    10.2   1.6
 """
-
 ~~~
 
 
@@ -410,8 +409,10 @@ print(df_t)
 
 続いて, 政府のグラフに合わせて男性の労働時間, 家事及び育児の時間 (Paid, Unpaid, Care) に占める家事及び育児 (Unpaid, Care) の割合を計算します.
 
-~~~ python
-df_t['r'] = df_t[['Unpaid','Care']].sum(axis=1) / df_t[['Paid','Unpaid','Care']].sum(axis=1)
+~~~ py
+unpaid_and_care = df_t[["Unpaid", "Care"]].sum(axis=1)
+total_work = df_t[["Paid", "Unpaid", "Care"]].sum(axis=1)
+df_t["r"] = unpaid_and_care / total_work
 print(df_t)
 
 """
@@ -438,174 +439,147 @@ print(df_t)
 19          Turkey  20.2     2.6   3.5  0.231939
 20  United Kingdom  20.1     9.5   1.6  0.355769
 21   United States  20.4    10.2   1.6  0.366460
-
 """
 ~~~
 
-`df_t` と `df_f` は表示されている国が異なるので, `df_t` から情報を抽出します.
+出生率の表ではトルコを `Türkiye`, 時間配分の表では `Turkey` と表記しています. 国名をキーにして結合する前に, 出生率の表の表記を `Turkey` に揃えます.
 
 ~~~ py
-#照合のためにCountryをindexにします.
-df_t.set_index('Country',inplace=True,drop=True)
-df_f.set_index('Country',inplace=True,drop=True)
-df_f['r'] = pd.NA
+df_f["Country"] = df_f["Country"].replace({"Türkiye": "Turkey"})
 
-for i in df_f.index:
-    try:
-        df_f.at[i,'r'] = df_t.at[i,'r']
-    except:
-        pass
+joined = df_f.merge(
+    df_t[["Country", "r"]],
+    on="Country",
+    how="outer",
+    validate="one_to_one",
+    indicator=True,
+)
+~~~
 
-print(df_f)
+両方の表の国名を残して結合し, 片方の表にしかない行を確認します. `left_only` は出生率の表にだけある行, `right_only` は時間配分の表にだけある行です. `both` の行から両方の値がある国を取り出します.
+
+~~~ py
+unmatched = joined.loc[joined["_merge"] != "both", ["Country", "_merge"]]
+print(unmatched.to_string(index=False))
 
 """
-                 Fertility         r
-Country
-Korea                 0.92  0.125413
-Spain                 1.23  0.424125
-Italy                 1.27  0.393305
-Japan                 1.36  0.165079
-Poland                1.42  0.261905
-Portugal              1.43      <NA>
-Lithuania             1.61      <NA>
-Luxembourg            1.34      <NA>
-Canada                1.47  0.351906
-Greece                1.34      <NA>
-Finland               1.35  0.442029
-Austria               1.46  0.326347
-Switzerland           1.48      <NA>
-United Kingdom        1.63  0.355769
-Costa Rica            1.63      <NA>
-Chile                 1.55      <NA>
-Norway                1.53  0.416928
-Latvia                1.61  0.292398
-Germany               1.54  0.391608
-OECD average          1.60      <NA>
-Hungary               1.49      <NA>
-Belgium               1.60  0.402299
-Estonia               1.66  0.387755
-Netherlands           1.57      <NA>
-Slovak Republic       1.57      <NA>
-New Zealand           1.72  0.383901
-Slovenia              1.61  0.407524
-United States         1.71   0.36646
-Sweden                1.70  0.369906
-Australia             1.67  0.384848
-Türkiye               1.88      <NA>
-Colombia              1.77      <NA>
-Ireland               1.70      <NA>
-Denmark               1.70      <NA>
-France                1.83  0.424603
-Iceland               1.75      <NA>
-Mexico                1.92  0.208443
-Czech Republic        1.71      <NA>
-Israel                3.01      <NA>
-
+        Country    _merge
+          Chile left_only
+       Colombia left_only
+     Costa Rica left_only
+ Czech Republic left_only
+        Denmark left_only
+         Greece left_only
+        Hungary left_only
+        Iceland left_only
+        Ireland left_only
+         Israel left_only
+      Lithuania left_only
+     Luxembourg left_only
+    Netherlands left_only
+   OECD average left_only
+       Portugal left_only
+Slovak Republic left_only
+    Switzerland left_only
 """
 ~~~
 
-`df_t` にデータの無い国を除外します.
-
 ~~~ py
-#NAを削除
-df_f.dropna(how='any',inplace=True)
+df_f = joined.loc[joined["_merge"] == "both", ["Country", "Fertility", "r"]]
+df_f = df_f.set_index("Country").dropna()
 print(df_f)
 
 """
                 Fertility         r
 Country
-Korea                0.92  0.125413
-Spain                1.23  0.424125
+Australia            1.67  0.384848
+Austria              1.46  0.326347
+Belgium              1.60  0.402299
+Canada               1.47  0.351906
+Estonia              1.66  0.387755
+Finland              1.35  0.442029
+France               1.83  0.424603
+Germany              1.54  0.391608
 Italy                1.27  0.393305
 Japan                1.36  0.165079
-Poland               1.42  0.261905
-Canada               1.47  0.351906
-Finland              1.35  0.442029
-Austria              1.46  0.326347
-United Kingdom       1.63  0.355769
-Norway               1.53  0.416928
+Korea                0.92  0.125413
 Latvia               1.61  0.292398
-Germany              1.54  0.391608
-Belgium              1.60  0.402299
-Estonia              1.66  0.387755
-New Zealand          1.72  0.383901
-Slovenia             1.61  0.407524
-United States        1.71   0.36646
-Sweden               1.70  0.369906
-Australia            1.67  0.384848
-France               1.83  0.424603
 Mexico               1.92  0.208443
+New Zealand          1.72  0.383901
+Norway               1.53  0.416928
+Poland               1.42  0.261905
+Slovenia             1.61  0.407524
+Spain                1.23  0.424125
+Sweden               1.70  0.369906
+Turkey               1.88  0.231939
+United Kingdom       1.63  0.355769
+United States        1.71  0.366460
 """
-
 ~~~
 
-全てのデータが揃った国はこの 21 か国となりました.
-
-::: note
-このとき問題となるのが, どの国を採用するかです.
-元の POST にも指摘がありましたが, 内閣府の計算ではなぜかメキシコが除外されていますので, それに従って実行してみます.
-:::
+両方の表にデータがある国は 22 か国です. 元の投稿が指摘したとおり, 内閣府の計算にはメキシコが含まれていないので, この分析でもメキシコを除いた 21 か国を使います. 内閣府の図は 18 か国を対象としており, 今回の分析に含まれるトルコは載っていません. 一方, 内閣府の図に載るオランダやデンマークは, 今回の 21 か国には含まれません.
 
 ~~~ py
-#メキシコを除外
-df_f.drop('Mexico',axis=0,inplace=True)
+df_f = df_f.drop("Mexico")
 print(df_f)
 
 """
-               Fertility         r
+                Fertility         r
 Country
-Korea                0.92  0.125413
-Spain                1.23  0.424125
+Australia            1.67  0.384848
+Austria              1.46  0.326347
+Belgium              1.60  0.402299
+Canada               1.47  0.351906
+Estonia              1.66  0.387755
+Finland              1.35  0.442029
+France               1.83  0.424603
+Germany              1.54  0.391608
 Italy                1.27  0.393305
 Japan                1.36  0.165079
-Poland               1.42  0.261905
-Canada               1.47  0.351906
-Finland              1.35  0.442029
-Austria              1.46  0.326347
-United Kingdom       1.63  0.355769
-Norway               1.53  0.416928
+Korea                0.92  0.125413
 Latvia               1.61  0.292398
-Germany              1.54  0.391608
-Belgium              1.60  0.402299
-Estonia              1.66  0.387755
 New Zealand          1.72  0.383901
+Norway               1.53  0.416928
+Poland               1.42  0.261905
 Slovenia             1.61  0.407524
-United States        1.71   0.36646
+Spain                1.23  0.424125
 Sweden               1.70  0.369906
-Australia            1.67  0.384848
-France               1.83  0.424603
+Turkey               1.88  0.231939
+United Kingdom       1.63  0.355769
+United States        1.71  0.366460
 """
 ~~~
 
-`Fertility` は `%` になっているので単位を揃えて `r` も `%` 表示にし, データ型も `float` にしておきます.
+`Fertility` は合計特殊出生率で, 単位は女性 1 人あたりの子どもの数です. `r` は 0 から 1 の割合なので, 内閣府のグラフに合わせて 100 倍して % で表します.
 
 ~~~ py
-df_f['r'] = (df_f['r'] * 100).astype('float')
+df_f["r"] = df_f["r"] * 100
 print(df_f)
 
 """
                 Fertility          r
 Country
-Korea                0.92  12.541254
-Spain                1.23  42.412451
+Australia            1.67  38.484848
+Austria              1.46  32.634731
+Belgium              1.60  40.229885
+Canada               1.47  35.190616
+Estonia              1.66  38.775510
+Finland              1.35  44.202899
+France               1.83  42.460317
+Germany              1.54  39.160839
 Italy                1.27  39.330544
 Japan                1.36  16.507937
-Poland               1.42  26.190476
-Canada               1.47  35.190616
-Finland              1.35  44.202899
-Austria              1.46  32.634731
-United Kingdom       1.63  35.576923
-Norway               1.53  41.692790
+Korea                0.92  12.541254
 Latvia               1.61  29.239766
-Germany              1.54  39.160839
-Belgium              1.60  40.229885
-Estonia              1.66  38.775510
 New Zealand          1.72  38.390093
+Norway               1.53  41.692790
+Poland               1.42  26.190476
 Slovenia             1.61  40.752351
-United States        1.71  36.645963
+Spain                1.23  42.412451
 Sweden               1.70  36.990596
-Australia            1.67  38.484848
-France               1.83  42.460317
+Turkey               1.88  23.193916
+United Kingdom       1.63  35.576923
+United States        1.71  36.645963
 """
 ~~~
 
@@ -617,23 +591,34 @@ France               1.83  42.460317
 import matplotlib.pyplot as plt
 from adjustText import adjust_text
 
-plt.figure(figsize=(10, 6))
-plt.scatter(df_f['r'],df_f['Fertility'])
-text = [plt.text(df_f.at[c,'r'],df_f.at[c,'Fertility'],c) for c in df_f.index]
-adjust_text(text, arrowprops=dict(arrowstyle='-', color='gray', lw=0.5))
-
-plt.xlim=(0,50)
-plt.ylim=(0,2)
-plt.ylabel('Fertility')
-plt.xlabel('Unpaid and Care Work')
-plt.title('Fertility vs Unpaid and Care Work with Country Labels')
-plt.grid()
+fig, ax = plt.subplots(figsize=(10, 6))
+points = ax.scatter(df_f["r"], df_f["Fertility"])
+ax.set(
+    xlim=(0, 50),
+    ylim=(0, 2),
+    xlabel="Unpaid and Care Work (%)",
+    ylabel="Fertility (children per woman)",
+    title="Fertility vs Unpaid and Care Work with Country Labels",
+)
+ax.grid()
+texts = [
+    ax.text(row.r, row.Fertility, country, fontsize=9)
+    for country, row in df_f.iterrows()
+]
+adjust_text(
+    texts,
+    objects=points,
+    ax=ax,
+    expand=(1.15, 1.3),
+    iter_lim=300,
+    arrowprops={"arrowstyle": "-", "color": "gray", "lw": 0.5},
+)
 plt.show()
 ~~~
 
 ![](/images/slds/ch11/oecd_scatter_no_line.png)
 
-おおよそ政府と同じグラフが完成しました.
+散布図では, トルコの家事・育児時間の割合は約 23% と低く, 合計特殊出生率は 1.88 で 21 か国の中で最も高い値です. トルコの点は, 割合が高い国ほど出生率が高いという傾向から外れています.
 
 ### 単回帰
 
@@ -644,12 +629,11 @@ plt.show()
 ~~~ py
 import statsmodels.api as sm
 
-# 説明変数(X)と目的変数(y)に分割
-X = df_f[['r']]
-y = df_f['Fertility']
+# 説明変数 X と目的変数 y に分割
+X = df_f[["r"]]
+y = df_f["Fertility"]
 
-
-# 切片(定数項)を追加
+# 切片に対応する定数項を追加
 X = sm.add_constant(X)
 
 print(X)
@@ -657,26 +641,27 @@ print(X)
 """
                 const          r
 Country
-Korea             1.0  12.541254
-Spain             1.0  42.412451
+Australia         1.0  38.484848
+Austria           1.0  32.634731
+Belgium           1.0  40.229885
+Canada            1.0  35.190616
+Estonia           1.0  38.775510
+Finland           1.0  44.202899
+France            1.0  42.460317
+Germany           1.0  39.160839
 Italy             1.0  39.330544
 Japan             1.0  16.507937
-Poland            1.0  26.190476
-Canada            1.0  35.190616
-Finland           1.0  44.202899
-Austria           1.0  32.634731
-United Kingdom    1.0  35.576923
-Norway            1.0  41.692790
+Korea             1.0  12.541254
 Latvia            1.0  29.239766
-Germany           1.0  39.160839
-Belgium           1.0  40.229885
-Estonia           1.0  38.775510
 New Zealand       1.0  38.390093
+Norway            1.0  41.692790
+Poland            1.0  26.190476
 Slovenia          1.0  40.752351
-United States     1.0  36.645963
+Spain             1.0  42.412451
 Sweden            1.0  36.990596
-Australia         1.0  38.484848
-France            1.0  42.460317
+Turkey            1.0  23.193916
+United Kingdom    1.0  35.576923
+United States     1.0  36.645963
 """
 ~~~
 
@@ -685,35 +670,35 @@ France            1.0  42.460317
 回帰分析の結果は `.summary()` メソッドで確認します.
 
 ~~~ py
-# 回帰モデルを作成・フィット
 result = sm.OLS(y, X).fit()
-
-# 結果を表示
 print(result.summary())
 
 """
                             OLS Regression Results
 ==============================================================================
-Dep. Variable:              Fertility   R-squared:                       0.282
-Model:                            OLS   Adj. R-squared:                  0.243
-Method:                 Least Squares   F-statistic:                     7.085
-Date:                Sat, 29 Mar 2025   Prob (F-statistic):             0.0159
-Time:                        13:27:03   Log-Likelihood:                 6.4233
-No. Observations:                  20   AIC:                            -8.847
-Df Residuals:                      18   BIC:                            -6.855
+Dep. Variable:              Fertility   R-squared:                       0.130
+Model:                            OLS   Adj. R-squared:                  0.084
+Method:                 Least Squares   F-statistic:                     2.845
+Date:                Fri, 20 Nov 2026   Prob (F-statistic):              0.108
+Time:                        23:02:10   Log-Likelihood:                 3.7860
+No. Observations:                  21   AIC:                            -3.572
+Df Residuals:                      19   BIC:                            -1.483
 Df Model:                           1
 Covariance Type:            nonrobust
 ==============================================================================
                  coef    std err          t      P>|t|      [0.025      0.975]
 ------------------------------------------------------------------------------
-const          1.0390      0.183      5.666      0.000       0.654       1.424
-r              0.0134      0.005      2.662      0.016       0.003       0.024
+const          1.2082      0.197      6.119      0.000       0.795       1.621
+r              0.0093      0.006      1.687      0.108      -0.002       0.021
 ==============================================================================
-Omnibus:                        3.229   Durbin-Watson:                   0.868
-Prob(Omnibus):                  0.199   Jarque-Bera (JB):                2.595
-Skew:                          -0.852   Prob(JB):                        0.273
-Kurtosis:                       2.539   Cond. No.                         161.
+Omnibus:                        0.832   Durbin-Watson:                   2.136
+Prob(Omnibus):                  0.660   Jarque-Bera (JB):                0.236
+Skew:                          -0.256   Prob(JB):                        0.889
+Kurtosis:                       3.091   Cond. No.                         153.
 ==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
 """
 ~~~
 
@@ -724,17 +709,17 @@ Kurtosis:                       2.539   Cond. No.                         161.
 
 ~~~ py
 """
-                coef    std err          t      P>|t|      [0.025      0.975]
+                 coef    std err          t      P>|t|      [0.025      0.975]
 ------------------------------------------------------------------------------
-const          1.0390      0.183      5.666      0.000       0.654       1.424
-r              0.0134      0.005      2.662      0.016       0.003       0.024
+const          1.2082      0.197      6.119      0.000       0.795       1.621
+r              0.0093      0.006      1.687      0.108      -0.002       0.021
 """
 ~~~
 
 回帰係数から今回推定された標本回帰方程式 ($y=\hat{\beta}_0+\hat{\beta}_1x$) は
 
 $$
-y=1.0390+0.0134x
+y=1.2082+0.0093x
 $$
 
 となります.
@@ -753,7 +738,8 @@ $$
 
 **「P 値 < 0.05」 かつ 「下側信頼限界と上側信頼限界が 0 をまたいでいない」**場合には, それぞれの回帰係数が有意となります.
 
-今回の回帰分析では, いずれの回帰係数も有意であり, このデータでは男性の仕事時間に対する家事・育児時間の割合が大きい国ほど, 出生率が高い傾向があります.
+切片は 5% 水準で有意です (表の P 値は丸めて 0.000 と表示され, 95% 信頼区間は 0.795 から 1.621 です).
+傾きの P 値は 0.108 で, 95% 信頼区間 (-0.0022 から 0.0209) は 0 をまたぎます. したがって, 傾きは 5% 水準で有意ではありません.
 
 ::: note
 あまり良くない回帰分析の方法として, 有意な回帰係数のみを分析対象として, 有意でない回帰係数を無視して分析している場合がしばしばあります.
@@ -766,15 +752,14 @@ $$
 
 ### 式全体の評価指標 ($R^2$, F) {#model-fit}
 
-回帰係数の P 値, 区間推定値は**回帰係数一つ一つ**に関する検定の結果でした. 個別の係数が問題ないとしても, 切片と傾きを合わせた**式全体の評価**はどうなのでしょうか. その判断に利用するのが,
-$R^2$ と **有意 F**です.
+回帰係数の P 値, 区間推定値は**回帰係数一つ一つ**に関する検定の結果でした. **回帰式全体の評価**には, $R^2$ と **有意 F** を使います.
 
 ~~~ py
 """
-R-squared:                       0.282
-Adj. R-squared:                  0.243
-F-statistic:                     7.085
-Prob (F-statistic):             0.0159
+R-squared:                       0.130
+Adj. R-squared:                  0.084
+F-statistic:                     2.845
+Prob (F-statistic):              0.108
 """
 ~~~
 
@@ -786,7 +771,7 @@ Prob (F-statistic):             0.0159
 
 **決定係数** ($R^2$) は, **モデルがどの程度当てはまっているかの基準**です. 決定係数は説明変数の数が多いほど 1 に近づく特徴があるので, 説明変数が多い場合には説明変数の数を補正した **自由度調整済み決定係数** ($\mathrm{Adj.}\ R^2$) を用います.
 
-基本的に $0 \leq \mathrm{Adj.}\ R^2 \leq 1$ の値をとり, 目安として $0.5 \leq \mathrm{Adj.}\ R^2$ であればある程度予測できていると考えられます.
+自由度調整済み決定係数は 1 以下の値をとり, 負の値になることもあります. 目安として $0.5 \leq \mathrm{Adj.}\ R^2$ であればある程度予測できていると考えられます.
 この目安は分野やデータの種類によって異なり, 新しいデータでの予測精度は[回帰の評価](#regression-evaluation)の方法で測ります.
 
 どんな散布図になっても回帰式自体は作成可能ですが, 以下の左右どちらの予測値の方が信頼できそうでしょうか.
@@ -808,7 +793,7 @@ $R^2$ が 1 に近いほど, 式が点によく当てはまっていることを
 
 :::
 
-今回のモデルを見てみると, `Adj. R-squared:0.243` であり, 予測精度が高くないことが分かります.
+今回の自由度調整済み決定係数は 0.084 で, 回帰式の当てはまりは弱いと判断できます.
 
 
 ::: note
@@ -895,22 +880,17 @@ $H_0$ が正しいとき, $F$ は 1 の近くの値をとりやすく, 回帰式
 `有意F < 0.05` であれば, 回帰式全体はデータを説明しているとみなすことができます.
 :::
 
-今回は `Prob (F-statistic):0.0159` であり, 有意に説明できていると言えます.
+F 検定の P 値は 0.108 です. 有意水準 5% では, 回帰式全体の F 検定も有意ではありません.
 
 ::: note
-したがって今回の結果をまとめると,
+- 推定した回帰式は $y=1.2082+0.0093x$ です.
+    - 回帰式では, 男性の仕事時間に対する家事・育児時間の割合が 1% (1 パーセントポイント) 高い国ほど, 出生率が 0.009 高いと推定されます. 傾きは 5% 水準で有意ではありません.
+    - 切片は有意で, 傾きと式全体の F 検定は有意ではありません. この講義の規則では, この回帰式は使えません.
 
-- $y=1.03+0.01x$
+内閣府のグラフには回帰式と $R^2$ が記載されていますが, 検定結果は載っていません. 今回の検定では, 男性の家事・育児時間の割合と出生率の間に関連があるとはいえません.
 
-    - 男性の仕事時間に対する家事育児の割合が 1% 高い国ほど, 出生率が 0.01 高い
+国名を揃えずに結合してメキシコを除くと, トルコが落ちて 20 か国になります. この 20 か国では傾きは 0.0134 で, P 値は約 0.016 となり, 5% 水準で有意です. 1 か国の扱いで結論が変わるため, 結合の後は片方の表にしかない行を確かめます.
 
-    - 切片, 傾き, 式全体は有意 (回帰式でデータを説明できる)
-
-- このデータに対する回帰式の当てはまりは弱い
-
-という結果が得られます.
-
-内閣府の分析では, 回帰式と $R^2$ のみが記載されており, 検定結果は載っていませんでしたが, 概ね正しい推論と言えます.
 自由度調整済み決定係数が低いことは, 国の間の出生率の違いのうち, この回帰式で表せる部分が小さいことを示します.
 決定係数の値にかかわらず, 国の間の関連からは, 日本で男性の家事・育児時間を増やしたときに出生率がどう変わるかは分かりません. こうした介入の効果を調べる方法は[第16章](dsp16.html)で扱います.
 :::
@@ -923,32 +903,33 @@ $H_0$ が正しいとき, $F$ は 1 の近くの値をとりやすく, 回帰式
 ~~~ py
 import numpy as np
 
-# 回帰直線のためのx軸データとy軸データ
-x_vals = np.linspace(df_f['r'].min(), df_f['r'].max(), 100)
-print(x_vals)
-y_vals = result.params['const'] + result.params['r'] * x_vals
+x_vals = np.linspace(df_f["r"].min(), df_f["r"].max(), 100)
+y_vals = result.params["const"] + result.params["r"] * x_vals
 
-# 描画
-plt.figure(figsize=(10, 6))
-
-# 散布図
-plt.scatter(df_f['r'], df_f['Fertility'], color='blue', label='Data Points')
-
-# ラベル付け
-texts = [plt.text(df_f.at[c, 'r'], df_f.at[c, 'Fertility'], c) for c in df_f.index]
-adjust_text(texts, arrowprops=dict(arrowstyle='-', color='gray', lw=0.5))
-
-# 回帰直線
-plt.plot(x_vals, y_vals, color='red', linestyle='--', label='Regression Line')
-
-# 軸・タイトル・その他
-plt.xlim = (0, 50)
-plt.ylim = (0, 2)
-plt.xlabel('Unpaid and Care Work')
-plt.ylabel('Fertility')
-plt.title('Fertility vs Unpaid and Care Work with Regression Line')
-plt.legend()
-plt.grid()
+fig, ax = plt.subplots(figsize=(10, 6))
+points = ax.scatter(df_f["r"], df_f["Fertility"], color="blue", label="Data Points")
+ax.plot(x_vals, y_vals, color="red", linestyle="--", label="Regression Line")
+ax.set(
+    xlim=(0, 50),
+    ylim=(0, 2),
+    xlabel="Unpaid and Care Work (%)",
+    ylabel="Fertility (children per woman)",
+    title="Fertility vs Unpaid and Care Work with Regression Line",
+)
+ax.legend()
+ax.grid()
+texts = [
+    ax.text(row.r, row.Fertility, country, fontsize=9)
+    for country, row in df_f.iterrows()
+]
+adjust_text(
+    texts,
+    objects=points,
+    ax=ax,
+    expand=(1.15, 1.3),
+    iter_lim=300,
+    arrowprops={"arrowstyle": "-", "color": "gray", "lw": 0.5},
+)
 plt.show()
 ~~~
 
@@ -960,20 +941,20 @@ plt.show()
 
 ~~~ py
 pred = result.predict(X)
-plt.figure(figsize=(8, 6))
-plt.scatter(pred, y, alpha=0.7, edgecolors="k")
-plt.xlabel("Predicted")
-plt.ylabel("Actual")
-plt.title("Actual vs. Predicted")
-plt.plot([y.min(), y.max()], [y.min(), y.max()], color="red", linestyle="--")  # 完全一致のライン
-plt.grid()
+
+fig, ax = plt.subplots(figsize=(8, 6))
+ax.scatter(pred, y, alpha=0.7, edgecolors="k")
+ax.set(xlabel="Predicted", ylabel="Actual", title="Actual vs. Predicted")
+ax.plot([y.min(), y.max()], [y.min(), y.max()], color="red", linestyle="--")
+ax.set_aspect("equal", adjustable="box")
+ax.grid()
 plt.show()
 ~~~
 
 ![](/images/dsp/ch5/oecd-pred-actual.png)
 
 実測値と予測値が一致していれば, この散布図はグラフの 45 度線 (赤い点線) 上に一直線になります.
-$R^2$ の結果通り, あまり予測精度が高くないことがわかります.
+点は赤い点線から離れており, 当てはめに使った国の出生率にも予測値とのずれがあります.
 
 実測値と予測値の `カーネル密度プロット(KDE; Kernel Density Estimation Plot)` を重ねたグラフもベイズモデルなどでよく利用される手法です.
 実測値の分布と予測値の分布を見比べることで, 値全体でどの部分が過大/過少に推測されているかモデルの想定する分布がデータの分布と近いかが視覚化されます.
@@ -983,22 +964,20 @@ $R^2$ の結果通り, あまり予測精度が高くないことがわかりま
 ~~~ py
 import seaborn as sns
 
-plt.figure(figsize=(16,8))
-sns.kdeplot(pred, label = 'Predicted')
-sns.kdeplot(y, label = 'Actual')
-plt.title('Actual/Predicted')
-plt.xlabel('Fertility')
-plt.ylabel('Density')
-plt.legend()
+fig, ax = plt.subplots(figsize=(16, 8))
+sns.kdeplot(pred, label="Predicted", ax=ax)
+sns.kdeplot(y, label="Actual", ax=ax)
+ax.set(title="Actual/Predicted", xlabel="Fertility (children per woman)", ylabel="Density")
+ax.legend()
 plt.show()
-plt.close()
+plt.close(fig)
 ~~~
 
 ![](/images/slds/ch11/oecd_density.png)
 
-実測値と予測値で大きく分布が異なることがわかり, やはりあまり良いモデルとはいえなさそうです.
+密度プロットでは, 予測値の分布が実測値の分布より狭く, 出生率の国ごとの散らばりを回帰式で十分に表せていません.
 
-メキシコを加えた 21 か国での回帰分析は, 演習の [Exercise DSP5-1](#exercise-dsp5-1)で扱います.
+メキシコを加えた 22 か国での回帰分析は, 演習の [Exercise DSP5-1](#exercise-dsp5-1)で扱います.
 
 ## 重回帰分析 {#multiple-regression}
 
@@ -2153,7 +2132,7 @@ print(pd.crosstab(y, pred_class, rownames=['実測'], colnames=['予測']))
 
 対応する節: [単回帰分析](#simple-regression)
 
-[単回帰分析](#simple-regression)の手順で, 内閣府の計算で除外されていたメキシコを加えた 21 か国のデータで単回帰分析を行い, 結果を解釈してください.
+[単回帰分析](#simple-regression)の手順で, 内閣府の計算で除外されていたメキシコを加えた 22 か国のデータで単回帰分析を行い, 結果を解釈してください.
 
 提出ファイル名: `dsp5-1.py`
 
@@ -2164,46 +2143,66 @@ print(pd.crosstab(y, pred_class, rownames=['実測'], colnames=['予測']))
 import pandas as pd
 import statsmodels.api as sm
 
-df_f = pd.read_csv('fertility_rates.csv')
-df_t = pd.read_csv('time_used.csv')
-df_t['r'] = df_t[['Unpaid','Care']].sum(axis=1) / df_t[['Paid','Unpaid','Care']].sum(axis=1)
+df_f = pd.read_csv("fertility_rates.csv")
+df_t = pd.read_csv("time_used.csv")
 
-df_t.set_index('Country', inplace=True, drop=True)
-df_f.set_index('Country', inplace=True, drop=True)
-df_f['r'] = pd.NA
-for i in df_f.index:
-    try:
-        df_f.at[i,'r'] = df_t.at[i,'r']
-    except:
-        pass
-df_f.dropna(how='any', inplace=True)   # メキシコは除外しない
-df_f['r'] = (df_f['r'] * 100).astype('float')
+unpaid_and_care = df_t[["Unpaid", "Care"]].sum(axis=1)
+total_work = df_t[["Paid", "Unpaid", "Care"]].sum(axis=1)
+df_t["r"] = unpaid_and_care / total_work
+
+df_f["Country"] = df_f["Country"].replace({"Türkiye": "Turkey"})
+
+joined = df_f.merge(
+    df_t[["Country", "r"]],
+    on="Country",
+    how="outer",
+    validate="one_to_one",
+    indicator=True,
+)
+
+df_f = joined.loc[joined["_merge"] == "both", ["Country", "Fertility", "r"]]
+df_f = df_f.set_index("Country").dropna()
+df_f["r"] = df_f["r"] * 100
 print(len(df_f))
 
-X = sm.add_constant(df_f[['r']])
-y = df_f['Fertility']
+X = sm.add_constant(df_f[["r"]])
+y = df_f["Fertility"]
 result = sm.OLS(y, X).fit()
 print(result.summary())
 ~~~
 
 ~~~ sh
-21
+22
                             OLS Regression Results
 ==============================================================================
-Dep. Variable:              Fertility   R-squared:                       0.099
-Model:                            OLS   Adj. R-squared:                  0.051
-Method:                 Least Squares   F-statistic:                     2.079
-Prob (F-statistic):              0.166
-...
+Dep. Variable:              Fertility   R-squared:                       0.040
+Model:                            OLS   Adj. R-squared:                 -0.008
+Method:                 Least Squares   F-statistic:                    0.8231
+Date:                Fri, 20 Nov 2026   Prob (F-statistic):              0.375
+Time:                        23:02:10   Log-Likelihood:                 1.8890
+No. Observations:                  22   AIC:                            0.2221
+Df Residuals:                      20   BIC:                             2.404
+Df Model:                           1
+Covariance Type:            nonrobust
 ==============================================================================
                  coef    std err          t      P>|t|      [0.025      0.975]
 ------------------------------------------------------------------------------
-const          1.2544      0.200      6.285      0.000       0.837       1.672
-r              0.0081      0.006      1.442      0.166      -0.004       0.020
+const          1.3729      0.201      6.830      0.000       0.954       1.792
+r              0.0052      0.006      0.907      0.375      -0.007       0.017
 ==============================================================================
+Omnibus:                        0.918   Durbin-Watson:                   1.844
+Prob(Omnibus):                  0.632   Jarque-Bera (JB):                0.288
+Skew:                          -0.275   Prob(JB):                        0.866
+Kurtosis:                       3.114   Cond. No.                         143.
+==============================================================================
+
+Notes:
+[1] Standard Errors assume that the covariance matrix of the errors is correctly specified.
 ~~~
 
-傾き `r` の P 値は 0.166 で 0.05 を上回り, 95% 信頼区間 (-0.004 から 0.020) も 0 をまたぐので, 傾きは有意ではありません. 有意 F も 0.166 で, 回帰式全体でもデータを説明しているとはいえません. 自由度調整済み決定係数は 0.051 です. メキシコを除いた 20 か国では傾きも式全体も有意でしたが, 1 か国を加えただけで有意でなくなります. 20 か国での結果は国の選び方に左右されるもので, この結果から男性の家事・育児時間の割合が出生率に影響すると主張することはできません.
+メキシコを加えると, 傾きは 0.00931 から 0.00517 へと 0 に近づきます. P 値は 0.375 で, 95% 信頼区間 (-0.0067 から 0.0171) は 0 をまたぎます. 本文の 21 か国と同じく, 傾きと式全体の F 検定は 5% 水準で有意ではありません. 自由度調整済み決定係数は -0.008 です.
+
+国名を揃えずトルコが落ちた 20 か国では, 傾きは有意でした (P 値は約 0.016). どの国を分析に含めるかによって, 傾きの推定値と検定の結果が変わります.
 
 </details>
 
