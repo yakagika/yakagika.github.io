@@ -4,8 +4,8 @@ status: in-progress
 created: 2026-11-20
 updated: 2026-11-20
 priority: high
-next_actor: agent
-next_action: "Phase 2: 回帰分析の分野のブロックの分け方 (理論とコード, 必修と発展, 旧アンカーの行き先) の案を, 統計学 第11回と dsp5 を読んで起こし, 本人に示す"
+next_actor: user
+next_action: "Phase 2 の分け方の案 (設計の節) を本人に示し, パネル分析の置き場, 交絡と因果の置き場, 旧 dsp5 の矛盾を今直すか, 分け方の承認を決めてもらう"
 ---
 
 # 講義資料を分野とブロックに分け, 講義はブロックの並びかブロックへのリンクで組む
@@ -172,6 +172,34 @@ next_action: "Phase 2: 回帰分析の分野のブロックの分け方 (理論�
 - 出力: `fields/<f>/<b>/index.html`, `fields/<f>/<b>/<id>.html`, `fields/<f>/index.html`, `courses/<c>/index.html`, `courses/<c>/<n>.html`.
 - 閉じたブロック: ページは準備中の表示と `noindex` になり, 本文と回答は出ない. ページの題名 (見出しの文字列) と前後のページの題名は, 既存の準備中のページと同じく出る. 見出しも隠すかは, 実際の内容を移してから必要なら決める.
 - 受入で確かめたこと: 本番の `docs/` は変わらない (差は file の変更時刻から決まる更新日とトップページの並び, css の版の番号だけ). `watch` で見出しの追加と削除, 講義の yaml だけの編集が出力に反映される.
+
+### Phase 2 の分け方の案 (2026-11-20. 本人の決定待ち)
+
+codex (Astra, read-only) が dsp5 と統計学 第11回を読んで作った案を, 本人の指示 (モデル選択は 1 つのブロック) に合わせて coordinator が組み直した. 名前と分け方は案 (L1), 元の行は codex が file:line で示した (L2).
+
+| 順 | ブロック | kind | 題名 | 主な source | requires | dsp | 統計学 |
+|---|---|---|---|---|---|---|---|
+| 1 | `reg-intro` | theory | 回帰で何を知りたいか (問い, 一般化線形モデルの見取り図, 関連と因果と調整する変数) | dsp5 冒頭, 第11回「データの関係性」, 交絡と媒介の対比は新規 | なし | 必修 | 使う |
+| 2 | `reg-ols` | theory | 回帰分析は何を行っているのか (母回帰式と誤差, 最小二乗法, 係数の区間と検定, 当てはまり, 記号表) | dsp5 の発展の節と「回帰係数」「評価指標」, 第11回の誤差項から係数の分布 | `reg-intro` | 発展 | 使う |
+| 3 | `reg-simple` | code | 出生率のデータで行う単回帰分析 (Exercise DSP5-1) | dsp5「単回帰分析」から「結果の可視化」 | `reg-intro` | 必修 | 課さない |
+| 4 | `reg-multiple` | theory | 重回帰分析と偏回帰係数 (ダミー変数, 単位, 多重共線性) | dsp5「重回帰分析」「多重共線性」, 第11回の重回帰と多重共線性 | `reg-intro` | 必修 | 使う |
+| 5 | `reg-evaluation` | theory | 予測の誤差を測る (新しい観測での評価, MSE と RMSE, 訓練と検証とテスト. Exercise DSP5-3) | dsp5「回帰の評価」 | `reg-multiple` | 必修 | 使う |
+| 6 | `reg-selection` | theory | モデル選択 (1 つのブロック. 確定した要件の「回帰分析のモデル選択」) | dsp5 のモデル選択の節と分野ごとの経緯, 第11回「モデル選択」「AIC について」, パネル分析とステップワイズ法は新規 | `reg-multiple`, `reg-evaluation` | 必修 | 使う |
+| 7 | `reg-gpa` | code | GPA の重回帰分析 (分けてから探す, 説明と予測と探索の実演, 図) | dsp5 の GPA の例と目的別の例 | `reg-selection` | 必修 | 課さない |
+| 8 | `reg-evaluate` | code | 未使用のデータで予測誤差を測る (Exercise DSP5-2) | dsp5「scikit-learn による MSE の計算」 | `reg-evaluation` | 必修 | 課さない |
+| 9 | `reg-selection-lab` | code | 変数選択の結果を実験で確かめる (テスト MSE での比較, P 値で選ぶシミュレーション) | dsp5 の 2 つの実験 | `reg-evaluate` | 発展 | 課さない |
+| 10 | `reg-glm` | theory | 一般化線形モデルと二値の応答 | dsp5 のロジスティック回帰の理論 | `reg-intro` | 発展 | 見取り図から案内 |
+| 11 | `reg-logit` | code | 単位の取得確率を推定する | dsp5 のロジスティック回帰の実装 | `reg-glm` | 発展 | 課さない |
+
+- `reg-selection` のページの案: 3 つの目的 `{#model-selection}`, 学問分野ごとの手法の違いと経緯 `{#model-selection-history}`, すべての変数を入れて p 値で比べることの問題 (パネル分析の例) `{#all-variables-p-values}`, ステップワイズ法の問題 `{#stepwise}`, その他の手法 (有意性による除外, 情報量規準, 正則化など) の問題と使いどころ `{#other-methods}`, 用途ごとの選び方 `{#model-selection-stance}`, 選んだ後の推論 `{#post-selection}`, さらに学ぶための文献 `{#further-reading}`. 1 つのブロックなので, dsp ではブロック全体が必修になる. 授業で扱わない部分は回のページの `intro` で案内する.
+- codex の原案では, モデル選択を `reg-selection` (目的と情報量規準と MSE) と `reg-post-selection` (選んだ後の推論と経緯, 発展) に分けていた. 本人の指示で 1 つにまとめ, MSE と訓練・テストの理論は `reg-evaluation` に分けた (モデル選択のブロックが大きくなるため).
+- 旧 anchor の行き先 (他の章から参照されている 11 種類 21 件と, 計画に挙げた内部 anchor): `発展-回帰分析は何を行っているのか` → `reg-ols#population-model`, `simple-regression` → `reg-simple`, `multiple-regression` と `weak-multicollinearity` → `reg-multiple`, `model-selection`, `model-selection-stance`, `model-selection-history`, `further-reading` → `reg-selection`, `model-selection-explanation`, `model-selection-prediction`, `model-selection-exploration`, `multiple-regression-plots` → `reg-gpa`, `regression-evaluation` と `mse` → `reg-evaluation`, `regression-train-test` と `mse-sklearn` → `reg-evaluate`, `variable-selection-test-mse` と `post-selection-simulation` → `reg-selection-lab`, `logistic-regression` → `reg-glm`. 年度中は旧ページの本文と ID を残し, 旧見出しの位置に新しいページへのリンクを置く.
+- 演習の提出 file 名は変えない (`dsp5-1.py`, `dsp5-2.py`. DSP5-3 は提出 file なし).
+- 移すときに揃えること (codex が file:line で示した): GPA のデータは配布版 (`slds_data/ch11/multiple_regression.csv`, 0〜4, 100 人) に揃え, 統計学の係数表と図も作り直す. 変数を残す基準は書き直した dsp5 の立場 (目的ごと) に揃える. 係数の添字 (第11回は単回帰の傾きを途中から $\hat\beta_2$ にしている) と残差分散の記号 ($s^2$ と $S^2$) を記号表で定める. `slds_code/ch11/multi.py` の生成式 (勉強時間 → バイト時間) とコメントの向きが逆.
+- 分けてから探す順 (引き取る課題): GPA を読み込んだ直後, 図を出す前に最終評価用の 30 人 (`test_size=0.3, random_state=0`) を取り分け, 残りを探索用と確認用に分ける. 散布図, 相関, 候補選び, 標準化は探索用だけで行う. 分割を変えるので, 係数, 区間, 図, 回答は計算し直す.
+- DSP5-2 は, テストデータの MSE で変数を選び同じテストデータで評価する形になっている (本文 1797 行の注意と矛盾). 新しいブロックでは, 事前に決めた 2 つのモデルの誤差の差を記述する問いにするか, 検証データで選んでから最後にテストデータで評価する問いにする.
+- 決めること (本人): パネル分析の手法をどこで教えるか (台帳の行), 交絡と因果の基礎を回帰分析の最初のブロックに置くか因果推論の分野に置くか, 今の dsp5 に残る矛盾 (下) を旧ページで今直すか, この分け方で進めるか.
+- 今の dsp5 (旧ページ) に残る矛盾: 758〜762 行の注記「この講義では一つでも有意でない回帰係数がある場合には, その回帰式は利用できない」(同じ章のモデル選択の節の立場と矛盾), 754〜756 行の国別データの相関から「出生率に影響を及ぼしている」と読む文, 786 行の「調整済み決定係数が 0.5 以上ならある程度予測できている」, 演習 DSP5-2 の選び方.
 
 ## コスト見積もり
 
