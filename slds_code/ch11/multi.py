@@ -6,33 +6,30 @@ import matplotlib_fontja
 import seaborn as sns
 from sklearn.preprocessing import StandardScaler
 
-# 乱数シードを固定 (再現性のため)
+# 同じ標本を再現できるように, 乱数シードを固定する.
 np.random.seed(42)
 
 # ---------------------------
 # 1. データ生成
 # ---------------------------
-N = 100  # サンプルサイズ
+N = 100  # 100 人分のデータを生成する.
 
-# (A) 奨学生か否か(Scholarship)ダミー変数: 0=非奨学生, 1=奨学生
+# 奨学生 (True) と非奨学生 (False) を同じ確率で割り当てる.
 scholarship = np.random.choice([True, False], size=N)
 
-# (B) 勉強時間(Study_Hours): 一週間あたりの平均勉強時間
-#    例: 平均10時間, 標準偏差3時間
+# 週あたりの勉強時間を平均 10 時間, 標準偏差 4 時間の正規分布から得る.
 study_hours = np.random.normal(loc=10, scale=4, size=N)
 
-# (C) 運動時間: 1週間あたり
+# 週あたりの運動時間を平均 5 時間, 標準偏差 2 時間の正規分布から得る.
 sports_hours =  np.random.normal(loc=5, scale=2.0, size=N)
 
-# (D) アルバイト時間(Part_time_Work): 1週間あたり
-#    勉強時間をある程度圧迫するという仮定で、弱めの負相関を持たせる
-#    例: Part_time_Work = 20 - 0.3 * Study_Hours + ノイズ
+# 週あたりの勉強時間が 1 時間長いと, 週あたりのアルバイト時間が 0.6 時間短くなる.
+# 20 - 0.6 * Study_Hours に, 平均 0, 標準偏差 2 の正規分布から得た誤差を足す.
 part_time_work = 20 - 0.6 * study_hours + np.random.normal(loc=0, scale=2, size=N)
 
-# (E) GPAを生成
-#    モデル例: GPA = 1.5 + 0.5*Scholarship + 0.25*Study_Hours + 0.2*Library_Visits
-#                      - 0.1*Part_time_Work + 誤差
-#    誤差: 平均0, 標準偏差0.3
+# 切片 0.5 に, 奨学生なら 0.6 を足す.
+# 勉強時間 1 時間あたり 0.25 を足し, アルバイト時間 1 時間あたり 0.1 を引く.
+# 平均 0, 標準偏差 0.1 の正規分布から得た誤差を足す.
 gpa = (
     0.5
     + 0.6 * scholarship
@@ -41,10 +38,10 @@ gpa = (
     + np.random.normal(loc=0, scale=0.1, size=N)
 )
 
-# GPAが4.0を超えすぎないよう、0.0～4.0でクリップ
+# GPA が 0 を下回るときは 0, 4 を上回るときは 4 にする.
 gpa = np.clip(gpa, 0, 4)
 
-# データフレームにまとめる
+# 生成した値をデータフレームにまとめる.
 df = pd.DataFrame({
     'GPA': gpa,
     'Scholarship': scholarship,
@@ -53,7 +50,7 @@ df = pd.DataFrame({
     'Part_time_Work': part_time_work
 })
 
-df.to_csv('../../slds_data/multiple_regression.csv',encoding='utf-8-sig')
+df.to_csv('../../slds_data/ch11/multiple_regression.csv',encoding='utf-8-sig')
 # ---------------------------
 # 2. 回帰分析
 # ---------------------------
