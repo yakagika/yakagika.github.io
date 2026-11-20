@@ -6,4 +6,213 @@ requires:
   - reg-glm
 ---
 
-このブロックは準備中です.
+週あたりの勉強時間とアルバイト時間から, 単位の取得確率を推定します.
+例題は, 架空の学生 200 人について, 2 種類の時間とある科目の単位の取得を記録したデータです.
+アルバイト時間が等しい学生どうしで, 勉強時間の違いに対応する取得オッズと取得確率の差を求めます.
+
+# 単位取得データの読み込み {#credit-data}
+
+[`credit.csv`](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/dsp5/credit.csv) をダウンロードし, コードと同じフォルダに置いてください.
+
+~~~ python
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import statsmodels.api as sm
+
+credit = pd.read_csv("credit.csv")
+
+student_count = len(credit)
+pass_count = credit["Credit"].sum()
+pass_rate = credit["Credit"].mean()
+print(f"学生数 {student_count}")
+print(f"単位を取得した学生数 {pass_count}")
+print(f"単位の取得割合 {pass_rate:.2f}")
+~~~
+
+~~~ text
+学生数 200
+単位を取得した学生数 102
+単位の取得割合 0.51
+~~~
+
+| 列 | 内容 |
+|---|---|
+| `Credit` | 単位を取得した学生は 1, 取得しなかった学生は 0 |
+| `Study_Hours` | 1 週間の勉強時間 (時間) |
+| `Part_time_Work` | 1 週間のアルバイト時間 (時間) |
+
+`Credit` の平均 0.51 は, 標本全体で単位を取得した割合です.
+勉強時間とアルバイト時間をそろえた場合の取得確率を求めるため, 2 種類の時間を説明変数にします.
+
+# statsmodels による係数とオッズ比の推定 {#fit-logit}
+
+## 係数と信頼区間
+
+`sm.Logit` に目的変数と説明変数を渡し, `fit()` で係数を最尤法によって推定します.
+`sm.add_constant` は, 切片 $\beta_0$ を推定するための 1 の列を先頭に加えます.
+`disp=False` を指定すると, `fit()` は最適化の経過を表示せずに結果を返します.
+
+~~~ python
+hours = credit[["Study_Hours", "Part_time_Work"]]
+predictors = sm.add_constant(hours)
+response = credit["Credit"]
+result = sm.Logit(response, predictors).fit(disp=False)
+
+intervals = result.conf_int()
+intervals.columns = ["lower_95", "upper_95"]
+coefficient_table = intervals.assign(coefficient=result.params)
+coefficient_table = coefficient_table[["coefficient", "lower_95", "upper_95"]]
+print(coefficient_table.to_string(float_format="{:.3f}".format))
+~~~
+
+~~~ text
+                coefficient  lower_95  upper_95
+const                -2.166    -3.378    -0.954
+Study_Hours           0.603     0.431     0.775
+Part_time_Work       -0.197    -0.281    -0.112
+~~~
+
+`coefficient` は対数オッズの尺度での推定値です.
+`lower_95` と `upper_95` は, モデルの仮定のもとで標本の取り方によるばらつきを反映した
+近似的な 95% 信頼区間の両端です.
+
+勉強時間の係数 $\hat\beta_1$ は 0.603 です.
+アルバイト時間が等しい学生どうしで, 勉強時間が週 1 時間長い学生の取得の対数オッズは 0.603 高いと推定されます.
+同じ勉強時間の学生どうしでは, アルバイト時間が週 1 時間長い学生の取得の対数オッズは 0.197 低いと推定されます.
+
+## オッズ比と信頼区間
+
+説明変数が 1 単位違うときのオッズ比は, 係数を指数関数に通して求めます.
+指数関数は単調に増加するので, 信頼区間の下限と上限にも同じ変換を施します.
+オッズ比を示す表には, 勉強時間とアルバイト時間の係数を使います.
+
+~~~ python
+odds_ratio_table = np.exp(coefficient_table.loc[hours.columns])
+odds_ratio_table = odds_ratio_table.rename(columns={"coefficient": "odds_ratio"})
+print(odds_ratio_table.to_string(float_format="{:.3f}".format))
+~~~
+
+~~~ text
+                odds_ratio  lower_95  upper_95
+Study_Hours          1.827     1.539     2.170
+Part_time_Work       0.821     0.755     0.894
+~~~
+
+アルバイト時間が同じ学生どうしで, 勉強時間が週 1 時間長い学生の取得オッズは短い学生の約 1.83 倍です
+(95% 信頼区間は約 1.54 から 2.17).
+勉強時間が同じ学生どうしでは, アルバイト時間が週 1 時間長い学生の取得オッズは短い学生の約 0.82 倍です
+(95% 信頼区間は約 0.76 から 0.89).
+
+# アルバイト時間をそろえた予測確率と分類 {#fitted-probabilities}
+
+## 予測確率の曲線
+
+アルバイト時間には標本平均を使い, 勉強時間には標本で観測した最小値から最大値までの値を入れます.
+`predict()` に渡す表は, 当てはめ時と同じ列順にします.
+`const` には切片のために 1 を入れます.
+`predict()` は各行の線形予測子をロジスティック関数に通した確率を返します.
+
+~~~ python
+mean_work = credit["Part_time_Work"].mean()
+study_hours = np.linspace(
+    credit["Study_Hours"].min(),
+    credit["Study_Hours"].max(),
+    200,
+)
+prediction_grid = pd.DataFrame(
+    {
+        "const": 1.0,
+        "Study_Hours": study_hours,
+        "Part_time_Work": mean_work,
+    }
+)
+probabilities = result.predict(prediction_grid)
+
+fig, ax = plt.subplots(figsize=(8, 5), layout="constrained")
+ax.plot(study_hours, probabilities, color="#146b8c", linewidth=2.5)
+ax.axhline(0.5, color="#626262", linestyle="--", linewidth=1)
+ax.set(
+    xlabel="Study hours per week",
+    ylabel="Estimated probability of earning credit",
+    xlim=(study_hours[0], study_hours[-1]),
+    ylim=(0, 1),
+)
+plt.show()
+plt.close(fig)
+~~~
+
+![アルバイト時間を標本平均にそろえた学生の取得確率と, しきい値 0.5 を表す破線](/images/fields/regression/reg-logit/credit-probability.png)
+
+曲線の縦軸は, アルバイトが週約 11.85 時間で, 横軸に示した勉強時間の学生の推定取得確率です.
+曲線が 0.5 の破線と交わる勉強時間は, 線形予測子を 0 と置いた式を勉強時間について解いて求めます.
+
+~~~ python
+intercept = result.params["const"]
+study_coefficient = result.params["Study_Hours"]
+work_coefficient = result.params["Part_time_Work"]
+boundary_study = -(intercept + work_coefficient * mean_work) / study_coefficient
+
+print(f"アルバイト時間の標本平均 {mean_work:.2f} 時間")
+print(f"取得確率が 0.5 になる勉強時間 {boundary_study:.2f} 時間")
+~~~
+
+~~~ text
+アルバイト時間の標本平均 11.85 時間
+取得確率が 0.5 になる勉強時間 7.46 時間
+~~~
+
+## しきい値による分類
+
+取得確率がしきい値 (例えば 0.5) 以上なら取得 (1), 未満なら未取得 (0) と分類できます.
+新しい学生に対する分類の正解率は, 係数の推定やしきい値の選択に使っていないデータで測ります.
+データの分け方は[予測](block:reg-prediction)を参照してください.
+
+# 演習 {#exercises}
+
+## Exercise REG-LOGIT-1 {#exercise-reg-logit-1}
+
+**勉強時間が週 5 時間と 10 時間の学生の比較**
+
+アルバイト時間を標本平均にそろえ, 勉強時間が週 5 時間の学生と週 10 時間の学生の取得確率を, 推定したモデルから求めてください.
+勉強時間が長い学生の取得確率から短い学生の取得確率を引き, 差をパーセントポイントで示してください.
+勉強時間が長い学生の取得オッズは短い学生の何倍ですか.
+
+<details class="protected" data-pass="yakagika">
+<summary>回答</summary>
+
+`predict()` に 2 人分の説明変数を渡します.
+丸める前の確率を使って, 確率の差とオッズ比を計算します.
+
+~~~ python
+students = pd.DataFrame(
+    {
+        "const": 1.0,
+        "Study_Hours": [5, 10],
+        "Part_time_Work": mean_work,
+    }
+)
+probability_5, probability_10 = result.predict(students)
+difference = probability_10 - probability_5
+odds_5 = probability_5 / (1 - probability_5)
+odds_10 = probability_10 / (1 - probability_10)
+
+print(f"週 5 時間の取得確率 {probability_5:.3f}")
+print(f"週 10 時間の取得確率 {probability_10:.3f}")
+print(f"確率の差 {100 * difference:.1f} パーセントポイント")
+print(f"取得オッズの比 {odds_10 / odds_5:.2f} 倍")
+~~~
+
+~~~ text
+週 5 時間の取得確率 0.185
+週 10 時間の取得確率 0.822
+確率の差 63.7 パーセントポイント
+取得オッズの比 20.37 倍
+~~~
+
+約 63.7 パーセントポイントは, アルバイト時間を標本平均にそろえた 2 人の取得確率を引き算した値です.
+約 20.37 倍は, 同じ確率をオッズに変換してから割り算した値です.
+勉強時間が週 5 時間違う学生どうしなら, アルバイト時間が同じという条件のもとで
+$\exp(5\hat\beta_1)$ と計算しても同じオッズ比が得られます.
+
+</details>
