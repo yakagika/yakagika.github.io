@@ -5,7 +5,7 @@ created: 2026-11-20
 updated: 2026-11-20
 priority: medium
 next_actor: user
-next_action: "agent が Phase 0 (citeproc, bib, CSL, 引用の検査の script) を隔離 worktree で作り, 試験用の章で表示を確かめる"
+next_action: "agent が Phase 1 に着手する: 第5章の候補の文献を論文 DB へ取り込む依頼 (project tag blog-lectures, 書誌の実在を確かめた水準 identity) を papers へ送り, 並行して節を書き直す"
 ---
 
 # 講義資料を文献に基づいて構築する形式に変える (最初の適用は第5章のモデル選択)
@@ -42,12 +42,16 @@ next_action: "agent が Phase 0 (citeproc, bib, CSL, 引用の検査の script) 
 ### A. 仕組み (全章に共通)
 
 1. **文献の正本は論文 DB**. 講義で引用する文献は論文 DB に取り込み, project tag (例 `blog-lectures`) を付ける. 本文の照合は skill `lit-verify` の手順で行い, 検証の水準を DB の `verification` に記録する.
-2. **repo 内の bib**. `make_bib.py --project blog-lectures --min-verification <水準>` で生成した bib を repo に置く (例 `bib/lectures.bib`). サイトの build を repo の外に依存させないため, 生成物を commit する.
-3. **本文の引用の書き方**. pandoc の引用記法 `[@shmueli2010explain]` を使い, 生成器 (`src/Main.hs`) で citeproc を通して, 章末に文献表を自動で出す. CSL は日本語と英語の文献が混ざっても崩れないものを選ぶ (候補: APA 系を日本語向けに調整したもの). 表示の形は「(Shmueli, 2010)」の著者年方式を既定とする.
-4. **文献表の 2 区分**. 章末を「引用文献」(本文の主張の根拠) と「さらに学ぶための文献」(学生向けの推薦. 邦訳があれば併記) に分ける. 後者も論文 DB に入れ, 少なくとも書誌の実在 (`identity`) は確かめる.
+2. **repo 内の bib**. `scripts/make_lecture_bib.sh` が論文 DB の `projects: blog-lectures` の文献すべてから `bib/lectures.bib` を生成する. サイトの build を repo の外に依存させないため, 生成物を commit する. 水準による絞り込みは bib の生成ではせず, 検査 (5) が引用ごとに判定する. 論文 DB の `make_bib.py` は水準の順序に identity を持つが, `--min-verification` の選択肢に identity が無いため, identity 以上での絞り込みができない (2026-11-20 に確認. 本人へ報告した).
+3. **本文の引用の書き方** (Phase 0 で実装済み). 章の front matter に `bibliography: lectures` を書き, 本文で `[@key]` (括弧の引用), `[@key, p. 12]` (頁つき), `@key` (文中の引用) を使う. 文献表は本文の `::: {#refs}` の位置に入る. CSL は APA 第 7 版 (`bib/apa.csl`, CSL の公式 repo から取得). 表示は「(Shmueli, 2010)」「佐和 (1979)」「Heinze et al. (2018)」. 文献表の和文の書名と誌名は, 生成器が斜体を外して 『』 で囲む. 既知の制約: 和文の文献でも APA の英語の規則で並ぶ (「佐和隆光. (1979). 『回帰分析』. 朝倉書店.」, 叢書名は出ない, 著者 3 名以上の和文の文献は文中で「et al.」になる).
+4. **文献表と読書案内**. citeproc が出す文献表は 1 章に 1 つなので, 章末を次の 2 つにする (2026-11-20 Phase 0 で変更. 当初は文献表を 2 つに分ける案だった).
+   - 「さらに学ぶための文献」の節: 学生向けの推薦を, 引用 (`[@key]`) と 1〜2 文の紹介で書く. 邦訳があれば併記する.
+   - 「参考文献」の節: `::: {#refs}` を置き, 本文と読書案内で引用したすべての文献を citeproc が並べる.
 5. **検査**. 全章の引用キーを bib と論文 DB の検証の水準に突き合わせる script を置き, publish の前に走らせる (lit-verify の手順 0).
-   - 失敗 (publish を止める): bib に無いキー, 書誌の実在 (`identity`) を確かめていないキー.
-   - 警告 (publish は止めない): 本文を確かめていないキー (`identity` か `abstract`), 本文の主張に対応する頁や節の記録が無いキー. 警告の一覧を「未照合の引用」として書き出す.
+   - 実装: `scripts/check_citations.py`. `publish.sh` の先頭で走る.
+   - 失敗 (publish を止める): bib に無いキー, 論文 DB に note が無いキー, 書誌の実在を確かめていないキー (`none`).
+   - 警告 (publish は止めない): 本文を確かめていないキー (`identity` か `abstract`) を「未照合の引用」として `writing/citations/unverified.md` に書き出す. 文献表の位置 (`::: {#refs}`) が無い章, bibliography の指定が無い章の `[@key]` も警告する.
+   - 頁や節の記録の有無の検査は, 対応表 (7) を章に置いた後で加える.
 6. **未照合の引用の扱い** (2026-11-20 本人裁定). 講義資料は論文ではないので, 本文を確かめる前でも引用して公開してよい. 未照合の引用は後の作業として残し, 本文を確かめてから記述を直す. 一覧は検査の script が書き出し, この計画の「未照合の引用」の節と Todoist の 1 件の task で追う. lit-verify の「本文を確かめるまで引用しない」はこの repo の講義資料には適用しない (論文の原稿には従来どおり適用する). 書誌の実在だけは公開前に確かめる (記憶から挙げた書誌が誤っている場合に, 存在しない文献を学生に示さないため).
 7. **主張と文献の対応表**. 章ごとに「本文の主張 → 文献 → 頁または節」を記録する (例 `writing/citations/dsp5.tsv`). 改稿のときに, どの主張がどの文献に依っていたかを追えるようにする. 公開する資料には出さない.
 
@@ -77,7 +81,7 @@ next_action: "agent が Phase 0 (citeproc, bib, CSL, 引用の検査の script) 
 
 会話で挙げた候補. いずれも論文 DB に未登録で, 書誌も記憶から書いたので, 取り込みの時点で確かめる.
 
-- 引用文献の候補: 佐和隆光『回帰分析』朝倉書店 (2026-11-20 本人の追加. 本人の指定は「朝倉書店, 1」. 叢書名と巻号, 版 (初版か新装版か) は取り込みのときに確かめる), Shmueli (2010), Freedman (1983), Harrell (2015), Heinze, Wallisch & Dunkler (2018), Burnham & Anderson (2002), Leeb & Pötscher (2005), Westreich & Greenland (2013), Leamer (1983), Hendry & Doornik (2014), Simmons, Nelson & Simonsohn (2011), Gelman & Loken (2014), Wasserstein & Lazar (2016).
+- 引用文献の候補: 佐和隆光『回帰分析』朝倉書店 (2026-11-20 本人の追加. 本人の指定は「朝倉書店, 1」. CiNii Books では叢書「統計ライブラリー」の 1 冊で, 1979 年の初版 (NCID BN00603384) と 2020 年の新装版 (NCID BB29912590) がある. どちらを引くかは本人の手元の版に合わせる), Shmueli (2010), Freedman (1983), Harrell (2015), Heinze, Wallisch & Dunkler (2018), Burnham & Anderson (2002), Leeb & Pötscher (2005), Westreich & Greenland (2013), Leamer (1983), Hendry & Doornik (2014), Simmons, Nelson & Simonsohn (2011), Gelman & Loken (2014), Wasserstein & Lazar (2016).
 - さらに学ぶための文献の候補: Efron & Hastie (2016, 無料公開), James et al. (2021, 邦訳あり), Gelman, Hill & Vehtari (2020), Hernán & Robins (2020, 無料公開), 小西・北川 (2004), Angrist & Pischke (2009, 邦訳あり).
 
 ## 統計学の講義への反映 (2026-11-20 本人の指示)
@@ -88,7 +92,7 @@ next_action: "agent が Phase 0 (citeproc, bib, CSL, 引用の検査の script) 
 
 ## 未照合の引用
 
-検査の script を置いた後は, その出力をここに貼る. Todoist: この repo の project に「講義資料の未照合の引用を照合する」を登録した (2026-11-20).
+一覧は検査の script が `writing/citations/unverified.md` に書き出す (publish のたびに更新される). Todoist: この repo の project に「講義資料の未照合の引用を照合する」を登録した (2026-11-20).
 
 ## 依存
 
@@ -104,7 +108,7 @@ next_action: "agent が Phase 0 (citeproc, bib, CSL, 引用の検査の script) 
 
 ## 段階
 
-- **Phase 0 (仕組み)**: `src/Main.hs` に citeproc を入れる, bib と CSL を置く, 検査の script を置く. 試験用の章で表示を確かめる.
+- **Phase 0 (仕組み)**: 済み (2026-11-20, commit 5782cdf). `src/Main.hs` に citeproc を入れ, bib と CSL, bib の生成と検査の script を置き, publish.sh に検査を加えた. 試験用のページで, 括弧の引用, 頁つき, 文中の引用, 和文の文献, メールアドレス風の文字列 (引用として扱われない) を確かめた. 既存の章の生成結果に引用による差分は無かった. あわせて, worktree で生成が止まる原因 (.gitignore の対象の CLAUDE.md を指す AGENTS.md の symlink) を, 生成器の ignoreFile で直した.
 - **Phase 1 (第5章)**: 文献の取り込みと書誌の確認 → 節の書き直し → slds 第11章の注記 → 検査 → publish.
 - **Phase 2 (第13章, 第16章, 第14章)**: 同じ手順.
 - **Phase 3 (残りの章, fp など他の講義)**: 未解決事項 1 の裁定に従う.
@@ -120,4 +124,4 @@ next_action: "agent が Phase 0 (citeproc, bib, CSL, 引用の検査の script) 
 
 ## 変更履歴
 
-- 2026-11-20: 起票. 同日に未解決事項 1〜4 を本人が裁定し, 佐和『回帰分析』を候補に追加, 統計学の講義への反映を記録. slds 第11章は注記だけ足すと裁定.
+- 2026-11-20: 起票. 同日に未解決事項 1〜4 を本人が裁定し, 佐和『回帰分析』を候補に追加, 統計学の講義への反映を記録. slds 第11章は注記だけ足すと裁定. 同日 Phase 0 を land し, 文献表を 2 つに分ける案を「読書案内の節 + 文献表 1 つ」に変えた.
