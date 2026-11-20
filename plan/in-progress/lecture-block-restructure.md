@@ -2,10 +2,10 @@
 plan_id: lecture-block-restructure
 status: in-progress
 created: 2026-11-20
-updated: 2026-11-20
+updated: 2026-11-21
 priority: high
 next_actor: agent
-next_action: "段 6 (blog-reg-s6a-selection: reg-selection と blog-reg-s6b-selection-code: reg-selection-gpa, reg-selection-lab) を codex から受け取って land する. その後に段 8 (講義の並び, 旧 anchor, 対応表) の brief を書く"
+next_action: "段 8 (blog-reg-s8-course: 旧 anchor の対応表と検査, 講義の並び courses/dsp-regression.yaml) を codex から受け取って land し, 対応表の行 167 を付け替えてから, 本人に Phase 2 の全体を報告してブロックを開く時期と講義の並びの公開を決めてもらう"
 ---
 
 # 講義資料を分野とブロックに分け, 講義はブロックの並びかブロックへのリンクで組む
@@ -219,7 +219,7 @@ next_action: "段 6 (blog-reg-s6a-selection: reg-selection と blog-reg-s6b-sele
 | 3 | `reg-simple` (OECD), `reg-gpa` | codex (c97f532 で land. 差し戻し 2 回: 依頼文の問いの誤り, データの読み込み方など 3 点) | 段 1, トルコの修正の land |
 | 4 | `reg-prediction`, `reg-evaluate` | codex (aa3ab55 で land. 差し戻し 1 回: 過学習の図を 200 回の平均にする, 図の色の呼び方) | 段 2, 3 と本人の確認 |
 | 5 | `reg-causal` | codex (4276fc4 で land. 差し戻し 1 回: 第 16 章への案内の言い方) | 段 2 と本人の確認 |
-| 6 | `reg-selection`, `reg-selection-gpa`, `reg-selection-lab` | codex | 段 4, 5 |
+| 6 | `reg-selection`, `reg-selection-gpa`, `reg-selection-lab` | codex (理論とコードの 2 本に分けて並行に出し, fd010c8, dd0e9d1 で land. tag `landed/reg-s6-selection`. 差し戻しは各 1 回: 理論は 1 文の書き直し, コードは段落末のリンク, AIC の数え方の違いの注記, テスト MSE が交差検証の MSE より小さいことの説明など 6 点) | 段 4, 5 |
 | 7 | `reg-glm`, `reg-logit` | codex (5121aba で land. 差し戻し 1 回: データの読み込み方) | 段 2 |
 | 8 | 講義の並び (dsp の回帰の回), 旧 anchor から新しい節に着けることの確認, 対応表の 1 項目の付け替え | codex と coordinator | 段 1〜7 |
 
@@ -412,3 +412,4 @@ coordinator の見方 (L1): 案 1 と案 2 の違いは, 目的の地図を冒�
 - 2026-11-20: Phase 0 の統計学の各回の棚卸しを付録に記した (codex Astra). 参照の検査を fragment まで広げた (7b418e0). 棚卸しで見つかった dsp13 の MCMC の説明の誤りを旧ページで直した (60f3c21, codex Sol, 差し戻し 2 回)
 - 2026-11-20: Phase 1 の仕組みを land した (ac7932d, tag `landed/lecture-block-restructure-phase1`. codex Astra が実装し, 差分は Sonnet が判定, coordinator が build, 見本の試験, 本番の出力の比較, watch を確かめた). 入力の形式を設計の節に記した
 - 2026-11-20: 本人の指示で, 回帰分析のモデル選択を 1 つのブロックにまとめ, 学問分野ごとの違い, パネル分析での p 値による比較, ステップワイズ法などの問題点と用途ごとの選び方を詳しく扱うことを確定した要件に加えた
+- 2026-11-21: 段 6 (モデル選択の 3 ブロック) を land した (fd010c8, dd0e9d1). 理論のブロックはコードのブロックのページへリンクし, build はリンク先の ID を検査するので, 2 本をまとめて取り込んだ. 段 8 を codex に出した
