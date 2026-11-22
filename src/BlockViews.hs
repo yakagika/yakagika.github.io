@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module BlockViews (renderField, renderCourse, renderSession, renderPage) where
+module BlockViews (renderField, renderCourse, renderSession, renderClosedCourse, renderPage) where
 
 import BlockModel
 import Data.List (find, nub)
@@ -29,6 +29,13 @@ renderCourse siteCtx course = do
         ctx = titleAndDescription (courseTitle course) (courseDescription course)
             <> rows "sessions" sessionCtx (const sessions)
     makeItem "" >>= layout "templates/block-course.html" ctx siteCtx
+
+renderClosedCourse :: Context String -> Course -> Compiler (Item String)
+renderClosedCourse siteCtx course = makeItem ""
+    >>= layout "templates/placeholder.html" ctx (constField "noindex" "true" <> siteCtx)
+  where
+    ctx = titleAndDescription (courseTitle course) (courseDescription course)
+        <> constField "category" "Lecture"
 
 renderSession :: Context String -> Site -> Course -> Int -> Session -> Item String -> Compiler (Item String)
 renderSession siteCtx site course _ session = layout "templates/block-session.html" ctx siteCtx
@@ -84,6 +91,7 @@ courseOccurrences :: Site -> Block -> [(Course, Neighbors Position)]
 courseOccurrences site block =
     [ (course, place)
     | course <- siteCourses site
+    , courseOpen course
     , place <- adjacent [(n, entry) | (n, session) <- zip [1 ..] (courseSessions course), entry <- sessionBlocks session]
     , entryBlock (snd (middle place)) == blockName block
     ]

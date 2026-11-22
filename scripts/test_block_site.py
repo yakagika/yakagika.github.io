@@ -25,6 +25,9 @@ REGRESSION = "fields/sample-regression"
 INFERENCE = "fields/sample-inference"
 PRACTICE = "courses/sample-practice"
 STATISTICS = "courses/sample-statistics"
+DRAFT = "courses/sample-draft"
+DRAFT_ROUTES = {f"{DRAFT}/index.html", f"{DRAFT}/1.html"}
+DRAFT_INTRO = "FIXTURE_CLOSED_COURSE_INTRO"
 OVERVIEW = f"{REGRESSION}/sample-overview/index.html"
 VARIABLES = f"{REGRESSION}/sample-overview/variables.html"
 FITTING = f"{REGRESSION}/sample-fitting/index.html"
@@ -52,7 +55,7 @@ CLOSED_ROUTES = {
     PREDICTION,
     f"{REGRESSION}/sample-prediction/forecast.html",
     f"{REGRESSION}/sample-prediction/exercises.html",
-}
+} | DRAFT_ROUTES
 
 
 def check(condition: bool, message: str) -> None:
@@ -138,7 +141,7 @@ def check_html() -> None:
     expected = OPEN_ROUTES | CLOSED_ROUTES
     actual = {
         path.relative_to(SITE).as_posix()
-        for group in (REGRESSION, INFERENCE, PRACTICE, STATISTICS)
+        for group in (REGRESSION, INFERENCE, PRACTICE, STATISTICS, DRAFT)
         for path in (SITE / group).rglob("*.html")
     }
     check(actual == expected, f"Missing routes: {sorted(expected - actual)}. Extra routes: {sorted(actual - expected)}.")
@@ -153,6 +156,16 @@ def check_html() -> None:
         check(("noindex" in page.robots) == (path in CLOSED_ROUTES), f"{path}: wrong robots metadata")
         if path in CLOSED_ROUTES:
             check("準備中" in page.source, f"{path}: missing closed-page notice")
+    for path in sorted(DRAFT_ROUTES):
+        page = pages[path]
+        for text in ('class="placeholder"', "統計の準備講義", "統計の準備講義の説明です."):
+            check(text in page.source, f"{path}: missing {text}")
+        for text in ("準備講義の第1回", "course-sessions", "session-blocks", "session-exercises", "draft-1.py"):
+            check(text not in page.source, f"{path}: contains {text}")
+        check(not page.links & (DRAFT_ROUTES | {OVERVIEW, PREDICTION}),
+              f"{path}: links to a session or block in the closed course")
+    for path in SITE.rglob("*.html"):
+        check(DRAFT_INTRO not in path.read_text(encoding="utf-8"), f"{path}: contains closed course intro")
     check("準備中" in pages[PRACTICE_1].source, f"{PRACTICE_1}: missing closed-block notice")
     check("準備中" in pages[f"{REGRESSION}/index.html"].source, "Field index lacks closed-block notice")
 
@@ -200,6 +213,8 @@ def check_html() -> None:
         STATISTICS_1: (None, FITTING),
     }
     check(len(overview.occurrences) == len(expected_neighbors), f"{OVERVIEW}: wrong occurrence count")
+    for path in (OVERVIEW, PREDICTION):
+        check(not pages[path].links & DRAFT_ROUTES, f"{path}: links to the closed course")
     for session, neighbors in expected_neighbors.items():
         matching = [occ for occ in overview.occurrences if session in occ.values()]
         check(len(matching) == 1, f"{OVERVIEW}: missing or duplicate occurrence for {session}")
@@ -265,6 +280,7 @@ def check_invalid_inputs(executable: Path) -> None:
     overview = f"{REGRESSION}/sample-overview.md"
     fitting = f"{REGRESSION}/sample-fitting.md"
     practice = f"{PRACTICE}.yaml"
+    draft = f"{DRAFT}.yaml"
     variables = "# 説明変数 {#variables}"
     check_invalid(
         executable, overview, "open: true", "open: true\nrequires: [sample-fitting]",
@@ -300,6 +316,14 @@ def check_invalid_inputs(executable: Path) -> None:
         executable, practice, "id: exercise-sample-fitting-1", "id: fit",
         "unknown exercise sample-fitting#fit",
     )
+    for value in ('"false"', "null"):
+        check_invalid(executable, draft, "open: false", f"open: {value}", "$.open", "expected Bool")
+    check_invalid(executable, draft, "block: sample-overview", "block: sample-missing",
+                  "unknown block sample-missing")
+    check_invalid(executable, draft, "id: exercise-sample-prediction-1", "id: forecast",
+                  "unknown exercise sample-prediction#forecast")
+    check_invalid(executable, draft, "block:sample-overview#variables", "block:sample-overview#missing",
+                  "unknown ID: block:sample-overview#missing")
     with tempfile.TemporaryDirectory(prefix="block-site-legacy-collision-") as directory:
         root = Path(directory)
         lectures = ("lectures/one/sample-duplicate.md", "lectures/two/sample-duplicate.md")

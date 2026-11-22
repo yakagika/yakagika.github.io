@@ -2,7 +2,7 @@
 module BlockModel where
 
 import Control.Monad (foldM, forM, forM_, unless, when)
-import Data.Aeson (FromJSON(..), Value(Object), withObject, (.:), (.:?), (.!=))
+import Data.Aeson (FromJSON(..), Value(Object), withObject, (.:), (.:!), (.:?), (.!=))
 import Data.Aeson.Types (parseEither)
 import Data.Char (isAsciiLower)
 import Data.Generics (everything, mkQ)
@@ -29,7 +29,7 @@ data Block = Block { blockName, blockTitle, blockField, blockKind :: String, blo
                      blockPages :: [Page], blockAnchors, blockExercises :: M.Map String String }
 data Page = Page { pageKey, pageTitle :: String, pageDoc :: P.Pandoc }
 data Course = Course { courseName, courseTitle, courseDescription :: String, courseSource :: FilePath,
-                       courseSessions :: [Session] }
+                       courseOpen :: Bool, courseSessions :: [Session] }
 data Session = Session { sessionTitle :: String, sessionIntro :: String, sessionBlocks :: [Entry] }
 data Entry = Entry { entryBlock, entryLevel :: String, entryExercises :: [Exercise] }
 data Exercise = Exercise { exerciseId :: String, exerciseFile :: Maybe String }
@@ -74,7 +74,8 @@ readField path = readYaml path $ withObject "field" $ \o ->
 
 readCourse :: FilePath -> IO Course
 readCourse path = readYaml path $ withObject "course" $ \o ->
-  Course (takeBaseName path) <$> o .: "title" <*> o .: "description" <*> pure path <*> o .: "sessions"
+  Course (takeBaseName path) <$> o .: "title" <*> o .: "description" <*> pure path
+    <*> o .:! "open" .!= False <*> o .: "sessions"
 
 markdown :: P.ReaderOptions -> String -> Either String P.Pandoc
 markdown opts = either (Left . show) Right . P.runPure . P.readMarkdown opts . T.pack

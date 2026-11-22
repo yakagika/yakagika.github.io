@@ -74,7 +74,7 @@ blockRules fixtures reader writer ctx cite = do
   site <- preprocess $ readSite reader fs bs cs
   let outputs = [(fieldPath f,fieldSource f,True) | f <- siteFields site] ++
                 [(pagePath b p,blockSource b,blockOpen b) | b <- M.elems (siteBlocks site), p <- blockPages b] ++
-                [(path,courseSource c,True) | c <- siteCourses site,
+                [(path,courseSource c,courseOpen c) | c <- siteCourses site,
                    path <- coursePath c : map (sessionPath c) [1..length (courseSessions c)]]
   preprocess $ unique "fields/courses" "output path" [(p,src) | (p,src,_) <- outputs]
   match inputs $ version "source" $ compile getResourceBody
@@ -101,10 +101,13 @@ blockRules fixtures reader writer ctx cite = do
         pure $ writePandocWith writer rendered
       renderPage ctx site b p body
   forM_ (siteCourses site) $ \c -> do
-    register (coursePath c) (renderCourse ctx c)
+    let render compiler
+          | courseOpen c = compiler
+          | otherwise = renderClosedCourse ctx c
+    register (coursePath c) $ render (renderCourse ctx c)
     forM_ (zip [1..] $ courseSessions c) $ \(n,s) -> do
       intro <- preprocess $ either (failAt $ courseSource c) pure $ sessionDoc reader site s
-      register (sessionPath c n) $ do
+      register (sessionPath c n) $ render $ do
         html <- writePandocWith writer <$> makeItem intro
         renderSession ctx site c n s html
   pure outputs
