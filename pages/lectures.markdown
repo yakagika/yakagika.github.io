@@ -14,10 +14,10 @@ title: Lectures
     <span class="series-desc">文系学部生がデータサイエンスの一連の流れを, 自分の選んだテーマで実践する講義. 前期はプログラミングと Python ライブラリの基本, 後期は研究テーマに応じた分析手法を学び, 年度末の学会口頭発表を最終目標とする.</span>
     <span class="series-cta">資料を見る →</span>
   </a>
-  <a class="series-card" href="lectures/dsp1.html">
+  <a class="series-card" href="courses/dsp/index.html">
     <span class="series-badge">Data Science</span>
     <span class="series-title">データサイエンス実践</span>
-    <span class="series-desc">文系学部生向けに, 分析設計, 可視化, 回帰, 分類, クラスタリング, ニューラルネットワーク, 画像認識, 自然言語処理を Python で実習する講義. 章ごとに共通の例題データで手法を試し, 総合実習では, クラスタリング, 自然言語処理, 画像認識の 3 つから題材を 1 つ選び, 最終回に発表する. (作成中)</span>
+    <span class="series-desc">文系学部生向けに, 分析設計, 可視化, 回帰, 分類, クラスタリング, ニューラルネットワーク, 画像認識, 自然言語処理を Python で実習する講義. 回ごとに共通の例題データで手法を試し, 総合実習では, クラスタリング, 自然言語処理, 画像認識の 3 つから題材を 1 つ選び, 最終回に発表する. (作成中)</span>
     <span class="series-cta">資料を見る →</span>
   </a>
   <a class="series-card" href="lectures/fp1.html">
@@ -51,8 +51,8 @@ title: Lectures
   </a>
   <a class="series-card" href="fields/regression/index.html">
     <span class="series-badge">Regression</span>
-    <span class="series-title">回帰分析 (準備中)</span>
-    <span class="series-desc">関係の定量化, 推測, 予測, 因果推論. 公開までは「データサイエンス実践」の第5章を参照.</span>
+    <span class="series-title">回帰分析</span>
+    <span class="series-desc">関係の定量化, 推測, 予測, 因果推論.</span>
     <span class="series-cta">参考資料を見る →</span>
   </a>
   <a class="series-card" href="fields/machine-learning/index.html">

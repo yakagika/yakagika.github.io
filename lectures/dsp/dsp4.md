@@ -14,6 +14,10 @@ previousChapter: dsp3.html
 nextChapter: dsp5.html
 ---
 
+::: warn
+この章の内容は, 回のページ「[第 4 回 データの数値化](/courses/dsp/4.html)」に移しました. 授業では新しい講義のページを使ってください. このページは一定の期間の後に削除します.
+:::
+
 
 
 # データの数値化

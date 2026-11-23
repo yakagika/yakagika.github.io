@@ -1,7 +1,7 @@
 ---
 title: GPA の重回帰分析
 kind: code
-open: false
+open: true
 requires:
   - reg-multiple
 ---

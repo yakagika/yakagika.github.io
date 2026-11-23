@@ -25,9 +25,9 @@ Python の環境構築と基礎は, 共通資料の[プログラミング基礎]
 本資料には, 授業に必要な技術的な内容に限定して掲載します. 授業概要, 授業の注意点, 成績などについては講義中に別資料で説明します.
 
 
-## 発展の節 {#発展の節}
+## 発展の参考資料 {#発展の参考資料}
 
-見出しに **(発展)** が付いた節は, 授業では扱いません. 資料には載せているので, 自習で読むときに使ってください. 演習の文面に (発展) の節を使うと書いてある場合は, その節を読んでから取り組んでください. 節の一覧は, [章立て](#章立て)の「発展の節の一覧」にあります.
+授業では, 各回の講義のページの内容を扱います. 授業で扱わない発展の内容は, 回のページと, 各回の最後の講義のページにある「発展 (参考資料で読む)」の一覧から開けます. 演習で発展の内容を使う場合は, 回のページの説明に記載しています.
 
 
 ## デザインについて {#デザインについて}
@@ -48,70 +48,29 @@ Python の環境構築と基礎は, 共通資料の[プログラミング基礎]
 
 :::
 
-リンクは[章立て](#章立て)のように下線で表示され, 外部サイトへのリンクは[Google](https://www.google.co.jp)のように末尾に矢印が付きます. クリックするとリンク先に移動します. 右クリックして, 新しいタブで開くことを推奨します.
+リンクは[各回の構成](#各回の構成)のように下線で表示され, 外部サイトへのリンクは[Google](https://www.google.co.jp)のように末尾に矢印が付きます. クリックするとリンク先に移動します. 右クリックして, 新しいタブで開くことを推奨します.
 
-# 章立て {#章立て}
+# 各回の構成 {#各回の構成}
 
-本資料は, 講義の順序から独立した章の集合です. 必要な内容は今後も章として追加していき, 授業で扱う章はその中から選びます.
+資料は, 分野ごとの参考資料と, 参考資料から授業で扱う部分を回ごとに並べた講義のページで構成します.
 
-本資料の章立ては以下のようになっています
-(クリックすることで各章に飛べます.)
+- [第 1 回 本資料の読み方](/courses/dsp/1.html)
+- [第 2 回 分析設計: データ分析の進め方](/courses/dsp/2.html)
+- [第 3 回 データの可視化](/courses/dsp/3.html)
+- [第 4 回 データの数値化](/courses/dsp/4.html)
+- [第 5 回 回帰分析](/courses/dsp/5.html)
+- [第 6 回 機械学習の枠組みと決定木](/courses/dsp/6.html)
+- [第 7 回 クラスタリングとパターン発見](/courses/dsp/7.html)
+- [第 8 回 ニューラルネットワークと Transformer](/courses/dsp/8.html)
+- [第 9 回 自然言語処理](/courses/dsp/9.html)
+- [第 10 回 画像認識](/courses/dsp/10.html)
+- [第 11 回 総合実習 1](/courses/dsp/11.html)
+- [第 12 回 総合実習 2](/courses/dsp/12.html)
+- [第 13 回 発表回](/courses/dsp/13.html)
 
-### 必修の章 {#必修の章}
+第 11〜13 回の課題と発表の要綱は, [総合実習](material:capstone)にまとめています.
 
-[第1章 本資料の読み方](material:guide)
-
-[第2章 分析設計: データ分析の進め方](/lectures/dsp2.html)
-
-[第3章 データの可視化](/lectures/dsp3.html)
-
-[第4章 データの数値化](/lectures/dsp4.html)
-
-[第5章 回帰分析](/lectures/dsp5.html)
-
-[第6章 機械学習の枠組みと決定木](/lectures/dsp6.html)
-
-[第7章 クラスタリングとパターン発見](/lectures/dsp7.html)
-
-[第8章 ニューラルネットワークと Transformer](/lectures/dsp8.html)
-
-[第9章 自然言語処理](/lectures/dsp9.html)
-
-[第10章 Transformer の学習](/lectures/dsp10.html) (このうち[AI の学習と推論, 評価, 再学習](block:dl-lifecycle#ai-の学習と推論-評価-再学習)の節だけを第 8 回で扱います. それ以外は発展で, 「事例: 自然言語の Transformer を学習する」の節は作成中です)
-
-[第11章 画像認識](/lectures/dsp11.html)
-
-[第12章 総合実習](material:capstone)
-
-### 選択の章 {#選択の章}
-
-授業では扱いませんが, 課題や研究で必要になったときに読んでください.
-
-[第13章 一般化線形モデル](/lectures/dsp13.html)
-
-[第14章 質問紙調査とカテゴリーデータ](/lectures/dsp14.html)
-
-[第15章 欠損値補定](/lectures/dsp15.html)
-
-### 追加の章 (作成中) {#追加の章-作成中}
-
-資料に追加していく章です. 授業で扱う章の選択肢として, 見出しと扱う内容の予定だけを載せています. 選択の章と同じく, 授業では扱いません.
-
-[第16章 因果推論](/lectures/dsp16.html)
-
-### 発展の節の一覧 {#発展の節の一覧}
-
-授業では扱わない (発展) の節の一覧です. 第13章から第16章は章ごと授業で扱いません. 第10章は[AI の学習と推論, 評価, 再学習](block:dl-lifecycle#ai-の学習と推論-評価-再学習)の節を除いて授業で扱いません.
-
-| 章 | (発展) の節 |
-|:---|:---|
-| [第3章](/lectures/dsp3.html) | [同時度数分布表](block:vis-more#同時度数分布表), [グラフのデザインの変更](block:vis-design#design), [for 文を利用したグラフ](block:vis-design#for-graph), [グラフの分割](block:vis-design#グラフの分割), [カーネル密度プロット](block:vis-more#カーネル密度プロット), [観測項目が複数ある場合の散布図](block:vis-more#scatter-3d), [クラスタリングにおける散布図](block:vis-more#クラスタリングにおける散布図), [変数の関係を図で表す](block:vis-more#relation-diagram) |
-| [第4章](/lectures/dsp4.html) | [偏相関係数](block:num-partial#partial-correlation) |
-| [第5章](/lectures/dsp5.html) | [回帰分析は何を行っているのか](/lectures/dsp5.html#発展-回帰分析は何を行っているのか), [説明変数の組み合わせをテスト MSE で比べる](/lectures/dsp5.html#variable-selection-test-mse), [目的変数と無関係な変数を P 値で選ぶシミュレーション](/lectures/dsp5.html#post-selection-simulation), [モデル選択の考え方の分野ごとの経緯](/lectures/dsp5.html#model-selection-history), [一般化線形モデル: ロジスティック回帰](/lectures/dsp5.html#logistic-regression) |
-| [第6章](/lectures/dsp6.html) | [ランダムフォレスト](block:ml-classifiers#ランダムフォレスト), [サポートベクターマシン](block:ml-classifiers#サポートベクターマシン), [k 近傍法](block:ml-classifiers#k-nn) |
-| [第7章](/lectures/dsp7.html) | [非線形の次元削減: t-SNE](block:ml-clustering-more#t-sne), [密度と確率モデルに基づくクラスタリング (DBSCAN, 混合ガウスモデル)](block:ml-clustering-more#密度と確率モデルに基づくクラスタリング) |
-| [第9章](/lectures/dsp9.html) | [機械翻訳と文章生成](block:nlp-generation#translation-generation), [生成 AI の仕組み: 事前学習と生成](block:nlp-generation#pretraining-and-generation), [トピックモデル](block:nlp-embedding-more#トピックモデル), [n-gram と文章間類似度](block:nlp-embedding-more#ngram-similarity), [CLIP](block:nlp-embedding-more#clip) |
-| [第11章](/lectures/dsp11.html) | [Vision Transformer](block:img-more#vision-transformer), [学習した特徴量の次元圧縮 (PCA と t-SNE)](block:img-more#feature-embedding), [特徴マップ](block:img-more#feature-maps), [Grad-CAM と Guided Backpropagation](block:img-more#grad-cam), [年齢識別のコード全体](block:img-age-code#age-full-code) |
+[選択資料](/courses/dsp/selected.html)は, 課題や研究で必要になったときに読んでください. 授業では扱いません. 因果推論の資料は作成中です.
 
 
 ## 授業準備・環境構築 {#授業準備環境構築}
@@ -131,12 +90,12 @@ Python の環境構築と基礎も, 他の講義と共通の資料を利用し�
 :::
 
 
-現在執筆中のため,章の構成等は変更される可能性があります.
+資料は執筆中です. 各回の構成は変わることがあります.
 
 
 ## 演習データ {#演習データ}
 
-各章の演習問題は, 章末の「演習」の節に **`### Exercise DSPn-k`** の形式でまとめています. 各演習の冒頭には「対応する節」を示し, 対応する本文の節の末尾にも演習へのリンクを置いています. 回答例は同ページ内の `<details>` ブロックを開くことで参照できます (パスワードあり).
+演習は, 各回のページの一覧と, 対応する講義のページの本文から開けます. 回答例がある演習では, 演習の下にある回答欄をパスワードで開けます.
 
 利用するデータは[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/)からダウンロード可能です. 本資料で扱われるデータは基本的に,ダミーデータです.したがって,分析例として導かれている結論も,現実の事象を表しているわけではないことに注意してください.研究などにも利用することはできません.
 

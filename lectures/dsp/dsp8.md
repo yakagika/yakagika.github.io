@@ -14,6 +14,10 @@ previousChapter: dsp7.html
 nextChapter: dsp9.html
 ---
 
+::: warn
+この章の内容は, 回のページ「[第 8 回 ニューラルネットワークと Transformer](/courses/dsp/8.html)」に移しました. 授業では新しい講義のページを使ってください. このページは一定の期間の後に削除します.
+:::
+
 
 # ニューラルネットワーク概要
 

@@ -1,7 +1,7 @@
 ---
 title: 回帰で何をするか
 kind: theory
-open: false
+open: true
 bibliography: lectures
 ---
 
@@ -160,7 +160,7 @@ GPA の上下限と回帰式の関係は[母回帰式と誤差](block:reg-ols#po
 
 頻度論とベイズ統計学の違いは, 不確かさをどう表すかにあります.
 どちらの枠組みでも, 関係の定量化, 予測, 因果推論の問いを扱えます.
-ベイズの考え方と実例は[データサイエンス実践 第13章](/lectures/dsp13.html)にあります.
+ベイズの考え方と実例は[統計モデリングとベイズ統計学の基礎](block:bayes-intro)にあります.
 
 # 結果が 0 か 1 のとき {#binary-response}
 

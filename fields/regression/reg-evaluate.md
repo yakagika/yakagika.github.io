@@ -1,7 +1,7 @@
 ---
 title: 未使用のデータで予測の誤差を測る
 kind: code
-open: false
+open: true
 requires:
   - reg-prediction
 ---

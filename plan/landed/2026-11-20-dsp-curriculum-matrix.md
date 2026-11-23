@@ -25,8 +25,8 @@ next_action: "なし (対応表は完成. 章の題材・見出し・節を変�
 - **区分**: `KW` = キーワード (知識・スキル) / `OPT` = オプション (高度な内容).
 - **必修/発展**: 発展は授業時間で扱わず, 資料には書いて自習に回す (2026-10-05 に課題の選択肢から変更).
   「発展 = 資料に載せない」ではない.
-- **節アンカー**: 執筆後に `dspN.html#…` を入れる. これが監査での教材証拠になる.
-- **評価証拠**: Exercise 番号 / 提出物 / 発表の rubric 項目. 総合実習 (Ch12) の発表資料と質疑応答は, 題材の 3 章 (Ch7, Ch9, Ch11) の項目の評価証拠にできる. 題材の手順が実際に求める技法の項目にだけ足し (2026-10-28 に反映), 題材が求めない項目 (例: 題材 1 のデンドログラム, アソシエーション分析) には足さない. 題材の節は `dsp12.html#capstone-cluster` (題材 1), `#capstone-nlp` (題材 2), `#capstone-image` (題材 3).
+- **節アンカー**: 授業で扱う節は講義のページ, 発展の節は参考資料, 総合実習はその専用ページの URL と ID で示す. これが監査での教材証拠になる.
+- **評価証拠**: Exercise 番号 / 提出物 / 発表の rubric 項目. 総合実習 (Ch12) の発表資料と質疑応答は, 題材の 3 章 (Ch7, Ch9, Ch11) の項目の評価証拠にできる. 題材の手順が実際に求める技法の項目にだけ足し (2026-10-28 に反映), 題材が求めない項目 (例: 題材 1 のデンドログラム, アソシエーション分析) には足さない. 題材の節は `courses/dsp/capstone.html#capstone-cluster` (題材 1), `courses/dsp/capstone.html#capstone-nlp` (題材 2), `courses/dsp/capstone.html#capstone-image` (題材 3).
 
 ## 注意 — 3-5 の担当範囲
 
@@ -39,40 +39,40 @@ next_action: "なし (対応表は完成. 章の題材・見出し・節を変�
 
 | 原典行 | 学習項目 | 区分 | 割当内容 | 着地章 | 必修/発展 | 授業回 | 節アンカー | 評価証拠 | 現況 |
 |---|---|---|---|---|---|---|---|---|---|
-| 6 | 1-2. 分析設計 ☆ | KW | データ分析の進め方, 仮説検証サイクル | Ch2 | 必修 | 第2回 | `dsp2.html#データ分析の進め方`, `#仮説検証サイクル` | 本文のみ (演習は設けない. 2026-09-26 ユーザ決定) | 執筆済 (2026-09-26) |
-| 7 | 1-2. 分析設計 ☆ | KW | 分析目的の設定 | Ch2 | 必修 | 第2回 | `dsp2.html#分析目的の設定` | 本文のみ (演習は設けない) | 執筆済 (2026-09-26) |
-| 8 | 1-2. 分析設計 ☆ | KW | 様々なデータ分析手法  (回帰, 分類, クラスタリングなど) | Ch2 | 必修 | 第2回 | `dsp2.html#様々なデータ分析手法` | 本文のみ (演習は設けない) | 執筆済 (2026-09-26) |
-| 9 | 1-2. 分析設計 ☆ | KW | 様々なデータ可視化手法 (比較, 構成, 分布, 変化など) | Ch3 | 必修 | 第3回 | `dsp3.html#choose-graph` (2026-10-02 に Ch2 から移動. Ch2 は共通資料の案内に置き換えた) | Exercise DSP3-2 | 執筆済 |
-| 18 | 1-4. データ分析 | KW | クラスター分析, デンドログラム | Ch7 | 必修 | 第7回 | `dsp7.html#非階層クラスタリング-k-means-法`, `#pca` (17 項目を主成分分析してから階層クラスタリングへ渡す. 2026-11-09 追加), `#階層クラスタリングとデンドログラム`, `#クラスタリング結果の評価-エルボー法とシルエット係数` | Exercise DSP7-1 (k-means とクラスタ数の選択), DSP7-2 (連結法の比較), DSP7-4 (標準化しない主成分分析), 総合実習 題材 1 (`dsp12.html#capstone-cluster`: 手順 3 の標準化, 手順 4 と判断 2 のエルボー法・シルエット係数によるクラスタ数の選択, 手順 5 の k-means 法. デンドログラムは求めない) | 執筆済 (2026-09-25) |
-| 19 | 1-4. データ分析 | KW | パターン発見, アソシエーション分析, リフト値 | Ch7 | 必修 | 第7回 | `dsp7.html#パターン発見-アソシエーション分析`, `#支持度確信度リフト値` | Exercise DSP7-3 (クラスタごとのリフト値) | 執筆済 (2026-09-25) |
-| 29 | 1-5. データ可視化 | KW | 可視化目的 (比較, 構成, 分布, 変化など)に応じた図表化 | Ch3 | 必修 | 第3回 | `dsp3.html#choose-graph` (行 9 と同じ節) | Exercise DSP3-2 | 加筆 |
-| 30 | 1-5. データ可視化 | KW | 1～3次元の図表化 (棒グラフ, 折線グラフ, 散布図, 積み上げ縦棒グラフ, 箱ひげ図, 散布図行列, ヒートマップなど) | Ch3 | 必修 | 第3回 | `dsp3.html#basic-graphs`, `dsp3.html#stacked-bar` | 本文のみ (第3回) | 既存 (積み上げ縦棒のみ新規) |
-| 31 | 1-5. データ可視化 | KW | 適切な縦軸, 横軸候補の洗い出し | Ch3 | 必修 | 第3回 | `dsp3.html#axis-choice` | Exercise DSP3-2 | 新規 |
-| 32 | 1-5. データ可視化 | KW | 不必要な誇張表現, 強調表現がもたらす影響 | Ch3 | 必修 | 第3回 | `dsp3.html#exaggeration` | Exercise DSP3-1 | 新規 |
-| 33 | 1-5. データ可視化 | OPT | 関係性の可視化 | Ch3 | 発展 | 自習 | `dsp3.html#relation-diagram` (発展) | 本文のみ (発展) | 流用 (Ch13 の graphviz) |
-| 122 | 3-10. AIの構築・運用 ☆ | KW | AIの学習と推論, 評価, 再学習 | Ch10 (資料の位置. 授業は Ch8 とあわせて扱う) | 必修 | 第8回 | `dsp10.html#ai-の学習と推論-評価-再学習`, `#モデルの評価`, `#運用中の監視と再学習` | Exercise DSP10-1 (学習と推論の区別, 過学習, 混同行列, 再学習の流れ. 旧 DSP8-4) | 執筆済 (2026-09-26. 2026-10-28 に Ch8 から Ch10 へ移した) |
+| 6 | 1-2. 分析設計 ☆ | KW | データ分析の進め方, 仮説検証サイクル | Ch2 | 必修 | 第2回 | `courses/dsp/2/design-process.html#analysis-workflow`, `courses/dsp/2/design-process.html#仮説検証サイクル` | 本文のみ (演習は設けない. 2026-09-26 ユーザ決定) | 執筆済 (2026-09-26) |
+| 7 | 1-2. 分析設計 ☆ | KW | 分析目的の設定 | Ch2 | 必修 | 第2回 | `courses/dsp/2/design-process.html#analysis-goals` | 本文のみ (演習は設けない) | 執筆済 (2026-09-26) |
+| 8 | 1-2. 分析設計 ☆ | KW | 様々なデータ分析手法  (回帰, 分類, クラスタリングなど) | Ch2 | 必修 | 第2回 | `courses/dsp/2/design-process.html#analysis-methods` | 本文のみ (演習は設けない) | 執筆済 (2026-09-26) |
+| 9 | 1-2. 分析設計 ☆ | KW | 様々なデータ可視化手法 (比較, 構成, 分布, 変化など) | Ch3 | 必修 | 第3回 | `courses/dsp/3/vis-basic.html#choose-graph` (2026-10-02 に Ch2 から移動. Ch2 は共通資料の案内に置き換えた) | Exercise DSP3-2 | 執筆済 |
+| 18 | 1-4. データ分析 | KW | クラスター分析, デンドログラム | Ch7 | 必修 | 第7回 | `courses/dsp/7/ml-clustering.html#非階層クラスタリング-k-means-法`, `courses/dsp/7/ml-clustering.html#pca` (17 項目を主成分分析してから階層クラスタリングへ渡す. 2026-11-09 追加), `courses/dsp/7/ml-clustering.html#階層クラスタリングとデンドログラム`, `courses/dsp/7/ml-clustering.html#クラスタリング結果の評価-エルボー法とシルエット係数` | Exercise DSP7-1 (k-means とクラスタ数の選択), DSP7-2 (連結法の比較), DSP7-4 (標準化しない主成分分析), 総合実習 題材 1 (`courses/dsp/capstone.html#capstone-cluster`: 手順 3 の標準化, 手順 4 と判断 2 のエルボー法・シルエット係数によるクラスタ数の選択, 手順 5 の k-means 法. デンドログラムは求めない) | 執筆済 (2026-09-25) |
+| 19 | 1-4. データ分析 | KW | パターン発見, アソシエーション分析, リフト値 | Ch7 | 必修 | 第7回 | `courses/dsp/7/ml-association.html#パターン発見-アソシエーション分析`, `courses/dsp/7/ml-association.html#support-confidence-lift` | Exercise DSP7-3 (クラスタごとのリフト値) | 執筆済 (2026-09-25) |
+| 29 | 1-5. データ可視化 | KW | 可視化目的 (比較, 構成, 分布, 変化など)に応じた図表化 | Ch3 | 必修 | 第3回 | `courses/dsp/3/vis-basic.html#choose-graph` (行 9 と同じ節) | Exercise DSP3-2 | 加筆 |
+| 30 | 1-5. データ可視化 | KW | 1～3次元の図表化 (棒グラフ, 折線グラフ, 散布図, 積み上げ縦棒グラフ, 箱ひげ図, 散布図行列, ヒートマップなど) | Ch3 | 必修 | 第3回 | `courses/dsp/3/vis-basic.html#basic-graphs`, `courses/dsp/3/vis-basic.html#stacked-bar` | 本文のみ (第3回) | 既存 (積み上げ縦棒のみ新規) |
+| 31 | 1-5. データ可視化 | KW | 適切な縦軸, 横軸候補の洗い出し | Ch3 | 必修 | 第3回 | `courses/dsp/3/vis-relation.html#axis-choice` | Exercise DSP3-2 | 新規 |
+| 32 | 1-5. データ可視化 | KW | 不必要な誇張表現, 強調表現がもたらす影響 | Ch3 | 必修 | 第3回 | `courses/dsp/3/vis-relation.html#exaggeration` | Exercise DSP3-1 | 新規 |
+| 33 | 1-5. データ可視化 | OPT | 関係性の可視化 | Ch3 | 発展 | 自習 | `fields/descriptive/vis-more/relation-diagram.html#relation-diagram` (発展) | 本文のみ (発展) | 流用 (Ch13 の graphviz) |
+| 122 | 3-10. AIの構築・運用 ☆ | KW | AIの学習と推論, 評価, 再学習 | Ch10 (資料の位置. 授業は Ch8 とあわせて扱う) | 必修 | 第8回 | `courses/dsp/8/dl-transformer.html#ai-の学習と推論-評価-再学習`, `courses/dsp/8/dl-transformer.html#model-evaluation`, `courses/dsp/8/dl-transformer.html#monitoring-retraining` | Exercise DSP10-1 (学習と推論の区別, 過学習, 混同行列, 再学習の流れ. 旧 DSP8-4) | 執筆済 (2026-09-26. 2026-10-28 に Ch8 から Ch10 へ移した) |
 | 123 | 3-10. AIの構築・運用 ☆ | KW | AIの開発環境と実行環境 | common/agent | 必修 | 第1〜2回 | `agent.html#ai-の開発環境と実行環境` | 本文のみ (開発環境の構築と実行は Exercise AGENT-1 の手順で行う. 学習と推論, 実行場所の区別を問う演習は設けていない) | 執筆済 |
-| 151 | 3-5. 生成AIの基礎と展望 ☆ | OPT | Transformer, 注意機構, 自己教師あり学習 | Ch8 | 必修 | 第8回 | `dsp8.html#transformer-と注意機構`, `#自己教師あり学習` | Exercise DSP8-2 (注意機構と Transformer), DSP8-3 (自己教師あり学習) | 執筆済 (2026-09-26) |
-| 152 | 3-5. 生成AIの基礎と展望 ☆ | OPT | Vision Transformer, CLIP | Ch11 (ViT) / Ch9 (CLIP) | 発展 | 自習 | `dsp11.html#vision-transformer`, `dsp9.html#clip` | 課題 (発展) | 執筆済み (2026-09-26 に Ch8 から移動) |
-| 156 | 3-6. 認識 | KW | 認識技術の活用事例 | Ch11 | 必修 | 第10回 | `dsp11.html#recognition-applications` | 本文のみ (第10回) | 新規 |
-| 157 | 3-6. 認識 | KW | パターン認識, 特徴抽出, 識別 | Ch11 | 必修 | 第10回 | `dsp11.html#pattern-recognition`, `dsp11.html#hand-crafted-features` | 本文のみ (第10回) | 新規 |
-| 158 | 3-6. 認識 | KW | 数字認識, 文字認識 | Ch11 | 必修 | 第10回 | `dsp11.html#digit-recognition`, `dsp11.html#character-recognition` | Exercise DSP11-1, DSP11-2 | 新規 (scikit-learn digits) |
-| 159 | 3-6. 認識 | KW | 画像認識, 音声認識 | Ch11 | 必修 | 第10回 | `dsp11.html#cnn`, `dsp11.html#speech-recognition` | 本文のみ (第10回. 音声は概念のみ). 画像認識は総合実習 題材 3 (`dsp12.html#capstone-image`: 手順 3 の ConvNeXt による学習, 手順 4 の損失・正解率・混同行列の読み取り) も評価証拠になる. 音声認識は求めない | 画像=既存 / 音声=新規 (概念のみ) |
-| 160 | 3-6. 認識 | OPT | 画像分類 | Ch11 | 必修 | 第10回 | `dsp11.html#age-classification` | 総合実習 題材 3 (`dsp12.html#capstone-image`: 5 種類の花の分類. 手順 3 の学習, 手順 5 と判断 2 の学習条件の比較, 手順 6 と判断 3 の結果の確かめ). 第10回の本文に演習は設けていない | 既存 (6 クラス分類) |
-| 163 | 3-7. 予測・判断 | KW | 予測技術の活用事例 | Ch6 | 必修 | 第6回 | `dsp6.html#予測技術の活用事例と現象のモデル化` | (本文の事例表. 演習なし) | 執筆済 (2026-09-26) |
-| 164 | 3-7. 予測・判断 | KW | 現象のモデル化 | Ch6 | 必修 | 第6回 | `dsp6.html#予測技術の活用事例と現象のモデル化` | Exercise DSP6-3 (説明変数を絞ったモデル) | 執筆済 (2026-09-26) |
-| 165 | 3-7. 予測・判断 | KW | 決定木 (Decision Tree) | Ch6 | 必修 | 第6回 | `dsp6.html#決定木分析` | Exercise DSP6-1 (深さと過学習) | 執筆済 (2026-09-26) |
-| 166 | 3-7. 予測・判断 | KW | 混同行列, Accuracy, Precision, Recall | Ch6 | 必修 | 第6回 | `dsp6.html#混同行列`, `#accuracy-precision-recall` | Exercise DSP6-2 (閾値と Precision / Recall) | 執筆済 (2026-09-26) |
-| 167 | 3-7. 予測・判断 | KW | MSE (Mean Square Error) | Ch5 | 必修 | 第5回 | `dsp5.html#regression-evaluation` (`#mse`, `#mse-sklearn`) | Exercise DSP5-2, DSP5-3 | 流用 (Ch11 の MSE/RMSE の誤記は 2026-09-26 に修正済み) |
-| 168 | 3-7. 予測・判断 | KW | ROC曲線, AUC (Area Under the Curve) | Ch6 | 必修 | 第6回 | `dsp6.html#roc-曲線と-auc` | Exercise DSP6-2, DSP6-3 (AUC の比較) | 執筆済 (2026-09-26) |
-| 169 | 3-7. 予測・判断 | OPT | ランダムフォレスト | Ch6 | 発展 | 自習 | `dsp6.html#ランダムフォレスト` | 本文のみ (発展) | 執筆済 (2026-09-26) |
-| 170 | 3-7. 予測・判断 | OPT | サポートベクターマシン (SVM) | Ch6 | 発展 | 自習 | `dsp6.html#サポートベクターマシン` | 本文のみ (発展) | 執筆済 (2026-09-26) |
-| 173 | 3-8. 言語・知識 | KW | 自然言語処理の活用事例 | Ch9 | 必修 | 第9回 | `dsp9.html#nlp-applications` | 本文のみ (第9回) | 新規 |
-| 174 | 3-8. 言語・知識 | KW | 形態素解析, 単語分割, 係り受け解析 | Ch9 | 必修 | 第9回 | `dsp9.html#トークン化と形態素解析`, `dsp9.html#dependency-parsing` | Exercise DSP9-2 | 形態素・単語分割=既存 / 係り受け=新規 |
-| 175 | 3-8. 言語・知識 | KW | ユーザ定義辞書 | Ch9 | 必修 | 第9回 | `dsp9.html#user-dictionary` | Exercise DSP9-1 | 新規 |
-| 176 | 3-8. 言語・知識 | KW | かな漢字変換 | Ch9 | 必修 | 第9回 | `dsp9.html#kana-kanji-conversion` | 本文のみ (第9回. 概念のみ) | 新規 (概念のみ) |
-| 177 | 3-8. 言語・知識 | OPT | n-gram, 文章間類似度 | Ch9 | 発展 | 自習 | `dsp9.html#ngram-similarity` | 課題 (発展) | 新規 |
-| 178 | 3-8. 言語・知識 | OPT | 機械翻訳, 文章生成 | Ch9 | 発展 | 自習 | `dsp9.html#translation-generation`, `dsp9.html#pretraining-and-generation` | 課題 (発展) | 新規 |
+| 151 | 3-5. 生成AIの基礎と展望 ☆ | OPT | Transformer, 注意機構, 自己教師あり学習 | Ch8 | 必修 | 第8回 | `courses/dsp/8/dl-transformer.html#transformer-と注意機構`, `courses/dsp/8/dl-transformer.html#self-supervised-learning` | Exercise DSP8-2 (注意機構と Transformer), DSP8-3 (自己教師あり学習) | 執筆済 (2026-09-26) |
+| 152 | 3-5. 生成AIの基礎と展望 ☆ | OPT | Vision Transformer, CLIP | Ch11 (ViT) / Ch9 (CLIP) | 発展 | 自習 | `fields/deep-learning/img-more/index.html#vision-transformer`, `fields/deep-learning/nlp-embedding-more/clip.html#clip` | 課題 (発展) | 執筆済み (2026-09-26 に Ch8 から移動) |
+| 156 | 3-6. 認識 | KW | 認識技術の活用事例 | Ch11 | 必修 | 第10回 | `courses/dsp/10/img-recognition.html#recognition-applications` | 本文のみ (第10回) | 新規 |
+| 157 | 3-6. 認識 | KW | パターン認識, 特徴抽出, 識別 | Ch11 | 必修 | 第10回 | `courses/dsp/10/img-recognition.html#pattern-recognition`, `courses/dsp/10/img-recognition.html#hand-crafted-features` | 本文のみ (第10回) | 新規 |
+| 158 | 3-6. 認識 | KW | 数字認識, 文字認識 | Ch11 | 必修 | 第10回 | `courses/dsp/10/img-recognition.html#digit-recognition`, `courses/dsp/10/img-recognition.html#character-recognition` | Exercise DSP11-1, DSP11-2 | 新規 (scikit-learn digits) |
+| 159 | 3-6. 認識 | KW | 画像認識, 音声認識 | Ch11 | 必修 | 第10回 | `courses/dsp/10/img-recognition.html#cnn`, `courses/dsp/10/img-age.html#speech-recognition` | 本文のみ (第10回. 音声は概念のみ). 画像認識は総合実習 題材 3 (`courses/dsp/capstone.html#capstone-image`: 手順 3 の ConvNeXt による学習, 手順 4 の損失・正解率・混同行列の読み取り) も評価証拠になる. 音声認識は求めない | 画像=既存 / 音声=新規 (概念のみ) |
+| 160 | 3-6. 認識 | OPT | 画像分類 | Ch11 | 必修 | 第10回 | `courses/dsp/10/img-age.html#age-classification` | 総合実習 題材 3 (`courses/dsp/capstone.html#capstone-image`: 5 種類の花の分類. 手順 3 の学習, 手順 5 と判断 2 の学習条件の比較, 手順 6 と判断 3 の結果の確かめ). 第10回の本文に演習は設けていない | 既存 (6 クラス分類) |
+| 163 | 3-7. 予測・判断 | KW | 予測技術の活用事例 | Ch6 | 必修 | 第6回 | `courses/dsp/6/ml-classification.html#predictive-modeling` | (本文の事例表. 演習なし) | 執筆済 (2026-09-26) |
+| 164 | 3-7. 予測・判断 | KW | 現象のモデル化 | Ch6 | 必修 | 第6回 | `courses/dsp/6/ml-classification.html#predictive-modeling` | Exercise DSP6-3 (説明変数を絞ったモデル) | 執筆済 (2026-09-26) |
+| 165 | 3-7. 予測・判断 | KW | 決定木 (Decision Tree) | Ch6 | 必修 | 第6回 | `courses/dsp/6/ml-classification.html#decision-trees` | Exercise DSP6-1 (深さと過学習) | 執筆済 (2026-09-26) |
+| 166 | 3-7. 予測・判断 | KW | 混同行列, Accuracy, Precision, Recall | Ch6 | 必修 | 第6回 | `courses/dsp/6/ml-classification.html#混同行列`, `courses/dsp/6/ml-classification.html#accuracy-precision-recall` | Exercise DSP6-2 (閾値と Precision / Recall) | 執筆済 (2026-09-26) |
+| 167 | 3-7. 予測・判断 | KW | MSE (Mean Square Error) | Ch5 | 必修 | 第5回 | `courses/dsp/5/reg-prediction.html#regression-evaluation` (`courses/dsp/5/reg-prediction.html#mse`, `courses/dsp/5/reg-prediction.html#mse-sklearn`) | Exercise DSP5-2, DSP5-3 | 流用 (Ch11 の MSE/RMSE の誤記は 2026-09-26 に修正済み) |
+| 168 | 3-7. 予測・判断 | KW | ROC曲線, AUC (Area Under the Curve) | Ch6 | 必修 | 第6回 | `courses/dsp/6/ml-classification.html#roc-曲線と-auc` | Exercise DSP6-2, DSP6-3 (AUC の比較) | 執筆済 (2026-09-26) |
+| 169 | 3-7. 予測・判断 | OPT | ランダムフォレスト | Ch6 | 発展 | 自習 | `fields/machine-learning/ml-classifiers/index.html#ランダムフォレスト` | 本文のみ (発展) | 執筆済 (2026-09-26) |
+| 170 | 3-7. 予測・判断 | OPT | サポートベクターマシン (SVM) | Ch6 | 発展 | 自習 | `fields/machine-learning/ml-classifiers/support-vector-machine.html#support-vector-machine` | 本文のみ (発展) | 執筆済 (2026-09-26) |
+| 173 | 3-8. 言語・知識 | KW | 自然言語処理の活用事例 | Ch9 | 必修 | 第9回 | `courses/dsp/9/nlp-processing.html#nlp-applications` | 本文のみ (第9回) | 新規 |
+| 174 | 3-8. 言語・知識 | KW | 形態素解析, 単語分割, 係り受け解析 | Ch9 | 必修 | 第9回 | `courses/dsp/9/nlp-processing.html#tokenization-morphology`, `courses/dsp/9/nlp-syntax.html#dependency-parsing` | Exercise DSP9-2 | 形態素・単語分割=既存 / 係り受け=新規 |
+| 175 | 3-8. 言語・知識 | KW | ユーザ定義辞書 | Ch9 | 必修 | 第9回 | `courses/dsp/9/nlp-processing.html#user-dictionary` | Exercise DSP9-1 | 新規 |
+| 176 | 3-8. 言語・知識 | KW | かな漢字変換 | Ch9 | 必修 | 第9回 | `courses/dsp/9/nlp-syntax.html#kana-kanji-conversion` | 本文のみ (第9回. 概念のみ) | 新規 (概念のみ) |
+| 177 | 3-8. 言語・知識 | OPT | n-gram, 文章間類似度 | Ch9 | 発展 | 自習 | `fields/deep-learning/nlp-embedding-more/ngram-similarity.html#ngram-similarity` | 課題 (発展) | 新規 |
+| 178 | 3-8. 言語・知識 | OPT | 機械翻訳, 文章生成 | Ch9 | 発展 | 自習 | `fields/deep-learning/nlp-generation/index.html#translation-generation`, `fields/deep-learning/nlp-generation/pretraining-and-generation.html#pretraining-and-generation` | 課題 (発展) | 新規 |
 
 ## 集計
 

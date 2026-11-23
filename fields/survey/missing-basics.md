@@ -13,7 +13,7 @@ requires:
 # []{#前提となる章}前提となる手法 {#imputation-prerequisites}
 
 - 平均や中央値などの[基本統計量](block:num-summary#basic-stats)と[中心を表す基本統計量](block:num-summary#central-tendency), 変数どうしの関係を表す[相関](block:num-correlation#correlation). 補定に使う値の計算と, 補定が相関に与える影響の確認に使います.
-- [回帰分析](/lectures/dsp5.html): [重回帰分析](/lectures/dsp5.html#multiple-regression)と[回帰の評価](/lectures/dsp5.html#regression-evaluation). 回帰による補定と, 補定後の分析結果の比較に使います. [単回帰分析](/lectures/dsp5.html#simple-regression)のデータの準備で, データの無い国を `dropna` で除外しています. 欠損値の扱いでは, この行削除の手順を一般化します.
+- [回帰分析](block:reg-intro): [重回帰分析](block:reg-multiple#partial-coefficients)と[回帰の評価](block:reg-prediction#regression-evaluation). 回帰による補定と, 補定後の分析結果の比較に使います. [単回帰分析](block:reg-simple)のデータの準備で, データの無い国を `dropna` で除外しています. 欠損値の扱いでは, この行削除の手順を一般化します.
 - [決定木](block:ml-classification#決定木分析)はカテゴリー変数の補定に使います. [訓練データとテストデータの分け方](block:ml-classification#訓練データとテストデータ)は, 補定をどの段階で行うかを判断するために使います.
 - [質問紙調査](block:survey-design#questionnaire-surveys)では, 無回答が欠損の主な原因になります.
 
@@ -139,7 +139,7 @@ dtype: float64
 
 支出が 24.2%, 居住形態が 10.0%, アルバイト時間が 7.0% 欠けています. 欠けている変数が 3 つあるので, どれか 1 つでも欠けている行を除くと, 400 行のうち 249 行しか残りません.
 
-欠損が生じる原因には, 無回答のほかに, 測定の失敗 (機器の故障, 記録漏れ), 調査の対象外 (一人暮らしでない学生に家賃を聞かない), データの結合時の不一致 ([単回帰分析](/lectures/dsp5.html)で国名の表記が合わずに結合できなかった国) があります. 調査の対象外による欠損は, 補うべき値がそもそも存在しないので, 補定の対象にしません.
+欠損が生じる原因には, 無回答のほかに, 測定の失敗 (機器の故障, 記録漏れ), 調査の対象外 (一人暮らしでない学生に家賃を聞かない), データの結合時の不一致 ([単回帰分析](block:reg-simple#oecd-data)で国名の表記が合わずに結合できなかった国) があります. 調査の対象外による欠損は, 補うべき値がそもそも存在しないので, 補定の対象にしません.
 
 対応する演習は [Exercise DSP15-1](#exercise-dsp15-1) です.
 
@@ -327,7 +327,7 @@ Name: proportion, dtype: float64
 
 ### 回帰補完と確率的回帰補完 {#regression-imputation}
 
-数値の変数は, 他の変数から[重回帰分析](/lectures/dsp5.html#multiple-regression)で予測して補えます. これを**回帰補完**といいます. 支出を, アルバイト時間と通学時間から予測して補います. 支出とアルバイト時間の両方を答えた学生のデータで回帰式を求め, 支出が無回答の学生に当てはめます. 通学時間には欠損が無いので, 除く行を決める `dropna` の `subset` には支出とアルバイト時間だけを指定します (このデータでは, 支出が無回答の学生は全員アルバイト時間を答えています).
+数値の変数は, 他の変数から[重回帰分析](block:reg-multiple#partial-coefficients)で予測して補えます. これを**回帰補完**といいます. 支出を, アルバイト時間と通学時間から予測して補います. 支出とアルバイト時間の両方を答えた学生のデータで回帰式を求め, 支出が無回答の学生に当てはめます. 通学時間には欠損が無いので, 除く行を決める `dropna` の `subset` には支出とアルバイト時間だけを指定します (このデータでは, 支出が無回答の学生は全員アルバイト時間を答えています).
 
 ~~~ py
 from sklearn.linear_model import LinearRegression

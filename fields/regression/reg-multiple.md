@@ -1,7 +1,7 @@
 ---
 title: 重回帰分析と偏回帰係数
 kind: theory
-open: false
+open: true
 requires:
   - reg-intro
 ---

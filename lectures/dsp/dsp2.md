@@ -14,6 +14,10 @@ previousChapter: dsp1.html
 nextChapter: dsp3.html
 ---
 
+::: warn
+この章の内容は, 回のページ「[第 2 回 分析設計: データ分析の進め方](/courses/dsp/2.html)」に移しました. 授業では新しい講義のページを使ってください. このページは一定の期間の後に削除します.
+:::
+
 # はじめに (注意点)
 
 ::: warn

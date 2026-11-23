@@ -13,6 +13,10 @@ tableOfContents: true
 nextChapter: dsp2.html
 ---
 
+::: warn
+この章の内容は, [講義の目次](/courses/dsp/index.html)と[本資料の読み方](/courses/dsp/guide.html)に移しました. 授業では新しい講義のページを使ってください. このページは一定の期間の後に削除します.
+:::
+
 
 
 

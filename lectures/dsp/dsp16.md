@@ -14,6 +14,10 @@ previousChapter: dsp15.html
 ---
 
 ::: warn
+この章の内容は, [選択資料](/courses/dsp/selected.html)と参考資料の[因果推論 (作成中)](/fields/causal/causal-intro/index.html)に移しました. 授業では新しい講義のページを使ってください. このページは一定の期間の後に削除します.
+:::
+
+::: warn
 
 この章は作成中です. 見出しと扱う内容の予定だけを載せています.
 

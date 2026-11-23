@@ -135,8 +135,8 @@ Web ページ閲覧時の視線移動を実験により計測して, Web ペー�
     - 2 つの変数に関係があるか → [相関](block:num-correlation#correlation)
     - グループの間に違いがあるか → 検定
     - ある変数 (目的変数) を, 他の変数で説明したい, 予測したい
-        - [目的変数が量的]{.ct-type} → [線形回帰](/lectures/dsp5.html)
-        - [目的変数が 2 値で, 説明変数による確率の変化を知りたい]{.ct-type} → [ロジスティック回帰](/lectures/dsp5.html#logistic-regression)
+        - [目的変数が量的]{.ct-type} → [線形回帰](block:reg-intro#regression-equation)
+        - [目的変数が 2 値で, 説明変数による確率の変化を知りたい]{.ct-type} → [ロジスティック回帰](block:reg-glm#binary-response)
         - [目的変数がカテゴリー]{.ct-type} → [決定木などの分類](block:ml-classification#決定木分析)
         - [目的変数が個数や割合で, 個体ごとのばらつきが大きい]{.ct-type} → [一般化線形モデル](block:bayes-modeling#一般化線形モデル-glm)
     - データをいくつかのグループに分けたい → [クラスタリング](block:ml-clustering#クラスタリング)

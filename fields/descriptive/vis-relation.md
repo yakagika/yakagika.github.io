@@ -48,7 +48,7 @@ plt.show()
 
 散布図を見ると, `AI` に関する検索量が増えるにつれて, `Python` の検索量が増えるという関係が見えてきます.
 
-この関係の度合いを数値化する**[相関係数](block:num-correlation#correlation)**や, 関係の仕方を説明する**[回帰分析](/lectures/dsp5.html#simple-regression)**は, それぞれの解説を参照してください.
+この関係の度合いを数値化する**[相関係数](block:num-correlation#correlation)**や, 関係の仕方を説明する**[回帰分析](block:reg-simple)**は, それぞれの解説を参照してください.
 
 この節に対応する演習は, [Exercise DSP3-3](#exercise-dsp3-3)です.
 

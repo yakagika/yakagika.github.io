@@ -15,6 +15,10 @@ nextChapter: dsp11.html
 ---
 
 ::: warn
+この章の内容は, 第 8 回の講義のページ「[AI の学習と推論, 評価, 再学習](/courses/dsp/8/dl-transformer.html#ai-の学習と推論-評価-再学習)」と, 参考資料の[Transformer の学習の手順](/fields/deep-learning/dl-training-procedure/index.html)と[品目名の分類器を学習する事例](/fields/deep-learning/dl-training-case/index.html)に移しました. 授業では新しい講義のページを使ってください. このページは一定の期間の後に削除します.
+:::
+
+::: warn
 
 この章は作成中です. [事例: 自然言語の Transformer を学習する](#事例-自然言語の-transformer-を学習する)の節は, 見出しと扱う内容の予定だけを載せています. それ以外の節は書き終えています.
 

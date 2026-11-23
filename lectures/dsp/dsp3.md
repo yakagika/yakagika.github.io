@@ -14,6 +14,10 @@ previousChapter: dsp2.html
 nextChapter: dsp4.html
 ---
 
+::: warn
+この章の内容は, 回のページ「[第 3 回 データの可視化](/courses/dsp/3.html)」に移しました. 授業では新しい講義のページを使ってください. このページは一定の期間の後に削除します.
+:::
+
 
 # データの可視化
 

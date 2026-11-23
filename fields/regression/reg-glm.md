@@ -1,7 +1,7 @@
 ---
 title: 一般化線形モデルと二値の応答
 kind: theory
-open: false
+open: true
 requires:
   - reg-intro
 ---

@@ -1,7 +1,7 @@
 ---
 title: GPA で目的ごとに変数を選ぶ
 kind: code
-open: false
+open: true
 requires:
   - reg-selection
   - reg-evaluate

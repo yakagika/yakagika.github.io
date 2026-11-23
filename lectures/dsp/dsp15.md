@@ -14,6 +14,10 @@ previousChapter: dsp14.html
 nextChapter: dsp16.html
 ---
 
+::: warn
+この章の内容は, [選択資料](/courses/dsp/selected.html)と参考資料の[欠損の種類と単一代入法](/fields/survey/missing-basics/index.html)に移しました. 授業では新しい講義のページを使ってください. このページは一定の期間の後に削除します.
+:::
+
 本章は, データの一部が欠けているときの扱い方をまとめる章です. 最初の[欠損値と補定](#missing-and-imputation)で 2 つの言葉の意味を確かめ, 次の[補定方法の選び方](#choose-method)で手元のデータに合う方法を決めてから, 必要な節へ進んでください.
 
 # 前提となる章

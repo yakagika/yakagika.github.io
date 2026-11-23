@@ -37,7 +37,7 @@ requires:
     - [変数が 3 つ以上]{.ct-dim}
         - 2 つずつの相関を一覧にする → [相関係数のヒートマップ](block:num-correlation#相関係数のヒートマップ)
         - 3 つ目の変数の影響を除いて 2 つの関係を見る → [偏相関係数](block:num-partial#partial-correlation)
-        - 多数の変数をまとめて扱う → [回帰分析などの多変量解析](/lectures/dsp5.html)
+        - 多数の変数をまとめて扱う → [回帰分析などの多変量解析](block:reg-intro)
 
 :::
 

@@ -14,6 +14,10 @@ previousChapter: dsp12.html
 nextChapter: dsp14.html
 ---
 
+::: warn
+この章の内容は, [選択資料](/courses/dsp/selected.html)と参考資料の[ベイズ統計学](/fields/bayes/index.html)に移しました. 授業では新しい講義のページを使ってください. このページは一定の期間の後に削除します.
+:::
+
 # 統計モデリング
 
 

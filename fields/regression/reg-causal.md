@@ -1,7 +1,7 @@
 ---
 title: 因果推論とは何か
 kind: theory
-open: false
+open: true
 requires:
   - reg-multiple
 bibliography: lectures
@@ -172,7 +172,7 @@ GPA についての**因果推論**では, 同じ母集団で介入した場合�
 自習枠の運用と GPA の測り方が対応していて, 同じ自習時間の学生には大学が変わっても同じ効果が見込めるなら,
 移転先の学生の割合に合わせて条件ごとの効果を平均する考え方があります [@hernan2020causal, chap. 4].
 
-傾向スコア, 差の差などの推定の手法と感度分析は[データサイエンス実践 第16章](/lectures/dsp16.html)で扱います.
+傾向スコア, 差の差などの推定の手法と感度分析は[因果推論](block:causal-intro#causal-inference)で扱います.
 
 # 国の間の出生率の比較と国内での介入 {#fertility-intervention}
 

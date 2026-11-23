@@ -1,7 +1,7 @@
 ---
 title: 予測とは何か
 kind: theory
-open: false
+open: true
 requires:
   - reg-multiple
 bibliography: lectures
@@ -202,7 +202,7 @@ MSE と RMSE は [Exercise REG-PREDICTION-1](#exercise-reg-prediction-1) で計�
 ベイズ統計学では, データを得た後の母数の不確かさを事後分布で表します.
 母数ごとの新しい学生の GPA の分布を事後分布で重み付けしてまとめた**事後予測分布**には,
 母数の不確かさと, 母数を固定したときの個体差が含まれます.
-事前分布と事後分布の計算は[データサイエンス実践 第13章](/lectures/dsp13.html)にあります.
+事前分布と事後分布の計算は[ベイズの定理](block:bayes-intro#ベイズの定理)にあります.
 
 # 演習 {#exercises}
 

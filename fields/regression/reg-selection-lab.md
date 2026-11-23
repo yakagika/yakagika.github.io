@@ -1,7 +1,7 @@
 ---
 title: 変数選択の結果を実験で確かめる
 kind: code
-open: false
+open: true
 requires:
   - reg-selection-gpa
 bibliography: lectures

@@ -1,7 +1,7 @@
 ---
 title: その他のモデル選択の手法と選んだ後の推論
 kind: theory
-open: false
+open: true
 requires:
   - reg-selection
 bibliography: lectures
