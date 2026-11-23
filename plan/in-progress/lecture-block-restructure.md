@@ -5,7 +5,7 @@ created: 2026-11-20
 updated: 2026-11-23
 priority: high
 next_actor: agent
-next_action: "回帰の C の指示書 (_scratch/dsp-layout/handoff-1122/briefs/reg13-c.md. 書き終えた) を codex Sol に出し, D の裁定 (briefs/reg13-d-decisions.md) から D1 (reg-selection, reg-selection-gpa) と D2 (reg-selection-more, reg-selection-lab, 旧 ID の検査の script) の指示書を同じ型で書いて出す (A, B, E は land 済み)"
+next_action: "回帰の C (reg-prediction, reg-evaluate, reg-causal) の codex の報告を受け入れて land し, 続けて D1 (reg-selection, reg-selection-gpa) と D2 (reg-selection-more, reg-selection-lab, 旧 ID の検査の script) を 1 本ずつ受け入れて land する (C は報告済み. D1, D2 は指示書 briefs/reg13-d1.md, reg13-d2.md で起動した. A, B, E は land 済み). land 後に reg-simple の終わりのリンクを reg-causal#fertility-intervention へ, reg-selection-more の #post-selection の導入のリンクを reg-selection#select-then-test へ付け替えるかを決める"
 ---
 
 # 講義資料を分野とブロックに分け, 講義はブロックの並びかブロックへのリンクで組む
