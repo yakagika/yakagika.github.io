@@ -5,7 +5,7 @@ created: 2026-11-20
 updated: 2026-11-23
 priority: high
 next_actor: agent
-next_action: "回帰の残り 13 ブロックを見本 (reg-intro, c7a73966) と同じ方針で直す (本人の回答 2026-11-23「13 ブロックすべて」). 設計は節「依頼 8, 9 を受けた進め方」の bullet「13 ブロックの直しの設計」. 次: (1) 文献の本文の確認を Sonnet subagent 2 本で始める (2) ブロックの冒頭と終わりの文, 潜在得点の置き場, 規則 8 で外す節を coordinator が決める (3) 引用の無い 3 組 (reg-ols+reg-simple, reg-multiple+reg-gpa, reg-glm+reg-logit) の指示書を書いて codex Sol に同時に出す (4) 文献の確認の後に残り 2 組. 第 5 回の量は保留. publish は通読の後. 次の大きな作業は Phase 3 (統計学) と Phase 4"
+next_action: "回帰の残り 13 ブロックを直す. 節「依頼 8, 9 を受けた進め方」の bullet「13 ブロックの直しの設計」に従い, 文献の確認を Sonnet 2 本で始め, 冒頭と終わりの文などを決め, 引用の無い 3 組の指示書を codex に同時に出す"
 ---
 
 # 講義資料を分野とブロックに分け, 講義はブロックの並びかブロックへのリンクで組む
