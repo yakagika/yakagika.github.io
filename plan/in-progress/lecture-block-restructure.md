@@ -5,7 +5,7 @@ created: 2026-11-20
 updated: 2026-11-23
 priority: high
 next_actor: agent
-next_action: "名称の変更 (本人の依頼 2) と移動 (左の欄と上下のカード) の実装を 1 本で codex へ委譲済み (2026-11-23, branch codex/dsp-textbook-nav). 受領して検査し, 取り込みの承認を本人に問う. 手順は _scratch/dsp-layout/handoff-1122/README.md の末尾. push と publish は指示待ち"
+next_action: "名称の変更と移動の実装 (clone の commit 1181e400) と, 空の移動カードの修正 (同 493e0d8e) を受領して検査済み. 取り込みの承認を本人に問い, 承認後に main へ rebase して ff-merge, recovery tag, cleanup. 手順と検査の結果は _scratch/dsp-layout/handoff-1122/README.md の末尾. push と publish は指示待ち"
 ---
 
 # 講義資料を分野とブロックに分け, 講義はブロックの並びかブロックへのリンクで組む
