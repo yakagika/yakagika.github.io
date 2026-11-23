@@ -18,7 +18,7 @@ bibliography: lectures
 
 # 目的ごとの変数の選び方 {#model-selection}
 
-[GPA のデータから問えること](block:reg-intro#regression-goals)の問いを使い, アルバイト時間を式に入れる基準を比べます.
+[回帰分析の目的](block:reg-intro#regression-goals)の問いを使い, アルバイト時間を式に入れる基準を比べます.
 
 | 目的 | GPA についての問い | 変数の選び方 | 得る結果 |
 |---|---|---|---|

@@ -8,7 +8,7 @@ bibliography: lectures
 ---
 
 次に入学する学生の GPA をどれだけ正確に当てられるでしょうか.
-[GPA のデータから問えること](block:reg-intro#regression-goals)の表の (b) では,
+[回帰分析の目的](block:reg-intro#regression-goals)の表の (b) では,
 同じ母集団の新しい学生 1 人ずつの GPA と, 予測の誤差を問いました.
 @hernan2019second は, 入力から別の値を当てる予測を, データ分析の目的の一つとして挙げています.
 

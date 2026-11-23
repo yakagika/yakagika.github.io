@@ -7,7 +7,7 @@ requires:
 bibliography: lectures
 ---
 
-[GPA のデータから問えること](block:reg-intro#regression-goals)の表の (c) では,
+[回帰分析の目的](block:reg-intro#regression-goals)の表の (c) では,
 勉強時間を週 1 時間増やす介入を行うと, 平均 GPA がどう変わるかを問いました.
 GPA についての**因果推論**では, 同じ母集団で介入した場合としなかった場合の平均 GPA の差を求めます.
 
