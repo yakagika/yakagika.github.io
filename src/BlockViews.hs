@@ -114,11 +114,36 @@ renderPage siteCtx site block page body = do
             <> rows "occurrences" (occurrenceContext site) (const occurrences)
             <> rows "anchors" (value "anchor" id) (const anchors)
             <> pageNavigation
-    if blockOpen block
-        then layout "templates/block-page.html" ctx (constField "post" "true" <> siteCtx) body
+        pageTemplate = "templates/block-page.html"
+        renderFieldNavigation :: String -> Compiler (Item String)
+        renderFieldNavigation variant = loadAndApplyTemplate "templates/block-field-nav.html"
+            (constField "fieldNavVariant" variant <> ctx) body
+        flags
+            | blockOpen block = constField "post" "true"
+            | otherwise       = constField "noindex" "true"
+    wideNavigation   <- renderFieldNavigation "block-field-nav-wide"
+    narrowNavigation <- renderFieldNavigation "block-field-nav-narrow"
+
+    pageBody <- if blockOpen block
+        then pure body
         else loadAndApplyTemplate "templates/placeholder.html"
-                (constField "category" "Lecture" <> ctx) (fmap (const "") body)
-            >>= layout "templates/block-page.html" ctx (constField "noindex" "true" <> siteCtx)
+            (constField "category" "Lecture" <> ctx) (fmap (const "") body)
+    let pageContext = constField "wideFieldNavigation" (itemBody wideNavigation) <> ctx
+    loadAndApplyTemplate pageTemplate (pageContext <> bodyField "body") pageBody
+        >>= insertAfterTitle narrowNavigation
+        >>= layoutContent ctx (flags <> siteCtx)
+
+-- | Insert navigation after the first h1 without re-rendering its inline HTML
+-- or the rest of the page. The title comes from the template or Pandoc.
+insertAfterTitle :: Item String -> Item String -> Compiler (Item String)
+insertAfterTitle navigation page
+    | T.null fromTitleEnd = fail ("Missing h1 on " ++ toFilePath (itemIdentifier page))
+    | otherwise = pure (fmap (const updated) page)
+  where
+    closingTag = "</h1>"
+    (beforeTitleEnd, fromTitleEnd) = T.breakOn closingTag (T.pack (itemBody page))
+    updated = T.unpack $ beforeTitleEnd <> closingTag <> "\n" <> T.pack (itemBody navigation)
+        <> T.drop (T.length closingTag) fromTitleEnd
 
 type Position = (SectionId, Session, Entry)
 type Neighbors a = (Maybe a, a, Maybe a)
@@ -214,7 +239,12 @@ rows key ctx select = listFieldWith key ctx (\item -> pure [fmap (const row) ite
 layout :: Identifier -> Context String -> Context String -> Item String -> Compiler (Item String)
 layout template ctx siteCtx item =
     loadAndApplyTemplate template (ctx <> bodyField "body") item
-    >>= loadAndApplyTemplate "templates/content.html" (bodyField "body")
+    >>= layoutContent ctx siteCtx
+
+-- | Apply the shared wrappers to the output of a page template.
+layoutContent :: Context String -> Context String -> Item String -> Compiler (Item String)
+layoutContent ctx siteCtx item =
+    loadAndApplyTemplate "templates/content.html" (bodyField "body") item
     >>= loadAndApplyTemplate "templates/default.html" (ctx <> siteCtx <> bodyField "body")
     >>= relativizeUrls
 

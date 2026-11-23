@@ -178,6 +178,24 @@ class Page(HTMLParser):
         duplicates = sorted(ident for ident, count in self.ids.items() if count > 1)
         check(not duplicates, f"{self.path}: duplicate IDs: {duplicates}")
 
+    def check_field_navigation(self) -> None:
+        versions = list(re.finditer(
+            r'<nav class="block-field-nav block-field-nav-(wide|narrow)"([^>]*>.*?)</nav>',
+            self.source, re.S,
+        ))
+        check([match[1] for match in versions] == ["wide", "narrow"],
+              f"{self.path}: expected two field navigation positions")
+        wide, narrow = versions
+        check(wide[2] == narrow[2], f"{self.path}: field navigation differs between layouts")
+        title_end = self.source.index("</h1>") + len("</h1>")
+        check(wide.end() < title_end <= narrow.start()
+              and not self.source[title_end:narrow.start()].strip(),
+              f"{self.path}: narrow field navigation must immediately follow the title")
+        for navigation in ("block-course-nav", "block-page-nav"):
+            position = self.source.find(f'class="{navigation}"')
+            check(position == -1 or wide.end() < position < title_end,
+                  f"{self.path}: {navigation} must precede the title")
+
 
 def check_html(site: Path) -> None:
     expected = OPEN_ROUTES | CLOSED_ROUTES
@@ -190,7 +208,10 @@ def check_html(site: Path) -> None:
     pages = {path: Page(site, path) for path in sorted(expected)}
 
     for path, page in pages.items():
-        if (path.startswith("fields/") and path.count("/") == 3) or path in {GUIDE, CHECKLIST, DRAFT_GUIDE}:
+        is_block = path.startswith("fields/") and path.count("/") == 3
+        if is_block:
+            page.check_field_navigation()
+        if is_block or path in {GUIDE, CHECKLIST, DRAFT_GUIDE}:
             page.check_toc_targets()
         for link in page.links:
             target, separator, fragment = link.partition("#")
