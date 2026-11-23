@@ -2,10 +2,10 @@
 plan_id: lecture-block-restructure
 status: in-progress
 created: 2026-11-20
-updated: 2026-11-22
+updated: 2026-11-23
 priority: high
 next_actor: agent
-next_action: "dsp の移行は main に land (2026-11-23, e767102..4219e68. 未 push). 本人の回答「教科書を正本に切り替えて下さい」を受け, 旧 dsp のページの扱いを本人に聞く (それまで generate をせず, 旧ページと 45 ブロックを変えない). 狭い画面の分野の目次の位置は codex へ委譲. push と publish は別の指示. 回帰の 4 問は本人の通読の後"
+next_action: "教科書の切り替えは land 済み (f1027962, 2026-11-23). 講義固有の情報 26 件を講義の並びと専用ページへ移す作業を codex に委譲中 (未受領) → 受入 → 取り込みの承認を聞く. push と publish は別の指示 (未 push 66). 回帰の 4 問は本人の通読の後"
 ---
 
 # 講義資料を分野とブロックに分け, 講義はブロックの並びかブロックへのリンクで組む
@@ -626,6 +626,9 @@ A, B では切り替えまで同じ本文が 2 つの URL に出る. 切り替�
 - 受入 3 回目 = 全体の受入 (2026-11-22, coordinator. L4. **合格**): 差し戻し 3 の差分は template の id と試験の 2 file. 復元した写しで source からの build, 仕組みの試験 (直す前の template では失敗), 変換の試験 25, 3 通りの build と検査, 引用を再実行. 2 回目との出力の差は css の版, トップページの更新時刻順, id だけ. 実ブラウザで目次のリンク (P 1,555, O 1,722) の空と行き先なしが 0.
 - 本人の回答 (2026-11-23, AskUserQuestion): (1) main に取り込む (2) publish.sh に再生成のずれの検査を足すかには「教科書を正本に切り替えて下さい.」 (3) 狭い画面で分野の目次を題名の後へ動かす. どれも push と publish の承認ではない.
 - land (2026-11-23, coordinator): recovery tag `pre-land/lecture-block-restructure-dsp-migration` (9961e7c) → clone で 3 commit (e767102 仕組み, 3e08260 旧ページの誤り 6 件, 4219e68 変換と講義一覧) → ff-merge → tag `landed/lecture-block-restructure-dsp-migration`. 途中の 2 commit も build (警告 0), 仕組みの試験, 参照の検査が通る. main で build, 試験, rebuild, 参照, 旧 ID, --check, --verify, 変換の試験, 引用, 実ブラウザの目次のリンクが通過. sitemap 238. 4219e68 は文章の検査の hook を理由つきで通した (40 件はすべて例文と質問紙の設問文の原文). 再生成のずれの検査は, 正本の切り替えで不要になるので足さない.
+- 本人の回答 2 (2026-11-23): 旧ページは「旧ページの凍結をデータサイエンス実践, 特別講義双方で解除します.」, 348 か所は「今直す」. 教科書 (45 ブロックと専用ページ 3 つ) を直接直す正本にし, 変換の script を撤去する. 旧ページへの変更の制限を外し, 旧ページと教科書は同期しない (同じ誤りは両方で直す). 対応表の節アンカーは今年度の授業が旧ページなので旧ページのまま.
+- 教科書の切り替えの land (2026-11-23, coordinator): 変換の script 5 本を撤去し (表 4 つと README を残す), 教科書の 403 行から旧章立てと講義への依存を外した. 対象は書き換えの表の切り替え前 348 件, 公開前の判定で「機械的な変換で解消」としてリンクの文字列が残っていた行, 全文検索で見つけた同じ型. 依頼文で切り替え前の 348 件だけを渡したのが漏れの原因. 差し戻し 2 回 (中身や文の役割を変えた書き換え, course-info の漏れ). Sonnet が分野ごとに全行を照合して合格. 検査は main fdcf5617 の写しで build, rebuild, 参照, 旧 ID, 試験, 引用, 目次のリンク 1,555 件 (L4). 載せ直した commit と写しの tree が一致. recovery tag `pre-land/lecture-block-restructure-textbook-switch` (fdcf5617) → f1027962 → tag `landed/lecture-block-restructure-textbook-switch`. 「(発展)」は取り決めどおり外し, 提出 file 名は「演習の改名は現行のまま」により残した. 変えた文の一覧 (HTML) は本人に送った.
+- 本人の回答 3 (2026-11-23, AskUserQuestion): (1) 教科書の書き換えを main に取り込む (2) 講義固有の情報 26 件 (`_scratch/dsp-layout/tables/course_info.tsv`) は講義の並びへ今移す. 回に固有のものは `courses/dsp.yaml` の回の intro, 講義全体のものは `courses/dsp/scope.md` か `guide.md`. 教科書とは別の commit. どれも push と publish の承認ではない.
 - 対応表の追随: 旧ページが正本の間は節アンカーを変えない (54 件が生成 HTML にあることを確認). land の時に当てる CLAUDE.md と対応表の文は `_scratch/dsp-layout/handoff-1122/after-land-docs.md`.
 - 未 land の成果の退避 (2026-11-22): commit せずに patch と tar を `_scratch/dsp-layout/handoff-1122/backup/` に置き, 復元の一致を確かめた. 隔離 clone の WIP commit と fetch を求める規約より, 本人に示した「commit は別に指示をいただく」を優先した. WIP commit の可否は commit の承認と一緒に聞く.
 
@@ -738,3 +741,4 @@ A, B では切り替えまで同じ本文が 2 つの URL に出る. 切り替�
 - 2026-11-22: 本人が実装の計画を承認し, 講義の公開の指定を land した (694516b, codex Sol). 入力の形式と受入の結果を記した
 - 2026-11-22: 本人の依頼で dsp の残りの章の移行を Phase 5 から前倒しした. 依頼の原文, 既存の要件との食い違い, 案を作る手順を「dsp の全章の移行」の節に記した. 配置は案の承認待ち.
 - 2026-11-22: dsp の全章の移行の依頼, 配置案の下書き, 試しの変換の結果, 実作業を codex へ並列に委譲する本人の指示を記した.
+- 2026-11-23: 教科書を正本にし, 変換の script を撤去して教科書の 403 行から旧章立てと講義への依存を外した (f1027962). 講義固有の情報 26 件を講義の並びへ移す作業を委譲した
