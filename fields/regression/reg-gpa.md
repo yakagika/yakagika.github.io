@@ -14,6 +14,10 @@ requires:
 
 # 合成 GPA の学習用データ {#gpa-data}
 
+回帰式を当てはめた学生と, 新しい学生への予測を評価する学生を, データを読む段階で分けます.
+学習用の学生について GPA と時間の関係を図で確かめ, 奨学生区分を 0 と 1 で式に入れます.
+勉強時間が週 1 時間違う場合の平均 GPA の差を係数から求め, 式が学習用の GPA をどの範囲でよく表すかを図で確かめます.
+
 [`multiple_regression.csv`](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch11/multiple_regression.csv) には, 合成した 100 人分のデータが入っています.
 CSV をダウンロードしてコードと同じフォルダに置き, そのフォルダからコードを実行してください.
 先頭列は CSV の保存時に書き出された行番号です.
@@ -25,7 +29,7 @@ import pandas as pd
 import seaborn as sns
 import statsmodels.formula.api as smf
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from statsmodels.graphics.regressionplots import plot_partregress_grid
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 
@@ -51,10 +55,25 @@ Training: 70, held out: 30
 | `Part_time_Work` | 週あたりのアルバイト時間 (時間) |
 | `Sports_hours` | 週あたりの運動時間 (時間) |
 
+学習用データの先頭 4 行を表示します. 1 行が学生 1 人に対応し, 左端の数字は元の行番号です.
+
+~~~ python
+print(train.head(4).to_string(float_format=lambda value: f"{value:.2f}"))
+~~~
+
+~~~ text
+    GPA  Scholarship  Study_Hours  Sports_hours  Part_time_Work
+60 0.45         True         4.34          5.72           15.74
+80 3.37         True        13.16          9.63           12.30
+90 0.00        False         3.80          3.54           17.70
+68 1.82        False        11.03          6.03           14.48
+~~~
+
 # 学習用データの散布図と相関 {#gpa-exploration}
 
-散布図行列では, 行の変数が縦軸, 列の変数が横軸です.
-対角線上のヒストグラムには, 各変数の分布が出ます.
+[散布図行列](block:vis-relation#scatter-matrix)では, 行の変数が縦軸, 列の変数が横軸です.
+対角線上の[ヒストグラム](block:vis-distribution#histogram)には, 各変数の分布が出ます.
+奨学生区分は質的変数なので, 散布図行列の軸には GPA と 3 種類の時間を使います.
 
 ~~~ python
 numeric_columns = ["GPA", "Study_Hours", "Sports_hours", "Part_time_Work"]
@@ -73,8 +92,13 @@ plt.close(fig)
 
 ![学習用 70 人の数値変数の散布図行列](/images/fields/regression/reg-gpa/scatter-matrix.png){.wide}
 
-勉強時間の長い学生ほど GPA が高く, アルバイト時間の長い学生ほど GPA が低い傾向があります.
-勉強時間とアルバイト時間の散布図では, 勉強時間の長い学生ほどアルバイト時間が短い傾向があります.
+最上段は GPA が縦軸です. 勉強時間との散布図は右上がり, アルバイト時間との散布図は右下がりです.
+次に, 2 段目の右端で勉強時間とアルバイト時間の関係を見ます. アルバイト時間が長い学生ほど勉強時間が短い傾向があります.
+勉強時間がアルバイト時間をそろえた学生の間でどれだけばらつくかは, [学習用データの分散拡大係数](#gpa-vif)で調べます.
+
+対角線では GPA が 2 点手前で最も多く, 0 点付近にも集まりがあります.
+GPA には 0 点と 4 点での打ち切りがあり, 棒の幅や区切り方によっても山の見え方が変わります.
+勉強時間とアルバイト時間は中心付近に集まり, 運動時間の分布は長い時間の側に裾を引いています.
 勉強時間を正規分布から生成したため, 学習用データには勉強時間が約 -0.48 時間の架空の学生が 1 人います.
 図と回帰では配布版の値をそのまま使います.
 
@@ -103,13 +127,15 @@ plt.close(fig)
 
 ![学習用 70 人の数値変数の相関係数](/images/fields/regression/reg-gpa/correlations.png)
 
-勉強時間とアルバイト時間の相関係数は約 -0.81 です.
-この相関係数は学習用データ全体での関係を表します.
-重回帰式では, アルバイト時間をそろえた場合の勉強時間と GPA の関係を求めます.
+GPA との相関係数は, 勉強時間が約 0.94, アルバイト時間が約 -0.85, 運動時間が約 0.08 です.
+時間どうしでは, 勉強時間とアルバイト時間の相関係数が約 -0.81 です.
+各相関係数は, 他の条件をそろえずに学習用データ全体で 2 変数の関係を測った値です.
+重回帰式で勉強時間の係数を読むときは, 奨学生区分とアルバイト時間をそろえます.
 
 ## 奨学生かどうかで層別した分布 {#gpa-stratified}
 
-同じ 70 人を奨学生かどうかで色分けします.
+全体の GPA に見られた 0 点付近の集まりは, 奨学生と非奨学生のどちらにも見られるでしょうか.
+同じ 70 人を奨学生かどうかで色分けして, GPA の低い範囲と高い範囲で 2 群の分布を見比べます.
 ペアプロットの対角線では, 2 群それぞれのヒストグラムを重ねます.
 
 ~~~ python
@@ -127,6 +153,9 @@ plt.close(groups.figure)
 ~~~
 
 ![奨学生かどうかで層別した散布図行列](/images/fields/regression/reg-gpa/scholarship-pairs.png){.wide}
+
+GPA の 0 点付近にも 3 点台にも両群の学生がいます. 0 点付近の棒は非奨学生の方が高く, 3 点台の棒は奨学生の方が高くなっています.
+勉強時間, 運動時間, アルバイト時間の分布も, それぞれ両群で重なっています.
 
 GPA と勉強時間に絞ったジョイントプロットでは, 中央に散布図,
 上に勉強時間のヒストグラム, 右に GPA のヒストグラムを表示します.
@@ -148,8 +177,10 @@ plt.close(joint.figure)
 
 ![奨学生かどうかで層別した勉強時間と GPA](/images/fields/regression/reg-gpa/scholarship-study.png)
 
-勉強時間の範囲は 2 群で重なり, 図ではどちらの群でも勉強時間の長い学生ほど GPA が高い傾向があります.
-この図ではアルバイト時間をそろえていないため, 図に見える傾きと重回帰で求める勉強時間の係数は異なる比較を表します.
+散布図ではどちらの群でも, 勉強時間の長い学生ほど GPA が高い傾向があります.
+両群で勉強時間が重なる範囲のうち, 例えば週 10 時間前後では, 奨学生の点は縦方向に高い位置に多くあります.
+この散布図での比較には, アルバイト時間の異なる学生も含まれます.
+アルバイト時間と奨学生区分もそろえて勉強時間の違いを比べるには, 奨学生区分を式の中でどう表せばよいでしょうか.
 
 # 重回帰の係数と信頼区間 {#gpa-coefficients}
 
@@ -164,10 +195,17 @@ scholarship_indicator = pd.get_dummies(
     drop_first=True,
     dtype=int,
 )
+scholarship_preview = train[["Scholarship"]].join(scholarship_indicator).head(4)
+print(scholarship_preview.to_string())
 print(scholarship_indicator["Scholarship_True"].value_counts().sort_index().to_string())
 ~~~
 
 ~~~ text
+    Scholarship  Scholarship_True
+60         True                 1
+80         True                 1
+90        False                 0
+68        False                 0
 Scholarship_True
 0    38
 1    32
@@ -210,6 +248,25 @@ Part_time_Work         -0.090 -0.121 -0.060
 母集団に相当するのは, 配布データと同じ仕組みから作られる学生です.
 同じ仕組みから別の標本を取れば, 係数と区間も変わります.
 区間の読み方と前提は [回帰係数の区間と検定](block:reg-ols) を参照してください.
+
+切片以外の 3 つの係数がすべて 0 だと仮定すると, どの学生にも同じ平均 GPA を当てはめます.
+切片だけの式に比べて, 3 つの変数を含む式で残差平方和がどれだけ減るかを F 検定で評価します.
+
+~~~ python
+print(f"Adjusted R-squared: {result.rsquared_adj:.3f}")
+print(f"F({result.df_model:.0f}, {result.df_resid:.0f}): {result.fvalue:.2f}")
+print(f"P value: {result.f_pvalue:.2e}")
+~~~
+
+~~~ text
+Adjusted R-squared: 0.959
+F(3, 66): 537.65
+P value: 2.67e-46
+~~~
+
+説明変数の数を考慮した[調整済み決定係数](block:reg-ols#model-fit)は 0.959 です. これは学習用の 70 人への当てはまりを要約した値です.
+F 検定の前提のもとで, 3 つの係数がすべて 0 のときに今回以上の F 値が出る確率は, 約 $2.67\times 10^{-46}$ です.
+各係数の差の大きさと不確かさは, 係数表の推定値と信頼区間で読みます.
 
 ## アルバイト時間を式から外した比較 {#gpa-model-comparison}
 
@@ -297,7 +354,8 @@ plt.close(fig)
 ![学習用 70 人の GPA の当てはめ値と実測値](/images/fields/regression/reg-gpa/fitted-observed.png){.small}
 
 破線からの縦のずれが, 各学生の実測値と当てはめ値の差です.
-実測 GPA は 0〜4 点です. 一次式の当てはめ値には範囲の制約がなく, 図には 0 点未満と 4 点超の当てはめ値も現れます.
+2 点付近では多くの点が破線の近くにあります. 実測が 0 点付近の点は縦のずれの向きも大きさもさまざまで, 右端には実測の 4 点を上回る当てはめ値があります.
+新しい学生への予測誤差は, 同じ式を[回帰式の当てはめに使わなかったデータ](block:reg-evaluate)に適用して測ります.
 
 密度図では, 実測値と当てはめ値がそれぞれどのあたりに集まっているかを比べます.
 実測値の曲線は 0〜4 点の範囲で描きます.
@@ -315,9 +373,10 @@ plt.close(fig)
 ![学習用 70 人の GPA の実測値と当てはめ値の密度](/images/fields/regression/reg-gpa/fitted-density.png)
 
 2 本の曲線はいずれも 2 点付近に山があります.
-密度図は分布全体の比較に使い, 学生ごとのずれは直前の散布図で読みます.
+当てはめ値の山は実測値より高く, 裾は実測 GPA の範囲である 0〜4 点の外にも伸びています.
+各学生の GPA を式が過大に見積もったか, 過小に見積もったかは, 当てはめ値と実測値の散布図で破線の上下を見て確かめます.
 
-偏回帰プロットでは, ある説明変数を選び, 他の変数への回帰で得た残差を使います.
+偏回帰プロット (Added-Variable Plot) では, ある説明変数を選び, 他の説明変数で当てはめた回帰の残差を使います.
 横軸は選んだ説明変数の残差, 縦軸は GPA の残差です.
 図の直線の傾きは, 重回帰式での各説明変数の係数になります.
 
@@ -336,8 +395,8 @@ plt.close(fig)
 
 ![奨学生かどうか, 勉強時間, アルバイト時間の偏回帰プロット](/images/fields/regression/reg-gpa/partial-regression.png){.wide}
 
-中央の勉強時間の直線は右上がりで, 右のアルバイト時間の直線は右下がりです.
-係数の数値と区間は [重回帰の係数と信頼区間](#gpa-coefficients) の表で確認できます.
+[係数表](#gpa-coefficients)に対応して, 中央の勉強時間の直線は傾きが約 0.209 で右上がり, 右のアルバイト時間の直線は約 -0.090 で右下がりです.
+時間の係数は週 1 時間あたりの GPA の差を表し, 左の奨学生区分の係数は 0 と 1 の区分間の GPA の差を表します.
 
 # 勉強時間とアルバイト時間の標準化 {#gpa-standardization}
 
@@ -351,7 +410,8 @@ hours = ["Study_Hours", "Part_time_Work"]
 standardized = train.copy()
 standardized[hours] = StandardScaler().fit_transform(train[hours])
 standardized_result = smf.ols(formula, data=standardized).fit()
-print(standardized_result.params.loc[hours].to_string(float_format=lambda value: f"{value:.3f}"))
+standardized_coefficients = standardized_result.params.loc[hours]
+print(standardized_coefficients.to_string(float_format=lambda value: f"{value:.3f}"))
 ~~~
 
 ~~~ text
@@ -359,8 +419,31 @@ Study_Hours       0.780
 Part_time_Work   -0.266
 ~~~
 
-標準化した係数は, 他の説明変数をそろえ, 対象の時間が学習用データの 1 標準偏差だけ違う学生どうしの,
-平均 GPA の差を表します. GPA は標準化していないので, 差の単位は GPA の点です.
+奨学生区分とアルバイト時間が同じ学生どうしを比べると, 勉強時間が週 1 時間長い場合の GPA の差は約 0.209 点で,
+勉強時間が学習用データの 1 標準偏差だけ長い場合の差は約 0.780 点です.
+奨学生区分は 0 と 1 のままなので, その係数に 1 と 0 の差をかけると, そのまま区分間の平均 GPA の差になります.
+
+[最小値と最大値を使う変換](block:reg-multiple#standardization)も, 変換前の学習用データから計算できます.
+`MinMaxScaler` で別のコピーの時間 2 列を変換し, それぞれの最小値と最大値を確かめます.
+
+~~~ python
+scaled = train.copy()
+scaled[hours] = MinMaxScaler().fit_transform(train[hours])
+bounds = scaled[hours].agg(["min", "max"])
+print(bounds.to_string(float_format=lambda value: f"{value:.1f}"))
+~~~
+
+~~~ text
+     Study_Hours  Part_time_Work
+min          0.0             0.0
+max          1.0             1.0
+~~~
+
+# 実際のデータでの事例 {#actual-data-example}
+
+上場企業の財務指標と ESG スコアの関係を調べる例では, 開示システム EDINET から財務データを取得し, 株価や業種分類を結合します.
+業種と年度をダミー変数で式に入れると, 業種や年度をそろえて比較できます.
+取得・整形・結合から回帰までの手順は, [EDINET API による財務データの取得と回帰分析](/lectures/slds_a1.html)を参照してください.
 
 # 演習 {#exercises}
 

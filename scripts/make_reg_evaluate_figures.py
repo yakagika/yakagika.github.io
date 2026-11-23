@@ -1,7 +1,7 @@
 """Plot prediction intervals for the held-out students in the teaching GPA CSV.
 
 Reads slds_data/ch11/multiple_regression.csv, prints the counts shown in the lesson,
-and writes test-prediction-intervals.png under images/fields/regression/reg-evaluate.
+and writes the interval and predicted-versus-observed plots for reg-evaluate.
 """
 
 from pathlib import Path
@@ -49,6 +49,31 @@ def plot_intervals(intervals: pd.DataFrame, observed: pd.Series, output: Path) -
     plt.close(fig)
 
 
+def plot_predictions(
+    train: pd.DataFrame,
+    test: pd.DataFrame,
+    pred_train: pd.Series,
+    pred_test: pd.Series,
+    output: Path,
+) -> None:
+    """訓練用とテスト用の予測値を, 同じ GPA 尺度で実測値と比べる."""
+    fig, ax = plt.subplots(figsize=(6, 6), layout="constrained")
+    ax.scatter(pred_train, train["GPA"], alpha=0.55, label="Training")
+    ax.scatter(pred_test, test["GPA"], marker="^", color="tab:orange", label="Test")
+    limits = (-1, 5)
+    ax.plot(limits, limits, color="gray", linestyle="--", label="Observed = predicted")
+    ax.set(
+        xlabel="Predicted GPA",
+        ylabel="Observed GPA",
+        xlim=limits,
+        ylim=limits,
+        aspect="equal",
+    )
+    ax.legend()
+    fig.savefig(output / "predicted-observed.png", dpi=150)
+    plt.close(fig)
+
+
 def main() -> None:
     root = Path(__file__).resolve().parents[1]
     df = pd.read_csv(root / "slds_data/ch11/multiple_regression.csv", index_col=0)
@@ -67,6 +92,7 @@ def main() -> None:
     output = root / "images/fields/regression/reg-evaluate"
     output.mkdir(parents=True, exist_ok=True)
     plot_intervals(intervals, observed, output)
+    plot_predictions(train, test, result.predict(train), result.predict(test), output)
 
 
 if __name__ == "__main__":

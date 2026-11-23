@@ -83,6 +83,32 @@ MSE の平方根を取ると, 誤差の大きさを元の GPA と同じ単位で
 2 つの MSE は別々の学生の誤差を平均しているため,
 どの学生をテストデータに取ったかによって差の大きさや向きが変わります.
 
+予測値を横軸, 実測値を縦軸に取り, 同じ式を当てはめた訓練用の 70 人を丸, テスト用の 30 人を三角で描きます.
+
+~~~ python
+fig, ax = plt.subplots(figsize=(6, 6), layout="constrained")
+ax.scatter(pred_train, train["GPA"], alpha=0.55, label="Training")
+ax.scatter(pred_test, test["GPA"], marker="^", color="tab:orange", label="Test")
+limits = (-1, 5)
+ax.plot(limits, limits, color="gray", linestyle="--", label="Observed = predicted")
+ax.set(
+    xlabel="Predicted GPA",
+    ylabel="Observed GPA",
+    xlim=limits,
+    ylim=limits,
+    aspect="equal",
+)
+ax.legend()
+plt.show()
+plt.close(fig)
+~~~
+
+![訓練用とテスト用の学生の予測 GPA と実測 GPA. 破線は二つの値が等しい位置を示す.](/images/fields/regression/reg-evaluate/predicted-observed.png)
+
+横軸で予測値を一つ選ぶと, 破線の高さがその予測値, 点の高さが実測値です.
+右端の三角は予測値が約 4.11 点で, 実測値は 4 点です. 点が破線より約 0.11 点下にあるので, この学生ではそれだけ高く予測しました.
+テスト MSE は, 三角の点それぞれについてこの縦の差を二乗し, 30 人で平均した値です.
+
 # テストデータの平均の信頼区間と予測区間 {#test-prediction-intervals}
 
 テストデータの各行について, その学生と同じ条件の母集団平均を推定する区間と,

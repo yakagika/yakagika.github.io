@@ -45,6 +45,34 @@ print(f"単位の取得割合 {pass_rate:.2f}")
 `Credit` の平均 0.51 は, 標本全体で単位を取得した割合です.
 勉強時間とアルバイト時間をそろえた場合の取得確率を求めるため, 2 種類の時間を説明変数にします.
 
+勉強時間だけを使った一次式なら, どの学生で当てはめ値が確率の範囲を外れるでしょうか.
+切片を加えて最小二乗法で直線を求め, 各学生の勉強時間を代入します.
+
+~~~ python
+study = sm.add_constant(credit[["Study_Hours"]])
+linear_fit = sm.OLS(credit["Credit"], study).fit()
+fitted = linear_fit.predict(study)
+slope = linear_fit.params["Study_Hours"]
+print(f"傾き {slope:.3f}, 0 未満 {(fitted < 0).sum()} 人, 1 超 {(fitted > 1).sum()} 人")
+
+order = credit["Study_Hours"].sort_values().index
+fig, ax = plt.subplots()
+ax.scatter(credit["Study_Hours"], credit["Credit"], alpha=0.4)
+ax.plot(credit.loc[order, "Study_Hours"], fitted.loc[order], color="tab:red")
+for boundary in (0, 1):
+    ax.axhline(boundary, color="gray", linestyle=":")
+ax.set(xlabel="Study hours per week", ylabel="Credit (0 or 1)")
+plt.show()
+plt.close(fig)
+~~~
+
+~~~ text
+傾き 0.077, 0 未満 6 人, 1 超 15 人
+~~~
+
+[二値の応答に一次式を当てはめた図](block:reg-glm#binary-response)と同じように, 実測点は 0 と 1 に並びます.
+勉強時間順に当てはめ値を結ぶと, 観測した範囲の両端で直線が水平線を越えます.
+
 # statsmodels による係数とオッズ比の推定 {#fit-logit}
 
 ## 係数と信頼区間
@@ -80,6 +108,45 @@ Part_time_Work       -0.197    -0.281    -0.112
 勉強時間の係数 $\hat\beta_1$ は 0.603 です.
 アルバイト時間が等しい学生どうしで, 勉強時間が週 1 時間長い学生の取得の対数オッズは 0.603 高いと推定されます.
 同じ勉強時間の学生どうしでは, アルバイト時間が週 1 時間長い学生の取得の対数オッズは 0.197 低いと推定されます.
+
+推定手順と各係数の検定は, 次の出力で確かめられます.
+
+~~~ python
+print(result.summary())
+print("反復回数", result.mle_retvals["iterations"])
+~~~
+
+係数表の見出しと勉強時間の行, および出力の最後の行を抜き出します.
+
+~~~ text
+                     coef    std err          z      P>|z|      [0.025      0.975]
+Study_Hours        0.6028      0.088      6.875      0.000       0.431       0.775
+反復回数 7
+~~~
+
+出力の `Method` は `MLE` (最尤法), `converged` は `True`, 反復回数は 7 です.
+係数を更新する数値計算が収束したかはここで確かめます.
+係数表の `z` は推定値を標準誤差で割った値で, 勉強時間では 6.875 です.
+`P>|z|` は母集団の係数が 0 という帰無仮説のもとでの両側 P 値です. 表の 0.000 は小数第 3 位までの丸め表示です.
+
+`Log-Likelihood` は両方の時間を使った式の最大対数尤度 (−81.739),
+`LL-Null` は切片だけの式の最大対数尤度 (−138.59) です.
+`Pseudo R-squ.` の 0.4102 は, この二つの値から $1-(-81.739)/(-138.59)$ と計算した疑似決定係数です.
+切片だけの式からの当てはまりの改善を, 対数尤度で表しています.
+
+同じ 0/1 の応答を, 学生ごとに試行回数 1 の二項分布で表すこともできます.
+`Binomial()` の既定のリンク関数はロジットなので, 同じ説明変数を渡せば推定する式も共通です.
+
+~~~ python
+binomial_fit = sm.GLM(response, predictors, family=sm.families.Binomial()).fit()
+print(np.allclose(result.params, binomial_fit.params))
+~~~
+
+~~~ text
+True
+~~~
+
+両方の方法で求めた三つの係数は, 数値計算の許容誤差の範囲で一致します.
 
 ## オッズ比と信頼区間
 
@@ -167,6 +234,10 @@ print(f"取得確率が 0.5 になる勉強時間 {boundary_study:.2f} 時間")
 取得確率がしきい値 (例えば 0.5) 以上なら取得 (1), 未満なら未取得 (0) と分類できます.
 新しい学生に対する分類の正解率は, 係数の推定やしきい値の選択に使っていないデータで測ります.
 データの分け方は[予測](block:reg-prediction)を参照してください.
+
+[分類の評価](block:ml-classification#classification-evaluation)では, 実測と予測のクラスを混同行列に並べ, どちら向きの誤分類が何件あったかを読みます.
+[手書き数字の分類器を比べる演習](block:img-recognition#exercise-dsp11-1)では, ロジスティック回帰を 0 から 9 の多クラス分類に使います.
+そこで使う `LogisticRegression` は既定で係数に正則化をかけるため, ここでの `sm.Logit` とは係数を求める基準も異なります.
 
 # 演習 {#exercises}
 

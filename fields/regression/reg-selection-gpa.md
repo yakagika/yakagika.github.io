@@ -79,6 +79,11 @@ P 値を基準に変数を外す手順では, 外れた変数が比較の条件�
 問いでそろえると決めた変数は, P 値の大小にかかわらず式に残します.
 係数が表す比較の違いは, [偏回帰係数とそろえる条件](block:reg-multiple#partial-coefficients)で確かめられます.
 
+運動時間もそろえて勉強時間と GPA の関係を比べる問いなら, 運動時間を加えた[式 B](#selection-prediction)を使います.
+同じ学習用の 70 人で式 B を当てはめると, 運動時間の係数は約 0.002, P 値は 0.853 です.
+奨学生区分, 勉強時間, アルバイト時間をそろえて運動時間が週 1 時間長い学生を比べると, 平均 GPA の差の 95% 信頼区間は -0.023〜0.028 点です.
+区間は 0 をまたぎ, 幅は約 0.052 点です. 区間の両端も 0 から約 0.03 点以内です.
+
 # 予測: 交差検証で選び, テストデータで 1 回だけ評価する {#selection-prediction}
 
 新しい学生の GPA を予測する式を, 学習用の 70 人で比べます.
@@ -114,6 +119,7 @@ for name, formula in formulas.items():
             "Model": name,
             "CV MSE": sum(validation_errors) / len(validation_errors),
             "AIC": full_fit.aic,
+            "BIC": full_fit.bic,
         },
     )
 
@@ -122,18 +128,20 @@ print(scores.to_string(index=False, float_format=lambda value: f"{value:.5f}"))
 ~~~
 
 ~~~ text
-Model  CV MSE      AIC
-    A 0.06265 -9.05519
-    B 0.06339 -7.09237
-    C 0.08188 18.55755
+Model  CV MSE      AIC      BIC
+    A 0.06265 -9.05519 -0.06121
+    B 0.06339 -7.09237  4.15010
+    C 0.08188 18.55755 25.30303
 ~~~
 
 `KFold` が返すのは行の位置なので, `iloc` で学習用データから行を取り出します.
-AIC は候補ごとに同じ 70 人で当てはめて計算します.
-`statsmodels` の `aic` は誤差分散をパラメータ数に含めないため, 誤差分散を含めて $p=k+2$ とする[情報量規準](block:reg-selection#information-criteria)の式より, 同じ式の AIC が 2 小さくなります.
-候補間の AIC の差はどちらの数え方でも同じなので, AIC が最小になる式も同じです.
+AIC と BIC は, どちらも候補ごとに同じ 70 人で当てはめて計算します.
+`statsmodels` の `aic` と `bic` はパラメータ数に誤差分散を含めません.
+誤差分散を含めて $p=k+2$ とする[情報量規準](block:reg-selection#information-criteria)の式に比べ, AIC は 2, BIC は $\log 70$ 小さくなります.
+どの候補でも同じ値だけ小さくなるため, 候補間の差や順位は変わりません.
+式 B から運動時間を外した式 A では, AIC が約 1.96, BIC が約 4.21 下がります.
 
-CV MSE と AIC はともに小さい値を選ぶ規準で, このデータではどちらも式 A が最小です.
+このデータでは, CV MSE, AIC, BIC のいずれでも式 A が最小です.
 GPA の二乗誤差を測るのが目的なので, CV MSE を採用基準にします.
 式を決めたら, 学習用の 70 人で係数を求め直し, テストデータの 30 人で MSE を 1 回だけ求めます.
 
@@ -266,6 +274,8 @@ Selected formula: GPA ~ Scholarship + Study_Hours + Part_time_Work
 ~~~
 
 奨学生区分は `False` が基準なので, `Scholarship[T.True]` の P 値を奨学生区分の P 値として使います.
+`drop("Intercept")` で切片を除くと, 残った P 値から `idxmax()` が最大値を持つ変数名を返します.
+その P 値が 0.05 以上なら, `selected.remove(largest)` で該当する変数を外します.
 この標本では運動時間の P 値が 0.715 で最も大きく, 運動時間を除いた式で他の 3 変数が残りました.
 候補がすべて除かれた場合の式は `GPA ~ 1` で, 切片だけが残ります.
 探索用データで計算した P 値は変数を選ぶために使います.
@@ -274,7 +284,8 @@ Selected formula: GPA ~ Scholarship + Study_Hours + Part_time_Work
 
 ## 確認用の 35 人で係数を求める
 
-探索で選んだ式を固定し, 確認用の 35 人だけで係数と 95% 信頼区間を求めます.
+探索で選んだ `selected_formula` をそのまま `smf.ols` に渡し, 確認用の 35 人だけを指定して `fit()` で係数を求めます.
+その当てはめ結果から 95% 信頼区間を計算します.
 
 ~~~ python
 check = smf.ols(selected_formula, data=confirm).fit()
