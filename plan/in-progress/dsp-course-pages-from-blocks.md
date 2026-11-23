@@ -4,8 +4,8 @@ status: in-progress
 created: 2026-11-23
 updated: 2026-11-23
 priority: high
-next_actor: user
-next_action: "本人が見本 (/tmp/blog-verify-cp/docs を http://127.0.0.1:8765/ で配信. dsp を open にした写し) を見た後に AUQ: 仕組みの取り込み / 切り替えの時期 / まとめたページのブロックの区切り. 並行して dsp-course-pages の feedback 2 (回のページの左の欄, 閉じた講義での検査, 閉じた講義の canonical) を受領し, clone で commit → main へ rebase (block-page-cards.html は codex の hasPrevious の版を採る) → 写しで再検査"
+next_actor: agent
+next_action: "今日 (2026-11-23) 切り替える. 下の節「切り替え」の手順 1〜4 を進め, 最後に push と publish の承認を本人に問う"
 ---
 
 # dsp の講義のページを参考資料のブロックから組み, 発展は参考資料へのリンクにする
@@ -91,6 +91,28 @@ next_action: "本人が見本 (/tmp/blog-verify-cp/docs を http://127.0.0.1:876
 - 写しの検査 (main f0bdae99 の上に 3-way で当てた. 衝突は block-page-cards.html だけで, codex の hasPrevious の版を採った): build 警告 0, 試験 (直す前の仕組みでは失敗), rebuild, 参照, 旧 ID が通過. 既存 385 ページは不変, 追加は courses/dsp/<n>/ の 25 件で全部 noindex, sitemap 不変. dsp を open にした写しでも参照の検査が通る.
 - 見本の撮影 (`scratchpad/cp-shots/`): 第 4 回の回のページ, 講義のページ. 2 ブロックのページ (第 3 回 vis-relation / vis-reading) で 2 つ目の演習の id が `vis-reading-exercises` に変わり, 重複 0. 提出ファイル名, 発展の一覧, canonical も出力で確かめた. 見え方の問題: 回のページの左の欄に回のページ自身の見出しが講義のページの一覧の後ろへ混ざる. feedback 2 で直す (`briefs/course-pages-fb2.md`).
 - 本人に問うこと (次の AUQ): (1) 仕組みを main に取り込むか (dsp は閉じているので本番は noindex の準備中のページ 25 件が増えるだけ). (2) 切り替えの時期 (今学期の残りの回から / 来年度 / 直した見本をもう一度見てから). (3) 2 ブロックをまとめたページで, 2 つ目のブロックの前に区切り (ブロックの題名) を置くか (いまは 1 つ目の演習の直後に 2 つ目の本文が続く).
+
+## 切り替え (2026-11-23 本人の決定)
+
+### 本人の回答 (AskUserQuestion, 2026-11-23)
+
+- 仕組みの取り込み: 「直した後に取り込む」.
+- 切り替えの時期: 原文「今日切り替えましょう.」
+- まとめたページの区切り: 「ブロックの題名で区切る」(2 つ目以降のブロックの前に題名の見出し).
+- 第 5 回 (回帰分析): 「回帰のブロックを今日開く」(14 ブロックを通読の前に公開. 旧章を指す「第 N 章」の参照など直し切れていない箇所もそのまま公開されることは選択肢の説明に書いた).
+- 旧講義ページ: 原文「1ですが,暫く残したあと,一定の期間で削除します. 計画を記録しておいて下さい.」(各章の冒頭に新しいページへの案内を置いて残し, 一定の期間の後に削除する).
+
+### 手順
+
+1. 仕組み (codex dsp-course-pages): feedback 2 (左の欄, 閉じた講義でも検査, 閉じた講義の canonical) は受領済み (3 件とも試験つき, 既存ページ不変, rebuild 12.4 → 13.6 秒). feedback 3 (ブロックの題名の区切り, `briefs/course-pages-fb3.md`) を実行中. 受領 → clone で commit → main へ rebase (`templates/block-page-cards.html` は codex の `hasPrevious` の版を採る. main 側の `$if(previousUrl)$` の版は分野の目次でも同じ出力になる) → 写しで検査 → land.
+2. 切り替えの内容 (codex へ新しく委譲. 1 と file が重なるのは `courses/dsp.yaml` だけ): `courses/dsp.yaml` を `open: true` に. 回帰の 14 ブロックを `open: true` に. 旧ページ `lectures/dsp/dsp1.md`〜`dsp16.md` の冒頭に, 対応する新しいページへの案内を置く (対応の案: dsp1 → 講義の目次と「本資料の読み方」, dsp2〜dsp9 → 第 2〜9 回, dsp10 → 第 8 回の dl-lifecycle と参考資料の dl-training-*, dsp11 → 第 10 回, dsp12 → 総合実習の講義専用ページ, dsp13〜16 → 選択資料. 節の単位の対応は `scripts/dsp_migration/` の表から作る). `pages/lectures.markdown` の dsp のカードを `courses/dsp/index.html` へ向け, 回帰分析の分野のカードの「公開までは「データサイエンス実践」の第5章を参照.」を除く. `courses/dsp/guide.md` の「発展の節」の説明と章立てを, 新しい形 (発展は各回の最後のページと回のページの「発展 (参考資料で読む)」の一覧) に書き直す. 第 5 回の intro の第 16 章へのリンクは参考資料の因果推論のブロックへ向けるか検討. 対応表 (`plan/landed/2026-11-20-dsp-curriculum-matrix.md`) の節アンカーを新しいページへ付け替える. 文の執筆は writing-style に従う.
+3. coordinator: CLAUDE.md の dsp の節 (新しい講義のページが正, 旧ページは案内つきで残して後で削除) と分野とブロックの節 (回帰は開いた) を直す. 親計画 (lecture-block-restructure) の Phase 5 の記述と台帳 (ブロックを開く時期) を更新する.
+4. 全体を写しで検査 (build, 試験, rebuild, 参照, 旧 ID, 撮影) → 本人に push と publish の承認を問う (publish.sh は未 commit の file も公開する. 未送信の commit は約 90 件. 公開される範囲を報告に並べる).
+
+### 旧講義ページの削除の計画
+
+- 本人の決定 (2026-11-23): しばらく残した後, 一定の期間で削除する. 期間は未定. 今学期の dsp の授業が終わった時点で, 削除の日を本人に問う (理由 a. この計画の next_action に引き継ぐ).
+- 削除の前にやること: 新しい資料 (`fields/`, `courses/`, 他の講義, 講義一覧) から旧ページ `/lectures/dspN.html` へのリンクをすべて参考資料か講義のページへ付け替える (2026-11-23 時点で `fields/` に 35 件. 回帰のブロックの「第 N 章」の参照を含む. `check_local_refs.py` が削除後に残ったリンクを検出する). 旧ページの URL を外から開いた人のために, 削除の代わりに新しいページへの案内だけの短いページを残すかを, 削除の日と一緒に本人に問う. 特別講義 (slds) の旧ページは別の扱い (dsp と同じ本文の複製でも, この計画の対象外).
 
 ## 対象ファイル (案 1 を採るとき)
 
