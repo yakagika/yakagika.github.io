@@ -116,9 +116,13 @@ print(result.summary())
 print("反復回数", result.mle_retvals["iterations"])
 ~~~
 
-係数表の見出しと勉強時間の行, および出力の最後の行を抜き出します.
+出力の上段から推定方法, 尤度, 収束を示す行を抜き出し, 続けて係数表の見出しと勉強時間の行, 最後に反復回数を示します.
 
 ~~~ text
+Method:                           MLE   Df Model:                            2
+Date:                Mon, 23 Nov 2026   Pseudo R-squ.:                  0.4102
+Time:                        16:11:58   Log-Likelihood:                -81.739
+converged:                       True   LL-Null:                       -138.59
                      coef    std err          z      P>|z|      [0.025      0.975]
 Study_Hours        0.6028      0.088      6.875      0.000       0.431       0.775
 反復回数 7

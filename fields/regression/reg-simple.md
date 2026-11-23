@@ -11,11 +11,15 @@ requires:
 
 # 出生率と時間配分の表の結合 {#oecd-data}
 
-日本経済新聞の図は, 国ごとに家事・育児時間の男女差を棒で, 合計特殊出生率を点で示しています.
+日本経済新聞は, 家事・育児時間の男女差と少子化の関係を報じました.
+記事の図は 16 か国を対象に, 国ごとに家事・育児時間の男女差を棒で, 合計特殊出生率を点で示しています.
 
 ![国ごとの家事・育児時間の男女差と合計特殊出生率を並べた日本経済新聞の図](/images/fields/regression/reg-simple/oecd-nikkei.png){.wide}
 
 出典 [日本経済新聞, 男性の育児・家事時間と出生率についての記事](https://www.nikkei.com/article/DGXZQOFE308UG0Q1A830C2000000/)
+
+図に載った 16 か国はどのように選ばれたのでしょうか. 別の国を加えると, 2 つの指標の関係はどう見えるでしょうか.
+図の横軸には国名が並ぶので, 各国の値を読み取れます. 2 つの量の関係を見るには, 片方の量を横軸に, もう片方を縦軸に置きます.
 
 内閣府の図は, 横軸を男性の家事・育児等労働時間割合とし, 合計特殊出生率との関係を散布図と回帰直線で示しています.
 直線の傾きは, 図に含まれる国どうしで, 男性の家事・育児等労働時間割合が違うときの出生率の平均的な差を表します.
@@ -24,9 +28,19 @@ requires:
 
 出典 [内閣府 政策統括官（経済社会システム担当）第４回会議資料「選択する未来2.0」資料２ 参考資料②(事務局資料)](https://www5.cao.go.jp/keizai2/keizai-syakai/future2/20200409/shiryou2.pdf)
 
+内閣府の図には回帰式 $y=0.0132x+1.2027$ と決定係数 $R^2=0.2966$ が記載されています.
+対象は 18 か国で, トルコは含まれません. 国名に添えた年は国によって異なります.
+日本経済新聞の図は 2019 年のデータと注記しています. 配布表の値は 2019 年の出生率と, 国によって 1999 年から 2013 年の調査に基づく時間配分です.
+配布表で求めた傾きと決定係数は, 内閣府の図の値とどれだけ違うでしょうか. 比較するには, 図の対象国と調査年も確かめます.
+
+$x$ にあたる割合を原表からどう計算し, どの列で出生率の表と照合すればよいでしょうか.
+コードを読む前に, 両方の値がそろう国の確かめ方も考えてみてください.
+
 [`fertility_rates.csv`](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch11/fertility_rates.csv) と
 [`time_used.csv`](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch11/time_used.csv) をダウンロードし, コードと同じフォルダに置いてください.
 コードはそのフォルダから実行してください.
+
+必要な Python パッケージは `pandas`, `numpy`, `matplotlib`, `statsmodels`, `adjustText` です.
 
 ~~~ python
 import matplotlib.pyplot as plt
@@ -37,6 +51,17 @@ from adjustText import adjust_text
 
 fertility = pd.read_csv("fertility_rates.csv")
 time_use = pd.read_csv("time_used.csv")
+print(fertility.head(2).to_string(index=False))
+print(time_use.head(2).to_string(index=False))
+~~~
+
+~~~ text
+Country  Fertility
+  Korea       0.92
+  Spain       1.23
+  Country  Paid  Unpaid  Care
+Australia  20.3    10.5   2.2
+  Austria  22.5     9.4   1.5
 ~~~
 
 `Country` は国名, `Fertility` は合計特殊出生率です.
@@ -94,7 +119,8 @@ Slovak Republic left_only
 今回の表には, 時間配分の表にだけある `right_only` の行はありません.
 `both` の行を残し, `dropna()` で数値が欠けている行を除きます.
 両方の値がそろったのは 22 か国です.
-本文では, 旧教材と同じくメキシコを外した 21 か国を使います.
+内閣府の図にメキシコが含まれないので, メキシコを外した 21 か国に直線を当てはめます.
+結合後の 21 か国にはトルコが入ります. 内閣府の図に載るオランダとデンマークは, 2 つの表を結合すると `left_only` になります.
 メキシコを加えた場合は [Exercise REG-SIMPLE-1](#exercise-reg-simple-1) で確かめます.
 
 ~~~ python
@@ -103,10 +129,15 @@ countries = matched.set_index("Country").dropna()
 analysis = countries.drop(index="Mexico")
 
 print(f"Matched: {len(countries)}, used in the main example: {len(analysis)}")
+print(analysis.head(2).to_string(float_format="{:.2f}".format))
 ~~~
 
 ~~~ text
 Matched: 22, used in the main example: 21
+           Fertility     r
+Country
+Australia       1.67 38.48
+Austria         1.46 32.63
 ~~~
 
 # 家事・育児時間の割合と出生率の散布図 {#oecd-scatter}
@@ -153,11 +184,25 @@ plt.close(fig)
 1 点は 1 か国です. 日本と韓国はどちらの値も低く, 図の左下にあります.
 トルコでは家事・育児時間の割合が約 23% で, 合計特殊出生率は 21 か国で最も高い 1.88 です.
 右側では同程度の割合でも出生率にばらつきがあります.
+日本経済新聞の図の棒は時間の男女差を示し, この散布図の横軸は男性の時間配分の割合です.
+横軸の値が近い国を探し, 縦軸の出生率にどの程度の差があるかを点の位置から読み取ってください.
 
 # 単回帰の係数と国の組み合わせ {#oecd-ols}
 
-`sm.OLS` に目的変数と説明変数の表を渡します.
+`sm.OLS` の OLS は Ordinary Least Squares (最小二乗法) の略です. `sm.OLS` に目的変数と説明変数の表を渡します.
 `sm.add_constant` は切片を求めるために, 全行が 1 の列 `const` を追加します.
+
+~~~ python
+print(sm.add_constant(analysis[["r"]]).head(2).to_string(float_format="{:.2f}".format))
+~~~
+
+~~~ text
+           const     r
+Country
+Australia   1.00 38.48
+Austria     1.00 32.63
+~~~
+
 `fit()` で係数を求め, `summary().tables[1]` で係数の表を取り出します.
 
 ~~~ python
@@ -168,7 +213,6 @@ def fit_fertility(data):
 
 result = fit_fertility(analysis)
 print(result.summary().tables[1])
-print(f"R-squared: {result.rsquared:.3f}")
 ~~~
 
 ~~~ text
@@ -178,7 +222,6 @@ print(f"R-squared: {result.rsquared:.3f}")
 const          1.2082      0.197      6.119      0.000       0.795       1.621
 r              0.0093      0.006      1.687      0.108      -0.002       0.021
 ==============================================================================
-R-squared: 0.130
 ~~~
 
 | 列 | 読み方 |
@@ -190,14 +233,38 @@ R-squared: 0.130
 | `[0.025` と `0.975]` | 95% 信頼区間の下限と上限です. |
 
 区間と検定の前提や計算は [回帰係数の区間と検定](block:reg-ols) で扱います.
+切片の P 値は小数点以下 3 桁への丸めで `0.000` と表示されます.
+傾きの 95% 信頼区間は 0 を含みます. 検定の前提が成り立つ場合, これは 5% 水準の両側検定で傾きが 0 という仮説を棄却しないことに対応します.
 出力の P 値と区間は, 母集団から標本を無作為に取るなど, 標本のばらつきを確率で表せる前提のもとで解釈します.
 この例の 21 か国はある母集団から偶然に取り出した標本ではないため, 表の P 値を母集団への推測には使いません.
 母集団への推測は, 同じ仕組みから別の標本を作れる [合成 GPA の例](block:reg-gpa) で扱います.
 
-当てはめた直線では, 男性の家事・育児時間の割合が 1 パーセントポイント高い国ほど,
+21 か国に当てはめた式では, 男性の家事・育児時間の割合を $x$ として, 出生率の当てはめ値は $\hat y = 1.2082 + 0.0093x$ です.
+直線では, 男性の家事・育児時間の割合が 1 パーセントポイント高い国ほど,
 合計特殊出生率が平均で約 0.00931 高いと読みます.
-決定係数は 0.130 で, 手元の 21 か国の出生率のばらつきのうち, 当てはめた直線で表せた割合を示します.
 
+回帰式全体の出力では, 決定係数, 調整済み決定係数, F 統計量とその P 値を取り出せます.
+
+~~~ python
+print(f"R-squared: {result.rsquared:.3f}")
+print(f"Adj. R-squared: {result.rsquared_adj:.3f}")
+print(f"F-statistic: {result.fvalue:.3f}")
+print(f"Prob (F-statistic): {result.f_pvalue:.3f}")
+~~~
+
+~~~ text
+R-squared: 0.130
+Adj. R-squared: 0.084
+F-statistic: 2.845
+Prob (F-statistic): 0.108
+~~~
+
+決定係数は 0.130 で, 手元の 21 か国の出生率のばらつきのうち, 当てはめた直線で表せた割合を示します.
+調整済み決定係数 0.084 も同じ 21 か国への当てはまりの指標で, 説明変数の数を考慮した値です.
+切片を含む単回帰では, F 統計量が傾きの t 統計量の二乗 ($F=t^2$) になるため, F 検定と傾きの両側検定の P 値はともに 0.108 です.
+指標の定義と検定の前提は [当てはまりの指標と F 検定](block:reg-ols#model-fit) で扱います.
+
+日本経済新聞の図で挙がった対象国の選び方を検討するため, 国を入れ替えると傾きがどう変わるかを調べます.
 表記をそろえずに結合するとトルコが落ちます.
 その場合に相当する 20 か国, 本文の 21 か国, メキシコも含めた 22 か国で, 単回帰を当て直します.
 
@@ -251,6 +318,8 @@ plt.close(fig)
 
 直線の傾きは正です. トルコの点は直線より上にあり, トルコの実測の出生率は,
 その家事・育児時間の割合に対応する当てはめ値より高くなっています.
+
+[内閣府の図](#oecd-data) と回帰直線を比べるときは, 2 つの直線の算出に使った国と調査年を確かめてください.
 
 国ごとの当てはめ値 (`result.fittedvalues`) を横軸に, 実測値を縦軸に置くと,
 直線からのずれを国どうしで比べられます.
