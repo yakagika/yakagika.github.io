@@ -1,0 +1,1378 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+    <script>
+      (function () {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+        function stored() {
+          var t = null;
+          try { t = localStorage.getItem('theme'); } catch (e) {}
+          return (t === 'dark' || t === 'light') ? t : null;
+        }
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
+        if (mq) {
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
+        }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
+      })();
+    </script>
+    <title>yakagika - 相関とカテゴリーの関連</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../../../style.css?v=1795415080">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+    <link rel="canonical" href="https://yakagika.github.io/fields/descriptive/num-correlation/index.html">
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../../../" class="site-brand" aria-label="Home">
+          <span class="site-mark" aria-hidden="true">▮</span>
+          <span class="site-word">yakagika</span>
+        </a>
+      </div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../../../">Home</a>
+      <a href="../../../posts.html">Blog</a>
+      <a href="../../../lectures.html">Lecture</a>
+      <a href="../../../research.html">Research</a>
+      <a href="../../../lectures/seminar.html">Seminar</a>
+      <a href="../../../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      
+      <div id="lecture-toc" data-mode="series">
+  <h2>Index</h2>
+  <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+  <ul class="toc-root">
+    
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/1.html">第 1 回 本資料の読み方</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/2.html">第 2 回 分析設計: データ分析の進め方</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/3.html">第 3 回 データの可視化</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item current-block">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/4.html">第 4 回 データの数値化</a>
+      </div>
+      
+      <ul class="toc-sublist">
+        <li class="toc-item toc-series-item no-children">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/4/num-summary.html">中心と広がりの基本統計量</a>
+    
+  </div>
+  
+</li>
+<li class="toc-item toc-series-item current">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/4/num-correlation.html" aria-current="page">相関とカテゴリーの関連</a>
+    
+  </div>
+  <ul class="toc-sublist"></ul>
+</li>
+<li class="toc-item toc-series-item no-children">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/4/num-distance.html">距離と類似度</a>
+    
+  </div>
+  
+</li>
+
+      </ul>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/5.html">第 5 回 回帰分析</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/6.html">第 6 回 機械学習の枠組みと決定木</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/7.html">第 7 回 クラスタリングとパターン発見</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/8.html">第 8 回 ニューラルネットワークと Transformer</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/9.html">第 9 回 自然言語処理</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/10.html">第 10 回 画像認識</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/11.html">第 11 回 総合実習 1</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/12.html">第 12 回 総合実習 2</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/13.html">第 13 回 発表回</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/selected.html">選択資料</a>
+      </div>
+      
+    </li>
+    
+  </ul>
+</div>
+
+    </nav>
+
+    <div id="content">
+    <article>
+  <header class="article-header">
+    <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+    <a href="../../../courses/dsp/4.html">第 4 回 データの数値化</a>
+    <h1 class="article-title">相関とカテゴリーの関連</h1>
+  </header>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../courses/dsp/4/num-summary.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">中心と広がりの基本統計量</span>
+    </a>
+    <a class="next" href="../../../courses/dsp/4/num-distance.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">距離と類似度</span>
+    </a>
+</nav>
+
+  <div class="lesson-body">
+    <h2 id="correlation">相関</h2>
+<p><a href="../../../courses/dsp/4/num-summary.html#basic-stats">基本統計量</a>で 1 つの観測項目の特徴を要約できるように, <a href="../../../courses/dsp/3/vis-relation.html#scatter">散布図</a>で表した 2 つの観測項目間の関係も数値で表せます.</p>
+<p><a href="../../../courses/dsp/3/vis-relation.html#scatter">散布図</a>で扱った<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/scatter.csv">事例</a>についてもう一度考えてみましょう.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>     <span class="ex">AI</span>  Python</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">0</span>    34      27</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="ex">1</span>    40      26</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="ex">2</span>    59      28</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="ex">3</span>    46      29</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="ex">4</span>    36      29</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="ex">..</span>   ..     ...</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="ex">255</span>  58      83</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="ex">256</span>  69      87</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="ex">257</span>  59      82</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="ex">258</span>  62      84</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="ex">259</span>  59      87</span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/scatter.csv'</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co">#散布図のx軸を指定</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>x_column <span class="op">=</span> <span class="st">'AI'</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co">#散布図のy軸を指定</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>y_column <span class="op">=</span> <span class="st">'Python'</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>x_value <span class="op">=</span> df[x_column]</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>y_value <span class="op">=</span> df[y_column]</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>plt.scatter(x_value, y_value)</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>plt.ylabel(y_column)</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>plt.xlabel(x_column)</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<figure>
+<img src="../../../images/slds/ch9/scatter.png" alt="散布図" />
+<figcaption aria-hidden="true">散布図</figcaption>
+</figure>
+<p>Google トレンドの <code>AI</code> と <code>Python</code> の検索数から散布図を作成すると, <code>AI</code> の検索数が増えるにつれて <code>Python</code> の検索数が増えていることが分かります.</p>
+<div class="note">
+<ul>
+<li><h3 id="相関関係">相関関係</h3></li>
+</ul>
+<p>このような関係を<strong>相関関係 (correlation)</strong>といい, 2 つの変数の間に直線関係に近い傾向が見られるときに「<strong>相関関係がある</strong>」といいます.</p>
+<p>点の並びが直線的であるほど<strong>強い相関</strong>, 直線から散らばっているほど<strong>弱い相関</strong>といいます.</p>
+<p>また,</p>
+<ul>
+<li>一方が増加したとき, 他方が増加する関係を <strong>正の相関関係</strong></li>
+<li>一方が増加したとき, 他方が減少する関係を <strong>負の相関関係</strong></li>
+</ul>
+<p>といいます.</p>
+<p>このような相関関係があるかないかは, 散布図を見ただけである程度判断が可能ですが, 相関が<strong>ある/ない</strong>, <strong>強い/弱い</strong>というのは抽象的な表現なので, 厳密に判断する場合にはそれらを数値として表す必要があります.</p>
+<figure>
+<img src="../../../images/slds/ch9/corre1.png" alt="相関関係" />
+<figcaption aria-hidden="true">相関関係</figcaption>
+</figure>
+<p>相関関係を数値化したものを<strong>相関係数 (correlation coefficient)</strong>といいます. 相関係数には, データの尺度に応じていくつかの種類があります. どれを使うかは, <a href="../../../courses/dsp/4/num-summary.html#choose-stat">統計量の選び方の樹形図</a>の「変数が 2 つ」の枝のとおりです.</p>
+</div>
+<h2 id="ピアソンの積率相関係数">ピアソンの積率相関係数</h2>
+<p>2 つの量的変数に利用される相関係数を<strong>ピアソンの積率相関係数 (product moment correlation coefficient)</strong>といいます.</p>
+<p>データが <span class="math inline">(x_1, y_1), (x_2, y_2), ..., (x_n, y_n)</span> のとき,</p>
+<p><span class="math display">
+\begin{align*}
+r_{xy} &amp;= \frac{\sum (x_i - \bar{x})(y_i - \bar{y}) / n}{\sqrt{\sum (x_i - \bar{x})^2 / n} \sqrt{\sum (y_i - \bar{y})^2 / n}} \\
+&amp; = \frac{\sum (x_i - \bar{x})(y_i - \bar{y})}{\sqrt{\sum (x_i - \bar{x})^2} \sqrt{\sum (y_i - \bar{y})^2}} \\
+&amp;= \frac{s_{xy}}{S_x S_y}
+\end{align*}
+</span></p>
+<p>なお,
+<span class="math display">
+\quad s_{xy} = \frac{1}{n} \sum (x_i - \bar{x})(y_i - \bar{y})
+</span>
+を <span class="math inline">x</span> と <span class="math inline">y</span> の共分散といい, 相関係数は <span class="math inline">\frac{x \text{と} y \text{の共分散}}{x \text{の標準偏差} \times y \text{の標準偏差}}</span> の形で表されます.</p>
+<p><img src="../../../images/slds/ch9/corre2.png" alt="ピアソンの積率相関係数のイメージ" />
+<img src="../../../images/slds/ch9/corre3.png" alt="ピアソンの積率相関係数のイメージ" />
+<img src="../../../images/slds/ch9/corre4.png" alt="ピアソンの積率相関係数のイメージ" /></p>
+<p><span class="math inline">x_i, y_i</span> を標準化し <span class="math inline">z_i = \frac{x_i - \bar{x}}{S_x}, w_i = \frac{y_i - \bar{y}}{S_y}</span> とすると,</p>
+<p><span class="math display">
+\begin{align*}
+r_{zw} &amp;= \frac{1}{n} \sum z_i w_i \\
+&amp;= \frac{1}{n} \sum \left( \frac{x_i - \bar{x}}{S_x} \right) \left( \frac{y_i - \bar{y}}{S_y} \right) \\
+&amp;= \frac{\sum (x_i - \bar{x})(y_i - \bar{y})}{n S_x S_y} \\
+&amp;= r_{xy}
+\end{align*}
+</span></p>
+<p>相関係数が <span class="math inline">-1</span> から <span class="math inline">1</span> の範囲に収まることを示すために, <span class="math inline">\frac{1}{n} \sum (z_i \pm w_i)^2</span> を考えます.</p>
+<p><span class="math display">
+\begin{align*}
+\frac{1}{n} \sum (z_i \pm w_i)^2 &amp;\geq 0 \\
+\frac{1}{n} \sum (z_i^2 \pm 2z_i w_i + w_i^2) &amp;\geq 0 \\
+\frac{1}{n} \sum z_i^2 \pm \frac{2}{n} \sum z_i w_i + \frac{1}{n} \sum w_i^2 &amp;\geq 0 \\
+\frac{1}{n S_x^2} \sum (x_i - \bar{x})^2 \pm \frac{2}{n} \sum z_i w_i + \frac{1}{n S_y^2} \sum (y_i - \bar{y})^2 &amp;\geq 0  \\
+\frac{S_x^2}{S_x^2} \pm \frac{2}{n} \sum z_i w_i + \frac{S_y^2}{S_y^2}  &amp;\geq 0 \\
+1 \pm \frac{2}{n} \sum z_i w_i + 1 &amp;\geq 0 \\
+2 (1 \pm r_{xy}) &amp;\geq 0 \\
+\therefore -1 \leq r_{xy} &amp;\leq 1
+\end{align*}
+</span></p>
+<p>このように相関係数は常に <span class="math inline">-1 \leq r_{xy} \leq 1</span> を取ります.</p>
+<p>また, <span class="math inline">c</span> を <span class="math inline">c &gt; 0</span> の定数として, すべての点で <span class="math inline">y_i = c x_i</span> が成り立つとき, <span class="math inline">\bar{y} = c \bar{x}</span> が成り立ち,</p>
+<p><span class="math display">
+\begin{align*}
+S_y &amp;= \sqrt{\frac{1}{n} \sum (y_i - \bar{y})^2} \\
+    &amp;= \sqrt{\frac{1}{n} \sum (c x_i  - c \bar{x})^2} \\
+    &amp;= \sqrt{\frac{c^2}{n} \sum (x_i - \bar{x})^2} = c S_x
+\end{align*}
+</span></p>
+<p>となります.
+したがって,</p>
+<p><span class="math display">
+\begin{align*}
+r &amp;= \frac{\frac{1}{n} \sum (x_i - \bar{x})(y_i - \bar{y})}{S_x \times S_y} \\
+  &amp;= \frac{\frac{c}{n} \sum (x_i - \bar{x})^2}{S_x \times c S_x} \\
+  &amp;= \frac{c S_x^2}{c S_x^2} = 1
+\end{align*}
+</span></p>
+<p>となり, 相関係数は <code>1</code> になります. また, <span class="math inline">c &lt; 0</span> の場合は, <span class="math inline">S_y = |c| S_x = -c S_x</span> より <span class="math inline">S_x \times S_y = -c S_x^2</span> となるので, <code>-1</code> になります.</p>
+<p>このように <span class="math inline">x_i</span> と <span class="math inline">y_i</span> が同じ比率で増減するとき,</p>
+<ul>
+<li><span class="math inline">r_{xy} = 1</span> となり, 正の完全相関</li>
+<li><span class="math inline">r_{xy} = -1</span> となり, 負の完全相関</li>
+</ul>
+<p>といいます.</p>
+<p>なお, 相関が「ある/ない」の目安は以下のようになっています.</p>
+<table>
+<thead>
+<tr class="header">
+<th>相関係数</th>
+<th>関連性の程度</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0.0〜0.4, -0.4〜0.0</td>
+<td>ほとんど相関がない</td>
+</tr>
+<tr class="even">
+<td>0.4〜0.7, -0.7〜-0.4</td>
+<td>弱い相関がある</td>
+</tr>
+<tr class="odd">
+<td>0.7〜0.9, -0.9〜-0.7</td>
+<td>強い相関がある</td>
+</tr>
+<tr class="even">
+<td>0.9〜1.0, -1.0〜-0.9</td>
+<td>きわめて強い相関がある</td>
+</tr>
+</tbody>
+</table>
+<p>Python で積率相関係数を求めるには <code>numpy</code> の <code>np.corrcoef(xのデータ,yのデータ)</code> あるいは <code>scipy.stats.pearsonr(xのデータ,yのデータ)</code> を利用します. <code>scipy</code> がインストールされていない人は <code>uv add scipy</code> をしておきましょう.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas               <span class="im">as</span> pd</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot    <span class="im">as</span> plt</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib_fontja</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> scipy.stats <span class="im">as</span> st</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="co">#データの読み込み</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="co">#データの位置を指定しよう</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/scatter.csv'</span>)</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="co">#散布図のx軸を指定</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>x_column <span class="op">=</span> <span class="st">'AI'</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="co">#散布図のy軸を指定</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>y_column <span class="op">=</span> <span class="st">'Python'</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>x_value <span class="op">=</span> df[x_column]</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>y_value <span class="op">=</span> df[y_column]</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>plt.scatter(x_value, y_value)</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>plt.ylabel(y_column)</span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>plt.xlabel(x_column)</span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a><span class="co"># numpyで相関係数を求める</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a><span class="co"># 返り値が [[xとxの相関係数=1, xとyの相関係数]</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a><span class="co"># ,[yとxの相関係数, yとyの相関係数=1]]</span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a><span class="co"># となっている</span></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(np.corrcoef(df[x_column],df[y_column]))</span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a><span class="co">[[1.         0.83281294]</span></span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a><span class="co"> [0.83281294 1.        ]]</span></span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(np.corrcoef(df[x_column],df[y_column])[<span class="dv">0</span>][<span class="dv">1</span>])</span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a><span class="co"># 0.8328129378961621</span></span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a><span class="co">#scipy.stats.pearsonr でも計算可能</span></span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a><span class="co"># 返り値が (相関係数, p値)の形に成っている</span></span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a><span class="co"># p値の意味は「データ活用の統計学実践」で扱います.</span></span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a>r, p <span class="op">=</span> st.pearsonr(df[x_column],df[y_column])</span>
+<span id="cb3-40"><a href="#cb3-40" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(r) <span class="co">#0.832812937896162</span></span></code></pre></div>
+<h2 id="スピアマンの順位相関係数">スピアマンの順位相関係数</h2>
+<p>積率相関係数は量的変数にしか利用できませんが, 質的変数のうち順序尺度データに関しては, <strong>スピアマンの順位相関係数 (rank correlation coefficient)</strong>が利用できます.</p>
+<p>スピアマンの順位相関係数は, 順序尺度データを順位に変換して, 順位の間の相関係数を求めたものになります.</p>
+<figure>
+<img src="../../../images/slds/ch9/corre5.png" alt="スピアマンの順位相関係数のイメージ" />
+<figcaption aria-hidden="true">スピアマンの順位相関係数のイメージ</figcaption>
+</figure>
+<p>2 つの変数それぞれでデータを小さい順に並べ替えた順位を <span class="math inline">x_1, \dots, x_n</span> と <span class="math inline">y_1, \dots, y_n</span> とします (同じ順位は無いものとします). このとき,</p>
+<p><span class="math display">
+r_{xy} = \frac{\frac{1}{n} \sum (x_i - \bar{x})(y_i - \bar{y})}{\sqrt{\frac{1}{n} \sum (x_i - \bar{x})^2} \sqrt{\frac{1}{n} \sum (y_i - \bar{y})^2}}
+</span>
+がどのようになるかを考えます.</p>
+<p>順位は 1 から <span class="math inline">n</span> までの整数を並べ替えたものなので,</p>
+<p><span class="math display">
+\sum x_i = \sum y_i = \frac{n(n+1)}{2}
+</span></p>
+<p><span class="math display">
+\sum x_i^2 = \sum y_i^2 = \frac{1}{6} n(n+1)(2n+1)
+</span></p>
+<p><span class="math display">
+\bar{x} = \bar{y} = \frac{\sum x_i}{n} = \frac{n(n+1)}{2n} = \frac{n+1}{2}
+</span></p>
+<p>なので, 分子に関して,</p>
+<p><span class="math display">
+\begin{align*}
+&amp; \frac{1}{n}\sum(x_i - \bar{x})(y_i - \bar{y}) \\
+&amp;= \frac{1}{n}\sum \{x_iy_i - x_i \bar{y} - \bar{x}y_i + \bar{x}\bar{y}\} \\
+&amp;= \frac{1}{n}\sum x_i y_i - \frac{1}{n}\sum x_i\bar{y} - \frac{1}{n}\sum \bar{x}y_i + \frac{1}{n}\sum  \bar{x}\bar{y} \\
+&amp;= \frac{1}{n}\sum x_i y_i - \frac{\bar{y}}{n}\sum x_i - \frac{\bar{x}}{n}\sum y_i + \bar{x}\bar{y} \\
+&amp;= \frac{1}{n}\sum x_i y_i - \bar{x}\bar{y} \\
+&amp;= \frac{1}{2n}\sum \{x_i^2 + y_i^2 - (x_i - y_i)^2\} - \bar{x}\bar{y} \\
+\end{align*}
+</span></p>
+<p><span class="math display">
+\begin{align*}
+\because (x_i - y_i)^2 = x_i^2 -2x_i y_i + y_i^2  \\
+x_i y_i = \frac{1}{2} \{ x_i^2 + y_i^2 - (x_i - y_i)^2 \}
+\end{align*}
+</span></p>
+<p><span class="math display">
+\begin{align*}
+&amp; \frac{1}{2n}\sum \{x_i^2 + y_i^2 - (x_i - y_i)^2\} - \bar{x}\bar{y} \\
+&amp;= \frac{1}{2n}\sum x_i^2 + \frac{1}{2n}\sum y_i^2 - \frac{1}{2n}\sum (x_i - y_i)^2 - \bar{x}\bar{y} \\
+&amp; = \frac{1}{6} (n+1)(2n+1) - \frac{(n+1)^2}{4} - \frac{1}{2n}\sum (x_i - y_i)^2 \\
+&amp; = \frac{1}{12}(n+1)(n-1) - \frac{1}{2n}\sum (x_i - y_i)^2
+\end{align*}
+</span></p>
+<p>また, 分母に関して,
+<span class="math display">
+\begin{align*}
+&amp; \frac{1}{n}\sum (x_i - \bar{x})^2 \\
+&amp;= \frac{1}{n}\sum (x_i^2 - 2 x_i \bar{x} + \bar{x}^2) \\
+&amp;= \frac{1}{n} \{ \sum x_i^2 -2n \bar{x}^2 + n\bar{x}^2 \} \\
+&amp;= \frac{1}{n} \{\sum x_i^2 - n\bar{x}^2\} \\
+&amp;= \frac{1}{6}(n+1)(2n+1) - \frac{1}{4}(n+1)^2 \\
+&amp;= \frac{1}{12}(n+1)(n-1)
+\end{align*}
+</span></p>
+<p>となります. <span class="math inline">y</span> についての <span class="math inline">\frac{1}{n} \sum (y_i - \bar{y})^2</span> も同じ値になるので, これらを</p>
+<p><span class="math display">
+r_{xy} = \frac{\frac{1}{n} \sum (x_i - \bar{x})(y_i - \bar{y})}{\sqrt{\frac{1}{n} \sum (x_i - \bar{x})^2} \sqrt{\frac{1}{n} \sum (y_i - \bar{y})^2}}
+</span></p>
+<p>に代入して,
+<span class="math display">
+\begin{align*}
+r_{xy} = \frac{\frac{1}{n} \sum (x_i - \bar{x})(y_i - \bar{y})}{\sqrt{\frac{1}{n} \sum (x_i - \bar{x})^2} \sqrt{\frac{1}{n} \sum (y_i - \bar{y})^2}} &amp;= \frac{\frac{1}{12}(n+1)(n-1) - \frac{1}{2n} \sum (x_i - y_i)^2}{\frac{1}{12}(n+1)(n-1)}\\
+&amp;=  1 - \frac{6}{n^3 - n} \sum (x_i - y_i)^2
+\end{align*}
+</span></p>
+<p>となります.</p>
+<p>スピアマンの順位相関係数は, Python では, <code>scipy.stats.spearmanr(xのデータ,yのデータ)</code> で求めることができます.</p>
+<p>次の<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch9/spearman.csv">データ</a>は, 国別 (A〜J) のサッカー (FIFA) と野球 (WBSC) のランキングのダミーデータです.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>    <span class="ex">rank</span> FIFA WBSC</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="ex">0</span>     1    A    A</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="ex">1</span>     2    B    E</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="ex">2</span>     3    C    G</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="ex">3</span>     4    D    I</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="ex">4</span>     5    E    D</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="ex">5</span>     6    F    C</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="ex">6</span>     7    G    B</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="ex">7</span>     8    H    F</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="ex">8</span>     9    I    H</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="ex">9</span>    10    J    J</span></code></pre></div>
+<p>この 2 つのランキングの順位相関係数を求めてみましょう. データは順位ごとに国名が並んでいるので, 国 (A〜J) をキーにして FIFA の順位と WBSC の順位を対応させてから計算します.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/spearman.csv'</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co">#国(A~J)をキーにして,FIFA順位とWBSC順位を対応させる</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>fifa <span class="op">=</span> df.set_index(<span class="st">'FIFA'</span>)[<span class="st">'rank'</span>]</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>wbsc <span class="op">=</span> df.set_index(<span class="st">'WBSC'</span>)[<span class="st">'rank'</span>]</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>wbsc <span class="op">=</span> wbsc.loc[fifa.index] <span class="co">#国の並び順を揃える</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="co"># scipyで順位相関係数を求める</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>correlation, pvalue <span class="op">=</span> st.spearmanr(fifa, wbsc)</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">&quot;相関係数:&quot;</span>,correlation) <span class="co">#0.4545454545454545</span></span></code></pre></div>
+<p><code>0.45</code> なので弱い正の相関があることが分かります.</p>
+<h2 id="相関係数のヒートマップ">相関係数のヒートマップ</h2>
+<p>相関係数はデータの関係を探るために便利な数値であり, 複数の観測項目からなるデータを扱う場合には, 最初に相関係数をとってそれぞれにどのような関係があるのかを確認するようにしましょう.</p>
+<p>次の<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch9/coeff_multi.csv">データ</a>は, e-Stat (政府統計の総合窓口) から取得した, 都道府県別の身長, 体重, 食費, 睡眠の平均時間, スポーツの平均時間に関するデータです. <a href="../../../courses/dsp/3/vis-relation.html#scatter-matrix">散布図行列</a>で使ったデータと同じものです.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">python</span> coeff.py</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="ex">pref</span>  height  weight   food  sleep  sports</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="ex">0</span>    北海道   170.4    63.7  65739    477      15</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="ex">1</span>    青森県   169.8    62.8  64889    490      13</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="ex">2</span>    岩手県   170.6    63.7  70156    489      13</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="ex">3</span>    宮城県   169.8    63.4  73337    482      15</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="ex">4</span>    秋田県   170.6    66.1  74560    493      14</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="ex">5</span>    山形県   170.9    63.9  76000    497      12</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="ex">6</span>    福島県   170.2    63.9  71074    480      13</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a><span class="ex">7</span>    茨城県   169.7    62.4  74341    467      17</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="ex">8</span>    栃木県   169.8    63.3  74387    472      16</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="ex">9</span>    群馬県   170.5    62.7  71701    475      15</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="ex">10</span>   埼玉県   170.4    61.1  76663    463      15</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="ex">11</span>   千葉県   170.3    62.4  77639    458      15</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="ex">12</span>   東京都   170.5    61.3  83506    461      16</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="ex">13</span>  神奈川県   170.9    62.5  77510    456      17</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a><span class="ex">14</span>   新潟県   170.9    62.0  75937    479      13</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a><span class="ex">15</span>   富山県   170.8    63.5  73589    471      15</span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a><span class="ex">16</span>   石川県   170.8    62.9  76256    470      16</span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a><span class="ex">17</span>   福井県   170.4    62.5  79478    476      14</span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a><span class="ex">18</span>   山梨県   170.1    61.7  71294    481      16</span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a><span class="ex">19</span>   長野県   169.5    61.0  72228    474      17</span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a><span class="ex">20</span>   岐阜県   169.9    60.6  69527    469      13</span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a><span class="ex">21</span>   静岡県   170.1    61.9  75833    474      19</span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a><span class="ex">22</span>   愛知県   169.6    60.9  74694    463      14</span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a><span class="ex">23</span>   三重県   170.4    62.1  75721    473      16</span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a><span class="ex">24</span>   滋賀県   170.6    62.9  77978    470      18</span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a><span class="ex">25</span>   京都府   170.5    62.0  76904    464      16</span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a><span class="ex">26</span>   大阪府   170.2    62.2  74015    469      18</span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a><span class="ex">27</span>   兵庫県   169.6    60.6  72847    466      15</span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a><span class="ex">28</span>   奈良県   169.9    61.8  74888    461      18</span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a><span class="ex">29</span>  和歌山県   170.0    62.6  69858    479      15</span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a><span class="ex">30</span>   鳥取県   170.4    62.7  73321    475      14</span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a><span class="ex">31</span>   島根県   169.7    60.7  72160    483      16</span>
+<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a><span class="ex">32</span>   岡山県   169.6    61.7  69060    475      17</span>
+<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a><span class="ex">33</span>   広島県   168.8    60.8  69061    473      15</span>
+<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a><span class="ex">34</span>   山口県   169.2    60.2  69882    472      17</span>
+<span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a><span class="ex">35</span>   徳島県   169.9    64.4  67102    472      18</span>
+<span id="cb6-39"><a href="#cb6-39" aria-hidden="true" tabindex="-1"></a><span class="ex">36</span>   香川県   169.9    62.7  68400    469      18</span>
+<span id="cb6-40"><a href="#cb6-40" aria-hidden="true" tabindex="-1"></a><span class="ex">37</span>   愛媛県   168.8    61.8  67274    474      16</span>
+<span id="cb6-41"><a href="#cb6-41" aria-hidden="true" tabindex="-1"></a><span class="ex">38</span>   高知県   169.1    61.8  70188    484      16</span>
+<span id="cb6-42"><a href="#cb6-42" aria-hidden="true" tabindex="-1"></a><span class="ex">39</span>   福岡県   169.7    60.9  70135    471      14</span>
+<span id="cb6-43"><a href="#cb6-43" aria-hidden="true" tabindex="-1"></a><span class="ex">40</span>   佐賀県   169.2    62.2  68749    473      16</span>
+<span id="cb6-44"><a href="#cb6-44" aria-hidden="true" tabindex="-1"></a><span class="ex">41</span>   長崎県   170.1    63.3  66641    473      18</span>
+<span id="cb6-45"><a href="#cb6-45" aria-hidden="true" tabindex="-1"></a><span class="ex">42</span>   熊本県   169.5    61.8  66184    482      20</span>
+<span id="cb6-46"><a href="#cb6-46" aria-hidden="true" tabindex="-1"></a><span class="ex">43</span>   大分県   169.3    62.5  69255    479      18</span>
+<span id="cb6-47"><a href="#cb6-47" aria-hidden="true" tabindex="-1"></a><span class="ex">44</span>   宮崎県   168.7    61.8  65165    477      19</span>
+<span id="cb6-48"><a href="#cb6-48" aria-hidden="true" tabindex="-1"></a><span class="ex">45</span>  鹿児島県   169.7    61.4  65377    479      18</span>
+<span id="cb6-49"><a href="#cb6-49" aria-hidden="true" tabindex="-1"></a><span class="ex">46</span>   沖縄県   168.7    60.6  56298    482      20</span></code></pre></div>
+<p>データの取得過程に興味がある人は, 以下の手順を自分で行い, データを作ってみましょう.</p>
+<details>
+<summary>
+e-Stat のデータ表示機能を使ってデータを自分で作る (開く/閉じる)
+</summary>
+<div class="note">
+<p>e-Stat で都道府県別の身長, 体重, 睡眠時間等のデータを集めます.
+地域別のデータは「地域」から選択できます.</p>
+<figure>
+<img src="../../../images/slds/ch9/coeff-multi1.png" alt="e-Stat の操作画面" />
+<figcaption aria-hidden="true">e-Stat の操作画面</figcaption>
+</figure>
+<p>「都道府県データ」を選択し, 「データ表示」をクリックします.</p>
+<figure>
+<img src="../../../images/slds/ch9/coeff-multi2.png" alt="e-Stat の操作画面" />
+<figcaption aria-hidden="true">e-Stat の操作画面</figcaption>
+</figure>
+<p>データを集める, 地域, 表示項目, 表示方法の順に選択します.
+今回はすべての都道府県を利用するので, 「全て選択」をクリックしたあと「確定」をクリックします.</p>
+<figure>
+<img src="../../../images/slds/ch9/coeff-multi3.png" alt="e-Stat の操作画面" />
+<figcaption aria-hidden="true">e-Stat の操作画面</figcaption>
+</figure>
+<p>次に項目を決めます.
+分野をクリックして「I 健康・医療」を選ぶと, 項目候補に健康・医療に関わる項目が表示されます.
+そこから,</p>
+<ul>
+<li>I411301_身長（高校2年）（男）【ｃｍ】</li>
+<li>I412301_体重（高校2年）（男）【ｋｇ】</li>
+</ul>
+<p>を順番に選んで, 「項目を選択」をクリックします.</p>
+<figure>
+<img src="../../../images/slds/ch9/coeff-multi4.png" alt="e-Stat の操作画面" />
+<figcaption aria-hidden="true">e-Stat の操作画面</figcaption>
+</figure>
+<p>同様に, 「L 家計」から</p>
+<ul>
+<li>L421101_食料費（二人以上の世帯のうち勤労者世帯）（全国消費実態調査結果）【円】</li>
+</ul>
+<p>「M 生活時間」から</p>
+<ul>
+<li>M1101_睡眠の平均時間（10歳以上）（男）【分】</li>
+<li>M360100_スポーツの平均時間（15歳以上）（男）【分】</li>
+</ul>
+<p>を順番に選んで, 「項目を選択」をクリックします.</p>
+<figure>
+<img src="../../../images/slds/ch9/coeff-multi5.png" alt="e-Stat の操作画面" />
+<figcaption aria-hidden="true">e-Stat の操作画面</figcaption>
+</figure>
+<p>最後にどのデータを表示するかレイアウトを決めます.</p>
+<ul>
+<li>調査年を列に配置</li>
+<li>表示年度を 2000 から 2010 まで</li>
+<li>設定して表示を更新</li>
+</ul>
+<figure>
+<img src="../../../images/slds/ch9/coeff-multi6.png" alt="e-Stat の操作画面" />
+<figcaption aria-hidden="true">e-Stat の操作画面</figcaption>
+</figure>
+<p>データをダウンロードします.</p>
+<figure>
+<img src="../../../images/slds/ch9/coeff-multi7.png" alt="e-Stat の操作画面" />
+<figcaption aria-hidden="true">e-Stat の操作画面</figcaption>
+</figure>
+<p>ダウンロードしたデータを読み込める csv に編集します.</p>
+<ul>
+<li>2006 年以外の列を削除</li>
+<li>数値として新しいシートにコピー</li>
+<li>ヘッダー名をつける
+<ul>
+<li>県名 pref (prefecture の略)</li>
+<li>身長 height</li>
+<li>体重 weight</li>
+<li>食費 food</li>
+<li>睡眠 sleep</li>
+<li>スポーツ sports</li>
+</ul></li>
+<li>utf-8 の csv で保存</li>
+<li>ファイル名: coeff_multi.csv</li>
+<li>作業ディレクトリの data フォルダに保存</li>
+</ul>
+<figure>
+<img src="../../../images/slds/ch9/coeff-multi8.png" alt="e-Stat の操作画面" />
+<figcaption aria-hidden="true">e-Stat の操作画面</figcaption>
+</figure>
+</div>
+</details>
+<p>データのどの観測項目間に関連があるのかを確かめるために, 作成したデータのすべての組み合わせの相関係数を見てみましょう. 今までのように一つ一つ散布図を作成して, 相関係数を求めていると, <span class="math inline">\text{観測項目数} \times \text{観測項目数}</span> のグラフを作成することになります.
+そこで, 与えられた観測項目すべての組み合わせで図示する<strong>ペアプロット</strong>と<strong>ヒートマップ</strong>を活用してみます.</p>
+<p><code>DataFrame</code> に含まれるデータのペアプロットには, <code>pandas</code> の <code>plotting</code> モジュールを利用します. <code>pd.plotting.scatter_matrix(ペアプロットを求めるDataFrame)</code> で, 散布図のペアプロットが作成できます.</p>
+<p>また, 各項目の相関係数も <code>pandas</code> の <code>.corr()</code> メソッドで取得することができます.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># CSVファイルを読み込んでデータフレームに格納</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co"># dataフォルダを作成し,そこにデータを入れておきましょう</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/coeff_multi.csv'</span>)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co"># データの表示</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="co">#分析するデータの選択</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>labels <span class="op">=</span> [<span class="st">'height'</span>, <span class="st">'weight'</span>, <span class="st">'food'</span>, <span class="st">'sports'</span>, <span class="st">'sleep'</span>]</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> df[labels]</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a><span class="co">#散布図行列を作成してみる</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>pd.plotting.scatter_matrix(X, range_padding<span class="op">=</span><span class="fl">0.2</span>)</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a><span class="co">#相関係数の組み合わせを確認</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(X.corr())</span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a><span class="co">#ヒートマップで確認</span></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>sns.heatmap(X.corr()</span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>           ,vmax<span class="op">=</span><span class="dv">1</span>     <span class="co">#ヒートマップの最大値</span></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>           ,vmin<span class="op">=-</span><span class="dv">1</span>    <span class="co">#最小値</span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>           ,center <span class="op">=</span><span class="dv">0</span>  <span class="co">#中心</span></span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>           ,annot<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<figure>
+<img src="../../../images/slds/ch9/pair-plot.png" alt="散布図のペアプロット" />
+<figcaption aria-hidden="true">散布図のペアプロット</figcaption>
+</figure>
+<p>各項目の組み合わせごとに, 散布図が作成されています. 対角線上にはヒストグラムが作成されます.</p>
+<figure>
+<img src="../../../images/slds/ch9/coeff-multi9.png" alt="相関係数のヒートマップ" />
+<figcaption aria-hidden="true">相関係数のヒートマップ</figcaption>
+</figure>
+<p>身長と食費 (0.65), 身長と体重 (0.51) に弱い正の相関があり, 食費と睡眠時間 (-0.41), 身長とスポーツの時間 (-0.42) に弱い負の相関があることが分かります. 一方, 食費と体重の相関係数は 0.11 で, ほとんど相関がありません.
+このように複数の観測項目から関係があるデータを探したい場合には, ペアプロットや, 相関係数のヒートマップを作成することで, 関係性がわかりやすくなります.</p>
+<h2 id="chi2-統計量"><span class="math inline">\chi^2</span> 統計量</h2>
+<p>量的データには積率相関係数, 順位尺度データに対しては, 順位相関係数を求めることで 2 つのデータの関連性を確かめることができました. では, 名義尺度データの場合はどのようにすればよいのでしょうか.</p>
+<p>名義尺度を含めた質的変数の関係性の可視化には, <a href="../../../courses/dsp/3/vis-relation.html#heatmap">ヒートマップ</a>の例のように同時度数分布表が使えます. 数値化においても, 同時度数分布表を用いることができます.</p>
+<figure>
+<img src="../../../images/slds/ch9/cross-table2.png" alt="同時度数分布表" />
+<figcaption aria-hidden="true">同時度数分布表</figcaption>
+</figure>
+<p>質的変数間の関連度合いは, 同時度数分布表の数値を利用した <strong>ピアソンの <span class="math inline">\chi^2</span> 統計量 (カイにじょうとうけいりょう)</strong>で表すことができます. <a href="../../../courses/dsp/3/vis-relation.html#heatmap">ヒートマップ</a>の例では同時度数分布表から列相対度数を求めましたが, ここで使うのは相対度数ではなく度数です.</p>
+<p><span class="math display">
+\chi_o^2 = \sum_{i=1}^{r} \sum_{j=1}^{c} \frac{(n_{ij} - E_{ij})^2}{E_{ij}} \quad (r: \text{行数},\ c: \text{列数})
+</span></p>
+<p>ここで <span class="math inline">n_{ij}</span> は <span class="math inline">i</span> 行 <span class="math inline">j</span> 列のセルの度数です. <span class="math inline">E_{ij}</span> を<strong>期待度数</strong>といい, <span class="math inline">\frac{\text{行の合計} \times \text{列の合計}}{\text{総数}}</span>, すなわち</p>
+<p><span class="math display">
+E_{ij} = \frac{\sum_{l=1}^{c} n_{il} \times \sum_{k=1}^{r} n_{kj}}{\sum_{k=1}^{r}\sum_{l=1}^{c} n_{kl}}
+</span></p>
+<p>で求められます.</p>
+<p>この <span class="math inline">\chi_o^2</span> が大きいほど, 2 つの変数の間の関連が強いといえます. この値を利用して, 行と列のデータが独立であるかを検定する <strong><span class="math inline">\chi^2</span> 検定 (独立性の検定)</strong> を行うこともできます. <span class="math inline">\chi^2</span> 検定は<a href="../../../fields/survey/survey-analysis/chi-square-independence.html#独立性の検定">質問紙調査の独立性の検定</a>で使います. ここでは, この値から 2 つのデータの関連の度合いを判断する方法を見ていきましょう.</p>
+<p><span class="math inline">\chi_o^2</span> の値は, 同時度数分布表の行数や列数に依存して値が変わるため, 相関係数のように, 「特定の値から関連があるといえる」といった利用法には適しません.</p>
+<p>そこで, 異なるデータを比較するためには, <span class="math inline">0 \leq V \leq 1</span> の値を取る, <strong>クラメールの連関係数 <span class="math inline">V</span></strong>に変換します. <span class="math inline">n</span> は総度数です.</p>
+<p><span class="math display">
+V = \sqrt{\frac{\chi_o^2}{n \times \min(r - 1,c - 1)}}
+</span></p>
+<p>クラメールの連関係数は, 相関係数よりも高い値が出にくいので, 以下のような基準で判断します.</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">V</th>
+<th style="text-align: left;">判断</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">0〜0.1</td>
+<td style="text-align: left;">関連なし</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">0.1〜0.25</td>
+<td style="text-align: left;">弱い関連がある</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">0.25〜0.5</td>
+<td style="text-align: left;">関連がある</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">0.5〜1.0</td>
+<td style="text-align: left;">強い関連がある</td>
+</tr>
+</tbody>
+</table>
+<p><span class="math inline">\chi_o^2</span> は <code>scipy.stats</code> の <code>chi2_contingency(度数分布表,correction=False)</code> で求めることができます.
+返り値は <span class="math inline">\chi_o^2</span>, p 値, 自由度, 期待度数の 4 つです.</p>
+<p><a href="../../../courses/dsp/3/vis-relation.html#heatmap">ヒートマップ</a>で使った, 時限と成績の関係を記録した<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/cross_table_data.csv">データ</a>を利用して, クラメールの連関係数 <span class="math inline">V</span> を求めてみましょう.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>     <span class="ex">Period</span> Grade</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="ex">0</span>         2     B</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="ex">1</span>         5     A</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="ex">2</span>         4     A</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="ex">3</span>         3     C</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="ex">4</span>         1     C</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="ex">..</span>      ...   ...</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="ex">195</span>       2     C</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="ex">196</span>       4     C</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="ex">197</span>       5     C</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="ex">198</span>       5     F</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a><span class="ex">199</span>       4     C</span></code></pre></div>
+<figure>
+<img src="../../../images/slds/ch9/heatmap.png" alt="ヒートマップ" />
+<figcaption aria-hidden="true">ヒートマップ</figcaption>
+</figure>
+<div class="sourceCode" id="cb9"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> scipy.stats <span class="im">as</span> st</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/cross_table_data.csv'</span>)</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="co">#クロス表(同時度数分布表)の作成</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>cross <span class="op">=</span> pd.crosstab(df[<span class="st">'Grade'</span>],df[<span class="st">'Period'</span>])</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a><span class="co">#表示順の設定</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>cross <span class="op">=</span> cross.reindex([<span class="dv">1</span>,<span class="dv">2</span>,<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">5</span>],axis<span class="op">=</span><span class="st">'columns'</span>)</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>cross <span class="op">=</span> cross.reindex([<span class="st">'S'</span>,<span class="st">'A'</span>,<span class="st">'B'</span>,<span class="st">'C'</span>,<span class="st">'F'</span>],axis<span class="op">=</span><span class="st">'index'</span>)</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(cross)</span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a><span class="co"># 列相対度数をヒートマップで可視化</span></span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>cross_rel <span class="op">=</span> cross.copy()</span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> c <span class="kw">in</span> cross_rel.columns:</span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>    cross_rel[c] <span class="op">=</span> cross_rel[c] <span class="op">/</span> cross_rel[c].<span class="bu">sum</span>()</span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(cross_rel)</span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>sns.heatmap( cross_rel  <span class="co">#ヒートマップを作成したいテーブル</span></span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>           , cmap<span class="op">=</span>plt.get_cmap(<span class="st">'Reds'</span>) <span class="co">#カラーマップ(省略可)</span></span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>           , linewidths<span class="op">=</span><span class="fl">.5</span> <span class="co">#線の太さを指定することでセルを囲う線を表示</span></span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>           , annot<span class="op">=</span><span class="va">True</span>  <span class="co">#セルに数値を表示</span></span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>           )</span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a><span class="co">#χ二乗統計量は相対度数ではなく度数の分布表から求める</span></span>
+<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a>x2, p, dof, e <span class="op">=</span> st.chi2_contingency(cross,correction<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(x2) <span class="co">#43.39273272653072</span></span>
+<span id="cb9-34"><a href="#cb9-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-35"><a href="#cb9-35" aria-hidden="true" tabindex="-1"></a><span class="co">#クラメールの連関係数Vを求める</span></span>
+<span id="cb9-36"><a href="#cb9-36" aria-hidden="true" tabindex="-1"></a>n <span class="op">=</span> cross.<span class="bu">sum</span>().<span class="bu">sum</span>() <span class="co">#総度数 200</span></span>
+<span id="cb9-37"><a href="#cb9-37" aria-hidden="true" tabindex="-1"></a>v <span class="op">=</span> np.sqrt(x2<span class="op">/</span>(n <span class="op">*</span> <span class="bu">min</span>(cross.shape[<span class="dv">0</span>]<span class="op">-</span><span class="dv">1</span>,cross.shape[<span class="dv">1</span>] <span class="op">-</span><span class="dv">1</span>)))</span>
+<span id="cb9-38"><a href="#cb9-38" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(v) <span class="co">#0.232896792395609</span></span></code></pre></div>
+<p>クラメールの連関係数 <span class="math inline">V</span> の値は約 0.23 となり, 弱い関連があることが分かりました.</p>
+<h2 id="因果関係と相関">因果関係と相関</h2>
+<p>相関関係は, 2 つの観測項目間の関係を表していますが, 観測項目 A の変化によって, 観測項目 B の変化が起きているという<strong>因果関係 (causality)</strong>を示しているものではありません.</p>
+<p>「A が起きれば必ず B が起きる」という関係を, <strong>決定論的な関係</strong>といいます.</p>
+<ul>
+<li>例: 水を 1 気圧のもとで 100 ℃ まで熱すると, 沸騰する</li>
+</ul>
+<p>論理学の「A ならば B <span class="math inline">(A \Rightarrow B)</span>」(含意) を使うと, このような関係を「A が真なら B も真」と書けます. このとき, A を B の<strong>十分条件</strong>, B を A の<strong>必要条件</strong>といいます. ただし, 論理学の「ならば」は真と偽の組み合わせだけで決まり, A が B の原因かどうかは問いません. 例えば「人間ならば死ぬ」は正しい含意ですが, 人間であることが死の原因だと述べているわけではありません.</p>
+<p>統計学で扱う因果関係は, 決定論的な関係では表せません.
+例えば, <strong>喫煙をすると肺がんになる</strong>という関係は, 喫煙をしても肺がんにならない人がいるので, 決定論的な関係ではありません. 統計学で扱う因果関係は, <strong>A が B の起きる確率を高める要因になっている</strong>, あるいは <strong>A によって B の一部が説明できる</strong>ことを表します. これを<strong>統計的因果関係</strong>といいます.</p>
+<div class="note">
+<p>統計的因果関係が認められる条件は, 簡単には以下のように示されます.</p>
+<ol type="1">
+<li><p>A と B の間に明瞭な関係が認められる</p></li>
+<li><p>A が時間的に, あるいは意味的に B より先行している</p></li>
+<li><p>A と B の共通要因となりうる要因を統制して (影響を取り除いて) も, 両者に関係が見出される.</p></li>
+</ol>
+</div>
+<p>因果関係を示すには, 特に 3. の条件を確かめるために, A 以外の条件を揃えて B の発生確率を比べる<strong>対照実験</strong>などの手法を使います. A によって B を説明するという関係は, <a href="../../../courses/dsp/5/reg-intro.html">回帰分析</a>で扱います.</p>
+<p>このように, 相関関係と因果関係は異なる概念として理解する必要があります.</p>
+<p>例えば, 相関関係があっても因果関係がない有名な例として, <strong>チーズの消費量と, ベッドシーツに絡まって死ぬ人の数</strong>や, <strong>プールで溺れた人の数と, ニコラス・ケイジの映画出演数</strong>などがあります. Tyler Vigen のサイト <a href="https://www.tylervigen.com/spurious-correlations">Spurious Correlations</a> に, こうした例がたくさんまとめられています.</p>
+<figure>
+<img src="../../../images/slds/ch9/cheese-consumption.png" alt="Spurious Correlations" />
+<figcaption aria-hidden="true"><a href="https://www.tylervigen.com/spurious-correlations">Spurious Correlations</a></figcaption>
+</figure>
+<figure>
+<img src="../../../images/slds/ch9/nicolas-cage.png" alt="Spurious Correlations" />
+<figcaption aria-hidden="true"><a href="https://www.tylervigen.com/spurious-correlations">Spurious Correlations</a></figcaption>
+</figure>
+<p>このように, まったく因果関係のないものでも現れる相関関係を<strong>偽相関 (Spurious Correlation)</strong>といいます.</p>
+<p>反対に, <span class="math inline">x</span> を 1 から 15 までの整数として <span class="math inline">y = (x-8)^2</span> とすると, <span class="math inline">y</span> の値は完全に <span class="math inline">x</span> によって決まるため, <span class="math inline">x</span> と <span class="math inline">y</span> の間に因果関係は認められますが, 相関係数は 0 になります. 相関係数が測るのは直線的な関係の強さだけであり, <span class="math inline">x = 8</span> を境に増減が入れ替わる関係は捉えられません.</p>
+<figure>
+<img src="../../../images/slds/ch9/y-x-8.png" alt="因果があっても相関がない例" />
+<figcaption aria-hidden="true">因果があっても相関がない例</figcaption>
+</figure>
+<p>相関に似た概念として, 3 つ目の変数の影響を除いた相関を表す<strong>偏相関係数</strong>があります. <a href="../../../fields/descriptive/num-partial/index.html#partial-correlation">偏相関係数</a>で扱います.</p>
+<p>この節に対応する演習は, <a href="#exercise-dsp4-2">Exercise DSP4-2</a>です.</p>
+<h1 id="exercises"><span id="演習"></span>演習</h1>
+<h2 id="exercise-dsp4-2">Exercise DSP4-2</h2>
+<p class="exercise-file">提出ファイル <code>dsp4-2.py</code></p>
+<p><strong>都道府県別データの相関係数と散布図の解釈</strong></p>
+<p>対応する節: <a href="#%E3%83%94%E3%82%A2%E3%82%BD%E3%83%B3%E3%81%AE%E7%A9%8D%E7%8E%87%E7%9B%B8%E9%96%A2%E4%BF%82%E6%95%B0">ピアソンの積率相関係数</a>, <a href="#%E7%9B%B8%E9%96%A2%E4%BF%82%E6%95%B0%E3%81%AE%E3%83%92%E3%83%BC%E3%83%88%E3%83%9E%E3%83%83%E3%83%97">相関係数のヒートマップ</a>, <a href="#%E5%9B%A0%E6%9E%9C%E9%96%A2%E4%BF%82%E3%81%A8%E7%9B%B8%E9%96%A2">因果関係と相関</a></p>
+<p><a href="#%E7%9B%B8%E9%96%A2%E4%BF%82%E6%95%B0%E3%81%AE%E3%83%92%E3%83%BC%E3%83%88%E3%83%9E%E3%83%83%E3%83%97">相関係数のヒートマップ</a>で使った都道府県別のデータについて, 次の問いに答えてください.</p>
+<ol type="1">
+<li>食費 (<code>food</code>) と睡眠時間 (<code>sleep</code>) のピアソンの積率相関係数を, <code>np.corrcoef</code> と <code>scipy.stats.pearsonr</code> の両方で求めてください.</li>
+<li>横軸を食費, 縦軸を睡眠時間とする散布図を, 各点に都道府県名を添えて描いてください. 散布図から読み取れることと相関係数の値を合わせて, 2 つの変数の関係を解釈してください.</li>
+<li>食費が他の都道府県から大きく離れている沖縄県を除いて相関係数を求め直し, 問 1 の値と比べてください.</li>
+<li>「食費が多いと睡眠時間が短くなる」といえるかを, <a href="#%E5%9B%A0%E6%9E%9C%E9%96%A2%E4%BF%82%E3%81%A8%E7%9B%B8%E9%96%A2">因果関係と相関</a>の内容をもとに説明してください.</li>
+</ol>
+<p>提出ファイル名: <code>dsp4-2.py</code></p>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答例
+</summary>
+<div class="sourceCode" id="cb10"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> scipy.stats <span class="im">as</span> st</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib_fontja</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/coeff_multi.csv'</span>, encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>)</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="co"># 問1: 食費と睡眠時間の相関係数</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(np.corrcoef(df[<span class="st">'food'</span>], df[<span class="st">'sleep'</span>])[<span class="dv">0</span>][<span class="dv">1</span>])</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>r, p <span class="op">=</span> st.pearsonr(df[<span class="st">'food'</span>], df[<span class="st">'sleep'</span>])</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(r)</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a><span class="co">-0.40822961572269567</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a><span class="co">-0.4082296157226958</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a><span class="co"># 問2: 散布図に都道府県名を添える</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>plt.scatter(df[<span class="st">'food'</span>], df[<span class="st">'sleep'</span>])</span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> df.index:</span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>    plt.annotate(df.loc[i, <span class="st">'pref'</span>], (df.loc[i, <span class="st">'food'</span>], df.loc[i, <span class="st">'sleep'</span>]), fontsize<span class="op">=</span><span class="dv">7</span>)</span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'食費 (円)'</span>)</span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'睡眠時間 (分)'</span>)</span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a><span class="co"># 問3: 沖縄県を除いた相関係数</span></span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>df2 <span class="op">=</span> df[df[<span class="st">'pref'</span>] <span class="op">!=</span> <span class="st">'沖縄県'</span>]</span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(np.corrcoef(df2[<span class="st">'food'</span>], df2[<span class="st">'sleep'</span>])[<span class="dv">0</span>][<span class="dv">1</span>])</span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a><span class="co">-0.3966182673912843</span></span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<ol type="1">
+<li>相関係数は約 -0.41 で, 目安の表では弱い負の相関にあたります. 2 つの関数の結果は, 計算誤差の範囲で一致します.</li>
+<li>散布図では, 東京都, 神奈川県, 千葉県, 埼玉県など大都市圏の都道府県が右下 (食費が多く睡眠時間が短い) に, 山形県, 秋田県, 青森県, 岩手県など東北の県が上側 (睡眠時間が長い) に集まっています. 右下がりの傾向はあるものの, 点は直線から大きく散らばっており, 相関係数が -0.41 にとどまることと合っています.</li>
+<li>沖縄県を除くと約 -0.40 になり, ほとんど変わりません. 沖縄県は食費が極端に少ない一方, 睡眠時間は全体の中ほどにあるため, 相関係数への影響は小さくなっています.</li>
+<li>いえません. 相関係数は, 食費の多い都道府県ほど睡眠時間が短い傾向を表すだけです. 大都市圏であること (所得や物価の高さ, 通勤時間の長さなど) が食費と睡眠時間の両方に影響する共通要因になっている可能性があり, その影響を取り除かない限り, 食費が睡眠時間を短くするという因果関係は主張できません.</li>
+</ol>
+</details>
+  </div>
+  
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../courses/dsp/4/num-summary.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">中心と広がりの基本統計量</span>
+    </a>
+    <a class="next" href="../../../courses/dsp/4/num-distance.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">距離と類似度</span>
+    </a>
+</nav>
+
+</article>
+
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        <nav class="footer-nav" aria-label="フッターナビゲーション">
+            <a href="../../../">Home</a>
+            <a href="../../../posts.html">Blog</a>
+            <a href="../../../lectures.html">Lecture</a>
+            <a href="../../../research.html">Research</a>
+            <a href="../../../rss.xml">RSS</a>
+            <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+        </nav>
+        <p class="footer-copy">&copy; yakagika &middot; Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>.</p>
+    </div>
+</div>
+
+
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="ページ先頭へ戻る" title="先頭へ戻る">↑</button>
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+            link.classList.add('external-link');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h1[id], h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level = Number(heading.tagName.slice(1)) - 1;
+          if (!heading.id) return;
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          // Pandoc は `::: note` + 見出し の組み合わせを <section id="..." class="note">
+          // 内の <hN> として出力するため, 見出し自身に id が無い場合は
+          // 親 section の id を辿る.
+          var anchorId = heading.id;
+          if (!anchorId) {
+            var parentSection = heading.closest('section[id]');
+            if (parentSection) anchorId = parentSection.id;
+          }
+          anchor.href = '#' + anchorId;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi && !li.contains(currentLi)) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+
+      // ----------------------------------------
+      // スクロールスパイ: 表示中の見出しを TOC でハイライト
+      // ----------------------------------------
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0 || typeof IntersectionObserver === 'undefined') return;
+
+      var idToTocItem = new Map();
+      headings.forEach(function(h) {
+        if (!h.id) return;
+        var link = tocContainer.querySelector('a[href="#' + CSS.escape(h.id) + '"]');
+        if (link) {
+          var li = link.closest('.toc-item') || link.closest('li');
+          if (li) idToTocItem.set(h.id, li);
+        }
+      });
+
+      var visible = new Set();
+      var lastActive = null;
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+
+        // ドキュメント順で最初に可視な見出しをアクティブに
+        var firstVisible = null;
+        for (var i = 0; i < headings.length; i++) {
+          if (visible.has(headings[i].id)) {
+            firstVisible = headings[i].id;
+            break;
+          }
+        }
+        if (!firstVisible) return;
+
+        var tocItem = idToTocItem.get(firstVisible);
+        if (!tocItem || tocItem === lastActive) return;
+
+        if (lastActive) lastActive.classList.remove('toc-active');
+        tocItem.classList.add('toc-active');
+        lastActive = tocItem;
+
+        // TOC を必要なときだけスクロール
+        tocItem.scrollIntoView({
+          block: 'nearest',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
+      }, {
+        // ヘッダー (60px) を除いた上部 〜 画面下から60% を判定領域とする
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0
+      });
+
+      headings.forEach(function(h) { if (h.id) observer.observe(h); });
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
+      const pre = codeBlock.parentNode;
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
+      copyButton.textContent = 'Copy';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    // パスワード保護付き details (回答例用)
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll('details.protected').forEach(function (det) {
+        var pass = det.getAttribute('data-pass') || '';
+        var summary = det.querySelector('summary');
+        if (!summary) return;
+
+        var gate = document.createElement('div');
+        gate.className = 'pass-gate';
+        gate.innerHTML =
+          '<label>合言葉: <input type="password" autocomplete="off" spellcheck="false"></label>' +
+          '<button type="button">解除</button>' +
+          '<span class="pass-error" hidden>合言葉が違います</span>';
+        summary.insertAdjacentElement('afterend', gate);
+
+        var input = gate.querySelector('input');
+        var button = gate.querySelector('button');
+        var errorMsg = gate.querySelector('.pass-error');
+
+        function tryUnlock() {
+          if (input.value === pass) {
+            det.classList.add('unlocked');
+            errorMsg.hidden = true;
+          } else {
+            errorMsg.hidden = false;
+            input.select();
+          }
+        }
+
+        button.addEventListener('click', tryUnlock);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
+        });
+
+        det.addEventListener('toggle', function () {
+          if (det.open && !det.classList.contains('unlocked')) {
+            input.focus();
+          }
+        });
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            try {
+              katex.render( texText.data
+                          , mathElements[i]
+                          , { displayMode: mathElements[i].classList.contains("display")
+                            , throwOnError: true
+                           }
+                          );
+            } catch (e) {
+              // 1 つの数式のエラーで残り全ての数式が生 TeX のまま残らないようにする
+              console.error('KaTeX render error:', e.message, texText.data);
+            }
+          }
+      }
+    });
+  </script>
+
+  <!-- 見出しアンカーリンク + Back to top -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 記事見出しに hover で現れる # パーマリンクを付与
+      document.querySelectorAll('article h2[id], article h3[id]').forEach(function (h) {
+        var a = document.createElement('a');
+        a.className = 'heading-anchor';
+        a.href = '#' + h.id;
+        a.setAttribute('aria-label', 'このセクションへのリンク');
+        a.textContent = '#';
+        h.appendChild(a);
+      });
+
+      // Back to top: スクロール量に応じて表示
+      var btt = document.getElementById('back-to-top');
+      if (btt) {
+        var onScroll = function () {
+          if (window.pageYOffset > 600) btt.classList.add('visible');
+          else btt.classList.remove('visible');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        btt.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
+    });
+  </script>
+
+  </body>
+</html>

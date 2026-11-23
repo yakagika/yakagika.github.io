@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+    <script>
+      (function () {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+        function stored() {
+          var t = null;
+          try { t = localStorage.getItem('theme'); } catch (e) {}
+          return (t === 'dark' || t === 'light') ? t : null;
+        }
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
+        if (mq) {
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
+        }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
+      })();
+    </script>
+    <title>yakagika - 重回帰での結果確認</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../../../style.css?v=1795415080">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../../../" class="site-brand" aria-label="Home">
+          <span class="site-mark" aria-hidden="true">▮</span>
+          <span class="site-word">yakagika</span>
+        </a>
+      </div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../../../">Home</a>
+      <a href="../../../posts.html">Blog</a>
+      <a href="../../../lectures.html">Lecture</a>
+      <a href="../../../research.html">Research</a>
+      <a href="../../../lectures/seminar.html">Seminar</a>
+      <a href="../../../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      
+      <div id="lecture-toc" data-mode="series">
+  <h2>Index</h2>
+  <a href="../../../fields/bayes/index.html">ベイズ統計学</a>
+  <ul class="toc-root">
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/bayes/bayes-intro/index.html">統計モデリングとベイズ統計学の基礎</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item current-block">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/bayes/bayes-modeling/index.html">重回帰から一般化線形モデルと階層モデルへ</a>
+        
+      </div>
+      
+      <ul class="toc-sublist">
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/bayes/bayes-modeling/index.html">ベイズ統計学による統計モデリング実践</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item current">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/bayes/bayes-modeling/linear-regression-fit.html" aria-current="page">重回帰での結果確認</a>
+          </div>
+          <ul class="toc-sublist"></ul>
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/bayes/bayes-modeling/overdispersion.html">過分散と個体差</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/bayes/bayes-modeling/generalized-linear-models.html">一般化線形モデル (GLM)</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/bayes/bayes-modeling/modeling-individual-variation.html">個体差のモデリング</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/bayes/bayes-modeling/hierarchical-model-specification.html">モデル全体像</a>
+          </div>
+          
+        </li>
+        
+      </ul>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/bayes/bayes-setup/index.html">PyMC の環境構築</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/bayes/bayes-pymc/index.html">PyMC によるモデルの実装</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/bayes/bayes-results/index.html">MCMC の実行, 診断, 結果の読み方</a>
+        
+      </div>
+      
+    </li>
+    
+  </ul>
+</div>
+
+    </nav>
+
+    <div id="content">
+    
+<nav class="block-course-nav" aria-label="講義の並び">
+  <p>講義の並び</p>
+  <ul>
+    
+    <li class="course-occurrence">
+      <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+      <a href="../../../courses/dsp/selected.html">選択資料</a> (発展)
+      
+      <a href="../../../fields/bayes/bayes-intro/index.html" rel="prev">← 統計モデリングとベイズ統計学の基礎</a>
+      
+      
+      
+      <a href="../../../fields/bayes/bayes-setup/index.html" rel="next">PyMC の環境構築 →</a>
+      
+      
+    </li>
+    
+  </ul>
+</nav>
+
+
+
+<article>
+  
+  <h1 id="linear-regression-fit"><span id="重回帰での結果確認"></span>重回帰での結果確認</h1>
+<nav class="block-field-nav block-field-nav-narrow" aria-label="分野の目次">
+  <a href="../../../fields/bayes/index.html">ベイズ統計学</a>
+  <ol>
+    
+    <li>
+      
+      <a href="../../../fields/bayes/bayes-intro/index.html">統計モデリングとベイズ統計学の基礎</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <strong><a href="../../../fields/bayes/bayes-modeling/index.html" aria-current="true">重回帰から一般化線形モデルと階層モデルへ</a></strong>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/bayes/bayes-setup/index.html">PyMC の環境構築</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/bayes/bayes-pymc/index.html">PyMC によるモデルの実装</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/bayes/bayes-results/index.html">MCMC の実行, 診断, 結果の読み方</a>
+      
+      
+    </li>
+    
+  </ol>
+</nav>
+<nav class="chapter-nav-card">
+    <a class="prev" href="../../../fields/bayes/bayes-modeling/index.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">重回帰から一般化線形モデルと階層モデルへ</span>
+    </a>
+    <a class="next" href="../../../fields/bayes/bayes-modeling/overdispersion.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">過分散と個体差</span>
+    </a>
+</nav>
+
+<p>まずは, データの読み込みを行います. 必要なライブラリは各自で <code>pip install</code> してください.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> statsmodels.api <span class="im">as</span> sm</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> mean_squared_error, r2_score, mean_absolute_error</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'hierarchical_regression.csv'</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>                ,dtype<span class="op">=</span>{<span class="st">'GPA'</span>: <span class="bu">float</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>                       ,<span class="st">'Scholarship'</span>: <span class="bu">bool</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>                       ,<span class="st">'Study_Hours'</span>: <span class="bu">float</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>                       ,<span class="st">'Sports_hours'</span>: <span class="bu">float</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>                       ,<span class="st">'Part_time_Work'</span>: <span class="bu">float</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>                       ,<span class="st">'StudentID'</span>:<span class="bu">int</span>})</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="co">          GPA  Scholarship  Study_Hours  Sports_hours  Part_time_Work  StudentID</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="co">0    1.348928         True    10.348188      5.398119       14.944201          0</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="co">1    1.968662        False     8.803971      3.799566       15.340118          1</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="co">2    2.246881         True    10.367043      5.139604       19.937536          2</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="co">3    1.167275         True     2.049724      4.229373       21.009315          3</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a><span class="co">4    3.295929         True     9.121312      5.227035       14.271377          4</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="co">..        ...          ...          ...           ...             ...        ...</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a><span class="co">185  0.974230        False     4.256551      0.396158       13.299289        185</span></span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a><span class="co">186  2.208293        False    14.652655      1.969618       10.523032        186</span></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a><span class="co">187  0.786660        False    10.040932      7.733749       13.232559        187</span></span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a><span class="co">188  2.068987         True     6.073965      8.289935       13.540597        188</span></span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a><span class="co">189  2.531604         True    11.848414      4.501928       11.335318        189</span></span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>まずはデータを可視化してみます.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co"># ペアプロット</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>sns.pairplot(df</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>            ,<span class="bu">vars</span><span class="op">=</span>[<span class="st">&quot;GPA&quot;</span>, <span class="st">&quot;Study_Hours&quot;</span>, <span class="st">&quot;Sports_hours&quot;</span>, <span class="st">&quot;Part_time_Work&quot;</span>]</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>            ,hue<span class="op">=</span><span class="st">&quot;Scholarship&quot;</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>            ,diag_kind<span class="op">=</span><span class="st">&quot;hist&quot;</span>)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>plt.suptitle(<span class="st">&quot;Pairplot with Scholarship&quot;</span>, y<span class="op">=</span><span class="fl">1.02</span>)</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>plt.savefig(<span class="st">'PairplotwithScholarship.png'</span>)</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>plt.close()</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="co">#joinplotで男女別に密度プロットを表示</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>fig <span class="op">=</span> sns.jointplot(df</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>               ,x <span class="op">=</span><span class="st">&quot;Study_Hours&quot;</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>               ,y <span class="op">=</span><span class="st">&quot;GPA&quot;</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>               ,hue<span class="op">=</span><span class="st">'Scholarship'</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>               ,joint_kws <span class="op">=</span> <span class="bu">dict</span>(alpha<span class="op">=</span><span class="fl">0.5</span>))</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>plt.savefig(<span class="st">'kde.png'</span>)</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>plt.close()</span></code></pre></div>
+<p><img src="../../../images/slds/ch12/PairplotwithScholarship.png" /></p>
+<p><a href="../../../fields/regression/reg-multiple/partial-coefficients.html#partial-coefficients">回帰分析で使ったデータ</a>と概ね似た傾向 (奨学金ありが少し高い, 勉強時間と GPA に相関, 勉強時間とバイト時間に負の相関など) が確認できます.
+ただし, <a href="../../../fields/regression/reg-multiple/partial-coefficients.html#partial-coefficients">GPA の重回帰分析で用いたデータ</a>と比べるとデータ全体のばらつきが大きいことが分かります.</p>
+<p><img src="../../../images/slds/ch12/kde-compare.png" /></p>
+<p><a href="../../../fields/regression/reg-gpa/index.html">GPA の重回帰分析</a>と同様の手法で, 線形重回帰の実施と結果の確認を行います.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="co"># 数量化</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.get_dummies(df, columns<span class="op">=</span>[<span class="st">'Scholarship'</span>], dtype<span class="op">=</span><span class="st">'int'</span>)</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co">#標準化</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.preprocessing <span class="im">import</span> StandardScaler</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>scaler <span class="op">=</span> StandardScaler()</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>df[[<span class="st">'Scholarship_True'</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>   ,<span class="st">'Study_Hours'</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>   ,<span class="st">'Part_time_Work'</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>   ,<span class="st">'Sports_hours'</span>]] <span class="op">=</span> scaler.fit_transform(df[[<span class="st">'Scholarship_True'</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>                                               ,<span class="st">'Study_Hours'</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>                                               ,<span class="st">'Part_time_Work'</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>                                               ,<span class="st">'Sports_hours'</span>]])</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="co">#線形回帰</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a><span class="co"># 説明変数(X)と目的変数(y)に分割</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> df[[<span class="st">'Scholarship_True'</span>, <span class="st">'Study_Hours'</span>]]</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span> df[<span class="st">'GPA'</span>]</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a><span class="co"># 切片(定数項)を追加</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> sm.add_constant(X)</span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>lm <span class="op">=</span> sm.OLS(y, X).fit()</span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">&quot;</span><span class="ch">\n</span><span class="st">[通常の線形回帰の結果]</span><span class="ch">\n</span><span class="st">&quot;</span>)</span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(lm.summary())</span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>lm_preds <span class="op">=</span> lm.predict(X)</span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a>plt.figure(figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">6</span>))</span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>plt.scatter(df[<span class="st">'GPA'</span>], lm_preds, alpha<span class="op">=</span><span class="fl">0.7</span>, edgecolors<span class="op">=</span><span class="st">&quot;k&quot;</span>)</span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">&quot;Predicted&quot;</span>)</span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">&quot;Actual&quot;</span>)</span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">&quot;Actual vs. Predicted&quot;</span>)</span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>plt.plot([df[<span class="st">'GPA'</span>].<span class="bu">min</span>(), df[<span class="st">'GPA'</span>].<span class="bu">max</span>()], [df[<span class="st">'GPA'</span>].<span class="bu">min</span>(), df[<span class="st">'GPA'</span>].<span class="bu">max</span>()], color<span class="op">=</span><span class="st">&quot;red&quot;</span>, linestyle<span class="op">=</span><span class="st">&quot;--&quot;</span>)  <span class="co"># 完全一致のライン</span></span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a>plt.grid()</span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a>plt.savefig(<span class="st">'lm.png'</span>)</span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a>plt.close()</span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a>plt.figure(figsize<span class="op">=</span>(<span class="dv">16</span>,<span class="dv">8</span>))</span>
+<span id="cb3-40"><a href="#cb3-40" aria-hidden="true" tabindex="-1"></a>sns.kdeplot(lm_preds, label <span class="op">=</span> <span class="st">'Predicted'</span>)</span>
+<span id="cb3-41"><a href="#cb3-41" aria-hidden="true" tabindex="-1"></a>sns.kdeplot(df[<span class="st">'GPA'</span>], label <span class="op">=</span> <span class="st">'Actual'</span>)</span>
+<span id="cb3-42"><a href="#cb3-42" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">'Actual/Predicted'</span>)</span>
+<span id="cb3-43"><a href="#cb3-43" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'GPA'</span>)</span>
+<span id="cb3-44"><a href="#cb3-44" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'Density'</span>)</span>
+<span id="cb3-45"><a href="#cb3-45" aria-hidden="true" tabindex="-1"></a>plt.legend()</span>
+<span id="cb3-46"><a href="#cb3-46" aria-hidden="true" tabindex="-1"></a>plt.savefig(<span class="st">'lm_kde.png'</span>)</span>
+<span id="cb3-47"><a href="#cb3-47" aria-hidden="true" tabindex="-1"></a>plt.close()</span>
+<span id="cb3-48"><a href="#cb3-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-49"><a href="#cb3-49" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb3-50"><a href="#cb3-50" aria-hidden="true" tabindex="-1"></a><span class="co">                            OLS Regression Results                            </span></span>
+<span id="cb3-51"><a href="#cb3-51" aria-hidden="true" tabindex="-1"></a><span class="co">==============================================================================</span></span>
+<span id="cb3-52"><a href="#cb3-52" aria-hidden="true" tabindex="-1"></a><span class="co">Dep. Variable:                    GPA   R-squared:                       0.444</span></span>
+<span id="cb3-53"><a href="#cb3-53" aria-hidden="true" tabindex="-1"></a><span class="co">Model:                            OLS   Adj. R-squared:                  0.438</span></span>
+<span id="cb3-54"><a href="#cb3-54" aria-hidden="true" tabindex="-1"></a><span class="co">Method:                 Least Squares   F-statistic:                     74.76</span></span>
+<span id="cb3-55"><a href="#cb3-55" aria-hidden="true" tabindex="-1"></a><span class="co">Date:                Tue, 04 Nov 2025   Prob (F-statistic):           1.38e-24</span></span>
+<span id="cb3-56"><a href="#cb3-56" aria-hidden="true" tabindex="-1"></a><span class="co">Time:                        16:50:17   Log-Likelihood:                -187.55</span></span>
+<span id="cb3-57"><a href="#cb3-57" aria-hidden="true" tabindex="-1"></a><span class="co">No. Observations:                 190   AIC:                             381.1</span></span>
+<span id="cb3-58"><a href="#cb3-58" aria-hidden="true" tabindex="-1"></a><span class="co">Df Residuals:                     187   BIC:                             390.8</span></span>
+<span id="cb3-59"><a href="#cb3-59" aria-hidden="true" tabindex="-1"></a><span class="co">Df Model:                           2                                         </span></span>
+<span id="cb3-60"><a href="#cb3-60" aria-hidden="true" tabindex="-1"></a><span class="co">Covariance Type:            nonrobust                                         </span></span>
+<span id="cb3-61"><a href="#cb3-61" aria-hidden="true" tabindex="-1"></a><span class="co">====================================================================================</span></span>
+<span id="cb3-62"><a href="#cb3-62" aria-hidden="true" tabindex="-1"></a><span class="co">                       coef    std err          t      P&gt;|t|      [0.025      0.975]</span></span>
+<span id="cb3-63"><a href="#cb3-63" aria-hidden="true" tabindex="-1"></a><span class="co">------------------------------------------------------------------------------------</span></span>
+<span id="cb3-64"><a href="#cb3-64" aria-hidden="true" tabindex="-1"></a><span class="co">const                2.0000      0.047     42.122      0.000       1.906       2.094</span></span>
+<span id="cb3-65"><a href="#cb3-65" aria-hidden="true" tabindex="-1"></a><span class="co">Scholarship_True     0.1385      0.047      2.917      0.004       0.045       0.232</span></span>
+<span id="cb3-66"><a href="#cb3-66" aria-hidden="true" tabindex="-1"></a><span class="co">Study_Hours          0.5620      0.047     11.835      0.000       0.468       0.656</span></span>
+<span id="cb3-67"><a href="#cb3-67" aria-hidden="true" tabindex="-1"></a><span class="co">==============================================================================</span></span>
+<span id="cb3-68"><a href="#cb3-68" aria-hidden="true" tabindex="-1"></a><span class="co">Omnibus:                       11.718   Durbin-Watson:                   1.974</span></span>
+<span id="cb3-69"><a href="#cb3-69" aria-hidden="true" tabindex="-1"></a><span class="co">Prob(Omnibus):                  0.003   Jarque-Bera (JB):               14.133</span></span>
+<span id="cb3-70"><a href="#cb3-70" aria-hidden="true" tabindex="-1"></a><span class="co">Skew:                          -0.457   Prob(JB):                     0.000853</span></span>
+<span id="cb3-71"><a href="#cb3-71" aria-hidden="true" tabindex="-1"></a><span class="co">Kurtosis:                       3.975   Cond. No.                         1.01</span></span>
+<span id="cb3-72"><a href="#cb3-72" aria-hidden="true" tabindex="-1"></a><span class="co">==============================================================================</span></span>
+<span id="cb3-73"><a href="#cb3-73" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>全般的に有意ではあるものの, 精度がそれほど高くありません.
+<img src="../../../images/slds/ch12/lm.png" />
+<img src="../../../images/slds/ch12/lm_kde.png" /></p>
+<p>グラフを見てみると, 元のデータは予測値に対して分散が大きくデータの分散を予測モデルが説明しきれていないことが分かります.
+決定係数 <span class="math inline">R^2</span> を確認しても, データに含まれている変数では全体の変動のうち 44% ほどしか説明できていません.</p>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../fields/bayes/bayes-modeling/index.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">重回帰から一般化線形モデルと階層モデルへ</span>
+    </a>
+    <a class="next" href="../../../fields/bayes/bayes-modeling/overdispersion.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">過分散と個体差</span>
+    </a>
+</nav>
+
+</article>
+
+
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        <nav class="footer-nav" aria-label="フッターナビゲーション">
+            <a href="../../../">Home</a>
+            <a href="../../../posts.html">Blog</a>
+            <a href="../../../lectures.html">Lecture</a>
+            <a href="../../../research.html">Research</a>
+            <a href="../../../rss.xml">RSS</a>
+            <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+        </nav>
+        <p class="footer-copy">&copy; yakagika &middot; Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>.</p>
+    </div>
+</div>
+
+
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="ページ先頭へ戻る" title="先頭へ戻る">↑</button>
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+            link.classList.add('external-link');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level;
+          switch (heading.tagName.toLowerCase()) {
+            case 'h2': level = 0; break;
+            case 'h3': level = 1; break;
+            case 'h4': level = 2; break;
+            default: return;
+          }
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          // Pandoc は `::: note` + 見出し の組み合わせを <section id="..." class="note">
+          // 内の <hN> として出力するため, 見出し自身に id が無い場合は
+          // 親 section の id を辿る.
+          var anchorId = heading.id;
+          if (!anchorId) {
+            var parentSection = heading.closest('section[id]');
+            if (parentSection) anchorId = parentSection.id;
+          }
+          anchor.href = '#' + anchorId;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi && !li.contains(currentLi)) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+
+      // ----------------------------------------
+      // スクロールスパイ: 表示中の見出しを TOC でハイライト
+      // ----------------------------------------
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0 || typeof IntersectionObserver === 'undefined') return;
+
+      var idToTocItem = new Map();
+      headings.forEach(function(h) {
+        if (!h.id) return;
+        var link = tocContainer.querySelector('a[href="#' + CSS.escape(h.id) + '"]');
+        if (link) {
+          var li = link.closest('.toc-item') || link.closest('li');
+          if (li) idToTocItem.set(h.id, li);
+        }
+      });
+
+      var visible = new Set();
+      var lastActive = null;
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+
+        // ドキュメント順で最初に可視な見出しをアクティブに
+        var firstVisible = null;
+        for (var i = 0; i < headings.length; i++) {
+          if (visible.has(headings[i].id)) {
+            firstVisible = headings[i].id;
+            break;
+          }
+        }
+        if (!firstVisible) return;
+
+        var tocItem = idToTocItem.get(firstVisible);
+        if (!tocItem || tocItem === lastActive) return;
+
+        if (lastActive) lastActive.classList.remove('toc-active');
+        tocItem.classList.add('toc-active');
+        lastActive = tocItem;
+
+        // TOC を必要なときだけスクロール
+        tocItem.scrollIntoView({
+          block: 'nearest',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
+      }, {
+        // ヘッダー (60px) を除いた上部 〜 画面下から60% を判定領域とする
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0
+      });
+
+      headings.forEach(function(h) { if (h.id) observer.observe(h); });
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
+      const pre = codeBlock.parentNode;
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
+      copyButton.textContent = 'Copy';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    // パスワード保護付き details (回答例用)
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll('details.protected').forEach(function (det) {
+        var pass = det.getAttribute('data-pass') || '';
+        var summary = det.querySelector('summary');
+        if (!summary) return;
+
+        var gate = document.createElement('div');
+        gate.className = 'pass-gate';
+        gate.innerHTML =
+          '<label>合言葉: <input type="password" autocomplete="off" spellcheck="false"></label>' +
+          '<button type="button">解除</button>' +
+          '<span class="pass-error" hidden>合言葉が違います</span>';
+        summary.insertAdjacentElement('afterend', gate);
+
+        var input = gate.querySelector('input');
+        var button = gate.querySelector('button');
+        var errorMsg = gate.querySelector('.pass-error');
+
+        function tryUnlock() {
+          if (input.value === pass) {
+            det.classList.add('unlocked');
+            errorMsg.hidden = true;
+          } else {
+            errorMsg.hidden = false;
+            input.select();
+          }
+        }
+
+        button.addEventListener('click', tryUnlock);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
+        });
+
+        det.addEventListener('toggle', function () {
+          if (det.open && !det.classList.contains('unlocked')) {
+            input.focus();
+          }
+        });
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            try {
+              katex.render( texText.data
+                          , mathElements[i]
+                          , { displayMode: mathElements[i].classList.contains("display")
+                            , throwOnError: true
+                           }
+                          );
+            } catch (e) {
+              // 1 つの数式のエラーで残り全ての数式が生 TeX のまま残らないようにする
+              console.error('KaTeX render error:', e.message, texText.data);
+            }
+          }
+      }
+    });
+  </script>
+
+  <!-- 見出しアンカーリンク + Back to top -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 記事見出しに hover で現れる # パーマリンクを付与
+      document.querySelectorAll('article h2[id], article h3[id]').forEach(function (h) {
+        var a = document.createElement('a');
+        a.className = 'heading-anchor';
+        a.href = '#' + h.id;
+        a.setAttribute('aria-label', 'このセクションへのリンク');
+        a.textContent = '#';
+        h.appendChild(a);
+      });
+
+      // Back to top: スクロール量に応じて表示
+      var btt = document.getElementById('back-to-top');
+      if (btt) {
+        var onScroll = function () {
+          if (window.pageYOffset > 600) btt.classList.add('visible');
+          else btt.classList.remove('visible');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        btt.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
+    });
+  </script>
+
+  </body>
+</html>

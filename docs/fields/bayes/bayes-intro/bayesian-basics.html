@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+    <script>
+      (function () {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+        function stored() {
+          var t = null;
+          try { t = localStorage.getItem('theme'); } catch (e) {}
+          return (t === 'dark' || t === 'light') ? t : null;
+        }
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
+        if (mq) {
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
+        }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
+      })();
+    </script>
+    <title>yakagika - 基礎知識 ベイズ統計学概要</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../../../style.css?v=1795415080">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../../../" class="site-brand" aria-label="Home">
+          <span class="site-mark" aria-hidden="true">▮</span>
+          <span class="site-word">yakagika</span>
+        </a>
+      </div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../../../">Home</a>
+      <a href="../../../posts.html">Blog</a>
+      <a href="../../../lectures.html">Lecture</a>
+      <a href="../../../research.html">Research</a>
+      <a href="../../../lectures/seminar.html">Seminar</a>
+      <a href="../../../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      
+      <div id="lecture-toc" data-mode="series">
+  <h2>Index</h2>
+  <a href="../../../fields/bayes/index.html">ベイズ統計学</a>
+  <ul class="toc-root">
+    
+    <li class="toc-item toc-series-item current-block">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/bayes/bayes-intro/index.html">統計モデリングとベイズ統計学の基礎</a>
+        
+      </div>
+      
+      <ul class="toc-sublist">
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/bayes/bayes-intro/index.html">統計モデリング</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item current">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/bayes/bayes-intro/bayesian-basics.html" aria-current="page">基礎知識 ベイズ統計学概要</a>
+          </div>
+          <ul class="toc-sublist"></ul>
+        </li>
+        
+      </ul>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/bayes/bayes-modeling/index.html">重回帰から一般化線形モデルと階層モデルへ</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/bayes/bayes-setup/index.html">PyMC の環境構築</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/bayes/bayes-pymc/index.html">PyMC によるモデルの実装</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/bayes/bayes-results/index.html">MCMC の実行, 診断, 結果の読み方</a>
+        
+      </div>
+      
+    </li>
+    
+  </ul>
+</div>
+
+    </nav>
+
+    <div id="content">
+    
+<nav class="block-course-nav" aria-label="講義の並び">
+  <p>講義の並び</p>
+  <ul>
+    
+    <li class="course-occurrence">
+      <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+      <a href="../../../courses/dsp/selected.html">選択資料</a> (発展)
+      
+      <a href="../../../fields/deep-learning/img-age-code/index.html" rel="prev">← 年齢識別のコード全体</a>
+      
+      
+      
+      <a href="../../../fields/bayes/bayes-modeling/index.html" rel="next">重回帰から一般化線形モデルと階層モデルへ →</a>
+      
+      
+    </li>
+    
+  </ul>
+</nav>
+
+
+
+<article>
+  
+  <h1 id="bayesian-basics"><span id="基礎知識-ベイズ統計学概要"></span>基礎知識 ベイズ統計学概要</h1>
+<nav class="block-field-nav block-field-nav-narrow" aria-label="分野の目次">
+  <a href="../../../fields/bayes/index.html">ベイズ統計学</a>
+  <ol>
+    
+    <li>
+      
+      <strong><a href="../../../fields/bayes/bayes-intro/index.html" aria-current="true">統計モデリングとベイズ統計学の基礎</a></strong>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/bayes/bayes-modeling/index.html">重回帰から一般化線形モデルと階層モデルへ</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/bayes/bayes-setup/index.html">PyMC の環境構築</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/bayes/bayes-pymc/index.html">PyMC によるモデルの実装</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/bayes/bayes-results/index.html">MCMC の実行, 診断, 結果の読み方</a>
+      
+      
+    </li>
+    
+  </ol>
+</nav>
+<nav class="chapter-nav-card">
+    <a class="prev" href="../../../fields/bayes/bayes-intro/index.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">統計モデリングとベイズ統計学の基礎</span>
+    </a>
+    <a class="next" href="../../../fields/bayes/bayes-modeling/index.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">重回帰から一般化線形モデルと階層モデルへ</span>
+    </a>
+</nav>
+
+<p>統計的仮説検定や回帰分析は無限回試行を行った際に収束する相対度数 (<strong>客観確率</strong>) を確率の定義とする<strong>頻度主義</strong>に基づいた統計的手法です (詳細は「統計学入門 (データ活用の統計学)」などに譲ります). そのような前提にたった統計学を<strong>伝統的統計学</strong>とも呼びます.</p>
+<p>一方で, 2000 年代初頭から, 計算機の性能向上と, MCMC などのアルゴリズムの開発によって, 分析者の情報, 知識, 経験などによる主観によって定められる<strong>主観確率</strong>に基づく確率的定義 (<strong>ベイズ主義</strong>) を前提とした手法が用いられるようになりました.</p>
+<h2 id="ベイズの定理">ベイズの定理</h2>
+<p>まずは, ベイズ統計学の中核となる<strong>ベイズ確率 (逆確率)</strong>, <strong>ベイズの定理</strong>などの基礎概念の概要を把握しましょう.</p>
+<div class="warn">
+<p>ここでは, 最低限の記法の意味などについて概要を解説します.
+基本的な確率計算や定義に関しては「統計学入門」, 「データ活用の統計学」などを,
+ベイズやアルゴリズムの詳細に関しては「データ活用の統計学実践」などの講義を受講してください.</p>
+</div>
+<p>ベイズ確率やベイズの定理は, 1740 年代に数学好きの牧師であったトーマス・ベイズによってまとめられました. ベイズは, 神学への興味から, 「世界が原初神によって作られたこと」を「現在の事象」によって証明できるか, という問題に関心を寄せていました. ベイズはこのような問題を解くために, 仮の確率を今現在の情報によって更新し, 過去の出来事を推測するというアイデア (逆確率) をまとめました.</p>
+<p>しかし, ベイズ自身はこれを発表せず, 1763 年にリチャード・プライスによってベイズの遺稿が発表されたことで再注目されました (このことによって近年では, ベイズの定理が<strong>ベイズ・プライスの定理</strong>と呼ばれることもあります).</p>
+<p>古典的確率の定立に貢献したラプラスも同様の観点に注目した時期があり, ベイズの定理から確率的な推論を実施する方法などがまとめられましたが, 当時の計算・データ環境などからそれ以上深められることはなく, 古典的確率に則った頻度主義や伝統的統計学が発展していきます.</p>
+<p>(cf. シャロン・バーチュ マグレイン (著), 異端の統計学 ベイズ, 草思社, 2013)</p>
+<p>それでは, 逆確率やベイズの定理がどのようなものかを見ていきましょう.</p>
+<h3 id="条件付き確率">条件付き確率</h3>
+<p>事象 A の下での事象 B の条件付き確率</p>
+<p><span class="math display">P(B|A) = \frac{P(B \cap A)}{P(A)}</span></p>
+<p>を変形した</p>
+<p><span class="math display">P(B \cap A) = P(A) P(B | A) </span></p>
+<p>を乗法定理と呼びます.</p>
+<p>このとき 積事象は対称 (<span class="math inline">A \cap B = B \cap A</span>) なので,</p>
+<p><span class="math display">P(B \cap A) = P(A \cap B) = P(B) P(A | B)  </span></p>
+<p>も成り立ちます.</p>
+<h3 id="ベイズの定理-1">ベイズの定理</h3>
+<p><span class="math inline">A</span> を得られた結果, <span class="math inline">H_1,H_2,...,H_k</span> を原因としたとき, 事象 A の下での事象 <span class="math inline">H_i</span> の条件付き確率は,</p>
+<p><span class="math display"> P(H_i | A) = \frac{P(H_i \cap A)}{P(A)}</span></p>
+<p>となります.</p>
+<p>ただし, ここで <span class="math inline">H_i</span> は互いに排反で, <span class="math display"> \bigcup_{i=1} H_i = \Omega </span> かつ <span class="math display"> \sum_{i=1} P(H_i) =1 </span></p>
+<p>このとき, 乗法定理から</p>
+<p><span class="math display"> P(H_i \cap A) = P(H_i)P(A | H_i)</span></p>
+<p>が求まります. これを代入して,</p>
+<p><span class="math display"> P(H_i | A) = \frac{P(H_i)P(A | H_i)}{P(A)} </span></p>
+<p>となり, これをベイズの定理といいます.</p>
+<p>また,</p>
+<p><span class="math display"> P(A) = \sum_{i=1}^{k} P(A \cap H_i) = \sum_{i=1}^{k} P(H_i)P(A|H_i) </span></p>
+<p>であるから,</p>
+<p><span class="math display"> P(H_i |A) = \frac{P(H_i)P(A|H_i)}{\sum_{i=1}^{k} P(H_i)P(A|H_i) }</span></p>
+<p>と表す場合もあります.</p>
+<p>このとき, <span class="math inline">P(H_i)</span> を (A が起こる) <strong>事前確率</strong>, <span class="math inline">P(H_i|A)</span> を (A が起こる) <strong>事後確率</strong>といいます. ベイズ統計学ではしばしば事前確率に<strong>主観確率</strong>が用いられ, これを基礎とする統計的方法を<strong>ベイズ統計学</strong>といいます.</p>
+<div class="note">
+<ul>
+<li>客観確率</li>
+</ul>
+<p>頻度説では, 事象 <span class="math inline">A</span> の起こる確率 <span class="math inline">P(A)</span> を生起回数の相対頻度で求めています. これは誰が計算しても同一の客観的な値といえます.</p>
+<ul>
+<li>主観確率</li>
+</ul>
+<p>研究者が主観的にある確率を与えて分析を行います. この場合確率は, 研究者の経験, 情報, 知識によって異なる値が用いられます.
+当然, 主観確率によって結果は異なります. ただし, 後に見るように多量のデータによって主観性を減らせます.</p>
+<ul>
+<li>事前確率と事後確率の意味</li>
+</ul>
+<p><strong>事前確率 <span class="math inline">P(H_i)</span></strong> は, データ <span class="math inline">A</span> が観測される<strong>前</strong>の, 仮説 <span class="math inline">H_i</span> に対する (主観的な) 確信度を表します. つまり, データを観測する前に, どの仮説が真である可能性が高いかを表す確率です.</p>
+<p><strong>事後確率 <span class="math inline">P(H_i|A)</span></strong> は, データ <span class="math inline">A</span> が観測された<strong>後</strong>の, 仮説 <span class="math inline">H_i</span> に対する確信度を表します. つまり, データ <span class="math inline">A</span> が得られたという情報を踏まえた上で, どの仮説が真である可能性が高いかを表す確率です.</p>
+</div>
+<p>ベイズの定理は, 事前確率とデータから事後確率を計算する方法を提供します. この過程では, データが得られることで, 仮説に対する確信度が更新されます. 例えば, 事前確率が低かった仮説でも, データがその仮説を支持するものであれば, 事後確率は高くなります. 逆に, 事前確率が高かった仮説でも, データがその仮説と矛盾するものであれば, 事後確率は低くなります.</p>
+<p>条件付き確率の範囲では, 「原因から結果の確率を計算」しますが, ベイズの定理では結果から原因を考えています.</p>
+<h3 id="条件付き確率-1">条件付き確率</h3>
+<p>事象 A が起こったと分かっている場合に事象 B の起こる確率</p>
+<p><span class="math display"> P(B|A) = \frac{P(A \cap B)}{P(A)}</span></p>
+<p>例: 選ばれた壺から出る玉の確率を計算</p>
+<p>壺に白, 赤それぞれ 3 つの玉が入っています. 白玉には 1,1,2 と数字, 赤玉には 1,2,2 と数字が書かれています.
+次に出る玉が白であることがわかっている場合に 1 の玉がでる確率は?</p>
+<p><img src="../../../images/slds/ch12/conditional_probability.png" /></p>
+<p><span class="math display">
+P(1 | 白) = \frac{P(白 \cap 1)}{P(白)} = \frac{2 / 6}{ 1/ 2} = \frac{2}{3}
+</span></p>
+<p>𝑃(玉の色|選んだ壺) であり, 𝑃(結果|原因) の計算</p>
+<h3 id="ベイズ確率">ベイズ確率</h3>
+<p>事象 A が起こったと分かっている場合に, 原因 <span class="math inline">H_i</span> が起きている確率</p>
+<p><span class="math display"> P(H_i | A) = \frac{P(H_i)P(A | H_i)}{P(A)} </span></p>
+<p>例: 出た玉から壺が選ばれている確率を計算</p>
+<p>2 つの壺があり,</p>
+<ul>
+<li><p>第 1 の壺には白玉が 3 個, 黒玉が 1 個</p></li>
+<li><p>第 2 の壺には白玉が 1 個, 黒玉が 2 個</p></li>
+<li><p><span class="math inline">𝐻_1</span>: 第 1 の壺から取り出す</p></li>
+<li><p><span class="math inline">𝐻_2</span>: 第 2 の壺から取り出す</p></li>
+<li><p><span class="math inline">A</span>: 白玉が出たという事象</p></li>
+</ul>
+<p>とすると, いずれかの壺から玉を 1 個取り出したところ白玉でした. どちらの壺から取り出した確率が高いでしょうか.</p>
+<p><img src="../../../images/slds/ch12/beys_example.png" /></p>
+<p>まず, どちらの壺から取り出すかは<strong>五分五分</strong>であると仮定します. ここでこの仮定が完全に分析者の主観に基づくのであれば<strong>主観確率</strong>であり, 何らかの実験等によって確率 0.5 であると確かめられている場合には<strong>客観確率</strong>とみなされます.</p>
+<p><span class="math display">P(H_1) = P(H_2) = \frac{1}{2}</span></p>
+<p><span class="math display">P(A|H_1) = \frac{3}{4}, \quad P(A|H_2) = \frac{1}{3}</span></p>
+<p>であるから,</p>
+<p><span class="math display">P(H_1|A) = \frac{\frac{1}{2} \cdot \frac{3}{4}}{\frac{1}{2} \cdot \frac{3}{4} + \frac{1}{2} \cdot \frac{1}{3}} = \frac{9}{13}</span></p>
+<p><span class="math display">P(H_2|A) = \frac{\frac{1}{2} \cdot \frac{1}{3}}{\frac{1}{2} \cdot \frac{3}{4} + \frac{1}{2} \cdot \frac{1}{3}} = \frac{4}{13}</span></p>
+<p>この「<span class="math inline">H_1</span> の壺が選ばれている」という結果は, 壺が選ばれる確率が等しいという主観確率が正しければ正しいと言えます.</p>
+<p>この事例で計算されているのは 𝑃(選んだ壺|玉の色) であり, 𝑃(原因|結果) という計算をしていることになります.</p>
+<p>このように事例を見てみると, 主観確率を利用した計算は, 主観確率の正しさに依存しているためあまり実用性があるようには思えません.
+そこで重要になってくるのが, <strong>ベイズ更新</strong>という概念です.</p>
+<h2 id="ベイズ更新">ベイズ更新</h2>
+<h3 id="独立性">独立性</h3>
+<p>事象 <span class="math inline">A</span> の起こる確率が他の事象 <span class="math inline">B</span> に影響されない場合, 事象 <span class="math inline">A</span> と事象 <span class="math inline">B</span> は<strong>独立である</strong>といいます.</p>
+<p>このとき</p>
+<p><span class="math display">P(A) = P(A|B)</span></p>
+<p>が成り立ちます. 乗法定理 <span class="math inline">P(A \cap B) = P(B)P(A|B)</span> より,</p>
+<p><span class="math display">P(A \cap B) = P(A)P(B)</span></p>
+<p>が成り立ちます.</p>
+<p><strong>例:</strong> サイコロを 2 回投げて連続で 1 の目が出る確率を考えます.</p>
+<ul>
+<li>事象 <span class="math inline">A</span>: 1 回目 1 が出る</li>
+<li>事象 <span class="math inline">B</span>: 2 回目 1 が出る</li>
+</ul>
+<p><span class="math display">P(A \cap B) = \frac{1}{36}, \quad P(A) \cdot P(B) = \frac{1}{6} \cdot \frac{1}{6} = \frac{1}{36}</span></p>
+<p>なので, 事象 <span class="math inline">A</span> と <span class="math inline">B</span> は独立といえます.</p>
+<p>ベイズの目的は, 複数のデータを利用して事後確率の推定を更新していくことにあります.</p>
+<h3 id="複数の事象からなる条件付き確率">複数の事象からなる条件付き確率</h3>
+<p>複数の事象 <span class="math inline">A, B, C</span> がある場合の条件付き確率は以下のように表されます.</p>
+<p><span class="math display">P(B \cap C | A) = \frac{P(A \cap B \cap C)}{P(A)}</span></p>
+<p>この式は, 乗法定理 (積の法則) により以下のように書き換えられます.</p>
+<p><span class="math display">\Leftrightarrow P(A \cap B \cap C) = P(B \cap C | A)P(A)</span></p>
+<p>同様に, <span class="math inline">A</span> が <span class="math inline">B \cap C</span> の条件下で起こる確率は以下のとおりです.</p>
+<p><span class="math display">P(A | B \cap C) = \frac{P(A \cap B \cap C)}{P(B \cap C)}</span></p>
+<p>これも積の法則として以下のように書き換えられます.</p>
+<p><span class="math display">\Leftrightarrow P(A \cap B \cap C) = P(A | B \cap C)P(B \cap C)</span></p>
+<p>これらの式を代入して整理すると, 以下の関係が得られます.</p>
+<p><span class="math display">P(A | B \cap C) = \frac{P(B \cap C | A)P(A)}{P(B \cap C)}</span></p>
+<h3 id="ベイズ更新の適用">ベイズ更新の適用</h3>
+<p>原因 <span class="math inline">H</span> と, 現在の状況 <span class="math inline">B, C</span> があるとき, 事後確率 <span class="math inline">P(H | B \cap C)</span> はベイズの定理により以下のように計算されます.</p>
+<p><span class="math display">P(H | B \cap C) = \frac{P(B \cap C | H)P(H)}{P(B \cap C)}</span></p>
+<p>もし事象 <span class="math inline">B</span> と <span class="math inline">C</span> が <span class="math inline">H</span> のもとで条件付き独立であり, さらに <span class="math inline">B</span> と <span class="math inline">C</span> が独立でもあれば, 条件付き確率 <span class="math inline">P(B \cap C | H)</span> は <span class="math inline">P(B | H)P(C | H)</span> となり, 分母の <span class="math inline">P(B \cap C)</span> は <span class="math inline">P(B)P(C)</span> となります. 単に <span class="math inline">B</span> と <span class="math inline">C</span> が独立というだけでは, <span class="math inline">H</span> のもとでの分解 <span class="math inline">P(B \cap C | H)=P(B | H)P(C | H)</span> は成り立たないことに注意してください. さらに, <span class="math inline">P(H | C) = \frac{P(C | H)P(H)}{P(C)}</span> の関係を利用すると, 上記の式は以下のように変形できます.</p>
+<p><span class="math display">P(H | B \cap C) = \frac{P(B | H)P(C | H)P(H)}{P(B)P(C)} = \frac{P(B | H)P(H | C)}{P(B)}</span></p>
+<p>ここで, 情報 <span class="math inline">C</span> によって既に求められた事後確率 <span class="math inline">P(H | C)</span> を新しい事前確率 <span class="math inline">P(H)^*</span> とすると, ベイズ更新の式はより簡潔に表現できます.</p>
+<p><span class="math display">P(H | B \cap C) = \frac{P(B | H)P(H)^*}{P(B)}</span></p>
+<p>この方法により, 情報が与えられるたびに事後確率を計算し, それを次のデータに対する事前分布として利用することで, 分布の推定を逐次的に更新していくことができます.</p>
+<h3 id="ベイズ統計学の性質">ベイズ統計学の性質</h3>
+<p>事前確率に関する情報がなく, <span class="math inline">P(H)</span> が完全に主観的に決められたとしても, データ (<span class="math inline">A,B,C, \dots</span>) が大量にある場合は,</p>
+<p><span class="math display">P(H|A \cap B \cap C \cap D \dots) = \frac{P(A \cap B \cap C \cap D \dots|H) P(H)}{P(A \cap B \cap C \cap D \dots)}</span></p>
+<p>以下のように段階的に更新を実施することができます.</p>
+<p>まず, データ <span class="math inline">A</span> が得られたとき:</p>
+<p><span class="math display">P(H|A) = \frac{P(A|H)P(H)}{P(A)}</span></p>
+<p>次に, データ <span class="math inline">B</span> が得られたとき, 前の事後確率 <span class="math inline">P(H|A) = \frac{P(A|H)P(H)}{P(A)} = P(H)^*</span> を新しい事前確率として利用:</p>
+<p><span class="math display">P(H|A \cap B) = \frac{P(B|H)P(H|A)}{P(B)} = \frac{P(B|H)P(H)^*}{P(B)} </span></p>
+<p>さらに, データ <span class="math inline">C</span> が得られたとき, 前の事後確率 <span class="math inline">P(H|A \cap B) = P(H)^{**}</span> を新しい事前確率として利用:</p>
+<p><span class="math display">P(H|A \cap B \cap C) = \frac{P(C|H)P(H)^{**}}{P(C)} </span></p>
+<p>このように, データ <span class="math inline">D, E, \dots</span> が得られるたびに, 前の事後確率を事前確率として利用して更新を続けていきます. データ (<span class="math inline">A,B,C,D, \dots</span>) を大量に集めれば, 最初に設定した事前確率 <span class="math inline">P(H)</span> の影響が少なくなり, 事後確率 <span class="math inline">P(H|A \cap B \cap C \cap D \dots)</span> が安定することが知られています.</p>
+<div class="note">
+<p>この性質は, <strong>ベイズ的一致性 (Bayesian consistency)</strong> と呼ばれます. 具体的には以下のような性質が成り立ちます:</p>
+<ul>
+<li><p><strong>一致性</strong>: データが増えるにつれて, 事後確率分布は真のパラメータ値に収束します. つまり, サンプルサイズが無限大に近づくと, 事後確率は真の値に集中していきます.</p></li>
+<li><p><strong>事後確率の安定性</strong>: 異なる事前分布から出発しても, データが十分に多ければ, 最終的な事後分布はほぼ同じ結果になります. これは, データが増えるにつれて, 尤度関数 <span class="math inline">P(A \cap B \cap C \cap D \dots|H)</span> の影響が事前確率 <span class="math inline">P(H)</span> の影響を上回るためです.</p></li>
+<li><p><strong>事前確率の影響の減少</strong>: データが少ないときは事前確率 <span class="math inline">P(H)</span> の選択が結果に大きく影響しますが, データが増えるにつれて, その影響は相対的に小さくなります. 最終的には, データの情報が支配的になり, 事前確率の選択が結果に与える影響は限定的になります.</p></li>
+</ul>
+</div>
+<p>しかし, このような更新には大量のデータが必要であることに加えて, データごとに分布を推定し直すには膨大な計算が必要となるため, ラプラスらの時代には現実的ではありませんでした.</p>
+<p>現代では, 情報通信技術の発展によって大量のデータと, 大量の計算が可能になりました. また, 計算のためのアルゴリズム (マルコフ連鎖モンテカルロ法など) が発明されたことで, ベイズ更新に基づく推定が現実的な選択肢となりベイズ統計学が利用されるようになっています.</p>
+<h2 id="マルコフ連鎖モンテカルロ法">マルコフ連鎖モンテカルロ法</h2>
+<h3 id="尤度-likelihood">尤度 (Likelihood)</h3>
+<p>尤度とは, 観測されたデータが得られる確からしさを, モデルのパラメータの関数として見たものです. データを固定してパラメータを動かすので, データから計算する統計量とは異なり, パラメータの関数になります.</p>
+<ul>
+<li><span class="math inline">\theta</span> を母数とする確率分布から観測データ <span class="math inline">y_i</span> が発生した場合, その確率は <span class="math inline">P(y_i|\theta)</span> と表されます.</li>
+<li>尤度 <span class="math inline">L(\theta|Y)</span> は, 観測されたデータ <span class="math inline">Y = \{y_1, y_2, \dots, y_n\}</span> が与えられたときの, 特定のパラメータ <span class="math inline">\theta</span> の「もっともらしさ」を示す関数で, 以下のように定義されます.</li>
+</ul>
+<p><span class="math display">L(\theta|Y) = \prod_{i} P(y_i|\theta)</span></p>
+<p>尤度はそのままでは計算しにくい場合が多いため, 対数化した対数尤度を用いることが一般的です.</p>
+<p><span class="math display">\log L(\theta|Y) = \sum_{i} \log P(y_i|\theta)</span></p>
+<p>前段で説明したベイズ更新と尤度には密接な関係があります.</p>
+<p>ベイズの定理は以下のように表されました:</p>
+<p><span class="math display">P(H|A) = \frac{P(A|H)P(H)}{P(A)}</span></p>
+<p>この式において, <span class="math inline">P(A|H)</span> は「仮説 <span class="math inline">H</span> が真であるときにデータ <span class="math inline">A</span> が観測される確率」であり, これは<strong>尤度関数</strong>に対応します.</p>
+<p>一般的な尤度の説明ではパラメータを <span class="math inline">\theta</span> で表しましたが, ベイズ統計学では仮説 <span class="math inline">H</span> をパラメータとみなすことができます. 複数のデータ <span class="math inline">Y = \{y_1, y_2, \dots, y_n\}</span> が得られた場合, ベイズの定理は以下のようになります:</p>
+<p><span class="math display">P(H|Y) = \frac{P(Y|H)P(H)}{P(Y)} = \frac{L(H|Y)P(H)}{P(Y)}</span></p>
+<p>ここで, <span class="math inline">P(Y|H) = \prod_{i} P(y_i|H)</span> は尤度関数 <span class="math inline">L(H|Y) = \prod_{i} P(y_i|H)</span> と一致します. したがって, ベイズの定理は尤度関数を用いて以下のように表現できます:</p>
+<p><span class="math display">P(H|Y) \propto L(H|Y)P(H)</span></p>
+<p>つまり, 事後確率は「尤度×事前確率」に比例します. この関係から以下のことがわかります:</p>
+<ul>
+<li>尤度 <span class="math inline">L(H|Y)</span> が大きいほど, その仮説 <span class="math inline">H</span> の事後確率 <span class="math inline">P(H|Y)</span> も大きくなります.</li>
+<li>データが増えるにつれて, 尤度関数の影響が事前確率の影響を上回り, 事後確率が安定していきます.</li>
+<li>ベイズ更新では, 新しいデータが得られるたびに尤度関数を計算し, それと事前確率を組み合わせて事後確率を更新していきます.</li>
+</ul>
+<h3 id="最尤推定-maximum-likelihood-estimation">最尤推定 (Maximum Likelihood Estimation)</h3>
+<p>この対数尤度を最大にするようなパラメータの推定量 <span class="math inline">\hat{\theta}</span> を推定することを<strong>最尤推定</strong>といいます.</p>
+<p><span class="math inline">\hat{\theta}</span> は数理的に求めることが可能な場合もありますが, モデルが複雑な場合は困難なので, ニュートン法などの数値最適化で尤度が最大になる値を探すことが多くなります. 次に説明するマルコフ連鎖モンテカルロ法 (MCMC) は, これとは目的の異なる方法です.</p>
+<h3 id="マルコフ連鎖モンテカルロ法-mcmc-markov-chain-monte-carlo-method">マルコフ連鎖モンテカルロ法 MCMC (Markov chain Monte Carlo Method)</h3>
+<p>前段で説明したベイズ統計学において, 事後確率 <span class="math inline">P(H|Y) \propto L(H|Y)P(H)</span> を計算するには, 分母の正規化定数 <span class="math inline">P(Y)</span> を求める必要があります. しかし, モデルが複雑な場合やパラメータが多変数の場合, この正規化定数の計算は解析的に困難です.</p>
+<p>このような場合に用いられるのが, 計算機による繰り返し計算で少しずつパラメータの値を変化させ, 事後分布に従うパラメータの値 (サンプル) を大量に集める方法である<strong>マルコフ連鎖モンテカルロ法 (MCMC)</strong> です. 集めたサンプルのヒストグラムが事後分布の近似になるので, 正規化定数 <span class="math inline">P(Y)</span> を計算せずに, 事後分布の平均や区間を求められます. 最尤推定が尤度を最大にする 1 つの値を探すのに対し, MCMC は分布全体を描き出す点が異なります.</p>
+<div class="note">
+<ul>
+<li>MCMC の基本的な仕組み</li>
+</ul>
+<p><strong>メトロポリス法</strong>は, MCMC の一種です.</p>
+<ol type="1">
+<li><p>事後分布で確率または密度が正となる値を, パラメータ <span class="math inline">\theta</span> の初期値に選びます.</p></li>
+<li><p>今の値 <span class="math inline">\theta</span> に, ゼロを中心とする対称な分布から選んだ小さな変化量を足して, 候補 <span class="math inline">\theta'</span> を作ります. 例えば, <span class="math inline">\theta</span> が 1 変数なら, 同じ幅だけ右に動く場合と左に動く場合が同じ確率になります.</p></li>
+<li><p>候補と今の値のそれぞれで, 尤度と事前確率 (連続の場合は事前密度) の積を計算します. 候補での積 <span class="math inline">L(\theta'|Y)P(\theta')</span> を今の値での積 <span class="math inline">L(\theta|Y)P(\theta)</span> で割ります. この比では共通の正規化定数 <span class="math inline">P(Y)</span> が打ち消し合うため, <span class="math inline">P(Y)</span> の計算は不要です.</p></li>
+<li><p>比が 1 以上なら必ず候補に移り, 1 未満ならその比を確率として候補に移ります. 移った場合は候補を記録し, 移らなかった場合は今の値をもう 1 つのサンプルとして記録します.</p></li>
+<li><p>手順 2 から 4 を繰り返します. 初期値の影響を抑えるため, 最初の <strong>バーンイン期間</strong>に得たサンプルを捨てます. 比に応じて確率や密度が低い候補にも移るため, 事後確率の小さい範囲からもサンプルを得られます. 連鎖が事後分布に収束すれば, サンプルを増やすにつれて, ある範囲に入るサンプルの割合はその範囲の事後確率に近づきます.</p></li>
+</ol>
+</div>
+<p>MCMC により, ベイズ統計学における複雑な事後分布の推定を, 計算機上で効率的に行えるようになりました.</p>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../fields/bayes/bayes-intro/index.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">統計モデリングとベイズ統計学の基礎</span>
+    </a>
+    <a class="next" href="../../../fields/bayes/bayes-modeling/index.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">重回帰から一般化線形モデルと階層モデルへ</span>
+    </a>
+</nav>
+
+</article>
+
+
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        <nav class="footer-nav" aria-label="フッターナビゲーション">
+            <a href="../../../">Home</a>
+            <a href="../../../posts.html">Blog</a>
+            <a href="../../../lectures.html">Lecture</a>
+            <a href="../../../research.html">Research</a>
+            <a href="../../../rss.xml">RSS</a>
+            <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+        </nav>
+        <p class="footer-copy">&copy; yakagika &middot; Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>.</p>
+    </div>
+</div>
+
+
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="ページ先頭へ戻る" title="先頭へ戻る">↑</button>
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+            link.classList.add('external-link');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level;
+          switch (heading.tagName.toLowerCase()) {
+            case 'h2': level = 0; break;
+            case 'h3': level = 1; break;
+            case 'h4': level = 2; break;
+            default: return;
+          }
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          // Pandoc は `::: note` + 見出し の組み合わせを <section id="..." class="note">
+          // 内の <hN> として出力するため, 見出し自身に id が無い場合は
+          // 親 section の id を辿る.
+          var anchorId = heading.id;
+          if (!anchorId) {
+            var parentSection = heading.closest('section[id]');
+            if (parentSection) anchorId = parentSection.id;
+          }
+          anchor.href = '#' + anchorId;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi && !li.contains(currentLi)) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+
+      // ----------------------------------------
+      // スクロールスパイ: 表示中の見出しを TOC でハイライト
+      // ----------------------------------------
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0 || typeof IntersectionObserver === 'undefined') return;
+
+      var idToTocItem = new Map();
+      headings.forEach(function(h) {
+        if (!h.id) return;
+        var link = tocContainer.querySelector('a[href="#' + CSS.escape(h.id) + '"]');
+        if (link) {
+          var li = link.closest('.toc-item') || link.closest('li');
+          if (li) idToTocItem.set(h.id, li);
+        }
+      });
+
+      var visible = new Set();
+      var lastActive = null;
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+
+        // ドキュメント順で最初に可視な見出しをアクティブに
+        var firstVisible = null;
+        for (var i = 0; i < headings.length; i++) {
+          if (visible.has(headings[i].id)) {
+            firstVisible = headings[i].id;
+            break;
+          }
+        }
+        if (!firstVisible) return;
+
+        var tocItem = idToTocItem.get(firstVisible);
+        if (!tocItem || tocItem === lastActive) return;
+
+        if (lastActive) lastActive.classList.remove('toc-active');
+        tocItem.classList.add('toc-active');
+        lastActive = tocItem;
+
+        // TOC を必要なときだけスクロール
+        tocItem.scrollIntoView({
+          block: 'nearest',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
+      }, {
+        // ヘッダー (60px) を除いた上部 〜 画面下から60% を判定領域とする
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0
+      });
+
+      headings.forEach(function(h) { if (h.id) observer.observe(h); });
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
+      const pre = codeBlock.parentNode;
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
+      copyButton.textContent = 'Copy';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    // パスワード保護付き details (回答例用)
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll('details.protected').forEach(function (det) {
+        var pass = det.getAttribute('data-pass') || '';
+        var summary = det.querySelector('summary');
+        if (!summary) return;
+
+        var gate = document.createElement('div');
+        gate.className = 'pass-gate';
+        gate.innerHTML =
+          '<label>合言葉: <input type="password" autocomplete="off" spellcheck="false"></label>' +
+          '<button type="button">解除</button>' +
+          '<span class="pass-error" hidden>合言葉が違います</span>';
+        summary.insertAdjacentElement('afterend', gate);
+
+        var input = gate.querySelector('input');
+        var button = gate.querySelector('button');
+        var errorMsg = gate.querySelector('.pass-error');
+
+        function tryUnlock() {
+          if (input.value === pass) {
+            det.classList.add('unlocked');
+            errorMsg.hidden = true;
+          } else {
+            errorMsg.hidden = false;
+            input.select();
+          }
+        }
+
+        button.addEventListener('click', tryUnlock);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
+        });
+
+        det.addEventListener('toggle', function () {
+          if (det.open && !det.classList.contains('unlocked')) {
+            input.focus();
+          }
+        });
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            try {
+              katex.render( texText.data
+                          , mathElements[i]
+                          , { displayMode: mathElements[i].classList.contains("display")
+                            , throwOnError: true
+                           }
+                          );
+            } catch (e) {
+              // 1 つの数式のエラーで残り全ての数式が生 TeX のまま残らないようにする
+              console.error('KaTeX render error:', e.message, texText.data);
+            }
+          }
+      }
+    });
+  </script>
+
+  <!-- 見出しアンカーリンク + Back to top -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 記事見出しに hover で現れる # パーマリンクを付与
+      document.querySelectorAll('article h2[id], article h3[id]').forEach(function (h) {
+        var a = document.createElement('a');
+        a.className = 'heading-anchor';
+        a.href = '#' + h.id;
+        a.setAttribute('aria-label', 'このセクションへのリンク');
+        a.textContent = '#';
+        h.appendChild(a);
+      });
+
+      // Back to top: スクロール量に応じて表示
+      var btt = document.getElementById('back-to-top');
+      if (btt) {
+        var onScroll = function () {
+          if (window.pageYOffset > 600) btt.classList.add('visible');
+          else btt.classList.remove('visible');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        btt.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
+    });
+  </script>
+
+  </body>
+</html>

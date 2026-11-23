@@ -1,0 +1,1139 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+    <script>
+      (function () {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+        function stored() {
+          var t = null;
+          try { t = localStorage.getItem('theme'); } catch (e) {}
+          return (t === 'dark' || t === 'light') ? t : null;
+        }
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
+        if (mq) {
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
+        }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
+      })();
+    </script>
+    <title>yakagika - モデル診断と可視化</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../../../style.css?v=1795415080">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../../../" class="site-brand" aria-label="Home">
+          <span class="site-mark" aria-hidden="true">▮</span>
+          <span class="site-word">yakagika</span>
+        </a>
+      </div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../../../">Home</a>
+      <a href="../../../posts.html">Blog</a>
+      <a href="../../../lectures.html">Lecture</a>
+      <a href="../../../research.html">Research</a>
+      <a href="../../../lectures/seminar.html">Seminar</a>
+      <a href="../../../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      
+      <div id="lecture-toc" data-mode="series">
+  <h2>Index</h2>
+  <a href="../../../fields/bayes/index.html">ベイズ統計学</a>
+  <ul class="toc-root">
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/bayes/bayes-intro/index.html">統計モデリングとベイズ統計学の基礎</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/bayes/bayes-modeling/index.html">重回帰から一般化線形モデルと階層モデルへ</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/bayes/bayes-setup/index.html">PyMC の環境構築</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/bayes/bayes-pymc/index.html">PyMC によるモデルの実装</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item current-block">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/bayes/bayes-results/index.html">MCMC の実行, 診断, 結果の読み方</a>
+        
+      </div>
+      
+      <ul class="toc-sublist">
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/bayes/bayes-results/index.html">MCMC</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item current">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/bayes/bayes-results/mcmc-diagnostics.html" aria-current="page">モデル診断と可視化</a>
+          </div>
+          <ul class="toc-sublist"></ul>
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/bayes/bayes-results/bayesian-results-visualization.html">結果の可視化</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/bayes/bayes-results/linear-and-bayesian-models.html">まとめ (線形回帰 VS ベイズモデリング)</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/bayes/bayes-results/frequentist-bayesian-comparison.html">線形回帰 (頻度主義) と統計モデリング (ベイズ主義) の比較</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/bayes/bayes-results/fixed-and-random-effects.html">固定効果 (ダミー変数) とランダム効果 (階層ベイズ) の比較</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/bayes/bayes-results/bayesian-modeling-summary.html">まとめ</a>
+          </div>
+          
+        </li>
+        
+      </ul>
+      
+    </li>
+    
+  </ul>
+</div>
+
+    </nav>
+
+    <div id="content">
+    
+<nav class="block-course-nav" aria-label="講義の並び">
+  <p>講義の並び</p>
+  <ul>
+    
+    <li class="course-occurrence">
+      <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+      <a href="../../../courses/dsp/selected.html">選択資料</a> (発展)
+      
+      <a href="../../../fields/bayes/bayes-pymc/index.html" rel="prev">← PyMC によるモデルの実装</a>
+      
+      
+      
+      <a href="../../../fields/survey/survey-design/index.html" rel="next">質問紙の設計と分析手法の選び方 →</a>
+      
+      
+    </li>
+    
+  </ul>
+</nav>
+
+
+
+<article>
+  
+  <h1 id="mcmc-diagnostics"><span id="モデル診断と可視化"></span>モデル診断と可視化</h1>
+<nav class="block-field-nav block-field-nav-narrow" aria-label="分野の目次">
+  <a href="../../../fields/bayes/index.html">ベイズ統計学</a>
+  <ol>
+    
+    <li>
+      
+      <a href="../../../fields/bayes/bayes-intro/index.html">統計モデリングとベイズ統計学の基礎</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/bayes/bayes-modeling/index.html">重回帰から一般化線形モデルと階層モデルへ</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/bayes/bayes-setup/index.html">PyMC の環境構築</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/bayes/bayes-pymc/index.html">PyMC によるモデルの実装</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <strong><a href="../../../fields/bayes/bayes-results/index.html" aria-current="true">MCMC の実行, 診断, 結果の読み方</a></strong>
+      
+      
+    </li>
+    
+  </ol>
+</nav>
+<nav class="chapter-nav-card">
+    <a class="prev" href="../../../fields/bayes/bayes-results/index.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">MCMC の実行, 診断, 結果の読み方</span>
+    </a>
+    <a class="next" href="../../../fields/bayes/bayes-results/bayesian-results-visualization.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">結果の可視化</span>
+    </a>
+</nav>
+
+<p>まずは<a href="../../../fields/bayes/bayes-pymc/pymc-model-construction.html#pymc-model-construction">PyMC で作成したモデル</a>を確認します.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>    graph <span class="op">=</span> model_to_graphviz(model)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    graph.render(filename<span class="op">=</span> save_dir <span class="op">+</span> <span class="st">&quot;hierarchical_bayes_model&quot;</span>, <span class="bu">format</span><span class="op">=</span><span class="st">&quot;pdf&quot;</span>)</span></code></pre></div>
+<p>上記のコードで, モデルの全体像が pdf ファイルとして保存されます.</p>
+<p><img src="../../../images/slds/ch12/hierarchical_bayes_model.png" /></p>
+<p>論文等に掲載することもできるので, コードとの対応関係を確認しましょう.</p>
+<p>続いて, モデルの診断結果を確認します. <code>az.plot_trace()</code> を用いることで, 指定した変数のサンプリング過程を可視化することができます.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>    <span class="co"># alpha は学生数分の次元を持つため,</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># trace プロットでは代表 10 名分にサブセットして可視化する</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    sample_students <span class="op">=</span> <span class="bu">list</span>(trace.posterior.coords[<span class="st">&quot;student&quot;</span>].values[:<span class="dv">10</span>])</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    az.plot_trace(trace</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>                 ,var_names<span class="op">=</span>[<span class="st">&quot;sigma_alpha&quot;</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>                            ,<span class="st">&quot;alpha&quot;</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>                            ,<span class="st">&quot;beta_st&quot;</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>                            ,<span class="st">&quot;beta_ss&quot;</span>]</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>                 ,coords<span class="op">=</span>{<span class="st">&quot;student&quot;</span>: sample_students})</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    plt.tight_layout()</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    plt.savefig(save_dir <span class="op">+</span> <span class="st">'trace.png'</span>)</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    plt.close()</span></code></pre></div>
+<p><img src="../../../images/slds/ch12/trace.png" /></p>
+<p>この図では, 左側に 4 つのチェーンごとに推定された分布の形状, 右側にトレースの過程が表示されています.</p>
+<p><img src="../../../images/slds/ch12/sampling_image.png" /></p>
+<p>大まかには,</p>
+<ul>
+<li>左側の分布が全てのサンプルで概ね同じ形状になっている</li>
+<li>右側のトレースが一箇所に収束している</li>
+</ul>
+<p>ことから, 概ね良好に推定できていることが分かります.</p>
+<p>ただし, alpha に関しては学生数が多いため (<code>coords</code> で <strong>代表 10 名分のみを表示</strong> している), 学生別の分布が異なる色で表示されている点に注意してください.
+学生それぞれの基礎学力の分布が異なっている様が表現されています.</p>
+<p>(全学生分のトレースを確認したい場合は <code>coords</code> を省略すればよいですが, <code>arviz&gt;=1.0</code> では <code>az.rcParams['plot.max_subplots']</code> をデフォルトの 40 より大きな値に引き上げる必要があります).</p>
+<p>グラフでは大まかな印象しかわからないので更に, <code>az.summary()</code> を利用してサンプリング結果を数値で確認してみます.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(az.summary(trace</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>                    ,var_names<span class="op">=</span>[<span class="st">&quot;sigma_alpha&quot;</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>                               ,<span class="st">&quot;alpha&quot;</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>                               ,<span class="st">&quot;beta_st&quot;</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>                               ,<span class="st">&quot;beta_ss&quot;</span>]))</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    summary_df <span class="op">=</span> az.summary(trace</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>                           ,var_names<span class="op">=</span>[<span class="st">&quot;sigma_alpha&quot;</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>                                      ,<span class="st">&quot;alpha&quot;</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>                                      ,<span class="st">&quot;beta_st&quot;</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>                                      ,<span class="st">&quot;beta_ss&quot;</span>])</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    summary_df.to_csv(<span class="st">&quot;bayesian_summary.csv&quot;</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>                     ,encoding<span class="op">=</span><span class="st">&quot;utf-8-sig&quot;</span>)</span></code></pre></div>
+<p>結果は学生別の alpha が出力されており非常に長いため, 抜粋したものが以下になります.</p>
+<table>
+<colgroup>
+<col style="width: 12%" />
+<col style="width: 7%" />
+<col style="width: 4%" />
+<col style="width: 9%" />
+<col style="width: 10%" />
+<col style="width: 12%" />
+<col style="width: 10%" />
+<col style="width: 11%" />
+<col style="width: 11%" />
+<col style="width: 8%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>パラメータ</th>
+<th>mean</th>
+<th>sd</th>
+<th>hdi_3%</th>
+<th>hdi_97%</th>
+<th>mcse_mean</th>
+<th>mcse_sd</th>
+<th>ess_bulk</th>
+<th>ess_tail</th>
+<th>r_hat</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>sigma_alpha</td>
+<td>0.586</td>
+<td>0.039</td>
+<td>0.514</td>
+<td>0.659</td>
+<td>0.001</td>
+<td>0.001</td>
+<td>2193</td>
+<td>4123</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td>alpha[0]</td>
+<td>1.337</td>
+<td>0.276</td>
+<td>0.826</td>
+<td>1.851</td>
+<td>0.003</td>
+<td>0.002</td>
+<td>9277</td>
+<td>5519</td>
+<td>1</td>
+</tr>
+<tr class="odd">
+<td>alpha[1]</td>
+<td>2.23</td>
+<td>0.272</td>
+<td>1.725</td>
+<td>2.759</td>
+<td>0.003</td>
+<td>0.002</td>
+<td>9863</td>
+<td>6118</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td>alpha[2]</td>
+<td>2.044</td>
+<td>0.267</td>
+<td>1.541</td>
+<td>2.543</td>
+<td>0.003</td>
+<td>0.002</td>
+<td>9771</td>
+<td>5823</td>
+<td>1</td>
+</tr>
+<tr class="odd">
+<td>alpha[3]</td>
+<td>2.177</td>
+<td>0.278</td>
+<td>1.644</td>
+<td>2.683</td>
+<td>0.003</td>
+<td>0.002</td>
+<td>6533</td>
+<td>5528</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td>alpha[4]</td>
+<td>3.02</td>
+<td>0.27</td>
+<td>2.506</td>
+<td>3.512</td>
+<td>0.003</td>
+<td>0.002</td>
+<td>10929</td>
+<td>6162</td>
+<td>1</td>
+</tr>
+<tr class="odd">
+<td>alpha[5]</td>
+<td>1.543</td>
+<td>0.276</td>
+<td>1.036</td>
+<td>2.054</td>
+<td>0.003</td>
+<td>0.002</td>
+<td>9980</td>
+<td>5880</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td>alpha[6]</td>
+<td>1.709</td>
+<td>0.275</td>
+<td>1.184</td>
+<td>2.22</td>
+<td>0.003</td>
+<td>0.002</td>
+<td>7096</td>
+<td>4980</td>
+<td>1</td>
+</tr>
+<tr class="odd">
+<td>alpha[7]</td>
+<td>2.535</td>
+<td>0.273</td>
+<td>1.985</td>
+<td>3.023</td>
+<td>0.003</td>
+<td>0.002</td>
+<td>8866</td>
+<td>5628</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td>alpha[8]</td>
+<td>2.003</td>
+<td>0.265</td>
+<td>1.503</td>
+<td>2.498</td>
+<td>0.003</td>
+<td>0.002</td>
+<td>8334</td>
+<td>6208</td>
+<td>1</td>
+</tr>
+<tr class="odd">
+<td>alpha[9]</td>
+<td>2.783</td>
+<td>0.27</td>
+<td>2.247</td>
+<td>3.267</td>
+<td>0.003</td>
+<td>0.002</td>
+<td>8919</td>
+<td>4931</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td>alpha[10]</td>
+<td>2.443</td>
+<td>0.271</td>
+<td>1.944</td>
+<td>2.977</td>
+<td>0.003</td>
+<td>0.002</td>
+<td>8207</td>
+<td>5363</td>
+<td>1</td>
+</tr>
+<tr class="odd">
+<td>alpha[180]</td>
+<td>1.205</td>
+<td>0.283</td>
+<td>0.666</td>
+<td>1.724</td>
+<td>0.003</td>
+<td>0.002</td>
+<td>8038</td>
+<td>5827</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td>alpha[181]</td>
+<td>1.952</td>
+<td>0.274</td>
+<td>1.443</td>
+<td>2.463</td>
+<td>0.003</td>
+<td>0.002</td>
+<td>7932</td>
+<td>6444</td>
+<td>1</td>
+</tr>
+<tr class="odd">
+<td>alpha[182]</td>
+<td>2.039</td>
+<td>0.272</td>
+<td>1.529</td>
+<td>2.552</td>
+<td>0.003</td>
+<td>0.002</td>
+<td>9013</td>
+<td>5407</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td>alpha[183]</td>
+<td>2.503</td>
+<td>0.265</td>
+<td>2.018</td>
+<td>3.006</td>
+<td>0.003</td>
+<td>0.002</td>
+<td>10853</td>
+<td>6100</td>
+<td>1</td>
+</tr>
+<tr class="odd">
+<td>alpha[184]</td>
+<td>2.017</td>
+<td>0.277</td>
+<td>1.481</td>
+<td>2.519</td>
+<td>0.003</td>
+<td>0.002</td>
+<td>6437</td>
+<td>5893</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td>alpha[185]</td>
+<td>1.985</td>
+<td>0.274</td>
+<td>1.483</td>
+<td>2.521</td>
+<td>0.003</td>
+<td>0.002</td>
+<td>7264</td>
+<td>6106</td>
+<td>1</td>
+</tr>
+<tr class="odd">
+<td>alpha[186]</td>
+<td>1.729</td>
+<td>0.279</td>
+<td>1.198</td>
+<td>2.251</td>
+<td>0.003</td>
+<td>0.002</td>
+<td>8657</td>
+<td>5455</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td>alpha[187]</td>
+<td>1.153</td>
+<td>0.274</td>
+<td>0.65</td>
+<td>1.68</td>
+<td>0.003</td>
+<td>0.002</td>
+<td>11005</td>
+<td>5637</td>
+<td>1</td>
+</tr>
+<tr class="odd">
+<td>alpha[188]</td>
+<td>2.412</td>
+<td>0.272</td>
+<td>1.898</td>
+<td>2.918</td>
+<td>0.003</td>
+<td>0.002</td>
+<td>7896</td>
+<td>5719</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td>alpha[189]</td>
+<td>2.093</td>
+<td>0.269</td>
+<td>1.588</td>
+<td>2.6</td>
+<td>0.003</td>
+<td>0.002</td>
+<td>7705</td>
+<td>5726</td>
+<td>1</td>
+</tr>
+<tr class="odd">
+<td>beta_st</td>
+<td>0.559</td>
+<td>0.048</td>
+<td>0.473</td>
+<td>0.651</td>
+<td>0.001</td>
+<td>0.001</td>
+<td>1889</td>
+<td>3833</td>
+<td>1</td>
+</tr>
+<tr class="even">
+<td>beta_ss</td>
+<td>0.139</td>
+<td>0.048</td>
+<td>0.044</td>
+<td>0.225</td>
+<td>0.001</td>
+<td>0.001</td>
+<td>1957</td>
+<td>3460</td>
+<td>1</td>
+</tr>
+</tbody>
+</table>
+<div class="note">
+<ul>
+<li>MCMC サンプリング統計量</li>
+</ul>
+<p>この表には, MCMC サンプリングの結果を要約する統計量が含まれています.</p>
+<ul>
+<li><p><strong><code>mean</code></strong>: 事後分布の<strong>平均値</strong>です. パラメータの点推定値として使用されます.</p></li>
+<li><p><strong><code>sd</code></strong>: 事後分布の<strong>標準偏差</strong>です. パラメータの不確実性を表します.</p></li>
+<li><p><strong><code>hdi_3%</code>, <code>hdi_97%</code></strong>: <strong>最高密度区間 (Highest Density Interval, HDI)</strong> の下限と上限です. 事後分布の 94% が含まれる区間を表します. これはベイズの信用区間の一種で, データと事前分布のもとでパラメータがこの区間に入る確率が 94% であることを示します (頻度主義の信頼区間とは意味が異なります).</p></li>
+<li><p><strong><code>mcse_mean</code>, <code>mcse_sd</code></strong>: <strong>モンテカルロ標準誤差 (Monte Carlo Standard Error)</strong> です. MCMC サンプリングによる推定の不確実性を表します. この値が小さいほど, 推定が安定しています.</p></li>
+<li><p><strong><code>ess_bulk</code>, <code>ess_tail</code></strong>: <strong>有効サンプルサイズ (Effective Sample Size, ESS)</strong> です. MCMC サンプルには自己相関があるため, 実際に独立な情報を含むサンプル数を表します. <code>ess_bulk</code> は分布の中心部分, <code>ess_tail</code> は分布の尾部の有効サンプルサイズです. 通常, 400 以上であることが推奨されます.</p></li>
+<li><p><strong><code>r_hat</code></strong>: <strong><span class="math inline">\hat{R}</span> 統計量 (Gelman-Rubin 統計量)</strong> です. 複数のチェーンが同じ分布に収束しているかを示す指標です. 1.0 に近いほど良好で, 通常 1.01 以下が推奨されます. 1.01 を超える場合は, サンプリングが不十分である可能性があります.</p></li>
+</ul>
+</div>
+<p><strong>収束の診断:</strong>
+- すべてのパラメータで <code>r_hat = 1.0</code> となっており, 良好な収束を示しています. これは, 4 つのチェーンがすべて同じ分布に収束していることを意味します.</p>
+<ul>
+<li>有効サンプルサイズ (<code>ess_bulk</code>) は, すべてのパラメータで 400 を大きく超えており, サンプリングは適切に行われています. 特に, <code>alpha[i]</code> の多くは 6000-11000 の範囲で, 非常に良好なサンプリングが行われています. <code>beta_st</code> と <code>beta_ss</code> は 1889 と 1957 となっており, やや低めですが, 推奨値 (400) を大きく上回っており, 問題ありません.</li>
+</ul>
+<p><strong>パラメータの推定値:</strong></p>
+<ul>
+<li><p><strong><code>sigma_alpha = 0.586</code></strong>: 学生間の基礎学力のばらつきの標準偏差です. この値が大きいほど, 学生間の学力差が大きいことを示します. HDI 区間 [0.514, 0.659] は比較的狭く, 推定の不確実性は小さいです.</p></li>
+<li><p><strong><code>alpha[i]</code></strong>: 各学生の基礎学力です. 例えば, <code>alpha[4] = 3.02</code> は, 学生 4 の基礎学力が高いことを示しています. 一方, <code>alpha[187] = 1.153</code> は, 学生 187 の基礎学力が低いことを示しています. 学生間で基礎学力に大きなばらつきがあることが分かります.</p></li>
+<li><p><strong><code>beta_st = 0.559</code></strong>: 勉強時間の効果です. この値は正で, 勉強時間が 1 単位増加すると, GPA が平均的に 0.559 増加することを示しています. HDI 区間 [0.473, 0.651] は 0 を含まないため, 統計的に有意な正の効果があります. この区間は比較的狭く, 推定の不確実性は小さいです.</p></li>
+<li><p><strong><code>beta_ss = 0.139</code></strong>: 奨学金の効果です. この値も正で, 奨学金を受給している学生の GPA が平均的に 0.139 高いことを示しています. HDI 区間 [0.044, 0.225] は 0 を含まないため, 統計的に有意な正の効果があります. この区間も比較的狭く, 推定の不確実性は小さいです.</p></li>
+</ul>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../fields/bayes/bayes-results/index.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">MCMC の実行, 診断, 結果の読み方</span>
+    </a>
+    <a class="next" href="../../../fields/bayes/bayes-results/bayesian-results-visualization.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">結果の可視化</span>
+    </a>
+</nav>
+
+</article>
+
+
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        <nav class="footer-nav" aria-label="フッターナビゲーション">
+            <a href="../../../">Home</a>
+            <a href="../../../posts.html">Blog</a>
+            <a href="../../../lectures.html">Lecture</a>
+            <a href="../../../research.html">Research</a>
+            <a href="../../../rss.xml">RSS</a>
+            <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+        </nav>
+        <p class="footer-copy">&copy; yakagika &middot; Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>.</p>
+    </div>
+</div>
+
+
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="ページ先頭へ戻る" title="先頭へ戻る">↑</button>
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+            link.classList.add('external-link');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level;
+          switch (heading.tagName.toLowerCase()) {
+            case 'h2': level = 0; break;
+            case 'h3': level = 1; break;
+            case 'h4': level = 2; break;
+            default: return;
+          }
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          // Pandoc は `::: note` + 見出し の組み合わせを <section id="..." class="note">
+          // 内の <hN> として出力するため, 見出し自身に id が無い場合は
+          // 親 section の id を辿る.
+          var anchorId = heading.id;
+          if (!anchorId) {
+            var parentSection = heading.closest('section[id]');
+            if (parentSection) anchorId = parentSection.id;
+          }
+          anchor.href = '#' + anchorId;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi && !li.contains(currentLi)) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+
+      // ----------------------------------------
+      // スクロールスパイ: 表示中の見出しを TOC でハイライト
+      // ----------------------------------------
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0 || typeof IntersectionObserver === 'undefined') return;
+
+      var idToTocItem = new Map();
+      headings.forEach(function(h) {
+        if (!h.id) return;
+        var link = tocContainer.querySelector('a[href="#' + CSS.escape(h.id) + '"]');
+        if (link) {
+          var li = link.closest('.toc-item') || link.closest('li');
+          if (li) idToTocItem.set(h.id, li);
+        }
+      });
+
+      var visible = new Set();
+      var lastActive = null;
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+
+        // ドキュメント順で最初に可視な見出しをアクティブに
+        var firstVisible = null;
+        for (var i = 0; i < headings.length; i++) {
+          if (visible.has(headings[i].id)) {
+            firstVisible = headings[i].id;
+            break;
+          }
+        }
+        if (!firstVisible) return;
+
+        var tocItem = idToTocItem.get(firstVisible);
+        if (!tocItem || tocItem === lastActive) return;
+
+        if (lastActive) lastActive.classList.remove('toc-active');
+        tocItem.classList.add('toc-active');
+        lastActive = tocItem;
+
+        // TOC を必要なときだけスクロール
+        tocItem.scrollIntoView({
+          block: 'nearest',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
+      }, {
+        // ヘッダー (60px) を除いた上部 〜 画面下から60% を判定領域とする
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0
+      });
+
+      headings.forEach(function(h) { if (h.id) observer.observe(h); });
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
+      const pre = codeBlock.parentNode;
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
+      copyButton.textContent = 'Copy';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    // パスワード保護付き details (回答例用)
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll('details.protected').forEach(function (det) {
+        var pass = det.getAttribute('data-pass') || '';
+        var summary = det.querySelector('summary');
+        if (!summary) return;
+
+        var gate = document.createElement('div');
+        gate.className = 'pass-gate';
+        gate.innerHTML =
+          '<label>合言葉: <input type="password" autocomplete="off" spellcheck="false"></label>' +
+          '<button type="button">解除</button>' +
+          '<span class="pass-error" hidden>合言葉が違います</span>';
+        summary.insertAdjacentElement('afterend', gate);
+
+        var input = gate.querySelector('input');
+        var button = gate.querySelector('button');
+        var errorMsg = gate.querySelector('.pass-error');
+
+        function tryUnlock() {
+          if (input.value === pass) {
+            det.classList.add('unlocked');
+            errorMsg.hidden = true;
+          } else {
+            errorMsg.hidden = false;
+            input.select();
+          }
+        }
+
+        button.addEventListener('click', tryUnlock);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
+        });
+
+        det.addEventListener('toggle', function () {
+          if (det.open && !det.classList.contains('unlocked')) {
+            input.focus();
+          }
+        });
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            try {
+              katex.render( texText.data
+                          , mathElements[i]
+                          , { displayMode: mathElements[i].classList.contains("display")
+                            , throwOnError: true
+                           }
+                          );
+            } catch (e) {
+              // 1 つの数式のエラーで残り全ての数式が生 TeX のまま残らないようにする
+              console.error('KaTeX render error:', e.message, texText.data);
+            }
+          }
+      }
+    });
+  </script>
+
+  <!-- 見出しアンカーリンク + Back to top -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 記事見出しに hover で現れる # パーマリンクを付与
+      document.querySelectorAll('article h2[id], article h3[id]').forEach(function (h) {
+        var a = document.createElement('a');
+        a.className = 'heading-anchor';
+        a.href = '#' + h.id;
+        a.setAttribute('aria-label', 'このセクションへのリンク');
+        a.textContent = '#';
+        h.appendChild(a);
+      });
+
+      // Back to top: スクロール量に応じて表示
+      var btt = document.getElementById('back-to-top');
+      if (btt) {
+        var onScroll = function () {
+          if (window.pageYOffset > 600) btt.classList.add('visible');
+          else btt.classList.remove('visible');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        btt.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
+    });
+  </script>
+
+  </body>
+</html>

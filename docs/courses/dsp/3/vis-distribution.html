@@ -1,0 +1,1426 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+    <script>
+      (function () {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+        function stored() {
+          var t = null;
+          try { t = localStorage.getItem('theme'); } catch (e) {}
+          return (t === 'dark' || t === 'light') ? t : null;
+        }
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
+        if (mq) {
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
+        }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
+      })();
+    </script>
+    <title>yakagika - 度数分布表, ヒストグラム, 箱ひげ図</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../../../style.css?v=1795415080">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+    <link rel="canonical" href="https://yakagika.github.io/fields/descriptive/vis-distribution/index.html">
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../../../" class="site-brand" aria-label="Home">
+          <span class="site-mark" aria-hidden="true">▮</span>
+          <span class="site-word">yakagika</span>
+        </a>
+      </div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../../../">Home</a>
+      <a href="../../../posts.html">Blog</a>
+      <a href="../../../lectures.html">Lecture</a>
+      <a href="../../../research.html">Research</a>
+      <a href="../../../lectures/seminar.html">Seminar</a>
+      <a href="../../../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      
+      <div id="lecture-toc" data-mode="series">
+  <h2>Index</h2>
+  <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+  <ul class="toc-root">
+    
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/1.html">第 1 回 本資料の読み方</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/2.html">第 2 回 分析設計: データ分析の進め方</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item current-block">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/3.html">第 3 回 データの可視化</a>
+      </div>
+      
+      <ul class="toc-sublist">
+        <li class="toc-item toc-series-item no-children">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/3/vis-basic.html">図の選び方と基礎的なグラフ</a>
+    
+  </div>
+  
+</li>
+<li class="toc-item toc-series-item current">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/3/vis-distribution.html" aria-current="page">度数分布表, ヒストグラム, 箱ひげ図</a>
+    
+  </div>
+  <ul class="toc-sublist"></ul>
+</li>
+<li class="toc-item toc-series-item no-children">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/3/vis-relation.html">散布図, 散布図行列, ヒートマップ / 軸の選び方と誇張の影響</a>
+    
+  </div>
+  
+</li>
+
+      </ul>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/4.html">第 4 回 データの数値化</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/5.html">第 5 回 回帰分析</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/6.html">第 6 回 機械学習の枠組みと決定木</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/7.html">第 7 回 クラスタリングとパターン発見</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/8.html">第 8 回 ニューラルネットワークと Transformer</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/9.html">第 9 回 自然言語処理</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/10.html">第 10 回 画像認識</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/11.html">第 11 回 総合実習 1</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/12.html">第 12 回 総合実習 2</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/13.html">第 13 回 発表回</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/selected.html">選択資料</a>
+      </div>
+      
+    </li>
+    
+  </ul>
+</div>
+
+    </nav>
+
+    <div id="content">
+    <article>
+  <header class="article-header">
+    <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+    <a href="../../../courses/dsp/3.html">第 3 回 データの可視化</a>
+    <h1 class="article-title">度数分布表, ヒストグラム, 箱ひげ図</h1>
+  </header>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../courses/dsp/3/vis-basic.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">図の選び方と基礎的なグラフ</span>
+    </a>
+    <a class="next" href="../../../courses/dsp/3/vis-relation.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">散布図, 散布図行列, ヒートマップ / 軸の選び方と誇張の影響</span>
+    </a>
+</nav>
+
+  <div class="lesson-body">
+    <h2 id="度数分布表とヒストグラム">度数分布表とヒストグラム</h2>
+<p>データを手に入れたら最初にデータを可視化してデータの特徴を掴む必要があります. データの特徴として重要なものに, データの<strong>分布</strong>があります.</p>
+<div class="warn">
+<ul>
+<li><h3 id="分布の意味">分布の意味</h3></li>
+</ul>
+<p><strong>分布</strong>という語の詳細な意味に関しては, 検定や<a href="../../../fields/regression/reg-ols/coefficient-test.html#coefficient-test">回帰係数の検定</a>でも簡単に扱いますが, 統計学入門において数理的に詳しく扱っています.</p>
+<p>統計学入門の内容を学んでいない人は, ここでは, 単に<strong>データの散らばり具合</strong>という意味として捉えておきましょう.</p>
+</div>
+<p>分布を可視化する手法として代表的なものに, <strong>度数分布表</strong>と, <strong>ヒストグラム</strong>があります. 1 次元のデータの可視化において, 度数分布表とヒストグラムは, <strong>データ分析のファーストステップ</strong>とも称される, 重要な手法です. データを手に入れたらまずは度数分布表と, ヒストグラムを作成してみましょう.</p>
+<h2 id="度数分布表">度数分布表</h2>
+<div class="note">
+<p><strong>度数分布表</strong>とは, データの数を区切られた範囲ごとに数えた表のことです. 質的データの場合はデータのカテゴリーごとに, 量的データの場合は分析者が定めた区間ごとに, データがいくつあるのかを数えます.</p>
+<p>普通ヒストグラムというと, 量的データを対象としたものをいいますが, ここではわかりやすさのために, 質的データから見ていきましょう.</p>
+<p>以下の表は, 何かしらの商品の美味しさに関するアンケート結果です. 商品を食べて, 「とても美味しい」と回答した人の人数が 9 人, 「不味い」と回答した人の人数が 5 人であることなどがわかります.</p>
+<p>このように<strong>データのカテゴリー別にその値が生じたケースの数</strong>を<strong>度数</strong>といい, <strong>度数を表に整理したもの</strong>を<strong>度数分布表</strong>といいます.</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: center;">アンケート区分</th>
+<th style="text-align: center;">度数</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">とても美味しい</td>
+<td style="text-align: center;">9</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">どちらかといえば美味しい</td>
+<td style="text-align: center;">11</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">普通</td>
+<td style="text-align: center;">34</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">どちらかといえば不味い</td>
+<td style="text-align: center;">5</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">不味い</td>
+<td style="text-align: center;">5</td>
+</tr>
+</tbody>
+</table>
+<p>度数の亜種には, 以下のようなものがあり, それぞれによってデータの分布が把握できます.</p>
+<ul>
+<li><p>累積度数:</p>
+<p>順序尺度データの度数を少ない方から足し上げた値</p></li>
+<li><p>相対度数 (構成比率):</p>
+<p>度数の総和を100%としたときの構成比率</p></li>
+<li><p>累積相対度数 (累積比率):</p>
+<p>相対度数を上から足し上げた値</p></li>
+</ul>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: center;">アンケート区分</th>
+<th style="text-align: center;">度数</th>
+<th style="text-align: center;">累積度数</th>
+<th style="text-align: center;">相対度数</th>
+<th style="text-align: center;">累積相対度数</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">とても美味しい</td>
+<td style="text-align: center;">9</td>
+<td style="text-align: center;">9</td>
+<td style="text-align: center;">14%</td>
+<td style="text-align: center;">14%</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">どちらかといえば美味しい</td>
+<td style="text-align: center;">11</td>
+<td style="text-align: center;">20</td>
+<td style="text-align: center;">17%</td>
+<td style="text-align: center;">31%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">普通</td>
+<td style="text-align: center;">34</td>
+<td style="text-align: center;">54</td>
+<td style="text-align: center;">53%</td>
+<td style="text-align: center;">84%</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">どちらかといえば不味い</td>
+<td style="text-align: center;">5</td>
+<td style="text-align: center;">59</td>
+<td style="text-align: center;">8%</td>
+<td style="text-align: center;">92%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">不味い</td>
+<td style="text-align: center;">5</td>
+<td style="text-align: center;">64</td>
+<td style="text-align: center;">8%</td>
+<td style="text-align: center;">100%</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">計</td>
+<td style="text-align: center;">64</td>
+<td style="text-align: center;"></td>
+<td style="text-align: center;">100%</td>
+<td style="text-align: center;"></td>
+</tr>
+</tbody>
+</table>
+<p>度数分布表を作成することで, データがどの分類に偏っているのかなど, データの分布の傾向がつかめます. 度数分布表を見る場合には, 相対度数や累積度数から<strong>データが一番多いカテゴリー</strong>, <strong>度数データの過半数が属するカテゴリー</strong>, <strong>データのほとんど (90% 程度) が属するカテゴリー</strong>などに注目してみましょう.
+上のデータでは, 最も回答が多いのは「普通」であること, 「とても美味しい」「どちらかといえば美味しい」の回答が, 31% であるのに対して, 「どちらかといえば不味い」「不味い」の回答が 18% であり, 全体的にこの商品の味は高評価側に集中していることなどがわかります.</p>
+</div>
+<p>Python で度数分布表を作成するにはどのようにしたら良いのでしょうか. 質的データの場合は, ただそれぞれの値を数えればいいので <code>for</code> 文などを利用することも可能ですが, <code>pandas</code> の <code>value_counts()</code> メソッドを利用することで簡単に作成できます.</p>
+<p><a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/diff_class.csv">こちら</a>のとある授業の難易度に関する質的データをダウンロードして度数分布表を作成してみましょう.</p>
+<p>データは以下のように, 「難しすぎてついていけない」, 「難しいが許容できる」, 「ちょうどよい」, 「簡単だが許容できる」「簡単すぎて退屈」の 5 段階のカテゴリーが記述されています.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>         <span class="ex">Diff</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">0</span>   難しいが許容できる</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="ex">1</span>   簡単すぎて退屈</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="ex">2</span>   難しいが許容できる</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="ex">3</span>   簡単だが許容できる</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="ex">4</span>      ちょうどよい</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="ex">..</span>        ...</span></code></pre></div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> pyplot <span class="im">as</span> plt</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib_fontja</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> math</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co">#データの読み込み</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/diff_class.csv'</span>)</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="co">#ヒストグラムを作りたいデータの列名を指定</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>target_column <span class="op">=</span> <span class="st">'Diff'</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="co">#度数</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>freq <span class="op">=</span> df[target_column].value_counts(sort<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="co">#順番の入れ替え</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>freq <span class="op">=</span> freq.reindex([<span class="st">'難しすぎてついていけない'</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>                    ,<span class="st">'難しいが許容できる'</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>                    ,<span class="st">'ちょうどよい'</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>                    ,<span class="st">'簡単だが許容できる'</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>                    ,<span class="st">'簡単すぎて退屈'</span>],axis<span class="op">=</span><span class="st">'index'</span>)</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'度数'</span>,freq)</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>rel_freq <span class="op">=</span> freq <span class="op">/</span> df[target_column].count()  <span class="co"># 相対度数</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>cum_freq <span class="op">=</span> freq.cumsum()  <span class="co"># 累積度数</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>rel_cum_freq <span class="op">=</span> rel_freq.cumsum()  <span class="co"># 相対累積度数</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>dist <span class="op">=</span> pd.DataFrame(</span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>    {   <span class="st">&quot;Value&quot;</span>: freq.index,        <span class="co">#階級値</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Freq&quot;</span>: freq,               <span class="co">#度数</span></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Rel&quot;</span>: rel_freq,            <span class="co">#相対度数</span></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Cum&quot;</span>: cum_freq,            <span class="co">#累積度数</span></span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;RelCum&quot;</span>: rel_cum_freq,     <span class="co">#相対累積度数</span></span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>    index<span class="op">=</span>freq.index</span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(dist)</span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a>dist.to_csv(<span class="st">'frequency_table.csv'</span>,)</span></code></pre></div>
+<p>保存された csv(<code>frequency_table.csv</code>) を確認してみると, 度数分布表が作成されていることが確認できます.</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: center;">Value</th>
+<th style="text-align: center;">Freq</th>
+<th style="text-align: center;">Rel</th>
+<th style="text-align: center;">Cum</th>
+<th style="text-align: center;">RelCum</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">難しすぎてついていけない</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">0.02247191</td>
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">0.02247191</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">難しいが許容できる</td>
+<td style="text-align: center;">44</td>
+<td style="text-align: center;">0.494382022</td>
+<td style="text-align: center;">46</td>
+<td style="text-align: center;">0.516853933</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">ちょうどよい</td>
+<td style="text-align: center;">38</td>
+<td style="text-align: center;">0.426966292</td>
+<td style="text-align: center;">84</td>
+<td style="text-align: center;">0.943820225</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">簡単だが許容できる</td>
+<td style="text-align: center;">4</td>
+<td style="text-align: center;">0.04494382</td>
+<td style="text-align: center;">88</td>
+<td style="text-align: center;">0.988764045</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">簡単すぎて退屈</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0.011235955</td>
+<td style="text-align: center;">89</td>
+<td style="text-align: center;">1</td>
+</tr>
+</tbody>
+</table>
+<p>質的データはあらかじめデータのカテゴリーが定められているのでその数を数えるだけで, 度数分布表が作成できました.
+それでは, カテゴリーが存在しない量的データではどのようにして度数分布表を作成するのでしょうか.</p>
+<div class="note">
+<ul>
+<li><strong>量的データと度数分布表</strong></li>
+</ul>
+<p>量的データには当てはまるデータを数えるためのカテゴリーが存在しません. 年収のデータを考えた場合, 年収 1 万円ごとに表を作ると 1 から数億まで, 非常に細かくなります.
+そこで, 量的データで度数分布表を作成するには, 100 万円ごと, 300 万円ごとなどデータをいくつかの区間に分けて, 区間別の度数を数える必要があります. ここで, 作られた区間を<strong>階級</strong>, 階級の幅を<strong>階級幅</strong>, 階級を代表する値を<strong>階級値</strong>といいます. 階級値は大抵の場合, 区間の中間の値が用いられます (100 万円~200 万円の区間だとすると, 150 万円など).</p>
+<p>以下の度数分布表は, ある情報クラスの成績 (0-100 点) を 10 点毎に区分したものです. それぞれの点数に当てはまる人数を数えて度数とします.</p>
+<figure>
+<img src="../../../images/slds/ch8/histogram1.png" alt="度数分布表の例" />
+<figcaption aria-hidden="true">度数分布表の例</figcaption>
+</figure>
+<p>量的データの階級数や階級幅は, 100 万円ごとなどある程度人間の判断によって作成しても構いませんが, 数理的に決定する方法もあります.</p>
+<p>階級幅は階級数が決まることで自動的に決まるため, 階級数を決める一般的な目安として, <strong>スタージェスの公式</strong>が利用されます.</p>
+<p>観測数を <span class="math inline">n</span>, 階級数を <span class="math inline">k</span> とすると.</p>
+<p><span class="math display"> k = 1 + log_2 n = \frac{log_{10} n}{log_{10} 2}</span></p>
+<p>程度の <span class="math inline">k</span> が望ましいとされています.</p>
+<p>計算結果はおおよそ以下のようになります.</p>
+<figure>
+<img src="../../../images/slds/ch8/sturges-number.png" alt="スタージェス数" />
+<figcaption aria-hidden="true">スタージェス数</figcaption>
+</figure>
+</div>
+<p>Python ではスタージェス数は対数計算をするためのモジュール <code>math</code> を利用して以下のように求めることができます.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 2進対数を返す math.log2() 関数などを利用するために必要なモジュール</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> math</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 関数名を sturgesNumber として引数をnとします</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> sturgesNumber(n):</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 公式の通り k = 1 + log2 n</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 階級数は整数が良いので,math.floor()で小数点以下を切り捨てます</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (math.floor (<span class="dv">1</span> <span class="op">+</span> math.log2(n)))</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(sturgesNumber(<span class="dv">2048</span>)) <span class="co">#&gt;&gt;&gt; 12</span></span></code></pre></div>
+<p>階級数が決まることで階級幅が
+<span class="math display">\frac{(データの最大値 - データの最小値)}{階級数}</span></p>
+<p>として決まります.</p>
+<p>それでは, <a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/histogram_quantitative.csv">こちら</a>のデータを利用して, 度数分布表を作成してみます. 量的データの度数分布表を作成するには, <code>value_counts()</code> の引数 <code>bins=</code> に各階級の終点を表すリストを指定します.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">#ヒストグラムを作りたいデータの列名を指定</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>target_column <span class="op">=</span> <span class="st">'Values'</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 関数名を sturgesNumber として引数をnとします</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> sturgesNumber(n):</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 公式の通り k = 1 + log2 n</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 階級数は整数が良いので,math.floor()で小数点以下を切り捨てます</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (math.floor (<span class="dv">1</span> <span class="op">+</span> math.log2(n)))</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="co"># dataフォルダにあるhistogram_quantitative.csvというファイルを読み込みます.</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">&quot;data/histogram_quantitative.csv&quot;</span>)</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="co"># 読み込んだファイルの中身を見てみます.</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a><span class="co">#階級数を決定</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>stnum <span class="op">=</span> sturgesNumber(<span class="bu">len</span>(df[target_column]))</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'sturges number:'</span>,stnum)</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a><span class="co">#階級幅を決定</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>space <span class="op">=</span> <span class="bu">int</span>((df[target_column].<span class="bu">max</span>() <span class="op">-</span> df[target_column].<span class="bu">min</span>()) <span class="op">/</span> stnum)</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'space:'</span>,space)</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a><span class="co">#階級幅の終端を指定</span></span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>bins <span class="op">=</span> np.arange(start <span class="op">=</span> <span class="bu">int</span>(df[target_column].<span class="bu">min</span>()) <span class="op">-</span> <span class="dv">1</span> <span class="co">#最小値</span></span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>                ,stop  <span class="op">=</span> <span class="bu">int</span>(df[target_column].<span class="bu">max</span>()) <span class="op">+</span> <span class="dv">1</span> <span class="co">#最大値</span></span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>                ,step  <span class="op">=</span> space <span class="co">#階級幅</span></span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>                )</span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'bins:'</span>,bins)</span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a><span class="co">#度数</span></span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a>freq <span class="op">=</span> df[target_column].value_counts(bins <span class="op">=</span>bins, sort<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'度数'</span>,freq)</span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a>rel_freq <span class="op">=</span> freq <span class="op">/</span> df[target_column].count()  <span class="co"># 相対度数</span></span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a>cum_freq <span class="op">=</span> freq.cumsum()  <span class="co"># 累積度数</span></span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a>rel_cum_freq <span class="op">=</span> rel_freq.cumsum()  <span class="co"># 相対累積度数</span></span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a>dist <span class="op">=</span> pd.DataFrame(</span>
+<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a>    {   <span class="st">&quot;Value&quot;</span>: freq.index,        <span class="co">#階級値</span></span>
+<span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Freq&quot;</span>: freq,               <span class="co">#度数</span></span>
+<span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Rel&quot;</span>: rel_freq,            <span class="co">#相対度数</span></span>
+<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Cum&quot;</span>: cum_freq,            <span class="co">#累積度数</span></span>
+<span id="cb4-44"><a href="#cb4-44" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;RelCum&quot;</span>: rel_cum_freq,     <span class="co">#相対累積度数</span></span>
+<span id="cb4-45"><a href="#cb4-45" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb4-46"><a href="#cb4-46" aria-hidden="true" tabindex="-1"></a>    index<span class="op">=</span>freq.index</span>
+<span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb4-48"><a href="#cb4-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-49"><a href="#cb4-49" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(dist)</span>
+<span id="cb4-50"><a href="#cb4-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-51"><a href="#cb4-51" aria-hidden="true" tabindex="-1"></a>dist.to_csv(<span class="st">'frequency_table_qualitative.csv'</span></span>
+<span id="cb4-52"><a href="#cb4-52" aria-hidden="true" tabindex="-1"></a>           ,encoding<span class="op">=</span><span class="st">'utf-8-sig'</span></span>
+<span id="cb4-53"><a href="#cb4-53" aria-hidden="true" tabindex="-1"></a>           ,index<span class="op">=</span><span class="va">False</span>)</span></code></pre></div>
+<p>結果作成された, <code>frequency_table_qualitative.csv</code> を開いてみると, 以下のような度数分布表が作成されたことが確認できます.</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: center;">Value</th>
+<th style="text-align: center;">Freq</th>
+<th style="text-align: center;">Rel</th>
+<th style="text-align: center;">Cum</th>
+<th style="text-align: center;">RelCum</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">(8.999, 18.0]</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0.01</td>
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">0.01</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">(18.0, 27.0]</td>
+<td style="text-align: center;">5</td>
+<td style="text-align: center;">0.05</td>
+<td style="text-align: center;">6</td>
+<td style="text-align: center;">0.06</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">(27.0, 36.0]</td>
+<td style="text-align: center;">11</td>
+<td style="text-align: center;">0.11</td>
+<td style="text-align: center;">17</td>
+<td style="text-align: center;">0.17</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">(36.0, 45.0]</td>
+<td style="text-align: center;">21</td>
+<td style="text-align: center;">0.21</td>
+<td style="text-align: center;">38</td>
+<td style="text-align: center;">0.38</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">(45.0, 54.0]</td>
+<td style="text-align: center;">27</td>
+<td style="text-align: center;">0.27</td>
+<td style="text-align: center;">65</td>
+<td style="text-align: center;">0.65</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">(54.0, 63.0]</td>
+<td style="text-align: center;">20</td>
+<td style="text-align: center;">0.2</td>
+<td style="text-align: center;">85</td>
+<td style="text-align: center;">0.85</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">(63.0, 72.0]</td>
+<td style="text-align: center;">9</td>
+<td style="text-align: center;">0.09</td>
+<td style="text-align: center;">94</td>
+<td style="text-align: center;">0.94</td>
+</tr>
+</tbody>
+</table>
+<h2 id="histogram">度数分布表の可視化:<strong>ヒストグラム</strong></h2>
+<p><a href="#%E5%BA%A6%E6%95%B0%E5%88%86%E5%B8%83%E8%A1%A8">度数分布表</a>は, データの分布や偏りを把握する手段です. 度数分布表を眺めることである程度データの形は分かりますが, よりわかりやすく可視化する方法として<strong>ヒストグラム</strong>があります.</p>
+<p><strong>ヒストグラム (Histogram)/柱状図</strong>とは, 量的データの度数分布を棒グラフで表現したものです. ただし, 通常の棒グラフと異なり値が連続しているので, 棒と棒の間にスペースを置きません. 統計における最も基本的なグラフです.</p>
+<p>ヒストグラムはいくつかの代表的なパターンがあり, それぞれ注意するべきポイントがありますので, 順に見ていきましょう.</p>
+<div class="note">
+<ul>
+<li><h3 id="単峰型-unimodal-で左右対称">単峰型 (unimodal) で左右対称</h3></li>
+</ul>
+<p>ヒストグラムの盛り上がっている部分を<strong>峰</strong>といいます. 峰の数が一つのヒストグラムを<strong>単峰 (unimodal)</strong>なヒストグラムといいます.</p>
+<p>ヒストグラムの基本となる形は, 単峰で左右対称な分布です. この分布は, <strong>データが同質な集団から発生していること</strong>を表しています.</p>
+<pre><code>- 例:同じ人種の, 同じ年代の, 男性の集団の身長
+
+- 例:同じ種類, 同じ時期, 同じ地域のうさぎの集団のサイズ</code></pre>
+<p>峰からの左右のデータのばらつきは集団の個体差を表しています. 異なる, 質を持つ集団が混じっている場合は峰が複数になることが多いです.</p>
+<figure>
+<img src="../../../images/slds/ch8/histogram-unimodal.png" alt="単峰で左右対称なヒストグラム" />
+<figcaption aria-hidden="true">単峰で左右対称なヒストグラム</figcaption>
+</figure>
+<ul>
+<li><h3 id="多峰型-multimodal-のヒストグラム">多峰型 (multimodal) のヒストグラム</h3></li>
+</ul>
+<p>峰が 2 つ以上あるヒストグラムを<strong>多峰 (multimodal)</strong> なヒストグラムといいます (峰が 2 つのものは特に<strong>二峰 (bimodal)</strong> といいます).
+異質な集団が混ざっているデータでは, ヒストグラムが多峰になることがあります.</p>
+<pre><code>- 例:男女の混ざった集団の身長や体重
+男性の峰と女性の峰が現れます.
+
+- 例:小学生と中学生が同じテストを受けたときの点数
+小学生の点数の峰と,中学生の点数の峰が現れます.</code></pre>
+<p>ヒストグラムを作成し, 多峰性が現れたらデータを集団別・要因別に分割して分析するのが良いとされています. データを特定の属性で分割することを<strong>層別</strong>といいます.</p>
+<figure>
+<img src="../../../images/slds/ch8/histogram-bimodal.png" alt="多峰なヒストグラム" />
+<figcaption aria-hidden="true">多峰なヒストグラム</figcaption>
+</figure>
+<ul>
+<li><h3 id="左右非対称なヒストグラム">左右非対称なヒストグラム</h3></li>
+</ul>
+<p>ヒストグラムは峰を中心として左右対称な場合もありますが, どちらかの方向に歪んでいるものも良く見られます.</p>
+<pre><code>- 例:社会人の年収, 企業の売上など</code></pre>
+<p>ヒストグラムの細くなっている部分をヒストグラムの<strong>尾</strong>といいます.</p>
+<pre><code>- **尾が**左に伸びている場合に **左に歪んだ分布**
+
+- **尾が**右に伸びている場合に **右に歪んだ分布**</code></pre>
+<p>といいます.</p>
+<figure>
+<img src="../../../images/slds/ch8/histogram-right-left.png" alt="左右に歪んだヒストグラム" />
+<figcaption aria-hidden="true">左右に歪んだヒストグラム</figcaption>
+</figure>
+<p>左右に歪んだ分布では, 後に扱う<strong>中心を表す代表値</strong>(平均値や中央値) が適切に集団を代表しない場合があるので, 代表値の使い分けが必要になります.</p>
+<p>また, 後に扱う<strong>検定</strong>手法のうち, <strong>正規分布</strong>を仮定する検定が利用できないなど, 手法の選択において, 分布の歪みは重要なポイントです.</p>
+<ul>
+<li><h3 id="外れ値-outlierのあるヒストグラム"><strong>外れ値 (Outlier)</strong>のあるヒストグラム</h3></li>
+</ul>
+<p>大多数のデータとは離れた位置にある少数のデータを<strong>外れ値 (Outlier)</strong>といいます.</p>
+<p>外れ値は, データ分析において非常に重要な意味を持ち, 外れ値が現れた場合にはその原因を探ることが必要となります.
+外れ値が発生する原因としては以下のようなものがあり, いずれも注目する必要があります.</p>
+<pre><code>- データの取得におけるミス
+    単純な入力ミスや計算ミスなど
+    発見した場合は修正,除外する必要がある.
+
+- 異質な存在の発見
+    新種や新しい現象の発見などにつながる可能性があります.</code></pre>
+<p>また, 代表値の計算においては歪みが生じる可能性があるので, 外れ値を除外する必要があります.</p>
+<figure>
+<img src="../../../images/slds/ch8/histogram-outlier.png" alt="外れ値のあるヒストグラム" />
+<figcaption aria-hidden="true">外れ値のあるヒストグラム</figcaption>
+</figure>
+</div>
+<p>それでは, Python で度数分布表をグラフにしてみましょう. 度数分布表がある場合は, 棒グラフを作り棒の間隔を <code>0</code> にすることで, 棒を詰めたグラフ (量的データならヒストグラム) が作成できます.</p>
+<p><code>plt.bar()</code> では, 引数 <code>width=1</code> を与えることで, 棒の太さを <code>1</code> (棒の間を 0) にすることができます.</p>
+<p>まずは, 以前扱った<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/diff_class.csv">順序尺度の質的データ</a>の例を描いてみましょう. 前述のとおり順序尺度には階級幅の概念が無いため, これは厳密にはヒストグラムではありませんが, 順序があるので棒を詰めて描くと分布の歪みなどを読み取れます.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">#データの読み込み</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/diff_class.csv'</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="co">#ヒストグラムを作りたいデータの列名を指定</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>target_column <span class="op">=</span> <span class="st">'Diff'</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="co">#度数</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>freq <span class="op">=</span> df[target_column].value_counts(sort<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="co">#順番の入れ替え</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>freq <span class="op">=</span> freq.reindex([<span class="st">'難しすぎてついていけない'</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>                    ,<span class="st">'難しいが許容できる'</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>                    ,<span class="st">'ちょうどよい'</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>                    ,<span class="st">'簡単だが許容できる'</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>                    ,<span class="st">'簡単すぎて退屈'</span>],axis<span class="op">=</span><span class="st">'index'</span>)</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'度数'</span>,freq)</span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>rel_freq <span class="op">=</span> freq <span class="op">/</span> df[target_column].count()  <span class="co"># 相対度数</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>cum_freq <span class="op">=</span> freq.cumsum()  <span class="co"># 累積度数</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>rel_cum_freq <span class="op">=</span> rel_freq.cumsum()  <span class="co"># 相対累積度数</span></span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>dist <span class="op">=</span> pd.DataFrame(</span>
+<span id="cb10-23"><a href="#cb10-23" aria-hidden="true" tabindex="-1"></a>    {   <span class="st">&quot;Value&quot;</span>: freq.index,        <span class="co">#階級値</span></span>
+<span id="cb10-24"><a href="#cb10-24" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Freq&quot;</span>: freq,               <span class="co">#度数</span></span>
+<span id="cb10-25"><a href="#cb10-25" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Rel&quot;</span>: rel_freq,            <span class="co">#相対度数</span></span>
+<span id="cb10-26"><a href="#cb10-26" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Cum&quot;</span>: cum_freq,            <span class="co">#累積度数</span></span>
+<span id="cb10-27"><a href="#cb10-27" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;RelCum&quot;</span>: rel_cum_freq,     <span class="co">#相対累積度数</span></span>
+<span id="cb10-28"><a href="#cb10-28" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb10-29"><a href="#cb10-29" aria-hidden="true" tabindex="-1"></a>    index<span class="op">=</span>freq.index</span>
+<span id="cb10-30"><a href="#cb10-30" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb10-31"><a href="#cb10-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-32"><a href="#cb10-32" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(dist)</span>
+<span id="cb10-33"><a href="#cb10-33" aria-hidden="true" tabindex="-1"></a>dist.to_csv(<span class="st">'frequency_table.csv'</span>,encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>,index<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb10-34"><a href="#cb10-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-35"><a href="#cb10-35" aria-hidden="true" tabindex="-1"></a><span class="co"># ヒストグラム</span></span>
+<span id="cb10-36"><a href="#cb10-36" aria-hidden="true" tabindex="-1"></a>plt.bar(x<span class="op">=</span>dist[<span class="st">'Value'</span>], height<span class="op">=</span>dist[<span class="st">&quot;Freq&quot;</span>],width<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb10-37"><a href="#cb10-37" aria-hidden="true" tabindex="-1"></a>plt.xticks(np.arange(<span class="bu">len</span>(dist)),<span class="bu">list</span>(dist.index),rotation<span class="op">=</span><span class="dv">15</span>)</span>
+<span id="cb10-38"><a href="#cb10-38" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<p>以下のように, 単峰で右に歪んだグラフが作成されるはずです.</p>
+<figure>
+<img src="../../../images/slds/ch8/histogram-qualitative.png" alt="順序尺度データをヒストグラム風に描いたグラフ" />
+<figcaption aria-hidden="true">順序尺度データをヒストグラム風に描いたグラフ</figcaption>
+</figure>
+<p>同様に<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/histogram_quantitative.csv">量的データ</a>についても作成してみます.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">#ヒストグラムを作りたいデータの列名を指定</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>target_column <span class="op">=</span> <span class="st">'Values'</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 関数名を sturgesNumber として引数をnとします</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> sturgesNumber(n):</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 公式の通り k = 1 + log2 n</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 階級数は整数が良いので,math.floor()で小数点以下を切り捨てます</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (math.floor (<span class="dv">1</span> <span class="op">+</span> math.log2(n)))</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="co"># dataフォルダにあるhistogram_quantitative.csvというファイルを読み込みます.</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">&quot;data/histogram_quantitative.csv&quot;</span>)</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a><span class="co"># 読み込んだファイルの中身を見てみます.</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a><span class="co">#階級数を決定</span></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>stnum <span class="op">=</span> sturgesNumber(<span class="bu">len</span>(df[target_column]))</span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'sturges number:'</span>,stnum)</span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a><span class="co">#階級幅を決定</span></span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>space <span class="op">=</span> <span class="bu">int</span>((df[target_column].<span class="bu">max</span>() <span class="op">-</span> df[target_column].<span class="bu">min</span>()) <span class="op">/</span> stnum)</span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'space:'</span>,space)</span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a><span class="co">#階級幅の終端を指定</span></span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a>bins <span class="op">=</span> np.arange(start <span class="op">=</span> <span class="bu">int</span>(df[target_column].<span class="bu">min</span>()) <span class="op">-</span> <span class="dv">1</span> <span class="co">#最小値</span></span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a>                ,stop  <span class="op">=</span> <span class="bu">int</span>(df[target_column].<span class="bu">max</span>()) <span class="op">+</span> <span class="dv">1</span> <span class="co">#最大値</span></span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>                ,step  <span class="op">=</span> space <span class="co">#階級幅</span></span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a>                )</span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'bins:'</span>,bins)</span>
+<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a><span class="co">階級が整数では大きすぎる場合は,</span></span>
+<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a><span class="co">np.arrange()では上手く出来ません.</span></span>
+<span id="cb11-34"><a href="#cb11-34" aria-hidden="true" tabindex="-1"></a><span class="co">while文などで,以下のように自作しましょう.</span></span>
+<span id="cb11-35"><a href="#cb11-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-36"><a href="#cb11-36" aria-hidden="true" tabindex="-1"></a><span class="co">space = (data.max() - data.min()) / step</span></span>
+<span id="cb11-37"><a href="#cb11-37" aria-hidden="true" tabindex="-1"></a><span class="co">current = data.min() -1</span></span>
+<span id="cb11-38"><a href="#cb11-38" aria-hidden="true" tabindex="-1"></a><span class="co">bins = [current]</span></span>
+<span id="cb11-39"><a href="#cb11-39" aria-hidden="true" tabindex="-1"></a><span class="co">while current &lt;= data.max() +1:</span></span>
+<span id="cb11-40"><a href="#cb11-40" aria-hidden="true" tabindex="-1"></a><span class="co">    current += space</span></span>
+<span id="cb11-41"><a href="#cb11-41" aria-hidden="true" tabindex="-1"></a><span class="co">    bins.append(current)</span></span>
+<span id="cb11-42"><a href="#cb11-42" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb11-43"><a href="#cb11-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-44"><a href="#cb11-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-45"><a href="#cb11-45" aria-hidden="true" tabindex="-1"></a><span class="co">#度数</span></span>
+<span id="cb11-46"><a href="#cb11-46" aria-hidden="true" tabindex="-1"></a>freq <span class="op">=</span> df[target_column].value_counts(bins <span class="op">=</span>bins, sort<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb11-47"><a href="#cb11-47" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'度数'</span>,freq)</span>
+<span id="cb11-48"><a href="#cb11-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-49"><a href="#cb11-49" aria-hidden="true" tabindex="-1"></a>rel_freq <span class="op">=</span> freq <span class="op">/</span> df[target_column].count()  <span class="co"># 相対度数</span></span>
+<span id="cb11-50"><a href="#cb11-50" aria-hidden="true" tabindex="-1"></a>cum_freq <span class="op">=</span> freq.cumsum()  <span class="co"># 累積度数</span></span>
+<span id="cb11-51"><a href="#cb11-51" aria-hidden="true" tabindex="-1"></a>rel_cum_freq <span class="op">=</span> rel_freq.cumsum()  <span class="co"># 相対累積度数</span></span>
+<span id="cb11-52"><a href="#cb11-52" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-53"><a href="#cb11-53" aria-hidden="true" tabindex="-1"></a>dist <span class="op">=</span> pd.DataFrame(</span>
+<span id="cb11-54"><a href="#cb11-54" aria-hidden="true" tabindex="-1"></a>    {   <span class="st">&quot;Value&quot;</span>: freq.index,        <span class="co">#階級値</span></span>
+<span id="cb11-55"><a href="#cb11-55" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Freq&quot;</span>: freq,               <span class="co">#度数</span></span>
+<span id="cb11-56"><a href="#cb11-56" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Rel&quot;</span>: rel_freq,            <span class="co">#相対度数</span></span>
+<span id="cb11-57"><a href="#cb11-57" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Cum&quot;</span>: cum_freq,            <span class="co">#累積度数</span></span>
+<span id="cb11-58"><a href="#cb11-58" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;RelCum&quot;</span>: rel_cum_freq,     <span class="co">#相対累積度数</span></span>
+<span id="cb11-59"><a href="#cb11-59" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb11-60"><a href="#cb11-60" aria-hidden="true" tabindex="-1"></a>    index<span class="op">=</span>freq.index</span>
+<span id="cb11-61"><a href="#cb11-61" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb11-62"><a href="#cb11-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-63"><a href="#cb11-63" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(dist)</span>
+<span id="cb11-64"><a href="#cb11-64" aria-hidden="true" tabindex="-1"></a>dist.to_csv(<span class="st">'frequency_table_qualitative.csv'</span></span>
+<span id="cb11-65"><a href="#cb11-65" aria-hidden="true" tabindex="-1"></a>           ,encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>,index<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb11-66"><a href="#cb11-66" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-67"><a href="#cb11-67" aria-hidden="true" tabindex="-1"></a><span class="co"># ヒストグラム</span></span>
+<span id="cb11-68"><a href="#cb11-68" aria-hidden="true" tabindex="-1"></a><span class="co">## dist['Value']は文字列でないので,</span></span>
+<span id="cb11-69"><a href="#cb11-69" aria-hidden="true" tabindex="-1"></a><span class="co">## .astype(str) で文字列に変換しています.</span></span>
+<span id="cb11-70"><a href="#cb11-70" aria-hidden="true" tabindex="-1"></a>plt.bar(x<span class="op">=</span>dist[<span class="st">'Value'</span>].astype(<span class="bu">str</span>)</span>
+<span id="cb11-71"><a href="#cb11-71" aria-hidden="true" tabindex="-1"></a>       ,height<span class="op">=</span>dist[<span class="st">&quot;Freq&quot;</span>],width<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb11-72"><a href="#cb11-72" aria-hidden="true" tabindex="-1"></a>plt.xticks(np.arange(<span class="bu">len</span>(dist)),<span class="bu">list</span>(dist.index),rotation<span class="op">=</span><span class="dv">15</span>)</span>
+<span id="cb11-73"><a href="#cb11-73" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<p>以下のように単峰で左に歪んだヒストグラムが作成されます.</p>
+<figure>
+<img src="../../../images/slds/ch8/histogram-quantitative.png" alt="量的データのヒストグラム" />
+<figcaption aria-hidden="true">量的データのヒストグラム</figcaption>
+</figure>
+<p>一方で, 量的データに関しては, 度数分布表を作成せずとも <code>matplotlib</code> の <code>plt.hist()</code> を利用して直接作成することも可能です.</p>
+<p><code>plt.hist()</code> では <code>bins=</code> に階級数を指定することで, その階級数で自然に分割したヒストグラムを作成してくれます.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ヒストグラムの作成</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>label  <span class="op">=</span> df.columns[<span class="dv">0</span>]</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>values <span class="op">=</span> df[label]</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>plt.hist(values, bins<span class="op">=</span>stnum)</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<figure>
+<img src="../../../images/slds/ch8/histogram-quantitative2.png" alt="量的データのヒストグラム" />
+<figcaption aria-hidden="true">量的データのヒストグラム</figcaption>
+</figure>
+<p>階級幅の設定によって, 見た目が変わることが分かります. 作成手法や階級の設定は目的に応じて, 使い分けるようにしましょう.</p>
+<p>この節に対応する演習は, <a href="#exercise-dsp3-5">Exercise DSP3-5</a>です.</p>
+<h1 id="boxplot">箱ひげ図</h1>
+<p>データの観測対象が複数のグループに層別可能な場合には, それぞれのヒストグラムを作成して比較することなどが必要です. グループの数が多い場合には, 何個もヒストグラムを作成することになりますし, 比較には向いていない場合があります.
+そのような複数のグループの分布を比較する際に良く用いられるグラフが, 箱ひげ図です.</p>
+<p><a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/boxplot_data_300.csv">こちら</a>のデータは, 複数の種類の馬鈴薯のサイズがまとまっています.</p>
+<p>試しに, 馬鈴薯の種類ごとのヒストグラムを作成してみます.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/boxplot_data_300.csv'</span>)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co">#馬鈴薯の種類を抜き出す</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>types <span class="op">=</span> <span class="bu">list</span>(<span class="bu">set</span>(df[<span class="st">'Type'</span>]))</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(types)</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="co">#馬鈴薯の種類別にヒストグラムを作成してみる</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(ncols<span class="op">=</span><span class="dv">2</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>                      ,nrows<span class="op">=</span><span class="bu">int</span>(<span class="bu">len</span>(types) <span class="op">/</span> <span class="dv">2</span>) <span class="op">+</span> <span class="dv">1</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>                      ,sharex <span class="op">=</span> <span class="va">True</span>)</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>axes <span class="op">=</span> ax.flatten()</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>fig.suptitle(<span class="st">'Potato Weight'</span>)</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(types)):</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>    t <span class="op">=</span> types[i]</span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>    df_temp <span class="op">=</span> df[df[<span class="st">'Type'</span>] <span class="op">==</span> t]</span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>    axes[i].hist(df_temp[<span class="st">'Weight'</span>])</span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>    axes[i].set_title(t)</span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<figure>
+<img src="../../../images/slds/ch8/box-plot1.png" alt="馬鈴薯の重さのヒストグラム" />
+<figcaption aria-hidden="true">馬鈴薯の重さのヒストグラム</figcaption>
+</figure>
+<p>これでも比較はできますが 1 枚の画像にまとめる手段として, 箱ひげ図が利用できます.
+箱ひげ図は <code>plt.boxplot(データのリスト, tick_labels=ラベルのリスト)</code> で生成できます (<code>matplotlib</code> 3.9 より前の版では <code>tick_labels=</code> の代わりに <code>labels=</code> を使います).</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>data <span class="op">=</span> [df[df[<span class="st">'Type'</span>]<span class="op">==</span>x][<span class="st">'Weight'</span>] <span class="cf">for</span> x <span class="kw">in</span> types]</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co">#内包表記を利用しない場合は</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="co">data = []</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="co">for x in types:</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="co">    data.append(df[df['Type']==x]['Weight'])</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(data)</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>plt.boxplot(data, tick_labels<span class="op">=</span>types)</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<figure>
+<img src="../../../images/slds/ch8/box-plot2.png" alt="馬鈴薯の重さの箱ひげ図" />
+<figcaption aria-hidden="true">馬鈴薯の重さの箱ひげ図</figcaption>
+</figure>
+<p>箱ひげ図の箱は, 上から <strong>75% 点</strong>, <strong>中央値</strong> (箱の中の線), <strong>25% 点</strong> を表します. ひげは箱から上下に伸び, 箱の長さ (四分位範囲) の 1.5 倍以内にあるデータの<strong>最大値</strong>と<strong>最小値</strong>まで引かれます. その範囲の外にあるデータは外れ値として丸で表されます.</p>
+<p>ヒストグラムと比較して情報量は減りますが, 一覧性と比較においては優れています. それぞれ一長一短なので, 用途に応じて使い分けるようにしましょう.</p>
+<h1 id="exercises"><span id="演習"></span>演習</h1>
+<h2 id="exercise-dsp3-5">Exercise DSP3-5</h2>
+<p class="exercise-file">提出ファイル <code>dsp3-5.py</code></p>
+<p><strong>度数分布表とヒストグラムを作る</strong></p>
+<p>対応する節: <a href="#%E5%BA%A6%E6%95%B0%E5%88%86%E5%B8%83%E8%A1%A8">度数分布表</a>, <a href="#histogram">ヒストグラム</a></p>
+<p><a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/qualitative_histogram_practice.csv">質的データ</a>と<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/quantitative_histogram_practice.csv">量的データ</a>のそれぞれについて, 度数分布表とヒストグラムを作成し, ppt などでグラフとその解釈をまとめてください.</p>
+<p>提出ファイル名: <code>dsp3-5.py</code> (ppt などの資料も添えてください)</p>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答例
+</summary>
+<div class="sourceCode" id="cb15"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> math</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib_fontja</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="co"># 質的データ: 値ごとに数え, 相対度数と累積度数を加えます.</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>qual <span class="op">=</span> pd.read_csv(<span class="st">'data/qualitative_histogram_practice.csv'</span>)</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>freq <span class="op">=</span> qual[<span class="st">'Category'</span>].value_counts().sort_index()</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>rel_freq <span class="op">=</span> freq <span class="op">/</span> freq.<span class="bu">sum</span>()</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>dist <span class="op">=</span> pd.DataFrame({<span class="st">'Freq'</span>: freq, <span class="st">'Rel'</span>: rel_freq,</span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>                     <span class="st">'Cum'</span>: freq.cumsum(), <span class="st">'RelCum'</span>: rel_freq.cumsum()})</span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(dist)</span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>plt.bar(dist.index, dist[<span class="st">'Freq'</span>], width<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'度数'</span>)</span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a><span class="co"># 量的データ: スタージェスの公式で階級数を決め, 度数分布表を作ります.</span></span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>quant <span class="op">=</span> pd.read_csv(<span class="st">'data/quantitative_histogram_practice.csv'</span>)</span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>values <span class="op">=</span> quant[<span class="st">'Values'</span>]</span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> make_dist(values):</span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a>    stnum <span class="op">=</span> math.floor(<span class="dv">1</span> <span class="op">+</span> math.log2(<span class="bu">len</span>(values)))</span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a>    space <span class="op">=</span> <span class="bu">int</span>((values.<span class="bu">max</span>() <span class="op">-</span> values.<span class="bu">min</span>()) <span class="op">/</span> stnum)</span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>    bins <span class="op">=</span> np.arange(<span class="bu">int</span>(values.<span class="bu">min</span>()) <span class="op">-</span> <span class="dv">1</span>, <span class="bu">int</span>(values.<span class="bu">max</span>()) <span class="op">+</span> <span class="dv">1</span> <span class="op">+</span> space, space)</span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a>    freq <span class="op">=</span> values.value_counts(bins<span class="op">=</span>bins, sort<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a>    rel_freq <span class="op">=</span> freq <span class="op">/</span> freq.<span class="bu">sum</span>()</span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a>    dist <span class="op">=</span> pd.DataFrame({<span class="st">'Freq'</span>: freq, <span class="st">'Rel'</span>: rel_freq,</span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a>                         <span class="st">'Cum'</span>: freq.cumsum(), <span class="st">'RelCum'</span>: rel_freq.cumsum()})</span>
+<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> dist, bins</span>
+<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-33"><a href="#cb15-33" aria-hidden="true" tabindex="-1"></a>dist, bins <span class="op">=</span> make_dist(values)</span>
+<span id="cb15-34"><a href="#cb15-34" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(dist.<span class="bu">round</span>(<span class="dv">2</span>))</span>
+<span id="cb15-35"><a href="#cb15-35" aria-hidden="true" tabindex="-1"></a>plt.hist(values, bins<span class="op">=</span>bins)</span>
+<span id="cb15-36"><a href="#cb15-36" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb15-37"><a href="#cb15-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb15-38"><a href="#cb15-38" aria-hidden="true" tabindex="-1"></a><span class="co"># 最大値だけが桁外れに大きい (外れ値) ので, 除いて作り直します.</span></span>
+<span id="cb15-39"><a href="#cb15-39" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(values.<span class="bu">max</span>(), values.drop(values.idxmax()).<span class="bu">max</span>())</span>
+<span id="cb15-40"><a href="#cb15-40" aria-hidden="true" tabindex="-1"></a>values <span class="op">=</span> values.drop(values.idxmax())</span>
+<span id="cb15-41"><a href="#cb15-41" aria-hidden="true" tabindex="-1"></a>dist, bins <span class="op">=</span> make_dist(values)</span>
+<span id="cb15-42"><a href="#cb15-42" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(dist.<span class="bu">round</span>(<span class="dv">2</span>))</span>
+<span id="cb15-43"><a href="#cb15-43" aria-hidden="true" tabindex="-1"></a>plt.hist(values, bins<span class="op">=</span>bins)</span>
+<span id="cb15-44"><a href="#cb15-44" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'値'</span>)</span>
+<span id="cb15-45"><a href="#cb15-45" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'度数'</span>)</span>
+<span id="cb15-46"><a href="#cb15-46" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<div class="sourceCode" id="cb16"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>            <span class="ex">Freq</span>   Rel  Cum  RelCum</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="ex">Category</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="ex">Category</span> A    21  0.21   21    0.21</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="ex">Category</span> B    26  0.26   47    0.47</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="ex">Category</span> C    25  0.25   72    0.72</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="ex">Category</span> D    28  0.28  100    1.00</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>                        <span class="ex">Freq</span>   Rel  Cum  RelCum</span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a><span class="kw">(</span><span class="ex">8.999,</span> 821206.0]         99  0.99   99    0.99</span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a><span class="kw">(</span><span class="ex">821206.0,</span> 1642403.0]      0  0.00   99    0.99</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a><span class="kw">(</span><span class="ex">1642403.0,</span> 2463600.0]     0  0.00   99    0.99</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a><span class="kw">(</span><span class="ex">2463600.0,</span> 3284797.0]     0  0.00   99    0.99</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a><span class="kw">(</span><span class="ex">3284797.0,</span> 4105994.0]     0  0.00   99    0.99</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a><span class="kw">(</span><span class="ex">4105994.0,</span> 4927191.0]     0  0.00   99    0.99</span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a><span class="kw">(</span><span class="ex">4927191.0,</span> 5748388.0]     0  0.00   99    0.99</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a><span class="kw">(</span><span class="ex">5748388.0,</span> 6569585.0]     1  0.01  100    1.00</span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a><span class="ex">5748392.168</span> 77.78417277</span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>               <span class="ex">Freq</span>   Rel  Cum  RelCum</span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a><span class="kw">(</span><span class="ex">8.999,</span> 18.0]      1  0.01    1    0.01</span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a><span class="kw">(</span><span class="ex">18.0,</span> 27.0]       5  0.05    6    0.06</span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a><span class="kw">(</span><span class="ex">27.0,</span> 36.0]      11  0.11   17    0.17</span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a><span class="kw">(</span><span class="ex">36.0,</span> 45.0]      21  0.21   38    0.38</span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a><span class="kw">(</span><span class="ex">45.0,</span> 54.0]      27  0.27   65    0.66</span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a><span class="kw">(</span><span class="ex">54.0,</span> 63.0]      20  0.20   85    0.86</span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a><span class="kw">(</span><span class="ex">63.0,</span> 72.0]       9  0.09   94    0.95</span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a><span class="kw">(</span><span class="ex">72.0,</span> 81.0]       5  0.05   99    1.00</span></code></pre></div>
+<p>質的データは, 4 つのカテゴリの度数が 21 から 28 でほぼ均等です. 最も多いのは D (28), 最も少ないのは A (21) ですが, 差は小さく, 偏りがあるとは言えません.</p>
+<p>量的データは, 最大値の約 575 万が, 他の値の最大値 (約 78) から桁違いに離れた<strong>外れ値</strong>です. この 1 件が階級の幅を押し広げるため, 最初の度数分布表では 99 件が最初の階級に入り, ヒストグラムは 1 本の棒しか読み取れません. 実際の分析では, 外れ値を除く前に入力ミスなどの原因を確認します. 外れ値を除いて作り直すと, 45 を超え 54 以下の階級が最も多い (27 件), 左右ほぼ対称な山の形になっていることが読み取れます.</p>
+</details>
+  </div>
+  
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../courses/dsp/3/vis-basic.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">図の選び方と基礎的なグラフ</span>
+    </a>
+    <a class="next" href="../../../courses/dsp/3/vis-relation.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">散布図, 散布図行列, ヒートマップ / 軸の選び方と誇張の影響</span>
+    </a>
+</nav>
+
+</article>
+
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        <nav class="footer-nav" aria-label="フッターナビゲーション">
+            <a href="../../../">Home</a>
+            <a href="../../../posts.html">Blog</a>
+            <a href="../../../lectures.html">Lecture</a>
+            <a href="../../../research.html">Research</a>
+            <a href="../../../rss.xml">RSS</a>
+            <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+        </nav>
+        <p class="footer-copy">&copy; yakagika &middot; Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>.</p>
+    </div>
+</div>
+
+
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="ページ先頭へ戻る" title="先頭へ戻る">↑</button>
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+            link.classList.add('external-link');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h1[id], h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level = Number(heading.tagName.slice(1)) - 1;
+          if (!heading.id) return;
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          // Pandoc は `::: note` + 見出し の組み合わせを <section id="..." class="note">
+          // 内の <hN> として出力するため, 見出し自身に id が無い場合は
+          // 親 section の id を辿る.
+          var anchorId = heading.id;
+          if (!anchorId) {
+            var parentSection = heading.closest('section[id]');
+            if (parentSection) anchorId = parentSection.id;
+          }
+          anchor.href = '#' + anchorId;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi && !li.contains(currentLi)) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+
+      // ----------------------------------------
+      // スクロールスパイ: 表示中の見出しを TOC でハイライト
+      // ----------------------------------------
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0 || typeof IntersectionObserver === 'undefined') return;
+
+      var idToTocItem = new Map();
+      headings.forEach(function(h) {
+        if (!h.id) return;
+        var link = tocContainer.querySelector('a[href="#' + CSS.escape(h.id) + '"]');
+        if (link) {
+          var li = link.closest('.toc-item') || link.closest('li');
+          if (li) idToTocItem.set(h.id, li);
+        }
+      });
+
+      var visible = new Set();
+      var lastActive = null;
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+
+        // ドキュメント順で最初に可視な見出しをアクティブに
+        var firstVisible = null;
+        for (var i = 0; i < headings.length; i++) {
+          if (visible.has(headings[i].id)) {
+            firstVisible = headings[i].id;
+            break;
+          }
+        }
+        if (!firstVisible) return;
+
+        var tocItem = idToTocItem.get(firstVisible);
+        if (!tocItem || tocItem === lastActive) return;
+
+        if (lastActive) lastActive.classList.remove('toc-active');
+        tocItem.classList.add('toc-active');
+        lastActive = tocItem;
+
+        // TOC を必要なときだけスクロール
+        tocItem.scrollIntoView({
+          block: 'nearest',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
+      }, {
+        // ヘッダー (60px) を除いた上部 〜 画面下から60% を判定領域とする
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0
+      });
+
+      headings.forEach(function(h) { if (h.id) observer.observe(h); });
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
+      const pre = codeBlock.parentNode;
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
+      copyButton.textContent = 'Copy';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    // パスワード保護付き details (回答例用)
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll('details.protected').forEach(function (det) {
+        var pass = det.getAttribute('data-pass') || '';
+        var summary = det.querySelector('summary');
+        if (!summary) return;
+
+        var gate = document.createElement('div');
+        gate.className = 'pass-gate';
+        gate.innerHTML =
+          '<label>合言葉: <input type="password" autocomplete="off" spellcheck="false"></label>' +
+          '<button type="button">解除</button>' +
+          '<span class="pass-error" hidden>合言葉が違います</span>';
+        summary.insertAdjacentElement('afterend', gate);
+
+        var input = gate.querySelector('input');
+        var button = gate.querySelector('button');
+        var errorMsg = gate.querySelector('.pass-error');
+
+        function tryUnlock() {
+          if (input.value === pass) {
+            det.classList.add('unlocked');
+            errorMsg.hidden = true;
+          } else {
+            errorMsg.hidden = false;
+            input.select();
+          }
+        }
+
+        button.addEventListener('click', tryUnlock);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
+        });
+
+        det.addEventListener('toggle', function () {
+          if (det.open && !det.classList.contains('unlocked')) {
+            input.focus();
+          }
+        });
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            try {
+              katex.render( texText.data
+                          , mathElements[i]
+                          , { displayMode: mathElements[i].classList.contains("display")
+                            , throwOnError: true
+                           }
+                          );
+            } catch (e) {
+              // 1 つの数式のエラーで残り全ての数式が生 TeX のまま残らないようにする
+              console.error('KaTeX render error:', e.message, texText.data);
+            }
+          }
+      }
+    });
+  </script>
+
+  <!-- 見出しアンカーリンク + Back to top -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 記事見出しに hover で現れる # パーマリンクを付与
+      document.querySelectorAll('article h2[id], article h3[id]').forEach(function (h) {
+        var a = document.createElement('a');
+        a.className = 'heading-anchor';
+        a.href = '#' + h.id;
+        a.setAttribute('aria-label', 'このセクションへのリンク');
+        a.textContent = '#';
+        h.appendChild(a);
+      });
+
+      // Back to top: スクロール量に応じて表示
+      var btt = document.getElementById('back-to-top');
+      if (btt) {
+        var onScroll = function () {
+          if (window.pageYOffset > 600) btt.classList.add('visible');
+          else btt.classList.remove('visible');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        btt.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
+    });
+  </script>
+
+  </body>
+</html>

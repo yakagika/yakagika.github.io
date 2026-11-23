@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+    <script>
+      (function () {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+        function stored() {
+          var t = null;
+          try { t = localStorage.getItem('theme'); } catch (e) {}
+          return (t === 'dark' || t === 'light') ? t : null;
+        }
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
+        if (mq) {
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
+        }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
+      })();
+    </script>
+    <title>yakagika - トピックモデル, n-gram, CLIP</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../../../style.css?v=1795415080">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../../../" class="site-brand" aria-label="Home">
+          <span class="site-mark" aria-hidden="true">▮</span>
+          <span class="site-word">yakagika</span>
+        </a>
+      </div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../../../">Home</a>
+      <a href="../../../posts.html">Blog</a>
+      <a href="../../../lectures.html">Lecture</a>
+      <a href="../../../research.html">Research</a>
+      <a href="../../../lectures/seminar.html">Seminar</a>
+      <a href="../../../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      
+      <div id="lecture-toc" data-mode="series">
+  <h2>Index</h2>
+  <a href="../../../fields/deep-learning/index.html">深層学習とその応用</a>
+  <ul class="toc-root">
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/dl-transformer/index.html">Transformer と自己教師あり学習</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/dl-lifecycle/index.html">AI の学習と推論, 評価, 再学習</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-processing/index.html">形態素解析, ワードクラウド, ユーザ定義辞書</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-syntax/index.html">係り受け解析とかな漢字変換</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-bert/index.html">BERT の事前学習とテキストの分類</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-generation/index.html">機械翻訳, 文章生成と生成 AI の仕組み</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-embedding/index.html">文章のベクトル, 次元削減と類似度</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item current-block">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-embedding-more/index.html">トピックモデル, n-gram, CLIP</a>
+        
+      </div>
+      
+      <ul class="toc-sublist">
+        
+        <li class="toc-item toc-series-item current">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/deep-learning/nlp-embedding-more/index.html" aria-current="page">トピックモデル</a>
+          </div>
+          <ul class="toc-sublist"></ul>
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/deep-learning/nlp-embedding-more/ngram-similarity.html">n-gram と文章間類似度</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/deep-learning/nlp-embedding-more/clip.html">CLIP</a>
+          </div>
+          
+        </li>
+        
+      </ul>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/dl-training-case/index.html">事例: 品目名の分類器を学習する</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/dl-training-procedure/index.html">Transformer の学習の手順</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-recognition/index.html">認識技術と手書き数字の認識</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-cnn/index.html">畳み込みニューラルネットワーク</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-age/index.html">顔画像による年代の分類</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-speech/index.html">音声認識の仕組み</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-more/index.html">ViT, 特徴量の可視化, Grad-CAM</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-age-code/index.html">年齢識別のコード全体</a>
+        
+      </div>
+      
+    </li>
+    
+  </ul>
+</div>
+
+    </nav>
+
+    <div id="content">
+    
+<nav class="block-course-nav" aria-label="講義の並び">
+  <p>講義の並び</p>
+  <ul>
+    
+    <li class="course-occurrence">
+      <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+      <a href="../../../courses/dsp/9.html">第 9 回</a> (発展)
+      
+      <a href="../../../fields/deep-learning/nlp-embedding/index.html" rel="prev">← 文章のベクトル, 次元削減と類似度</a>
+      
+      
+      
+      <a href="../../../fields/deep-learning/dl-training-case/index.html" rel="next">事例: 品目名の分類器を学習する →</a>
+      
+      
+    </li>
+    
+  </ul>
+</nav>
+
+
+
+<article>
+  
+  <header class="article-header">
+    <h1 class="article-title">トピックモデル, n-gram, CLIP</h1>
+<nav class="block-field-nav block-field-nav-narrow" aria-label="分野の目次">
+  <a href="../../../fields/deep-learning/index.html">深層学習とその応用</a>
+  <ol>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/dl-transformer/index.html">Transformer と自己教師あり学習</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/dl-lifecycle/index.html">AI の学習と推論, 評価, 再学習</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-processing/index.html">形態素解析, ワードクラウド, ユーザ定義辞書</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-syntax/index.html">係り受け解析とかな漢字変換</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-bert/index.html">BERT の事前学習とテキストの分類</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-generation/index.html">機械翻訳, 文章生成と生成 AI の仕組み</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-embedding/index.html">文章のベクトル, 次元削減と類似度</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <strong><a href="../../../fields/deep-learning/nlp-embedding-more/index.html" aria-current="true">トピックモデル, n-gram, CLIP</a></strong>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/dl-training-case/index.html">事例: 品目名の分類器を学習する</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/dl-training-procedure/index.html">Transformer の学習の手順</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/img-recognition/index.html">認識技術と手書き数字の認識</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/img-cnn/index.html">畳み込みニューラルネットワーク</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/img-age/index.html">顔画像による年代の分類</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/img-speech/index.html">音声認識の仕組み</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/img-more/index.html">ViT, 特徴量の可視化, Grad-CAM</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/img-age-code/index.html">年齢識別のコード全体</a>
+      
+      
+    </li>
+    
+  </ol>
+</nav>
+
+  </header>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../fields/deep-learning/nlp-embedding/index.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">文章のベクトル, 次元削減と類似度</span>
+    </a>
+    <a class="next" href="../../../fields/deep-learning/nlp-embedding-more/ngram-similarity.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">n-gram と文章間類似度</span>
+    </a>
+</nav>
+
+  
+  <nav class="block-prerequisites" aria-label="前提となるブロック">
+    <h2 id="block-prerequisites">前提となるブロック</h2>
+    <ul>
+      
+      <li><a href="../../../fields/deep-learning/nlp-processing/index.html">形態素解析, ワードクラウド, ユーザ定義辞書</a></li>
+      
+      <li><a href="../../../fields/descriptive/num-distance/index.html">距離と類似度</a></li>
+      
+      <li><a href="../../../fields/deep-learning/dl-transformer/index.html">Transformer と自己教師あり学習</a></li>
+      
+    </ul>
+  </nav>
+  
+  
+  <h2 id="トピックモデル">トピックモデル</h2>
+<p>テキスト文書の集合から潜在的なトピック (話題) を抽出するために広く利用される古典的手法である, トピックモデルを利用してみましょう.</p>
+<p>トピックモデルでは単語の分布を使って, 文章が何について話しているかを抽出します. ただし, 出力は単語の集合で表されるため, そのトピックが何に関する話題かは利用者が判断する必要があります.</p>
+<ul>
+<li>例: トピックA: 「経済」「市場」「投資」 ← 経済に関するトピックと解釈できる</li>
+<li>例: トピックB: 「ねこ」「いぬ」「ペット」 ← ペットに関するトピックと解釈できる</li>
+</ul>
+<p>トピックモデルにもいくつかの手法がありますが, 最も一般的な実装手法の一つに LDA (Latent Dirichlet Allocation: 潜在的ディリクレ配分法) があります. LDA 以外にも PLSA (Probabilistic Latent Semantic Analysis) などがあります.</p>
+<p>LDA では各文章をトピックの混合分布として表現します.</p>
+<ul>
+<li>例: 文章1: トピックA 0.5, トピックB 0.4, トピックD 0.1</li>
+<li>例: 文章2: トピックA 0.6, トピックE 0.3</li>
+</ul>
+<p>LDA では, 各文書のトピック分布と各トピックの単語分布にディリクレ分布を使用します. ディリクレ分布は, 確率の分布に対する分布 (事前分布) として使われ, 特にトピックの混合率が異なる多様な文書集合に対応できます. この過程では「ギブスサンプリング」や「変分ベイズ法」といった推論手法を使い, 文書全体のトピックと単語の分布が収束するまで反復的に計算されます. 事前分布と事後分布の考え方や, マルコフ連鎖モンテカルロ法 (MCMC) の概要は, <a href="../../../fields/bayes/bayes-intro/bayesian-basics.html#基礎知識-ベイズ統計学概要">ベイズ統計学の基礎</a>で扱います.</p>
+<h2 id="x-twitter-api-を用いたデータの取得">X (Twitter) API を用いたデータの取得</h2>
+<p>自然言語解析では, <a href="../../../fields/deep-learning/nlp-processing/word-cloud.html#ワードクラウド">ワードクラウド</a>の事例のように, まとまった文章を分析する場合もありますが, X (旧:Twitter) のつぶやきのように, 短い文章の集合を扱う場合もあります. ここでは, Twitter の API を利用して取得したつぶやきを分析してみましょう.</p>
+<p>API という仕組みの説明と, X API による取得手順 (認証トークンの発行, 環境変数での受け渡し, 取得コード) は, <a href="../../../lectures/slds_b1.html">X API でデータを取得する手順</a>にまとめてあります (API 一般の説明は<a href="../../../lectures/slds_a1.html#apiとは">API とは</a>). X API は 2026 年 2 月の改定で無料の取得枠が廃止され, 投稿 1 件 0.005 ドルの従量課金だけになりました. 研究で利用する人以外は, <a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch15/tweets.csv">取得済みの 50 件の投稿をまとめたデータ</a>をダウンロードして利用しましょう. このデータはX API で取得する <code>posts.csv</code> と同じ列構造 (<code>query</code> = 検索ワード, <code>text</code> = 投稿本文) なので, 以下のコードは自分で取得した <code>posts.csv</code> でもファイル名の変更だけで動きます.</p>
+<h2 id="トピックモデル実践">トピックモデル実践</h2>
+<p>LDA によるトピックモデルを利用するためにライブラリ <code>gensim</code> と, LDA の可視化用のライブラリ <code>pyLDAvis</code> をインストールしましょう.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> add gensim pyLDAvis</span></code></pre></div>
+<p><code>import</code> と形態素解析のための関数を定義しておきます.
+URL は上手く形態素解析できないので, URL を削除する関数も新たに定義しています.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> MeCab <span class="im">as</span> mc</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> re</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> gensim.corpora.dictionary <span class="im">import</span> Dictionary</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> gensim.models <span class="im">import</span> LdaModel</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pyLDAvis</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pyLDAvis.gensim_models <span class="im">as</span> gensimvis</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pyLDAvis.gensim</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> strip_CRLF_from_Text(text):</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;テキストファイルの改行,タブを削除し,形態素解析を実行</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="co">    改行前後が日本語文字の場合は改行を削除する．</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="co">    それ以外はスペースに置換する．</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="co">    &quot;&quot;&quot;</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 改行前後の文字が日本語文字の場合は改行を削除する</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    plaintext <span class="op">=</span> re.sub(<span class="st">'([ぁ-んー]+|[ァ-ンー]+|[</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+|[ぁ-んァ-ンー</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+)(</span><span class="ch">\n</span><span class="st">)([ぁ-んー]+|[ァ-ンー]+|[</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+|[ぁ-んァ-ンー</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+)'</span>,</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>                       <span class="vs">r'\1\3'</span>,</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>                       text)</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 残った改行とタブ記号はスペースに置換する</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    plaintext <span class="op">=</span> plaintext.replace(<span class="st">'</span><span class="ch">\n</span><span class="st">'</span>, <span class="st">' '</span>).replace(<span class="st">'</span><span class="ch">\t</span><span class="st">'</span>, <span class="st">' '</span>)</span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> plaintext</span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> mecab_wakati(text,word_types <span class="op">=</span> [<span class="st">&quot;名詞&quot;</span>,<span class="st">&quot;動詞&quot;</span>,<span class="st">&quot;形容詞&quot;</span>,<span class="st">&quot;副詞&quot;</span>]):</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>    <span class="co">#分かち書き</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>    t <span class="op">=</span> mc.Tagger()</span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>    <span class="co">#word_types = [String]で指定 (&quot;名詞&quot;,&quot;動詞&quot;,&quot;形容詞&quot;,&quot;副詞&quot;)</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>    node <span class="op">=</span> t.parseToNode(text)</span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>    sent <span class="op">=</span> <span class="st">&quot;&quot;</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>    noun <span class="op">=</span> [x <span class="cf">for</span> x <span class="kw">in</span> word_types <span class="cf">if</span> x <span class="op">==</span> <span class="st">&quot;名詞&quot;</span>]</span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>    others <span class="op">=</span> [x <span class="cf">for</span> x <span class="kw">in</span> word_types <span class="cf">if</span> x <span class="kw">in</span> [ <span class="st">&quot;動詞&quot;</span>, <span class="st">&quot;形容詞&quot;</span>,<span class="st">&quot;副詞&quot;</span>]]</span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span>(node):</span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> node.surface <span class="op">!=</span> <span class="st">&quot;&quot;</span>:  <span class="co"># ヘッダとフッタを除外</span></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>            word_type <span class="op">=</span> node.feature.split(<span class="st">&quot;,&quot;</span>)[<span class="dv">0</span>]</span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> word_type <span class="kw">in</span> noun:</span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>                 sent <span class="op">+=</span> node.surface <span class="op">+</span> <span class="st">&quot; &quot;</span> <span class="co"># node.surface は「表層形」</span></span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> word_type <span class="kw">in</span> others:</span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>                sent <span class="op">+=</span> node.feature.split(<span class="st">&quot;,&quot;</span>)[<span class="dv">10</span>] <span class="op">+</span> <span class="st">&quot; &quot;</span> <span class="co"># node.feature.split(&quot;,&quot;)[10] は unidic の「書字形基本形」(活用する前の形, 例: 当たり → 当たる)</span></span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>        node <span class="op">=</span> node.<span class="bu">next</span></span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> node <span class="kw">is</span> <span class="va">None</span>:</span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a>            <span class="cf">break</span></span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> sent</span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> remove_urls(text):</span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a>    <span class="co"># URLを検出する正規表現パターン</span></span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a>    url_pattern <span class="op">=</span> <span class="vs">r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&amp;+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'</span></span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a>    <span class="co"># URLを空文字に置換して除外</span></span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> re.sub(url_pattern, <span class="st">''</span>, text)</span></code></pre></div>
+<p>データを読み込みます (このデータを取得した次の日に国民民主党の党首の不倫騒動があったので, そのつぶやきが取れていれば面白かったのですが, 残念です).</p>
+<p>トークナイズ (形態素解析), 削除する語の指定, 削除までをまとめて行います. ここで指定している削除する語は, 一度結果を見たあとで追加したものです. 実際の分析では, 結果とコードを何往復かして, 調整する作業が必要になります.</p>
+<p>形態素解析の前に <code>remove_urls()</code> を適用していることに注意してください.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co">#データの読み込み (X API で取得した posts.csv と同じ列構造: query, text)</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/tweets.csv'</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co">#投稿本文の列を取り出す</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>akagi <span class="op">=</span> df[<span class="st">'text'</span>]</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="co">#トークナイズ</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>txt <span class="op">=</span> [mecab_wakati(strip_CRLF_from_Text(remove_urls(x)),[<span class="st">&quot;名詞&quot;</span>,<span class="st">&quot;動詞&quot;</span>]).split(<span class="st">' '</span>) <span class="cf">for</span> x <span class="kw">in</span> akagi]</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="co">#削除文字の指定</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>stopwords <span class="op">=</span> [<span class="st">'思う'</span>,<span class="st">'言う'</span>,<span class="st">'いう'</span>,<span class="st">'いる'</span>,<span class="st">'ある'</span>,<span class="st">'こと'</span>]</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>txt <span class="op">=</span> [[x <span class="cf">for</span> x <span class="kw">in</span> t <span class="cf">if</span> x <span class="kw">not</span> <span class="kw">in</span> stopwords] <span class="cf">for</span> t <span class="kw">in</span> txt]</span></code></pre></div>
+<p><a href="../../../fields/deep-learning/nlp-processing/word-cloud.html#ワードクラウド">ワードクラウド</a>で扱った「千葉商科大学の理念」は単一のテキストデータでしたが, 今回の分析の対象は 50 件のつぶやきです. このような複数のテキストを扱う際には, 前処理として<strong>出現頻度による単語の削除</strong>がよく用いられます. ほとんどすべてのテキストに出てくるような単語 (数字や副詞などが多い) は特徴を抽出する際には役に立たないので削除したほうが良い場合があります. 反対に, 出現回数がごく少ない単語, 造語や個人名なども削除したほうがよい場合があります.</p>
+<p>実際の分析では, どの程度の頻度を基準とするかを結果を見ながら調整する必要がありますが, 今回は練習なので <code>2文書未満にしか出現しない単語</code> と, <code>全体の50%以上に出現する単語</code> を削除しています.</p>
+<p>実装は <code>dictionary</code> クラスの <code>filter_extremes()</code> メソッドを利用しています.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co">#辞書の作成</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>dictionary <span class="op">=</span> Dictionary(txt)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co">#出現がx文書に満たない単語と、y%以上の文書に出現する単語を極端と見做し削除する</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span><span class="dv">2</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span><span class="fl">0.5</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>dictionary.filter_extremes(no_below<span class="op">=</span>x,no_above<span class="op">=</span>y)</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="co">## LdaModelが読み込めるBoW形式に変換</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>corpus <span class="op">=</span> [dictionary.doc2bow(x) <span class="cf">for</span> x <span class="kw">in</span> txt]</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Number of unique tokens: </span><span class="sc">{</span><span class="bu">len</span>(dictionary)<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Number of documents: </span><span class="sc">{</span><span class="bu">len</span>(corpus)<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="co">Number of unique tokens: 220</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="co">Number of documents: 50</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>LDA では, 事前に抽出するトピック数を決めることができます. トピック数も実際には調整が必要ですが, 今回は決め打ちで <code>3</code> としています.</p>
+<p><code>LDA</code> の結果は <code>pyLDAvis</code> によって <code>html</code> 形式で出力されます.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co">#3トピックを抽出</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>num_topics <span class="op">=</span><span class="dv">3</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>lda <span class="op">=</span> LdaModel(corpus, id2word <span class="op">=</span>dictionary, num_topics<span class="op">=</span>num_topics, alpha<span class="op">=</span><span class="fl">0.01</span>)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co">#トピックごとに上位5単語を表示</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span>pd.DataFrame()</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> t <span class="kw">in</span> <span class="bu">range</span>(num_topics):</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    word<span class="op">=</span>[]</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i, prob <span class="kw">in</span> lda.get_topic_terms(t, topn<span class="op">=</span><span class="dv">5</span>):</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>        word.append(dictionary.id2token[<span class="bu">int</span>(i)])</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    _ <span class="op">=</span> pd.DataFrame([word],index<span class="op">=</span>[<span class="ss">f'topic</span><span class="sc">{</span>t<span class="op">+</span><span class="dv">1</span><span class="sc">}</span><span class="ss">'</span>])</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> df._append(_)</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df.T)</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a><span class="co">  topic1 topic2 topic3</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a><span class="co">0      金      万     増税</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a><span class="co">1     立憲      円      壁</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a><span class="co">2      案      壁   メディア</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a><span class="co">3     給付    103     自民</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a><span class="co">4     経済      話     結果</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a><span class="co">#可視化</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a><span class="co">#PyLDAvisの実装</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>visualisation <span class="op">=</span> pyLDAvis.gensim.prepare(lda, corpus, dictionary)</span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>pyLDAvis.save_html(visualisation, <span class="st">'result/LDA_Visualization.html'</span>)</span></code></pre></div>
+<p>3 つのトピックはいずれも 103 万円の壁の話をしていますが, <code>topic1</code> では立憲民主党の対案としての低所得者への給付の話題, <code>topic3</code> ではメディアや自民党に対する批判などの話題が抽出されました. あまりはっきりしていませんが, もう少しつぶやきの数を増やすと分かりやすくなるかもしれません.</p>
+<p>出力された <code>LDA_Visualization.html</code> をクリックするとブラウザ上で確認することができます.</p>
+<p><img src="../../../images/slds/ch15/lda-result1.png" /></p>
+<p>左側には主成分分析による第 1 主成分, 第 2 主成分上にマッピングされたトピックの集合が可視化されており, 右側には全体のトピックにおける単語の分布が表示されています.</p>
+<p>それぞれのトピックをクリックすることでトピックごとの単語の分布が表示されます.</p>
+<p><img src="../../../images/slds/ch15/lda-result2.png" />
+<img src="../../../images/slds/ch15/lda-result3.png" /></p>
+<p>右上のバーで調整できるラムダは, トピックモデルの結果を調整するためのパラメータです. ラムダの値が大きいほど, 他のトピックにも出現する一般的な単語を除外し, トピック内の単語の特徴を強調します. 値を変化させてどのようにトピックの分布が変わるかを確認してみましょう.</p>
+<p>コード全体は以下のようになっています.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> MeCab <span class="im">as</span> mc</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> re</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> gensim.corpora.dictionary <span class="im">import</span> Dictionary</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> gensim.models <span class="im">import</span> LdaModel</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pyLDAvis</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pyLDAvis.gensim_models <span class="im">as</span> gensimvis</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pyLDAvis.gensim</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> strip_CRLF_from_Text(text):</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;テキストファイルの改行,タブを削除し,形態素解析を実行</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="co">    改行前後が日本語文字の場合は改行を削除する．</span></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="co">    それ以外はスペースに置換する．</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="co">    &quot;&quot;&quot;</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 改行前後の文字が日本語文字の場合は改行を削除する</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>    plaintext <span class="op">=</span> re.sub(<span class="st">'([ぁ-んー]+|[ァ-ンー]+|[</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+|[ぁ-んァ-ンー</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+)(</span><span class="ch">\n</span><span class="st">)([ぁ-んー]+|[ァ-ンー]+|[</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+|[ぁ-んァ-ンー</span><span class="ch">\\</span><span class="st">u4e00-</span><span class="ch">\\</span><span class="st">u9FFF]+)'</span>,</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>                       <span class="vs">r'\1\3'</span>,</span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>                       text)</span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 残った改行とタブ記号はスペースに置換する</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>    plaintext <span class="op">=</span> plaintext.replace(<span class="st">'</span><span class="ch">\n</span><span class="st">'</span>, <span class="st">' '</span>).replace(<span class="st">'</span><span class="ch">\t</span><span class="st">'</span>, <span class="st">' '</span>)</span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> plaintext</span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> mecab_wakati(text,word_types <span class="op">=</span> [<span class="st">&quot;名詞&quot;</span>,<span class="st">&quot;動詞&quot;</span>,<span class="st">&quot;形容詞&quot;</span>,<span class="st">&quot;副詞&quot;</span>]):</span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>    <span class="co">#分かち書き</span></span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>    t <span class="op">=</span> mc.Tagger()</span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a>    <span class="co">#word_types = [String]で指定 (&quot;名詞&quot;,&quot;動詞&quot;,&quot;形容詞&quot;,&quot;副詞&quot;)</span></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a>    node <span class="op">=</span> t.parseToNode(text)</span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a>    sent <span class="op">=</span> <span class="st">&quot;&quot;</span></span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>    noun <span class="op">=</span> [x <span class="cf">for</span> x <span class="kw">in</span> word_types <span class="cf">if</span> x <span class="op">==</span> <span class="st">&quot;名詞&quot;</span>]</span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>    others <span class="op">=</span> [x <span class="cf">for</span> x <span class="kw">in</span> word_types <span class="cf">if</span> x <span class="kw">in</span> [ <span class="st">&quot;動詞&quot;</span>, <span class="st">&quot;形容詞&quot;</span>,<span class="st">&quot;副詞&quot;</span>]]</span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span>(node):</span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> node.surface <span class="op">!=</span> <span class="st">&quot;&quot;</span>:  <span class="co"># ヘッダとフッタを除外</span></span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>            word_type <span class="op">=</span> node.feature.split(<span class="st">&quot;,&quot;</span>)[<span class="dv">0</span>]</span>
+<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> word_type <span class="kw">in</span> noun:</span>
+<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a>                 sent <span class="op">+=</span> node.surface <span class="op">+</span> <span class="st">&quot; &quot;</span> <span class="co"># node.surface は「表層形」</span></span>
+<span id="cb6-37"><a href="#cb6-37" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> word_type <span class="kw">in</span> others:</span>
+<span id="cb6-38"><a href="#cb6-38" aria-hidden="true" tabindex="-1"></a>                sent <span class="op">+=</span> node.feature.split(<span class="st">&quot;,&quot;</span>)[<span class="dv">10</span>] <span class="op">+</span> <span class="st">&quot; &quot;</span> <span class="co"># node.feature.split(&quot;,&quot;)[10] は unidic の「書字形基本形」(活用する前の形, 例: 当たり → 当たる)</span></span>
+<span id="cb6-39"><a href="#cb6-39" aria-hidden="true" tabindex="-1"></a>        node <span class="op">=</span> node.<span class="bu">next</span></span>
+<span id="cb6-40"><a href="#cb6-40" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> node <span class="kw">is</span> <span class="va">None</span>:</span>
+<span id="cb6-41"><a href="#cb6-41" aria-hidden="true" tabindex="-1"></a>            <span class="cf">break</span></span>
+<span id="cb6-42"><a href="#cb6-42" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> sent</span>
+<span id="cb6-43"><a href="#cb6-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-44"><a href="#cb6-44" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> remove_urls(text):</span>
+<span id="cb6-45"><a href="#cb6-45" aria-hidden="true" tabindex="-1"></a>    <span class="co"># URLを検出する正規表現パターン</span></span>
+<span id="cb6-46"><a href="#cb6-46" aria-hidden="true" tabindex="-1"></a>    url_pattern <span class="op">=</span> <span class="vs">r'http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&amp;+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+'</span></span>
+<span id="cb6-47"><a href="#cb6-47" aria-hidden="true" tabindex="-1"></a>    <span class="co"># URLを空文字に置換して除外</span></span>
+<span id="cb6-48"><a href="#cb6-48" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> re.sub(url_pattern, <span class="st">''</span>, text)</span>
+<span id="cb6-49"><a href="#cb6-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-50"><a href="#cb6-50" aria-hidden="true" tabindex="-1"></a><span class="co">#------------------------------------------------------------------</span></span>
+<span id="cb6-51"><a href="#cb6-51" aria-hidden="true" tabindex="-1"></a><span class="co">## ↑ ここまで,関数定義</span></span>
+<span id="cb6-52"><a href="#cb6-52" aria-hidden="true" tabindex="-1"></a><span class="co">## ↓ ここから,データ処理</span></span>
+<span id="cb6-53"><a href="#cb6-53" aria-hidden="true" tabindex="-1"></a><span class="co">#------------------------------------------------------------------</span></span>
+<span id="cb6-54"><a href="#cb6-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-55"><a href="#cb6-55" aria-hidden="true" tabindex="-1"></a><span class="co">#データの読み込み (X API で取得した posts.csv と同じ列構造: query, text)</span></span>
+<span id="cb6-56"><a href="#cb6-56" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/tweets.csv'</span>)</span>
+<span id="cb6-57"><a href="#cb6-57" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-58"><a href="#cb6-58" aria-hidden="true" tabindex="-1"></a><span class="co">#検索ワードが「国民民主党」の投稿本文を取り出す (複数ワードを取得したデータでも動く形)</span></span>
+<span id="cb6-59"><a href="#cb6-59" aria-hidden="true" tabindex="-1"></a>akagi <span class="op">=</span> df[df[<span class="st">'query'</span>] <span class="op">==</span> <span class="st">'国民民主党'</span>][<span class="st">'text'</span>]</span>
+<span id="cb6-60"><a href="#cb6-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-61"><a href="#cb6-61" aria-hidden="true" tabindex="-1"></a><span class="co">#トークナイズ</span></span>
+<span id="cb6-62"><a href="#cb6-62" aria-hidden="true" tabindex="-1"></a>txt <span class="op">=</span> [mecab_wakati(strip_CRLF_from_Text(remove_urls(x)),[<span class="st">&quot;名詞&quot;</span>,<span class="st">&quot;動詞&quot;</span>]).split(<span class="st">' '</span>) <span class="cf">for</span> x <span class="kw">in</span> akagi]</span>
+<span id="cb6-63"><a href="#cb6-63" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-64"><a href="#cb6-64" aria-hidden="true" tabindex="-1"></a><span class="co">#削除文字の指定</span></span>
+<span id="cb6-65"><a href="#cb6-65" aria-hidden="true" tabindex="-1"></a>stopwords <span class="op">=</span> [<span class="st">'思う'</span>,<span class="st">'言う'</span>,<span class="st">'いう'</span>,<span class="st">'いる'</span>,<span class="st">'ある'</span>,<span class="st">'こと'</span>]</span>
+<span id="cb6-66"><a href="#cb6-66" aria-hidden="true" tabindex="-1"></a>txt <span class="op">=</span> [[x <span class="cf">for</span> x <span class="kw">in</span> t <span class="cf">if</span> x <span class="kw">not</span> <span class="kw">in</span> stopwords] <span class="cf">for</span> t <span class="kw">in</span> txt]</span>
+<span id="cb6-67"><a href="#cb6-67" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-68"><a href="#cb6-68" aria-hidden="true" tabindex="-1"></a><span class="co">#辞書の作成</span></span>
+<span id="cb6-69"><a href="#cb6-69" aria-hidden="true" tabindex="-1"></a>dictionary <span class="op">=</span> Dictionary(txt)</span>
+<span id="cb6-70"><a href="#cb6-70" aria-hidden="true" tabindex="-1"></a><span class="co">#出現がx文書に満たない単語と、y%以上の文書に出現する単語を極端と見做し削除する</span></span>
+<span id="cb6-71"><a href="#cb6-71" aria-hidden="true" tabindex="-1"></a>x <span class="op">=</span><span class="dv">2</span></span>
+<span id="cb6-72"><a href="#cb6-72" aria-hidden="true" tabindex="-1"></a>y <span class="op">=</span><span class="fl">0.5</span></span>
+<span id="cb6-73"><a href="#cb6-73" aria-hidden="true" tabindex="-1"></a>dictionary.filter_extremes(no_below<span class="op">=</span>x,no_above<span class="op">=</span>y)</span>
+<span id="cb6-74"><a href="#cb6-74" aria-hidden="true" tabindex="-1"></a><span class="co">## LdaModelが読み込めるBoW形式に変換</span></span>
+<span id="cb6-75"><a href="#cb6-75" aria-hidden="true" tabindex="-1"></a>corpus <span class="op">=</span> [dictionary.doc2bow(x) <span class="cf">for</span> x <span class="kw">in</span> txt]</span>
+<span id="cb6-76"><a href="#cb6-76" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-77"><a href="#cb6-77" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Number of unique tokens: </span><span class="sc">{</span><span class="bu">len</span>(dictionary)<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb6-78"><a href="#cb6-78" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Number of documents: </span><span class="sc">{</span><span class="bu">len</span>(corpus)<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb6-79"><a href="#cb6-79" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-80"><a href="#cb6-80" aria-hidden="true" tabindex="-1"></a><span class="co">#3トピックを抽出</span></span>
+<span id="cb6-81"><a href="#cb6-81" aria-hidden="true" tabindex="-1"></a>num_topics <span class="op">=</span><span class="dv">3</span></span>
+<span id="cb6-82"><a href="#cb6-82" aria-hidden="true" tabindex="-1"></a>lda <span class="op">=</span> LdaModel(corpus, id2word <span class="op">=</span>dictionary, num_topics<span class="op">=</span>num_topics, alpha<span class="op">=</span><span class="fl">0.01</span>)</span>
+<span id="cb6-83"><a href="#cb6-83" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-84"><a href="#cb6-84" aria-hidden="true" tabindex="-1"></a><span class="co">#トピックごとに上位5単語を表示</span></span>
+<span id="cb6-85"><a href="#cb6-85" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span>pd.DataFrame()</span>
+<span id="cb6-86"><a href="#cb6-86" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> t <span class="kw">in</span> <span class="bu">range</span>(num_topics):</span>
+<span id="cb6-87"><a href="#cb6-87" aria-hidden="true" tabindex="-1"></a>    word<span class="op">=</span>[]</span>
+<span id="cb6-88"><a href="#cb6-88" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i, prob <span class="kw">in</span> lda.get_topic_terms(t, topn<span class="op">=</span><span class="dv">5</span>):</span>
+<span id="cb6-89"><a href="#cb6-89" aria-hidden="true" tabindex="-1"></a>        word.append(dictionary.id2token[<span class="bu">int</span>(i)])</span>
+<span id="cb6-90"><a href="#cb6-90" aria-hidden="true" tabindex="-1"></a>    _ <span class="op">=</span> pd.DataFrame([word],index<span class="op">=</span>[<span class="ss">f'topic</span><span class="sc">{</span>t<span class="op">+</span><span class="dv">1</span><span class="sc">}</span><span class="ss">'</span>])</span>
+<span id="cb6-91"><a href="#cb6-91" aria-hidden="true" tabindex="-1"></a>    df <span class="op">=</span> df._append(_)</span>
+<span id="cb6-92"><a href="#cb6-92" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-93"><a href="#cb6-93" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df.T)</span>
+<span id="cb6-94"><a href="#cb6-94" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-95"><a href="#cb6-95" aria-hidden="true" tabindex="-1"></a><span class="co">#可視化</span></span>
+<span id="cb6-96"><a href="#cb6-96" aria-hidden="true" tabindex="-1"></a><span class="co">#PyLDAvisの実装</span></span>
+<span id="cb6-97"><a href="#cb6-97" aria-hidden="true" tabindex="-1"></a>visualisation <span class="op">=</span> pyLDAvis.gensim.prepare(lda, corpus, dictionary)</span>
+<span id="cb6-98"><a href="#cb6-98" aria-hidden="true" tabindex="-1"></a>pyLDAvis.save_html(visualisation, <span class="st">'result/LDA_Visualization.html'</span>)</span></code></pre></div>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../fields/deep-learning/nlp-embedding/index.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">文章のベクトル, 次元削減と類似度</span>
+    </a>
+    <a class="next" href="../../../fields/deep-learning/nlp-embedding-more/ngram-similarity.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">n-gram と文章間類似度</span>
+    </a>
+</nav>
+
+</article>
+
+
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        <nav class="footer-nav" aria-label="フッターナビゲーション">
+            <a href="../../../">Home</a>
+            <a href="../../../posts.html">Blog</a>
+            <a href="../../../lectures.html">Lecture</a>
+            <a href="../../../research.html">Research</a>
+            <a href="../../../rss.xml">RSS</a>
+            <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+        </nav>
+        <p class="footer-copy">&copy; yakagika &middot; Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>.</p>
+    </div>
+</div>
+
+
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="ページ先頭へ戻る" title="先頭へ戻る">↑</button>
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+            link.classList.add('external-link');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level;
+          switch (heading.tagName.toLowerCase()) {
+            case 'h2': level = 0; break;
+            case 'h3': level = 1; break;
+            case 'h4': level = 2; break;
+            default: return;
+          }
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          // Pandoc は `::: note` + 見出し の組み合わせを <section id="..." class="note">
+          // 内の <hN> として出力するため, 見出し自身に id が無い場合は
+          // 親 section の id を辿る.
+          var anchorId = heading.id;
+          if (!anchorId) {
+            var parentSection = heading.closest('section[id]');
+            if (parentSection) anchorId = parentSection.id;
+          }
+          anchor.href = '#' + anchorId;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi && !li.contains(currentLi)) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+
+      // ----------------------------------------
+      // スクロールスパイ: 表示中の見出しを TOC でハイライト
+      // ----------------------------------------
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0 || typeof IntersectionObserver === 'undefined') return;
+
+      var idToTocItem = new Map();
+      headings.forEach(function(h) {
+        if (!h.id) return;
+        var link = tocContainer.querySelector('a[href="#' + CSS.escape(h.id) + '"]');
+        if (link) {
+          var li = link.closest('.toc-item') || link.closest('li');
+          if (li) idToTocItem.set(h.id, li);
+        }
+      });
+
+      var visible = new Set();
+      var lastActive = null;
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+
+        // ドキュメント順で最初に可視な見出しをアクティブに
+        var firstVisible = null;
+        for (var i = 0; i < headings.length; i++) {
+          if (visible.has(headings[i].id)) {
+            firstVisible = headings[i].id;
+            break;
+          }
+        }
+        if (!firstVisible) return;
+
+        var tocItem = idToTocItem.get(firstVisible);
+        if (!tocItem || tocItem === lastActive) return;
+
+        if (lastActive) lastActive.classList.remove('toc-active');
+        tocItem.classList.add('toc-active');
+        lastActive = tocItem;
+
+        // TOC を必要なときだけスクロール
+        tocItem.scrollIntoView({
+          block: 'nearest',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
+      }, {
+        // ヘッダー (60px) を除いた上部 〜 画面下から60% を判定領域とする
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0
+      });
+
+      headings.forEach(function(h) { if (h.id) observer.observe(h); });
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
+      const pre = codeBlock.parentNode;
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
+      copyButton.textContent = 'Copy';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    // パスワード保護付き details (回答例用)
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll('details.protected').forEach(function (det) {
+        var pass = det.getAttribute('data-pass') || '';
+        var summary = det.querySelector('summary');
+        if (!summary) return;
+
+        var gate = document.createElement('div');
+        gate.className = 'pass-gate';
+        gate.innerHTML =
+          '<label>合言葉: <input type="password" autocomplete="off" spellcheck="false"></label>' +
+          '<button type="button">解除</button>' +
+          '<span class="pass-error" hidden>合言葉が違います</span>';
+        summary.insertAdjacentElement('afterend', gate);
+
+        var input = gate.querySelector('input');
+        var button = gate.querySelector('button');
+        var errorMsg = gate.querySelector('.pass-error');
+
+        function tryUnlock() {
+          if (input.value === pass) {
+            det.classList.add('unlocked');
+            errorMsg.hidden = true;
+          } else {
+            errorMsg.hidden = false;
+            input.select();
+          }
+        }
+
+        button.addEventListener('click', tryUnlock);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
+        });
+
+        det.addEventListener('toggle', function () {
+          if (det.open && !det.classList.contains('unlocked')) {
+            input.focus();
+          }
+        });
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            try {
+              katex.render( texText.data
+                          , mathElements[i]
+                          , { displayMode: mathElements[i].classList.contains("display")
+                            , throwOnError: true
+                           }
+                          );
+            } catch (e) {
+              // 1 つの数式のエラーで残り全ての数式が生 TeX のまま残らないようにする
+              console.error('KaTeX render error:', e.message, texText.data);
+            }
+          }
+      }
+    });
+  </script>
+
+  <!-- 見出しアンカーリンク + Back to top -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 記事見出しに hover で現れる # パーマリンクを付与
+      document.querySelectorAll('article h2[id], article h3[id]').forEach(function (h) {
+        var a = document.createElement('a');
+        a.className = 'heading-anchor';
+        a.href = '#' + h.id;
+        a.setAttribute('aria-label', 'このセクションへのリンク');
+        a.textContent = '#';
+        h.appendChild(a);
+      });
+
+      // Back to top: スクロール量に応じて表示
+      var btt = document.getElementById('back-to-top');
+      if (btt) {
+        var onScroll = function () {
+          if (window.pageYOffset > 600) btt.classList.add('visible');
+          else btt.classList.remove('visible');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        btt.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
+    });
+  </script>
+
+  </body>
+</html>

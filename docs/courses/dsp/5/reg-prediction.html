@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+    <script>
+      (function () {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+        function stored() {
+          var t = null;
+          try { t = localStorage.getItem('theme'); } catch (e) {}
+          return (t === 'dark' || t === 'light') ? t : null;
+        }
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
+        if (mq) {
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
+        }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
+      })();
+    </script>
+    <title>yakagika - 予測とは何か / 未使用のデータで予測の誤差を測る</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../../../style.css?v=1795415080">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+    <link rel="canonical" href="https://yakagika.github.io/fields/regression/reg-prediction/index.html">
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../../../" class="site-brand" aria-label="Home">
+          <span class="site-mark" aria-hidden="true">▮</span>
+          <span class="site-word">yakagika</span>
+        </a>
+      </div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../../../">Home</a>
+      <a href="../../../posts.html">Blog</a>
+      <a href="../../../lectures.html">Lecture</a>
+      <a href="../../../research.html">Research</a>
+      <a href="../../../lectures/seminar.html">Seminar</a>
+      <a href="../../../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      
+      <div id="lecture-toc" data-mode="series">
+  <h2>Index</h2>
+  <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+  <ul class="toc-root">
+    
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/1.html">第 1 回 本資料の読み方</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/2.html">第 2 回 分析設計: データ分析の進め方</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/3.html">第 3 回 データの可視化</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/4.html">第 4 回 データの数値化</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item current-block">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/5.html">第 5 回 回帰分析</a>
+      </div>
+      
+      <ul class="toc-sublist">
+        <li class="toc-item toc-series-item no-children">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/5/reg-intro.html">回帰で何をするか / 出生率のデータで行う単回帰分析</a>
+    
+  </div>
+  
+</li>
+<li class="toc-item toc-series-item no-children">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/5/reg-multiple.html">重回帰分析と偏回帰係数 / GPA の重回帰分析</a>
+    
+  </div>
+  
+</li>
+<li class="toc-item toc-series-item current">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/5/reg-prediction.html" aria-current="page">予測とは何か / 未使用のデータで予測の誤差を測る</a>
+    
+  </div>
+  <ul class="toc-sublist"></ul>
+</li>
+<li class="toc-item toc-series-item no-children">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/5/reg-causal.html">因果推論とは何か</a>
+    
+  </div>
+  
+</li>
+<li class="toc-item toc-series-item no-children">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/5/reg-selection.html">モデル選択</a>
+    
+  </div>
+  
+</li>
+<li class="toc-item toc-series-item no-children">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/5/reg-selection-gpa.html">GPA で目的ごとに変数を選ぶ</a>
+    
+  </div>
+  
+</li>
+
+      </ul>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/6.html">第 6 回 機械学習の枠組みと決定木</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/7.html">第 7 回 クラスタリングとパターン発見</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/8.html">第 8 回 ニューラルネットワークと Transformer</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/9.html">第 9 回 自然言語処理</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/10.html">第 10 回 画像認識</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/11.html">第 11 回 総合実習 1</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/12.html">第 12 回 総合実習 2</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/13.html">第 13 回 発表回</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/selected.html">選択資料</a>
+      </div>
+      
+    </li>
+    
+  </ul>
+</div>
+
+    </nav>
+
+    <div id="content">
+    <article>
+  <header class="article-header">
+    <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+    <a href="../../../courses/dsp/5.html">第 5 回 回帰分析</a>
+    <h1 class="article-title">予測とは何か / 未使用のデータで予測の誤差を測る</h1>
+  </header>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../courses/dsp/5/reg-multiple.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">重回帰分析と偏回帰係数 / GPA の重回帰分析</span>
+    </a>
+    <a class="next" href="../../../courses/dsp/5/reg-causal.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">因果推論とは何か</span>
+    </a>
+</nav>
+
+  <div class="lesson-body">
+    <p>次に入学する学生の GPA をどれだけ正確に当てられるでしょうか.
+<a href="../../../courses/dsp/5/reg-intro.html#regression-goals">GPA のデータから問えること</a>の表の (b) では,
+同じ母集団の新しい学生 1 人ずつの GPA と, 予測の誤差を問いました.
+<span class="citation" data-cites="hernan2019second">Hernán et al. (<a href="#ref-hernan2019second" role="doc-biblioref">2019</a>)</span> は, 入力から別の値を当てる予測を, データ分析の目的の一つとして挙げています.</p>
+<p>新しい学生が標本と同じ分布から来て, 予測に使う変数を予測時に得られることが前提です.
+例えば, 学期中に勉強時間を記録してから学期末の GPA を予測するなら, その勉強時間を使えます.
+入学時に予測するなら, 入学後に記録する勉強時間はその時点では使えません.
+予測の正確さは, 回帰式を決めるときに使わなかったデータで, 予測値と実際の値の差を測って確かめます <span class="citation" data-cites="shmueli2010explain">(<a href="#ref-shmueli2010explain" role="doc-biblioref">Shmueli, 2010, Section 2.6.2</a>)</span>.</p>
+<h1 id="regression-evaluation">新しい学生の GPA への予測誤差</h1>
+<p>週 10 時間勉強する新しい学生の GPA を予測するときは,
+週 10 時間勉強する学生の平均 GPA を回帰式で推定し, 予測値にできます.
+同じ勉強時間の学生の中にも, 平均より GPA が高い学生と低い学生がいます.
+さらに, 平均の推定値は回帰式を求めるために取った標本によって変わります.</p>
+<p>勉強時間を <span class="math inline">X</span>, GPA を <span class="math inline">Y</span> とし, 勉強時間が <span class="math inline">x</span> の学生の母集団での平均を
+<span class="math inline">m(x)=E(Y\mid X=x)</span> とします.
+勉強時間が <span class="math inline">x_0</span> の新しい学生については, 実際に観測する前の GPA を <span class="math inline">Y_0</span> と書きます.
+標本から求めた予測値を <span class="math inline">\hat y(x_0)</span> とすると, 予測の誤差は次の 2 項に分けられます.</p>
+<p><span class="math display">
+Y_0-\hat y(x_0)
+= \underbrace{Y_0-m(x_0)}_{\varepsilon_0}
+ + \bigl(m(x_0)-\hat y(x_0)\bigr).
+</span></p>
+<ul>
+<li><span class="math inline">\varepsilon_0</span> は, 勉強時間で表せない個体差です. 新しい学生の GPA が, 同じ勉強時間の学生の平均からどれだけずれるかを表します.</li>
+<li><span class="math inline">m(x_0)-\hat y(x_0)</span> は, 平均の推定の誤差を表します. 母集団の平均と, 標本から求めた平均の差です.</li>
+</ul>
+<p>新しい学生を回帰式を求めた標本と独立に取ると, <span class="math inline">x_0</span> をそろえたときの個体差と平均の推定の誤差は独立です.
+そのため, 予測の誤差の分散は, 個体差の分散と平均の推定値の分散を足して求められます.</p>
+<h1 id="prediction-intervals">平均の信頼区間と個人の予測区間</h1>
+<h2 id="単回帰の区間の計算">単回帰の区間の計算</h2>
+<p>単回帰で, 母集団の条件つき平均が直線 <span class="math inline">m(x)=\beta_0+\beta_1x</span> で表され,
+誤差は学生どうしで独立とします.
+誤差の分散は勉強時間によらず一定で <span class="math inline">\sigma^2</span> とします.
+記号の一覧は<a href="../../../fields/regression/reg-ols/notation.html#notation">記号表</a>にあります.</p>
+<p>標本の勉強時間 <span class="math inline">x_1,\ldots,x_n</span> を固定し, その平均を <span class="math inline">\bar x</span>,
+平均との差の二乗和を <span class="math inline">S_{xx}=\sum_{i=1}^{n}(x_i-\bar x)^2</span> とします.
+標本は <span class="math inline">n&gt;2</span> 人とし, 勉強時間にばらつきがあって <span class="math inline">S_{xx}&gt;0</span> とします.
+最小二乗法で求めた直線は標本の平均点 <span class="math inline">(\bar x,\bar y)</span> を通るので,
+<span class="math inline">\hat y(x_0)=\bar y+\hat\beta_1(x_0-\bar x)</span> と書けます.
+<span class="math inline">\bar y</span> の分散は <span class="math inline">\sigma^2/n</span>, 傾き <span class="math inline">\hat\beta_1</span> の分散は <span class="math inline">\sigma^2/S_{xx}</span> です.
+<span class="math inline">\bar y</span> と傾きの共分散は 0 です.
+傾きを求めるときに <span class="math inline">y_i</span> に掛ける重み <span class="math inline">(x_i-\bar x)/S_{xx}</span> の和が 0 になるためです.
+よって標本の勉強時間を固定したもとでの分散は次の式になります.</p>
+<p><span class="math display">
+\operatorname{Var}(\hat y(x_0))
+=\sigma^2\left\{\frac{1}{n}+\frac{(x_0-\bar x)^2}{S_{xx}}\right\}.
+</span></p>
+<p><span class="math inline">x_0</span> が標本の平均 <span class="math inline">\bar x</span> から離れると, 傾きの推定のばらつきが予測値に強く表れます.
+新しい学生の GPA を予測する誤差の分散には, さらにその学生の個体差の分散 <span class="math inline">\sigma^2</span> が加わります.</p>
+<p><span class="math display">
+\operatorname{Var}\bigl(Y_0-\hat y(x_0)\bigr)
+=\sigma^2\left\{1+\frac{1}{n}+\frac{(x_0-\bar x)^2}{S_{xx}}\right\}.
+</span></p>
+<p>単回帰の残差を <span class="math inline">e_i=y_i-\hat y_i</span> とすると, 誤差分散の推定値は
+<span class="math inline">s^2=\frac{1}{n-2}\sum_{i=1}^{n}e_i^2</span> です.
+自由度 <span class="math inline">n-2</span> の t 分布の 97.5 パーセンタイルを <span class="math inline">t_{n-2,\,0.975}</span> とします.
+条件つき平均が直線で, 独立で分散が一定という誤差の仮定に加え,
+誤差が正規分布に従うとき, 次の区間が得られます.</p>
+<ul>
+<li><p>母集団で勉強時間が <span class="math inline">x_0</span> の学生の平均 GPA <span class="math inline">m(x_0)</span> に対する <strong>95% 信頼区間</strong>は</p>
+<p><span class="math display">
+\hat y(x_0) \ \pm\ t_{n-2,\,0.975}\,
+s\sqrt{\frac{1}{n}+\frac{(x_0-\bar x)^2}{S_{xx}}}.
+</span></p>
+<p>標本を取り直して区間を作ると, 長期的に区間の 95% が固定された母集団の平均 <span class="math inline">m(x_0)</span> を含みます.</p></li>
+<li><p>勉強時間が <span class="math inline">x_0</span> の新しい学生 1 人の GPA <span class="math inline">Y_0</span> に対する <strong>95% 予測区間</strong>は</p>
+<p><span class="math display">
+\hat y(x_0) \ \pm\ t_{n-2,\,0.975}\,
+s\sqrt{1+\frac{1}{n}+\frac{(x_0-\bar x)^2}{S_{xx}}}.
+</span></p>
+<p>標本を取り直すたびに区間を作り, その標本とは独立に同じ勉強時間の学生を 1 人取り出すと,
+長期的には 95% の回で区間が新しい学生の GPA を含みます.</p></li>
+</ul>
+<p>どちらの区間も中心は <span class="math inline">\hat y(x_0)</span> です.
+予測区間の平方根の中の <span class="math inline">1</span> は, 新しい学生の個体差の分散 <span class="math inline">\sigma^2</span> に対応します.
+重回帰でも, 説明変数の組を指定して得た平均の推定値を中心に, 個体差を加えて予測区間を作ります.
+重回帰での計算は<a href="#test-prediction-intervals">未使用のデータで予測の誤差を測る</a>で statsmodels を使って行います.</p>
+<h2 id="合成データで標本の大きさを変えたときの区間幅">合成データで標本の大きさを変えたときの区間幅</h2>
+<p><a href="../../../fields/regression/reg-ols/coefficient-test.html#coverage">合成 GPA で区間を繰り返し求めた例</a>と同じように,
+勉強時間だけを使って打ち切り前の潜在得点に直線を当てはめます.
+この生成の仕組みでは, 潜在得点の条件つき平均は直線で, 誤差の分散は勉強時間によらず一定です.
+誤差には奨学生区分による差も含まれるので, t 分布を使う区間は正規近似にもとづきます.</p>
+<p>標本の大きさを 20 人, 100 人, 1,000 人とし, 大きさごとに同じ母集団から独立に 200 回ずつ標本を取りました.
+週 10 時間勉強する学生について, 標本ごとに平均の 95% 信頼区間と 1 人の 95% 予測区間を計算しました.
+図の縦軸は区間の上端から下端を引いた幅を 200 回で平均した値です.
+横軸は標本の大きさを対数目盛で示しています.</p>
+<figure>
+<img src="../../../images/fields/regression/reg-prediction/interval-widths.png" alt="同じ週 10 時間の勉強時間を指定したときの, 標本の大きさ別の平均の信頼区間と予測区間の平均幅" />
+<figcaption aria-hidden="true">同じ週 10 時間の勉強時間を指定したときの, 標本の大きさ別の平均の信頼区間と予測区間の平均幅</figcaption>
+</figure>
+<p>20 人から 1,000 人に増えると, 平均の信頼区間の平均幅は潜在得点で 0.360 点から 0.046 点に縮まりました.
+予測区間の平均幅は 1.599 点から 1.468 点に縮まりました.
+同じ分布から標本を増やすと, 平均を推定するばらつきは小さくなります.
+予測区間の全幅は, 同じ <span class="math inline">s</span> と t 分布の値で個体差の項だけを使った <span class="math inline">2t_{n-2,\,0.975}s</span> 以上です.
+標本を増やして平均を精密に推定できても, 個体差に対応する幅は残ります.</p>
+<p>観測 GPA は潜在得点を 0 点と 4 点で打ち切った値です.
+上端や下端の近くでは, 打ち切りによって平均の形も個体差のばらつき方も変わるため, 予測の外れ方は勉強時間によって異なります.
+直線を当てはめて作る区間は 0〜4 点の範囲をはみ出すこともあります.
+配布した観測 GPA のデータでの確かめ方は<a href="../../../courses/dsp/5/reg-prediction.html">未使用のデータで予測の誤差を測る</a>にあります.</p>
+<h1 id="mse">残差と平均二乗誤差</h1>
+<p>学生 <span class="math inline">i</span> の実測値を <span class="math inline">y_i</span>, 回帰式にその学生の説明変数を入れた値を <span class="math inline">\hat y_i</span> とします.
+式を当てはめた標本での差 <span class="math inline">y_i-\hat y_i</span> を<strong>残差</strong>と呼びます.
+回帰式を求めるのに使っていない学生で同じ引き算をすると, その学生に対する<strong>予測誤差</strong>が得られます.</p>
+<p>評価したいデータが <span class="math inline">n</span> 人分あるとき, 差を二乗して平均した値が
+<strong>平均二乗誤差</strong> (Mean Squared Error, MSE) です.</p>
+<p><span class="math display">
+\mathrm{MSE}=\frac{1}{n}\sum_{i=1}^{n}(y_i-\hat y_i)^2.
+</span></p>
+<p>二乗すると正と負の差が打ち消し合わず, 大きく外れた予測ほど MSE に強く反映されます.
+MSE の単位は目的変数の単位の二乗です.
+平方根を取った <strong>平方根平均二乗誤差</strong> (Root Mean Squared Error, RMSE) は元の GPA と同じ単位に戻ります.</p>
+<p><span class="math display">
+\mathrm{RMSE}=\sqrt{\mathrm{MSE}}.
+</span></p>
+<p>例えば, 2 人の予測誤差が <span class="math inline">0.1</span> 点と <span class="math inline">-0.3</span> 点なら,
+MSE は <span class="math inline">(0.01+0.09)/2=0.05</span> (GPA 点の二乗), RMSE は約 0.22 点です.
+MSE と RMSE は <a href="#exercise-reg-prediction-1">Exercise REG-PREDICTION-1</a> で計算します.</p>
+<h1 id="overfitting">当てはまりと過学習</h1>
+<p>予測では, 個々の係数が表す比較を読み取る手順を経ずに, 式全体の予測値を使って評価できます.
+<a href="../../../fields/regression/reg-ols/model-fit.html#model-fit">決定係数</a>は回帰式を当てはめた標本での当てはまりの要約です.
+新しい学生でどのくらい外れるかは, 未使用のデータで測ります.</p>
+<p>最小二乗法で説明変数や項を加えると, 追加した係数をすべて 0 にすれば元の式に戻せます.
+そのため, 訓練データ (係数を求めたデータ) での MSE は下がるか, 同じ値のままです.
+その標本だけに偶然現れた関係まで拾い, 新しい学生での誤差が増えることを<strong>過学習</strong>と呼びます <span class="citation" data-cites="james2021introduction">(<a href="#ref-james2021introduction" role="doc-biblioref">James et al., 2021, Section 2.2.1</a>)</span>.</p>
+<p>合成データから 20 人の訓練標本を独立に 200 回取り, 各回で潜在得点に回帰式を当てはめました.
+勉強時間だけを使う式から始め, 潜在得点とも勉強時間とも独立な標準正規乱数の列を 1 列ずつ足しました.
+残差の自由度を 6 以上に保つため, 追加する変数は最大 12 個にしました.
+各回で同じ母集団から別に生成した 20,000 人に各式を適用しました. 追加した変数は新しい学生でも同じように独立な乱数で作りました.</p>
+<figure>
+<img src="../../../images/fields/regression/reg-prediction/overfitting-mse.png" alt="無関係な変数を足したときの, 訓練データと新しい学生における潜在得点の MSE の 200 回平均" />
+<figcaption aria-hidden="true">無関係な変数を足したときの, 訓練データと新しい学生における潜在得点の MSE の 200 回平均</figcaption>
+</figure>
+<p>横軸の 0 は勉強時間だけの式です. 縦軸は追加した変数の数ごとに 200 回の MSE を平均した値です.
+追加する変数が 0 個から 12 個に増えると, 青い線が示す訓練データの平均 MSE は 0.126 から 0.041 に下がりました.
+赤い線が示す新しい学生の平均 MSE は 0.155 から 0.495 に上がりました.</p>
+<h1 id="training-validation-test">訓練データ・検証データ・テストデータ</h1>
+<p>例えば, 勉強時間だけの式と, 奨学生区分も使う式を比べてから一方を採用するなら,
+係数を求める作業, 式を選ぶ作業, 選んだ式の誤差を測る作業があります.
+どの学生のデータをどの作業に使うかは, 候補を比べる前に決めます.</p>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>データ</th>
+<th>役割</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>訓練データ</strong></td>
+<td>候補ごとに回帰式の係数を求めます.</td>
+</tr>
+<tr class="even">
+<td><strong>検証データ</strong></td>
+<td>候補の式の予測誤差を比べて, 使う変数や項を選びます.</td>
+</tr>
+<tr class="odd">
+<td><strong>テストデータ</strong></td>
+<td>選んだ式の予測誤差を, 新しい学生の代わりとして最後に 1 回だけ測ります.</td>
+</tr>
+</tbody>
+</table>
+<p>検証用に一組のデータを取り分ける方法のほかに, <strong>交差検証</strong>で式を選ぶ方法があります <span class="citation" data-cites="james2021introduction">(<a href="#ref-james2021introduction" role="doc-biblioref">James et al., 2021, Section 5.1</a>)</span>.
+テストデータは先に取り分け, 残りをいくつかの組に分けます.
+各組を順番に検証用にし, 他の組で当てはめた式の誤差を測ります.
+候補の式ごとに組を入れ替えて測った誤差を集計すると, 一度の分け方に依存せずに候補を比べられます.
+式が決まったら, テストデータを除いたデータで係数を求め直してから最終評価できます.
+変数の選び方は<a href="../../../courses/dsp/5/reg-selection.html">モデル選択</a>で扱います.</p>
+<p>同じ大学でも, 来年度の新入生で勉強時間の分布や GPA の付け方が変われば,
+以前のテストデータで測った誤差が来年度にも当てはまる保証はありません.
+来年度の学生に予測を使うなら, その学生に相当するデータで誤差を確かめます.</p>
+<h2 id="ベイズで予測すると">ベイズで予測すると</h2>
+<p>ベイズ統計学では, データを得た後の母数の不確かさを事後分布で表します.
+母数ごとの新しい学生の GPA の分布を事後分布で重み付けしてまとめた<strong>事後予測分布</strong>には,
+母数の不確かさと, 母数を固定したときの個体差が含まれます.
+事前分布と事後分布の計算は<a href="../../../fields/bayes/bayes-intro/bayesian-basics.html#ベイズの定理">ベイズの定理</a>にあります.</p>
+<h1 id="exercises">演習</h1>
+<h2 id="exercise-reg-prediction-1">Exercise REG-PREDICTION-1</h2>
+<p><strong>MSE と RMSE の手計算</strong></p>
+<p>3 人の学生について, GPA の実測値が 2.0, 3.5, 1.0, 回帰式による予測値が 2.4, 3.3, 1.2 でした.
+残差, MSE, RMSE を手で計算し, RMSE の値を GPA の単位で説明してください.</p>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答
+</summary>
+<p>残差は <span class="math inline">2.0-2.4=-0.4</span>, <span class="math inline">3.5-3.3=0.2</span>, <span class="math inline">1.0-1.2=-0.2</span> で, その二乗は 0.16, 0.04, 0.04 です.</p>
+<p><span class="math display">
+\mathrm{MSE}=\frac{0.16+0.04+0.04}{3}=\frac{0.24}{3}=0.08, \qquad
+\mathrm{RMSE}=\sqrt{0.08}\approx 0.283.
+</span></p>
+<p>この 3 人での予測の外れの大きさは, RMSE で約 0.28 GPA 点です.</p>
+</details>
+<h2 id="exercise-reg-prediction-2">Exercise REG-PREDICTION-2</h2>
+<p><strong>週 10 時間勉強する学生の平均と個人の区間</strong></p>
+<p>週 10 時間勉強する学生について, 次のそれぞれの場合に使う区間を選び, 理由を説明してください.</p>
+<ol type="1">
+<li>母集団で週 10 時間勉強する学生の平均 GPA を知りたい場合.</li>
+<li>同じ母集団から新しく取り出す, 週 10 時間勉強する学生 1 人の GPA がどのあたりに入るか知りたい場合.</li>
+</ol>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答
+</summary>
+<ol type="1">
+<li>平均の信頼区間を使います. 標本によって, 同じ勉強時間の学生の母集団平均の推定値がどれだけばらつくかを反映します.</li>
+<li>予測区間を使います. 平均の推定の誤差に加え, 新しい学生の GPA が同じ勉強時間の学生の母集団平均からずれる分も含めます.</li>
+</ol>
+</details>
+<h2 id="bibliography">参考文献</h2>
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" data-line-spacing="2" role="list">
+<div id="ref-hernan2019second" class="csl-entry" role="listitem">
+Hernán, M. A., Hsu, J., &amp; Healy, B. (2019). A second chance to get causal inference right: A classification of data science tasks. <em>CHANCE</em>, <em>32</em>(1), 42–49. <a href="https://doi.org/10.1080/09332480.2019.1579578">https://doi.org/10.1080/09332480.2019.1579578</a>
+</div>
+<div id="ref-james2021introduction" class="csl-entry" role="listitem">
+James, G., Witten, D., Hastie, T., &amp; Tibshirani, R. (2021). <em>An introduction to statistical learning: With applications in r</em> (2nd ed.). Springer. <a href="https://doi.org/10.1007/978-1-0716-1418-1">https://doi.org/10.1007/978-1-0716-1418-1</a>
+</div>
+<div id="ref-shmueli2010explain" class="csl-entry" role="listitem">
+Shmueli, G. (2010). To explain or to predict? <em>Statistical Science</em>, <em>25</em>(3), 289–310. <a href="https://doi.org/10.1214/10-STS330">https://doi.org/10.1214/10-STS330</a>
+</div>
+</div>
+<h1 class="lesson-block-title" id="reg-evaluate">未使用のデータで予測の誤差を測る</h1>
+<p>奨学生区分, 勉強時間, アルバイト時間から, 新しい学生の GPA をどれくらい正確に予測できるでしょうか.
+100 人の合成データを読み込んだら, 先に最終評価用の 30 人を取り分けます.
+残りの 70 人で回帰式を当てはめ, 取り分けた学生について予測の誤差と区間を調べます.</p>
+<h1 id="regression-train-test">合成 GPA の読み込みと分割</h1>
+<p><a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch11/multiple_regression.csv"><code>multiple_regression.csv</code></a> には, 合成した 100 人分のデータが入っています.
+CSV をダウンロードしてコードと同じフォルダに置き, そのフォルダからコードを実行してください.
+先頭列は CSV の保存時に書き出された行番号です.
+<code>index_col=0</code> で行のインデックスとして読み込みます.
+読み込みから作図まで, 各節のコードを同じ Python セッションで順に実行します.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> statsmodels.formula.api <span class="im">as</span> smf</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> mean_squared_error</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> train_test_split</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">&quot;multiple_regression.csv&quot;</span>, index_col<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>train, test <span class="op">=</span> train_test_split(df, test_size<span class="op">=</span><span class="fl">0.3</span>, random_state<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Training: </span><span class="sc">{</span><span class="bu">len</span>(train)<span class="sc">}</span><span class="ss">, held out: </span><span class="sc">{</span><span class="bu">len</span>(test)<span class="sc">}</span><span class="ss">&quot;</span>)</span></code></pre></div>
+<pre class="text"><code>Training: 70, held out: 30</code></pre>
+<p><code>test_size=0.3</code> は 3 割をテストデータに取る指定で, <code>random_state=0</code> は分割を再現するための指定です.
+この例では説明変数を先に定め, 係数を求めるのに訓練データの 70 人を使います.
+テストデータは, その式の評価に使います.</p>
+<table>
+<thead>
+<tr class="header">
+<th>列</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>GPA</code></td>
+<td>GPA (0〜4 点)</td>
+</tr>
+<tr class="even">
+<td><code>Scholarship</code></td>
+<td>奨学生かどうか (<code>True</code> または <code>False</code>)</td>
+</tr>
+<tr class="odd">
+<td><code>Study_Hours</code></td>
+<td>週あたりの勉強時間 (時間)</td>
+</tr>
+<tr class="even">
+<td><code>Part_time_Work</code></td>
+<td>週あたりのアルバイト時間 (時間)</td>
+</tr>
+<tr class="odd">
+<td><code>Sports_hours</code></td>
+<td>週あたりの運動時間 (時間, 演習で使用)</td>
+</tr>
+</tbody>
+</table>
+<h1 id="mse-sklearn">scikit-learn による MSE と RMSE の計算</h1>
+<p><a href="../../../courses/dsp/5/reg-multiple.html#gpa-coefficients">GPA の重回帰分析</a>と同じ式を使います.
+<code>statsmodels</code> の <code>smf.ols(...).fit()</code> で係数を求めると,
+同じ当てはめ結果から予測値と予測区間を計算できます.
+誤差の集計には, 回帰式の作り方にかかわらず実測値と予測値から MSE を計算できる
+<code>scikit-learn</code> の <code>mean_squared_error</code> を使います.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>formula <span class="op">=</span> <span class="st">&quot;GPA ~ Scholarship + Study_Hours + Part_time_Work&quot;</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> smf.ols(formula, data<span class="op">=</span>train).fit()</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>pred_train <span class="op">=</span> result.predict(train)</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>pred_test <span class="op">=</span> result.predict(test)</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>mse_train <span class="op">=</span> mean_squared_error(train[<span class="st">&quot;GPA&quot;</span>], pred_train)</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>mse_test <span class="op">=</span> mean_squared_error(test[<span class="st">&quot;GPA&quot;</span>], pred_test)</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Training: MSE = </span><span class="sc">{</span>mse_train<span class="sc">:.4f}</span><span class="ss">, RMSE = </span><span class="sc">{</span>np<span class="sc">.</span>sqrt(mse_train)<span class="sc">:.4f}</span><span class="ss">&quot;</span>)</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Test:     MSE = </span><span class="sc">{</span>mse_test<span class="sc">:.4f}</span><span class="ss">, RMSE = </span><span class="sc">{</span>np<span class="sc">.</span>sqrt(mse_test)<span class="sc">:.4f}</span><span class="ss">&quot;</span>)</span></code></pre></div>
+<pre class="text"><code>Training: MSE = 0.0459, RMSE = 0.2142
+Test:     MSE = 0.0336, RMSE = 0.1834</code></pre>
+<p><code>predict</code> は渡されたデータの説明変数を, 訓練データで求めた式に代入します.
+訓練用とテスト用のそれぞれで, <code>mean_squared_error</code> に実測値, 予測値の順で渡します.
+MSE の平方根を取ると, 誤差の大きさを元の GPA と同じ単位で読めます.</p>
+<p>テストデータでの誤差の大きさは RMSE で約 0.18 GPA 点です.
+この分割ではテスト MSE が訓練 MSE より小さくなりました.
+2 つの MSE は別々の学生の誤差を平均しているため,
+どの学生をテストデータに取ったかによって差の大きさや向きが変わります.</p>
+<h1 id="test-prediction-intervals">テストデータの平均の信頼区間と予測区間</h1>
+<p>テストデータの各行について, その学生と同じ条件の母集団平均を推定する区間と,
+その条件での学生 1 人の GPA を予測する区間を作ります.
+<code>get_prediction(test).summary_frame(alpha=0.05)</code> は,
+テストデータの 30 人の説明変数を使い, 両方の区間を表にします.
+<code>alpha=0.05</code> は区間の水準を 95% にする指定です.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>intervals <span class="op">=</span> result.get_prediction(test).summary_frame(alpha<span class="op">=</span><span class="fl">0.05</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>observed <span class="op">=</span> test[<span class="st">&quot;GPA&quot;</span>]</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>highest <span class="op">=</span> intervals.loc[intervals[<span class="st">&quot;mean&quot;</span>].idxmax()]</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Highest prediction: </span><span class="sc">{</span>highest[<span class="st">'mean'</span>]<span class="sc">:.3f}</span><span class="ss">&quot;</span>)</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;95% mean CI: [</span><span class="sc">{</span>highest[<span class="st">'mean_ci_lower'</span>]<span class="sc">:.3f}</span><span class="ss">, </span><span class="sc">{</span>highest[<span class="st">'mean_ci_upper'</span>]<span class="sc">:.3f}</span><span class="ss">]&quot;</span>)</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    <span class="ss">f&quot;95% prediction interval: &quot;</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="ss">f&quot;[</span><span class="sc">{</span>highest[<span class="st">'obs_ci_lower'</span>]<span class="sc">:.3f}</span><span class="ss">, </span><span class="sc">{</span>highest[<span class="st">'obs_ci_upper'</span>]<span class="sc">:.3f}</span><span class="ss">]&quot;</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Observed GPA in that row: </span><span class="sc">{</span>observed<span class="sc">.</span>loc[highest.name]<span class="sc">:.3f}</span><span class="ss">&quot;</span>)</span></code></pre></div>
+<pre class="text"><code>Highest prediction: 4.112
+95% mean CI: [3.937, 4.287]
+95% prediction interval: [3.638, 4.586]
+Observed GPA in that row: 4.000</code></pre>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>列</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>mean</code></td>
+<td>回帰式による平均の推定値. 個人の点予測にも使います.</td>
+</tr>
+<tr class="even">
+<td><code>mean_ci_lower</code>, <code>mean_ci_upper</code></td>
+<td>同じ条件の母集団平均に対する 95% 信頼区間の下端と上端.</td>
+</tr>
+<tr class="odd">
+<td><code>obs_ci_lower</code>, <code>obs_ci_upper</code></td>
+<td>同じ条件の学生 1 人に対する 95% 予測区間の下端と上端.</td>
+</tr>
+</tbody>
+</table>
+<p>予測値が最も高い学生の行では, 平均の信頼区間より予測区間の方が広くなりました.
+予測区間は, <a href="#prediction-intervals">平均の信頼区間と個人の予測区間</a>で見たように,
+平均の推定の誤差に加え, 同じ条件の学生どうしの個体差を含めて計算するためです.</p>
+<h2 id="実測-gpa-を含んだ人数">実測 GPA を含んだ人数</h2>
+<p>各学生の GPA が予測区間の下端と上端の間にあるかを <code>between</code> で調べます.
+返された <code>True</code> を足すと, 実測 GPA を含んだ区間の本数が分かります.
+あわせて下端が 0 点未満の区間, 上端が 4 点超の区間, 4 点を超えた予測値を数えます.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>covered <span class="op">=</span> observed.between(intervals[<span class="st">&quot;obs_ci_lower&quot;</span>], intervals[<span class="st">&quot;obs_ci_upper&quot;</span>])</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>below_zero <span class="op">=</span> (intervals[<span class="st">&quot;obs_ci_lower&quot;</span>] <span class="op">&lt;</span> <span class="dv">0</span>).<span class="bu">sum</span>()</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>above_four <span class="op">=</span> (intervals[<span class="st">&quot;obs_ci_upper&quot;</span>] <span class="op">&gt;</span> <span class="dv">4</span>).<span class="bu">sum</span>()</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>predicted_above_four <span class="op">=</span> (intervals[<span class="st">&quot;mean&quot;</span>] <span class="op">&gt;</span> <span class="dv">4</span>).<span class="bu">sum</span>()</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Covered: </span><span class="sc">{</span>covered<span class="sc">.</span><span class="bu">sum</span>()<span class="sc">}</span><span class="ss">/</span><span class="sc">{</span><span class="bu">len</span>(test)<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Prediction intervals below 0: </span><span class="sc">{</span>below_zero<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Prediction intervals above 4: </span><span class="sc">{</span>above_four<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Predicted GPA above 4: </span><span class="sc">{</span>predicted_above_four<span class="sc">}</span><span class="ss">&quot;</span>)</span></code></pre></div>
+<pre class="text"><code>Covered: 30/30
+Prediction intervals below 0: 2
+Prediction intervals above 4: 2
+Predicted GPA above 4: 1</code></pre>
+<p>この分割では, 30 人全員の実測 GPA が予測区間に入りました.
+30 人では 1 人が区間を外れるだけで, 含まれる割合は約 3.3 パーセントポイント変わります.
+予測区間の 95% は仮定が成り立つ場合に同じ手順を繰り返したときの水準です.
+この 30 人の結果だけで, 次の学生に対する被覆率は決まりません.</p>
+<h2 id="gpa-の範囲を越える予測">GPA の範囲を越える予測</h2>
+<p>図では, テストデータの 30 人を予測値の低い順に並べます.
+<code>intervals</code> を並べ替えた後, <code>observed</code> も同じ行番号順にそろえます.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>ordered <span class="op">=</span> intervals.sort_values(<span class="st">&quot;mean&quot;</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>ordered_observed <span class="op">=</span> observed.loc[ordered.index]</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>ranks <span class="op">=</span> <span class="bu">range</span>(<span class="dv">1</span>, <span class="bu">len</span>(ordered) <span class="op">+</span> <span class="dv">1</span>)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="fl">4.5</span>), layout<span class="op">=</span><span class="st">&quot;constrained&quot;</span>)</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>ax.axhline(<span class="dv">0</span>, color<span class="op">=</span><span class="st">&quot;0.45&quot;</span>, linestyle<span class="op">=</span><span class="st">&quot;--&quot;</span>, linewidth<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>ax.axhline(<span class="dv">4</span>, color<span class="op">=</span><span class="st">&quot;0.45&quot;</span>, linestyle<span class="op">=</span><span class="st">&quot;--&quot;</span>, linewidth<span class="op">=</span><span class="dv">1</span>, label<span class="op">=</span><span class="st">&quot;GPA bounds&quot;</span>)</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>ax.vlines(</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    ranks,</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    ordered[<span class="st">&quot;obs_ci_lower&quot;</span>],</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    ordered[<span class="st">&quot;obs_ci_upper&quot;</span>],</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>    color<span class="op">=</span><span class="st">&quot;#91b5ca&quot;</span>,</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>    linewidth<span class="op">=</span><span class="dv">2</span>,</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>    label<span class="op">=</span><span class="st">&quot;95% prediction interval&quot;</span>,</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a>    zorder<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>ax.scatter(</span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>    ranks,</span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>    ordered[<span class="st">&quot;mean&quot;</span>],</span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>    marker<span class="op">=</span><span class="st">&quot;x&quot;</span>,</span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>    color<span class="op">=</span><span class="st">&quot;#23658b&quot;</span>,</span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a>    label<span class="op">=</span><span class="st">&quot;Predicted GPA&quot;</span>,</span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a>    zorder<span class="op">=</span><span class="dv">3</span>,</span>
+<span id="cb9-24"><a href="#cb9-24" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb9-25"><a href="#cb9-25" aria-hidden="true" tabindex="-1"></a>ax.scatter(ranks, ordered_observed, s<span class="op">=</span><span class="dv">24</span>, color<span class="op">=</span><span class="st">&quot;#b44532&quot;</span>, label<span class="op">=</span><span class="st">&quot;Observed GPA&quot;</span>, zorder<span class="op">=</span><span class="dv">3</span>)</span>
+<span id="cb9-26"><a href="#cb9-26" aria-hidden="true" tabindex="-1"></a>ax.<span class="bu">set</span>(</span>
+<span id="cb9-27"><a href="#cb9-27" aria-hidden="true" tabindex="-1"></a>    xlabel<span class="op">=</span><span class="st">&quot;Test student rank (by predicted GPA)&quot;</span>,</span>
+<span id="cb9-28"><a href="#cb9-28" aria-hidden="true" tabindex="-1"></a>    ylabel<span class="op">=</span><span class="st">&quot;GPA (points)&quot;</span>,</span>
+<span id="cb9-29"><a href="#cb9-29" aria-hidden="true" tabindex="-1"></a>    xticks<span class="op">=</span>[<span class="dv">1</span>, <span class="dv">5</span>, <span class="dv">10</span>, <span class="dv">15</span>, <span class="dv">20</span>, <span class="dv">25</span>, <span class="dv">30</span>],</span>
+<span id="cb9-30"><a href="#cb9-30" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb9-31"><a href="#cb9-31" aria-hidden="true" tabindex="-1"></a>ax.legend(loc<span class="op">=</span><span class="st">&quot;upper left&quot;</span>)</span>
+<span id="cb9-32"><a href="#cb9-32" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb9-33"><a href="#cb9-33" aria-hidden="true" tabindex="-1"></a>plt.close(fig)</span></code></pre></div>
+<figure>
+<img src="../../../images/fields/regression/reg-evaluate/test-prediction-intervals.png" class="wide" alt="テストデータの学生 30 人の予測値, 実測 GPA, 個人の予測区間" />
+<figcaption aria-hidden="true">テストデータの学生 30 人の予測値, 実測 GPA, 個人の予測区間</figcaption>
+</figure>
+<p>青い交差印が予測値, 赤い丸が実測値, 縦線が予測区間です.
+右端では予測値も区間の上端も, 4 点を示す破線を上回ります.
+左端では予測区間の下端が 0 点を下回る学生もいます.
+合成データでは潜在得点を 0〜4 点で打ち切って GPA を作っています.
+一次式で当てはめた予測値と, その周りに置く区間には同じ上限と下限がないため, 観測 GPA の範囲を越えます.
+打ち切りのため, 上限や下限に実測値が集まる条件では誤差のばらつき方が変わり, 区間の計算で仮定した等分散性が崩れます.</p>
+<h1 id="reg-evaluate-exercises">演習</h1>
+<h2 id="exercise-reg-evaluate-1">Exercise REG-EVALUATE-1</h2>
+<p class="exercise-file">提出ファイル <code>dsp5-2.py</code></p>
+<p><strong>運動時間を加えた式の訓練 MSE とテスト MSE</strong></p>
+<p>本文と同じ分割 (<code>test_size=0.3, random_state=0</code>) で, 次の 2 つの式を訓練データに当てはめてください.</p>
+<ul>
+<li>A は <code>GPA ~ Scholarship + Study_Hours + Part_time_Work</code> とします.</li>
+<li>B は A に <code>Sports_hours</code> を足します.</li>
+</ul>
+<p>A と B の訓練 MSE とテスト MSE をそれぞれ求め, 運動時間を足したときの違いを記述してください.
+このテストデータの MSE を見て使う式を選ぶと, 選んだ式のテスト MSE が新しいデータでの誤差より小さめに出やすい理由も説明してください.</p>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答
+</summary>
+<div class="sourceCode" id="cb10"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> statsmodels.formula.api <span class="im">as</span> smf</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> mean_squared_error</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> train_test_split</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">&quot;multiple_regression.csv&quot;</span>, index_col<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>train, test <span class="op">=</span> train_test_split(df, test_size<span class="op">=</span><span class="fl">0.3</span>, random_state<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>formula_a <span class="op">=</span> <span class="st">&quot;GPA ~ Scholarship + Study_Hours + Part_time_Work&quot;</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>formulas <span class="op">=</span> {<span class="st">&quot;A&quot;</span>: formula_a, <span class="st">&quot;B&quot;</span>: formula_a <span class="op">+</span> <span class="st">&quot; + Sports_hours&quot;</span>}</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> name, formula <span class="kw">in</span> formulas.items():</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>    result <span class="op">=</span> smf.ols(formula, data<span class="op">=</span>train).fit()</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>    mse_train <span class="op">=</span> mean_squared_error(train[<span class="st">&quot;GPA&quot;</span>], result.predict(train))</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>    mse_test <span class="op">=</span> mean_squared_error(test[<span class="st">&quot;GPA&quot;</span>], result.predict(test))</span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;</span><span class="sc">{</span>name<span class="sc">}</span><span class="ss">: training MSE = </span><span class="sc">{</span>mse_train<span class="sc">:.6f}</span><span class="ss">, test MSE = </span><span class="sc">{</span>mse_test<span class="sc">:.6f}</span><span class="ss">&quot;</span>)</span></code></pre></div>
+<pre class="text"><code>A: training MSE = 0.045889, test MSE = 0.033627
+B: training MSE = 0.045865, test MSE = 0.034113</code></pre>
+<p>運動時間を足すと, 訓練 MSE は約 0.000024 下がり, テスト MSE は約 0.000486 上がりました.
+どちらも小さな変化です. 訓練 MSE の下がり方だけでは, 新しい学生の予測が改善するかは分かりません.</p>
+<p>テスト MSE を比べて小さい方を採用すると, その 30 人では偶然誤差が小さかった式も選ばれやすくなります.
+たまたま小さく出た値を評価にも使うことになるため, 新しい学生での誤差を過小に見積もりがちです.
+実際に候補から式を選ぶときは, <a href="#training-validation-test">訓練データ・検証データ・テストデータ</a>の手順で,
+検証データか交差検証で式を選び, テストデータを最後の評価に 1 回だけ使います.</p>
+</details>
+  </div>
+  
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../courses/dsp/5/reg-multiple.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">重回帰分析と偏回帰係数 / GPA の重回帰分析</span>
+    </a>
+    <a class="next" href="../../../courses/dsp/5/reg-causal.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">因果推論とは何か</span>
+    </a>
+</nav>
+
+</article>
+
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        <nav class="footer-nav" aria-label="フッターナビゲーション">
+            <a href="../../../">Home</a>
+            <a href="../../../posts.html">Blog</a>
+            <a href="../../../lectures.html">Lecture</a>
+            <a href="../../../research.html">Research</a>
+            <a href="../../../rss.xml">RSS</a>
+            <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+        </nav>
+        <p class="footer-copy">&copy; yakagika &middot; Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>.</p>
+    </div>
+</div>
+
+
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="ページ先頭へ戻る" title="先頭へ戻る">↑</button>
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+            link.classList.add('external-link');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h1[id], h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level = Number(heading.tagName.slice(1)) - 1;
+          if (!heading.id) return;
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          // Pandoc は `::: note` + 見出し の組み合わせを <section id="..." class="note">
+          // 内の <hN> として出力するため, 見出し自身に id が無い場合は
+          // 親 section の id を辿る.
+          var anchorId = heading.id;
+          if (!anchorId) {
+            var parentSection = heading.closest('section[id]');
+            if (parentSection) anchorId = parentSection.id;
+          }
+          anchor.href = '#' + anchorId;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi && !li.contains(currentLi)) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+
+      // ----------------------------------------
+      // スクロールスパイ: 表示中の見出しを TOC でハイライト
+      // ----------------------------------------
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0 || typeof IntersectionObserver === 'undefined') return;
+
+      var idToTocItem = new Map();
+      headings.forEach(function(h) {
+        if (!h.id) return;
+        var link = tocContainer.querySelector('a[href="#' + CSS.escape(h.id) + '"]');
+        if (link) {
+          var li = link.closest('.toc-item') || link.closest('li');
+          if (li) idToTocItem.set(h.id, li);
+        }
+      });
+
+      var visible = new Set();
+      var lastActive = null;
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+
+        // ドキュメント順で最初に可視な見出しをアクティブに
+        var firstVisible = null;
+        for (var i = 0; i < headings.length; i++) {
+          if (visible.has(headings[i].id)) {
+            firstVisible = headings[i].id;
+            break;
+          }
+        }
+        if (!firstVisible) return;
+
+        var tocItem = idToTocItem.get(firstVisible);
+        if (!tocItem || tocItem === lastActive) return;
+
+        if (lastActive) lastActive.classList.remove('toc-active');
+        tocItem.classList.add('toc-active');
+        lastActive = tocItem;
+
+        // TOC を必要なときだけスクロール
+        tocItem.scrollIntoView({
+          block: 'nearest',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
+      }, {
+        // ヘッダー (60px) を除いた上部 〜 画面下から60% を判定領域とする
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0
+      });
+
+      headings.forEach(function(h) { if (h.id) observer.observe(h); });
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
+      const pre = codeBlock.parentNode;
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
+      copyButton.textContent = 'Copy';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    // パスワード保護付き details (回答例用)
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll('details.protected').forEach(function (det) {
+        var pass = det.getAttribute('data-pass') || '';
+        var summary = det.querySelector('summary');
+        if (!summary) return;
+
+        var gate = document.createElement('div');
+        gate.className = 'pass-gate';
+        gate.innerHTML =
+          '<label>合言葉: <input type="password" autocomplete="off" spellcheck="false"></label>' +
+          '<button type="button">解除</button>' +
+          '<span class="pass-error" hidden>合言葉が違います</span>';
+        summary.insertAdjacentElement('afterend', gate);
+
+        var input = gate.querySelector('input');
+        var button = gate.querySelector('button');
+        var errorMsg = gate.querySelector('.pass-error');
+
+        function tryUnlock() {
+          if (input.value === pass) {
+            det.classList.add('unlocked');
+            errorMsg.hidden = true;
+          } else {
+            errorMsg.hidden = false;
+            input.select();
+          }
+        }
+
+        button.addEventListener('click', tryUnlock);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
+        });
+
+        det.addEventListener('toggle', function () {
+          if (det.open && !det.classList.contains('unlocked')) {
+            input.focus();
+          }
+        });
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            try {
+              katex.render( texText.data
+                          , mathElements[i]
+                          , { displayMode: mathElements[i].classList.contains("display")
+                            , throwOnError: true
+                           }
+                          );
+            } catch (e) {
+              // 1 つの数式のエラーで残り全ての数式が生 TeX のまま残らないようにする
+              console.error('KaTeX render error:', e.message, texText.data);
+            }
+          }
+      }
+    });
+  </script>
+
+  <!-- 見出しアンカーリンク + Back to top -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 記事見出しに hover で現れる # パーマリンクを付与
+      document.querySelectorAll('article h2[id], article h3[id]').forEach(function (h) {
+        var a = document.createElement('a');
+        a.className = 'heading-anchor';
+        a.href = '#' + h.id;
+        a.setAttribute('aria-label', 'このセクションへのリンク');
+        a.textContent = '#';
+        h.appendChild(a);
+      });
+
+      // Back to top: スクロール量に応じて表示
+      var btt = document.getElementById('back-to-top');
+      if (btt) {
+        var onScroll = function () {
+          if (window.pageYOffset > 600) btt.classList.add('visible');
+          else btt.classList.remove('visible');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        btt.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
+    });
+  </script>
+
+  </body>
+</html>

@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+    <script>
+      (function () {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+        function stored() {
+          var t = null;
+          try { t = localStorage.getItem('theme'); } catch (e) {}
+          return (t === 'dark' || t === 'light') ? t : null;
+        }
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
+        if (mq) {
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
+        }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
+      })();
+    </script>
+    <title>yakagika - 回帰で何をするか / 出生率のデータで行う単回帰分析</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../../../style.css?v=1795415080">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+    <link rel="canonical" href="https://yakagika.github.io/fields/regression/reg-intro/index.html">
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../../../" class="site-brand" aria-label="Home">
+          <span class="site-mark" aria-hidden="true">▮</span>
+          <span class="site-word">yakagika</span>
+        </a>
+      </div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../../../">Home</a>
+      <a href="../../../posts.html">Blog</a>
+      <a href="../../../lectures.html">Lecture</a>
+      <a href="../../../research.html">Research</a>
+      <a href="../../../lectures/seminar.html">Seminar</a>
+      <a href="../../../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      
+      <div id="lecture-toc" data-mode="series">
+  <h2>Index</h2>
+  <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+  <ul class="toc-root">
+    
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/1.html">第 1 回 本資料の読み方</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/2.html">第 2 回 分析設計: データ分析の進め方</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/3.html">第 3 回 データの可視化</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/4.html">第 4 回 データの数値化</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item current-block">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/5.html">第 5 回 回帰分析</a>
+      </div>
+      
+      <ul class="toc-sublist">
+        <li class="toc-item toc-series-item current">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/5/reg-intro.html" aria-current="page">回帰で何をするか / 出生率のデータで行う単回帰分析</a>
+    
+  </div>
+  <ul class="toc-sublist"></ul>
+</li>
+<li class="toc-item toc-series-item no-children">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/5/reg-multiple.html">重回帰分析と偏回帰係数 / GPA の重回帰分析</a>
+    
+  </div>
+  
+</li>
+<li class="toc-item toc-series-item no-children">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/5/reg-prediction.html">予測とは何か / 未使用のデータで予測の誤差を測る</a>
+    
+  </div>
+  
+</li>
+<li class="toc-item toc-series-item no-children">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/5/reg-causal.html">因果推論とは何か</a>
+    
+  </div>
+  
+</li>
+<li class="toc-item toc-series-item no-children">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/5/reg-selection.html">モデル選択</a>
+    
+  </div>
+  
+</li>
+<li class="toc-item toc-series-item no-children">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/5/reg-selection-gpa.html">GPA で目的ごとに変数を選ぶ</a>
+    
+  </div>
+  
+</li>
+
+      </ul>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/6.html">第 6 回 機械学習の枠組みと決定木</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/7.html">第 7 回 クラスタリングとパターン発見</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/8.html">第 8 回 ニューラルネットワークと Transformer</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/9.html">第 9 回 自然言語処理</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/10.html">第 10 回 画像認識</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/11.html">第 11 回 総合実習 1</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/12.html">第 12 回 総合実習 2</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/13.html">第 13 回 発表回</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/selected.html">選択資料</a>
+      </div>
+      
+    </li>
+    
+  </ul>
+</div>
+
+    </nav>
+
+    <div id="content">
+    <article>
+  <header class="article-header">
+    <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+    <a href="../../../courses/dsp/5.html">第 5 回 回帰分析</a>
+    <h1 class="article-title">回帰で何をするか / 出生率のデータで行う単回帰分析</h1>
+  </header>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../courses/dsp/5.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">第 5 回 回帰分析</span>
+    </a>
+    <a class="next" href="../../../courses/dsp/5/reg-multiple.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">重回帰分析と偏回帰係数 / GPA の重回帰分析</span>
+    </a>
+</nav>
+
+  <div class="lesson-body">
+    <p>勉強時間が長い学生と短い学生では, 平均 GPA はどれだけ違うでしょうか.
+<strong>回帰分析</strong>では, 勉強時間が同じ学生の GPA の平均を式で表し,
+勉強時間の異なる学生どうしで平均を比べます.
+標本から求めた平均の差を, どの学生の集団について述べられるかも考えます.</p>
+<p>この分野の本体は, <strong>関係の定量化と母集団への推測</strong>です.
+同じ GPA のデータを, 新しく入学する学生の成績を予測したり,
+勉強時間を増やす取り組みについて因果を問うたりする場合にも使います.
+答えたい問いによって, 前提と結果の確かめ方が変わります.</p>
+<h1 id="regression-equation">回帰式と回帰係数</h1>
+<p>架空の学生のデータで, 週あたりの勉強時間を <span class="math inline">x</span> とします.
+勉強時間が <span class="math inline">x</span> の学生の平均 GPA を直線で表すと, 式は次の形になります.</p>
+<p><span class="math display">
+m(x) = \beta_0 + \beta_1 x
+</span></p>
+<p><span class="math inline">m(x)</span> は回帰式が表す平均です.
+勉強時間が同じ学生でも, 1 人ずつの GPA はその平均の周りにばらつきます.</p>
+<ul>
+<li>GPA は平均を求めたい変数なので, <strong>目的変数</strong> (被説明変数) と呼びます.</li>
+<li>勉強時間 <span class="math inline">x</span> は平均を比べる条件に使うので, <strong>説明変数</strong>と呼びます.</li>
+<li><span class="math inline">m(x) = \beta_0 + \beta_1 x</span> のように関係を表す式を<strong>回帰式</strong> (回帰方程式) と呼びます.</li>
+<li><span class="math inline">\beta_0</span> は<strong>切片</strong>です. 勉強時間が週 0 時間のときの, 式の上での平均 GPA を表します.
+週 0 時間に近い観測が少なければ, 切片は観測の少ない範囲での式の値です.</li>
+<li><span class="math inline">\beta_1</span> は回帰直線の<strong>傾き</strong>です. 週あたりの勉強時間が 1 時間違う学生を比べたときの,
+式の上での平均 GPA の差です.</li>
+<li>切片と傾きを合わせて<strong>回帰係数</strong>と呼びます.</li>
+</ul>
+<p>例えば, 傾きが 0.27 の直線では,
+週 11 時間勉強する学生の平均 GPA は週 10 時間の学生より 0.27 高いと読みます.
+同じ直線上で, 週 12 時間と週 10 時間の学生の平均を比べると, 差は <span class="math inline">2 \times 0.27 = 0.54</span> です.</p>
+<h2 id="単回帰と重回帰">単回帰と重回帰</h2>
+<p>説明変数が勉強時間の 1 つなら, <strong>単回帰分析</strong>です.
+奨学生かどうかやアルバイト時間も含め, 説明変数を 2 つ以上使う場合を<strong>重回帰分析</strong>と呼びます.
+線形の重回帰では, 説明変数ごとに係数を求めます.
+その係数を読むときは, 残りの説明変数が同じ条件の学生を比べます.
+勉強時間とアルバイト時間を例にした読み方は<a href="../../../courses/dsp/5/reg-multiple.html">重回帰分析と偏回帰係数</a>にあります.</p>
+<h2 id="線形回帰と非線形回帰">線形回帰と非線形回帰</h2>
+<p>説明変数を 1 つにしたとき, 平均を直線で表す回帰は<strong>線形回帰</strong>の一例です.
+説明変数を 2 つにして, それぞれに係数を掛けて足す式も線形回帰です.
+線形回帰では, どの係数も, 説明変数から作った項に掛けて足し合わせます.</p>
+<p><strong>非線形回帰</strong>の一例は, 勉強時間 <span class="math inline">x</span> が長くなるにつれて平均 GPA が上限に近づく式です.</p>
+<p><span class="math display">
+m(x) = \beta_0\{1 - \exp(-\beta_1 x)\}
+</span></p>
+<p><span class="math inline">\beta_0,\beta_1</span> がともに正のとき, <span class="math inline">\beta_0</span> は上限を表し,
+<span class="math inline">\beta_1</span> が大きいほど平均は短い勉強時間で上限に近づきます.
+<span class="math inline">\beta_1</span> が指数関数の中に入るため, 式は係数について非線形です.
+なお, <span class="math inline">x^2</span> を項として足す回帰では,
+<span class="math inline">x</span> に対して曲線を描いても, 係数については線形です.</p>
+<h1 id="regression-goals">GPA のデータから問えること</h1>
+<p>ある大学の学生について GPA, 週あたりの勉強時間とアルバイト時間, 奨学生かどうかを記録したとします.
+この記録から出発して, 次の問いを立てられます.
+<strong>母集団</strong>は, 推測や予測について述べたい学生の集団です.</p>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>問い</th>
+<th>誰について何を述べるか</th>
+<th>何を前提にするか</th>
+<th>何で確かめるか</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>(a) <a href="../../../courses/dsp/5/reg-multiple.html">関係の定量化と母集団への推測</a>. 他の条件が同じで, 勉強時間だけ週 1 時間違う学生を比べると, 平均 GPA はどれだけ違うか</td>
+<td>標本を取った母集団での, 条件をそろえた平均の差</td>
+<td>母集団からの抽出に偏りがなく, 比べる条件を先に決めていること. 比較する条件の範囲で, 回帰式が平均の差を表せること</td>
+<td>係数と信頼区間を示し, 必要なら検定する. 同じ母集団の別の標本でも差を調べる</td>
+</tr>
+<tr class="even">
+<td>(b) <a href="../../../courses/dsp/5/reg-prediction.html">予測</a>. 次に入学する学生の GPA をどれだけ正確に当てられるか</td>
+<td>同じ母集団の新しい学生 1 人ずつの GPA と, 予測の誤差</td>
+<td>新しい学生が標本と同じ分布から来て, 予測に使う変数を予測時に得られること</td>
+<td>回帰式を決めるときに使わなかったデータで, 予測値と実際の値の差を測る</td>
+</tr>
+<tr class="odd">
+<td>(c) <a href="../../../courses/dsp/5/reg-causal.html">因果推論</a>. 勉強時間を増やす介入を行うと, 平均 GPA はどう変わるか</td>
+<td>同じ母集団で, 介入する場合としない場合の平均 GPA の差</td>
+<td>介入内容を定め, 観測した結果と介入した場合の結果を結び付ける因果の構造を仮定すること. 無作為な割り付けで比較できる場合もある</td>
+<td>観測データから目的の差を求められる条件を調べ, 仮定を変えた場合や, 別の設計で得た結果を検討する</td>
+</tr>
+</tbody>
+</table>
+<h2 id="平均と一人ひとりの-gpa">平均と一人ひとりの GPA</h2>
+<p>関係の定量化では, 例えば同じ奨学生区分とアルバイト時間の学生に絞って,
+勉強時間が異なる学生の平均 GPA を比べます.
+標本に現れた差を母集団の差として推定するときは, 標本の選び方が根拠になります.</p>
+<p>予測では, 同じ勉強時間の学生の平均 GPA を, 新しい学生の予測値として使えます.
+予測には, 手元の標本で平均を推定する誤差と, 同じ勉強時間の学生に残る個人差が含まれます.
+新しい学生の成績が予測からどのくらい外れるかは, 未使用のデータで測ります.
+その手順と, 平均の区間と個人の予測区間の読み方は<a href="../../../courses/dsp/5/reg-prediction.html">予測</a>にあります.</p>
+<h2 id="観測した比較と介入した場合の比較">観測した比較と介入した場合の比較</h2>
+<p>因果推論で比べるのは, 同じ学生の集団が勉強時間を増やす取り組みを受けた場合と,
+受けなかった場合の平均です.
+観測データで勉強時間の異なる学生を並べると, 勉強時間以外の条件も異なることがあります.
+介入した場合の平均差を求められるかは,
+勉強時間と GPA がどう決まるかについて置く仮定や, データを集めた設計によって変わります.</p>
+<h2 id="探索と対象にする母集団">探索と対象にする母集団</h2>
+<p><strong>探索</strong>は, 例えば勉強時間, アルバイト時間, 運動時間の散布図を見ながら,
+どの変数と GPA の関係を調べるかを決める作業です.
+探索で見つけた関係は仮説として扱い, 別のデータを集めて確かめます.
+変数の選び方は<a href="../../../courses/dsp/5/reg-selection.html">モデル選択</a>で扱います.</p>
+<p>同じ大学の別の年度や, 別の大学の学生まで対象にするときは,
+学習環境や GPA の付け方が元の集団とどの程度共通するかを調べます.
+母集団を広げるための前提は, 平均の差を推測する場合にも,
+新しい学生を予測する場合にも, 介入の結果を考える場合にも加わります.</p>
+<h2 id="回帰の目的を分ける文献">回帰の目的を分ける文献</h2>
+<p><span class="citation" data-cites="hernan2019second">Hernán et al. (<a href="#ref-hernan2019second" role="doc-biblioref">2019</a>)</span> は, データ分析を記述, 予測, 反事実の予測に分けています.
+反事実の予測には, 介入した場合を問う因果推論が含まれます.
+<span class="citation" data-cites="leek2015what">Leek &amp; Peng (<a href="#ref-leek2015what" role="doc-biblioref">2015</a>)</span> は, 仮説をつくる探索と, 標本をもとに推測する分析を区別しています.</p>
+<p><span class="citation" data-cites="shmueli2010explain">Shmueli (<a href="#ref-shmueli2010explain" role="doc-biblioref">2010</a>)</span> の「説明」は, 理論から導いた因果の仮説を検証することを指します.
+表の (a) で求めるのは, 観測した条件をそろえた学生どうしの平均の差です.
+<span class="citation" data-cites="gelman2020regression">Gelman et al. (<a href="#ref-gelman2020regression" role="doc-biblioref">2020</a>)</span> は, 回帰の用途として予測, 関連の探索,
+標本から母集団への外挿, 因果推論を挙げています.</p>
+<h1 id="sampling-variation">標本が変われば推定値も変わる</h1>
+<p>架空の学生を作る同じ仕組みから, 100 人ずつの独立な標本を 4 つ取りました.
+各標本で, 勉強時間だけを説明変数にして GPA の回帰直線を求めます.
+同じ仕組みから別に生成した 20 万人についても直線を求め, 母集団の回帰直線の近似とします.</p>
+<figure>
+<img src="../../../images/fields/regression/reg-intro/sample-regression-lines.png" alt="100 人ずつの 4 標本で求めた回帰直線と, 20 万人から求めた母集団の回帰直線の近似" />
+<figcaption aria-hidden="true">100 人ずつの 4 標本で求めた回帰直線と, 20 万人から求めた母集団の回帰直線の近似</figcaption>
+</figure>
+<p>横軸は週あたりの勉強時間, 縦軸は直線が与える GPA です.
+黒い実線が 20 万人から求めた直線で, その傾きは約 0.272 です.
+色の付いた線を左右にたどると, 同じ生成の仕組みでも,
+標本によって傾きと切片が異なることが分かります.
+4 標本の傾きは約 0.245 から 0.279 でした.
+例えば週 6 時間と週 16 時間の位置で直線を見比べると, 線の並び順が変わります.</p>
+<p>観測した GPA の範囲は 0 から 4 です.
+当てはめた直線には上下限がないため, 図の横軸の両端ではその範囲を外れる値も出ます.
+GPA の上下限と回帰式の関係は<a href="../../../fields/regression/reg-ols/population-model.html#population-model">母回帰式と誤差</a>にあります.</p>
+<p>1 つの標本の傾きには, その標本にどの学生が入ったかによるばらつきがあります.
+<strong>信頼区間</strong>は, 標本を取り直したときに推定値がどれだけばらつくかをもとに,
+母集団の係数について値の範囲を示します.
+<strong>検定</strong>では, 例えば母集団の傾きが 0 だと仮定したときに,
+標本で得た傾きと同じ程度か, それ以上に 0 から離れた傾きがどれほど起こりやすいかを調べます.
+計算と区間の読み方は<a href="../../../fields/regression/reg-ols/coefficient-test.html#coefficient-test">回帰係数の分布・信頼区間・検定</a>にあります.</p>
+<h1 id="inference">頻度論とベイズ統計学</h1>
+<p>この分野では<strong>頻度論</strong>の枠組みで母集団への推測を行います.
+母集団の係数のような, 母集団を特徴付ける値を<strong>母数</strong>と呼びます.
+頻度論では母数を固定した値とみなし,
+同じ手順で標本を取り直したときのばらつきから区間と検定を作ります.</p>
+<p><strong>ベイズ統計学</strong>では, 母数の不確かさを確率分布で表します.
+データを観測する前の不確かさを表す事前分布と,
+データの出方を表すモデルを組み合わせ, 観測後の事後分布を求めます.
+事後分布は, 例えば GPA の傾きがどの範囲にあるかを述べるのに使えます.</p>
+<p>頻度論とベイズ統計学の違いは, 不確かさをどう表すかにあります.
+どちらの枠組みでも, 関係の定量化, 予測, 因果推論の問いを扱えます.
+ベイズの考え方と実例は<a href="../../../fields/bayes/bayes-intro/index.html">統計モデリングとベイズ統計学の基礎</a>にあります.</p>
+<h1 id="binary-response">結果が 0 か 1 のとき</h1>
+<p>単位を取得した学生を 1, 取得しなかった学生を 0 とします.
+同じ勉強時間の学生に絞ると, 0 と 1 の平均は 1 の割合です.
+例えば 10 人のうち 7 人が単位を取得したとき, 平均は <span class="math inline">7/10 = 0.7</span> です.
+母集団では, 条件をそろえたときの 0 と 1 の平均が, 単位を取得する確率になります.</p>
+<p><strong>一般化線形モデル</strong>では, 目的変数の取りうる値に応じて分布と平均の表し方を選びます.
+例えば<strong>ロジスティック回帰</strong>では,
+説明変数の線形式を 0 と 1 の間の確率に変換して使います.
+変換の式と確率の求め方は<a href="../../../fields/regression/reg-glm/index.html">一般化線形モデルと二値の応答</a>にあります.</p>
+<h1 id="exercises">演習</h1>
+<h2 id="exercise-reg-intro-1">Exercise REG-INTRO-1</h2>
+<p><strong>GPA についての 3 つの問い</strong></p>
+<p>次の問いを, 関係の定量化と母集団への推測, 予測, 因果推論, 探索のいずれかに分類してください.
+それぞれ, 誰について述べるかと, 結果を得るために必要な前提を 1 つずつ挙げてください.</p>
+<ol type="1">
+<li>今年度の学生で, 奨学生区分とアルバイト時間が同じ場合に,
+勉強時間が週 1 時間長い学生の平均 GPA はどれだけ高いか.</li>
+<li>来年度, 入学後 1 か月の勉強時間の記録を使うと, 新入生の学期末 GPA をどれだけ正確に当てられるか.</li>
+<li>学期中に自習時間を週 1 時間設けると, 同じ学生集団の学期末の平均 GPA はどう変わるか.</li>
+</ol>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答
+</summary>
+<ol type="1">
+<li>関係の定量化と母集団への推測です.
+対象は今年度の学生の母集団です. 母集団から偏りなく標本を取ることが前提です.</li>
+<li>予測です. 対象は次に入学する学生一人ひとりです.
+例えば, 回帰式を作った標本と来年度の新入生の分布が同じという前提を置きます.
+来年度と同様の条件をもつ未使用の学生データで誤差を測ります.</li>
+<li>因果推論です. 対象は自習時間を設ける場合と設けない場合の, 同じ学生集団の平均の差です.
+例えば, 自習時間を設けるかどうかを無作為に割り付けて, 群の比較ができるようにします.</li>
+</ol>
+</details>
+<h2 id="exercise-reg-intro-2">Exercise REG-INTRO-2</h2>
+<p><strong>データを見てから見つけた関係</strong></p>
+<p>担当者は, 勉強時間・運動時間・アルバイト時間と GPA の散布図を作り,
+関係が目立った運動時間について詳しく調べることにしました.
+この時点の作業を分類してください.
+同じ大学の母集団でも関係が成り立つかを確かめるには, 次にどのような標本を使いますか.</p>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答
+</summary>
+<p>関係を探しながら変数を選んでいるので探索です.
+運動時間と GPA に関係があるという仮説を立て,
+同じ大学の対象学生から新しく偏りなく取った標本で確かめます.
+新しい標本を見る前に, どの条件をそろえ, どの回帰係数を調べるかを決めます.</p>
+</details>
+<h2 id="bibliography">参考文献</h2>
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" data-line-spacing="2" role="list">
+<div id="ref-gelman2020regression" class="csl-entry" role="listitem">
+Gelman, A., Hill, J., &amp; Vehtari, A. (2020). <em>Regression and other stories</em>. Cambridge University Press. <a href="https://doi.org/10.1017/9781139161879">https://doi.org/10.1017/9781139161879</a>
+</div>
+<div id="ref-hernan2019second" class="csl-entry" role="listitem">
+Hernán, M. A., Hsu, J., &amp; Healy, B. (2019). A second chance to get causal inference right: A classification of data science tasks. <em>CHANCE</em>, <em>32</em>(1), 42–49. <a href="https://doi.org/10.1080/09332480.2019.1579578">https://doi.org/10.1080/09332480.2019.1579578</a>
+</div>
+<div id="ref-leek2015what" class="csl-entry" role="listitem">
+Leek, J. T., &amp; Peng, R. D. (2015). What is the question? <em>Science</em>, <em>347</em>(6228), 1314–1315. <a href="https://doi.org/10.1126/science.aaa6146">https://doi.org/10.1126/science.aaa6146</a>
+</div>
+<div id="ref-shmueli2010explain" class="csl-entry" role="listitem">
+Shmueli, G. (2010). To explain or to predict? <em>Statistical Science</em>, <em>25</em>(3), 289–310. <a href="https://doi.org/10.1214/10-STS330">https://doi.org/10.1214/10-STS330</a>
+</div>
+</div>
+<h1 class="lesson-block-title" id="reg-simple">出生率のデータで行う単回帰分析</h1>
+<p>男性の家事・育児時間の割合が 1 パーセントポイント高い国では, 合計特殊出生率は平均でどれだけ違うでしょうか.
+国ごとの値を散布図にし, 単回帰直線の傾きでこの関係を表します.</p>
+<h1 id="oecd-data">出生率と時間配分の表の結合</h1>
+<p><a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch11/fertility_rates.csv"><code>fertility_rates.csv</code></a> と
+<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch11/time_used.csv"><code>time_used.csv</code></a> をダウンロードし, コードと同じフォルダに置いてください.
+コードはそのフォルダから実行してください.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> statsmodels.api <span class="im">as</span> sm</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> adjustText <span class="im">import</span> adjust_text</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>fertility <span class="op">=</span> pd.read_csv(<span class="st">&quot;fertility_rates.csv&quot;</span>)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>time_use <span class="op">=</span> pd.read_csv(<span class="st">&quot;time_used.csv&quot;</span>)</span></code></pre></div>
+<p><code>Country</code> は国名, <code>Fertility</code> は合計特殊出生率です.
+時間配分の表では, <code>Paid</code> が有償労働, <code>Unpaid</code> が無償の家事, <code>Care</code> が育児などのケアに対応します.
+男性がこの 3 項目に使う時間のうち, 家事・育児に使う割合を百分率で計算し, <code>r</code> に格納します.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>unpaid_and_care <span class="op">=</span> time_use[<span class="st">&quot;Unpaid&quot;</span>] <span class="op">+</span> time_use[<span class="st">&quot;Care&quot;</span>]</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>total_work <span class="op">=</span> time_use[<span class="st">&quot;Paid&quot;</span>] <span class="op">+</span> unpaid_and_care</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>time_use[<span class="st">&quot;r&quot;</span>] <span class="op">=</span> <span class="dv">100</span> <span class="op">*</span> unpaid_and_care <span class="op">/</span> total_work</span></code></pre></div>
+<p>出生率の表ではトルコが <code>Türkiye</code>, 時間配分の表では <code>Turkey</code> と表記されています.
+出生率の表の表記を <code>Turkey</code> にそろえてから, <code>Country</code> をキーに結合します.
+<code>validate="one_to_one"</code> を指定すると, 同じキーが片方の表に複数回現れたときにエラーになります.
+外部結合 (<code>how="outer"</code>) では, 片方の表にしかない行も残ります.
+<code>indicator=True</code> で追加した <code>_merge</code> 列で, それぞれの行がどちらの表にあったかを確かめます.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>fertility[<span class="st">&quot;Country&quot;</span>] <span class="op">=</span> fertility[<span class="st">&quot;Country&quot;</span>].replace({<span class="st">&quot;Türkiye&quot;</span>: <span class="st">&quot;Turkey&quot;</span>})</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>joined <span class="op">=</span> fertility.merge(</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    time_use[[<span class="st">&quot;Country&quot;</span>, <span class="st">&quot;r&quot;</span>]],</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    on<span class="op">=</span><span class="st">&quot;Country&quot;</span>,</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    how<span class="op">=</span><span class="st">&quot;outer&quot;</span>,</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    validate<span class="op">=</span><span class="st">&quot;one_to_one&quot;</span>,</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    indicator<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>unmatched <span class="op">=</span> joined.loc[joined[<span class="st">&quot;_merge&quot;</span>] <span class="op">!=</span> <span class="st">&quot;both&quot;</span>, [<span class="st">&quot;Country&quot;</span>, <span class="st">&quot;_merge&quot;</span>]]</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(unmatched.to_string(index<span class="op">=</span><span class="va">False</span>))</span></code></pre></div>
+<pre class="text"><code>        Country    _merge
+          Chile left_only
+       Colombia left_only
+     Costa Rica left_only
+ Czech Republic left_only
+        Denmark left_only
+         Greece left_only
+        Hungary left_only
+        Iceland left_only
+        Ireland left_only
+         Israel left_only
+      Lithuania left_only
+     Luxembourg left_only
+    Netherlands left_only
+   OECD average left_only
+       Portugal left_only
+Slovak Republic left_only
+    Switzerland left_only</code></pre>
+<p><code>left_only</code> の行には出生率だけがあります.
+今回の表には, 時間配分の表にだけある <code>right_only</code> の行はありません.
+<code>both</code> の行を残し, <code>dropna()</code> で数値が欠けている行を除きます.
+両方の値がそろったのは 22 か国です.
+本文では, 旧教材と同じくメキシコを外した 21 か国を使います.
+メキシコを加えた場合は <a href="#exercise-reg-simple-1">Exercise REG-SIMPLE-1</a> で確かめます.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>matched <span class="op">=</span> joined.loc[joined[<span class="st">&quot;_merge&quot;</span>] <span class="op">==</span> <span class="st">&quot;both&quot;</span>, [<span class="st">&quot;Country&quot;</span>, <span class="st">&quot;Fertility&quot;</span>, <span class="st">&quot;r&quot;</span>]]</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>countries <span class="op">=</span> matched.set_index(<span class="st">&quot;Country&quot;</span>).dropna()</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>analysis <span class="op">=</span> countries.drop(index<span class="op">=</span><span class="st">&quot;Mexico&quot;</span>)</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Matched: </span><span class="sc">{</span><span class="bu">len</span>(countries)<span class="sc">}</span><span class="ss">, used in the main example: </span><span class="sc">{</span><span class="bu">len</span>(analysis)<span class="sc">}</span><span class="ss">&quot;</span>)</span></code></pre></div>
+<pre class="text"><code>Matched: 22, used in the main example: 21</code></pre>
+<h1 id="oecd-scatter">家事・育児時間の割合と出生率の散布図</h1>
+<p>横軸は男性の家事・育児時間の割合 (%) で, 計算式は
+<span class="math inline">100 \times (\mathrm{Unpaid}+\mathrm{Care})/(\mathrm{Paid}+\mathrm{Unpaid}+\mathrm{Care})</span> です.
+縦軸は 2019 年の合計特殊出生率 (女性 1 人あたりの子どもの数) です.
+時間配分は国によって 1999 年から 2013 年の調査に基づくため, 2 つの指標の年はそろっていません.
+出典は <a href="https://www.oecd.org/en/data/datasets/oecd-family-database.html">OECD Family Database</a> の SF2.1 (出生率) と LMF2.5 (時間配分) です.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> plot_countries(data):</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">6</span>), layout<span class="op">=</span><span class="st">&quot;constrained&quot;</span>)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    points <span class="op">=</span> ax.scatter(data[<span class="st">&quot;r&quot;</span>], data[<span class="st">&quot;Fertility&quot;</span>], color<span class="op">=</span><span class="st">&quot;#23658b&quot;</span>, zorder<span class="op">=</span><span class="dv">3</span>)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    ax.<span class="bu">set</span>(</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>        xlim<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">49</span>),</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>        ylim<span class="op">=</span>(<span class="fl">0.82</span>, <span class="fl">1.98</span>),</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>        xlabel<span class="op">=</span><span class="st">&quot;Men's unpaid work and care (</span><span class="sc">% o</span><span class="st">f work time)&quot;</span>,</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>        ylabel<span class="op">=</span><span class="st">&quot;Total fertility rate (children per woman)&quot;</span>,</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    ax.grid(alpha<span class="op">=</span><span class="fl">0.25</span>)</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>    labels <span class="op">=</span> [</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>        ax.text(row.r, row.Fertility, country, fontsize<span class="op">=</span><span class="dv">9</span>)</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> country, row <span class="kw">in</span> data.iterrows()</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>    ]</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> fig, ax, points, labels</span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>fig, ax, points, labels <span class="op">=</span> plot_countries(analysis)</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a>adjust_text(</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a>    labels,</span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a>    objects<span class="op">=</span>points,</span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a>    ax<span class="op">=</span>ax,</span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a>    iter_lim<span class="op">=</span><span class="dv">300</span>,</span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a>    min_arrow_len<span class="op">=</span><span class="dv">4</span>,</span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a>    arrowprops<span class="op">=</span>{<span class="st">&quot;arrowstyle&quot;</span>: <span class="st">&quot;-&quot;</span>, <span class="st">&quot;color&quot;</span>: <span class="st">&quot;0.45&quot;</span>, <span class="st">&quot;linewidth&quot;</span>: <span class="fl">0.6</span>},</span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a>plt.close(fig)</span></code></pre></div>
+<figure>
+<img src="../../../images/fields/regression/reg-simple/scatter.png" alt="家事・育児時間の割合と出生率の散布図" />
+<figcaption aria-hidden="true">家事・育児時間の割合と出生率の散布図</figcaption>
+</figure>
+<p>1 点は 1 か国です. 日本と韓国はどちらの値も低く, 図の左下にあります.
+トルコでは家事・育児時間の割合が約 23% で, 合計特殊出生率は 21 か国で最も高い 1.88 です.
+右側では同程度の割合でも出生率にばらつきがあります.</p>
+<h1 id="oecd-ols">単回帰の係数と国の組み合わせ</h1>
+<p><code>sm.OLS</code> に目的変数と説明変数の表を渡します.
+<code>sm.add_constant</code> は切片を求めるために, 全行が 1 の列 <code>const</code> を追加します.
+<code>fit()</code> で係数を求め, <code>summary().tables[1]</code> で係数の表を取り出します.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fit_fertility(data):</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    predictors <span class="op">=</span> sm.add_constant(data[[<span class="st">&quot;r&quot;</span>]])</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> sm.OLS(data[<span class="st">&quot;Fertility&quot;</span>], predictors).fit()</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>result <span class="op">=</span> fit_fertility(analysis)</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(result.summary().tables[<span class="dv">1</span>])</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;R-squared: </span><span class="sc">{</span>result<span class="sc">.</span>rsquared<span class="sc">:.3f}</span><span class="ss">&quot;</span>)</span></code></pre></div>
+<pre class="text"><code>==============================================================================
+                 coef    std err          t      P&gt;|t|      [0.025      0.975]
+------------------------------------------------------------------------------
+const          1.2082      0.197      6.119      0.000       0.795       1.621
+r              0.0093      0.006      1.687      0.108      -0.002       0.021
+==============================================================================
+R-squared: 0.130</code></pre>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>列</th>
+<th>読み方</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>coef</code></td>
+<td>係数の推定値です. <code>const</code> は切片, <code>r</code> は傾きです.</td>
+</tr>
+<tr class="even">
+<td><code>std err</code></td>
+<td>係数の推定値の標準誤差です.</td>
+</tr>
+<tr class="odd">
+<td><code>t</code></td>
+<td>係数の推定値を標準誤差で割った t 統計量です.</td>
+</tr>
+<tr class="even">
+<td><code>P&gt;|t|</code></td>
+<td>係数が 0 という帰無仮説に対する両側 P 値です.</td>
+</tr>
+<tr class="odd">
+<td><code>[0.025</code> と <code>0.975]</code></td>
+<td>95% 信頼区間の下限と上限です.</td>
+</tr>
+</tbody>
+</table>
+<p>区間と検定の前提や計算は <a href="../../../fields/regression/reg-ols/index.html">回帰係数の区間と検定</a> で扱います.
+出力の P 値と区間は, 母集団から標本を無作為に取るなど, 標本のばらつきを確率で表せる前提のもとで解釈します.
+この例の 21 か国はある母集団から偶然に取り出した標本ではないため, 表の P 値を母集団への推測には使いません.
+母集団への推測は, 同じ仕組みから別の標本を作れる <a href="../../../courses/dsp/5/reg-multiple.html">合成 GPA の例</a> で扱います.</p>
+<p>当てはめた直線では, 男性の家事・育児時間の割合が 1 パーセントポイント高い国ほど,
+合計特殊出生率が平均で約 0.00931 高いと読みます.
+決定係数は 0.130 で, 手元の 21 か国の出生率のばらつきのうち, 当てはめた直線で表せた割合を示します.</p>
+<p>表記をそろえずに結合するとトルコが落ちます.
+その場合に相当する 20 か国, 本文の 21 か国, メキシコも含めた 22 か国で, 単回帰を当て直します.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>comparisons <span class="op">=</span> {</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Without Turkey or Mexico&quot;</span>: analysis.drop(index<span class="op">=</span><span class="st">&quot;Turkey&quot;</span>),</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Main example&quot;</span>: analysis,</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;Including Mexico&quot;</span>: countries,</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> label, data <span class="kw">in</span> comparisons.items():</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    slope <span class="op">=</span> fit_fertility(data).params[<span class="st">&quot;r&quot;</span>]</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;</span><span class="sc">{</span>label<span class="sc">:25s}</span><span class="ss"> </span><span class="sc">{</span><span class="bu">len</span>(data)<span class="sc">:2d}</span><span class="ss"> </span><span class="sc">{</span>slope<span class="sc">:.5f}</span><span class="ss">&quot;</span>)</span></code></pre></div>
+<p>当てはめた傾きの単位は, 家事・育児時間の割合 1 パーセントポイントあたりの合計特殊出生率の差です.</p>
+<table>
+<thead>
+<tr class="header">
+<th>対象</th>
+<th style="text-align: right;">国数</th>
+<th style="text-align: right;">傾き</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>トルコとメキシコを除く</td>
+<td style="text-align: right;">20</td>
+<td style="text-align: right;">0.01344</td>
+</tr>
+<tr class="even">
+<td>この節の分析 (トルコを含み, メキシコを除く)</td>
+<td style="text-align: right;">21</td>
+<td style="text-align: right;">0.00931</td>
+</tr>
+<tr class="odd">
+<td>トルコとメキシコを含む</td>
+<td style="text-align: right;">22</td>
+<td style="text-align: right;">0.00517</td>
+</tr>
+</tbody>
+</table>
+<p>トルコもメキシコも, 家事・育児時間の割合が約 20〜23% で, 合計特殊出生率が 1.88 以上です.
+この 2 国を順に加えると, 当てはめた傾きは小さくなります.</p>
+<h1 id="oecd-fit-plots">回帰直線と出生率の当てはまり</h1>
+<p>家事・育児時間の割合の最小値から最大値までを <code>np.linspace</code> で 100 点に区切ります.
+各点に対する出生率の当てはめ値を計算し, 散布図に直線を重ねます.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>work_share <span class="op">=</span> np.linspace(analysis[<span class="st">&quot;r&quot;</span>].<span class="bu">min</span>(), analysis[<span class="st">&quot;r&quot;</span>].<span class="bu">max</span>(), <span class="dv">100</span>)</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>fitted_line <span class="op">=</span> result.params[<span class="st">&quot;const&quot;</span>] <span class="op">+</span> result.params[<span class="st">&quot;r&quot;</span>] <span class="op">*</span> work_share</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>fig, ax, points, labels <span class="op">=</span> plot_countries(analysis)</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>ax.plot(work_share, fitted_line, color<span class="op">=</span><span class="st">&quot;#b44532&quot;</span>, label<span class="op">=</span><span class="st">&quot;OLS line&quot;</span>)</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>ax.legend(loc<span class="op">=</span><span class="st">&quot;lower right&quot;</span>)</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>adjust_text(</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    labels,</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>    objects<span class="op">=</span>points,</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>    ax<span class="op">=</span>ax,</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>    iter_lim<span class="op">=</span><span class="dv">300</span>,</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>    min_arrow_len<span class="op">=</span><span class="dv">4</span>,</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>    arrowprops<span class="op">=</span>{<span class="st">&quot;arrowstyle&quot;</span>: <span class="st">&quot;-&quot;</span>, <span class="st">&quot;color&quot;</span>: <span class="st">&quot;0.45&quot;</span>, <span class="st">&quot;linewidth&quot;</span>: <span class="fl">0.6</span>},</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>plt.close(fig)</span></code></pre></div>
+<figure>
+<img src="../../../images/fields/regression/reg-simple/regression-line.png" alt="21 か国の散布図と回帰直線" />
+<figcaption aria-hidden="true">21 か国の散布図と回帰直線</figcaption>
+</figure>
+<p>直線の傾きは正です. トルコの点は直線より上にあり, トルコの実測の出生率は,
+その家事・育児時間の割合に対応する当てはめ値より高くなっています.</p>
+<p>国ごとの当てはめ値 (<code>result.fittedvalues</code>) を横軸に, 実測値を縦軸に置くと,
+直線からのずれを国どうしで比べられます.
+破線は実測値と当てはめ値が一致する場所です.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>observed <span class="op">=</span> analysis[<span class="st">&quot;Fertility&quot;</span>]</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>fitted <span class="op">=</span> result.fittedvalues</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>limits <span class="op">=</span> (<span class="fl">0.85</span>, <span class="fl">1.95</span>)</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">6</span>, <span class="dv">6</span>), layout<span class="op">=</span><span class="st">&quot;constrained&quot;</span>)</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>ax.scatter(fitted, observed, color<span class="op">=</span><span class="st">&quot;#23658b&quot;</span>, alpha<span class="op">=</span><span class="fl">0.8</span>)</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>ax.plot(limits, limits, color<span class="op">=</span><span class="st">&quot;#b44532&quot;</span>, linestyle<span class="op">=</span><span class="st">&quot;--&quot;</span>, label<span class="op">=</span><span class="st">&quot;Exact fit&quot;</span>)</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>ax.<span class="bu">set</span>(</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    xlim<span class="op">=</span>limits,</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    ylim<span class="op">=</span>limits,</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    xlabel<span class="op">=</span><span class="st">&quot;Fitted total fertility rate&quot;</span>,</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>    ylabel<span class="op">=</span><span class="st">&quot;Observed total fertility rate&quot;</span>,</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>    aspect<span class="op">=</span><span class="st">&quot;equal&quot;</span>,</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>ax.legend()</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>ax.grid(alpha<span class="op">=</span><span class="fl">0.25</span>)</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>plt.close(fig)</span></code></pre></div>
+<figure>
+<img src="../../../images/fields/regression/reg-simple/fitted-observed.png" class="small" alt="21 か国の当てはめ値と実測値" />
+<figcaption aria-hidden="true">21 か国の当てはめ値と実測値</figcaption>
+</figure>
+<p>破線より上の点では式が実測値を低く見積もり, 下の点では高く見積もっています.
+この図で比べているのは, 式を求めるのに使った国の当てはめ値と実測値です.
+未使用のデータで予測の良さを測る方法は <a href="../../../courses/dsp/5/reg-prediction.html">予測と予測誤差</a> で扱います.</p>
+<p>国の間で観測された関連からは, 日本で男性の家事・育児時間を増やしたときに出生率がどう変わるかは分かりません.
+介入した場合の出生率を考えるには, 家事・育児時間と出生率に関係する背景も含めて仮定を置く必要があります.
+その考え方は <a href="../../../courses/dsp/5/reg-causal.html">因果推論</a> で扱います.</p>
+<h1 id="reg-simple-exercises">演習</h1>
+<h2 id="exercise-reg-simple-1">Exercise REG-SIMPLE-1</h2>
+<p class="exercise-file">提出ファイル <code>dsp5-1.py</code></p>
+<p><strong>メキシコを含めた出生率の単回帰分析</strong></p>
+<p>メキシコを含む 22 か国で単回帰を行い, 傾きを小数点以下 5 桁まで求めてください.
+<a href="#oecd-ols">単回帰の係数と国の組み合わせ</a> の 21 か国での傾きと比べ,
+22 か国内の関連の要約として解釈してください.</p>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答
+</summary>
+<div class="sourceCode" id="cb13"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>result_with_mexico <span class="op">=</span> fit_fertility(countries)</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;n = </span><span class="sc">{</span><span class="bu">len</span>(countries)<span class="sc">}</span><span class="ss">, slope = </span><span class="sc">{</span>result_with_mexico<span class="sc">.</span>params[<span class="st">'r'</span>]<span class="sc">:.5f}</span><span class="ss">&quot;</span>)</span></code></pre></div>
+<pre class="text"><code>n = 22, slope = 0.00517</code></pre>
+<p>22 か国の直線では, 家事・育児時間の割合が 1 パーセントポイント高い国ほど,
+合計特殊出生率が平均で約 0.00517 高いと読みます.
+メキシコを加えると傾きは 0.00931 から 0.00517 に小さくなります.
+どちらの傾きも, それぞれの当てはめに使った国の関連の要約です.</p>
+</details>
+  </div>
+  
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../courses/dsp/5.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">第 5 回 回帰分析</span>
+    </a>
+    <a class="next" href="../../../courses/dsp/5/reg-multiple.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">重回帰分析と偏回帰係数 / GPA の重回帰分析</span>
+    </a>
+</nav>
+
+</article>
+
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        <nav class="footer-nav" aria-label="フッターナビゲーション">
+            <a href="../../../">Home</a>
+            <a href="../../../posts.html">Blog</a>
+            <a href="../../../lectures.html">Lecture</a>
+            <a href="../../../research.html">Research</a>
+            <a href="../../../rss.xml">RSS</a>
+            <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+        </nav>
+        <p class="footer-copy">&copy; yakagika &middot; Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>.</p>
+    </div>
+</div>
+
+
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="ページ先頭へ戻る" title="先頭へ戻る">↑</button>
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+            link.classList.add('external-link');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h1[id], h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level = Number(heading.tagName.slice(1)) - 1;
+          if (!heading.id) return;
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          // Pandoc は `::: note` + 見出し の組み合わせを <section id="..." class="note">
+          // 内の <hN> として出力するため, 見出し自身に id が無い場合は
+          // 親 section の id を辿る.
+          var anchorId = heading.id;
+          if (!anchorId) {
+            var parentSection = heading.closest('section[id]');
+            if (parentSection) anchorId = parentSection.id;
+          }
+          anchor.href = '#' + anchorId;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi && !li.contains(currentLi)) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+
+      // ----------------------------------------
+      // スクロールスパイ: 表示中の見出しを TOC でハイライト
+      // ----------------------------------------
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0 || typeof IntersectionObserver === 'undefined') return;
+
+      var idToTocItem = new Map();
+      headings.forEach(function(h) {
+        if (!h.id) return;
+        var link = tocContainer.querySelector('a[href="#' + CSS.escape(h.id) + '"]');
+        if (link) {
+          var li = link.closest('.toc-item') || link.closest('li');
+          if (li) idToTocItem.set(h.id, li);
+        }
+      });
+
+      var visible = new Set();
+      var lastActive = null;
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+
+        // ドキュメント順で最初に可視な見出しをアクティブに
+        var firstVisible = null;
+        for (var i = 0; i < headings.length; i++) {
+          if (visible.has(headings[i].id)) {
+            firstVisible = headings[i].id;
+            break;
+          }
+        }
+        if (!firstVisible) return;
+
+        var tocItem = idToTocItem.get(firstVisible);
+        if (!tocItem || tocItem === lastActive) return;
+
+        if (lastActive) lastActive.classList.remove('toc-active');
+        tocItem.classList.add('toc-active');
+        lastActive = tocItem;
+
+        // TOC を必要なときだけスクロール
+        tocItem.scrollIntoView({
+          block: 'nearest',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
+      }, {
+        // ヘッダー (60px) を除いた上部 〜 画面下から60% を判定領域とする
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0
+      });
+
+      headings.forEach(function(h) { if (h.id) observer.observe(h); });
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
+      const pre = codeBlock.parentNode;
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
+      copyButton.textContent = 'Copy';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    // パスワード保護付き details (回答例用)
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll('details.protected').forEach(function (det) {
+        var pass = det.getAttribute('data-pass') || '';
+        var summary = det.querySelector('summary');
+        if (!summary) return;
+
+        var gate = document.createElement('div');
+        gate.className = 'pass-gate';
+        gate.innerHTML =
+          '<label>合言葉: <input type="password" autocomplete="off" spellcheck="false"></label>' +
+          '<button type="button">解除</button>' +
+          '<span class="pass-error" hidden>合言葉が違います</span>';
+        summary.insertAdjacentElement('afterend', gate);
+
+        var input = gate.querySelector('input');
+        var button = gate.querySelector('button');
+        var errorMsg = gate.querySelector('.pass-error');
+
+        function tryUnlock() {
+          if (input.value === pass) {
+            det.classList.add('unlocked');
+            errorMsg.hidden = true;
+          } else {
+            errorMsg.hidden = false;
+            input.select();
+          }
+        }
+
+        button.addEventListener('click', tryUnlock);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
+        });
+
+        det.addEventListener('toggle', function () {
+          if (det.open && !det.classList.contains('unlocked')) {
+            input.focus();
+          }
+        });
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            try {
+              katex.render( texText.data
+                          , mathElements[i]
+                          , { displayMode: mathElements[i].classList.contains("display")
+                            , throwOnError: true
+                           }
+                          );
+            } catch (e) {
+              // 1 つの数式のエラーで残り全ての数式が生 TeX のまま残らないようにする
+              console.error('KaTeX render error:', e.message, texText.data);
+            }
+          }
+      }
+    });
+  </script>
+
+  <!-- 見出しアンカーリンク + Back to top -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 記事見出しに hover で現れる # パーマリンクを付与
+      document.querySelectorAll('article h2[id], article h3[id]').forEach(function (h) {
+        var a = document.createElement('a');
+        a.className = 'heading-anchor';
+        a.href = '#' + h.id;
+        a.setAttribute('aria-label', 'このセクションへのリンク');
+        a.textContent = '#';
+        h.appendChild(a);
+      });
+
+      // Back to top: スクロール量に応じて表示
+      var btt = document.getElementById('back-to-top');
+      if (btt) {
+        var onScroll = function () {
+          if (window.pageYOffset > 600) btt.classList.add('visible');
+          else btt.classList.remove('visible');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        btt.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
+    });
+  </script>
+
+  </body>
+</html>

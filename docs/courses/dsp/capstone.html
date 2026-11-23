@@ -1,0 +1,1563 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+    <script>
+      (function () {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+        function stored() {
+          var t = null;
+          try { t = localStorage.getItem('theme'); } catch (e) {}
+          return (t === 'dark' || t === 'light') ? t : null;
+        }
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
+        if (mq) {
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
+        }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
+      })();
+    </script>
+    <title>yakagika - 総合実習</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../../style.css?v=1795415080">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../../" class="site-brand" aria-label="Home">
+          <span class="site-mark" aria-hidden="true">▮</span>
+          <span class="site-word">yakagika</span>
+        </a>
+      </div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../../">Home</a>
+      <a href="../../posts.html">Blog</a>
+      <a href="../../lectures.html">Lecture</a>
+      <a href="../../research.html">Research</a>
+      <a href="../../lectures/seminar.html">Seminar</a>
+      <a href="../../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      
+      <div id="lecture-toc" data-mode="series">
+  <h2>Index</h2>
+  <a href="../../courses/dsp/index.html">データサイエンス実践</a>
+  <ul class="toc-root">
+    
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../courses/dsp/1.html">第 1 回 本資料の読み方</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../courses/dsp/2.html">第 2 回 分析設計: データ分析の進め方</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../courses/dsp/3.html">第 3 回 データの可視化</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../courses/dsp/4.html">第 4 回 データの数値化</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../courses/dsp/5.html">第 5 回 回帰分析</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../courses/dsp/6.html">第 6 回 機械学習の枠組みと決定木</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../courses/dsp/7.html">第 7 回 クラスタリングとパターン発見</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../courses/dsp/8.html">第 8 回 ニューラルネットワークと Transformer</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../courses/dsp/9.html">第 9 回 自然言語処理</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../courses/dsp/10.html">第 10 回 画像認識</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item current-block">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../courses/dsp/11.html">第 11 回 総合実習 1</a>
+      </div>
+      
+      <ul class="toc-sublist">
+        <li class="toc-item toc-series-item current">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../courses/dsp/capstone.html" aria-current="page">総合実習</a>
+    
+  </div>
+  <ul class="toc-sublist"></ul>
+</li>
+
+      </ul>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../courses/dsp/12.html">第 12 回 総合実習 2</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../courses/dsp/13.html">第 13 回 発表回</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../courses/dsp/selected.html">選択資料</a>
+      </div>
+      
+    </li>
+    
+  </ul>
+</div>
+
+    </nav>
+
+    <div id="content">
+    
+<article>
+  <header class="article-header">
+    <a href="../../courses/dsp/index.html">データサイエンス実践</a>
+    <h1 class="article-title">総合実習</h1>
+  </header>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../courses/dsp/11.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">第 11 回 総合実習 1</span>
+    </a>
+    <a class="next" href="../../courses/dsp/12.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">第 12 回 総合実習 2</span>
+    </a>
+</nav>
+
+  <h2 id="総合実習の要綱">総合実習の要綱</h2>
+<p>第 11 回から第 13 回では, これまでに学んだ手法を使ってデータを分析し, データと分析内容を発表します. このページは, その進め方と採点の考え方をまとめた要綱です.</p>
+<h3 id="回の流れ">3 回の流れ</h3>
+<table>
+<thead>
+<tr class="header">
+<th>回</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>第 11 回</td>
+<td>題材を選び, 作業手順に沿って分析を実施する</td>
+</tr>
+<tr class="even">
+<td>第 12 回</td>
+<td>分析を仕上げ, 発表資料を作る</td>
+</tr>
+<tr class="odd">
+<td>第 13 回</td>
+<td>発表と質疑応答</td>
+</tr>
+</tbody>
+</table>
+<p>履修人数が多いときは, グループで取り組むことがあります.</p>
+<h3 id="題材">題材</h3>
+<p>次の 3 つから 1 つを選びます.</p>
+<ul>
+<li>クラスタリング (<a href="../../courses/dsp/7.html">第 7 回</a>): <a href="#capstone-cluster">図書館の利用者を分ける</a></li>
+<li>自然言語処理 (<a href="../../courses/dsp/9.html">第 9 回</a>): <a href="#capstone-nlp">ニュース記事のカテゴリを当てる</a></li>
+<li>画像認識 (<a href="../../courses/dsp/10.html">第 10 回</a>): <a href="#capstone-image">花の写真の種類を当てる</a></li>
+</ul>
+<p>各題材では, 該当する回の事例からデータや条件を少し変えた課題を用意します. 作業手順が示してあるので, 手順に沿って分析を進めます. 基本的な処理は指示だけが書いてあり, 具体的な分析は, 資料のどの節のコードを参照し, どこを変えるかのヒントが書いてあります. また, 分析の判断 (パラメータや手法の選択とその理由, 結果の解釈) を書く箇所があります.</p>
+<h3 id="発表資料に書くこと">発表資料に書くこと</h3>
+<p>1 ページ目には, 氏名と学籍番号を書きます. グループで取り組んだ場合は, 全員分を書きます.</p>
+<p>2 ページ目以降は, 次の構成で書きます.</p>
+<ul>
+<li><strong>目的</strong></li>
+<li><strong>手法</strong>
+<ul>
+<li>使用したデータ</li>
+<li>使った手法</li>
+</ul></li>
+<li><strong>結果</strong>
+<ul>
+<li>結果の提示 (グラフ, 数値など)</li>
+<li>結果の解釈</li>
+</ul></li>
+<li><strong>考察</strong>
+<ul>
+<li>結果の限界</li>
+</ul></li>
+<li><strong>AI の利用方法の工夫</strong>: AI を使うときに工夫した点. 特に, ハーネス (<a href="../../lectures/agent.html">コーディングエージェントの利用</a>で扱った <code>AGENTS.md</code> や skill など) の設計で, 何を新しく加えたか. その結果, どのような学びがあったか.</li>
+</ul>
+<h3 id="提出方法">提出方法</h3>
+<p>教員が指定する締切までに, 教員が指定する方法で, 次の 2 つを提出します.</p>
+<ol type="1">
+<li><strong>発表資料の PDF</strong>: PDF のスライドを提出します. ファイル名は <code>dsp_2026_氏名_学籍番号.pdf</code> にします. スライドは AI で生成してもかまいません.</li>
+<li><strong>分析用のコードとデータをまとめた ZIP ファイル</strong>: 分析に使ったコードとデータを 1 つの ZIP ファイルにまとめて提出します. データのライセンスで再配布が制限される題材では, 題材の指示に従ってデータの代わりにデータを作るコードを入れます.</li>
+</ol>
+<h3 id="ai-の利用">AI の利用</h3>
+<p>AI は全面的に使ってかまいません. ただし, AI を使って作ったものの内容には, 使った本人が責任を持ちます. 分析の手順, 手法を選んだ理由, 結果の解釈は, AI を使った場合でも自分で説明できる必要があります.</p>
+<h3 id="質疑応答と採点">質疑応答と採点</h3>
+<p>発表のあとに質疑応答を行います. 質疑応答では, 資料や AI を見ずに答えてもらいます. 質問は, 発表資料に書いた内容から出します. 手法を選んだ理由, 結果の解釈, 条件を変えたときに結果がどう変わると考えるか, などです.</p>
+<p><strong>質疑応答で何も見ずに答えられなかった部分は, 採点の対象に数えません.</strong> 不正として扱うことはありません. グループで取り組んだ場合も, 質疑応答に答えた個人ごとに採点の対象を判断します.</p>
+<p>手法は, 講義資料にあるものを優先して使ってください. 講義資料の手法を使った場合は, 講義資料と同じ粒度で説明できれば 100 点として扱います. 講義資料にない別の手法を選んだ場合は, その手法の利点と詳細を, 自分で他人に説明できるように準備しておいてください.</p>
+<h2 id="capstone-cluster">題材 1: 図書館の利用者を分ける (クラスタリング)</h2>
+<p><a href="../../courses/dsp/7.html">第 7 回</a>の売店の購買記録を, 大学図書館の貸出記録に替えて, 利用者をクラスタリングします. 各手順の指示に従ってコードを書き, 「判断」と書かれた箇所には自分の考えを文章で書きます. 具体的な分析のコードは, 手順に書かれた資料の節のコードを参照して実装します. 判断は発表資料の各項目に使うので, 書いたものは発表資料の下書きとして残してください. 質疑応答では, 判断の理由を尋ねます.</p>
+<h3 id="場面とデータ">場面とデータ</h3>
+<p>大学の図書館では, 利用者の層に合わせた企画 (資格の勉強向けの棚の拡充, 返却の案内の文面の変更など) を考えています. 企画の材料にするために, 貸出の仕方で利用者をいくつかの層に分けます.</p>
+<p><a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/dsp12/library_loans.csv">こちら</a>のデータは, ある大学の図書館の 4 月から 7 月の貸出記録です (練習用に作成した架空のデータです). 1 行が 1 冊の貸出を表します. 貸出期間は 14 日で, 返却までの日数が 14 日を超えると期限超過になります.</p>
+<table>
+<thead>
+<tr class="header">
+<th>列</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>loan_id</code></td>
+<td>貸出番号</td>
+</tr>
+<tr class="even">
+<td><code>user_id</code></td>
+<td>利用者番号</td>
+</tr>
+<tr class="odd">
+<td><code>date</code></td>
+<td>貸出日</td>
+</tr>
+<tr class="even">
+<td><code>genre</code></td>
+<td>ジャンル (文学, 理工, 社会, 語学, 資格, 趣味)</td>
+</tr>
+<tr class="odd">
+<td><code>loan_days</code></td>
+<td>返却までの日数</td>
+</tr>
+<tr class="even">
+<td><code>overdue</code></td>
+<td>期限超過なら 1, そうでなければ 0</td>
+</tr>
+</tbody>
+</table>
+<p>ファイルを <code>data/library_loans.csv</code> として保存します. ライブラリは第 7 回と同じです.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> add pandas matplotlib matplotlib-fontja scikit-learn</span></code></pre></div>
+<h3 id="売店の事例との違い">売店の事例との違い</h3>
+<ul>
+<li>場面が売店から図書館に替わります.</li>
+<li>見る項目が 3 つ (貸出冊数, 平均貸出日数, 延滞率) になります. 散布図には描けないので, クラスタ数はエルボー法とシルエット係数で決めます.</li>
+<li>指標だけではクラスタ数が決まらない箇所があります. 結果を見て, 自分の判断で選びます.</li>
+</ul>
+<h3 id="作業手順">作業手順</h3>
+<h4 id="手順-1-データの読み込みと確認">手順 1: データの読み込みと確認</h4>
+<p>データを読み込み, 行数と利用者の数など, データの基礎的な情報を集計してください.</p>
+<h4 id="手順-2-利用者ごとの集計">手順 2: 利用者ごとの集計</h4>
+<p>利用者ごとに, 貸出冊数, 平均貸出日数, 延滞率を求めてください. 延滞率は, 貸出のうち期限超過だったものの割合です.</p>
+<h4 id="手順-3-標準化">手順 3: 標準化</h4>
+<p>利用者ごとの 3 項目を標準化してください.</p>
+<ul>
+<li>参照: <a href="../../courses/dsp/7.html">第 7 回</a>の<a href="../../fields/machine-learning/ml-clustering/clustering.html#クラスタリング">クラスタリング</a>の標準化のコード.</li>
+<li>ヒント: 項目名を, 売店の来店回数と 1 回あたりの購入額から, この課題の 3 項目に変えます.</li>
+</ul>
+<p><strong>判断 1</strong>: 標準化が必要な理由を 1 文で書いてください. (発表資料の「使った手法」に使います.)</p>
+<h4 id="手順-4-クラスタ数の選択">手順 4: クラスタ数の選択</h4>
+<p>クラスタ数を 2 から 8 まで変えて, エルボー法とシルエット係数で, クラスタ数の候補を挙げてください.</p>
+<ul>
+<li>参照: <a href="../../courses/dsp/7.html">第 7 回</a>の<a href="../../fields/machine-learning/ml-clustering/clustering.html#クラスタリング結果の評価-エルボー法とシルエット係数">クラスタリング結果の評価: エルボー法とシルエット係数</a>のコード.</li>
+<li>ヒント: 入力を 3 項目に変えます. 第 7 回の図は 2 つの指標を別々に描いているので, 1 枚に 2 つ並べると見比べやすくなります.</li>
+</ul>
+<p>指標が候補を 1 つに絞れない場合は, 候補ごとにクラスタの平均を求め (手順 5, 手順 7), 特徴を言葉で説明できる分け方を選びます.</p>
+<p><strong>判断 2</strong>: クラスタ数をいくつにしたか, 2 つの指標のどこを根拠にしたかを書いてください. (発表資料の「使った手法」に使います.)</p>
+<h4 id="手順-5-k-means-法の実行と読み取り">手順 5: k-means 法の実行と読み取り</h4>
+<p>手順 4 で決めたクラスタ数で k-means 法を実行し, クラスタごとの 3 項目の平均と, ジャンル別の貸出の割合を求めて, クラスタの特徴を読み取ってください. 貸出冊数と平均貸出日数の散布図を, クラスタごとに色分けしてください.</p>
+<ul>
+<li>参照: <a href="../../courses/dsp/7.html">第 7 回</a>の<a href="../../fields/machine-learning/ml-clustering/clustering.html#scikit-learn-による-k-means-法">scikit-learn による k-means 法</a>のコード.</li>
+<li>ヒント: クラスタ数と入力を変えます. 会員ごとのカテゴリ別の購入額の割合を求めている部分は, 利用者ごとのジャンル別の貸出件数の割合に変えます. 購入額を合計していた集計を, 件数を数える集計にします.</li>
+</ul>
+<p>クラスタの番号は, 実行する環境によって入れ替わることがあります. 番号ではなく平均を見て, どのクラスタかを判断してください.</p>
+<h4 id="手順-6-クラスタの命名と施策">手順 6: クラスタの命名と施策</h4>
+<p><strong>判断 3</strong>: 各クラスタに名前を付け, 図書館が取れる施策を 1 つずつ書いてください. 名前と施策の根拠として, 手順 5 の結果のどの値を見たかも書いてください. (発表資料の「結果の解釈」に使います.)</p>
+<h4 id="手順-7-結果の確かめ">手順 7: 結果の確かめ</h4>
+<p>次の 3 点を調べてください.</p>
+<ul>
+<li><p>乱数の種を変えて初期値を 1 通りだけ試す実行を 5 回行い, クラスタ内誤差平方和を比べる.</p></li>
+<li><p>クラスタ数を 1 つ増やした場合と減らした場合の結果 (クラスタごとの人数と平均) を求める.</p></li>
+<li><p>3 項目の間の相関係数を求める.</p></li>
+<li><p>参照: <a href="../../courses/dsp/7.html">第 7 回</a>の<a href="../../fields/machine-learning/ml-clustering/clustering.html#初期値への依存">初期値への依存</a>のコード.</p></li>
+<li><p>ヒント: <code>n_init=1</code> で <code>random_state</code> を変えます. クラスタ数を変える部分は, 手順 5 のコードを再利用します.</p></li>
+</ul>
+<p><strong>判断 4</strong>: この分析の限界を 2 つ書いてください. (発表資料の「結果の限界」に使います.)</p>
+<h3 id="発表資料との対応">発表資料との対応</h3>
+<table>
+<thead>
+<tr class="header">
+<th>発表資料の項目</th>
+<th>使うもの</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>目的</td>
+<td>場面の説明 (図書館の企画の材料にするために, 利用者を分ける)</td>
+</tr>
+<tr class="even">
+<td>使用したデータ</td>
+<td>手順 1, 2</td>
+</tr>
+<tr class="odd">
+<td>使った手法</td>
+<td>手順 3, 4, 5 と判断 1, 判断 2</td>
+</tr>
+<tr class="even">
+<td>結果の提示</td>
+<td>手順 5 のクラスタごとの平均, ジャンル別の割合, 散布図</td>
+</tr>
+<tr class="odd">
+<td>結果の解釈</td>
+<td>判断 3</td>
+</tr>
+<tr class="even">
+<td>結果の限界</td>
+<td>手順 7 と判断 4</td>
+</tr>
+<tr class="odd">
+<td>AI の利用方法の工夫</td>
+<td>作業中の AI の使い方の記録</td>
+</tr>
+</tbody>
+</table>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答例
+</summary>
+<div class="sourceCode" id="cb2"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib_fontja</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.cluster <span class="im">import</span> KMeans</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> silhouette_score</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co"># 手順 1: 読み込みと確認</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>log <span class="op">=</span> pd.read_csv(<span class="st">'data/library_loans.csv'</span>, encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>)</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(log.head())</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="bu">len</span>(log), log[<span class="st">'user_id'</span>].nunique())</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="co"># 手順 2: 利用者ごとの集計</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>g <span class="op">=</span> log.groupby(<span class="st">'user_id'</span>)</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>user <span class="op">=</span> pd.DataFrame({</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    <span class="st">'loans'</span>: g[<span class="st">'loan_id'</span>].count(),          <span class="co"># 貸出冊数</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    <span class="st">'mean_days'</span>: g[<span class="st">'loan_days'</span>].mean(),     <span class="co"># 平均貸出日数</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>    <span class="st">'overdue_rate'</span>: g[<span class="st">'overdue'</span>].mean(),    <span class="co"># 延滞率 (0/1 の平均)</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>})</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(user.describe().<span class="bu">round</span>(<span class="dv">2</span>))</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a><span class="co"># 手順 3: 標準化</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>z <span class="op">=</span> (user <span class="op">-</span> user.mean()) <span class="op">/</span> user.std(ddof<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a><span class="co"># 手順 4: クラスタ数の選択</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>ks <span class="op">=</span> <span class="bu">range</span>(<span class="dv">2</span>, <span class="dv">9</span>)</span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>inertias, scores <span class="op">=</span> [], []</span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> k <span class="kw">in</span> ks:</span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>    km <span class="op">=</span> KMeans(n_clusters<span class="op">=</span>k, random_state<span class="op">=</span><span class="dv">0</span>, n_init<span class="op">=</span><span class="dv">10</span>).fit(z)</span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>    inertias.append(km.inertia_)</span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>    scores.append(silhouette_score(z, km.labels_))</span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(pd.DataFrame({<span class="st">'W'</span>: inertias, <span class="st">'silhouette'</span>: scores}, index<span class="op">=</span>ks).<span class="bu">round</span>(<span class="dv">3</span>))</span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">9</span>, <span class="fl">3.5</span>))</span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].plot(ks, inertias, marker<span class="op">=</span><span class="st">'o'</span>)</span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_xlabel(<span class="st">'クラスタ数 k'</span>)</span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_ylabel(<span class="st">'クラスタ内誤差平方和'</span>)</span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].plot(ks, scores, marker<span class="op">=</span><span class="st">'o'</span>)</span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_xlabel(<span class="st">'クラスタ数 k'</span>)</span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_ylabel(<span class="st">'シルエット係数の平均'</span>)</span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a><span class="co"># 手順 5: k-means 法の実行と読み取り</span></span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a>K <span class="op">=</span> <span class="dv">4</span></span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a>km <span class="op">=</span> KMeans(n_clusters<span class="op">=</span>K, random_state<span class="op">=</span><span class="dv">0</span>, n_init<span class="op">=</span><span class="dv">10</span>)</span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a>user[<span class="st">'cluster'</span>] <span class="op">=</span> km.fit_predict(z)</span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(user[<span class="st">'cluster'</span>].value_counts().sort_index())</span>
+<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(user.groupby(<span class="st">'cluster'</span>)[[<span class="st">'loans'</span>, <span class="st">'mean_days'</span>, <span class="st">'overdue_rate'</span>]].mean().<span class="bu">round</span>(<span class="dv">2</span>))</span>
+<span id="cb2-49"><a href="#cb2-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-50"><a href="#cb2-50" aria-hidden="true" tabindex="-1"></a>share <span class="op">=</span> log.pivot_table(index<span class="op">=</span><span class="st">'user_id'</span>, columns<span class="op">=</span><span class="st">'genre'</span>, values<span class="op">=</span><span class="st">'loan_id'</span>,</span>
+<span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a>                        aggfunc<span class="op">=</span><span class="st">'count'</span>, fill_value<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a>share <span class="op">=</span> share.div(share.<span class="bu">sum</span>(axis<span class="op">=</span><span class="dv">1</span>), axis<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb2-53"><a href="#cb2-53" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(share.join(user[<span class="st">'cluster'</span>]).groupby(<span class="st">'cluster'</span>).mean().<span class="bu">round</span>(<span class="dv">2</span>))</span>
+<span id="cb2-54"><a href="#cb2-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-55"><a href="#cb2-55" aria-hidden="true" tabindex="-1"></a>plt.scatter(user[<span class="st">'loans'</span>], user[<span class="st">'mean_days'</span>], c<span class="op">=</span>user[<span class="st">'cluster'</span>], cmap<span class="op">=</span><span class="st">'viridis'</span>, s<span class="op">=</span><span class="dv">15</span>)</span>
+<span id="cb2-56"><a href="#cb2-56" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'貸出冊数'</span>)</span>
+<span id="cb2-57"><a href="#cb2-57" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'平均貸出日数'</span>)</span>
+<span id="cb2-58"><a href="#cb2-58" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb2-59"><a href="#cb2-59" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-60"><a href="#cb2-60" aria-hidden="true" tabindex="-1"></a><span class="co"># 手順 7: 結果の確かめ</span></span>
+<span id="cb2-61"><a href="#cb2-61" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> seed <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">5</span>):  <span class="co"># 初期値を 1 通りだけ試す実行を, 乱数の種を変えて 5 回行う</span></span>
+<span id="cb2-62"><a href="#cb2-62" aria-hidden="true" tabindex="-1"></a>    w <span class="op">=</span> KMeans(n_clusters<span class="op">=</span>K, random_state<span class="op">=</span>seed, n_init<span class="op">=</span><span class="dv">1</span>).fit(z).inertia_</span>
+<span id="cb2-63"><a href="#cb2-63" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(seed, <span class="bu">round</span>(w, <span class="dv">1</span>))</span>
+<span id="cb2-64"><a href="#cb2-64" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> k <span class="kw">in</span> (K <span class="op">-</span> <span class="dv">1</span>, K <span class="op">+</span> <span class="dv">1</span>):</span>
+<span id="cb2-65"><a href="#cb2-65" aria-hidden="true" tabindex="-1"></a>    labels <span class="op">=</span> KMeans(n_clusters<span class="op">=</span>k, random_state<span class="op">=</span><span class="dv">0</span>, n_init<span class="op">=</span><span class="dv">10</span>).fit_predict(z)</span>
+<span id="cb2-66"><a href="#cb2-66" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(k, pd.Series(labels).value_counts().sort_index().tolist())</span>
+<span id="cb2-67"><a href="#cb2-67" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(user[[<span class="st">'loans'</span>, <span class="st">'mean_days'</span>, <span class="st">'overdue_rate'</span>]].groupby(labels).mean().<span class="bu">round</span>(<span class="dv">2</span>))</span>
+<span id="cb2-68"><a href="#cb2-68" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(user[[<span class="st">'loans'</span>, <span class="st">'mean_days'</span>, <span class="st">'overdue_rate'</span>]].corr().<span class="bu">round</span>(<span class="dv">2</span>))</span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>   <span class="ex">loan_id</span>  user_id        date genre  loan_days  overdue</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">0</span>        1     1004  2026-04-13    資格         13        0</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="ex">1</span>        2     1008  2026-04-13    理工          5        0</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="ex">2</span>        3     1018  2026-04-13    語学          6        0</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="ex">3</span>        4     1023  2026-04-13    資格         14        0</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="ex">4</span>        5     1030  2026-04-13    資格         14        0</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="ex">2373</span> 180</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>        <span class="ex">loans</span>  mean_days  overdue_rate</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="ex">count</span>  180.00     180.00        180.00</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="ex">mean</span>    13.18      11.14          0.24</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="ex">std</span>      8.64       4.00          0.29</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="ex">min</span>      2.00       4.29          0.00</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="ex">25%</span>      6.00       8.16          0.00</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="ex">50%</span>     10.00      10.90          0.12</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="ex">75%</span>     19.00      13.50          0.39</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="ex">max</span>     37.00      21.12          1.00</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>         <span class="ex">W</span>  silhouette</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a><span class="ex">2</span>  253.790       0.505</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a><span class="ex">3</span>  128.164       0.523</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a><span class="ex">4</span>   79.387       0.523</span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a><span class="ex">5</span>   61.994       0.489</span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a><span class="ex">6</span>   52.890       0.437</span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a><span class="ex">7</span>   47.675       0.407</span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a><span class="ex">8</span>   43.967       0.404</span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a><span class="ex">cluster</span></span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a><span class="ex">0</span>    46</span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a><span class="ex">1</span>    40</span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a><span class="ex">2</span>    44</span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a><span class="ex">3</span>    50</span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a><span class="ex">Name:</span> count, dtype: int64</span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a>         <span class="ex">loans</span>  mean_days  overdue_rate</span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a><span class="ex">cluster</span>                                </span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a><span class="ex">0</span>        12.09      12.04          0.22</span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a><span class="ex">1</span>         6.85      16.91          0.72</span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a><span class="ex">2</span>        26.50      10.25          0.10</span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a><span class="ex">3</span>         7.54       6.46          0.00</span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a>           <span class="ex">文学</span>    理工    社会    語学    資格    趣味</span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a><span class="ex">cluster</span>                                    </span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a><span class="ex">0</span>        0.10  0.11  0.08  0.10  0.53  0.08</span>
+<span id="cb3-40"><a href="#cb3-40" aria-hidden="true" tabindex="-1"></a><span class="ex">1</span>        0.19  0.10  0.20  0.08  0.15  0.28</span>
+<span id="cb3-41"><a href="#cb3-41" aria-hidden="true" tabindex="-1"></a><span class="ex">2</span>        0.29  0.05  0.11  0.09  0.08  0.39</span>
+<span id="cb3-42"><a href="#cb3-42" aria-hidden="true" tabindex="-1"></a><span class="ex">3</span>        0.03  0.48  0.29  0.12  0.07  0.00</span>
+<span id="cb3-43"><a href="#cb3-43" aria-hidden="true" tabindex="-1"></a><span class="ex">0</span> 80.1</span>
+<span id="cb3-44"><a href="#cb3-44" aria-hidden="true" tabindex="-1"></a><span class="ex">1</span> 79.4</span>
+<span id="cb3-45"><a href="#cb3-45" aria-hidden="true" tabindex="-1"></a><span class="ex">2</span> 80.1</span>
+<span id="cb3-46"><a href="#cb3-46" aria-hidden="true" tabindex="-1"></a><span class="ex">3</span> 80.1</span>
+<span id="cb3-47"><a href="#cb3-47" aria-hidden="true" tabindex="-1"></a><span class="ex">4</span> 80.1</span>
+<span id="cb3-48"><a href="#cb3-48" aria-hidden="true" tabindex="-1"></a><span class="ex">3</span> [49, 57, 74]</span>
+<span id="cb3-49"><a href="#cb3-49" aria-hidden="true" tabindex="-1"></a>   <span class="ex">loans</span>  mean_days  overdue_rate</span>
+<span id="cb3-50"><a href="#cb3-50" aria-hidden="true" tabindex="-1"></a><span class="ex">0</span>   7.67      16.33          0.67</span>
+<span id="cb3-51"><a href="#cb3-51" aria-hidden="true" tabindex="-1"></a><span class="ex">1</span>  24.28      10.62          0.12</span>
+<span id="cb3-52"><a href="#cb3-52" aria-hidden="true" tabindex="-1"></a><span class="ex">2</span>   8.28       8.09          0.05</span>
+<span id="cb3-53"><a href="#cb3-53" aria-hidden="true" tabindex="-1"></a><span class="ex">5</span> [44, 41, 50, 23, 22]</span>
+<span id="cb3-54"><a href="#cb3-54" aria-hidden="true" tabindex="-1"></a>   <span class="ex">loans</span>  mean_days  overdue_rate</span>
+<span id="cb3-55"><a href="#cb3-55" aria-hidden="true" tabindex="-1"></a><span class="ex">0</span>  26.50      10.25          0.10</span>
+<span id="cb3-56"><a href="#cb3-56" aria-hidden="true" tabindex="-1"></a><span class="ex">1</span>  12.22      11.74          0.20</span>
+<span id="cb3-57"><a href="#cb3-57" aria-hidden="true" tabindex="-1"></a><span class="ex">2</span>   7.54       6.46          0.00</span>
+<span id="cb3-58"><a href="#cb3-58" aria-hidden="true" tabindex="-1"></a><span class="ex">3</span>   8.91      15.17          0.56</span>
+<span id="cb3-59"><a href="#cb3-59" aria-hidden="true" tabindex="-1"></a><span class="ex">4</span>   5.64      18.18          0.83</span>
+<span id="cb3-60"><a href="#cb3-60" aria-hidden="true" tabindex="-1"></a>              <span class="ex">loans</span>  mean_days  overdue_rate</span>
+<span id="cb3-61"><a href="#cb3-61" aria-hidden="true" tabindex="-1"></a><span class="ex">loans</span>          1.00      <span class="at">-0.14</span>         <span class="at">-0.31</span></span>
+<span id="cb3-62"><a href="#cb3-62" aria-hidden="true" tabindex="-1"></a><span class="ex">mean_days</span>     <span class="at">-0.14</span>       1.00          0.92</span>
+<span id="cb3-63"><a href="#cb3-63" aria-hidden="true" tabindex="-1"></a><span class="ex">overdue_rate</span>  <span class="at">-0.31</span>       0.92          1.00</span></code></pre></div>
+<p>判断の回答例を示します. 次の内容と同じである必要はなく, 根拠を説明できれば別の判断でもかまいません.</p>
+<ul>
+<li><strong>判断 1</strong>: 貸出冊数 (冊), 平均貸出日数 (日), 延滞率 (0 から 1) は単位も散らばりも違い, 標準化しないと値の大きい貸出冊数が距離をほぼ決めてしまうためです.</li>
+<li><strong>判断 2</strong>: <span class="math inline">K = 4</span> にしました. クラスタ内誤差平方和は <span class="math inline">K = 4</span> まで大きく減り (128 → 79), <span class="math inline">K = 5</span> 以降は緩やかです. 一方, シルエット係数の平均は <span class="math inline">K = 3</span> と <span class="math inline">K = 4</span> のどちらも 0.523 で, 指標だけでは決まりません. <span class="math inline">K = 4</span> では「資格の勉強をする利用者」のクラスタが独立して取り出せ, 特徴を説明できるので <span class="math inline">K = 4</span> を選びました. (<span class="math inline">K = 3</span> を選ぶ場合は, 3 つの層で説明が足りることを根拠に書きます.)</li>
+<li><strong>判断 3</strong>: クラスタ 2 は「常連の読書家」で, 貸出冊数が約 27 冊と多く, 文学と趣味が多いので, 新着図書の案内を貸出履歴に合わせて送ります. クラスタ 0 は「資格の勉強をする利用者」で, 資格の割合が 0.53 と高いので, 資格の棚の拡充と, 試験前の貸出期間の延長を検討します. クラスタ 3 は「レポートを書く利用者」で, 理工と社会が多く, 平均貸出日数が約 6.5 日と短く延滞もないので, 参考図書の案内を出します. クラスタ 1 は「返却が遅れがちな利用者」で, 延滞率が 0.72, 平均貸出日数が約 17 日なので, 返却期限の事前の案内を送ります.</li>
+<li><strong>判断 4</strong>: (1) <span class="math inline">K</span> の選び方で分け方が変わります. シルエット係数が <span class="math inline">K = 3</span> と <span class="math inline">K = 4</span> で同じなので, 分け方は 1 つに決まりません. (2) 平均貸出日数と延滞率の相関が 0.92 と高く, 延滞は返却まで 14 日を超えたかどうかで決まるので, 3 項目は実質 2 項目に近いです. このほかに, 1 学期分の架空のデータであり, 実際の図書館に一般化できないことも限界です. 乱数の種を変えた誤差平方和は 79.4 から 80.1 で, 初期値の影響は小さいことが確かめられました.</li>
+</ul>
+</details>
+<h2 id="capstone-nlp">題材 2: ニュース記事のカテゴリを当てる (自然言語処理)</h2>
+<p><a href="../../courses/dsp/9.html">第 9 回</a>の有価証券報告書の文のネガポジ分類を, ニュース記事のカテゴリの分類に替えて, BERT のファインチューニングを行います. コードは第 9 回の<a href="../../fields/deep-learning/nlp-bert/multilabel-classification.html#マルチラベル分類">マルチラベル分類</a>のものをほぼそのまま使います. 各手順の指示に従ってコードを書き, 「判断」と書かれた箇所には自分の考えを文章で書きます. 判断は発表資料の各項目に使うので, 書いたものは発表資料の下書きとして残してください. 質疑応答では, 判断の理由を尋ねます.</p>
+<h3 id="場面とデータ-1">場面とデータ</h3>
+<p>ニュースサイトで, 記事を見出しと書き出しからカテゴリに自動で振り分けることを考えます. 少ない学習でどこまで振り分けられるかを調べ, 学習の規模 (エポック数, 1 記事から読み込む長さ, 学習に使う記事の数) を決めます.</p>
+<p>データは, 株式会社ロンウイットが公開している livedoor ニュースコーパスです. ニュースサイトの livedoor ニュースの 9 つのカテゴリ (配信元のサイト) の記事, 約 7400 件が入っています. 次の URL からダウンロードします (約 9 MB).</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">https://www.rondhuit.com/download/ldcc-20140209.tar.gz</span></span></code></pre></div>
+<p>ダウンロードしたファイルを, プログラムを置くディレクトリに移して展開します. macOS ではファイルをダブルクリックします. Windows ではターミナルでそのディレクトリに移動し, <code>tar -xzf ldcc-20140209.tar.gz</code> を実行します. 展開すると <code>text</code> フォルダができ, その中にカテゴリごとのフォルダがあります. 1 つの記事が 1 つのテキストファイルで, 1 行目が記事の URL, 2 行目が日付, 3 行目が見出し, 4 行目以降が本文です. カテゴリごとのフォルダには, 記事のファイルのほかに <code>LICENSE.txt</code> が 1 つ入っています.</p>
+<p>記事は, クリエイティブ・コモンズの「表示 - 改変禁止」(CC BY-ND 2.1) のライセンスで公開されています. 発表資料に記事の見出しや本文を載せるときは, 文章を書き換えずに載せ, <code>LICENSE.txt</code> に書かれている提供元 (各カテゴリのサイト名) を表示してください. 提出する ZIP ファイルには記事のデータ (展開した <code>text</code> フォルダと, 手順 2 で作る CSV) を入れず, 記事を読み込んで CSV を作るコードを入れてください.</p>
+<p>ライブラリは第 9 回のものに, 混同行列を描くための <code>scikit-learn</code>, <code>matplotlib</code>, <code>matplotlib-fontja</code> を加えます.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> add torch transformers fugashi unidic-lite pandas scikit-learn matplotlib matplotlib-fontja</span></code></pre></div>
+<div class="warn">
+<p>学習の時間は, 学習の規模で大きく変わります. Apple M5 Max の PC では, 第 9 回と同じ規模 (手順 5 の表の「小」) が GPU (MPS) で約 10 秒, CPU だけで約 1 分, 手順 5 の「中」が GPU で約 40 秒, CPU だけで約 4 分半でした. 「大」は GPU でも約 3 分, CPU だけでは約 20 分かかりました. 一般的な PC の CPU では, これより長くかかります. GPU を使えない PC で時間がかかりすぎるときは, 共通資料の<a href="../../lectures/colab.html">Google Colaboratory による GPU 計算</a>の手順で, Colab の GPU を使ってください.</p>
+</div>
+<h3 id="第9章の事例との違い">第 9 回の事例との違い</h3>
+<ul>
+<li>有価証券報告書の文に付いたネガポジの評価 (3 つのラベル) が, ニュース記事のカテゴリ (自分で選んだ 4 つか 5 つ) に替わります.</li>
+<li>1 つの記事に付くカテゴリは 1 つです. 第 9 回のコードをそのまま使うために, ラベルは選んだカテゴリごとの 0/1 の列にし, 記事ごとに 1 つの列だけを 1 にします.</li>
+<li>学習の規模を決める 3 つの値 (<code>EPOCHS</code>, <code>MAX_LENGTH</code>, <code>N_TRAIN</code>) を, 結果を比べて自分で決めます. 取り違えの多いカテゴリの組をどう扱うかも判断します.</li>
+</ul>
+<h3 id="作業手順-1">作業手順</h3>
+<h4 id="手順-1-データの取得と確認">手順 1: データの取得と確認</h4>
+<p>データをダウンロードして展開し, カテゴリの数, 各カテゴリの記事の数, 本文の長さなど, データの基礎的な情報を集計してください. 各カテゴリの記事のファイルをいくつか開き, 見出しと本文がどのように書かれているかを確かめてください.</p>
+<h4 id="手順-2-カテゴリの選択と-csv-の作成">手順 2: カテゴリの選択と CSV の作成</h4>
+<p>カテゴリを 4 つか 5 つ選び, 記事ごとに, 見出しと本文をつないだ文章 (<code>text</code> の列) と, 選んだカテゴリの 0/1 の列を持つ表を作って, <code>data/news.csv</code> に保存してください.</p>
+<ul>
+<li>参照: <a href="../../courses/dsp/9.html">第 9 回</a>の<a href="../../fields/deep-learning/nlp-bert/multilabel-classification.html#マルチラベル分類">マルチラベル分類</a>で読み込む <code>chABSA.csv</code> の形 (<code>text</code> の列と, 3 つのラベルの 0/1 の列).</li>
+<li>ヒント: 3 つのラベルの列を, 選んだカテゴリの列に替えます. 記事のカテゴリは, 記事のファイルが入っているフォルダの名前で分かります. カテゴリの名前の列から 0/1 の列を作るには, <code>pd.get_dummies</code> が使えます.</li>
+</ul>
+<p><strong>判断 1</strong>: どのカテゴリを選んだか, その理由を書いてください. 選ぶカテゴリによって, 分類の難しさが変わります. (発表資料の「使用したデータ」に使います.)</p>
+<h4 id="手順-3-学習">手順 3: 学習</h4>
+<p>第 9 回と同じ規模 (<code>EPOCHS = 2</code>, <code>MAX_LENGTH = 64</code>, <code>N_TRAIN = 640</code>) で BERT をファインチューニングし, テストデータの正解率を求めてください. <code>MAX_LENGTH</code> が 64 のとき, モデルが読み込むのは記事の見出しと本文の書き出しまでです.</p>
+<ul>
+<li>参照: <a href="../../courses/dsp/9.html">第 9 回</a>の<a href="../../fields/deep-learning/nlp-bert/multilabel-classification.html#マルチラベル分類">マルチラベル分類</a>の, 学習の設定からテストデータの正解率までのコード.</li>
+<li>ヒント: 読み込むファイルを <code>data/news.csv</code> に, ラベルの列名の一覧 <code>['negative', 'neutral', 'positive']</code> を手順 2 で選んだカテゴリの列名の一覧に, <code>num_labels=3</code> を選んだカテゴリの数に替えます.</li>
+</ul>
+<h4 id="手順-4-混同行列と取り違えの読み取り">手順 4: 混同行列と取り違えの読み取り</h4>
+<p>テストデータについて混同行列を作り, 取り違えの多いカテゴリの組を探してください.</p>
+<ul>
+<li>参照: <a href="../../courses/dsp/10.html">第 10 回</a>の<a href="../../fields/deep-learning/img-recognition/digit-recognition.html#digits-errors">混同行列と誤認識した画像</a>のコード.</li>
+<li>ヒント: 1 つの記事のカテゴリは 1 つなので, 予測にはスコアが最大のカテゴリ (<code>argmax(dim=1)</code>) を使い, 正解には 0/1 の列で 1 になっているカテゴリ (<code>argmax(axis=1)</code>) を使います. テストデータをモデルに入力する部分は, 第 9 回の <code>evaluate</code> 関数と同じ書き方で書けます.</li>
+</ul>
+<p>手順 3 の正解率は, カテゴリごとの 0/1 の判定が, 1 つの記事のすべてのカテゴリで正解と一致した割合です. 0/1 の判定では, 1 が 2 つ付いた記事や, 1 が 1 つも付かなかった記事は誤りに数えます. 混同行列はスコアが最大のカテゴリを予測とするので, 混同行列から求めた正解率は, 手順 3 の正解率より高くなることがあります. 発表資料では, どちらの正解率かを明記してください.</p>
+<p><strong>判断 2</strong>: 取り違えの多いカテゴリの組を挙げ, 取り違えた理由を, 記事の見出しや本文を読んで推測してください. そのうえで, その組をそのまま受け入れるか, 分類を変える (カテゴリを統合する, 一方を外すなど) かを決め, 理由を書いてください. (発表資料の「結果の解釈」に使います.)</p>
+<h4 id="手順-5-学習の規模を変えて比べる">手順 5: 学習の規模を変えて比べる</h4>
+<p>学習の規模を変えて, 正解率, 混同行列, 学習の時間を手順 3 の結果と比べてください. 次の表の 3 つが目安です. 「小」は手順 3 と同じです.</p>
+<table>
+<thead>
+<tr class="header">
+<th>規模</th>
+<th style="text-align: right;"><code>EPOCHS</code></th>
+<th style="text-align: right;"><code>MAX_LENGTH</code></th>
+<th style="text-align: right;"><code>N_TRAIN</code></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>小</td>
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">64</td>
+<td style="text-align: right;">640</td>
+</tr>
+<tr class="even">
+<td>中</td>
+<td style="text-align: right;">4</td>
+<td style="text-align: right;">64</td>
+<td style="text-align: right;">1500</td>
+</tr>
+<tr class="odd">
+<td>大</td>
+<td style="text-align: right;">5</td>
+<td style="text-align: right;">128</td>
+<td style="text-align: right;">学習用の全件</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li>ヒント: 3 つの値は, プログラムの冒頭で変えます. <code>N_TRAIN</code> に学習用の記事の数より大きな値を入れると, 学習用の記事をすべて使います. エポックごとに出力される検証用データの損失 (<code>val_loss</code>) も記録します.</li>
+</ul>
+<p><strong>判断 3</strong>: 採用する学習の規模を決め, 根拠を書いてください. 根拠には, 正解率, 検証用データの損失の推移, 学習にかかった時間を使います. (発表資料の「使った手法」に使います.)</p>
+<h4 id="手順-6-結果の確かめ">手順 6: 結果の確かめ</h4>
+<p>手順 5 で採用した規模で, 乱数シードを変えて 2 回以上学習し直し, 正解率と混同行列を比べてください.</p>
+<ul>
+<li>参照: <a href="../../courses/dsp/9.html">第 9 回</a>の<a href="../../fields/deep-learning/nlp-bert/multilabel-classification.html#マルチラベル分類">マルチラベル分類</a>のコードの <code>torch.manual_seed(0)</code>.</li>
+<li>ヒント: <code>torch.manual_seed</code> の値だけを変えます. このシードは, BERT の出力をカテゴリのスコアに変える線形変換の初期値など, 学習に使う乱数を決めています. <code>random.seed(0)</code> の値を変えると, 学習用, 検証用, テスト用への分け方が変わり, テストデータそのものが替わります.</li>
+</ul>
+<p><strong>判断 4</strong>: この分析の限界を 2 つ書いてください. (発表資料の「結果の限界」に使います.)</p>
+<h3 id="発表資料との対応-1">発表資料との対応</h3>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>発表資料の項目</th>
+<th>使うもの</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>目的</td>
+<td>場面の説明 (ニュースサイトで, 少ない学習でどこまで記事をカテゴリに振り分けられるかを調べる)</td>
+</tr>
+<tr class="even">
+<td>使用したデータ</td>
+<td>手順 1, 2 と判断 1 (提供元の表示を含む)</td>
+</tr>
+<tr class="odd">
+<td>使った手法</td>
+<td>手順 3, 5 と判断 3</td>
+</tr>
+<tr class="even">
+<td>結果の提示</td>
+<td>手順 3, 5 の正解率と学習の時間, 手順 4 の混同行列</td>
+</tr>
+<tr class="odd">
+<td>結果の解釈</td>
+<td>判断 2</td>
+</tr>
+<tr class="even">
+<td>結果の限界</td>
+<td>手順 6 と判断 4</td>
+</tr>
+<tr class="odd">
+<td>AI の利用方法の工夫</td>
+<td>作業中の AI の使い方の記録</td>
+</tr>
+</tbody>
+</table>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答例
+</summary>
+<p>手順 1 と手順 2 のコードの例です. 展開した <code>text</code> フォルダを, プログラムと同じディレクトリに置いています.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pathlib</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co"># 手順 1: カテゴリの数と記事の数</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>text_dir <span class="op">=</span> pathlib.Path(<span class="st">'text'</span>)</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>all_categories <span class="op">=</span> <span class="bu">sorted</span>(p.name <span class="cf">for</span> p <span class="kw">in</span> text_dir.iterdir() <span class="cf">if</span> p.is_dir())</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>rows <span class="op">=</span> []</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> c <span class="kw">in</span> all_categories:</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> f <span class="kw">in</span> <span class="bu">sorted</span>((text_dir <span class="op">/</span> c).glob(<span class="ss">f'</span><span class="sc">{</span>c<span class="sc">}</span><span class="ss">-*.txt'</span>)):</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>        lines <span class="op">=</span> f.read_text(encoding<span class="op">=</span><span class="st">'utf-8'</span>).splitlines()</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 1 行目は URL, 2 行目は日付, 3 行目は見出し, 4 行目以降は本文</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>        rows.append({<span class="st">'category'</span>: c, <span class="st">'title'</span>: lines[<span class="dv">2</span>], <span class="st">'body'</span>: <span class="st">' '</span>.join(lines[<span class="dv">3</span>:])})</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>articles <span class="op">=</span> pd.DataFrame(rows)</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="bu">len</span>(all_categories), <span class="bu">len</span>(articles))</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(articles[<span class="st">'category'</span>].value_counts().sort_index())</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(articles.groupby(<span class="st">'category'</span>)[<span class="st">'body'</span>].<span class="bu">apply</span>(<span class="kw">lambda</span> s: s.<span class="bu">str</span>.<span class="bu">len</span>().median()))</span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a><span class="co"># 手順 2: 使うカテゴリを選び, text と 0/1 の列を持つ CSV を作る</span></span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>categories <span class="op">=</span> [<span class="st">'dokujo-tsushin'</span>, <span class="st">'it-life-hack'</span>, <span class="st">'smax'</span>, <span class="st">'sports-watch'</span>, <span class="st">'movie-enter'</span>]</span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>news <span class="op">=</span> articles[articles[<span class="st">'category'</span>].isin(categories)].reset_index(drop<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>news[<span class="st">'text'</span>] <span class="op">=</span> news[<span class="st">'title'</span>] <span class="op">+</span> <span class="st">' '</span> <span class="op">+</span> news[<span class="st">'body'</span>]</span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>onehot <span class="op">=</span> pd.get_dummies(news[<span class="st">'category'</span>]).astype(<span class="bu">int</span>)[categories]</span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>out <span class="op">=</span> pd.concat([news[<span class="st">'text'</span>], onehot], axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>pathlib.Path(<span class="st">'data'</span>).mkdir(exist_ok<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>out.to_csv(<span class="st">'data/news.csv'</span>, index<span class="op">=</span><span class="va">False</span>, encoding<span class="op">=</span><span class="st">'utf-8'</span>)</span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(out.shape)</span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(out[categories].<span class="bu">sum</span>())</span></code></pre></div>
+<div class="sourceCode" id="cb7"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">9</span> 7367</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="ex">category</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="ex">dokujo-tsushin</span>    870</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="ex">it-life-hack</span>      870</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="ex">kaden-channel</span>     864</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="ex">livedoor-homme</span>    511</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="ex">movie-enter</span>       870</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="ex">peachy</span>            842</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="ex">smax</span>              870</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="ex">sports-watch</span>      900</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="ex">topic-news</span>        770</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a><span class="ex">Name:</span> count, dtype: int64</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="ex">category</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a><span class="ex">dokujo-tsushin</span>    1531.5</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a><span class="ex">it-life-hack</span>      1167.0</span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a><span class="ex">kaden-channel</span>      700.5</span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="ex">livedoor-homme</span>    1380.0</span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a><span class="ex">movie-enter</span>       1237.0</span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a><span class="ex">peachy</span>            1170.5</span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a><span class="ex">smax</span>              1427.0</span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a><span class="ex">sports-watch</span>       614.0</span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a><span class="ex">topic-news</span>         673.5</span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a><span class="ex">Name:</span> body, dtype: float64</span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a><span class="kw">(</span><span class="ex">4380,</span> 6<span class="kw">)</span></span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a><span class="ex">dokujo-tsushin</span>    870</span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a><span class="ex">it-life-hack</span>      870</span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a><span class="ex">smax</span>              870</span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a><span class="ex">sports-watch</span>      900</span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a><span class="ex">movie-enter</span>       870</span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a><span class="ex">dtype:</span> int64</span></code></pre></div>
+<p>本文の長さ (文字数) の中央値は, カテゴリによって 600 字から 1500 字です. <code>MAX_LENGTH</code> が 64 のとき, モデルが読み込むのは見出しを含めて先頭の 100 字前後で, 128 のときは 200 字前後です.</p>
+<p>手順 3 は, 第 9 回のコードを次の 3 か所だけ替えて実行します.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> BertForMultiLabel(MODEL_NAME, num_labels<span class="op">=</span><span class="dv">5</span>).to(device)  <span class="co"># 3 を 5 に替える</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co"># データの読み込み. ラベルは手順 2 で選んだ 5 つのカテゴリ</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/news.csv'</span>)</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>texts <span class="op">=</span> df[<span class="st">'text'</span>].tolist()</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>categories <span class="op">=</span> [<span class="st">'dokujo-tsushin'</span>, <span class="st">'it-life-hack'</span>, <span class="st">'smax'</span>, <span class="st">'sports-watch'</span>, <span class="st">'movie-enter'</span>]</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>labels <span class="op">=</span> df[categories].values.astype(np.float32)</span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">Using</span> device: mps</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="ex">学習:</span> 640 文, 検証: 876 文, テスト: 876 文</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="ex">Epoch</span> 1/2 val_loss: 0.303 val_accuracy: 0.568</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="ex">Epoch</span> 2/2 val_loss: 0.135 val_accuracy: 0.846</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="ex">学習時間:</span> 11 秒</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="ex">Accuracy:</span> 0.82</span></code></pre></div>
+<p>手順 4 の混同行列のコードです. 手順 3 のコードの後に続けて実行します.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib_fontja</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> confusion_matrix, ConfusionMatrixDisplay</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>model.<span class="bu">eval</span>()</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>pred <span class="op">=</span> []</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> torch.no_grad():</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">0</span>, <span class="bu">len</span>(test_index), <span class="dv">128</span>):</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>        encoding, y <span class="op">=</span> make_batch(test_index[i : i <span class="op">+</span> <span class="dv">128</span>])</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>        pred <span class="op">+=</span> model(<span class="op">**</span>encoding).argmax(dim<span class="op">=</span><span class="dv">1</span>).cpu().tolist()  <span class="co"># スコアが最大のカテゴリ</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>true <span class="op">=</span> labels[test_index].argmax(axis<span class="op">=</span><span class="dv">1</span>)  <span class="co"># 1 が立っているカテゴリ</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>cm <span class="op">=</span> confusion_matrix(true, pred)</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(pd.DataFrame(cm, index<span class="op">=</span>categories, columns<span class="op">=</span>categories))</span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'argmax の正解率: </span><span class="sc">{</span>(np.array(pred) <span class="op">==</span> true)<span class="sc">.</span>mean()<span class="sc">:.3f}</span><span class="ss">'</span>)</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a>ConfusionMatrixDisplay(cm, display_labels<span class="op">=</span>categories).plot(cmap<span class="op">=</span><span class="st">'Blues'</span>, colorbar<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'予測'</span>)</span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'正解'</span>)</span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a>plt.xticks(rotation<span class="op">=</span><span class="dv">45</span>)</span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a>plt.tight_layout()</span>
+<span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a>plt.close()</span></code></pre></div>
+<p>小の規模の結果です. 行が正解のカテゴリ, 列が予測したカテゴリです.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>                <span class="ex">dokujo-tsushin</span>  it-life-hack  smax  sports-watch  movie-enter</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="ex">dokujo-tsushin</span>             156            14     1             2           20</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="ex">it-life-hack</span>                 4           137    38             1            1</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="ex">smax</span>                         0            27   135             0            0</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="ex">sports-watch</span>                 0             0     0           168            1</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="ex">movie-enter</span>                  1             2     0             1          167</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="ex">argmax</span> の正解率: 0.871</span></code></pre></div>
+<p>手順 5 の結果です. Apple M5 Max の GPU (MPS) で実行しました. 学習の時間は, 同じ設定でも実行のたびに数割変わります. 同じ PC の CPU だけで実行すると, 学習の時間は小が 62 秒, 中が 274 秒, 大が 1184 秒で, 正解率 (argmax) は小が 0.872, 中が 0.951, 大が 0.978 と, GPU の結果から少し変わりました. CPU で実行した大では, 検証用データの損失は 0.089, 0.050, 0.046, 0.049, 0.040 で, 5 エポック目に最も小さくなりました.</p>
+<table>
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 22%" />
+<col style="width: 22%" />
+<col style="width: 22%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>規模</th>
+<th>検証用データの損失 (エポックごと)</th>
+<th style="text-align: right;">正解率 (すべて一致)</th>
+<th style="text-align: right;">正解率 (argmax)</th>
+<th style="text-align: right;">学習の時間</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>小</td>
+<td>0.303, 0.135</td>
+<td style="text-align: right;">0.82</td>
+<td style="text-align: right;">0.871</td>
+<td style="text-align: right;">11 秒</td>
+</tr>
+<tr class="even">
+<td>中</td>
+<td>0.105, 0.068, 0.060, 0.058</td>
+<td style="text-align: right;">0.96</td>
+<td style="text-align: right;">0.973</td>
+<td style="text-align: right;">38 秒</td>
+</tr>
+<tr class="odd">
+<td>大 (学習用の 2628 件)</td>
+<td>0.093, 0.046, 0.042, 0.043, 0.049</td>
+<td style="text-align: right;">0.97</td>
+<td style="text-align: right;">0.970</td>
+<td style="text-align: right;">173 秒</td>
+</tr>
+</tbody>
+</table>
+<p>中と大の混同行列です.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="ex">中</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>                <span class="ex">dokujo-tsushin</span>  it-life-hack  smax  sports-watch  movie-enter</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="ex">dokujo-tsushin</span>             179             6     1             2            5</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="ex">it-life-hack</span>                 3           177     1             0            0</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="ex">smax</span>                         0             5   157             0            0</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="ex">sports-watch</span>                 0             0     0           169            0</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="ex">movie-enter</span>                  0             0     0             1          170</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="ex">大</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>                <span class="ex">dokujo-tsushin</span>  it-life-hack  smax  sports-watch  movie-enter</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="ex">dokujo-tsushin</span>             185             3     1             1            3</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a><span class="ex">it-life-hack</span>                 1           165    14             0            1</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a><span class="ex">smax</span>                         0             0   162             0            0</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a><span class="ex">sports-watch</span>                 0             0     0           169            0</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a><span class="ex">movie-enter</span>                  0             0     1             1          169</span></code></pre></div>
+<p>手順 6 で, 中の規模のまま <code>torch.manual_seed</code> の値を 0, 1, 2 と変えた結果です.</p>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: right;">シード</th>
+<th style="text-align: right;">正解率 (すべて一致)</th>
+<th style="text-align: right;">正解率 (argmax)</th>
+<th style="text-align: right;">it-life-hack と smax の取り違え</th>
+<th style="text-align: right;">dokujo-tsushin を it-life-hack と予測</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">0.96</td>
+<td style="text-align: right;">0.973</td>
+<td style="text-align: right;">6 件</td>
+<td style="text-align: right;">6 件</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">0.96</td>
+<td style="text-align: right;">0.966</td>
+<td style="text-align: right;">5 件</td>
+<td style="text-align: right;">9 件</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">2</td>
+<td style="text-align: right;">0.96</td>
+<td style="text-align: right;">0.960</td>
+<td style="text-align: right;">6 件</td>
+<td style="text-align: right;">9 件</td>
+</tr>
+</tbody>
+</table>
+<p>判断の回答例を示します. 次の内容と同じである必要はなく, 根拠を説明できれば別の判断でもかまいません.</p>
+<ul>
+<li><strong>判断 1</strong>: dokujo-tsushin (独女通信, 働く女性向けの話題), it-life-hack (IT ライフハック, パソコンやネットサービス), smax (エスマックス, スマートフォンやアプリ), sports-watch (スポーツ), movie-enter (映画) の 5 つを選びました. 記事の数が 870 件から 900 件でそろっています. 内容の近い it-life-hack と smax をあえて両方入れ, 近いカテゴリをどこまで区別できるかを確かめることにしました.</li>
+<li><strong>判断 2</strong>: 小の規模では, it-life-hack と smax の取り違えが最も多く (it-life-hack を smax と予測したものが 38 件, 逆が 27 件), 次に dokujo-tsushin を movie-enter と予測したもの (20 件) が多いです. it-life-hack と smax は, どちらも iPhone や Android のアプリ, 新しい機種を扱う記事が多いためと推測します. dokujo-tsushin には映画を紹介する連載 (見出しに【オトナ女子映画部】と付く記事が 56 件) があり, 内容は映画の記事です. 2 つの組とも, 分類は変えずに受け入れます. 中の規模では it-life-hack と smax の取り違えが合わせて 6 件, dokujo-tsushin を movie-enter と予測したものが 5 件に減り, 学習を増やせば区別できるからです. it-life-hack と smax を統合すると, パソコン全般の記事とスマートフォンの記事を分けたいという目的に合わなくなります.</li>
+<li><strong>判断 3</strong>: 中の規模を採用します. 中と大の正解率 (argmax) は 0.973 と 0.970 でほぼ同じで, シードを変えたときの幅 (0.960 から 0.973) に収まります. GPU で実行した大は, 検証用データの損失が 3 エポック目の 0.042 から 5 エポック目の 0.049 へ上がっていて, 過学習の兆候があります (CPU で実行した大では 5 エポック目に下がったので, 兆候は実行によって出たり出なかったりします). 学習の時間は大が中の約 4.5 倍 (GPU で 38 秒と 173 秒) で, CPU だけの PC では約 20 分かかります. 小は時間が短いものの, 正解率が 0.871 で, it-life-hack と smax の取り違えが合わせて 65 件あります.</li>
+<li><strong>判断 4</strong>: (1) 記事に, カテゴリを表す決まった語句が含まれています. sports-watch の見出しの 900 件中 487 件に【Sports Watch】が付いていて, 見出しは文章の先頭にあるので, モデルは必ずこの語句を読みます. モデルが内容でなくこの語句で判定している可能性があり, 語句の無い他のサイトの記事に同じ正解率が出るとは限りません. なお, smax の記事も 870 件中 862 件が本文の末尾の関連リンクにエスマックスの名前を含みますが, この課題の規模 (先頭の 100 字から 200 字を読む) では, この部分は読まれません. (2) 記事は 2012 年 9 月ごろまでの 1 つのニュースサイトのもので, 機種名などの話題が今の記事と違います. テストデータは 1 つの分け方の 876 件だけで, シードを変えるだけで正解率 (argmax) が 0.013 動くので, 0.01 程度の差で規模の優劣は決められないことも限界です.</li>
+</ul>
+</details>
+<h2 id="capstone-image">題材 3: 花の写真の種類を当てる (画像認識)</h2>
+<p><a href="../../courses/dsp/10.html">第 10 回</a>の顔の年代の識別を, 花の写真の種類の識別に替えて, 画像認識を行います. コードは第 10 回のものをほぼそのまま使います. 各手順の指示に従ってコードを書き, 「判断」と書かれた箇所には自分の考えを文章で書きます. 判断は発表資料の各項目に使うので, 書いたものは発表資料の下書きとして残してください. 質疑応答では, 判断の理由を尋ねます.</p>
+<h3 id="場面とデータ-2">場面とデータ</h3>
+<p>公園の植物案内アプリで, 花の写真から種類を当てることを考えます. 少ない画像と短い学習でどこまで当てられるかを調べ, 学習の条件 (エポック数, 画像の枚数) を決めます.</p>
+<p>データは, TensorFlow が公開している花の写真です. daisy (ヒナギク), dandelion (タンポポ), roses (バラ), sunflowers (ヒマワリ), tulips (チューリップ) の 5 種類, 3670 枚の写真が, 種類ごとのフォルダに入っています. 次の URL からダウンロードします (約 218 MB).</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="ex">http://download.tensorflow.org/example_images/flower_photos.tgz</span></span></code></pre></div>
+<p>展開すると, <code>flower_photos</code> フォルダの中に種類ごとのフォルダ (<code>daisy</code>, <code>dandelion</code>, <code>roses</code>, <code>sunflowers</code>, <code>tulips</code>) と, 写真の作者の一覧 <code>LICENSE.txt</code> が入っています. 写真は作者を表示すれば利用できる CC-BY 2.0 のライセンスで公開されています. 発表資料に写真を載せるときは, <code>LICENSE.txt</code> を見て作者を表示してください.</p>
+<p>ライブラリは第 10 回と同じです. 第 10 回の<a href="../../fields/deep-learning/img-age/index.html#age-classification">顔による年齢識別</a>の <code>uv add</code> の一覧 (<code>torch</code>, <code>torchvision</code>, <code>pillow</code> など) を参照してください.</p>
+<div class="warn">
+<p>学習には時間がかかります. 次の条件 (各種類 50 枚, 3 エポック) で, Apple M5 Max の GPU (MPS) では約 2 分, 同じ PC の CPU だけでは約 9 分でした. GPU を使えない PC では, さらに時間がかかることがあります. 学習を始めたら, ほかの不要なアプリを閉じ, 待っている間に発表資料の下書きを進めてください. 時間がかかりすぎるときは, 共通資料の<a href="../../lectures/colab.html">Google Colaboratory による GPU 計算</a>の手順で, Colab の GPU を使うこともできます.</p>
+</div>
+<h3 id="第11章の事例との違い">第 10 回の事例との違い</h3>
+<ul>
+<li>顔の年代 (6 クラス) が, 花の種類 (5 クラス) に替わります.</li>
+<li>画像は各種類 50 枚 (訓練 40 枚, テスト 10 枚) を基準にします. 第 10 回の各 200 枚より少ないので, 学習の条件を自分で決めます.</li>
+<li>学習の条件 (エポック数, 画像の枚数) を変えた結果を比べ, どの条件を採るかを判断します.</li>
+</ul>
+<h3 id="作業手順-2">作業手順</h3>
+<h4 id="手順-1-データの取得と確認-1">手順 1: データの取得と確認</h4>
+<p>データをダウンロードして展開し, 種類の数と各種類の枚数など, データの基礎的な情報を集計してください. 画像を数枚表示してください.</p>
+<h4 id="手順-2-画像の抽出と分割">手順 2: 画像の抽出と分割</h4>
+<p>各種類から 50 枚をランダムに選び, 訓練用 (40 枚) とテスト用 (10 枚) に分けて, フォルダに保存してください.</p>
+<ul>
+<li>参照: <a href="../../courses/dsp/10.html">第 10 回</a>の<a href="../../fields/deep-learning/img-age/index.html#age-classification">顔による年齢識別</a>の, 年代別のフォルダへのコピーと, 訓練用とテスト用への分割のコード.</li>
+<li>ヒント: 年代のフォルダ名を花の種類のフォルダ名に, 200 枚を 50 枚に替えます. 第 10 回はラベルの表から画像を選んでいますが, 花の写真は種類ごとのフォルダに入っているので, フォルダの中のファイルの一覧から選びます.</li>
+</ul>
+<h4 id="手順-3-学習-1">手順 3: 学習</h4>
+<p>ConvNeXt を学習し, エポックごとの損失と正解率のグラフと, 混同行列を出力してください.</p>
+<ul>
+<li>参照: <a href="../../courses/dsp/10.html">第 10 回</a>の<a href="../../fields/deep-learning/img-age/index.html#run-convnext">画像認識の実施</a>と, <a href="../../fields/deep-learning/img-age-code/index.html#age-full-code">年齢識別のコード全体</a>の, 学習から混同行列までのコード.</li>
+<li>ヒント: クラス数 <code>num_classes</code> を 5 に替えます. 混同行列を作る部分の <code>np.arange(6)</code> も 5 に替えます. データのフォルダを手順 2 で作ったものに替えます. 特徴量の抽出と, PCA, t-SNE 以降のコードは使いません.</li>
+</ul>
+<h4 id="手順-4-結果を読む">手順 4: 結果を読む</h4>
+<p>損失と正解率のグラフと, 混同行列から, 結果を読み取ってください.</p>
+<ul>
+<li>参照: 第 10 回の<a href="../../fields/deep-learning/img-age/index.html#run-convnext">画像認識の実施</a>の結果の読み方.</li>
+</ul>
+<p><strong>判断 1</strong>: どの花とどの花を取り違えたか, その理由を見た目の特徴から推測して書いてください. (発表資料の「結果の解釈」に使います.)</p>
+<h4 id="手順-5-学習の条件を変えて比べる">手順 5: 学習の条件を変えて比べる</h4>
+<p>学習の条件を 1 つ以上変え, 手順 3 の結果と比べてください. 変える条件は次のどちらかです. 両方を試してもかまいません.</p>
+<ul>
+<li><p>エポック数を 3 から 6 に増やす.</p></li>
+<li><p>各種類の画像の枚数を 50 から 100 に増やす (訓練 80 枚, テスト 20 枚).</p></li>
+<li><p>ヒント: エポック数は <code>num_epochs</code> で, 画像の枚数は手順 2 のコードで変えます.</p></li>
+</ul>
+<p><strong>判断 2</strong>: 採用する学習の条件 (エポック数と画像の枚数) を決め, 根拠を書いてください. 根拠には, 正解率, 損失の推移, 学習にかかった時間を使います. (発表資料の「使った手法」に使います.)</p>
+<h4 id="手順-6-結果の確かめ-1">手順 6: 結果の確かめ</h4>
+<p>乱数シードを変えて, 同じ条件で学習し直してください.</p>
+<ul>
+<li>参照: <a href="../../fields/deep-learning/img-age/index.html#ランダムシード-random-seed">ランダムシード</a>の説明 (<code>set_seed</code>).</li>
+</ul>
+<p><strong>判断 3</strong>: この分析の限界を 2 つ書いてください. (発表資料の「結果の限界」に使います.)</p>
+<h3 id="発表資料との対応-2">発表資料との対応</h3>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>発表資料の項目</th>
+<th>使うもの</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>目的</td>
+<td>場面の説明 (植物案内アプリで, 少ない画像と短い学習でどこまで当てられるかを調べる)</td>
+</tr>
+<tr class="even">
+<td>使用したデータ</td>
+<td>手順 1, 2 (写真の作者の表示を含む)</td>
+</tr>
+<tr class="odd">
+<td>使った手法</td>
+<td>手順 3, 5 と判断 2</td>
+</tr>
+<tr class="even">
+<td>結果の提示</td>
+<td>手順 3 のグラフと混同行列, 手順 5 の比較</td>
+</tr>
+<tr class="odd">
+<td>結果の解釈</td>
+<td>判断 1</td>
+</tr>
+<tr class="even">
+<td>結果の限界</td>
+<td>手順 6 と判断 3</td>
+</tr>
+<tr class="odd">
+<td>AI の利用方法の工夫</td>
+<td>作業中の AI の使い方の記録</td>
+</tr>
+</tbody>
+</table>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答例
+</summary>
+<p>手順 2 のコードの例です. 第 10 回のコードを, 年代を花の種類に, 200 枚を 50 枚に替え, ラベルの表の代わりにフォルダの中のファイル一覧を使っています.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> random</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> shutil</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> train_test_split</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>src_dir <span class="op">=</span> <span class="st">'flower_photos'</span></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>output_dir <span class="op">=</span> <span class="st">'data/sorted_images_split'</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>classes <span class="op">=</span> <span class="bu">sorted</span>(d <span class="cf">for</span> d <span class="kw">in</span> os.listdir(src_dir)</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>                 <span class="cf">if</span> os.path.isdir(os.path.join(src_dir, d)))</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> c <span class="kw">in</span> classes:</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>    images <span class="op">=</span> <span class="bu">sorted</span>(f <span class="cf">for</span> f <span class="kw">in</span> os.listdir(os.path.join(src_dir, c)) <span class="cf">if</span> f.endswith(<span class="st">'.jpg'</span>))</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>    images <span class="op">=</span> random.Random(<span class="dv">42</span>).sample(images, <span class="dv">50</span>)  <span class="co"># 乱数の種を固定して 50 枚を選ぶ</span></span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>    train_images, val_images <span class="op">=</span> train_test_split(images, test_size<span class="op">=</span><span class="fl">0.2</span>, random_state<span class="op">=</span><span class="dv">42</span>)</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> phase, files <span class="kw">in</span> ((<span class="st">'train'</span>, train_images), (<span class="st">'val'</span>, val_images)):</span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>        dst <span class="op">=</span> os.path.join(output_dir, phase, c)</span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>        os.makedirs(dst, exist_ok<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> f <span class="kw">in</span> files:</span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>            shutil.copy(os.path.join(src_dir, c, f), os.path.join(dst, f))</span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(c, <span class="bu">len</span>(train_images), <span class="bu">len</span>(val_images))</span></code></pre></div>
+<p>手順 3 は, 第 10 回の <code>main()</code> の学習から混同行列までを, 次の 2 か所だけ替えて実行します. (<code>data_dir</code> は手順 2 の出力先と同じです.)</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>    num_classes <span class="op">=</span> <span class="dv">5</span>  <span class="co"># 10代, 20代, ..., 60代 を 花の種類 に替える</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    ...</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    result_heatmap <span class="op">=</span> pd.DataFrame(index<span class="op">=</span>np.arange(<span class="dv">5</span>)</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>                                 ,columns<span class="op">=</span>np.arange(<span class="dv">5</span>)</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>                                 ,data<span class="op">=</span><span class="dv">0</span>)</span></code></pre></div>
+<p>実行結果の例です. 実行する PC によって, 数値は多少変わります. 次は Apple M5 Max の GPU (MPS) で実行したときの, テストデータの正解率と所要時間です.</p>
+<table>
+<thead>
+<tr class="header">
+<th>条件</th>
+<th>1 エポック目</th>
+<th>3 エポック目</th>
+<th>6 エポック目</th>
+<th>所要時間</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>各 50 枚, 3 エポック</td>
+<td>0.80</td>
+<td>0.88</td>
+<td></td>
+<td>約 114 秒</td>
+</tr>
+<tr class="even">
+<td>各 50 枚, 6 エポック</td>
+<td>0.80</td>
+<td>0.88</td>
+<td>0.90</td>
+<td>約 227 秒</td>
+</tr>
+<tr class="odd">
+<td>各 100 枚, 3 エポック</td>
+<td>0.78</td>
+<td>0.91</td>
+<td></td>
+<td>約 143 秒</td>
+</tr>
+</tbody>
+</table>
+<p>各 50 枚, 3 エポックの混同行列 (行が実際の種類, 列が予測した種類. 順に daisy, dandelion, roses, sunflowers, tulips) は次のとおりです.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>         <span class="ex">daisy</span>  dandelion  roses  sunflowers  tulips</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="ex">daisy</span>        9          0      0           0       1</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="ex">dandelion</span>    1          8      0           1       0</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="ex">roses</span>        0          0      9           0       1</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="ex">sunflowers</span>   0          0      0          10       0</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="ex">tulips</span>       0          0      1           1       8</span></code></pre></div>
+<p>判断の回答例を示します. 次の内容と同じである必要はなく, 根拠を説明できれば別の判断でもかまいません.</p>
+<ul>
+<li><strong>判断 1</strong>: tulips を roses や sunflowers と, dandelion を daisy や sunflowers と取り違えています. sunflowers は 10 枚すべて正解でした. tulips と roses は花びらが重なった丸い形が似ていて, dandelion と daisy は小さな花が黄色や白の中心を持つ点が似ているためと推測します.</li>
+<li><strong>判断 2</strong>: 各 50 枚で 6 エポックを採用します. 6 エポックでは訓練データの正解率が 1.0 に達していますが, テストデータの損失は 3 エポック目の 0.46 から 6 エポック目の 0.28 へまだ下がり続けていて, 過学習の兆候は見えません. 3 エポックから 6 エポックへの正解率の差は 0.02 で, 所要時間は 2 倍 (114 秒から 227 秒) です. 各 100 枚 3 エポックは正解率 0.91 で最も高く, 時間は 143 秒ですが, 画像を増やすと準備の手間も増えるので, 時間の制約が厳しければこちらを採ります.</li>
+<li><strong>判断 3</strong>: (1) テストデータが 1 種類 10 枚 (計 50 枚) だけなので, 1 枚の違いで正解率が 0.02 動き, 条件間の差 (0.88, 0.90, 0.91) は偶然の範囲かもしれません. (2) 5 種類の花だけを, 撮影条件の違う写真から選んでいて, アプリで実際に撮られる写真 (ピンぼけ, 複数の花など) には一般化できません. 乱数シードを変えると結果が多少変わることも, 限界として挙げられます.</li>
+</ul>
+</details>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../courses/dsp/11.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">第 11 回 総合実習 1</span>
+    </a>
+    <a class="next" href="../../courses/dsp/12.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">第 12 回 総合実習 2</span>
+    </a>
+</nav>
+
+</article>
+
+
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        <nav class="footer-nav" aria-label="フッターナビゲーション">
+            <a href="../../">Home</a>
+            <a href="../../posts.html">Blog</a>
+            <a href="../../lectures.html">Lecture</a>
+            <a href="../../research.html">Research</a>
+            <a href="../../rss.xml">RSS</a>
+            <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+        </nav>
+        <p class="footer-copy">&copy; yakagika &middot; Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>.</p>
+    </div>
+</div>
+
+
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="ページ先頭へ戻る" title="先頭へ戻る">↑</button>
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+            link.classList.add('external-link');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level;
+          switch (heading.tagName.toLowerCase()) {
+            case 'h2': level = 0; break;
+            case 'h3': level = 1; break;
+            case 'h4': level = 2; break;
+            default: return;
+          }
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          // Pandoc は `::: note` + 見出し の組み合わせを <section id="..." class="note">
+          // 内の <hN> として出力するため, 見出し自身に id が無い場合は
+          // 親 section の id を辿る.
+          var anchorId = heading.id;
+          if (!anchorId) {
+            var parentSection = heading.closest('section[id]');
+            if (parentSection) anchorId = parentSection.id;
+          }
+          anchor.href = '#' + anchorId;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi && !li.contains(currentLi)) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+
+      // ----------------------------------------
+      // スクロールスパイ: 表示中の見出しを TOC でハイライト
+      // ----------------------------------------
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0 || typeof IntersectionObserver === 'undefined') return;
+
+      var idToTocItem = new Map();
+      headings.forEach(function(h) {
+        if (!h.id) return;
+        var link = tocContainer.querySelector('a[href="#' + CSS.escape(h.id) + '"]');
+        if (link) {
+          var li = link.closest('.toc-item') || link.closest('li');
+          if (li) idToTocItem.set(h.id, li);
+        }
+      });
+
+      var visible = new Set();
+      var lastActive = null;
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+
+        // ドキュメント順で最初に可視な見出しをアクティブに
+        var firstVisible = null;
+        for (var i = 0; i < headings.length; i++) {
+          if (visible.has(headings[i].id)) {
+            firstVisible = headings[i].id;
+            break;
+          }
+        }
+        if (!firstVisible) return;
+
+        var tocItem = idToTocItem.get(firstVisible);
+        if (!tocItem || tocItem === lastActive) return;
+
+        if (lastActive) lastActive.classList.remove('toc-active');
+        tocItem.classList.add('toc-active');
+        lastActive = tocItem;
+
+        // TOC を必要なときだけスクロール
+        tocItem.scrollIntoView({
+          block: 'nearest',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
+      }, {
+        // ヘッダー (60px) を除いた上部 〜 画面下から60% を判定領域とする
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0
+      });
+
+      headings.forEach(function(h) { if (h.id) observer.observe(h); });
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
+      const pre = codeBlock.parentNode;
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
+      copyButton.textContent = 'Copy';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    // パスワード保護付き details (回答例用)
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll('details.protected').forEach(function (det) {
+        var pass = det.getAttribute('data-pass') || '';
+        var summary = det.querySelector('summary');
+        if (!summary) return;
+
+        var gate = document.createElement('div');
+        gate.className = 'pass-gate';
+        gate.innerHTML =
+          '<label>合言葉: <input type="password" autocomplete="off" spellcheck="false"></label>' +
+          '<button type="button">解除</button>' +
+          '<span class="pass-error" hidden>合言葉が違います</span>';
+        summary.insertAdjacentElement('afterend', gate);
+
+        var input = gate.querySelector('input');
+        var button = gate.querySelector('button');
+        var errorMsg = gate.querySelector('.pass-error');
+
+        function tryUnlock() {
+          if (input.value === pass) {
+            det.classList.add('unlocked');
+            errorMsg.hidden = true;
+          } else {
+            errorMsg.hidden = false;
+            input.select();
+          }
+        }
+
+        button.addEventListener('click', tryUnlock);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
+        });
+
+        det.addEventListener('toggle', function () {
+          if (det.open && !det.classList.contains('unlocked')) {
+            input.focus();
+          }
+        });
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            try {
+              katex.render( texText.data
+                          , mathElements[i]
+                          , { displayMode: mathElements[i].classList.contains("display")
+                            , throwOnError: true
+                           }
+                          );
+            } catch (e) {
+              // 1 つの数式のエラーで残り全ての数式が生 TeX のまま残らないようにする
+              console.error('KaTeX render error:', e.message, texText.data);
+            }
+          }
+      }
+    });
+  </script>
+
+  <!-- 見出しアンカーリンク + Back to top -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 記事見出しに hover で現れる # パーマリンクを付与
+      document.querySelectorAll('article h2[id], article h3[id]').forEach(function (h) {
+        var a = document.createElement('a');
+        a.className = 'heading-anchor';
+        a.href = '#' + h.id;
+        a.setAttribute('aria-label', 'このセクションへのリンク');
+        a.textContent = '#';
+        h.appendChild(a);
+      });
+
+      // Back to top: スクロール量に応じて表示
+      var btt = document.getElementById('back-to-top');
+      if (btt) {
+        var onScroll = function () {
+          if (window.pageYOffset > 600) btt.classList.add('visible');
+          else btt.classList.remove('visible');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        btt.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
+    });
+  </script>
+
+  </body>
+</html>

@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+    <script>
+      (function () {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+        function stored() {
+          var t = null;
+          try { t = localStorage.getItem('theme'); } catch (e) {}
+          return (t === 'dark' || t === 'light') ? t : null;
+        }
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
+        if (mq) {
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
+        }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
+      })();
+    </script>
+    <title>yakagika - 多重共線性と係数の精度</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../../../style.css?v=1795415080">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../../../" class="site-brand" aria-label="Home">
+          <span class="site-mark" aria-hidden="true">▮</span>
+          <span class="site-word">yakagika</span>
+        </a>
+      </div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../../../">Home</a>
+      <a href="../../../posts.html">Blog</a>
+      <a href="../../../lectures.html">Lecture</a>
+      <a href="../../../research.html">Research</a>
+      <a href="../../../lectures/seminar.html">Seminar</a>
+      <a href="../../../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      
+      <div id="lecture-toc" data-mode="series">
+  <h2>Index</h2>
+  <a href="../../../fields/regression/index.html">回帰分析</a>
+  <ul class="toc-root">
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/regression/reg-intro/index.html">回帰で何をするか</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/regression/reg-ols/index.html">回帰分析は何を行っているのか</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/regression/reg-simple/index.html">出生率のデータで行う単回帰分析</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item current-block">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/regression/reg-multiple/index.html">重回帰分析と偏回帰係数</a>
+        
+      </div>
+      
+      <ul class="toc-sublist">
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/regression/reg-multiple/index.html">導入</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/regression/reg-multiple/partial-coefficients.html">偏回帰係数とそろえる条件</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/regression/reg-multiple/dummy-variables.html">奨学生区分を表すダミー変数</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/regression/reg-multiple/standardization.html">係数の単位と標準化</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item current">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/regression/reg-multiple/multicollinearity.html" aria-current="page">多重共線性と係数の精度</a>
+          </div>
+          <ul class="toc-sublist"></ul>
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/regression/reg-multiple/exercises.html">演習</a>
+          </div>
+          
+        </li>
+        
+      </ul>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/regression/reg-gpa/index.html">GPA の重回帰分析</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/regression/reg-prediction/index.html">予測とは何か</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/regression/reg-evaluate/index.html">未使用のデータで予測の誤差を測る</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/regression/reg-causal/index.html">因果推論とは何か</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/regression/reg-selection/index.html">モデル選択</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/regression/reg-selection-gpa/index.html">GPA で目的ごとに変数を選ぶ</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/regression/reg-selection-more/index.html">その他のモデル選択の手法と選んだ後の推論</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/regression/reg-selection-lab/index.html">変数選択の結果を実験で確かめる</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/regression/reg-glm/index.html">一般化線形モデルと二値の応答</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/regression/reg-logit/index.html">単位の取得確率を推定する</a>
+        
+      </div>
+      
+    </li>
+    
+  </ul>
+</div>
+
+    </nav>
+
+    <div id="content">
+    
+<nav class="block-course-nav" aria-label="講義の並び">
+  <p>講義の並び</p>
+  <ul>
+    
+    <li class="course-occurrence">
+      <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+      <a href="../../../courses/dsp/5.html">第 5 回</a> (必修)
+      
+      <a href="../../../fields/regression/reg-simple/index.html" rel="prev">← 出生率のデータで行う単回帰分析</a>
+      
+      
+      
+      <a href="../../../fields/regression/reg-gpa/index.html" rel="next">GPA の重回帰分析 →</a>
+      
+      
+    </li>
+    
+  </ul>
+</nav>
+
+
+
+<article>
+  
+  <h1 id="multicollinearity">多重共線性と係数の精度</h1>
+<nav class="block-field-nav block-field-nav-narrow" aria-label="分野の目次">
+  <a href="../../../fields/regression/index.html">回帰分析</a>
+  <ol>
+    
+    <li>
+      
+      <a href="../../../fields/regression/reg-intro/index.html">回帰で何をするか</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/regression/reg-ols/index.html">回帰分析は何を行っているのか</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/regression/reg-simple/index.html">出生率のデータで行う単回帰分析</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <strong><a href="../../../fields/regression/reg-multiple/index.html" aria-current="true">重回帰分析と偏回帰係数</a></strong>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/regression/reg-gpa/index.html">GPA の重回帰分析</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/regression/reg-prediction/index.html">予測とは何か</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/regression/reg-evaluate/index.html">未使用のデータで予測の誤差を測る</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/regression/reg-causal/index.html">因果推論とは何か</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/regression/reg-selection/index.html">モデル選択</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/regression/reg-selection-gpa/index.html">GPA で目的ごとに変数を選ぶ</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/regression/reg-selection-more/index.html">その他のモデル選択の手法と選んだ後の推論</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/regression/reg-selection-lab/index.html">変数選択の結果を実験で確かめる</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/regression/reg-glm/index.html">一般化線形モデルと二値の応答</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/regression/reg-logit/index.html">単位の取得確率を推定する</a>
+      
+      
+    </li>
+    
+  </ol>
+</nav>
+<nav class="chapter-nav-card">
+    <a class="prev" href="../../../fields/regression/reg-multiple/standardization.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">係数の単位と標準化</span>
+    </a>
+    <a class="next" href="../../../fields/regression/reg-multiple/exercises.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">演習</span>
+    </a>
+</nav>
+
+<p>偏回帰係数を精度よく求めるには, 他の説明変数をそろえた範囲でも,
+関心のある説明変数の値にばらつきが必要です.
+例えば, 勉強時間とアルバイト時間に強い関連があると,
+アルバイト時間が近い学生の間で勉強時間に残る差は小さくなります.
+ある説明変数が他の説明変数の線形式でよく表せる状態を<strong>多重共線性</strong>と呼びます.
+説明変数が 3 つ以上なら, 変数を 2 つずつ比べるだけでは見つからない場合もあります.</p>
+<h2 id="分散拡大係数と区間の幅">分散拡大係数と区間の幅</h2>
+<p>勉強時間のばらつきのうち, 奨学生区分とアルバイト時間でどれだけ当てはめられるかを調べます.
+勉強時間を目的変数, 残りの説明変数を説明変数にした切片つきの回帰を行い,
+その決定係数を <span class="math inline">R_2^2</span> とします.
+<span class="math inline">R_2^2</span> が 1 に近いほど, 他の変数をそろえた後に勉強時間に残るばらつきが小さくなります.
+この回帰を<strong>補助回帰</strong>と呼びます.</p>
+<p>一般に, 第 <span class="math inline">j</span> 説明変数の補助回帰の決定係数を <span class="math inline">R_j^2</span> とすると,
+<strong>分散拡大係数</strong> (VIF) は次の式で求められます.</p>
+<p><span class="math display">
+\mathrm{VIF}_j = \frac{1}{1-R_j^2}.
+</span></p>
+<p>線形回帰で誤差が等分散の場合, 他の説明変数をそろえた後に残る <span class="math inline">x_j</span> の二乗和は,
+<span class="math inline">x_j</span> 全体の平均まわりの二乗和の <span class="math inline">1-R_j^2</span> 倍です.
+係数の分散はこの残った二乗和に反比例します.
+誤差分散と <span class="math inline">x_j</span> 全体の散らばりが同じ場合を比べると,
+他の説明変数と無相関の場合に比べて, 係数の分散は <span class="math inline">\mathrm{VIF}_j</span> 倍,
+標準誤差は <span class="math inline">\sqrt{\mathrm{VIF}_j}</span> 倍になります.
+残差の自由度も同じなら, 同じ信頼水準の区間の幅も <span class="math inline">\sqrt{\mathrm{VIF}_j}</span> 倍になります.</p>
+<p>架空の学生 20 万人の例で, アルバイト時間を含む式の勉強時間の VIF は約 2.45 でした.
+他の条件を同じとした場合の標準誤差の倍率は約 1.56 です.
+実際に説明変数を出し入れすると, 残差の分散や係数が表す比較も変わります.
+区間の幅は各式で求め, 比べた条件と一緒に報告します.
+例えば, アルバイト時間を固定した比較が問いなら, アルバイト時間も式に入れ,
+勉強時間の係数をその信頼区間の幅とともに報告します.</p>
+<h2 id="完全な多重共線性で係数が一つに決まらない場合">完全な多重共線性で係数が一つに決まらない場合</h2>
+<p>例えば, 勉強時間を時間単位と分単位の 2 列で記録したとします.
+時間単位を <span class="math inline">x</span>, 分単位を <span class="math inline">z</span> とすると, 全員について <span class="math inline">z=60x</span> が成り立ちます.
+ある説明変数が他の説明変数の 1 次式 (定数項を含めてもよい) で表されるとき,
+<strong>完全な多重共線性</strong>があるといいます.</p>
+<p><span class="math display">
+a+b x+c z=a+(b+60c)x.
+</span></p>
+<p>勉強時間にばらつきがあれば, 当てはめで定まるのは, 2 つの係数の組み合わせ <span class="math inline">b+60c</span> です.
+例えば <span class="math inline">b=0.24</span>, <span class="math inline">c=0</span> と, <span class="math inline">b=0</span>, <span class="math inline">c=0.004</span> は, 同じ当てはめ値を与えます.
+どちらも <span class="math inline">b+60c=0.24</span> なので, 当てはめから <span class="math inline">b</span> と <span class="math inline">c</span> を一つずつ求めることはできません.
+時間と分は同じ量を表すので, 週 1 時間の差を問う場合は時間の列だけで式を作れます.</p>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../fields/regression/reg-multiple/standardization.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">係数の単位と標準化</span>
+    </a>
+    <a class="next" href="../../../fields/regression/reg-multiple/exercises.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">演習</span>
+    </a>
+</nav>
+
+</article>
+
+
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        <nav class="footer-nav" aria-label="フッターナビゲーション">
+            <a href="../../../">Home</a>
+            <a href="../../../posts.html">Blog</a>
+            <a href="../../../lectures.html">Lecture</a>
+            <a href="../../../research.html">Research</a>
+            <a href="../../../rss.xml">RSS</a>
+            <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+        </nav>
+        <p class="footer-copy">&copy; yakagika &middot; Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>.</p>
+    </div>
+</div>
+
+
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="ページ先頭へ戻る" title="先頭へ戻る">↑</button>
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+            link.classList.add('external-link');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level;
+          switch (heading.tagName.toLowerCase()) {
+            case 'h2': level = 0; break;
+            case 'h3': level = 1; break;
+            case 'h4': level = 2; break;
+            default: return;
+          }
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          // Pandoc は `::: note` + 見出し の組み合わせを <section id="..." class="note">
+          // 内の <hN> として出力するため, 見出し自身に id が無い場合は
+          // 親 section の id を辿る.
+          var anchorId = heading.id;
+          if (!anchorId) {
+            var parentSection = heading.closest('section[id]');
+            if (parentSection) anchorId = parentSection.id;
+          }
+          anchor.href = '#' + anchorId;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi && !li.contains(currentLi)) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+
+      // ----------------------------------------
+      // スクロールスパイ: 表示中の見出しを TOC でハイライト
+      // ----------------------------------------
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0 || typeof IntersectionObserver === 'undefined') return;
+
+      var idToTocItem = new Map();
+      headings.forEach(function(h) {
+        if (!h.id) return;
+        var link = tocContainer.querySelector('a[href="#' + CSS.escape(h.id) + '"]');
+        if (link) {
+          var li = link.closest('.toc-item') || link.closest('li');
+          if (li) idToTocItem.set(h.id, li);
+        }
+      });
+
+      var visible = new Set();
+      var lastActive = null;
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+
+        // ドキュメント順で最初に可視な見出しをアクティブに
+        var firstVisible = null;
+        for (var i = 0; i < headings.length; i++) {
+          if (visible.has(headings[i].id)) {
+            firstVisible = headings[i].id;
+            break;
+          }
+        }
+        if (!firstVisible) return;
+
+        var tocItem = idToTocItem.get(firstVisible);
+        if (!tocItem || tocItem === lastActive) return;
+
+        if (lastActive) lastActive.classList.remove('toc-active');
+        tocItem.classList.add('toc-active');
+        lastActive = tocItem;
+
+        // TOC を必要なときだけスクロール
+        tocItem.scrollIntoView({
+          block: 'nearest',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
+      }, {
+        // ヘッダー (60px) を除いた上部 〜 画面下から60% を判定領域とする
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0
+      });
+
+      headings.forEach(function(h) { if (h.id) observer.observe(h); });
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
+      const pre = codeBlock.parentNode;
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
+      copyButton.textContent = 'Copy';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    // パスワード保護付き details (回答例用)
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll('details.protected').forEach(function (det) {
+        var pass = det.getAttribute('data-pass') || '';
+        var summary = det.querySelector('summary');
+        if (!summary) return;
+
+        var gate = document.createElement('div');
+        gate.className = 'pass-gate';
+        gate.innerHTML =
+          '<label>合言葉: <input type="password" autocomplete="off" spellcheck="false"></label>' +
+          '<button type="button">解除</button>' +
+          '<span class="pass-error" hidden>合言葉が違います</span>';
+        summary.insertAdjacentElement('afterend', gate);
+
+        var input = gate.querySelector('input');
+        var button = gate.querySelector('button');
+        var errorMsg = gate.querySelector('.pass-error');
+
+        function tryUnlock() {
+          if (input.value === pass) {
+            det.classList.add('unlocked');
+            errorMsg.hidden = true;
+          } else {
+            errorMsg.hidden = false;
+            input.select();
+          }
+        }
+
+        button.addEventListener('click', tryUnlock);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
+        });
+
+        det.addEventListener('toggle', function () {
+          if (det.open && !det.classList.contains('unlocked')) {
+            input.focus();
+          }
+        });
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            try {
+              katex.render( texText.data
+                          , mathElements[i]
+                          , { displayMode: mathElements[i].classList.contains("display")
+                            , throwOnError: true
+                           }
+                          );
+            } catch (e) {
+              // 1 つの数式のエラーで残り全ての数式が生 TeX のまま残らないようにする
+              console.error('KaTeX render error:', e.message, texText.data);
+            }
+          }
+      }
+    });
+  </script>
+
+  <!-- 見出しアンカーリンク + Back to top -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 記事見出しに hover で現れる # パーマリンクを付与
+      document.querySelectorAll('article h2[id], article h3[id]').forEach(function (h) {
+        var a = document.createElement('a');
+        a.className = 'heading-anchor';
+        a.href = '#' + h.id;
+        a.setAttribute('aria-label', 'このセクションへのリンク');
+        a.textContent = '#';
+        h.appendChild(a);
+      });
+
+      // Back to top: スクロール量に応じて表示
+      var btt = document.getElementById('back-to-top');
+      if (btt) {
+        var onScroll = function () {
+          if (window.pageYOffset > 600) btt.classList.add('visible');
+          else btt.classList.remove('visible');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        btt.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
+    });
+  </script>
+
+  </body>
+</html>

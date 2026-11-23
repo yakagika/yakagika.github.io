@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+    <script>
+      (function () {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+        function stored() {
+          var t = null;
+          try { t = localStorage.getItem('theme'); } catch (e) {}
+          return (t === 'dark' || t === 'light') ? t : null;
+        }
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
+        if (mq) {
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
+        }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
+      })();
+    </script>
+    <title>yakagika - 分析設計: データ分析の進め方</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../../../style.css?v=1795415080">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+    <link rel="canonical" href="https://yakagika.github.io/fields/analysis-design/design-process/index.html">
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../../../" class="site-brand" aria-label="Home">
+          <span class="site-mark" aria-hidden="true">▮</span>
+          <span class="site-word">yakagika</span>
+        </a>
+      </div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../../../">Home</a>
+      <a href="../../../posts.html">Blog</a>
+      <a href="../../../lectures.html">Lecture</a>
+      <a href="../../../research.html">Research</a>
+      <a href="../../../lectures/seminar.html">Seminar</a>
+      <a href="../../../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      
+      <div id="lecture-toc" data-mode="series">
+  <h2>Index</h2>
+  <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+  <ul class="toc-root">
+    
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/1.html">第 1 回 本資料の読み方</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item current-block">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/2.html">第 2 回 分析設計: データ分析の進め方</a>
+      </div>
+      
+      <ul class="toc-sublist">
+        <li class="toc-item toc-series-item no-children">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/scope.html">本科目で扱う範囲</a>
+    
+  </div>
+  
+</li>
+<li class="toc-item toc-series-item current">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/2/design-process.html" aria-current="page">分析設計: データ分析の進め方</a>
+    
+  </div>
+  <ul class="toc-sublist"></ul>
+</li>
+
+      </ul>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/3.html">第 3 回 データの可視化</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/4.html">第 4 回 データの数値化</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/5.html">第 5 回 回帰分析</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/6.html">第 6 回 機械学習の枠組みと決定木</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/7.html">第 7 回 クラスタリングとパターン発見</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/8.html">第 8 回 ニューラルネットワークと Transformer</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/9.html">第 9 回 自然言語処理</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/10.html">第 10 回 画像認識</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/11.html">第 11 回 総合実習 1</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/12.html">第 12 回 総合実習 2</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/13.html">第 13 回 発表回</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/selected.html">選択資料</a>
+      </div>
+      
+    </li>
+    
+  </ul>
+</div>
+
+    </nav>
+
+    <div id="content">
+    <article>
+  <header class="article-header">
+    <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+    <a href="../../../courses/dsp/2.html">第 2 回 分析設計: データ分析の進め方</a>
+    <h1 class="article-title">分析設計: データ分析の進め方</h1>
+  </header>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../courses/dsp/scope.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">本科目で扱う範囲</span>
+    </a>
+    <a class="next" href="../../../courses/dsp/3.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">第 3 回 データの可視化</span>
+    </a>
+</nav>
+
+  <div class="lesson-body">
+    <h2 id="はじめに-注意点">はじめに (注意点)</h2>
+<div class="warn">
+<p>この例題で使うアンケートなどの調査データは架空のものです. 架空のデータやサンプルデータなので, 得られた結果は, 卒業研究などで利用できるものではありません.</p>
+</div>
+<h1 id="data-science"><span id="データサイエンスとは"></span>データサイエンスとは</h1>
+<p>データサイエンスは, データを利用して現象を発見したり, 予測をしたりする科学の総称です. データの作成, データを分析する前の処理, 利用するコンピュータ関連の技術なども対象となります.</p>
+<p>データサイエンスと関連の深い分野として統計, 機械学習, AI がありますが, それらもデータサイエンスの一部とみなせます.</p>
+<p>統計は, データ自体の取得・作成・集計から, データの構造を分かりやすく分析・可視化する学問です. 機械学習は, データから予測モデルを作り, 意思決定などに応用する学問です. 統計と機械学習・AI は明確に分割できるものではなく, かなりの部分が共通しています. 特に統計学入門で学ぶ初歩的な統計は, 機械学習や AI, データサイエンス全般を学ぶ上での前提知識となります. この他, どちらかに分類できるわけではないモデリング, シミュレーション, 最適化, 次元削減など, 様々なトピックが含まれています.</p>
+<figure>
+<img src="../../../images/slds/ch3/data-science-and-components.png" alt="データサイエンス" />
+<figcaption aria-hidden="true">データサイエンス</figcaption>
+</figure>
+<p>この解説では, 統計学入門で学ぶ可視化, 数値化, 回帰などの統計学の手法を PC で実行するほか, 統計学入門の範囲を超えた発展的な手法も学習します. ただし, データサイエンスは非常に広範な学問なので, 統計学入門のように個別の手法を細かく理解することはせず, それぞれの概要と使い方を扱います.</p>
+<h1 id="analysis-workflow"><span id="データ分析の進め方"></span>データ分析の進め方</h1>
+<p>データ分析は, 一般に次の順序で進めます.</p>
+<figure>
+<img src="../../../images/slds/ch2/data-science-flow.png" alt="データ分析の流れ" />
+<figcaption aria-hidden="true">データ分析の流れ</figcaption>
+</figure>
+<p>図の工程のうち, 考察までの部分は基本的にプログラムによって実行し, それぞれの作業に適した<strong>ライブラリ</strong>を利用します. どのライブラリを利用するかは図の下側に記載しています. 各ライブラリの使い方は, 各作業を扱う教材で説明します.</p>
+<h2 id="仮説検証サイクル">仮説検証サイクル</h2>
+<p>データ分析は, 上の図の流れを 1 回通れば終わるものではありません. 分析の前に「こうなっているのではないか」という予想を立て, データで確かめ, 結果を見て予想を立て直す, という作業を繰り返します. 分析の前に立てる, データで確かめられる形の予想を<strong>仮説</strong>といい, 仮説を立ててデータで確かめる作業の繰り返しを<strong>仮説検証サイクル</strong>といいます.</p>
+<figure>
+<img src="../../../images/dsp/ch2/hypothesis-cycle.png" alt="仮説検証サイクル" />
+<figcaption aria-hidden="true">仮説検証サイクル</figcaption>
+</figure>
+<p>大学生の成績を例にします.</p>
+<ol type="1">
+<li><strong>目的</strong>: 大学生の成績を決めている構造を明らかにしたい.</li>
+<li><strong>仮説</strong>: 勉強時間が長い学生ほど, 成績が高い.</li>
+<li><strong>データ</strong>: 学生の 1 週間の勉強時間と成績 (GPA) を, アンケートと成績の記録から集める.</li>
+<li><strong>分析</strong>: 勉強時間と成績の散布図を描き, 相関係数を求める (<a href="../../../courses/dsp/4/num-correlation.html#correlation">相関係数</a>).</li>
+<li><strong>考察</strong>: 正の相関はあるが弱い. 散布図を授業形態 (対面, オンデマンド) で色分けすると, 対面の授業では勉強時間と成績の関係がはっきりしているのに, オンデマンドの授業でははっきりしない.</li>
+<li><strong>仮説の見直し</strong>: 授業形態によって, 勉強時間が成績に与える影響が違うのではないか. この仮説を確かめるために, 授業形態ごとに分けて分析し直す (2 に戻る).</li>
+</ol>
+<p>仮説を先に立てるのは, 何のデータを集め, どの手法で分析するかが仮説から決まるからです. 仮説が無いまま手元のデータをいろいろ分析すると, 偶然現れた関係を見つけて, それを結論にする危険があります. 仮説を見直すこと自体は分析の正しい進め方ですが, 見直した後の仮説を最初から立てていたかのように報告すると, <a href="#%E7%9B%AE%E7%9A%84%E3%83%87%E3%83%BC%E3%82%BF%E6%89%8B%E6%B3%95%E3%81%8B%E3%82%89%E5%88%86%E6%9E%90%E3%82%92%E7%B5%84%E3%81%BF%E7%AB%8B%E3%81%A6%E3%82%8B">目的・データ・手法から分析を組み立てる</a>で述べる HARKing にあたります. どの仮説を, どの順に確かめたかは記録しておきます.</p>
+<h1 id="models-and-data"><span id="モデルとデータ"></span>モデルとデータ</h1>
+<p>統計学やデータサイエンスはいずれもデータを利用しますが, データを利用して得たいものは何でしょうか. 統計学や, データサイエンスは, 世界に何かしらの<strong>構造 (モデル)</strong>が存在するという<strong>仮定</strong>をおいて, 情報を利用してその構造を明らかにすることを目的としています.</p>
+<ul>
+<li><p>星の動きは特定のルールに従っている</p></li>
+<li><p>コインを投げて表が出るか, 裏が出るかは, コインの構造や投げ方で決まる</p></li>
+</ul>
+<p>社会科学では, そのような構造がない, あるいは変化する, 作るなどの立場もありますが, ここでは深くは扱いません.</p>
+<p>しかし, 世の中の何かしらの対象の動きや現象を決める構造はどのようにすれば明らかになるのでしょうか. 私たちは, 情報を解釈することで世の中の何かしらの現象の背景にモデルを見出します. 単純な法則であれば, 目で見て, 耳で聞いて, 触ってという五感によってモデルを発見しますが, そのようなものも, 視覚, 聴覚, 触覚などの情報といえます. ただし, 自然の情報は複雑すぎるので, そのすべてを利用することはできません. そこで私たちは, <strong>データ</strong>という形で情報を抽出し, 利用できる形にまとめます. データをそのまま眺めても, 人間にはまだ複雑すぎます. そこで, 統計やデータサイエンスの技法を用いてデータを何らかの基準でまとめ, 理解できる形, すなわち<strong>モデル</strong>に変形します.</p>
+<figure>
+<img src="../../../images/slds/ch2/info-to-model.png" alt="情報の抽出" />
+<figcaption aria-hidden="true">情報の抽出</figcaption>
+</figure>
+<p>データサイエンスの分析では, <strong>データを生み出した世界の背景にある構造を, データから明らかにする</strong>ことを目指します. したがって, 分析の目的を決めるには, まず<strong>自分が明らかにしたい構造</strong>を決める必要があります.</p>
+<h1 id="analysis-goals"><span id="分析目的の設定"></span>分析目的の設定</h1>
+<p>分析の目的は, <strong>何の</strong>, <strong>何を決める</strong>構造を明らかにしたいのか, という形で立てます. 過去の研究事例は<a href="../../../slds_papers.html">こちら</a>から閲覧できます (各エントリを展開するとブラウザ内で PDF を閲覧でき, ダウンロードも可能です).</p>
+<p>旧科目「特別講義 (データサイエンス)」では, 受講生が次のような構造を明らかにしました.</p>
+<div class="note">
+<ul>
+<li><a href="../../../slds_papers.html#2025_塚本"><strong>漫画のキャラクターの顔の特徴の年代推移を決める構造は?</strong></a></li>
+</ul>
+<p>漫画の画像データを利用し, ニューラルネットワークを利用した画像解析手法によって, 年代ごとの漫画の顔の絵柄に違いがあることを明らかにしました.</p>
+<ul>
+<li><a href="../../../slds_papers.html#2025_露崎"><strong>大学生の投票行動を決める構造は?</strong></a></li>
+</ul>
+<p>大学生のアンケートデータを元に, どのような特性が投票行動の有無に影響を及ぼすのかを明らかにしました.</p>
+<ul>
+<li><a href="../../../slds_papers.html#2023_初鹿"><strong>大学の学生の成績が決定する構造とは?</strong></a></li>
+</ul>
+<p>大学の学習データを用いたカテゴリーデータ解析によって, 授業形態別に良い成績を取る学生とそうでない学生の特徴を明らかにしました.</p>
+<ul>
+<li><a href="../../../slds_papers.html#2023_宮田"><strong>ヒット曲を生み出す構造は?</strong></a></li>
+</ul>
+<p>過去のヒット曲データや歌詞を利用したクラスタリングによって, 時代ごとのヒット曲の変遷と, ヒット曲になりやすい曲の特徴を明らかにしました.</p>
+<ul>
+<li><a href="../../../slds_papers.html#2024_中村"><strong>大学の電力消費を決めている構造は?</strong></a></li>
+</ul>
+<p>大学の棟別の電力データを利用した時系列解析によって, 大学の電力消費に影響の大きい要素を明らかにしました.</p>
+<ul>
+<li><a href="../../../slds_papers.html#2024_大原"><strong>国ごとの LGBTQ に関する言説を決める要因は?</strong></a></li>
+</ul>
+<p>言語ごとの LGBTQ に関する Wikipedia の記事の自然言語解析の結果と, 世界 LGBTQ 受容度ランキングの関係性を明らかにしました.</p>
+<ul>
+<li><a href="../../../slds_papers.html#2024_檜山"><strong>大学生のメンタルヘルスを決める構造は?</strong></a></li>
+</ul>
+<p>アンケート調査を利用した共分散構造分析によって, 大学生の大学生活の様子とメンタルヘルスの関係を明らかにしました.</p>
+<ul>
+<li><a href="../../../slds_papers.html#2022_加藤他"><strong>Web ページの見やすさを決める構造は?</strong></a></li>
+</ul>
+<p>Web ページ閲覧時の視線移動を実験により計測して, Web ページの特徴と視線移動の関係性を明らかにしました.</p>
+<ul>
+<li>その他多数</li>
+</ul>
+</div>
+<p>目的は, 次の 3 つが決まる形で書きます.</p>
+<ul>
+<li><strong>対象</strong>: 何についての分析か (大学生, ある店の会員, 日本の都道府県など).</li>
+<li><strong>結果</strong>: 対象の何を知りたいか. 分析で説明したい値で, 回帰や分類では目的変数にあたる.</li>
+<li><strong>要因の候補</strong>: 結果を決めていそうなものは何か. 分析では説明変数にあたる.</li>
+</ul>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>書き方</th>
+<th>問題点</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>成績について分析する</td>
+<td>結果 (成績の何か) と要因の候補が無く, 集めるデータも手法も決まらない</td>
+</tr>
+<tr class="even">
+<td>大学生の成績を明らかにする</td>
+<td>成績の値を調べるだけで, 何が成績を決めるかという構造が問われていない</td>
+</tr>
+<tr class="odd">
+<td>大学生の成績 (GPA) を, 勉強時間と授業形態がどう決めているかを明らかにする</td>
+<td>対象, 結果, 要因の候補がそろい, 集めるデータ (GPA, 勉強時間, 授業形態) と手法 (相関, 回帰) が決まる</td>
+</tr>
+</tbody>
+</table>
+<p>目的を書いたら, 結果と要因の候補を実際にデータとして集められるか (測り方が決まっているか, 手に入るか) を確かめます. 集められない場合は, 集められる値に置き換えるか, 目的そのものを見直します.</p>
+<h1 id="analysis-methods"><span id="様々なデータ分析手法"></span>様々なデータ分析手法</h1>
+<p>構造を明らかにすると言っても, どの手法を使うかによって明らかにできる構造は異なります. 使う手法は, 対象の何を明らかにしたいかと, 分析するデータの種類で決まります.</p>
+<p>下の樹形図は, 何を明らかにしたいか, またはデータの種類を上から順にたどって, 手法とその解説を選ぶためのものです. 手法の名前をクリックすると, その手法の解説に移動します.</p>
+<div class="choice-tree">
+<ul>
+<li><span class="ct-root">何を明らかにしたいか</span>
+<ul>
+<li>2 つの変数に関係があるか → <a href="../../../courses/dsp/4/num-correlation.html#correlation">相関</a></li>
+<li>グループの間に違いがあるか → 検定</li>
+<li>ある変数 (目的変数) を, 他の変数で説明したい, 予測したい
+<ul>
+<li><span class="ct-type">目的変数が量的</span> → <a href="../../../courses/dsp/5/reg-intro.html#regression-equation">線形回帰</a></li>
+<li><span class="ct-type">目的変数が 2 値で, 説明変数による確率の変化を知りたい</span> → <a href="../../../fields/regression/reg-glm/binary-response.html#binary-response">ロジスティック回帰</a></li>
+<li><span class="ct-type">目的変数がカテゴリー</span> → <a href="../../../courses/dsp/6/ml-classification.html#%E6%B1%BA%E5%AE%9A%E6%9C%A8%E5%88%86%E6%9E%90">決定木などの分類</a></li>
+<li><span class="ct-type">目的変数が個数や割合で, 個体ごとのばらつきが大きい</span> → <a href="../../../fields/bayes/bayes-modeling/generalized-linear-models.html#一般化線形モデル-glm">一般化線形モデル</a></li>
+</ul></li>
+<li>データをいくつかのグループに分けたい → <a href="../../../courses/dsp/7/ml-clustering.html#%E3%82%AF%E3%83%A9%E3%82%B9%E3%82%BF%E3%83%AA%E3%83%B3%E3%82%B0">クラスタリング</a></li>
+<li>多数の変数を, 少数の変数にまとめたい → <a href="../../../fields/survey/survey-analysis/survey-dimension-reduction.html#次元削減">次元削減</a></li>
+<li>一緒に起きる組み合わせを見つけたい → <a href="../../../courses/dsp/7/ml-association.html#%E3%83%91%E3%82%BF%E3%83%BC%E3%83%B3%E7%99%BA%E8%A6%8B-%E3%82%A2%E3%82%BD%E3%82%B7%E3%82%A8%E3%83%BC%E3%82%B7%E3%83%A7%E3%83%B3%E5%88%86%E6%9E%90">アソシエーション分析</a></li>
+</ul></li>
+<li><span class="ct-root">データの種類で手法を選ぶ場合</span>
+<ul>
+<li>文章 → <a href="../../../courses/dsp/9/nlp-processing.html#%E8%87%AA%E7%84%B6%E8%A8%80%E8%AA%9E%E5%87%A6%E7%90%86">自然言語処理</a></li>
+<li>画像 → <a href="../../../courses/dsp/10/img-recognition.html#%E7%94%BB%E5%83%8F%E8%AA%8D%E8%AD%98">画像認識</a></li>
+<li>質問紙の回答 (カテゴリーデータ) → <a href="../../../fields/survey/survey-design/questionnaire-surveys.html#questionnaire-surveys">質問紙調査</a></li>
+<li>一部の値が欠けている → <a href="../../../fields/survey/missing-basics/missing-data-imputation.html#missing-data-imputation">欠損値補定</a></li>
+<li>時刻の順に並んだデータ → 時系列解析</li>
+</ul></li>
+</ul>
+</div>
+<p>手法が違えば, 結果として言えることも違います. 手法ごとに言えることの例は次のとおりです.</p>
+<ul>
+<li><strong>相関</strong>: SDGs に取り組む企業は, 生産性が高い傾向がある. 成績が良い学生は, 勉強時間が長い傾向がある. ただし, 傾向があるだけで, 勉強をたくさんすれば成績が伸びるという説明 (因果関係) はできません.</li>
+<li><strong>検定</strong>: オンデマンド授業の方が, 対面授業よりも学生の成績が高い.</li>
+<li><strong>回帰</strong>: 生産性が X 高まると, SDGs への取り組みの量が Y 増える.</li>
+<li><strong>分類</strong>: 購入履歴から, その顧客が次のキャンペーンに反応するかどうかを判別できる.</li>
+<li><strong>クラスタリング, 次元削減</strong>: 流行りの音楽は 5 つのグループに区別できる. 流行りの音楽の特徴をまとめると, X や Y である.</li>
+</ul>
+<h2 id="目的データ手法から分析を組み立てる">目的・データ・手法から分析を組み立てる</h2>
+<p>統計やデータサイエンスは広い学問なので, その学習では様々な手法を断片的に学習し, その後必要となる特定の手法を深く学ぶというのが一般的です. では, 必要となる手法はどのように決めるのでしょうか.</p>
+<p>手法は, 目的とデータによって決まります. まず, 目的 (何が知りたいか) が決まり, 利用できるデータが決まったあとに, 使える手法 (何が言えるか) が決まります. これは目的が先にあるパターンですが, データが先, 使いたい手法が先などの順で分析の組み立てが決まる場合もあります.</p>
+<figure>
+<img src="../../../images/slds/ch2/purpose-method-data.png" alt="目的,手法,データ" />
+<figcaption aria-hidden="true">目的,手法,データ</figcaption>
+</figure>
+<div class="warn">
+<ul>
+<li><h3 id="harkingについて"><strong>HARKing</strong>について</h3></li>
+</ul>
+<p>分析を通じてデータサイエンスの手法を学習することが目的の練習では, 以下のように, 手法やデータを先に決めて分析を組み立てることも認めます. 手法やデータから分析を組み立てること自体は, 研究不正ではありません. 問題になるのは, データを分析して結果を見た後に立てた仮説を, 最初から立てていた仮説であるかのように報告することです. これは <a href="http://journals.sagepub.com/doi/10.1207/s15327957pspr0203_4"><strong>HARKing</strong></a> (Hypothesizing After the Results are Known) と呼ばれ, 研究不正の一種とみなされる場合があります.</p>
+<p>データ優位の分析は, データサイエンス分野や, 観察研究と呼ばれる分野でしばしば行われていますし, 特定の手法が利用可能な分野やデータを選択することは特定の手法の学習のためには有用です.</p>
+<p>しかし, <strong>統計的仮説検定</strong>などの統計的な仮説を前提とする分野では, 望ましい態度ではないとされています.</p>
+<p>卒業研究などで研究をする場合には, 指導教員の指導方針に従って研究計画を立ててください.</p>
+</div>
+<div class="note">
+<ul>
+<li><p><strong>目的から</strong></p>
+<ul>
+<li><p>この構造を明らかにしたい.</p></li>
+<li><p>→ この構造から生じたデータを集める → このデータを使って構造を表す手法を選ぶ</p></li>
+<li><p>→ この手法で明らかになる →この手法が使えるデータを集める</p></li>
+</ul></li>
+<li><p><strong>データから</strong></p>
+<ul>
+<li><p>このデータを分析したい</p></li>
+<li><p>→ このデータを分析できる手法を選ぶ → この手法とデータから明らかになることを考える</p></li>
+<li><p>→ このデータから明らかにしたい構造を考える → データから構造を明らかにする手法を考える</p></li>
+</ul></li>
+<li><p><strong>手法から</strong></p>
+<ul>
+<li><p>この手法を使いたい, 作りたい</p></li>
+<li><p>→ この手法で何が明らかになるのかを決める → この手法が使えるデータを集める</p></li>
+<li><p>→この手法が使えるデータを集める → この手法とデータから明らかになることを考える</p></li>
+</ul></li>
+</ul>
+</div>
+  </div>
+  
+
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../courses/dsp/scope.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">本科目で扱う範囲</span>
+    </a>
+    <a class="next" href="../../../courses/dsp/3.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">第 3 回 データの可視化</span>
+    </a>
+</nav>
+
+</article>
+
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        <nav class="footer-nav" aria-label="フッターナビゲーション">
+            <a href="../../../">Home</a>
+            <a href="../../../posts.html">Blog</a>
+            <a href="../../../lectures.html">Lecture</a>
+            <a href="../../../research.html">Research</a>
+            <a href="../../../rss.xml">RSS</a>
+            <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+        </nav>
+        <p class="footer-copy">&copy; yakagika &middot; Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>.</p>
+    </div>
+</div>
+
+
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="ページ先頭へ戻る" title="先頭へ戻る">↑</button>
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+            link.classList.add('external-link');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h1[id], h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level = Number(heading.tagName.slice(1)) - 1;
+          if (!heading.id) return;
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          // Pandoc は `::: note` + 見出し の組み合わせを <section id="..." class="note">
+          // 内の <hN> として出力するため, 見出し自身に id が無い場合は
+          // 親 section の id を辿る.
+          var anchorId = heading.id;
+          if (!anchorId) {
+            var parentSection = heading.closest('section[id]');
+            if (parentSection) anchorId = parentSection.id;
+          }
+          anchor.href = '#' + anchorId;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi && !li.contains(currentLi)) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+
+      // ----------------------------------------
+      // スクロールスパイ: 表示中の見出しを TOC でハイライト
+      // ----------------------------------------
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0 || typeof IntersectionObserver === 'undefined') return;
+
+      var idToTocItem = new Map();
+      headings.forEach(function(h) {
+        if (!h.id) return;
+        var link = tocContainer.querySelector('a[href="#' + CSS.escape(h.id) + '"]');
+        if (link) {
+          var li = link.closest('.toc-item') || link.closest('li');
+          if (li) idToTocItem.set(h.id, li);
+        }
+      });
+
+      var visible = new Set();
+      var lastActive = null;
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+
+        // ドキュメント順で最初に可視な見出しをアクティブに
+        var firstVisible = null;
+        for (var i = 0; i < headings.length; i++) {
+          if (visible.has(headings[i].id)) {
+            firstVisible = headings[i].id;
+            break;
+          }
+        }
+        if (!firstVisible) return;
+
+        var tocItem = idToTocItem.get(firstVisible);
+        if (!tocItem || tocItem === lastActive) return;
+
+        if (lastActive) lastActive.classList.remove('toc-active');
+        tocItem.classList.add('toc-active');
+        lastActive = tocItem;
+
+        // TOC を必要なときだけスクロール
+        tocItem.scrollIntoView({
+          block: 'nearest',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
+      }, {
+        // ヘッダー (60px) を除いた上部 〜 画面下から60% を判定領域とする
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0
+      });
+
+      headings.forEach(function(h) { if (h.id) observer.observe(h); });
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
+      const pre = codeBlock.parentNode;
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
+      copyButton.textContent = 'Copy';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    // パスワード保護付き details (回答例用)
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll('details.protected').forEach(function (det) {
+        var pass = det.getAttribute('data-pass') || '';
+        var summary = det.querySelector('summary');
+        if (!summary) return;
+
+        var gate = document.createElement('div');
+        gate.className = 'pass-gate';
+        gate.innerHTML =
+          '<label>合言葉: <input type="password" autocomplete="off" spellcheck="false"></label>' +
+          '<button type="button">解除</button>' +
+          '<span class="pass-error" hidden>合言葉が違います</span>';
+        summary.insertAdjacentElement('afterend', gate);
+
+        var input = gate.querySelector('input');
+        var button = gate.querySelector('button');
+        var errorMsg = gate.querySelector('.pass-error');
+
+        function tryUnlock() {
+          if (input.value === pass) {
+            det.classList.add('unlocked');
+            errorMsg.hidden = true;
+          } else {
+            errorMsg.hidden = false;
+            input.select();
+          }
+        }
+
+        button.addEventListener('click', tryUnlock);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
+        });
+
+        det.addEventListener('toggle', function () {
+          if (det.open && !det.classList.contains('unlocked')) {
+            input.focus();
+          }
+        });
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            try {
+              katex.render( texText.data
+                          , mathElements[i]
+                          , { displayMode: mathElements[i].classList.contains("display")
+                            , throwOnError: true
+                           }
+                          );
+            } catch (e) {
+              // 1 つの数式のエラーで残り全ての数式が生 TeX のまま残らないようにする
+              console.error('KaTeX render error:', e.message, texText.data);
+            }
+          }
+      }
+    });
+  </script>
+
+  <!-- 見出しアンカーリンク + Back to top -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 記事見出しに hover で現れる # パーマリンクを付与
+      document.querySelectorAll('article h2[id], article h3[id]').forEach(function (h) {
+        var a = document.createElement('a');
+        a.className = 'heading-anchor';
+        a.href = '#' + h.id;
+        a.setAttribute('aria-label', 'このセクションへのリンク');
+        a.textContent = '#';
+        h.appendChild(a);
+      });
+
+      // Back to top: スクロール量に応じて表示
+      var btt = document.getElementById('back-to-top');
+      if (btt) {
+        var onScroll = function () {
+          if (window.pageYOffset > 600) btt.classList.add('visible');
+          else btt.classList.remove('visible');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        btt.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
+    });
+  </script>
+
+  </body>
+</html>

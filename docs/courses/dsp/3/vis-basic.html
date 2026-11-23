@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+    <script>
+      (function () {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+        function stored() {
+          var t = null;
+          try { t = localStorage.getItem('theme'); } catch (e) {}
+          return (t === 'dark' || t === 'light') ? t : null;
+        }
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
+        if (mq) {
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
+        }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
+      })();
+    </script>
+    <title>yakagika - 図の選び方と基礎的なグラフ</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../../../style.css?v=1795415080">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+    <link rel="canonical" href="https://yakagika.github.io/fields/descriptive/vis-basic/index.html">
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../../../" class="site-brand" aria-label="Home">
+          <span class="site-mark" aria-hidden="true">▮</span>
+          <span class="site-word">yakagika</span>
+        </a>
+      </div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../../../">Home</a>
+      <a href="../../../posts.html">Blog</a>
+      <a href="../../../lectures.html">Lecture</a>
+      <a href="../../../research.html">Research</a>
+      <a href="../../../lectures/seminar.html">Seminar</a>
+      <a href="../../../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      
+      <div id="lecture-toc" data-mode="series">
+  <h2>Index</h2>
+  <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+  <ul class="toc-root">
+    
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/1.html">第 1 回 本資料の読み方</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/2.html">第 2 回 分析設計: データ分析の進め方</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item current-block">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/3.html">第 3 回 データの可視化</a>
+      </div>
+      
+      <ul class="toc-sublist">
+        <li class="toc-item toc-series-item current">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/3/vis-basic.html" aria-current="page">図の選び方と基礎的なグラフ</a>
+    
+  </div>
+  <ul class="toc-sublist"></ul>
+</li>
+<li class="toc-item toc-series-item no-children">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/3/vis-distribution.html">度数分布表, ヒストグラム, 箱ひげ図</a>
+    
+  </div>
+  
+</li>
+<li class="toc-item toc-series-item no-children">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/3/vis-relation.html">散布図, 散布図行列, ヒートマップ / 軸の選び方と誇張の影響</a>
+    
+  </div>
+  
+</li>
+
+      </ul>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/4.html">第 4 回 データの数値化</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/5.html">第 5 回 回帰分析</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/6.html">第 6 回 機械学習の枠組みと決定木</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/7.html">第 7 回 クラスタリングとパターン発見</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/8.html">第 8 回 ニューラルネットワークと Transformer</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/9.html">第 9 回 自然言語処理</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/10.html">第 10 回 画像認識</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/11.html">第 11 回 総合実習 1</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/12.html">第 12 回 総合実習 2</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/13.html">第 13 回 発表回</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/selected.html">選択資料</a>
+      </div>
+      
+    </li>
+    
+  </ul>
+</div>
+
+    </nav>
+
+    <div id="content">
+    <article>
+  <header class="article-header">
+    <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+    <a href="../../../courses/dsp/3.html">第 3 回 データの可視化</a>
+    <h1 class="article-title">図の選び方と基礎的なグラフ</h1>
+  </header>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../courses/dsp/3.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">第 3 回 データの可視化</span>
+    </a>
+    <a class="next" href="../../../courses/dsp/3/vis-distribution.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">度数分布表, ヒストグラム, 箱ひげ図</span>
+    </a>
+</nav>
+
+  <div class="lesson-body">
+    <h2 id="データの可視化">データの可視化</h2>
+<p>プログラミングを利用してデータを読み込み, 編集できるようになりました. これから, データを分析する手法を学習しましょう. データ分析の第一歩は, データの<strong>可視化</strong>です.</p>
+<p>統計データはテーブル形式のまま, 眺めても理解できません. データを可視化することで, データの特徴や意味を理解する助けになります. ここでは, データを可視化するいくつかの方法を学びましょう.</p>
+<div class="note">
+<ul>
+<li><h3 id="ライブラリのインストール">ライブラリのインストール</h3></li>
+</ul>
+<p>Python におけるグラフ作成の, 代表的なライブラリには, <a href="https://matplotlib.org"><code>matplotlib</code></a>や<a href="https://seaborn.pydata.org"><code>seaborn</code></a>があります.
+それぞれ, <code>uv add</code> しておきましょう.</p>
+<p><code>matplotlib</code>, <code>seaborn</code> はそれぞれ以下のようにインポートするのが一般的です.</p>
+<ul>
+<li><p><code>import matplotlib.pyplot as plt</code></p></li>
+<li><p><code>import seaborn as sns</code></p></li>
+</ul>
+</div>
+<div class="warn">
+<ul>
+<li><h3 id="matplotlib-における日本語表示"><code>matplotlib</code> における日本語表示</h3>
+<code>matplotlib</code> は日本語などのマルチバイト文字に対応しておらず, 日本語を使用すると日本語部分が □ (通称豆腐) に変わります.</li>
+</ul>
+<p>例: 「Hello こんにちは」 → 「Hello □ □ □ □ □」</p>
+<p><code>matplotlib</code> で日本語を利用する方法として一番簡単なものに, <code>matplotlib-fontja</code> の利用があります.
+<code>uv add matplotlib-fontja</code> したあとに, <code>import matplotlib_fontja</code> をしましょう (<code>uv add</code> では <code>'-'</code> (ハイフン) ですが, <code>import</code> 文では <code>'_'</code> (アンダーバー) なので注意してください).</p>
+</div>
+<div class="warn">
+<ul>
+<li><code>japanize-matplotlib</code> はサポート終了済み</li>
+</ul>
+<p>かつて同様の用途で広く使われていた <code>japanize-matplotlib</code> は <strong>すでにサポートが終了しています</strong>. 既存のコードや解説記事で <code>import japanize_matplotlib</code> という記述を見かけることがありますが, これからは後継である <code>matplotlib-fontja</code> を利用してください.</p>
+<p><code>matplotlib-fontja</code> は <code>japanize-matplotlib</code> のフォークとして開発されており, インポートするだけで日本語フォントが適用される点はそのままで, Python 3.12 以降で発生していた <code>ModuleNotFoundError: No module named 'distutils'</code> の問題も解消されています.</p>
+</div>
+<p>グラフを描くコード例は, 先頭に以下の記述があることを前提とします.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib_fontja</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span></code></pre></div>
+<h1 id="choose-graph">グラフの選び方:データの次元と種別</h1>
+<p>グラフを作る前に, まず <strong>どのグラフを使うか</strong> を決めましょう. 使うべきグラフは, 同時に見る観測項目の数 (データの <strong>次元</strong>) と, 各項目が <strong>質的データ</strong> か <strong>量的データ</strong> かで, おおよそ決まります.</p>
+<p>下の樹形図は, 観測項目の数 (データの次元) と各項目の種別を上から順にたどって, 代表的なグラフを選ぶためのものです. 各グラフ名をクリックすると, そのグラフの解説に移動します.</p>
+<div class="choice-tree" role="group" aria-label="データの次元と種別からグラフを選ぶ樹形図">
+<ul>
+<li>
+<div class="ct-line">
+<span class="ct-root">データ</span>
+</div>
+<ul>
+<li>
+<div class="ct-line">
+<span class="ct-dim">1次元データ</span>
+</div>
+<ul>
+<li>
+<div class="ct-line">
+<span class="ct-type">量的</span><span class="ct-arrow">→</span><a class="ct-g" href="../../../fields/descriptive/vis-distribution/index.html#histogram"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M4 28h24"></path><rect class="f" x="6" y="20" width="5" height="8"></rect><rect class="f" x="11" y="10" width="5" height="18"></rect><rect class="f" x="16" y="6" width="5" height="22"></rect><rect class="f" x="21" y="16" width="5" height="12"></rect></svg>ヒストグラム</a>
+</div>
+</li>
+<li>
+<div class="ct-line">
+<span class="ct-type">質的</span><span class="ct-arrow">→</span><a class="ct-g" href="../../../fields/descriptive/vis-basic/basic-graphs.html#bar"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M4 28h24"></path><rect class="f" x="5" y="18" width="5" height="10"></rect><rect class="f" x="13" y="8" width="5" height="20"></rect><rect class="f" x="21" y="21" width="5" height="7"></rect></svg>棒グラフ</a><a class="ct-g" href="../../../fields/descriptive/vis-basic/pie.html#pie"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="11"></circle><path class="f" d="M16 16V5A11 11 0 0 1 25.5 21.5Z"></path></svg>円グラフ</a>
+</div>
+</li>
+</ul>
+</li>
+<li>
+<div class="ct-line">
+<span class="ct-dim">2次元データ</span>
+</div>
+<ul>
+<li>
+<div class="ct-line">
+<span class="ct-type">質的 × 質的</span><span class="ct-arrow">→</span><a class="ct-g" href="../../../fields/descriptive/vis-relation/heatmap.html#heatmap"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><rect class="f" style="fill-opacity:0.9" x="4" y="4" width="7" height="7"></rect><rect class="f" style="fill-opacity:0.5" x="12" y="4" width="7" height="7"></rect><rect class="f" style="fill-opacity:0.15" x="20" y="4" width="7" height="7"></rect><rect class="f" style="fill-opacity:0.4" x="4" y="12" width="7" height="7"></rect><rect class="f" style="fill-opacity:0.8" x="12" y="12" width="7" height="7"></rect><rect class="f" style="fill-opacity:0.3" x="20" y="12" width="7" height="7"></rect><rect class="f" style="fill-opacity:0.15" x="4" y="20" width="7" height="7"></rect><rect class="f" style="fill-opacity:0.35" x="12" y="20" width="7" height="7"></rect><rect class="f" style="fill-opacity:0.9" x="20" y="20" width="7" height="7"></rect></svg>ヒートマップ</a>
+</div>
+</li>
+<li>
+<div class="ct-line">
+<span class="ct-type">質的 × 量的</span><span class="ct-arrow">→</span><a class="ct-g" href="../../../fields/descriptive/vis-basic/basic-graphs.html#bar"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M4 28h24"></path><rect class="f" x="5" y="18" width="5" height="10"></rect><rect class="f" x="13" y="8" width="5" height="20"></rect><rect class="f" x="21" y="21" width="5" height="7"></rect></svg>棒グラフ</a><a class="ct-g" href="../../../fields/descriptive/vis-distribution/boxplot.html#boxplot"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4v6M16 22v6M12 4h8M12 28h8"></path><rect class="f" x="9" y="10" width="14" height="12"></rect><path d="M9 16h14"></path></svg>箱ひげ図</a>
+</div>
+</li>
+<li>
+<div class="ct-line">
+<span class="ct-type">量的 × 量的</span><span class="ct-arrow">→</span><a class="ct-g" href="../../../fields/descriptive/vis-relation/index.html#scatter"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 4v24h23"></path><circle class="d" cx="10" cy="22" r="1.7"></circle><circle class="d" cx="14" cy="18" r="1.7"></circle><circle class="d" cx="18" cy="20" r="1.7"></circle><circle class="d" cx="20" cy="13" r="1.7"></circle><circle class="d" cx="25" cy="9" r="1.7"></circle><circle class="d" cx="13" cy="24" r="1.7"></circle></svg>散布図</a>
+</div>
+</li>
+<li>
+<div class="ct-line">
+<span class="ct-type">時間 × 量的</span><span class="ct-arrow">→</span><a class="ct-g" href="../../../fields/descriptive/vis-basic/line.html#line"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 4v24h23"></path><path d="M8 22l6-7 5 4 8-11"></path></svg>折れ線グラフ</a>
+</div>
+</li>
+</ul>
+</li>
+<li>
+<div class="ct-line">
+<span class="ct-dim">3次元以上のデータ</span>
+</div>
+<ul>
+<li>
+<div class="ct-line">
+<span class="ct-type">量的 3 つ</span><span class="ct-arrow">→</span><a class="ct-g" href="../../../fields/descriptive/vis-more/scatter-3d.html#scatter-3d"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M14 20V4M14 20L4 28M14 20l14 6"></path><circle class="d" cx="18" cy="10" r="1.7"></circle><circle class="d" cx="21" cy="17" r="1.7"></circle><circle class="d" cx="9" cy="22" r="1.7"></circle><circle class="d" cx="16" cy="15" r="1.7"></circle><circle class="d" cx="23" cy="23" r="1.7"></circle></svg>3次元プロット</a><a class="ct-g" href="../../../fields/descriptive/vis-more/scatter-3d.html#scatter-3d"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 4v24h23"></path><circle class="f" cx="11" cy="21" r="2.3"></circle><circle class="f" style="fill-opacity:.5" cx="17" cy="15" r="4"></circle><circle class="f" cx="24" cy="9" r="3"></circle><circle class="f" style="fill-opacity:.1" cx="23" cy="22" r="3"></circle></svg>色・大きさ付き散布図</a>
+</div>
+</li>
+<li>
+<div class="ct-line">
+<span class="ct-type">量的が多数</span><span class="ct-arrow">→</span><a class="ct-g" href="../../../fields/descriptive/vis-relation/scatter-matrix.html#scatter-matrix"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="4" width="24" height="24"></rect><path d="M12 4v24M20 4v24M4 12h24M4 20h24"></path><rect class="f" x="4" y="4" width="8" height="8"></rect><rect class="f" x="12" y="12" width="8" height="8"></rect><rect class="f" x="20" y="20" width="8" height="8"></rect><circle class="d" cx="14.5" cy="9.5" r="0.9"></circle><circle class="d" cx="17.5" cy="6.5" r="0.9"></circle><circle class="d" cx="22.5" cy="9.5" r="0.9"></circle><circle class="d" cx="25.5" cy="6.5" r="0.9"></circle><circle class="d" cx="6.5" cy="17.5" r="0.9"></circle><circle class="d" cx="9.5" cy="14.5" r="0.9"></circle><circle class="d" cx="22.5" cy="17.5" r="0.9"></circle><circle class="d" cx="25.5" cy="14.5" r="0.9"></circle><circle class="d" cx="6.5" cy="25.5" r="0.9"></circle><circle class="d" cx="9.5" cy="22.5" r="0.9"></circle><circle class="d" cx="14.5" cy="25.5" r="0.9"></circle><circle class="d" cx="17.5" cy="22.5" r="0.9"></circle></svg>散布図行列</a>
+</div>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="note">
+<ul>
+<li><h3 id="ヒストグラムと棒グラフの違い">ヒストグラムと棒グラフの違い</h3></li>
+</ul>
+<p>1 次元データをどちらのグラフで表すかは, 「質的か量的か」だけでは決まりません. 効いてくるのは次の 2 点です.</p>
+<ul>
+<li><strong>順序があるか</strong>: 累積度数・中央値・分布の歪みといった「並び方から読み取る情報」は, カテゴリに順序が無いと意味を持ちません.</li>
+<li><strong>連続量を階級 (階級幅) に区切ったものか</strong>: 面積が度数に比例する, というヒストグラム本来の読み方は, 連続量を区間に分けて初めて成り立ちます.</li>
+</ul>
+<p>この 2 点で整理すると, 次のようになります.</p>
+<ul>
+<li><strong>名義尺度</strong> (血液型・職業など順序の無いカテゴリ) は <strong>棒グラフ</strong> で表し, 棒を離して並べます. 並び順は任意で, 棒を入れ替えても中身は変わらないので, 「形」を読んではいけません.</li>
+<li><strong>順序尺度</strong> (満足度・成績・難易度など順序のあるカテゴリ) は順序があるので累積度数や歪みが読め, 棒を隙間なく詰めて <strong>ヒストグラムのように</strong> 描いても構いません. ただしカテゴリは離散的で階級幅の概念が無いため, <strong>厳密な意味でのヒストグラムではありません</strong>.</li>
+<li><strong>量的データ</strong> (身長・気温など連続した数値) は階級に区切って <strong>ヒストグラム</strong> で表します. 棒を隙間なく並べ, 階級幅・面積=度数 といった本来の読み方ができます.</li>
+</ul>
+<p>構成比を一般向けに伝えたいときは <strong>円グラフ</strong> も使えます. 棒を離すか詰めるかは「連続量を階級に区切ったか」で決まり, 質的データでも順序尺度なら詰めて (ヒストグラム風に) 描いてかまいません.</p>
+</div>
+<p>樹形図はデータの形からグラフを選ぶ方法です. グラフを選ぶもう 1 つの手がかりは, 図で何を見せたいか (比較, 構成, 分布, 変化, 関係) です. 見せたいことごとに, 次のグラフが使えます.</p>
+<ul>
+<li><strong>比較</strong>: <a href="#bar">棒グラフ</a></li>
+<li><strong>構成</strong>: <a href="#pie">円グラフ</a>, <a href="#stacked-bar">積み上げ棒グラフ</a></li>
+<li><strong>分布</strong>: <a href="../../../courses/dsp/3/vis-distribution.html#histogram">ヒストグラム</a>, <a href="../../../courses/dsp/3/vis-distribution.html#boxplot">箱ひげ図</a></li>
+<li><strong>変化</strong>: <a href="#line">折れ線グラフ</a> (複数の系列を重ねる方法は <a href="../../../fields/descriptive/vis-design/for-graph.html#for-graph">for 文を利用したグラフ</a>)</li>
+<li><strong>関係</strong>: <a href="../../../courses/dsp/3/vis-relation.html#scatter">散布図</a>, <a href="../../../courses/dsp/3/vis-relation.html#scatter-matrix">散布図行列</a>, <a href="../../../courses/dsp/3/vis-relation.html#heatmap">ヒートマップ</a>, <a href="../../../fields/descriptive/vis-more/relation-diagram.html#relation-diagram">変数の関係を図で表す</a></li>
+</ul>
+<p>同じデータでも, 軸に何を取るかで読み取れることが変わり (<a href="../../../courses/dsp/3/vis-relation.html#axis-choice">縦軸と横軸の選び方</a>), 軸の範囲や色の付け方によっては, グループの間に実際より大きな差があるように見えます (<a href="../../../courses/dsp/3/vis-relation.html#exaggeration">誇張と強調が読み取りに与える影響</a>).</p>
+<p>この節に対応する演習は, <a href="../../../courses/dsp/3/vis-relation.html#exercise-dsp3-2">Exercise DSP3-2</a>です.</p>
+<h1 id="basic-graphs">基礎的なグラフ (棒グラフ, 円グラフ, 折れ線グラフ)</h1>
+<p><code>matplotlib</code> を利用して, グラフを作成する大まかな手順は以下のようになります.</p>
+<div class="note">
+<ol type="1">
+<li><p>データを準備します.
+CSV を作りましょう.</p></li>
+<li><p><code>pandas</code> で CSV を読み込みます.</p></li>
+<li><p>グラフにしたい部分を抽出します.</p>
+<p>グラフを作るために何が必要かはグラフの種類によります.</p></li>
+<li><p><code>matplotlib</code> のメソッドを利用してグラフを生成します.</p>
+<p>基本的なメソッドは以下のとおりです.</p>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: center;">グラフの種類</th>
+<th style="text-align: center;">メソッド</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">棒グラフ</td>
+<td style="text-align: center;"><code>plt.bar(x軸のリスト,y軸のリスト)</code></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">円グラフ</td>
+<td style="text-align: center;"><code>plt.pie(カテゴリー別のデータのリスト,labels=ラベルのリスト)</code></td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">折れ線グラフ</td>
+<td style="text-align: center;"><code>plt.plot(x軸のリスト,y軸のリスト)</code></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">散布図</td>
+<td style="text-align: center;"><code>plt.scatter(x軸のリスト,y軸のリスト)</code></td>
+</tr>
+</tbody>
+</table>
+<p>これら以外のグラフは, 個別に扱います.</p></li>
+<li><p>グラフの見た目を整えます.</p>
+<p>ある程度自動で設定されますが, 色, 目盛り, 形, 軸などを個別に設定できます.</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: center;">グラフの要素</th>
+<th style="text-align: center;">メソッド</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;"></td>
+<td style="text-align: center;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">タイトル</td>
+<td style="text-align: center;"><code>plt.title('タイトル')</code></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">凡例</td>
+<td style="text-align: center;"><code>plt.legend()</code></td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">y 軸</td>
+<td style="text-align: center;"><code>plt.yticks(軸の目盛のリスト)</code></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">x 軸</td>
+<td style="text-align: center;"><code>plt.xticks(軸の目盛のリスト)</code></td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">y 軸ラベル</td>
+<td style="text-align: center;"><code>plt.ylabel('ラベル')</code></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">x 軸ラベル</td>
+<td style="text-align: center;"><code>plt.xlabel('ラベル')</code></td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">補助線の追加</td>
+<td style="text-align: center;"><code>plt.minorticks_on()</code></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;"></td>
+<td style="text-align: center;"><code>plt.grid(which='both')</code></td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">表示領域</td>
+<td style="text-align: center;"><code>plt.ylim(min,max)</code></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;"></td>
+<td style="text-align: center;"><code>plt.xlim(min,max)</code></td>
+</tr>
+</tbody>
+</table></li>
+<li><p><code>plt.show()</code> でグラフを出力します.</p></li>
+</ol>
+<p>ポップアップウィンドウでグラフが表示されます.</p>
+<ol start="7" type="1">
+<li>グラフを保存します.</li>
+</ol>
+<p>ポップアップウィンドウの保存ボタンを押すと, 画像に名前をつけて保存できます.</p>
+<figure>
+<img src="../../../images/slds/ch8/graph-size-setting.png" alt="画像の表示" />
+<figcaption aria-hidden="true">画像の表示</figcaption>
+</figure>
+</div>
+<p>例えば, 以下のコードで次のグラフが表示されます.
+<code>np.arange(0,100,1)</code> は, <code>0</code> から <code>99</code> まで <code>1</code> ずつ増える数値の <code>numpy</code> の配列を生成します.
+<code>[x for x in range(0,100,1)]</code> でも同様の結果となります.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>plt.plot(np.arange(<span class="dv">0</span>,<span class="dv">100</span>,<span class="dv">1</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>        ,np.arange(<span class="dv">0</span>,<span class="dv">100</span>,<span class="dv">1</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>        ,color<span class="op">=</span><span class="st">'red'</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>        ,label<span class="op">=</span><span class="st">'sample'</span>)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">'title'</span>)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>plt.ylim(<span class="dv">0</span>,<span class="dv">100</span>)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>plt.xlim(<span class="dv">0</span>,<span class="dv">100</span>)</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>plt.xticks(np.arange(<span class="dv">0</span>,<span class="dv">100</span>,<span class="dv">10</span>))</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>plt.yticks(np.arange(<span class="dv">0</span>,<span class="dv">100</span>,<span class="dv">10</span>))</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>plt.minorticks_on()</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>plt.grid(which<span class="op">=</span><span class="st">'both'</span>)</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'x_label'</span>)</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'y_label'</span>)</span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>plt.legend()</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<figure>
+<img src="../../../images/slds/ch8/python-graph-elem.png" alt="グラフの要素" />
+<figcaption aria-hidden="true">グラフの要素</figcaption>
+</figure>
+<div class="warn">
+<p>画像は <code>plt.show()</code> で表示されるポップアップウィンドウを立ち上げなくても, <code>plt.savefig('figure.png')</code> と記述することで保存できます.</p>
+<p>ただし, <code>plt.show()</code> をして自分でポップアップウィンドウを閉じないと, <code>plt.</code> による設定がメモリに残ったままになります.</p>
+<p><code>plt.show()</code> を実行しない場合は, 必ず最後に <code>plt.close()</code> を追加してメモリを解放しましょう.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>plt.plot(np.arange(<span class="dv">0</span>,<span class="dv">100</span>,<span class="dv">1</span>)</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>        ,np.arange(<span class="dv">0</span>,<span class="dv">100</span>,<span class="dv">1</span>)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>        ,color<span class="op">=</span><span class="st">'red'</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>        ,label<span class="op">=</span><span class="st">'sample'</span>)</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>plt.savefig(<span class="st">'figure.png'</span>)</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>plt.close()</span></code></pre></div>
+</div>
+<h2 id="bar">棒グラフの作成</h2>
+<p><a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/bar_pie.csv">こちら</a>からデータをダウンロードし, 棒グラフを作成してみましょう.</p>
+<p>まずはデータを確認します.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># import 部分は省略されています</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co"># dataフォルダにあるbar_pie.csvというファイルを読み込みます.</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">&quot;data/bar_pie.csv&quot;</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="co"># 読み込んだファイルの中身を見てみます.</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="co">    cat dog bird</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="co">0    10  12   20</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>プログラムは読み込むデータと, 作りたいグラフの形によって変化します.
+どのようなデータが必要かを意識して, データを抽出しましょう.</p>
+<div class="note">
+<p>棒グラフの作成に必要なデータは,</p>
+<ul>
+<li><code>棒毎のラベル</code></li>
+</ul>
+<p>それぞれの棒の名前です. 文字列で指定します.
+今回は <code>'cat'</code>, <code>'dog'</code>, <code>'bird'</code> とします.</p>
+<ul>
+<li><code>棒毎のx軸の位置</code></li>
+</ul>
+<p>棒グラフの位置は, <code>0</code> から始まる整数の列として指定します.
+今回は, <code>0</code>, <code>1</code>, <code>2</code> を指定します.</p>
+<ul>
+<li><code>棒毎の高さ</code> になります.</li>
+</ul>
+<p>高さに <code>10</code>, <code>12</code>, <code>20</code> を指定します.</p>
+</div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 棒グラフのラベルを抽出します</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co"># df.columns でDataFrameからHeaderを抽出し,</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co"># list()関数でDataFrameからlist型に変換しています</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>labels <span class="op">=</span> <span class="bu">list</span>(df.columns)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co"># 棒グラフのx軸のどこに置くのかを指定しています.</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="co"># np.arange(x) は [0,1,..,x]というarrayを作ります.</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>x_position <span class="op">=</span> np.arange(<span class="bu">len</span>(labels))</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="co">#棒グラフの高さを抽出します</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="co"># メソッド iloc[x]はDataFrameのx行目を抽出します.</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>values <span class="op">=</span> <span class="bu">list</span>(df.iloc[<span class="dv">0</span>])</span></code></pre></div>
+<p>抽出した情報を元に, 棒グラフを作成します.
+<code>plt.bar(X軸のリスト,Y軸のリスト)</code> の形で, データを指定します.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 棒グラフを作成します.</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="co"># x 軸 にx_position</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="co"># それぞれの棒グラフの高さにvaluesを与えています.</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="co"># その他にも沢山の引数があります.</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>plt.bar(x<span class="op">=</span>x_position, height<span class="op">=</span>values)</span></code></pre></div>
+<p>このままだと, X 軸のラベルに何も記述されないので,
+<code>plt.xticks(ラベルの位置のリスト,ラベルのリスト)</code> で, ラベルを指定します.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co">#ラベルの位置を指定します.</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>plt.xticks(ticks<span class="op">=</span>x_position,labels<span class="op">=</span>labels)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Y軸ラベルを指定します</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">&quot;number&quot;</span>)</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co"># タイトルを指名します</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">&quot;kind&quot;</span>)</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="co"># グラフの表示</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<figure>
+<img src="../../../images/slds/ch8/bar-graph.png" alt="棒グラフの表示" />
+<figcaption aria-hidden="true">棒グラフの表示</figcaption>
+</figure>
+<p>表示されたグラフは, 保存ボタンで画像として保存できます.</p>
+<p>グラフ作成の基本は, これで終わりです. あとは, それぞれのグラフごとに <code>plt.bar()</code> の部分を使い分け, グラフのデザインを変更することで, 様々なグラフが作成できます. 色, スタイル, 凡例などの変更は, <a href="../../../fields/descriptive/vis-design/index.html#design">グラフのデザインの変更</a>にまとめてあります.</p>
+<p>この節に対応する演習は, <a href="#exercise-dsp3-4">Exercise DSP3-4</a>です.</p>
+<h1 id="pie">円グラフ</h1>
+<p><a href="#bar">棒グラフの例</a>と同じデータ <code>bar_pie.csv</code> を利用して円グラフを作成してみます.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="co">header1 header2 header3 ...</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="co">value1  value2  value3  ...</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co">の形のcsvから棒グラフを作成する</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="co"># dataフォルダにあるbar_pie.csvというファイルを読み込みます.</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">&quot;data/bar_pie.csv&quot;</span>)</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="co"># 読み込んだファイルの中身を見てみます.</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a><span class="co"># 棒グラフのラベルを抽出します</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a><span class="co"># df.columns でDataFrameからHeaderを抽出し,</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a><span class="co"># list()関数でDataFrameからlist型に変換しています</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>labels <span class="op">=</span> <span class="bu">list</span>(df.columns)</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a><span class="co"># メソッド iloc[x]はDataFrameのx行目を抽出します.</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>values <span class="op">=</span> <span class="bu">list</span>(df.iloc[<span class="dv">0</span>])</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a><span class="co"># 円グラフの作成</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>plt.pie(values, labels<span class="op">=</span>labels, autopct<span class="op">=</span><span class="st">'</span><span class="sc">%1.1f%%</span><span class="st">'</span>)</span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a><span class="co"># タイトルを指名します</span></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">&quot;kind&quot;</span>)</span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a><span class="co"># グラフの表示</span></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<p>円グラフは, <code>plt.pie()</code> にそれぞれの領域の割合と, ラベルを与えることで, 作成できます.
+グラフに数字を表示するには, <code>autopct=</code> に <code>フォーマット文字列</code> で表示内容を指定します.
+上記の例では <code>'%1.1f%%'</code> と書くことで, 小数点 1 桁まで数値を表示しています.</p>
+<figure>
+<img src="../../../images/slds/ch8/pie-graph1.png" alt="円グラフ" />
+<figcaption aria-hidden="true">円グラフ</figcaption>
+</figure>
+<p>この節に対応する演習は, <a href="#exercise-dsp3-4">Exercise DSP3-4</a>です.</p>
+<h1 id="stacked-bar">積み上げ棒グラフ</h1>
+<p>円グラフは 1 つの全体の内訳を表します. 複数のグループの内訳を並べて比べるときは, 棒を内訳ごとに色分けして積み上げた<strong>積み上げ棒グラフ</strong>を使います. 棒全体の高さがグループの合計を, 色ごとの長さが内訳を表します.</p>
+<p>積み上げ棒グラフの例には, 都道府県別のデータ (<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/pref_stats.csv">こちら</a>) を使います. e-Stat の都道府県データから 2006 年の値を集めたもので, 列は次のとおりです. このデータは<a href="../../../courses/dsp/3/vis-relation.html#scatter-matrix">散布図行列</a>, <a href="../../../courses/dsp/3/vis-relation.html#axis-choice">縦軸と横軸の選び方</a>, <a href="../../../courses/dsp/3/vis-relation.html#exaggeration">誇張と強調が読み取りに与える影響</a>でも使います.</p>
+<table>
+<thead>
+<tr class="header">
+<th>列</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>pref</code></td>
+<td>都道府県名</td>
+</tr>
+<tr class="even">
+<td><code>height</code></td>
+<td>高校 2 年生男子の平均身長 (cm)</td>
+</tr>
+<tr class="odd">
+<td><code>weight</code></td>
+<td>高校 2 年生男子の平均体重 (kg)</td>
+</tr>
+<tr class="even">
+<td><code>food</code></td>
+<td>二人以上の世帯のうち勤労者世帯の食料費 (円)</td>
+</tr>
+<tr class="odd">
+<td><code>sleep</code></td>
+<td>10 歳以上男性の睡眠の平均時間 (分)</td>
+</tr>
+<tr class="even">
+<td><code>sports</code></td>
+<td>15 歳以上男性のスポーツの平均時間 (運動時間, 分)</td>
+</tr>
+</tbody>
+</table>
+<p>あわせて, 都道府県を 8 つの地方 (北海道, 東北, 関東, 中部, 近畿, 中国, 四国, 九州・沖縄) に分けた表 (<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/dsp3/pref_region.csv">こちら</a>) も使います. 三重県は近畿に含めています.</p>
+<p>地方ごとに, 運動時間が短い県, 中くらいの県, 長い県がいくつずつあるかを積み上げ棒グラフで表します.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/pref_stats.csv'</span>, encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>region <span class="op">=</span> pd.read_csv(<span class="st">'data/pref_region.csv'</span>, encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co"># pref 列が一致する行同士をつないで, 地方の列を加えます.</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> df.merge(region, on<span class="op">=</span><span class="st">'pref'</span>)</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="co"># 運動時間を 3 つの階級に分けます. (0, 14], (14, 17], (17, 60] の区間になります.</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'sports_class'</span>] <span class="op">=</span> pd.cut(df[<span class="st">'sports'</span>]</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>                           ,bins<span class="op">=</span>[<span class="dv">0</span>, <span class="dv">14</span>, <span class="dv">17</span>, <span class="dv">60</span>]</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>                           ,labels<span class="op">=</span>[<span class="st">'14分以下'</span>, <span class="st">'15〜17分'</span>, <span class="st">'18分以上'</span>])</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="co"># 地方ごと, 階級ごとに都道府県の数を数えます.</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>order <span class="op">=</span> [<span class="st">'北海道'</span>, <span class="st">'東北'</span>, <span class="st">'関東'</span>, <span class="st">'中部'</span>, <span class="st">'近畿'</span>, <span class="st">'中国'</span>, <span class="st">'四国'</span>, <span class="st">'九州・沖縄'</span>]</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>table <span class="op">=</span> pd.crosstab(df[<span class="st">'region'</span>], df[<span class="st">'sports_class'</span>]).reindex(order)</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(table)</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a><span class="co"># stacked=True で, 列ごとの棒を積み上げます.</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>table.plot.bar(stacked<span class="op">=</span><span class="va">True</span>, rot<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'地方'</span>)</span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'都道府県数'</span>)</span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a>plt.legend(title<span class="op">=</span><span class="st">'運動時間'</span>)</span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">sports_class</span>  14分以下  15〜17分  18分以上</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="ex">region</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="ex">北海道</span>               0       1      0</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="ex">東北</span>                5       1      0</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="ex">関東</span>                0       7      0</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="ex">中部</span>                4       4      1</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="ex">近畿</span>                0       4      3</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="ex">中国</span>                1       4      0</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="ex">四国</span>                0       2      2</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="ex">九州・沖縄</span>             1       1      6</span></code></pre></div>
+<p><code>pd.cut()</code> は量的データを <code>bins=</code> で指定した区間に分け, 各値がどの階級に入るかを表す列を作ります. <code>pd.crosstab(行, 列)</code> は, 2 つの列の値の組み合わせごとに行数を数えた表を作ります (<a href="../../../fields/descriptive/vis-more/index.html#同時度数分布表">同時度数分布表</a>で詳しく扱います). できた表の <code>.plot.bar(stacked=True)</code> を呼ぶと, 列 (階級) ごとの棒が行 (地方) ごとに積み上がります. <code>plt.bar()</code> で描く場合は, 2 つ目以降の棒の引数 <code>bottom=</code> に, それまでに積んだ高さを渡します.</p>
+<figure>
+<img src="../../../images/dsp/ch3/stacked-bar.png" alt="地方ごとの運動時間の階級別の都道府県数" />
+<figcaption aria-hidden="true">地方ごとの運動時間の階級別の都道府県数</figcaption>
+</figure>
+<p>東北は 6 県のうち 5 県が 14 分以下, 九州・沖縄は 8 県のうち 6 県が 18 分以上で, 関東は 7 都県すべてが 15〜17 分に入ります. 運動時間の短い県は北に, 長い県は南に多いことが読み取れます. 一方で, 棒全体の高さは地方の都道府県数 (北海道の 1 から中部の 9 まで) で決まるので, 地方同士で内訳の割合を比べるには向きません. 割合で比べる描き方は<a href="../../../courses/dsp/3/vis-relation.html#axis-count-ratio">実数か割合か</a>で扱います.</p>
+<h1 id="line">折れ線グラフ</h1>
+<p>折れ線グラフは, 時間の順に並んだ値の<strong>変化</strong>を見せる図です. 横軸に時間をとり, 隣り合う時点の値を線でつなぎます. 線の傾きから, 値が増えているか減っているか, どのくらいの速さで変わっているかを読み取ります.</p>
+<p>ある地点の 2023 年 1 月 1 日から 4 月 10 日までの日ごとの気温のデータ (<code>temperature_10location.csv</code>) を使います. <code>Date</code> 列が日付, <code>Location_1</code> から <code>Location_10</code> の列が 10 か所の地点の気温です. ここでは <code>Location_1</code> の 1 か所だけを描きます.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/temperature_10location.csv'</span>)</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="co"># 'Date' 列を日付型に変換します. 横軸が日付の間隔どおりに並びます.</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'Date'</span>] <span class="op">=</span> pd.to_datetime(df[<span class="st">'Date'</span>])</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="co"># 月ごとの平均気温</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df.groupby(df[<span class="st">'Date'</span>].dt.month)[<span class="st">'Location_1'</span>].mean().<span class="bu">round</span>(<span class="dv">2</span>))</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>plt.figure(figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">4</span>))</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>plt.plot(df[<span class="st">'Date'</span>], df[<span class="st">'Location_1'</span>], color<span class="op">=</span><span class="st">'lightgray'</span>, label<span class="op">=</span><span class="st">'日ごとの気温'</span>)</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="co"># rolling(7).mean() で, その日までの 7 日間の平均 (移動平均) を求めます.</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>plt.plot(df[<span class="st">'Date'</span>], df[<span class="st">'Location_1'</span>].rolling(<span class="dv">7</span>).mean(), color<span class="op">=</span><span class="st">'tab:blue'</span>, label<span class="op">=</span><span class="st">'7 日移動平均'</span>)</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'日付'</span>)</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'気温 (℃)'</span>)</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>plt.legend()</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>plt.xticks(rotation<span class="op">=</span><span class="dv">15</span>)  <span class="co"># 日付の目盛りを 15 度傾けます</span></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="ex">Date</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="ex">1</span>    18.74</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="ex">2</span>    21.44</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="ex">3</span>    20.23</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="ex">4</span>    20.13</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="ex">Name:</span> Location_1, dtype: float64</span></code></pre></div>
+<figure>
+<img src="../../../images/dsp/ch3/line.png" alt="ある地点の日ごとの気温と 7 日移動平均" />
+<figcaption aria-hidden="true">ある地点の日ごとの気温と 7 日移動平均</figcaption>
+</figure>
+<p>灰色の線が日ごとの気温です. 日ごとの気温は 0 ℃ から 33 ℃ の間で大きく上下していて, この線だけでは全体の傾向が読み取れません. 青い線は, その日までの 7 日間の気温の平均 (<strong>移動平均</strong>) です. 移動平均では日ごとの上下がならされ, 1 月中旬に最も低く (約 15 ℃), 2 月上旬に最も高く (約 25 ℃) なり, その後は 20 ℃ 前後で推移していることが読み取れます. 月ごとの平均気温 (1 月 18.74 ℃, 2 月 21.44 ℃) の違いとも合っています.</p>
+<p>折れ線グラフは, 横軸が時間のように順序と間隔を持つときに使います. 都道府県や商品の種類のように順序の無いカテゴリーを線でつなぐと, 存在しない「変化」を描くことになるので, 棒グラフを使います. 複数の地点の気温を 1 つの図に重ねる方法は, <a href="../../../fields/descriptive/vis-design/for-graph.html#for-graph">for 文を利用したグラフ</a>で扱います.</p>
+<p>この節に対応する演習は, <a href="../../../courses/dsp/3/vis-relation.html#exercise-dsp3-3">Exercise DSP3-3</a>と<a href="#exercise-dsp3-4">Exercise DSP3-4</a>です.</p>
+<h1 id="exercises"><span id="演習"></span>演習</h1>
+<h2 id="exercise-dsp3-4">Exercise DSP3-4</h2>
+<p class="exercise-file">提出ファイル <code>dsp3-4.py</code></p>
+<p><strong>棒グラフ・円グラフ・折れ線グラフを作る</strong></p>
+<p>対応する節: <a href="#bar">棒グラフの作成</a>, <a href="#pie">円グラフ</a>, <a href="#line">折れ線グラフ</a></p>
+<p><a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/pie_chart_practice.csv">円グラフ用のデータ</a>, <a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/line_chart_practice.csv">折れ線グラフ用のデータ</a>, <a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/bar_chart_practice.csv">棒グラフ用のデータ</a>を使い, それぞれのグラフを作成してください. 図を読むために必要だと思う表示 (タイトル, 軸のラベル, 数値の表示など) を設定してください.</p>
+<p>提出ファイル名: <code>dsp3-4.py</code></p>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答例
+</summary>
+<div class="sourceCode" id="cb13"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib_fontja</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="co"># 円グラフ: 内訳の割合を読むので, 割合を表示します.</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>pie <span class="op">=</span> pd.read_csv(<span class="st">'data/pie_chart_practice.csv'</span>)</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>plt.pie(pie[<span class="st">'Values'</span>], labels<span class="op">=</span>pie[<span class="st">'Category'</span>], autopct<span class="op">=</span><span class="st">'</span><span class="sc">%1.1f%%</span><span class="st">'</span>)</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">'カテゴリ別の割合'</span>)</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a><span class="co"># 折れ線グラフ: 月の順に並んだ値の変化を読みます.</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>line <span class="op">=</span> pd.read_csv(<span class="st">'data/line_chart_practice.csv'</span>)</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>plt.plot(line[<span class="st">'Month'</span>], line[<span class="st">'Value'</span>], marker<span class="op">=</span><span class="st">'o'</span>)</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'月'</span>)</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'値'</span>)</span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">'月ごとの値の推移'</span>)</span>
+<span id="cb13-17"><a href="#cb13-17" aria-hidden="true" tabindex="-1"></a>plt.xticks(rotation<span class="op">=</span><span class="dv">15</span>)</span>
+<span id="cb13-18"><a href="#cb13-18" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb13-19"><a href="#cb13-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-20"><a href="#cb13-20" aria-hidden="true" tabindex="-1"></a><span class="co"># 棒グラフ: 項目の大小を比べるので, 棒の上に値を表示します.</span></span>
+<span id="cb13-21"><a href="#cb13-21" aria-hidden="true" tabindex="-1"></a>bar <span class="op">=</span> pd.read_csv(<span class="st">'data/bar_chart_practice.csv'</span>)</span>
+<span id="cb13-22"><a href="#cb13-22" aria-hidden="true" tabindex="-1"></a>bars <span class="op">=</span> plt.bar(bar[<span class="st">'Item'</span>], bar[<span class="st">'Value'</span>])</span>
+<span id="cb13-23"><a href="#cb13-23" aria-hidden="true" tabindex="-1"></a>plt.bar_label(bars)</span>
+<span id="cb13-24"><a href="#cb13-24" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'項目'</span>)</span>
+<span id="cb13-25"><a href="#cb13-25" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'値'</span>)</span>
+<span id="cb13-26"><a href="#cb13-26" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">'項目別の値'</span>)</span>
+<span id="cb13-27"><a href="#cb13-27" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<p>円グラフは A から D の割合が 30%, 40%, 20%, 10% で, B が最も大きく D が最も小さいことが読み取れます. 折れ線グラフは 1 月の 100 から 6 月の 350 まで, 毎月 50 ずつ一定の割合で増えています. 棒グラフは Item2 と Item4 が 35 で最も大きく, Item1 が 20 で最も小さいことが分かります. 円グラフには割合, 棒グラフには値を直接表示すると, 目盛りを読み取らなくても大小を比べられます.</p>
+</details>
+  </div>
+  
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../courses/dsp/3.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">第 3 回 データの可視化</span>
+    </a>
+    <a class="next" href="../../../courses/dsp/3/vis-distribution.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">度数分布表, ヒストグラム, 箱ひげ図</span>
+    </a>
+</nav>
+
+</article>
+
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        <nav class="footer-nav" aria-label="フッターナビゲーション">
+            <a href="../../../">Home</a>
+            <a href="../../../posts.html">Blog</a>
+            <a href="../../../lectures.html">Lecture</a>
+            <a href="../../../research.html">Research</a>
+            <a href="../../../rss.xml">RSS</a>
+            <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+        </nav>
+        <p class="footer-copy">&copy; yakagika &middot; Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>.</p>
+    </div>
+</div>
+
+
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="ページ先頭へ戻る" title="先頭へ戻る">↑</button>
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+            link.classList.add('external-link');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h1[id], h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level = Number(heading.tagName.slice(1)) - 1;
+          if (!heading.id) return;
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          // Pandoc は `::: note` + 見出し の組み合わせを <section id="..." class="note">
+          // 内の <hN> として出力するため, 見出し自身に id が無い場合は
+          // 親 section の id を辿る.
+          var anchorId = heading.id;
+          if (!anchorId) {
+            var parentSection = heading.closest('section[id]');
+            if (parentSection) anchorId = parentSection.id;
+          }
+          anchor.href = '#' + anchorId;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi && !li.contains(currentLi)) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+
+      // ----------------------------------------
+      // スクロールスパイ: 表示中の見出しを TOC でハイライト
+      // ----------------------------------------
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0 || typeof IntersectionObserver === 'undefined') return;
+
+      var idToTocItem = new Map();
+      headings.forEach(function(h) {
+        if (!h.id) return;
+        var link = tocContainer.querySelector('a[href="#' + CSS.escape(h.id) + '"]');
+        if (link) {
+          var li = link.closest('.toc-item') || link.closest('li');
+          if (li) idToTocItem.set(h.id, li);
+        }
+      });
+
+      var visible = new Set();
+      var lastActive = null;
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+
+        // ドキュメント順で最初に可視な見出しをアクティブに
+        var firstVisible = null;
+        for (var i = 0; i < headings.length; i++) {
+          if (visible.has(headings[i].id)) {
+            firstVisible = headings[i].id;
+            break;
+          }
+        }
+        if (!firstVisible) return;
+
+        var tocItem = idToTocItem.get(firstVisible);
+        if (!tocItem || tocItem === lastActive) return;
+
+        if (lastActive) lastActive.classList.remove('toc-active');
+        tocItem.classList.add('toc-active');
+        lastActive = tocItem;
+
+        // TOC を必要なときだけスクロール
+        tocItem.scrollIntoView({
+          block: 'nearest',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
+      }, {
+        // ヘッダー (60px) を除いた上部 〜 画面下から60% を判定領域とする
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0
+      });
+
+      headings.forEach(function(h) { if (h.id) observer.observe(h); });
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
+      const pre = codeBlock.parentNode;
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
+      copyButton.textContent = 'Copy';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    // パスワード保護付き details (回答例用)
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll('details.protected').forEach(function (det) {
+        var pass = det.getAttribute('data-pass') || '';
+        var summary = det.querySelector('summary');
+        if (!summary) return;
+
+        var gate = document.createElement('div');
+        gate.className = 'pass-gate';
+        gate.innerHTML =
+          '<label>合言葉: <input type="password" autocomplete="off" spellcheck="false"></label>' +
+          '<button type="button">解除</button>' +
+          '<span class="pass-error" hidden>合言葉が違います</span>';
+        summary.insertAdjacentElement('afterend', gate);
+
+        var input = gate.querySelector('input');
+        var button = gate.querySelector('button');
+        var errorMsg = gate.querySelector('.pass-error');
+
+        function tryUnlock() {
+          if (input.value === pass) {
+            det.classList.add('unlocked');
+            errorMsg.hidden = true;
+          } else {
+            errorMsg.hidden = false;
+            input.select();
+          }
+        }
+
+        button.addEventListener('click', tryUnlock);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
+        });
+
+        det.addEventListener('toggle', function () {
+          if (det.open && !det.classList.contains('unlocked')) {
+            input.focus();
+          }
+        });
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            try {
+              katex.render( texText.data
+                          , mathElements[i]
+                          , { displayMode: mathElements[i].classList.contains("display")
+                            , throwOnError: true
+                           }
+                          );
+            } catch (e) {
+              // 1 つの数式のエラーで残り全ての数式が生 TeX のまま残らないようにする
+              console.error('KaTeX render error:', e.message, texText.data);
+            }
+          }
+      }
+    });
+  </script>
+
+  <!-- 見出しアンカーリンク + Back to top -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 記事見出しに hover で現れる # パーマリンクを付与
+      document.querySelectorAll('article h2[id], article h3[id]').forEach(function (h) {
+        var a = document.createElement('a');
+        a.className = 'heading-anchor';
+        a.href = '#' + h.id;
+        a.setAttribute('aria-label', 'このセクションへのリンク');
+        a.textContent = '#';
+        h.appendChild(a);
+      });
+
+      // Back to top: スクロール量に応じて表示
+      var btt = document.getElementById('back-to-top');
+      if (btt) {
+        var onScroll = function () {
+          if (window.pageYOffset > 600) btt.classList.add('visible');
+          else btt.classList.remove('visible');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        btt.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
+    });
+  </script>
+
+  </body>
+</html>

@@ -1,0 +1,1202 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+    <script>
+      (function () {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+        function stored() {
+          var t = null;
+          try { t = localStorage.getItem('theme'); } catch (e) {}
+          return (t === 'dark' || t === 'light') ? t : null;
+        }
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
+        if (mq) {
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
+        }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
+      })();
+    </script>
+    <title>yakagika - 畳み込みニューラルネットワーク</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../../../style.css?v=1795415080">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../../../" class="site-brand" aria-label="Home">
+          <span class="site-mark" aria-hidden="true">▮</span>
+          <span class="site-word">yakagika</span>
+        </a>
+      </div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../../../">Home</a>
+      <a href="../../../posts.html">Blog</a>
+      <a href="../../../lectures.html">Lecture</a>
+      <a href="../../../research.html">Research</a>
+      <a href="../../../lectures/seminar.html">Seminar</a>
+      <a href="../../../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      
+      <div id="lecture-toc" data-mode="series">
+  <h2>Index</h2>
+  <a href="../../../fields/deep-learning/index.html">深層学習とその応用</a>
+  <ul class="toc-root">
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/dl-transformer/index.html">Transformer と自己教師あり学習</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/dl-lifecycle/index.html">AI の学習と推論, 評価, 再学習</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-processing/index.html">形態素解析, ワードクラウド, ユーザ定義辞書</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-syntax/index.html">係り受け解析とかな漢字変換</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-bert/index.html">BERT の事前学習とテキストの分類</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-generation/index.html">機械翻訳, 文章生成と生成 AI の仕組み</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-embedding/index.html">文章のベクトル, 次元削減と類似度</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-embedding-more/index.html">トピックモデル, n-gram, CLIP</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/dl-training-case/index.html">事例: 品目名の分類器を学習する</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/dl-training-procedure/index.html">Transformer の学習の手順</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-recognition/index.html">認識技術と手書き数字の認識</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item current-block">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-cnn/index.html">畳み込みニューラルネットワーク</a>
+        
+      </div>
+      
+      <ul class="toc-sublist">
+        
+        <li class="toc-item toc-series-item current">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/deep-learning/img-cnn/index.html" aria-current="page">畳み込みニューラルネットワーク</a>
+          </div>
+          <ul class="toc-sublist"></ul>
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/deep-learning/img-cnn/cnn-models.html">代表的な CNN モデル</a>
+          </div>
+          
+        </li>
+        
+      </ul>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-age/index.html">顔画像による年代の分類</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-speech/index.html">音声認識の仕組み</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-more/index.html">ViT, 特徴量の可視化, Grad-CAM</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-age-code/index.html">年齢識別のコード全体</a>
+        
+      </div>
+      
+    </li>
+    
+  </ul>
+</div>
+
+    </nav>
+
+    <div id="content">
+    
+<nav class="block-course-nav" aria-label="講義の並び">
+  <p>講義の並び</p>
+  <ul>
+    
+    <li class="course-occurrence">
+      <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+      <a href="../../../courses/dsp/10.html">第 10 回</a> (必修)
+      
+      <a href="../../../fields/deep-learning/img-recognition/index.html" rel="prev">← 認識技術と手書き数字の認識</a>
+      
+      
+      
+      <a href="../../../fields/deep-learning/img-age/index.html" rel="next">顔画像による年代の分類 →</a>
+      
+      
+    </li>
+    
+  </ul>
+</nav>
+
+
+
+<article>
+  
+  <header class="article-header">
+    <h1 class="article-title">畳み込みニューラルネットワーク</h1>
+<nav class="block-field-nav block-field-nav-narrow" aria-label="分野の目次">
+  <a href="../../../fields/deep-learning/index.html">深層学習とその応用</a>
+  <ol>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/dl-transformer/index.html">Transformer と自己教師あり学習</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/dl-lifecycle/index.html">AI の学習と推論, 評価, 再学習</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-processing/index.html">形態素解析, ワードクラウド, ユーザ定義辞書</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-syntax/index.html">係り受け解析とかな漢字変換</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-bert/index.html">BERT の事前学習とテキストの分類</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-generation/index.html">機械翻訳, 文章生成と生成 AI の仕組み</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-embedding/index.html">文章のベクトル, 次元削減と類似度</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-embedding-more/index.html">トピックモデル, n-gram, CLIP</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/dl-training-case/index.html">事例: 品目名の分類器を学習する</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/dl-training-procedure/index.html">Transformer の学習の手順</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/img-recognition/index.html">認識技術と手書き数字の認識</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <strong><a href="../../../fields/deep-learning/img-cnn/index.html" aria-current="true">畳み込みニューラルネットワーク</a></strong>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/img-age/index.html">顔画像による年代の分類</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/img-speech/index.html">音声認識の仕組み</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/img-more/index.html">ViT, 特徴量の可視化, Grad-CAM</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/img-age-code/index.html">年齢識別のコード全体</a>
+      
+      
+    </li>
+    
+  </ol>
+</nav>
+
+  </header>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../fields/deep-learning/img-recognition/exercises.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">演習 (認識技術と手書き数字の認識)</span>
+    </a>
+    <a class="next" href="../../../fields/deep-learning/img-cnn/cnn-models.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">代表的な CNN モデル</span>
+    </a>
+</nav>
+
+  
+  <nav class="block-prerequisites" aria-label="前提となるブロック">
+    <h2 id="block-prerequisites">前提となるブロック</h2>
+    <ul>
+      
+      <li><a href="../../../fields/deep-learning/img-recognition/index.html">認識技術と手書き数字の認識</a></li>
+      
+    </ul>
+  </nav>
+  
+  
+  <h2 id="cnn">畳み込みニューラルネットワーク</h2>
+<p><a href="../../../fields/deep-learning/img-recognition/digit-recognition.html#digit-recognition">手書き数字の認識</a>では, 画像を 64 個の値の並びにして全結合層に入力しました. 画像認識や音声認識のニューラルネットワークでは, 全結合層だけでなく, 画像の形を活かす<strong>畳み込みニューラルネットワーク (Convolutional Neural Network, CNN)</strong> が広く使われています.</p>
+<p>基本的な<a href="../../../fields/machine-learning/ml-network/network-architecture.html#ニューラルネットワークの構成">ニューラルネットワーク</a>は, 入力層, 全結合層と ReLU などの活性化関数による隠れ層, softmax 関数などによる出力層から構成されます.</p>
+<p><img src="../../../images/slds/ch14/nn-normal.png" /></p>
+<p>全結合層 (Affine Layer) では, 入力のすべてのニューロンが次の層のすべてのニューロンと結合します. そのため, 入力はすべて 1 列のベクトルに並べ直します. しかし画像データは, 縦, 横, チャンネル (RGB なら 3 チャンネル) の 3 次元の構造を持ちます. 例えば, 28 × 28 画素のグレースケール画像 (1 チャンネル) は, <span class="math inline">28 \times 28 \times 1</span> という構造です.</p>
+<p>画像を 1 列に並べ直すと, どの画素とどの画素が隣り合っているかという空間的な構造の情報が使われなくなります. <a href="../../../fields/deep-learning/img-recognition/digit-recognition.html#digits-mlp">手書き数字を識別する MLP</a> にとって, 左上の画素と右隣の画素は, 左上の画素と右下の画素と同じく「64 個のうちの 2 つ」にすぎません. そのため, 近くの画素がつくる線や角のような局所的な特徴を捉えにくくなります.</p>
+<p>そこで CNN では, <strong>畳み込み層 (Convolution Layer)</strong> と<strong>プーリング層 (Pooling Layer)</strong> を加えて, データの空間的な構造を取り込みます.</p>
+<p><img src="../../../images/slds/ch14/cnn.png" /></p>
+<div class="note">
+<ul>
+<li><h3 id="畳み込み層-convolution-layer">畳み込み層 (Convolution Layer)</h3></li>
+</ul>
+<p>畳み込み層は, 入力データ <span class="math inline">I</span> にフィルタ (カーネル) <span class="math inline">K</span> を適用して, 特徴マップ <span class="math inline">F</span> を生成します. 畳み込みの演算は次の式で表されます.</p>
+<p><span class="math display">
+F(x, y) = \sum_{i=1}^{m} \sum_{j=1}^{n} I(x+i, y+j) \cdot K(i, j)
+</span></p>
+<p><span class="math inline">I(x, y)</span>: 入力画像の画素の値 (例: グレースケール画像なら 0 から 255 の値), <span class="math inline">K(i, j)</span>: フィルタ (カーネル) の要素, <span class="math inline">m \times n</span>: フィルタの大きさ (例: <span class="math inline">3 \times 3</span>).</p>
+<p>フィルタを画像の上で少しずつずらしながら適用することで, 画像の中の特徴 (エッジや模様など) を取り出します.</p>
+<p>例として, <span class="math inline">4 \times 4</span> のグレースケール画像を考えます. 各要素は 0 から 255 の画素の値を持ちます.</p>
+<p>入力画像 <span class="math inline">I</span>:</p>
+<p><span class="math display">
+I =
+\begin{bmatrix}
+1 &amp; 2 &amp; 3 &amp; 0 \\
+0 &amp; 1 &amp; 2 &amp; 3 \\
+1 &amp; 0 &amp; 1 &amp; 2 \\
+2 &amp; 1 &amp; 0 &amp; 1
+\end{bmatrix}
+</span></p>
+<p>フィルタ <span class="math inline">K</span>:</p>
+<p><span class="math display">
+K =
+\begin{bmatrix}
+1 &amp; 0 &amp; -1 \\
+1 &amp; 0 &amp; -1 \\
+1 &amp; 0 &amp; -1
+\end{bmatrix}
+</span></p>
+<p>このフィルタは, <strong>垂直方向のエッジ (輪郭)</strong> を検出するカーネルとしてよく使われます.</p>
+<ul>
+<li><h3 id="畳み込み演算の手順">畳み込み演算の手順</h3></li>
+</ul>
+<p>畳み込み演算では, フィルタ <span class="math inline">K</span> を入力画像 <span class="math inline">I</span> に適用し, 次の手順を繰り返します.</p>
+<ol type="1">
+<li>フィルタ <span class="math inline">K</span> を入力画像 <span class="math inline">I</span> の一部 (局所領域) に重ねます.</li>
+<li>重なった要素同士を掛け算し, その結果を合計します.</li>
+<li>合計値を特徴マップ <span class="math inline">F</span> の対応する位置に記録します.</li>
+<li>フィルタをストライド (移動量) の分だけずらし, 同じ計算を繰り返します.</li>
+</ol>
+<p>ストライドは 1 (1 画素ずつ移動) とします. 入力画像が <span class="math inline">4 \times 4</span>, フィルタの大きさが <span class="math inline">3 \times 3</span>, ストライドが 1 の場合, 出力の特徴マップの大きさは次の式で計算されます.</p>
+<p><span class="math display">
+F_{\text{Size}} = \left( I_{\text{Size}} - K_{\text{Size}} \right) / \text{Stride} + 1
+</span></p>
+<p><span class="math display">
+F_{\text{Size}} = (4 - 3) / 1 + 1 = 2
+</span></p>
+<p>したがって, 出力の特徴マップ <span class="math inline">F</span> の大きさは <span class="math inline">2 \times 2</span> になります.</p>
+<p><strong>ステップ 1: フィルタを左上に重ねる</strong></p>
+<p>入力画像の左上の <span class="math inline">3 \times 3</span> の領域:</p>
+<p><span class="math display">
+\begin{bmatrix}
+1 &amp; 2 &amp; 3 \\
+0 &amp; 1 &amp; 2 \\
+1 &amp; 0 &amp; 1
+\end{bmatrix}
+</span></p>
+<p>フィルタ <span class="math inline">K</span> を適用します.</p>
+<p><span class="math display">
+F(1, 1) =
+\begin{bmatrix}
+1 &amp; 2 &amp; 3 \\
+0 &amp; 1 &amp; 2 \\
+1 &amp; 0 &amp; 1 \\
+\end{bmatrix}
+\cdot
+\begin{bmatrix}
+1 &amp; 0 &amp; -1 \\
+1 &amp; 0 &amp; -1 \\
+1 &amp; 0 &amp; -1
+\end{bmatrix} \\
+=
+(1 \cdot 1) + (0 \cdot 2) + (-1 \cdot 3) +
+(1 \cdot 0) + (0 \cdot 1) + (-1 \cdot 2) +
+(1 \cdot 1) + (0 \cdot 0) + (-1 \cdot 1) \\
+= 1 + 0 - 3 + 0 + 0 - 2 + 1 + 0 - 1 = -4
+</span></p>
+<p><img src="../../../images/slds/ch14/kernel1.png" /></p>
+<p><strong>ステップ 2: フィルタを右に 1 つ移動する</strong></p>
+<p>入力画像の次の領域:</p>
+<p><span class="math display">
+\begin{bmatrix}
+2 &amp; 3 &amp; 0 \\
+1 &amp; 2 &amp; 3 \\
+0 &amp; 1 &amp; 2
+\end{bmatrix}
+</span></p>
+<p>フィルタ <span class="math inline">K</span> を適用します.</p>
+<p><span class="math display">
+F(1, 2) =
+\begin{bmatrix}
+2 &amp; 3 &amp; 0 \\
+1 &amp; 2 &amp; 3 \\
+0 &amp; 1 &amp; 2 \\
+\end{bmatrix}
+\cdot
+\begin{bmatrix}
+1 &amp; 0 &amp; -1 \\
+1 &amp; 0 &amp; -1 \\
+1 &amp; 0 &amp; -1
+\end{bmatrix}
+= -2
+</span></p>
+<p><img src="../../../images/slds/ch14/kernel2.png" /></p>
+<p><strong>ステップ 3: フィルタを左下に移動する</strong></p>
+<p>入力画像の次の領域:</p>
+<p><span class="math display">
+\begin{bmatrix}
+0 &amp; 1 &amp; 2 \\
+1 &amp; 0 &amp; 1 \\
+2 &amp; 1 &amp; 0
+\end{bmatrix}
+</span></p>
+<p>フィルタ <span class="math inline">K</span> を適用します.</p>
+<p><span class="math display">
+F(2, 1) =
+\begin{bmatrix}
+0 &amp; 1 &amp; 2 \\
+1 &amp; 0 &amp; 1 \\
+2 &amp; 1 &amp; 0 \\
+\end{bmatrix}
+\cdot
+\begin{bmatrix}
+1 &amp; 0 &amp; -1 \\
+1 &amp; 0 &amp; -1 \\
+1 &amp; 0 &amp; -1
+\end{bmatrix}
+= 0
+</span></p>
+<p><img src="../../../images/slds/ch14/kernel3.png" /></p>
+<p><strong>ステップ 4: フィルタを右下に移動する</strong></p>
+<p>入力画像の次の領域:</p>
+<p><span class="math display">
+\begin{bmatrix}
+1 &amp; 2 &amp; 3 \\
+0 &amp; 1 &amp; 2 \\
+1 &amp; 0 &amp; 1
+\end{bmatrix}
+</span></p>
+<p>同様に計算します.</p>
+<p><span class="math display">
+F(2, 2) =
+\begin{bmatrix}
+1 &amp; 2 &amp; 3 \\
+0 &amp; 1 &amp; 2 \\
+1 &amp; 0 &amp; 1
+\end{bmatrix}
+\cdot
+\begin{bmatrix}
+1 &amp; 0 &amp; -1 \\
+1 &amp; 0 &amp; -1 \\
+1 &amp; 0 &amp; -1
+\end{bmatrix}
+= -4
+</span></p>
+<p><img src="../../../images/slds/ch14/kernel4.png" /></p>
+<p><strong>特徴マップの結果</strong></p>
+<p>畳み込み演算の結果として得られる特徴マップ <span class="math inline">F</span> は次のとおりです.</p>
+<p><span class="math display">
+F =
+\begin{bmatrix}
+-4 &amp; -2 \\
+0  &amp; -4
+\end{bmatrix}
+</span></p>
+<p><img src="../../../images/slds/ch14/kernel5.png" /></p>
+<p>この例の画像にカーネルを適用すると次のようになります.</p>
+<p><img src="../../../images/slds/ch14/after-applying-kernel.png" /></p>
+<p>4 × 4 の画像では単純すぎて効果が分かりにくいので, 我が家の犬の画像をグレースケールにしたものに, 同じカーネルを適用したのが次の画像です. 物体の垂直方向のエッジ (輪郭) だけが強調されています.</p>
+<p><img src="../../../images/slds/ch14/vertical-edge-detection.png" /></p>
+<p>ほかの代表的なカーネルには, 次のようなものがあります.</p>
+<p><img src="../../../images/slds/ch14/other-kernels.png" /></p>
+<ul>
+<li><h3 id="水平エッジ検出カーネル-horizontal-edge-detection-kernel">水平エッジ検出カーネル (Horizontal Edge Detection Kernel)</h3></li>
+</ul>
+<p><span class="math display">
+K_{\text{horizontal}} =
+\begin{bmatrix}
+1 &amp; 1 &amp; 1 \\
+0 &amp; 0 &amp; 0 \\
+-1 &amp; -1 &amp; -1
+\end{bmatrix}
+</span></p>
+<p>このカーネルは, 画像の中の水平方向のエッジを検出します. 上部の値 (<span class="math inline">+1</span>) と下部の値 (<span class="math inline">-1</span>) の符号が逆なので, 上下で明るさの違う境界で大きな値になります. 地平線や階段の段差のような水平の線を取り出すのに向いています.</p>
+<ul>
+<li><h3 id="シャープ化カーネル-sharpen-kernel">シャープ化カーネル (Sharpen Kernel)</h3></li>
+</ul>
+<p><span class="math display">
+K_{\text{sharpen}} =
+\begin{bmatrix}
+0 &amp; -1 &amp; 0 \\
+-1 &amp; 5 &amp; -1 \\
+0 &amp; -1 &amp; 0
+\end{bmatrix}
+</span></p>
+<p>中央の値 (<span class="math inline">5</span>) が大きく, 周囲の値 (<span class="math inline">-1</span>) が小さいので, 注目する画素と周囲の画素との明るさの差が強調されます. その結果, 画像のエッジや細部が際立ちます. エッジを目立たせたい場合や, ぼやけた画像を鮮明にする場合に使います.</p>
+<ul>
+<li><h3 id="ぼかし-ブラー-カーネル-blur-kernel">ぼかし (ブラー) カーネル (Blur Kernel)</h3></li>
+</ul>
+<p><span class="math display">
+K_{\text{blur}} =
+\frac{1}{9}
+\begin{bmatrix}
+1 &amp; 1 &amp; 1 \\
+1 &amp; 1 &amp; 1 \\
+1 &amp; 1 &amp; 1
+\end{bmatrix}
+</span></p>
+<p>このカーネルは, 隣接する画素の平均値を計算して, 画像全体を滑らかにします. 画素間の明るさの差が緩やかになるので, ノイズの低減に役立ちます. 背景の処理やノイズの軽減に使います.</p>
+<p>このように, フィルタの形や値によって, 異なる特徴 (エッジ, 模様など) を捉えられます. 畳み込みフィルタの各セルの値は, <a href="../../../fields/machine-learning/ml-network/network-architecture.html#ニューラルネットワークの構成">全結合層の重み</a> <span class="math inline">W</span> と同じ働きをし, CNN ではその値が学習の対象になります.</p>
+</div>
+<div class="note">
+<ul>
+<li><h3 id="プーリング層-pooling-layer">プーリング層 (Pooling Layer)</h3></li>
+</ul>
+<p>プーリング層は, 特徴マップを縮小して計算量を減らすとともに, 特徴の位置が少しずれても結果が変わりにくくする役割を持ちます. 例えば, <strong>最大プーリング (Max Pooling)</strong> は次の式で表されます.</p>
+<p><span class="math display">
+P(x, y) = \max_{i=1}^{m} \max_{j=1}^{n} F(x+i, y+j)
+</span></p>
+<p><span class="math inline">F(x, y)</span>: 入力の特徴マップ, <span class="math inline">P(x, y)</span>: プーリング後の特徴マップ, <span class="math inline">m \times n</span>: プーリングのウィンドウの大きさ (例: <span class="math inline">2 \times 2</span>).</p>
+<p>最大プーリングは, 各ウィンドウ内の最大値を取り出して, 特徴が最も強く表れた部分を残します. 画像中のエッジや明るい部分を強調するのに向いています.</p>
+<p>例として, <span class="math inline">4 \times 4</span> の行列に, <span class="math inline">2 \times 2</span> のウィンドウで最大プーリングを適用します.</p>
+<p>入力の行列:</p>
+<p><span class="math display">
+I =
+\begin{bmatrix}
+1 &amp; 3 &amp; 2 &amp; 1 \\
+4 &amp; 6 &amp; 5 &amp; 0 \\
+7 &amp; 8 &amp; 9 &amp; 2 \\
+3 &amp; 4 &amp; 1 &amp; 6
+\end{bmatrix}
+</span></p>
+<p>各 <span class="math inline">2 \times 2</span> のウィンドウ内の最大値を取り, 縮小された行列を作ります.</p>
+<p><span class="math display">
+\begin{bmatrix}
+1 &amp; 3 \\
+4 &amp; 6
+\end{bmatrix}
+\quad \text{最大値: } 6
+</span></p>
+<p><span class="math display">
+\begin{bmatrix}
+2 &amp; 1 \\
+5 &amp; 0
+\end{bmatrix}
+\quad \text{最大値: } 5
+</span></p>
+<p><span class="math display">
+\begin{bmatrix}
+7 &amp; 8 \\
+3 &amp; 4
+\end{bmatrix}
+\quad \text{最大値: } 8
+</span></p>
+<p><span class="math display">
+\begin{bmatrix}
+9 &amp; 2 \\
+1 &amp; 6
+\end{bmatrix}
+\quad \text{最大値: } 9
+</span></p>
+<p>出力の行列:</p>
+<p><span class="math display">
+P_{\text{max}} =
+\begin{bmatrix}
+6 &amp; 5 \\
+8 &amp; 9
+\end{bmatrix}
+</span></p>
+</div>
+<p>CNN の全体のデータの流れを式でまとめると, 次のようになります.</p>
+<div class="note">
+<ol type="1">
+<li>畳み込み層:</li>
+</ol>
+<p><span class="math display">
+F^{(l)} = f(W^{(l)} * F^{(l-1)} + b^{(l)})
+</span></p>
+<p><span class="math inline">W^{(l)}</span>: 畳み込みフィルタ (重み), <span class="math inline">F^{(l-1)}</span>: 前の層の特徴マップ, <span class="math inline">b^{(l)}</span>: バイアス, <span class="math inline">f</span>: 活性化関数 (例: ReLU).</p>
+<ol start="2" type="1">
+<li>プーリング層:</li>
+</ol>
+<p><span class="math display">
+P^{(l)} = \text{Pooling}(F^{(l)})
+</span></p>
+<ol start="3" type="1">
+<li>全結合層:</li>
+</ol>
+<p><span class="math display">
+Y = \text{Softmax}(WX + B)
+</span></p>
+<p><span class="math inline">W</span>: 全結合層の重み行列, <span class="math inline">X</span>: プーリング層の出力, <span class="math inline">B</span>: バイアス.</p>
+</div>
+<p>CNN は, 畳み込み層で特徴を取り出し, プーリング層でデータの次元を縮小し, 全結合層で最終的な予測を行います. <a href="../../../fields/deep-learning/img-recognition/pattern-recognition.html#pattern-recognition">パターン認識: 特徴抽出と識別</a>の 2 つの段階でいえば, 畳み込み層とプーリング層が特徴抽出に, 最後の全結合層が識別にあたります. 畳み込み層を何段も重ねると, 前の段で取り出したエッジを組み合わせて角や曲線を, さらにそれらを組み合わせて目や鼻のような部品を, というように, 段を追って複雑な特徴を取り出せるようになります.</p>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../fields/deep-learning/img-recognition/exercises.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">演習 (認識技術と手書き数字の認識)</span>
+    </a>
+    <a class="next" href="../../../fields/deep-learning/img-cnn/cnn-models.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">代表的な CNN モデル</span>
+    </a>
+</nav>
+
+</article>
+
+
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        <nav class="footer-nav" aria-label="フッターナビゲーション">
+            <a href="../../../">Home</a>
+            <a href="../../../posts.html">Blog</a>
+            <a href="../../../lectures.html">Lecture</a>
+            <a href="../../../research.html">Research</a>
+            <a href="../../../rss.xml">RSS</a>
+            <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+        </nav>
+        <p class="footer-copy">&copy; yakagika &middot; Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>.</p>
+    </div>
+</div>
+
+
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="ページ先頭へ戻る" title="先頭へ戻る">↑</button>
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+            link.classList.add('external-link');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level;
+          switch (heading.tagName.toLowerCase()) {
+            case 'h2': level = 0; break;
+            case 'h3': level = 1; break;
+            case 'h4': level = 2; break;
+            default: return;
+          }
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          // Pandoc は `::: note` + 見出し の組み合わせを <section id="..." class="note">
+          // 内の <hN> として出力するため, 見出し自身に id が無い場合は
+          // 親 section の id を辿る.
+          var anchorId = heading.id;
+          if (!anchorId) {
+            var parentSection = heading.closest('section[id]');
+            if (parentSection) anchorId = parentSection.id;
+          }
+          anchor.href = '#' + anchorId;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi && !li.contains(currentLi)) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+
+      // ----------------------------------------
+      // スクロールスパイ: 表示中の見出しを TOC でハイライト
+      // ----------------------------------------
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0 || typeof IntersectionObserver === 'undefined') return;
+
+      var idToTocItem = new Map();
+      headings.forEach(function(h) {
+        if (!h.id) return;
+        var link = tocContainer.querySelector('a[href="#' + CSS.escape(h.id) + '"]');
+        if (link) {
+          var li = link.closest('.toc-item') || link.closest('li');
+          if (li) idToTocItem.set(h.id, li);
+        }
+      });
+
+      var visible = new Set();
+      var lastActive = null;
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+
+        // ドキュメント順で最初に可視な見出しをアクティブに
+        var firstVisible = null;
+        for (var i = 0; i < headings.length; i++) {
+          if (visible.has(headings[i].id)) {
+            firstVisible = headings[i].id;
+            break;
+          }
+        }
+        if (!firstVisible) return;
+
+        var tocItem = idToTocItem.get(firstVisible);
+        if (!tocItem || tocItem === lastActive) return;
+
+        if (lastActive) lastActive.classList.remove('toc-active');
+        tocItem.classList.add('toc-active');
+        lastActive = tocItem;
+
+        // TOC を必要なときだけスクロール
+        tocItem.scrollIntoView({
+          block: 'nearest',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
+      }, {
+        // ヘッダー (60px) を除いた上部 〜 画面下から60% を判定領域とする
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0
+      });
+
+      headings.forEach(function(h) { if (h.id) observer.observe(h); });
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
+      const pre = codeBlock.parentNode;
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
+      copyButton.textContent = 'Copy';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    // パスワード保護付き details (回答例用)
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll('details.protected').forEach(function (det) {
+        var pass = det.getAttribute('data-pass') || '';
+        var summary = det.querySelector('summary');
+        if (!summary) return;
+
+        var gate = document.createElement('div');
+        gate.className = 'pass-gate';
+        gate.innerHTML =
+          '<label>合言葉: <input type="password" autocomplete="off" spellcheck="false"></label>' +
+          '<button type="button">解除</button>' +
+          '<span class="pass-error" hidden>合言葉が違います</span>';
+        summary.insertAdjacentElement('afterend', gate);
+
+        var input = gate.querySelector('input');
+        var button = gate.querySelector('button');
+        var errorMsg = gate.querySelector('.pass-error');
+
+        function tryUnlock() {
+          if (input.value === pass) {
+            det.classList.add('unlocked');
+            errorMsg.hidden = true;
+          } else {
+            errorMsg.hidden = false;
+            input.select();
+          }
+        }
+
+        button.addEventListener('click', tryUnlock);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
+        });
+
+        det.addEventListener('toggle', function () {
+          if (det.open && !det.classList.contains('unlocked')) {
+            input.focus();
+          }
+        });
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            try {
+              katex.render( texText.data
+                          , mathElements[i]
+                          , { displayMode: mathElements[i].classList.contains("display")
+                            , throwOnError: true
+                           }
+                          );
+            } catch (e) {
+              // 1 つの数式のエラーで残り全ての数式が生 TeX のまま残らないようにする
+              console.error('KaTeX render error:', e.message, texText.data);
+            }
+          }
+      }
+    });
+  </script>
+
+  <!-- 見出しアンカーリンク + Back to top -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 記事見出しに hover で現れる # パーマリンクを付与
+      document.querySelectorAll('article h2[id], article h3[id]').forEach(function (h) {
+        var a = document.createElement('a');
+        a.className = 'heading-anchor';
+        a.href = '#' + h.id;
+        a.setAttribute('aria-label', 'このセクションへのリンク');
+        a.textContent = '#';
+        h.appendChild(a);
+      });
+
+      // Back to top: スクロール量に応じて表示
+      var btt = document.getElementById('back-to-top');
+      if (btt) {
+        var onScroll = function () {
+          if (window.pageYOffset > 600) btt.classList.add('visible');
+          else btt.classList.remove('visible');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        btt.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
+    });
+  </script>
+
+  </body>
+</html>

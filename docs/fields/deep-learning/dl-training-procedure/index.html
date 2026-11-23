@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+    <script>
+      (function () {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+        function stored() {
+          var t = null;
+          try { t = localStorage.getItem('theme'); } catch (e) {}
+          return (t === 'dark' || t === 'light') ? t : null;
+        }
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
+        if (mq) {
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
+        }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
+      })();
+    </script>
+    <title>yakagika - Transformer の学習の手順</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../../../style.css?v=1795415080">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../../../" class="site-brand" aria-label="Home">
+          <span class="site-mark" aria-hidden="true">▮</span>
+          <span class="site-word">yakagika</span>
+        </a>
+      </div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../../../">Home</a>
+      <a href="../../../posts.html">Blog</a>
+      <a href="../../../lectures.html">Lecture</a>
+      <a href="../../../research.html">Research</a>
+      <a href="../../../lectures/seminar.html">Seminar</a>
+      <a href="../../../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      
+      <div id="lecture-toc" data-mode="series">
+  <h2>Index</h2>
+  <a href="../../../fields/deep-learning/index.html">深層学習とその応用</a>
+  <ul class="toc-root">
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/dl-transformer/index.html">Transformer と自己教師あり学習</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/dl-lifecycle/index.html">AI の学習と推論, 評価, 再学習</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-processing/index.html">形態素解析, ワードクラウド, ユーザ定義辞書</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-syntax/index.html">係り受け解析とかな漢字変換</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-bert/index.html">BERT の事前学習とテキストの分類</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-generation/index.html">機械翻訳, 文章生成と生成 AI の仕組み</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-embedding/index.html">文章のベクトル, 次元削減と類似度</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-embedding-more/index.html">トピックモデル, n-gram, CLIP</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/dl-training-case/index.html">事例: 品目名の分類器を学習する</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item current-block">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/dl-training-procedure/index.html">Transformer の学習の手順</a>
+        
+      </div>
+      
+      <ul class="toc-sublist">
+        
+        <li class="toc-item toc-series-item current">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/deep-learning/dl-training-procedure/index.html" aria-current="page">Transformer の学習の手順</a>
+          </div>
+          <ul class="toc-sublist"></ul>
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/deep-learning/dl-training-procedure/language-model-case.html">事例: 自然言語の Transformer を学習する</a>
+          </div>
+          
+        </li>
+        
+      </ul>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-recognition/index.html">認識技術と手書き数字の認識</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-cnn/index.html">畳み込みニューラルネットワーク</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-age/index.html">顔画像による年代の分類</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-speech/index.html">音声認識の仕組み</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-more/index.html">ViT, 特徴量の可視化, Grad-CAM</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-age-code/index.html">年齢識別のコード全体</a>
+        
+      </div>
+      
+    </li>
+    
+  </ul>
+</div>
+
+    </nav>
+
+    <div id="content">
+    
+<nav class="block-course-nav" aria-label="講義の並び">
+  <p>講義の並び</p>
+  <ul>
+    
+    <li class="course-occurrence">
+      <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+      <a href="../../../courses/dsp/9.html">第 9 回</a> (発展)
+      
+      <a href="../../../fields/deep-learning/dl-training-case/index.html" rel="prev">← 事例: 品目名の分類器を学習する</a>
+      
+      
+      
+      <a href="../../../fields/deep-learning/img-recognition/index.html" rel="next">認識技術と手書き数字の認識 →</a>
+      
+      
+    </li>
+    
+  </ul>
+</nav>
+
+
+
+<article>
+  
+  <header class="article-header">
+    <h1 class="article-title">Transformer の学習の手順</h1>
+<nav class="block-field-nav block-field-nav-narrow" aria-label="分野の目次">
+  <a href="../../../fields/deep-learning/index.html">深層学習とその応用</a>
+  <ol>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/dl-transformer/index.html">Transformer と自己教師あり学習</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/dl-lifecycle/index.html">AI の学習と推論, 評価, 再学習</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-processing/index.html">形態素解析, ワードクラウド, ユーザ定義辞書</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-syntax/index.html">係り受け解析とかな漢字変換</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-bert/index.html">BERT の事前学習とテキストの分類</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-generation/index.html">機械翻訳, 文章生成と生成 AI の仕組み</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-embedding/index.html">文章のベクトル, 次元削減と類似度</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-embedding-more/index.html">トピックモデル, n-gram, CLIP</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/dl-training-case/index.html">事例: 品目名の分類器を学習する</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <strong><a href="../../../fields/deep-learning/dl-training-procedure/index.html" aria-current="true">Transformer の学習の手順</a></strong>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/img-recognition/index.html">認識技術と手書き数字の認識</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/img-cnn/index.html">畳み込みニューラルネットワーク</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/img-age/index.html">顔画像による年代の分類</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/img-speech/index.html">音声認識の仕組み</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/img-more/index.html">ViT, 特徴量の可視化, Grad-CAM</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/img-age-code/index.html">年齢識別のコード全体</a>
+      
+      
+    </li>
+    
+  </ol>
+</nav>
+
+  </header>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../fields/deep-learning/dl-training-case/exercises.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">演習 (事例: 品目名の分類器を学習する)</span>
+    </a>
+    <a class="next" href="../../../fields/deep-learning/dl-training-procedure/language-model-case.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">事例: 自然言語の Transformer を学習する</span>
+    </a>
+</nav>
+
+  
+  <nav class="block-prerequisites" aria-label="前提となるブロック">
+    <h2 id="block-prerequisites">前提となるブロック</h2>
+    <ul>
+      
+      <li><a href="../../../fields/deep-learning/dl-training-case/index.html">事例: 品目名の分類器を学習する</a></li>
+      
+    </ul>
+  </nav>
+  
+  
+  <div class="warn">
+<p><a href="../../../fields/deep-learning/dl-training-procedure/language-model-case.html#事例-自然言語の-transformer-を学習する">事例: 自然言語の Transformer を学習する</a>の節は, 見出しと扱う内容の予定だけを載せています. それ以外の節は書き終えています.</p>
+</div>
+<h2 id="transformer-の学習の手順">Transformer の学習の手順</h2>
+<p><a href="../../../fields/deep-learning/dl-training-case/item-classification.html#事例-品目名から製造業の中分類を当てる">事例: 品目名から製造業の中分類を当てる</a>では, 交差エントロピー損失, AdamW, ウォームアップと線形減衰, 損失の推移の監視と早期終了を使って BERT を追加学習しました. これらの手順を事前学習を含む Transformer の学習一般に広げて説明します. 学習手順のコード例は, 品目名の事例のコードを実行したあとに続けて実行する前提です.</p>
+<h2 id="学習の目的関数">学習の目的関数</h2>
+<p>学習で小さくする関数を<strong>目的関数</strong>といいます. Transformer の学習では, 事前学習でも追加学習でも, 目的関数は予測した確率に対する交差エントロピー損失です. 違うのは, 1 つの文から作る問題の数と, クラスの数と, 正解の作り方です.</p>
+<p>品目名の事例では, 1 つの品目名から「24 の中分類のどれか」を当てる問題を 1 つ作り, 正解の中分類に付けた確率 <span class="math inline">p</span> から損失 <span class="math inline">-\log p</span> を求めました. <a href="../../../fields/deep-learning/dl-transformer/self-supervised-learning.html#自己教師あり学習">自己教師あり学習の次トークン予測</a>では, 文のトークンの並び <span class="math inline">x_1, x_2, \dots, x_n</span> の各位置で, それまでのトークンから次のトークンを当てる問題を作ります. クラスは語彙 (モデルが扱うトークンの一覧) のすべてのトークンです. 1 つの文から <span class="math inline">n-1</span> 個の問題ができるので, 損失はその平均です.</p>
+<p><span class="math display">
+L = -\frac{1}{n-1} \sum_{t=1}^{n-1} \log p(x_{t+1} \mid x_1, \dots, x_t)
+</span></p>
+<p><span class="math inline">p(x_{t+1} \mid x_1, \dots, x_t)</span> は, <span class="math inline">x_1</span> から <span class="math inline">x_t</span> までを読んだモデルが, 実際の次のトークン <span class="math inline">x_{t+1}</span> に付けた確率です. マスク予測では, <code>[MASK]</code> に置き換えた位置だけで, 元のトークンに付けた確率の対数を平均します.</p>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;"></th>
+<th style="text-align: left;">追加学習 (<a href="../../../fields/deep-learning/dl-training-case/item-classification.html#事例-品目名から製造業の中分類を当てる">品目名の事例</a>)</th>
+<th style="text-align: left;">事前学習 (次トークン予測)</th>
+<th style="text-align: left;">事前学習 (マスク予測)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">1 つの文から作る問題の数</td>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">トークンの数 - 1</td>
+<td style="text-align: left;"><code>[MASK]</code> にしたトークンの数</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">クラスの数</td>
+<td style="text-align: left;">24</td>
+<td style="text-align: left;">語彙の大きさ</td>
+<td style="text-align: left;">語彙の大きさ (<a href="../../../fields/deep-learning/nlp-bert/index.html#ニューラル言語モデル">BERT</a> では 32,000)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">正解</td>
+<td style="text-align: left;">人が付けた中分類</td>
+<td style="text-align: left;">文の次のトークン</td>
+<td style="text-align: left;">隠した元のトークン</td>
+</tr>
+</tbody>
+</table>
+<p>事前学習は正解を文そのものから作るので, 人が正解を付けなくても大量の文章で学習できます. 追加学習には人が付けた正解が必要ですが, 事前学習で語の使われ方を学んだ重みから始めるので, <a href="../../../fields/deep-learning/dl-training-case/item-classification.html#事例-品目名から製造業の中分類を当てる">品目名の分類事例</a>のように 2,000 件程度の例でも学習できます.</p>
+<h2 id="学習率とスケジューラ">学習率とスケジューラ</h2>
+<p>学習率をステップごとに変える仕組みを<strong>スケジューラ</strong>といいます. <a href="../../../fields/deep-learning/dl-training-case/item-classification.html#学習の手順を実行する">品目名の分類事例</a>では, ウォームアップの後に学習率を直線的に下げる線形減衰を使いました. 事前学習では, <strong>コサイン減衰</strong>もよく使われます. ウォームアップが終わったステップを <span class="math inline">t_w</span>, 最後のステップを <span class="math inline">T</span>, 学習率の最大値を <span class="math inline">\eta_{\max}</span> とすると, ステップ <span class="math inline">t</span> の学習率 <span class="math inline">\eta_t</span> は次の式で決まります.</p>
+<p><span class="math display">
+\eta_t = \frac{\eta_{\max}}{2} \left( 1 + \cos \left( \pi \frac{t - t_w}{T - t_w} \right) \right)
+</span></p>
+<p><span class="math inline">t = t_w</span> で <span class="math inline">\cos 0 = 1</span> なので <span class="math inline">\eta_t = \eta_{\max}</span>, <span class="math inline">t = T</span> で <span class="math inline">\cos \pi = -1</span> なので <span class="math inline">\eta_t = 0</span> になります. <a href="../../../fields/deep-learning/dl-training-case/item-classification.html#学習の手順を実行する">品目名の分類事例</a>と同じ 544 ステップ (8 エポック) で, 2 つの減衰の仕方を比べます.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> transformers <span class="im">import</span> get_cosine_schedule_with_warmup</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> learning_rates(make_scheduler, total_steps<span class="op">=</span><span class="dv">544</span>):</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;スケジューラを total_steps 回進め, 各ステップの学習率を返す.&quot;&quot;&quot;</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>    parameter <span class="op">=</span> torch.nn.Parameter(torch.zeros(<span class="dv">1</span>))  <span class="co"># 学習率の変化を見るためだけの重み</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>    optimizer <span class="op">=</span> torch.optim.AdamW([parameter], lr<span class="op">=</span>LEARNING_RATE)</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    scheduler <span class="op">=</span> make_scheduler(optimizer, <span class="bu">int</span>(WARMUP_RATIO <span class="op">*</span> total_steps), total_steps)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>    rates <span class="op">=</span> []</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(total_steps):</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>        rates.append(scheduler.get_last_lr()[<span class="dv">0</span>])</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>        optimizer.step()</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>        scheduler.step()</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> rates</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">6</span>, <span class="fl">3.5</span>))</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>ax.plot(learning_rates(get_linear_schedule_with_warmup), label<span class="op">=</span><span class="st">'線形減衰'</span>)</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>ax.plot(learning_rates(get_cosine_schedule_with_warmup), label<span class="op">=</span><span class="st">'コサイン減衰'</span>)</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">'ステップ'</span>)</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'学習率'</span>)</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>ax.legend()</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>fig.tight_layout()</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>plt.close(fig)</span></code></pre></div>
+<figure>
+<img src="../../../images/dsp/ch10/schedules.png" alt="線形減衰とコサイン減衰の学習率" />
+<figcaption aria-hidden="true">線形減衰とコサイン減衰の学習率</figcaption>
+</figure>
+<p>コサイン減衰は, ウォームアップの直後は線形減衰よりゆっくり下がり, 大きな学習率を長く保ちます. 終わりに近づくと線形減衰より速く下がり, 最後は 0 になだらかに近づきます. どちらが良いかは問題によって変わるので, 学習率の値と同じく, 検証用のデータで比べて選びます. <a href="../../../fields/deep-learning/dl-training-procedure/language-model-case.html#事例-自然言語の-transformer-を学習する">事例: 自然言語の Transformer を学習する</a>では, コサイン減衰を使います.</p>
+<h3 id="勾配のクリッピング">勾配のクリッピング</h3>
+<p>学習の途中で, あるバッチの勾配だけが急に大きくなることがあります. その勾配でそのまま更新すると, 重みが一度に大きく動き, 損失が跳ね上がって元に戻らなくなることがあります. これを学習の<strong>発散</strong>といいます. <strong>勾配のクリッピング (gradient clipping)</strong> は, 発散を防ぐための方法です. すべての重みの勾配を並べて 1 つのベクトルとみなし, その長さ (<strong>勾配のノルム</strong>) が上限 <span class="math inline">c</span> を超えたときは, 向きを変えずに長さを <span class="math inline">c</span> まで縮めます. 勾配のベクトルを <span class="math inline">g</span>, その長さを <span class="math inline">\|g\|</span> とすると, 次の式になります.</p>
+<p><span class="math display">
+g \leftarrow g \cdot \min \left( 1, \frac{c}{\|g\|} \right)
+</span></p>
+<p>PyTorch では, <code>loss.backward()</code> と <code>optimizer.step()</code> の間に 1 行加えます. 上限には 1.0 がよく使われます.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>loss.backward()</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>norm <span class="op">=</span> torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm<span class="op">=</span><span class="fl">1.0</span>)</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>optimizer.step()</span></code></pre></div>
+<p><code>clip_grad_norm_</code> は, 縮める前の勾配のノルムを返します. この値は<a href="#学習の監視">学習の監視</a>にも使います.</p>
+<h3 id="バッチサイズと勾配の蓄積">バッチサイズと勾配の蓄積</h3>
+<p>1 回の更新に使う例の数 (バッチサイズ) を大きくすると, 勾配の平均をとる例が増えるので, 勾配の揺れが小さくなります. その代わり, 1 回の順伝播と逆伝播で一度に計算する量が増え, 必要なメモリも増えます. メモリが足りず大きなバッチを一度に計算できないときは, <strong>勾配の蓄積 (gradient accumulation)</strong> を使います. 小さなバッチで逆伝播を何回か行って勾配を足し合わせ, 決めた回数ごとに 1 回だけ重みを更新する方法です.</p>
+<p>PyTorch では, <code>loss.backward()</code> を呼ぶたびに, 各重みの勾配が前の値に足されます. <code>optimizer.zero_grad()</code> を呼ぶまで勾配は消えないので, 勾配の蓄積は次のように書けます. 損失を <code>ACCUMULATION</code> で割るのは, 足し合わせた勾配を, 大きなバッチ全体の損失の平均に対する勾配に合わせるためです.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>ACCUMULATION <span class="op">=</span> <span class="dv">4</span>  <span class="co"># 何回分の勾配を足してから更新するか</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>SMALL_BATCH_SIZE <span class="op">=</span> BATCH_SIZE <span class="op">//</span> ACCUMULATION  <span class="co"># 一度に計算する数 (32 / 4 = 8)</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> step, i <span class="kw">in</span> <span class="bu">enumerate</span>(<span class="bu">range</span>(<span class="dv">0</span>, <span class="bu">len</span>(train_index), SMALL_BATCH_SIZE)):</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    encoding, y <span class="op">=</span> make_batch(train_index[i : i <span class="op">+</span> SMALL_BATCH_SIZE])</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    loss <span class="op">=</span> loss_function(model(<span class="op">**</span>encoding), y) <span class="op">/</span> ACCUMULATION</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    loss.backward()  <span class="co"># 勾配は前の値に足される</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (step <span class="op">+</span> <span class="dv">1</span>) <span class="op">%</span> ACCUMULATION <span class="op">==</span> <span class="dv">0</span>:</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>        optimizer.step()  <span class="co"># 4 回分の勾配で 1 回だけ更新する</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>        scheduler.step()</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>        optimizer.zero_grad()</span></code></pre></div>
+<p>ドロップアウトを外した状態 (<code>model.eval()</code>) で, 32 個の品目名の勾配を一度に求めた場合と, 8 個ずつ 4 回に分けて足し合わせた場合を比べると, 勾配の値の最大は 8.37, 2 つの差の最大は <span class="math inline">9.5 \times 10^{-7}</span> でした. 差は計算の丸めの誤差の大きさで, 2 つの方法は同じ勾配を求めています. 学習の途中ではドロップアウトの乱数が変わるので, 結果は完全には一致しません.</p>
+<h2 id="学習の監視">学習の監視</h2>
+<p><a href="../../../fields/deep-learning/dl-training-case/item-classification.html#学習の手順を実行する">品目名の分類事例</a>では, エポックごとに訓練用と検証用の損失を記録しました. 学習が長くなるほど, エポックの途中で起きた問題に早く気づく必要があります. そこで, ステップごとの訓練用の損失と勾配のノルムも記録します. 品目名の事例の学習のループで, <code>loss.backward()</code> の後を次のように書き換えます. 上限を無限大 (<code>float('inf')</code>) にすると, 勾配を縮めずにノルムだけを測れます.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>step_history <span class="op">=</span> []  <span class="co"># ステップごとの (訓練用の損失, 勾配のノルム)</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="co"># 学習のループの中で, loss.backward() の後に次を加える</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>norm <span class="op">=</span> torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm<span class="op">=</span><span class="bu">float</span>(<span class="st">'inf'</span>))</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>step_history.append((loss.item(), norm.item()))</span></code></pre></div>
+<p>次の図は, <a href="../../../fields/deep-learning/dl-training-case/item-classification.html#学習の手順を実行する">品目名の分類事例</a>で学習率を 3e-5 と 3e-4 にして, 早期終了をせずに 8 エポック学習したときの記録です. 細い線がステップごとの訓練用の損失, 丸がエポックの終わりの検証用の損失です.</p>
+<figure>
+<img src="../../../images/dsp/ch10/monitor.png" alt="ステップごとの訓練用の損失と勾配のノルム" />
+<figcaption aria-hidden="true">ステップごとの訓練用の損失と勾配のノルム</figcaption>
+</figure>
+<p>学習率 3e-4 では, 最初のエポックで損失が 3e-5 より速く下がり, 1 エポック目の検証用の損失も 3e-5 より小さくなります (3e-4 が 1.73, 3e-5 が 2.10). しかし, 検証用の損失はその後 1.2〜1.4 で止まり, 訓練用の損失だけが 0.01 まで下がります. 勾配のノルムも 3e-5 より大きく揺れ, 最大は 28.9 です (3e-5 は 16.9). 学習率 3e-4 に上限 1.0 の勾配のクリッピングを加えても, 検証用の損失の最小は 1.24 で, クリッピングなし (1.23) と変わりませんでした. この学習率で起きているのは発散ではないからです. 訓練用の損失は下がり続けており, 大きな学習率で重みが大きく動いたため, 事前学習で得た語の使われ方が崩れ, 訓練用の品目名だけに合わせた状態になったと考えられます. 対処は学習率を下げることです.</p>
+<p>監視の記録に表れる症状と, 考えられる原因と対処を表にまとめます.</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">症状</th>
+<th style="text-align: left;">考えられる原因</th>
+<th style="text-align: left;">対処</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">訓練用の損失が急に跳ね上がり, 元に戻らない. 損失が <code>nan</code> (計算できない値) になる</td>
+<td style="text-align: left;">学習率が大きい. あるバッチの勾配が急に大きくなった</td>
+<td style="text-align: left;">学習率を下げる. ウォームアップを長くする. 勾配のクリッピング</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">訓練用の損失は下がるのに, 検証用の損失が早い段階で下がらなくなる</td>
+<td style="text-align: left;">学習率が大きい. 過学習</td>
+<td style="text-align: left;">学習率を下げる. 早期終了</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">訓練用の損失も検証用の損失もゆっくりしか下がらない</td>
+<td style="text-align: left;">学習率が小さい. 学習が短い</td>
+<td style="text-align: left;">学習率を上げる. エポックを増やす</td>
+</tr>
+</tbody>
+</table>
+<h3 id="チェックポイントの保存と再開">チェックポイントの保存と再開</h3>
+<p><a href="../../../fields/deep-learning/dl-training-case/item-classification.html#学習の手順を実行する">品目名の分類事例</a>では, 検証用の損失が最小のときの重みをメモリ上に取っておきました. 学習が長くなると, 途中で PC が止まったり, Colab の接続が切れたりすることがあります. そこで, 学習の途中の状態を<strong>チェックポイント</strong>としてファイルに保存しておき, 止まったときはそこから再開します. 再開するには, モデルの重みだけでなく, AdamW が重みごとに覚えている過去の勾配の情報と, スケジューラが進めたステップの数も必要です.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 保存する (例えば, エポックの終わりごとに)</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>torch.save(</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    {</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>        <span class="st">'epoch'</span>: epoch <span class="op">+</span> <span class="dv">1</span>,</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>        <span class="st">'model'</span>: model.state_dict(),</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>        <span class="st">'optimizer'</span>: optimizer.state_dict(),</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>        <span class="st">'scheduler'</span>: scheduler.state_dict(),</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="st">'checkpoint.pt'</span>,</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="co"># 再開する (モデル, optimizer, scheduler を同じ設定で作り直した後に)</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>checkpoint <span class="op">=</span> torch.load(<span class="st">'checkpoint.pt'</span>)</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>model.load_state_dict(checkpoint[<span class="st">'model'</span>])</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>optimizer.load_state_dict(checkpoint[<span class="st">'optimizer'</span>])</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>scheduler.load_state_dict(checkpoint[<span class="st">'scheduler'</span>])</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>start_epoch <span class="op">=</span> checkpoint[<span class="st">'epoch'</span>]  <span class="co"># for epoch in range(start_epoch, EPOCHS): で続ける</span></span></code></pre></div>
+<h2 id="計算量とモデルの規模">計算量とモデルの規模</h2>
+<h3 id="自己注意の計算量">自己注意の計算量</h3>
+<p><a href="../../../fields/deep-learning/dl-transformer/index.html#自己注意と-transformer-の構成">Transformer の自己注意</a>では, 系列のトークンのすべての組について注意の重みを計算します. 系列の長さを <span class="math inline">n</span> とすると, 注意の重みは <span class="math inline">n \times n</span> の表になるので, 計算量と必要なメモリは <span class="math inline">n^2</span> に比例します. 一方, 各トークンに同じ変換を施す全結合層の計算量は <span class="math inline">n</span> に比例します. BERT base と同じ大きさ (ベクトルの次元 768, ヘッド 12 個) で, 系列の長さを変えて計算時間を測ります.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> time</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>torch.manual_seed(<span class="dv">0</span>)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>torch.set_num_threads(<span class="dv">4</span>)  <span class="co"># 測るたびに使う CPU の数が変わらないように固定する</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>D_MODEL, N_HEADS <span class="op">=</span> <span class="dv">768</span>, <span class="dv">12</span>  <span class="co"># BERT base と同じ大きさ</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>D_HEAD <span class="op">=</span> D_MODEL <span class="op">//</span> N_HEADS</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>ffn <span class="op">=</span> torch.nn.Sequential(  <span class="co"># Transformer の全結合層 (768 → 3072 → 768)</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    torch.nn.Linear(D_MODEL, <span class="dv">4</span> <span class="op">*</span> D_MODEL), torch.nn.GELU(), torch.nn.Linear(<span class="dv">4</span> <span class="op">*</span> D_MODEL, D_MODEL)</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> attention(q, k, v):</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;ヘッドごとに softmax(QK^T / sqrt(d)) V を計算する.&quot;&quot;&quot;</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    scores <span class="op">=</span> q <span class="op">@</span> k.transpose(<span class="op">-</span><span class="dv">2</span>, <span class="op">-</span><span class="dv">1</span>) <span class="op">/</span> D_HEAD<span class="op">**</span><span class="fl">0.5</span>  <span class="co"># (ヘッド, n, n) の注意の重み</span></span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> torch.softmax(scores, dim<span class="op">=-</span><span class="dv">1</span>) <span class="op">@</span> v</span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> measure(f, <span class="op">*</span>args, repeat<span class="op">=</span><span class="dv">5</span>):</span>
+<span id="cb6-20"><a href="#cb6-20" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;f を repeat 回実行し, かかった時間の中央値 (ミリ秒) を返す.&quot;&quot;&quot;</span></span>
+<span id="cb6-21"><a href="#cb6-21" aria-hidden="true" tabindex="-1"></a>    times <span class="op">=</span> []</span>
+<span id="cb6-22"><a href="#cb6-22" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(repeat):</span>
+<span id="cb6-23"><a href="#cb6-23" aria-hidden="true" tabindex="-1"></a>        start <span class="op">=</span> time.perf_counter()</span>
+<span id="cb6-24"><a href="#cb6-24" aria-hidden="true" tabindex="-1"></a>        f(<span class="op">*</span>args)</span>
+<span id="cb6-25"><a href="#cb6-25" aria-hidden="true" tabindex="-1"></a>        times.append((time.perf_counter() <span class="op">-</span> start) <span class="op">*</span> <span class="dv">1000</span>)</span>
+<span id="cb6-26"><a href="#cb6-26" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">sorted</span>(times)[repeat <span class="op">//</span> <span class="dv">2</span>]</span>
+<span id="cb6-27"><a href="#cb6-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-28"><a href="#cb6-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-29"><a href="#cb6-29" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> torch.no_grad():</span>
+<span id="cb6-30"><a href="#cb6-30" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> n <span class="kw">in</span> [<span class="dv">256</span>, <span class="dv">512</span>, <span class="dv">1024</span>, <span class="dv">2048</span>, <span class="dv">4096</span>]:</span>
+<span id="cb6-31"><a href="#cb6-31" aria-hidden="true" tabindex="-1"></a>        x <span class="op">=</span> torch.randn(n, D_MODEL)</span>
+<span id="cb6-32"><a href="#cb6-32" aria-hidden="true" tabindex="-1"></a>        q, k, v <span class="op">=</span> (torch.randn(N_HEADS, n, D_HEAD) <span class="cf">for</span> _ <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">3</span>))</span>
+<span id="cb6-33"><a href="#cb6-33" aria-hidden="true" tabindex="-1"></a>        t_attention <span class="op">=</span> measure(attention, q, k, v)</span>
+<span id="cb6-34"><a href="#cb6-34" aria-hidden="true" tabindex="-1"></a>        t_ffn <span class="op">=</span> measure(ffn, x)</span>
+<span id="cb6-35"><a href="#cb6-35" aria-hidden="true" tabindex="-1"></a>        memory <span class="op">=</span> N_HEADS <span class="op">*</span> n <span class="op">*</span> n <span class="op">*</span> <span class="dv">4</span> <span class="op">/</span> <span class="dv">2</span><span class="op">**</span><span class="dv">20</span>  <span class="co"># 注意の重みの表 (32 ビットの数) の大きさ</span></span>
+<span id="cb6-36"><a href="#cb6-36" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f'n=</span><span class="sc">{</span>n<span class="sc">:5d}</span><span class="ss">  自己注意 </span><span class="sc">{</span>t_attention<span class="sc">:7.1f}</span><span class="ss"> ms  全結合層 </span><span class="sc">{</span>t_ffn<span class="sc">:6.1f}</span><span class="ss"> ms  注意の重み </span><span class="sc">{</span>memory<span class="sc">:6.0f}</span><span class="ss"> MB'</span>)</span></code></pre></div>
+<p>Apple M5 Max の Mac の CPU で測った結果は次のとおりです.</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: right;">系列の長さ <span class="math inline">n</span></th>
+<th style="text-align: right;">自己注意</th>
+<th style="text-align: right;">全結合層</th>
+<th style="text-align: right;">注意の重みの表の大きさ</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">256</td>
+<td style="text-align: right;">7.3 ミリ秒</td>
+<td style="text-align: right;">24.4 ミリ秒</td>
+<td style="text-align: right;">3 MB</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">512</td>
+<td style="text-align: right;">12.1 ミリ秒</td>
+<td style="text-align: right;">34.7 ミリ秒</td>
+<td style="text-align: right;">12 MB</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1,024</td>
+<td style="text-align: right;">37.6 ミリ秒</td>
+<td style="text-align: right;">60.4 ミリ秒</td>
+<td style="text-align: right;">48 MB</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">2,048</td>
+<td style="text-align: right;">131.9 ミリ秒</td>
+<td style="text-align: right;">108.4 ミリ秒</td>
+<td style="text-align: right;">192 MB</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">4,096</td>
+<td style="text-align: right;">515.6 ミリ秒</td>
+<td style="text-align: right;">206.6 ミリ秒</td>
+<td style="text-align: right;">768 MB</td>
+</tr>
+</tbody>
+</table>
+<p>系列の長さが 2 倍になると, 長い系列では, 自己注意の時間はおよそ 4 倍 (2,048 から 4,096 で 3.9 倍), 全結合層の時間はおよそ 2 倍 (1.9 倍) になります. 短い系列では全結合層の方が時間がかかりますが, 2,048 で逆転します. 注意の重みの表は, 1 つの層の 1 つの文だけで, 4,096 トークンでは 768 MB になります. BERT が読める長さを 512 トークンまでにしているのも, 計算量とメモリを抑えるためです. 長い文書を扱うモデルでは, 注意を計算するトークンの組を減らす方法や, 表をメモリに一度に置かずに計算する方法が使われています.</p>
+<h3 id="パラメータ数と必要なメモリ">パラメータ数と必要なメモリ</h3>
+<p><a href="../../../fields/deep-learning/nlp-bert/multilabel-classification.html#マルチラベル分類">マルチラベル分類に使った日本語 BERT</a> のパラメータ (重み) の数は約 1.1 億 (110,617,344) です. 1 つの重みを 32 ビット (4 バイト) の浮動小数点数で持つと, 重みだけで約 0.44 GB になります. 学習では, 重みと同じ数の勾配と, AdamW が重みごとに覚えておく 2 つの値 (過去の勾配の平均と, 勾配の 2 乗の平均) も必要です.</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">学習で必要なもの</th>
+<th style="text-align: right;">1 つの重みあたり</th>
+<th style="text-align: right;">BERT base 全体</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">重み</td>
+<td style="text-align: right;">4 バイト</td>
+<td style="text-align: right;">0.44 GB</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">勾配</td>
+<td style="text-align: right;">4 バイト</td>
+<td style="text-align: right;">0.44 GB</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">AdamW の 2 つの値</td>
+<td style="text-align: right;">8 バイト</td>
+<td style="text-align: right;">0.88 GB</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">合計</td>
+<td style="text-align: right;">16 バイト</td>
+<td style="text-align: right;">1.77 GB</td>
+</tr>
+</tbody>
+</table>
+<p>これに加えて, 逆伝播のために順伝播の途中の値 (各層の出力や注意の重み) を保存しておくメモリが, バッチサイズと系列の長さに比例して必要になります. 推論では勾配と AdamW の値は要らないので, 重みの 0.44 GB と途中の値だけで済みます. <a href="../../../fields/deep-learning/dl-lifecycle/index.html#ai-の学習と推論-評価-再学習">AI の学習と推論, 評価, 再学習</a>で, 学習の計算量が推論よりずっと大きいと説明したのは, このためです.</p>
+<p><strong>混合精度 (mixed precision)</strong> による学習は, 順伝播と逆伝播の計算の多くを 16 ビットの浮動小数点数で行い, メモリと計算時間を減らす方法です. 16 ビットの数は 32 ビットの数の半分のメモリで済み, 対応した GPU では計算も速くなります. 16 ビットの数は表せる桁数が少ないので, 重みの更新は 32 ビットのまま行います. PyTorch では, 順伝播と損失の計算を <code>torch.autocast</code> の中に書きます. <code>bfloat16</code> は, 表せる値の範囲が 32 ビットの数と同じ 16 ビットの形式です.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> torch.autocast(device_type<span class="op">=</span>device.<span class="bu">type</span>, dtype<span class="op">=</span>torch.bfloat16):</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    loss <span class="op">=</span> loss_function(model(<span class="op">**</span>encoding), y)</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>loss.backward()  <span class="co"># 逆伝播と重みの更新は autocast の外で行う</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>optimizer.step()</span></code></pre></div>
+<p><a href="../../../fields/deep-learning/dl-training-case/item-classification.html#学習の手順を実行する">品目名の分類事例</a>の 1 エポックの学習時間は, Apple M5 Max の Mac の MPS で, 32 ビットの 9.1 秒に対し, 混合精度で 6.2 秒でした (それぞれ 2 回目の計測). 1 回目の計測では準備の時間が入り, 混合精度の方が遅くなりました. 速くなるかどうかは GPU によるので, 使う環境で確かめてから使います.</p>
+<h3 id="モデルの大きさ-データの量-計算量">モデルの大きさ, データの量, 計算量</h3>
+<p>言語モデルでは, モデルを大きくするほど, 学習に使うデータを増やすほど, 学習に使う計算量を増やすほど, 交差エントロピー損失が下がることが知られています. Kaplan らは, 損失がモデルの大きさ, データの量, 計算量のそれぞれのべき乗 (累乗) に従って下がる関係を, 多数の言語モデルを学習して確かめました (<a href="https://arxiv.org/abs/2001.08361">Kaplan et al., 2020</a>). この関係を<strong>スケーリング則</strong>といいます.</p>
+<p>使える計算量が決まっているときに, モデルの大きさとデータの量をどう配分すればよいかを調べたのが Hoffmann らです (<a href="https://arxiv.org/abs/2203.15556">Hoffmann et al., 2022</a>). 400 以上のモデルを学習した結果, モデルの大きさを 2 倍にするなら, 学習に使うトークンの数も 2 倍にするのがよいと報告しました. 当時の大きな言語モデルの多くは, 約 3,000 億トークンで学習されていました. 例えば Gopher は 2,800 億パラメータを 3,000 億トークンで学習しています. これに対し, 同じ程度の計算量で 700 億パラメータのモデル (Chinchilla) を 1.4 兆トークンで学習すると, Gopher より高い性能が得られました. 1 パラメータあたり 20 トークンほどです.</p>
+<p>この比で考えると, 1.1 億パラメータの BERT base には約 22 億トークンの文章が必要です. <a href="../../../fields/deep-learning/dl-training-procedure/language-model-case.html#事例-自然言語の-transformer-を学習する">自然言語の Transformer を学習する事例</a>で扱う文章はこれよりずっと少ないので, 大規模なモデルを一から学習するには足りません. そのため, <a href="../../../fields/deep-learning/dl-training-procedure/language-model-case.html#事例-自然言語の-transformer-を学習する">事例: 自然言語の Transformer を学習する</a>では数百万パラメータの小さなモデルを一から学習し, 実務では事前学習済みのモデルを追加学習して使います.</p>
+<h2 id="事前学習済みモデルの追加学習">事前学習済みモデルの追加学習</h2>
+<p>品目名の事例では, BERT のすべての重みと, 出力の線形変換を更新しました. この比較では, 更新する範囲, 元の能力への影響, 訓練データの量を変えて, 追加学習の性質を確かめます.</p>
+<h3 id="追加学習で元の能力が失われる">追加学習で元の能力が失われる</h3>
+<p>追加学習では, 品目名を分類しやすいように BERT の重みも変わります. その結果, 事前学習で身に付けたマスク予測の能力がどう変わるかを確かめます. 事前学習済みの BERT にマスク予測の出力層を付けたモデル (<code>BertForMaskedLM</code>) を読み込み, <code>[MASK]</code> に入るトークンの候補を表示します. 次に, その BERT の部分を, <a href="../../../fields/deep-learning/dl-training-case/item-classification.html#学習の手順を実行する">品目名の分類事例</a>で追加学習した重みに入れ替えて, 同じ文で比べます. 出力層は事前学習のときのままです.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> transformers <span class="im">import</span> BertForMaskedLM</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>mlm <span class="op">=</span> BertForMaskedLM.from_pretrained(MODEL_NAME).to(device)</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>mlm.<span class="bu">eval</span>()</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> fill_mask(sentence, top<span class="op">=</span><span class="dv">5</span>):</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;[MASK] の位置に入るトークンの候補を, 確率の高い順に返す.&quot;&quot;&quot;</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    encoding <span class="op">=</span> tokenizer(sentence, return_tensors<span class="op">=</span><span class="st">'pt'</span>).to(device)</span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    position <span class="op">=</span> (encoding[<span class="st">'input_ids'</span>][<span class="dv">0</span>] <span class="op">==</span> tokenizer.mask_token_id).nonzero()[<span class="dv">0</span>, <span class="dv">0</span>]</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> torch.no_grad():</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>        probability <span class="op">=</span> torch.softmax(mlm(<span class="op">**</span>encoding).logits[<span class="dv">0</span>, position], dim<span class="op">=-</span><span class="dv">1</span>)</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>    best <span class="op">=</span> probability.topk(top)</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> [</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>        (tokenizer.convert_ids_to_tokens(<span class="bu">int</span>(i)), <span class="bu">round</span>(<span class="bu">float</span>(p), <span class="dv">2</span>))</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> p, i <span class="kw">in</span> <span class="bu">zip</span>(best.values, best.indices)</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>    ]</span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>sentences <span class="op">=</span> [<span class="st">'東京は日本の[MASK]です。'</span>, <span class="st">'私は毎朝[MASK]を飲みます。'</span>]</span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> sentence <span class="kw">in</span> sentences:</span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(sentence, fill_mask(sentence))</span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a><span class="co"># BERT の部分を, 品目名の事例で追加学習した重みに入れ替える</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>mlm.bert.load_state_dict(model.bert.state_dict(), strict<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> sentence <span class="kw">in</span> sentences:</span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(sentence, fill_mask(sentence))</span></code></pre></div>
+<p><code>strict=False</code> は, 品目名のモデルにだけある重み (<code>[CLS]</code> の出力を変換する層) を無視して読み込む指定です. 結果は次のとおりです. 括弧の中は確率です.</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">文</th>
+<th style="text-align: left;">追加学習の前</th>
+<th style="text-align: left;">追加学習の後</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><code>東京は日本の[MASK]です。</code></td>
+<td style="text-align: left;">地名 (0.16), 首都 (0.14), 中学校 (0.08), 大学 (0.07), 小学校 (0.06)</td>
+<td style="text-align: left;">小学校 (0.44), 中学校 (0.14), 首都 (0.06), 大学 (0.05), 都 (0.03)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>私は毎朝[MASK]を飲みます。</code></td>
+<td style="text-align: left;">コーヒー (0.35), 酒 (0.16), ビール (0.11), ワイン (0.08), お茶 (0.06)</td>
+<td style="text-align: left;"><code>[UNK]</code> (0.12), <code>、</code> (0.11), お (0.05), コーヒー (0.04), 水 (0.03)</td>
+</tr>
+</tbody>
+</table>
+<p>追加学習の前は, 2 つの文とも文脈に合う語が上位に並びます. 追加学習の後は, 「飲みます」の前に入る語の候補に, 未知のトークン <code>[UNK]</code> や読点が上位に来ます. 品目名の分類に合わせて重みが動いたため, 事前学習で身に付けた語の予測の能力の一部が失われたのです. この現象を<strong>破滅的忘却 (catastrophic forgetting)</strong> といいます.</p>
+<p>2 文だけでなく, <a href="../../../fields/deep-learning/dl-training-procedure/language-model-case.html#事例-自然言語の-transformer-を学習する">自然言語の Transformer を学習する事例</a>で使う夏目漱石の『こころ』の 300 行で, 15% のトークンを <code>[MASK]</code> にしてマスク予測の損失を測りました. 追加学習の前は 2.68, 追加学習の後は 2.92〜2.97 でした (種を 3 通りに変えた範囲). 1 つの課題に合わせて追加学習したモデルは, 別の課題では事前学習済みのモデルより性能が下がることがあります. 別の課題に使うときは, 元の事前学習済みのモデルから追加学習をやり直します.</p>
+<h3 id="更新する範囲を変える">更新する範囲を変える</h3>
+<p>BERT の重みの一部を固定し (更新しないようにし), 残りだけを学習することもできます. 固定する重みは <code>requires_grad</code> を <code>False</code> にして, 勾配を計算しないようにします. 次のコードは, BERT の 12 層のうち上位 2 層と出力の線形変換だけを学習する設定です.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> BertForClassification(MODEL_NAME, num_classes<span class="op">=</span><span class="bu">len</span>(classes)).to(device)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>model.bert.set_attn_implementation(<span class="st">'eager'</span>)  <span class="co"># 重みを固定した層でもドロップアウトを使えるようにする</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="co"># BERT の重みをすべて固定する</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> parameter <span class="kw">in</span> model.bert.parameters():</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>    parameter.requires_grad <span class="op">=</span> <span class="va">False</span></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="co"># 上位 2 層だけ固定を外す (線形変換だけを学習するときは, この 3 行を消す)</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> layer <span class="kw">in</span> model.bert.encoder.layer[<span class="op">-</span><span class="dv">2</span>:]:</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> parameter <span class="kw">in</span> layer.parameters():</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>        parameter.requires_grad <span class="op">=</span> <span class="va">True</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>n_trainable <span class="op">=</span> <span class="bu">sum</span>(p.numel() <span class="cf">for</span> p <span class="kw">in</span> model.parameters() <span class="cf">if</span> p.requires_grad)</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>n_total <span class="op">=</span> <span class="bu">sum</span>(p.numel() <span class="cf">for</span> p <span class="kw">in</span> model.parameters())</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'学習する重み: </span><span class="sc">{</span>n_trainable<span class="sc">:,}</span><span class="ss"> / </span><span class="sc">{</span>n_total<span class="sc">:,}</span><span class="ss">'</span>)</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-16"><a href="#cb9-16" aria-hidden="true" tabindex="-1"></a><span class="co"># 固定していない重みだけを AdamW に渡す</span></span>
+<span id="cb9-17"><a href="#cb9-17" aria-hidden="true" tabindex="-1"></a>optimizer <span class="op">=</span> torch.optim.AdamW(</span>
+<span id="cb9-18"><a href="#cb9-18" aria-hidden="true" tabindex="-1"></a>    [p <span class="cf">for</span> p <span class="kw">in</span> model.parameters() <span class="cf">if</span> p.requires_grad], lr<span class="op">=</span>LEARNING_RATE</span>
+<span id="cb9-19"><a href="#cb9-19" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb9-20"><a href="#cb9-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-21"><a href="#cb9-21" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb9-22"><a href="#cb9-22" aria-hidden="true" tabindex="-1"></a><span class="co">学習する重み: 14,194,200 / 110,635,800</span></span>
+<span id="cb9-23"><a href="#cb9-23" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>2 行目の <code>set_attn_implementation('eager')</code> は, 注意の計算を PyTorch の基本的な演算で行う指定です. これがないと, MPS では, 重みを固定した層でドロップアウトを使う計算がエラーになる場合があります. この後の学習のループ (スケジューラの作成を含む) は, <a href="../../../fields/deep-learning/dl-training-case/item-classification.html#学習の手順を実行する">品目名の分類事例</a>と同じです.</p>
+<p>更新する範囲を 3 通りに変え, それぞれ学習率を検証用の損失で選んで比べました. 線形変換だけを学習する場合は, 更新する重みが少なく学習が進みにくいので, <code>EPOCHS</code> を 20 にしています. 時間を公平に比べるため, 3 通りとも <code>set_attn_implementation('eager')</code> を指定しました. 種を 3 通りに変えた範囲を示します.</p>
+<table>
+<colgroup>
+<col style="width: 12%" />
+<col style="width: 12%" />
+<col style="width: 12%" />
+<col style="width: 12%" />
+<col style="width: 12%" />
+<col style="width: 12%" />
+<col style="width: 12%" />
+<col style="width: 12%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">更新する範囲</th>
+<th style="text-align: right;">学習する重み</th>
+<th style="text-align: right;">学習率</th>
+<th style="text-align: right;">1 エポックの時間</th>
+<th style="text-align: right;">検証用の損失</th>
+<th style="text-align: right;">Accuracy</th>
+<th style="text-align: right;">Recall の平均</th>
+<th style="text-align: right;">マスク予測の損失</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">全部</td>
+<td style="text-align: right;">110,635,800</td>
+<td style="text-align: right;">3e-5</td>
+<td style="text-align: right;">10〜11 秒</td>
+<td style="text-align: right;">0.93〜0.99</td>
+<td style="text-align: right;">0.72〜0.76</td>
+<td style="text-align: right;">0.69〜0.75</td>
+<td style="text-align: right;">2.92〜2.97</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">上位 2 層と線形変換</td>
+<td style="text-align: right;">14,194,200</td>
+<td style="text-align: right;">1e-4</td>
+<td style="text-align: right;">6〜7 秒</td>
+<td style="text-align: right;">1.01〜1.03</td>
+<td style="text-align: right;">0.72〜0.74</td>
+<td style="text-align: right;">0.70〜0.72</td>
+<td style="text-align: right;">3.07〜3.09</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">線形変換だけ</td>
+<td style="text-align: right;">18,456</td>
+<td style="text-align: right;">3e-3</td>
+<td style="text-align: right;">5 秒</td>
+<td style="text-align: right;">1.17〜1.19</td>
+<td style="text-align: right;">0.65〜0.67</td>
+<td style="text-align: right;">0.64〜0.66</td>
+<td style="text-align: right;">2.68</td>
+</tr>
+</tbody>
+</table>
+<p>学習率の候補は, 上位 2 層では 3e-5, 1e-4, 3e-4, 線形変換だけでは 1e-3, 3e-3, 1e-2 で, 検証用の損失が最も小さいものを選びました. 更新する範囲が狭いほど, 大きな学習率が合います.</p>
+<ul>
+<li><strong>上位 2 層と線形変換</strong>: 学習する重みは全体の 13% ですが, Accuracy と Recall の平均は全部を更新した場合と重なる範囲に入ります. 1 エポックの時間は 6 割ほどです. 逆伝播で下位の 10 層の勾配を計算しなくて済むからです. 一方, マスク予測の損失は, 全部を更新した場合より大きくなりました. マスク予測の出力層が読むのは最上位の層の出力なので, 上位の層だけを大きな学習率で動かすと, その出力が大きく変わるためと考えられます.</li>
+<li><strong>線形変換だけ</strong>: BERT の重みは変わらないので, マスク予測の損失も変わりません. Accuracy は 0.65〜0.67 で, BERT を更新する場合より低くなります. それでも, <a href="../../../fields/deep-learning/dl-training-case/item-classification.html#発展-追加学習しない分類と比べる">追加学習しない分類と比べる</a>で訓練データの平均と比べた方法 (0.52) よりは高くなります.</li>
+</ul>
+<p>元の能力を保つことを重視するなら一部だけを更新し, 課題の性能を重視するなら全部を更新する, というように目的に合わせて選びます. 大規模な言語モデルでは, 全部を更新するとメモリが足りないことが多いので, 一部の重みだけを更新する方法が広く使われています.</p>
+<h3 id="訓練データの量を変える">訓練データの量を変える</h3>
+<p>訓練データの量を変えると, 性能がどう変わるかを確かめます. 学習用のデータから, 中分類の割合をそろえて 10% と 30% を抜き出します.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>FRACTION <span class="op">=</span> <span class="fl">0.1</span>  <span class="co"># 学習用のデータのうち使う割合</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>train_index, _ <span class="op">=</span> train_test_split(</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    train_index, train_size<span class="op">=</span>FRACTION, stratify<span class="op">=</span>labels[train_index], random_state<span class="op">=</span><span class="dv">0</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>train_index <span class="op">=</span> <span class="bu">list</span>(train_index)</span></code></pre></div>
+<p>データを減らすと, 1 エポックのステップの数も減ります. 8 エポックでは学習が足りなかったので, <code>EPOCHS</code> を 10% では 50, 30% では 30 にし, 早期終了で止めました. 検証用とテスト用のデータは同じです. 全部を更新し, 種を 3 通りに変えた範囲を示します.</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">訓練データ</th>
+<th style="text-align: right;">品目の数</th>
+<th style="text-align: right;">Accuracy</th>
+<th style="text-align: right;">Recall の平均</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">10%</td>
+<td style="text-align: right;">216</td>
+<td style="text-align: right;">0.47〜0.49</td>
+<td style="text-align: right;">0.39〜0.42</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">30%</td>
+<td style="text-align: right;">650</td>
+<td style="text-align: right;">0.64〜0.65</td>
+<td style="text-align: right;">0.59〜0.62</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">100%</td>
+<td style="text-align: right;">2,169</td>
+<td style="text-align: right;">0.72〜0.76</td>
+<td style="text-align: right;">0.69〜0.75</td>
+</tr>
+</tbody>
+</table>
+<p>10% の 216 品目は, 1 つの中分類あたり 9 品目ほどです. この量では, 学習を長くしても Accuracy は 0.5 に届きません. Recall の平均はさらに低く, 品目の少ない中分類はほとんど当たらなくなります. <a href="../../../fields/deep-learning/nlp-bert/multilabel-classification.html#マルチラベル分類">感情の分類</a>では, 640 文で正解率 0.73〜0.75, 1,929 文で 0.87 でした. ただし, 感情の分類は 3 つのラベルの分類で, 24 クラスの品目名の分類とは課題の難しさが違うので, 数字をそのまま比べることはできません. 追加学習に必要なデータの量は, 課題ごとに, データの量を変えて確かめます.</p>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../fields/deep-learning/dl-training-case/exercises.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">演習 (事例: 品目名の分類器を学習する)</span>
+    </a>
+    <a class="next" href="../../../fields/deep-learning/dl-training-procedure/language-model-case.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">事例: 自然言語の Transformer を学習する</span>
+    </a>
+</nav>
+
+</article>
+
+
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        <nav class="footer-nav" aria-label="フッターナビゲーション">
+            <a href="../../../">Home</a>
+            <a href="../../../posts.html">Blog</a>
+            <a href="../../../lectures.html">Lecture</a>
+            <a href="../../../research.html">Research</a>
+            <a href="../../../rss.xml">RSS</a>
+            <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+        </nav>
+        <p class="footer-copy">&copy; yakagika &middot; Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>.</p>
+    </div>
+</div>
+
+
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="ページ先頭へ戻る" title="先頭へ戻る">↑</button>
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+            link.classList.add('external-link');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level;
+          switch (heading.tagName.toLowerCase()) {
+            case 'h2': level = 0; break;
+            case 'h3': level = 1; break;
+            case 'h4': level = 2; break;
+            default: return;
+          }
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          // Pandoc は `::: note` + 見出し の組み合わせを <section id="..." class="note">
+          // 内の <hN> として出力するため, 見出し自身に id が無い場合は
+          // 親 section の id を辿る.
+          var anchorId = heading.id;
+          if (!anchorId) {
+            var parentSection = heading.closest('section[id]');
+            if (parentSection) anchorId = parentSection.id;
+          }
+          anchor.href = '#' + anchorId;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi && !li.contains(currentLi)) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+
+      // ----------------------------------------
+      // スクロールスパイ: 表示中の見出しを TOC でハイライト
+      // ----------------------------------------
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0 || typeof IntersectionObserver === 'undefined') return;
+
+      var idToTocItem = new Map();
+      headings.forEach(function(h) {
+        if (!h.id) return;
+        var link = tocContainer.querySelector('a[href="#' + CSS.escape(h.id) + '"]');
+        if (link) {
+          var li = link.closest('.toc-item') || link.closest('li');
+          if (li) idToTocItem.set(h.id, li);
+        }
+      });
+
+      var visible = new Set();
+      var lastActive = null;
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+
+        // ドキュメント順で最初に可視な見出しをアクティブに
+        var firstVisible = null;
+        for (var i = 0; i < headings.length; i++) {
+          if (visible.has(headings[i].id)) {
+            firstVisible = headings[i].id;
+            break;
+          }
+        }
+        if (!firstVisible) return;
+
+        var tocItem = idToTocItem.get(firstVisible);
+        if (!tocItem || tocItem === lastActive) return;
+
+        if (lastActive) lastActive.classList.remove('toc-active');
+        tocItem.classList.add('toc-active');
+        lastActive = tocItem;
+
+        // TOC を必要なときだけスクロール
+        tocItem.scrollIntoView({
+          block: 'nearest',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
+      }, {
+        // ヘッダー (60px) を除いた上部 〜 画面下から60% を判定領域とする
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0
+      });
+
+      headings.forEach(function(h) { if (h.id) observer.observe(h); });
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
+      const pre = codeBlock.parentNode;
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
+      copyButton.textContent = 'Copy';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    // パスワード保護付き details (回答例用)
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll('details.protected').forEach(function (det) {
+        var pass = det.getAttribute('data-pass') || '';
+        var summary = det.querySelector('summary');
+        if (!summary) return;
+
+        var gate = document.createElement('div');
+        gate.className = 'pass-gate';
+        gate.innerHTML =
+          '<label>合言葉: <input type="password" autocomplete="off" spellcheck="false"></label>' +
+          '<button type="button">解除</button>' +
+          '<span class="pass-error" hidden>合言葉が違います</span>';
+        summary.insertAdjacentElement('afterend', gate);
+
+        var input = gate.querySelector('input');
+        var button = gate.querySelector('button');
+        var errorMsg = gate.querySelector('.pass-error');
+
+        function tryUnlock() {
+          if (input.value === pass) {
+            det.classList.add('unlocked');
+            errorMsg.hidden = true;
+          } else {
+            errorMsg.hidden = false;
+            input.select();
+          }
+        }
+
+        button.addEventListener('click', tryUnlock);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
+        });
+
+        det.addEventListener('toggle', function () {
+          if (det.open && !det.classList.contains('unlocked')) {
+            input.focus();
+          }
+        });
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            try {
+              katex.render( texText.data
+                          , mathElements[i]
+                          , { displayMode: mathElements[i].classList.contains("display")
+                            , throwOnError: true
+                           }
+                          );
+            } catch (e) {
+              // 1 つの数式のエラーで残り全ての数式が生 TeX のまま残らないようにする
+              console.error('KaTeX render error:', e.message, texText.data);
+            }
+          }
+      }
+    });
+  </script>
+
+  <!-- 見出しアンカーリンク + Back to top -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 記事見出しに hover で現れる # パーマリンクを付与
+      document.querySelectorAll('article h2[id], article h3[id]').forEach(function (h) {
+        var a = document.createElement('a');
+        a.className = 'heading-anchor';
+        a.href = '#' + h.id;
+        a.setAttribute('aria-label', 'このセクションへのリンク');
+        a.textContent = '#';
+        h.appendChild(a);
+      });
+
+      // Back to top: スクロール量に応じて表示
+      var btt = document.getElementById('back-to-top');
+      if (btt) {
+        var onScroll = function () {
+          if (window.pageYOffset > 600) btt.classList.add('visible');
+          else btt.classList.remove('visible');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        btt.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
+    });
+  </script>
+
+  </body>
+</html>

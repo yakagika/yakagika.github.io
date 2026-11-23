@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+    <script>
+      (function () {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+        function stored() {
+          var t = null;
+          try { t = localStorage.getItem('theme'); } catch (e) {}
+          return (t === 'dark' || t === 'light') ? t : null;
+        }
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
+        if (mq) {
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
+        }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
+      })();
+    </script>
+    <title>yakagika - 顔画像による年代の分類</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../../../style.css?v=1795415080">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../../../" class="site-brand" aria-label="Home">
+          <span class="site-mark" aria-hidden="true">▮</span>
+          <span class="site-word">yakagika</span>
+        </a>
+      </div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../../../">Home</a>
+      <a href="../../../posts.html">Blog</a>
+      <a href="../../../lectures.html">Lecture</a>
+      <a href="../../../research.html">Research</a>
+      <a href="../../../lectures/seminar.html">Seminar</a>
+      <a href="../../../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      
+      <div id="lecture-toc" data-mode="series">
+  <h2>Index</h2>
+  <a href="../../../fields/deep-learning/index.html">深層学習とその応用</a>
+  <ul class="toc-root">
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/dl-transformer/index.html">Transformer と自己教師あり学習</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/dl-lifecycle/index.html">AI の学習と推論, 評価, 再学習</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-processing/index.html">形態素解析, ワードクラウド, ユーザ定義辞書</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-syntax/index.html">係り受け解析とかな漢字変換</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-bert/index.html">BERT の事前学習とテキストの分類</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-generation/index.html">機械翻訳, 文章生成と生成 AI の仕組み</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-embedding/index.html">文章のベクトル, 次元削減と類似度</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-embedding-more/index.html">トピックモデル, n-gram, CLIP</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/dl-training-case/index.html">事例: 品目名の分類器を学習する</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/dl-training-procedure/index.html">Transformer の学習の手順</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-recognition/index.html">認識技術と手書き数字の認識</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-cnn/index.html">畳み込みニューラルネットワーク</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item current-block">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-age/index.html">顔画像による年代の分類</a>
+        
+      </div>
+      
+      <ul class="toc-sublist">
+        
+        <li class="toc-item toc-series-item current">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/deep-learning/img-age/index.html" aria-current="page">顔による年齢識別</a>
+          </div>
+          <ul class="toc-sublist"></ul>
+        </li>
+        
+      </ul>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-speech/index.html">音声認識の仕組み</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-more/index.html">ViT, 特徴量の可視化, Grad-CAM</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-age-code/index.html">年齢識別のコード全体</a>
+        
+      </div>
+      
+    </li>
+    
+  </ul>
+</div>
+
+    </nav>
+
+    <div id="content">
+    
+<nav class="block-course-nav" aria-label="講義の並び">
+  <p>講義の並び</p>
+  <ul>
+    
+    <li class="course-occurrence">
+      <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+      <a href="../../../courses/dsp/10.html">第 10 回</a> (必修)
+      
+      <a href="../../../fields/deep-learning/img-cnn/index.html" rel="prev">← 畳み込みニューラルネットワーク</a>
+      
+      
+      
+      <a href="../../../fields/deep-learning/img-speech/index.html" rel="next">音声認識の仕組み →</a>
+      
+      
+    </li>
+    
+  </ul>
+</nav>
+
+
+
+<article>
+  
+  <header class="article-header">
+    <h1 class="article-title">顔画像による年代の分類</h1>
+<nav class="block-field-nav block-field-nav-narrow" aria-label="分野の目次">
+  <a href="../../../fields/deep-learning/index.html">深層学習とその応用</a>
+  <ol>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/dl-transformer/index.html">Transformer と自己教師あり学習</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/dl-lifecycle/index.html">AI の学習と推論, 評価, 再学習</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-processing/index.html">形態素解析, ワードクラウド, ユーザ定義辞書</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-syntax/index.html">係り受け解析とかな漢字変換</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-bert/index.html">BERT の事前学習とテキストの分類</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-generation/index.html">機械翻訳, 文章生成と生成 AI の仕組み</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-embedding/index.html">文章のベクトル, 次元削減と類似度</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-embedding-more/index.html">トピックモデル, n-gram, CLIP</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/dl-training-case/index.html">事例: 品目名の分類器を学習する</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/dl-training-procedure/index.html">Transformer の学習の手順</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/img-recognition/index.html">認識技術と手書き数字の認識</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/img-cnn/index.html">畳み込みニューラルネットワーク</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <strong><a href="../../../fields/deep-learning/img-age/index.html" aria-current="true">顔画像による年代の分類</a></strong>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/img-speech/index.html">音声認識の仕組み</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/img-more/index.html">ViT, 特徴量の可視化, Grad-CAM</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/img-age-code/index.html">年齢識別のコード全体</a>
+      
+      
+    </li>
+    
+  </ol>
+</nav>
+
+  </header>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../fields/deep-learning/img-cnn/cnn-models.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">代表的な CNN モデル (畳み込みニューラルネットワーク)</span>
+    </a>
+    <a class="next" href="../../../fields/deep-learning/img-speech/index.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">音声認識の仕組み</span>
+    </a>
+</nav>
+
+  
+  <nav class="block-prerequisites" aria-label="前提となるブロック">
+    <h2 id="block-prerequisites">前提となるブロック</h2>
+    <ul>
+      
+      <li><a href="../../../fields/deep-learning/img-cnn/index.html">畳み込みニューラルネットワーク</a></li>
+      
+      <li><a href="../../../fields/deep-learning/dl-transformer/index.html">Transformer と自己教師あり学習</a></li>
+      
+    </ul>
+  </nav>
+  
+  
+  <h2 id="age-classification">顔による年齢識別</h2>
+<p><strong>画像分類</strong>の事例として, 顔の画像から年代を当てるモデルを作ります. 10 代から 60 代までの 6 クラスへの分類です. データには, 顔の画像約 10 万枚に年齢, 性別, 人種のラベルを付けたデータセット <a href="https://github.com/joojs/fairface">FairFace</a> (Kärkkäinen &amp; Joo, 2021) を使います. 画像は写真共有サイト Flickr に公開された写真などから顔の部分を切り出したもので, データセットは配布元で <a href="https://creativecommons.org/licenses/by/4.0/deed.ja">CC BY 4.0</a> (出典を示せば再配布や改変ができるライセンス) と表示されています. ただし論文によると, 元の写真は撮影者が「表示」(CC BY) か「表示 - 継承」(CC BY-SA) のライセンスで公開したものです. また, クリエイティブ・コモンズのライセンスは, 写っている人の肖像権やプライバシーまでは許諾しません. このデータセットの画像を自分の資料に載せるときは出典を示し, 写っている人を特定したり, 人物を評価したりする使い方はしないでください. 年齢は, 年齢そのものではなく <code>0-2</code>, <code>3-9</code>, <code>10-19</code>, <code>20-29</code>, <code>30-39</code>, <code>40-49</code>, <code>50-59</code>, <code>60-69</code>, <code>more than 70</code> の 9 つの階級で付いています.</p>
+<p>FairFace の GitHub のページを開き, <code>Data</code> の項にある次のリンクから, 画像とラベルをダウンロードしてください. いずれも Google ドライブのページが開くので, 右上のダウンロードのボタンを押します. 画像のファイルは約 550 MB あるので, 通信環境に注意してください. 画像のファイルでは, サイズが大きいので「このファイルのウイルス スキャンを実行できません」という確認の画面が出ます. 「このままダウンロード」を押してください.</p>
+<ul>
+<li><code>Images (train + validation set)</code> の <code>[Padding=0.25]</code>: 画像 (<code>fairface-img-margin025-trainval.zip</code>)</li>
+<li><code>Labels</code> の <code>Train</code>: 訓練用の画像のラベル (<code>fairface_label_train.csv</code>)</li>
+</ul>
+<p><code>Padding=0.25</code> は顔の周りの余白の少ない版で, 余白の多い <code>Padding=1.25</code> の版もあります. <code>Labels</code> の <code>Validation</code> は検証用の画像のラベルですが, 顔による年齢識別の事例では使いません.</p>
+<p>プログラムを置くディレクトリの中に <code>data</code> ディレクトリを作り, <code>fairface_label_train.csv</code> を保存します. <code>fairface-img-margin025-trainval.zip</code> も <code>data</code> ディレクトリに移してから展開します. Windows ではファイルを右クリックして「すべて展開」を, macOS ではファイルをダブルクリックします. どちらの場合も <code>fairface-img-margin025-trainval</code> というフォルダができ, その中の <code>train</code> と <code>val</code> のフォルダに画像が入っています.</p>
+<h2 id="image-file-format">画像ファイルの形式</h2>
+<p>機械学習で使うラベル付きの画像データには, 画像と CSV などのラベルの表の組み合わせ, ラベル名のフォルダごとに分けた画像ファイル, MATLAB の <code>.mat</code> ファイルのように画像とラベルをまとめた形式など, いくつかの形式があります. いずれにも対応できるようにしておく必要がありますが, 年齢識別の事例では最も単純な, ラベル名を付けたフォルダに画像ファイルを保存する形式を使います.</p>
+<p>FairFace は, 画像とラベルの表を組み合わせた形式です. 画像のファイル名は <code>1.jpg</code>, <code>2.jpg</code> のような通し番号で, どの画像がどの年齢の階級かは, ラベルの表 <code>fairface_label_train.csv</code> に書かれています. ラベルの表に従って, 年代別に画像をフォルダに保存してみましょう.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> ls</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">face_image.py</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="ex">data</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> ls <span class="ex">data</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="ex">fairface-img-margin025-trainval</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="ex">fairface_label_train.csv</span></span></code></pre></div>
+<div class="note">
+<ul>
+<li><h3 id="csv-ファイルのラベルの表">CSV ファイルのラベルの表</h3>
+<ul>
+<li>1 行が 1 枚の画像に対応し, 画像のファイル名 (パス) の列と, ラベルの列が並ぶ.</li>
+<li><code>pandas</code> の <code>read_csv</code> で <code>DataFrame</code> として読み込む.</li>
+<li><code>fairface_label_train.csv</code> の列は, <code>file</code> (画像のパス), <code>age</code> (年齢の階級), <code>gender</code> (性別), <code>race</code> (人種), <code>service_test</code> (データセットの作者の実験で使った画像かどうか).</li>
+</ul></li>
+</ul>
+</div>
+<p>まずは <code>fairface_label_train.csv</code> を読み込み, 中身を確認してみましょう.</p>
+<div class="warn">
+<p>次のライブラリが必要になるので, <code>uv add</code> しておいてください.</p>
+<ul>
+<li><code>torch</code>
+<ul>
+<li>CNN 用のライブラリ (PyTorch)</li>
+</ul></li>
+<li><code>torchvision</code>
+<ul>
+<li>PyTorch の画像, 動画処理用のライブラリ</li>
+</ul></li>
+<li><code>pillow</code>
+<ul>
+<li>画像処理用のライブラリ</li>
+</ul></li>
+<li><code>opencv-python</code>
+<ul>
+<li>画像処理用のライブラリ (<a href="../../../fields/deep-learning/img-more/grad-cam.html#grad-cam">Grad-CAM と Guided Backpropagation</a>で使います. <code>import</code> するときには <code>cv2</code> と書きます)</li>
+</ul></li>
+</ul>
+<p><code>pandas</code>, <code>matplotlib</code>, <code>seaborn</code>, <code>scikit-learn</code> も使います. ファイル操作に使う <code>shutil</code> は Python の標準ライブラリなので, 追加は要りません.</p>
+</div>
+<div class="sourceCode" id="cb2"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> PIL <span class="im">import</span> Image <span class="co">#画像の表示/保存/書き込みなどを扱うライブラリ</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co">#画像データの保存先</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>image_dir <span class="op">=</span> <span class="st">'data/fairface-img-margin025-trainval'</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co"># ラベルの表 (CSV ファイル) の読み込み</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>labels <span class="op">=</span> pd.read_csv(<span class="st">'data/fairface_label_train.csv'</span>)</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="co"># 先頭の5行を表示する</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(labels.head())</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="co">          file    age  gender        race  service_test</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="co">0  train/1.jpg  50-59    Male  East Asian          True</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="co">1  train/2.jpg  30-39  Female      Indian         False</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="co">2  train/3.jpg    3-9  Female       Black         False</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="co">3  train/4.jpg  20-29  Female      Indian          True</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="co">4  train/5.jpg  20-29  Female      Indian          True</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a><span class="co"># 行数と列数を表示する</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(labels.shape)</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a><span class="co"># &gt;&gt;&gt; (86744, 5)</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a><span class="co"># 年齢の階級ごとの枚数を表示する</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(labels[<span class="st">'age'</span>].value_counts())</span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a><span class="co">age</span></span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a><span class="co">20-29           25598</span></span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a><span class="co">30-39           19250</span></span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a><span class="co">40-49           10744</span></span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a><span class="co">3-9             10408</span></span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a><span class="co">10-19            9103</span></span>
+<span id="cb2-35"><a href="#cb2-35" aria-hidden="true" tabindex="-1"></a><span class="co">50-59            6228</span></span>
+<span id="cb2-36"><a href="#cb2-36" aria-hidden="true" tabindex="-1"></a><span class="co">60-69            2779</span></span>
+<span id="cb2-37"><a href="#cb2-37" aria-hidden="true" tabindex="-1"></a><span class="co">0-2              1792</span></span>
+<span id="cb2-38"><a href="#cb2-38" aria-hidden="true" tabindex="-1"></a><span class="co">more than 70      842</span></span>
+<span id="cb2-39"><a href="#cb2-39" aria-hidden="true" tabindex="-1"></a><span class="co">Name: count, dtype: int64</span></span>
+<span id="cb2-40"><a href="#cb2-40" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb2-41"><a href="#cb2-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-42"><a href="#cb2-42" aria-hidden="true" tabindex="-1"></a><span class="co"># 画像データの取得と表示</span></span>
+<span id="cb2-43"><a href="#cb2-43" aria-hidden="true" tabindex="-1"></a><span class="co">## file列のパスを利用して画像をいくつか開いてみます.</span></span>
+<span id="cb2-44"><a href="#cb2-44" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> n <span class="kw">in</span> labels[<span class="st">'file'</span>][:<span class="dv">3</span>]:</span>
+<span id="cb2-45"><a href="#cb2-45" aria-hidden="true" tabindex="-1"></a>    img_path <span class="op">=</span> os.path.join(image_dir, n)  <span class="co"># パスを結合する</span></span>
+<span id="cb2-46"><a href="#cb2-46" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> os.path.exists(img_path):</span>
+<span id="cb2-47"><a href="#cb2-47" aria-hidden="true" tabindex="-1"></a>        img <span class="op">=</span> Image.<span class="bu">open</span>(img_path)  <span class="co"># 画像ファイルを開く</span></span>
+<span id="cb2-48"><a href="#cb2-48" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(img_path, img.size)   <span class="co"># パスと画像の大きさ (幅, 高さ) を表示</span></span>
+<span id="cb2-49"><a href="#cb2-49" aria-hidden="true" tabindex="-1"></a>        img.show()  <span class="co"># 画像を表示</span></span>
+<span id="cb2-50"><a href="#cb2-50" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb2-51"><a href="#cb2-51" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f&quot;Image file not found: </span><span class="sc">{</span>img_path<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb2-52"><a href="#cb2-52" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb2-53"><a href="#cb2-53" aria-hidden="true" tabindex="-1"></a><span class="co">data/fairface-img-margin025-trainval/train/1.jpg (224, 224)</span></span>
+<span id="cb2-54"><a href="#cb2-54" aria-hidden="true" tabindex="-1"></a><span class="co">data/fairface-img-margin025-trainval/train/2.jpg (224, 224)</span></span>
+<span id="cb2-55"><a href="#cb2-55" aria-hidden="true" tabindex="-1"></a><span class="co">data/fairface-img-margin025-trainval/train/3.jpg (224, 224)</span></span>
+<span id="cb2-56"><a href="#cb2-56" aria-hidden="true" tabindex="-1"></a><span class="co">&gt;&gt;&gt; 画像が表示されます</span></span>
+<span id="cb2-57"><a href="#cb2-57" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>訓練用の画像は 86,744 枚あり, 画像の大きさはすべて 224 × 224 画素にそろえられています. 階級ごとの枚数には偏りがあり, 最も多い 20 代 (<code>20-29</code>) は 25,598 枚, 60 代 (<code>60-69</code>) は 2,779 枚です.</p>
+<p>それでは, <code>fairface_label_train.csv</code> をもとに, 年代別にフォルダを分けて画像を保存します. 使うのは <code>10-19</code> から <code>60-69</code> までの 6 つの階級で, 保存先のフォルダの名前は <code>10s</code>, <code>20s</code>, …, <code>60s</code> とします. 10 歳未満 (<code>0-2</code>, <code>3-9</code>) と 70 歳以上 (<code>more than 70</code>) の画像は使いません.</p>
+<p>研究であれば画像の枚数は多いほど良いのですが, この例では一通りの流れを体験することが目的なので, 手元の PC でも扱いやすいように各年代 200 枚だけコピーします. どの 200 枚を選ぶかは, <code>DataFrame</code> の <code>sample</code> で, 乱数の種 (<code>random_state</code>) を固定してランダムに決めます.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> shutil</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="co"># 画像ディレクトリの設定</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>image_dir <span class="op">=</span> <span class="st">'data/fairface-img-margin025-trainval'</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>output_dir <span class="op">=</span> <span class="st">'data/sorted_images'</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="co"># ラベルの表の読み込み</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>labels <span class="op">=</span> pd.read_csv(<span class="st">'data/fairface_label_train.csv'</span>)</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="co"># 年齢の階級と保存先のフォルダ名の対応 (0-2, 3-9, more than 70 は使わない)</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>age_groups <span class="op">=</span> {<span class="st">'10-19'</span>: <span class="st">'10s'</span>, <span class="st">'20-29'</span>: <span class="st">'20s'</span>, <span class="st">'30-39'</span>: <span class="st">'30s'</span>,</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>              <span class="st">'40-49'</span>: <span class="st">'40s'</span>, <span class="st">'50-59'</span>: <span class="st">'50s'</span>, <span class="st">'60-69'</span>: <span class="st">'60s'</span>}</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a><span class="co"># 年代別のフォルダに画像をコピー（各年代最大200枚）</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> age, folder <span class="kw">in</span> age_groups.items():</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>    <span class="co"># この階級の行だけを取り出し, ランダムに最大200行を選ぶ</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>    rows <span class="op">=</span> labels[labels[<span class="st">'age'</span>] <span class="op">==</span> age]</span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>    rows <span class="op">=</span> rows.sample(n<span class="op">=</span><span class="bu">min</span>(<span class="dv">200</span>, <span class="bu">len</span>(rows)), random_state<span class="op">=</span><span class="dv">42</span>)</span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>    folder_path <span class="op">=</span> os.path.join(output_dir, folder)</span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a>    os.makedirs(folder_path, exist_ok<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> <span class="bu">file</span> <span class="kw">in</span> rows[<span class="st">'file'</span>]:</span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>        src_path <span class="op">=</span> os.path.join(image_dir, <span class="bu">file</span>)                     <span class="co"># 例: data/fairface-img-margin025-trainval/train/123.jpg</span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a>        dst_path <span class="op">=</span> os.path.join(folder_path, os.path.basename(<span class="bu">file</span>)) <span class="co"># 例: data/sorted_images/10s/123.jpg</span></span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a>        shutil.copy(src_path, dst_path)</span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(folder, <span class="bu">len</span>(rows))</span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a><span class="co">10s 200</span></span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a><span class="co">20s 200</span></span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a><span class="co">30s 200</span></span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a><span class="co">40s 200</span></span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a><span class="co">50s 200</span></span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a><span class="co">60s 200</span></span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p><code>file</code> 列の値は <code>train/123.jpg</code> のように <code>train</code> フォルダからのパスになっています. <code>os.path.basename</code> はパスの最後のファイル名 (<code>123.jpg</code>) だけを取り出す関数で, 保存先ではフォルダを付けずにファイル名だけを使っています.</p>
+<p>結果を確認してみます.</p>
+<div class="warn">
+<p>シェルのコマンドの <code>|</code> は<strong>パイプ</strong>といい, <code>|</code> の左側のコマンドの標準出力を右側のコマンドに渡します. <code>head -20</code> は, 受け取った出力の先頭 20 行だけを表示するコマンドです.</p>
+<p>次の例では, <code>ls data/sorted_images/10s</code> で表示される結果の先頭 20 個だけを表示しています.</p>
+</div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> ls <span class="ex">data/sorted_images</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="ex">10s</span> 20s 30s 40s 50s 60s</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="op">&gt;</span> ls <span class="ex">data/sorted_images/10s</span> <span class="kw">|</span><span class="fu">head</span> <span class="at">-20</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="ex">10085.jpg</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="ex">10370.jpg</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="ex">10516.jpg</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="ex">10599.jpg</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="ex">1183.jpg</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="ex">12699.jpg</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="ex">13286.jpg</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="ex">13594.jpg</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="ex">13800.jpg</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="ex">14253.jpg</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="ex">14267.jpg</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a><span class="ex">1553.jpg</span></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="ex">15592.jpg</span></span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a><span class="ex">15838.jpg</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a><span class="ex">15876.jpg</span></span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a><span class="ex">15916.jpg</span></span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a><span class="ex">15964.jpg</span></span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a><span class="ex">16005.jpg</span></span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a><span class="ex">16037.jpg</span></span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a><span class="ex">16535.jpg</span></span></code></pre></div>
+<p><code>ls</code> はファイル名を文字の順に並べるので, 数値の大きさの順にはなりません. 各フォルダに画像が保存できていることが分かります.</p>
+<p><a href="../../../fields/deep-learning/img-recognition/digit-recognition.html#digit-recognition">手書き数字の認識</a>と同じく, モデルの性能を評価するために, 学習に使う訓練データと, 学習の結果を確かめるテストデータに分けます. 続いて, 訓練用とテスト用でフォルダを分けます.</p>
+<p>各年代 200 枚の画像のうち, 8 割 (160 枚) を訓練データ, 2 割 (40 枚) をテストデータにします.</p>
+<p>データの分割には, 指定した割合でデータを分ける <code>sklearn</code> の <code>train_test_split</code> を使います. <code>os.listdir</code> が返すファイルの順序は OS によって異なるので, <code>sorted</code> でファイル名の順に並べてから分けます. 並べておかないと, 同じ <code>random_state</code> でも, PC によって分け方が変わります.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> os</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> shutil</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> train_test_split</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>data_dir <span class="op">=</span> <span class="st">'data/sorted_images'</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>output_dir <span class="op">=</span> <span class="st">'data/sorted_images_split'</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="co"># 画像ファイルのパスを収集し,年齢別に分類</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>age_groups <span class="op">=</span> [<span class="st">'10s'</span>, <span class="st">'20s'</span>, <span class="st">'30s'</span>, <span class="st">'40s'</span>, <span class="st">'50s'</span>, <span class="st">'60s'</span>]</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> age_group <span class="kw">in</span> age_groups:</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    images <span class="op">=</span> <span class="bu">sorted</span>(os.listdir(os.path.join(data_dir, age_group)))  <span class="co"># ファイル名の順に並べる</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    train_images, val_images <span class="op">=</span> train_test_split(images</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>                                               ,test_size<span class="op">=</span><span class="fl">0.2</span> <span class="co">#2割をテスト用データにする</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>                                               , random_state<span class="op">=</span><span class="dv">42</span>)</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>    train_dir <span class="op">=</span> os.path.join(output_dir, <span class="st">'train'</span>, age_group)</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    val_dir <span class="op">=</span> os.path.join(output_dir, <span class="st">'val'</span>, age_group)</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    os.makedirs(train_dir, exist_ok<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    os.makedirs(val_dir, exist_ok<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> image <span class="kw">in</span> train_images:</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>        shutil.copy(os.path.join(data_dir, age_group, image), os.path.join(train_dir, image))</span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> image <span class="kw">in</span> val_images:</span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>        shutil.copy(os.path.join(data_dir, age_group, image), os.path.join(val_dir, image))</span></code></pre></div>
+<p>次のような形でデータが保存されていることを確認しましょう.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">data/sorted_images_split</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">├──</span> train</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="ex">│</span>      ├── 10s</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="ex">│</span>      ├── 20s</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="ex">│</span>      ├── 30s</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="ex">│</span>      ├── 40s</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="ex">│</span>      ├── 50s</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="ex">│</span>      └── 60s</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="ex">└──</span> val</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>        <span class="ex">├──</span> 10s</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>        <span class="ex">├──</span> 20s</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>        <span class="ex">├──</span> 30s</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>        <span class="ex">├──</span> 40s</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>        <span class="ex">├──</span> 50s</span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>        <span class="ex">└──</span> 60s</span></code></pre></div>
+<p>ここで作ったフォルダの <code>val</code> はテストデータです. FairFace に含まれる <code>val</code> フォルダ (データセットの作者が分けた検証用の画像) とは別のものです.</p>
+<h2 id="run-convnext">画像認識の実施</h2>
+<p>CNN の学習のコードで扱う基本的な概念を説明します.</p>
+<div class="note">
+<ul>
+<li><h3 id="ハイパーパラメータ"><strong>ハイパーパラメータ</strong></h3>
+機械学習では, 学習そのものはプログラムが自動で進めますが, 良い性能を得るには, 人がいくつかのパラメータを設定する必要があります. このように学習の前に人が決めるパラメータを<strong>ハイパーパラメータ</strong>といいます. 改善の手法も多いので, モデルがうまく学習できない場合は, 経験をもとにそれらを調整していきます.</li>
+</ul>
+<p>年齢識別の例では細かな調整には踏み込まず, 基本的な処理とパラメータを説明します.</p>
+<ul>
+<li><h3 id="前処理とデータ拡張-data-augmentation"><strong>前処理とデータ拡張 (Data Augmentation)</strong></h3>
+<p>学習の前に, 画像の大きさをそろえ, 内容と無関係な情報を減らして, 画像を統一した形式にそろえます. また, 反転などで画像を加工して訓練データの種類を増やします. このような加工で訓練データを増やすことを<strong>データ拡張 (Data Augmentation)</strong> といいます.</p>
+<ul>
+<li><strong>リサイズ (Resize)</strong></li>
+</ul>
+<p>画像の大きさをそろえます. ここでは 224 × 224 画素に統一します.</p>
+<ul>
+<li><strong>画像反転 (Horizontal Flip)</strong></li>
+</ul>
+<p>画像を左右に反転させて, データに多様性を加えます.</p>
+<ul>
+<li><strong>色調の変化 (Color Jitter)</strong></li>
+</ul>
+<p>画像の明るさ (<code>brightness</code>) とコントラスト (<code>contrast</code>) をランダムに変えます. <code>0.2</code> は, 元の画像の 0.8 倍から 1.2 倍の範囲で変えることを表します.</p>
+<ul>
+<li><strong>テンソル (Tensor) 変換</strong></li>
+</ul>
+<p>数値の多次元配列を <strong>Tensor</strong> (テンソル) と呼びます. データをテンソルに変換すると, 効率的に学習を行えます.
+例えば, 画像は, 高さ, 幅, チャンネル数 (RGB カラーなどの色) の 3 次元のテンソルとして表します.</p>
+<ul>
+<li><strong>正規化 (Normalize)</strong></li>
+</ul>
+<p>画像データを特定の範囲や分布に変換して, モデルが効率的に学習できるようにする手法を正規化といいます. 画像データは 0 から 255 の範囲の画素の値 (色や濃淡の数値) で表されますが, 値のばらつきが大きすぎると学習が不安定になります. そこで <code>ToTensor</code> で 0 から 1 の範囲に変換し, さらに <code>Normalize</code> で, 各チャンネルから平均を引いて標準偏差で割ります.</p></li>
+</ul>
+<div class="warn">
+<p>正規化に使っている平均 (<code>[0.485, 0.456, 0.406]</code>) と標準偏差 (<code>[0.229, 0.224, 0.225]</code>) は, ConvNeXt の学習に使われた大規模な画像データベース <a href="https://www.image-net.org">ImageNet</a> の値です.</p>
+<p>本来は<strong>使用するデータの</strong>平均と標準偏差を使います. ここでは事例の紹介なので, 便宜的に ImageNet の値を使っています.</p>
+<p>試作のコードでは, すべて <code>0.5</code> にすることもよく行われていますが, 本来は使用するデータに合わせて変更すべき値です.</p>
+</div>
+<p>該当部分 (全体のインデントは省略)</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># データ変換（前処理）</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>data_transforms <span class="op">=</span> {</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">'train'</span>: transforms.Compose([</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>        transforms.Resize((<span class="dv">224</span>, <span class="dv">224</span>)),     <span class="co">#画像のリサイズ</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>        transforms.RandomHorizontalFlip(), <span class="co">#画像をランダムに反転</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>        transforms.ColorJitter(brightness<span class="op">=</span><span class="fl">0.2</span>, contrast<span class="op">=</span><span class="fl">0.2</span>),  <span class="co"># 色調変化</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>        transforms.ToTensor(),             <span class="co">#テンソル(多次元配列)に変換</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>        transforms.Normalize(mean<span class="op">=</span>[<span class="fl">0.485</span>, <span class="fl">0.456</span>, <span class="fl">0.406</span>]</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>                            ,std<span class="op">=</span>[<span class="fl">0.229</span>, <span class="fl">0.224</span>, <span class="fl">0.225</span>]), <span class="co">#正規化(本来は値を変更する必要あり.</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    ]),</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>    <span class="st">'val'</span>: transforms.Compose([</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a>        transforms.Resize((<span class="dv">224</span>, <span class="dv">224</span>)),</span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a>        transforms.ToTensor(),</span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a>        transforms.Normalize([<span class="fl">0.485</span>, <span class="fl">0.456</span>, <span class="fl">0.406</span>]</span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>                            ,[<span class="fl">0.229</span>, <span class="fl">0.224</span>, <span class="fl">0.225</span>]),</span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a>    ]),</span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div>
+<p>このほかにも, 画像の彩度や明るさの調整, ランダムな回転, 拡大縮小など, さまざまな前処理の手法があり, 状況に応じて使い分けます.</p>
+<ul>
+<li><h3 id="バッチ-batch-処理"><strong>バッチ (batch) 処理</strong></h3></li>
+</ul>
+<p>訓練データのすべてを一度に処理するとメモリを大量に消費するので, データを小さなグループに分けて学習します (<a href="../../../fields/machine-learning/ml-network/network-training.html#ニューラルネットワークの学習">ミニバッチ学習</a>). このような分割処理を<strong>バッチ処理</strong>といいます.</p>
+<p>分けた 1 グループあたりのデータの数を<strong>バッチサイズ</strong>といいます. バッチサイズが 32 の場合は, 32 個のデータ (ここでは画像ファイル) を同時に処理します.</p>
+<p>バッチ内のデータは並列に計算できるので, 速度の面でも効率的に学習できます.</p>
+<ul>
+<li><h3 id="エポック-epoch-数"><strong>エポック (epoch) 数</strong></h3></li>
+</ul>
+<p>モデルの性能を高めるために, 同じ訓練データを何度も繰り返して学習します. 訓練データを 1 巡して学習する回数を<strong>エポック数</strong>といいます. 例えば, 10 エポックの場合は, 各年代 160 枚の訓練データを 10 回学習します.</p>
+<p>エポック数を増やすと一般に性能は高まりますが, 多すぎると<strong>過学習</strong>が起きます. エポック数を変えて学習し, 誤差がある程度安定する適切なエポック数を見つけます.</p>
+<p>過学習を防ぐために学習を途中で自動で打ち切る <a href="../../../fields/deep-learning/dl-training-case/item-classification.html#学習の手順を実行する">早期終了 (<code>Early Stopping</code>)</a> という方法もあります. 年齢識別の例では指定したエポック数で学習を終えます.</p>
+<p><a href="../../../fields/deep-learning/img-age-code/index.html#age-full-code">年齢識別のコード全体</a>では, エポックごとの誤差を記録して, グラフを出力します.</p>
+<ul>
+<li><h3 id="損失関数-loss-function"><strong>損失関数 (Loss Function)</strong></h3>
+モデルの予測と実際のラベルとの誤差 (損失) を計算する関数を<strong>損失関数</strong>といいます. 損失関数で求めた誤差が大きいほど, モデルの予測が不正確であることを表します.</li>
+</ul>
+<p>損失関数にはいくつかの種類がありますが, 年齢識別には<strong><a href="../../../fields/machine-learning/ml-network/network-training.html#ニューラルネットワークの学習">交差エントロピー損失 (Cross-Entropy Loss)</a></strong>を使います. 予測された確率分布と実際のラベルとの食い違いの大きさを測る関数です.</p>
+<ul>
+<li><h3 id="オプティマイザ-optimizer"><strong>オプティマイザ (Optimizer)</strong></h3>
+損失関数の値を最小にするために, モデルのパラメータをどのように更新するかを決めるアルゴリズムを<strong>オプティマイザ</strong>といいます.</li>
+</ul>
+<p>基本的には, 損失関数で求めた誤差の勾配 (パラメータについての誤差の微分) を計算し, バッチごとに誤差が減る方向へパラメータを調整します (<a href="../../../fields/machine-learning/ml-network/network-training.html#ニューラルネットワークの学習">勾配降下法</a>).</p>
+<p>よく使われるアルゴリズムには, <strong>SGD (Stochastic Gradient Descent)</strong> や <strong>Adam (Adaptive Moment Estimation)</strong> などがあります.</p>
+<p>あるオプティマイザでうまくいかない場合は, パラメータやアルゴリズムを変更します.</p>
+<p>該当部分 (全体のインデントは省略)</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 損失関数とオプティマイザ</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    criterion <span class="op">=</span> nn.CrossEntropyLoss() <span class="co">#クロスエントロピー損失</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    optimizer <span class="op">=</span> optim.Adam(model.parameters() <span class="co">#Adam</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>                          ,lr<span class="op">=</span><span class="fl">0.0001</span>) <span class="co">#Learning rate (学習率)</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="co">#SGDを利用する場合</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">#optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)</span></span></code></pre></div>
+<ul>
+<li><h3 id="学習率-learning-rate"><strong>学習率 (learning rate)</strong></h3>
+モデルが重み (パラメータ) を更新するときの更新幅を決めるハイパーパラメータを<strong>学習率 (learning rate)</strong> といいます. 学習では誤差 (損失) を小さくするように重みを調整していきますが, 学習率はその 1 回あたりの調整量を決めます.</li>
+</ul>
+<p>学習率が大きいと, 1 回の更新で重みが大きく変わるので, 学習が速く進むことがあります. その反面, 最適な解の前後を行き来して, 解に収束しないことがあります.</p>
+<p>学習率が小さいと, 更新幅が小さいので, 安定して最適な解に近づきやすくなります. その反面, 学習に時間がかかります.</p>
+<p>一般には <code>0.001</code> 程度から始めて調整するのが良いとされています. <a href="../../../fields/deep-learning/img-age-code/index.html#age-full-code">年齢識別のコード全体</a>では, 調整の結果 <code>0.0001</code> を採用しています.</p>
+<p>SGD などのオプティマイザでは学習率の設定が性能を大きく左右するので, 学習の途中で学習率を変えるスケジューリングなどの技法が使われることがあります. 一方で Adam は, 学習率をある程度自動で調整するので, SGD ほど学習率の初期値が結果に影響しません.</p>
+<ul>
+<li><h3 id="ランダムシード-random-seed"><strong>ランダムシード (Random Seed)</strong></h3>
+CNN は, 重みの初期値, 訓練データのシャッフル, オプティマイザなどで乱数 (ランダムな値) を使うので, 実行するたびに結果が変わるのが普通です.</li>
+</ul>
+<p>乱数は, 毎回異なる値になるように, 通常はプログラムを実行したときの PC の内部の時刻などの外部の情報をもとに作られます.</p>
+<p>したがって, 通常は, この例と同じデータで同じコードを実行しても, 結果は異なります. それでは検証や例の再現に不便なので, 同じ乱数を使って, できるだけ同じ結果を再現できるようにします.</p>
+<p><a href="../../../fields/deep-learning/img-age-code/index.html#age-full-code">年齢識別のコード全体</a>では, 乱数を生成するもとになる値 (<strong>ランダムシード</strong>) を固定しています.</p>
+<p>シードの値は適当な数値で構いません. 西暦 (<code>2024</code>), 適当な連番 (<code>1234</code> など), 特定のミームの数字 (<code>42</code> など) がよく使われます.</p>
+<p>ただし, 実行環境などの違いにより, ランダムシードを固定しても完全に同じ値にはなりません.</p>
+<p><code>set_seed()</code> の行をコメントアウトすると通常の乱数が使われるので, 研究に使う場合などは適宜変更してください.</p>
+<p>該当部分 (全体のインデントは省略)</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 乱数シードを設定</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> set_seed(seed):</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    torch.manual_seed(seed)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    np.random.seed(seed)              <span class="co"># Numpy用の乱数シードを設定</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    random.seed(seed)                 <span class="co"># Pythonの標準乱数シードを設定</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 再現性を完全に保証するために以下も設定（ただし、若干のパフォーマンス低下の可能性あり）</span></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>    torch.backends.cudnn.deterministic <span class="op">=</span> <span class="va">True</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    torch.backends.cudnn.benchmark <span class="op">=</span> <span class="va">False</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> main():</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>    <span class="co"># シードを設定する</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">#(自分の研究でやる場合は以下の行は消しても問題ない.)</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a>    set_seed(<span class="dv">2024</span>)</span></code></pre></div>
+<ul>
+<li><h3 id="gpu-の使い方"><strong>GPU の使い方</strong></h3>
+GPU を使って計算する設定 (CUDA と MPS) は, <a href="../../../fields/deep-learning/nlp-bert/multilabel-classification.html#cuda-compute-unified-device-architecture">BERT の GPU 設定</a>と同じです. <a href="../../../fields/deep-learning/img-age-code/index.html#age-full-code">年齢識別のコード</a>でも, CUDA か MPS が使える場合はそれを使い, 使えない場合は CPU を使います.</li>
+</ul>
+</div>
+<p>分割した画像を使って, ConvNeXt による学習を行います. コードの全体は, <a href="../../../fields/deep-learning/img-age-code/index.html#age-full-code">年齢識別のコード全体</a>に載せています. そのコードは, 学習の後に, <a href="../../../fields/deep-learning/img-more/feature-embedding.html#feature-embedding">特徴量の次元圧縮</a>, <a href="../../../fields/deep-learning/img-more/feature-maps.html#feature-maps">特徴マップ</a>, <a href="../../../fields/deep-learning/img-more/grad-cam.html#grad-cam">Grad-CAM</a>の図も出力します. ImageNet で事前学習した ConvNeXt の重みを読み込み, 最後の全結合層だけを 6 クラスの出力に付け替えてから学習するので, <a href="../../../fields/deep-learning/dl-transformer/self-supervised-learning.html#自己教師あり学習">ファインチューニング</a>にあたります.</p>
+<div class="warn">
+<p>このコードを実行すると, PC の性能によっては, 10 分以上にわたって CPU や GPU のほぼすべてが使われます. 例えば, Apple M5 Max を搭載した Mac (MPS を使用) では, 3 エポックの学習と図の出力に約 4 分, 20 エポックでは約 18 分かかりました. GPU を使えない PC では, これより大幅に長くかかります. ほかの不要なアプリを閉じて, 時間に余裕があるときに, 電源につないだ状態で実行しましょう. このコードは手元の PC でも動くように作ってありますが, うまくいかない場合は <a href="../../../lectures/colab.html">Google Colaboratory</a> で試してみましょう.</p>
+</div>
+<div class="warn">
+<p>コードを実行して次のような Warning が表示される場合は, 環境によって対処が異なるので, 教員に相談してください.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">Found</span> Intel OpenMP <span class="er">(</span><span class="st">'libiomp'</span><span class="kw">)</span> <span class="ex">and</span> LLVM OpenMP <span class="er">(</span><span class="st">'libomp'</span><span class="kw">)</span> <span class="ex">loaded</span> at</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="ex">the</span> same time. Both libraries are known to be incompatible and this</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="ex">can</span> cause random crashes or deadlocks on Linux when loaded in the</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="ex">same</span> Python program.</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="ex">Using</span> threadpoolctl may cause crashes or deadlocks. For more</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="ex">information</span> and possible workarounds, please see</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>    <span class="ex">https://github.com/joblib/threadpoolctl/blob/master/multiple_openmp.md</span></span></code></pre></div>
+</div>
+<p><a href="../../../fields/deep-learning/img-age-code/index.html#age-full-code">年齢識別のコード</a>が出力する <code>convnext_loss.png</code> と <code>convnext_acc.png</code> は, エポックごとの損失 (<code>loss</code>) と正解率 (<code>acc</code>) の推移を表しています. <code>acc</code> はモデルが予測したラベルが実際のラベルと一致した割合で, <code>1</code> なら予測がすべて正解です. 10 代から 60 代までの 6 ラベルなので, ランダムにラベルを予測しても, 正解率は <span class="math inline">1/6 \approx 0.17</span> 程度になります.</p>
+<p>次の 2 つのグラフは, <code>num_epochs</code> を <code>20</code> にして学習したときのものです.</p>
+<figure>
+<img src="../../../images/dsp/ch11/age-loss-epoch20.png" alt="損失の推移 (20 エポック)" />
+<figcaption aria-hidden="true">損失の推移 (20 エポック)</figcaption>
+</figure>
+<figure>
+<img src="../../../images/dsp/ch11/age-acc-epoch20.png" alt="正解率の推移 (20 エポック)" />
+<figcaption aria-hidden="true">正解率の推移 (20 エポック)</figcaption>
+</figure>
+<p>グラフの横軸は 0 から数えたエポックの番号です. 訓練データの損失 (赤) は 7 エポック目までに <code>0.12</code> まで下がり, その後も 0 の近くにとどまります. 横軸の 16 (17 エポック目) では, 訓練データの正解率が <code>1.0</code> に達しています. 一方で, テストデータの損失 (青) は横軸の 2 (3 エポック目) の <code>1.41</code> が最も低く, その後はおおむね増え続けて, 20 エポック目には <code>2.63</code> になります. テストデータの正解率も 3 エポック目の <code>0.417</code> が最も高く, その後は <code>0.36</code> から <code>0.41</code> の間で上下するだけです. 訓練データの損失が下がったまま, テストデータの損失だけが増えるのは, <a href="#エポック-epoch-数">エポック (epoch) 数</a>の説明で挙げた過学習の典型的な形です. 各年代 160 枚の訓練データは, ConvNeXt のパラメータの数 (約 2,800 万) と比べてはるかに少ないので, モデルは訓練データの 1 枚 1 枚に特有の特徴まで覚えて訓練データの損失を下げ, その特徴は新しい画像には通用しません.</p>
+<p>損失の比較を踏まえ, テストデータの損失が最も低かった <code>3</code> に <code>num_epochs</code> を変更して, もう一度学習します (<a href="../../../fields/deep-learning/img-age-code/index.html#age-full-code">年齢識別のコード全体</a>は <code>3</code> にしてあります). ランダムシードを固定しているので, 3 エポック目までは 20 エポックの場合と同じ値が出力されます.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ex">Epoch</span> 1/3</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="ex">----------</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="ex">train</span> Loss: 1.7262 Acc: 0.2333</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="ex">val</span> Loss: 1.5763 Acc: 0.2917</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="ex">Epoch</span> 2/3</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="ex">----------</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="ex">train</span> Loss: 1.3405 Acc: 0.4771</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="ex">val</span> Loss: 1.4478 Acc: 0.3667</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="ex">Epoch</span> 3/3</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="ex">----------</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a><span class="ex">train</span> Loss: 0.9863 Acc: 0.6729</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a><span class="ex">val</span> Loss: 1.4121 Acc: 0.4167</span></code></pre></div>
+<figure>
+<img src="../../../images/dsp/ch11/age-acc-epoch3.png" alt="正解率の推移 (3 エポック)" />
+<figcaption aria-hidden="true">正解率の推移 (3 エポック)</figcaption>
+</figure>
+<p>最終的に, テストデータでの正解率は <code>0.417</code> (240 枚のうち 100 枚が正解) になりました. それほど高い値ではありませんが, ランダムな予測 (<span class="math inline">1/6 \approx 0.17</span>) の 2 倍以上なので, この例ではこのモデルで先へ進みます. 実際の研究などでは, データを増やす, ハイパーパラメータやアルゴリズムを変更するなどして, より良い値を目指します. FairFace には各年代に 2,000 枚以上の画像があるので, 1 クラスあたりの枚数の上限を増やすのが最初に試せる方法です.</p>
+<p>出力される <code>pred_acctual_heatmap.png</code> は, テストデータについて, 実際のラベル (横軸) ごとに, どのラベルと予測したか (縦軸) を数え, 列ごとの相対度数にしたヒートマップです. 縦と横が入れ替わっていますが, <a href="../../../fields/deep-learning/img-recognition/digit-recognition.html#digits-errors">手書き数字の混同行列</a>と同じ表です. すべて正しく予測できていれば, 度数は対角線上に集中します. 軸の番号の 0 から 5 は, 10 代から 60 代に対応します.</p>
+<figure>
+<img src="../../../images/dsp/ch11/age-heatmap.png" alt="実際のラベルと予測のヒートマップ" />
+<figcaption aria-hidden="true">実際のラベルと予測のヒートマップ</figcaption>
+</figure>
+<p>ヒートマップを見ると, 度数は対角線とその両隣に集まっています. 実際のラベルが 10 代と 20 代 (横軸の 0, 1) のとき, 50 代か 60 代と予測した割合は合わせて 0.05 以下で, 実際のラベルが 60 代 (横軸の 5) のとき, 10 代と予測した割合は 0 です. 年齢の大きく離れた年代とはほとんど取り違えていません.</p>
+<p>誤りの多くは隣の年代との取り違えです. 実際のラベルが 10 代のときに 20 代と予測した割合は 0.3, 20 代のときに 10 代と予測した割合は 0.35 で, 50 代と 60 代の間でも 0.35 ずつ取り違えています. 最も識別できていないのは 40 代 (横軸の 3) で, 40 代と正しく予測した割合は 0.075 しかありません. 40 代の画像は, 30 代 (0.35), 50 代 (0.3), 60 代 (0.2) と予測されています. 縦軸の 3 の行を見ると, どの年代の画像も 40 代とはほとんど予測されておらず, モデルは 40 代というラベル自体をほとんど使っていません.</p>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../fields/deep-learning/img-cnn/cnn-models.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">代表的な CNN モデル (畳み込みニューラルネットワーク)</span>
+    </a>
+    <a class="next" href="../../../fields/deep-learning/img-speech/index.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">音声認識の仕組み</span>
+    </a>
+</nav>
+
+</article>
+
+
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        <nav class="footer-nav" aria-label="フッターナビゲーション">
+            <a href="../../../">Home</a>
+            <a href="../../../posts.html">Blog</a>
+            <a href="../../../lectures.html">Lecture</a>
+            <a href="../../../research.html">Research</a>
+            <a href="../../../rss.xml">RSS</a>
+            <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+        </nav>
+        <p class="footer-copy">&copy; yakagika &middot; Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>.</p>
+    </div>
+</div>
+
+
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="ページ先頭へ戻る" title="先頭へ戻る">↑</button>
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+            link.classList.add('external-link');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level;
+          switch (heading.tagName.toLowerCase()) {
+            case 'h2': level = 0; break;
+            case 'h3': level = 1; break;
+            case 'h4': level = 2; break;
+            default: return;
+          }
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          // Pandoc は `::: note` + 見出し の組み合わせを <section id="..." class="note">
+          // 内の <hN> として出力するため, 見出し自身に id が無い場合は
+          // 親 section の id を辿る.
+          var anchorId = heading.id;
+          if (!anchorId) {
+            var parentSection = heading.closest('section[id]');
+            if (parentSection) anchorId = parentSection.id;
+          }
+          anchor.href = '#' + anchorId;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi && !li.contains(currentLi)) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+
+      // ----------------------------------------
+      // スクロールスパイ: 表示中の見出しを TOC でハイライト
+      // ----------------------------------------
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0 || typeof IntersectionObserver === 'undefined') return;
+
+      var idToTocItem = new Map();
+      headings.forEach(function(h) {
+        if (!h.id) return;
+        var link = tocContainer.querySelector('a[href="#' + CSS.escape(h.id) + '"]');
+        if (link) {
+          var li = link.closest('.toc-item') || link.closest('li');
+          if (li) idToTocItem.set(h.id, li);
+        }
+      });
+
+      var visible = new Set();
+      var lastActive = null;
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+
+        // ドキュメント順で最初に可視な見出しをアクティブに
+        var firstVisible = null;
+        for (var i = 0; i < headings.length; i++) {
+          if (visible.has(headings[i].id)) {
+            firstVisible = headings[i].id;
+            break;
+          }
+        }
+        if (!firstVisible) return;
+
+        var tocItem = idToTocItem.get(firstVisible);
+        if (!tocItem || tocItem === lastActive) return;
+
+        if (lastActive) lastActive.classList.remove('toc-active');
+        tocItem.classList.add('toc-active');
+        lastActive = tocItem;
+
+        // TOC を必要なときだけスクロール
+        tocItem.scrollIntoView({
+          block: 'nearest',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
+      }, {
+        // ヘッダー (60px) を除いた上部 〜 画面下から60% を判定領域とする
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0
+      });
+
+      headings.forEach(function(h) { if (h.id) observer.observe(h); });
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
+      const pre = codeBlock.parentNode;
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
+      copyButton.textContent = 'Copy';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    // パスワード保護付き details (回答例用)
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll('details.protected').forEach(function (det) {
+        var pass = det.getAttribute('data-pass') || '';
+        var summary = det.querySelector('summary');
+        if (!summary) return;
+
+        var gate = document.createElement('div');
+        gate.className = 'pass-gate';
+        gate.innerHTML =
+          '<label>合言葉: <input type="password" autocomplete="off" spellcheck="false"></label>' +
+          '<button type="button">解除</button>' +
+          '<span class="pass-error" hidden>合言葉が違います</span>';
+        summary.insertAdjacentElement('afterend', gate);
+
+        var input = gate.querySelector('input');
+        var button = gate.querySelector('button');
+        var errorMsg = gate.querySelector('.pass-error');
+
+        function tryUnlock() {
+          if (input.value === pass) {
+            det.classList.add('unlocked');
+            errorMsg.hidden = true;
+          } else {
+            errorMsg.hidden = false;
+            input.select();
+          }
+        }
+
+        button.addEventListener('click', tryUnlock);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
+        });
+
+        det.addEventListener('toggle', function () {
+          if (det.open && !det.classList.contains('unlocked')) {
+            input.focus();
+          }
+        });
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            try {
+              katex.render( texText.data
+                          , mathElements[i]
+                          , { displayMode: mathElements[i].classList.contains("display")
+                            , throwOnError: true
+                           }
+                          );
+            } catch (e) {
+              // 1 つの数式のエラーで残り全ての数式が生 TeX のまま残らないようにする
+              console.error('KaTeX render error:', e.message, texText.data);
+            }
+          }
+      }
+    });
+  </script>
+
+  <!-- 見出しアンカーリンク + Back to top -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 記事見出しに hover で現れる # パーマリンクを付与
+      document.querySelectorAll('article h2[id], article h3[id]').forEach(function (h) {
+        var a = document.createElement('a');
+        a.className = 'heading-anchor';
+        a.href = '#' + h.id;
+        a.setAttribute('aria-label', 'このセクションへのリンク');
+        a.textContent = '#';
+        h.appendChild(a);
+      });
+
+      // Back to top: スクロール量に応じて表示
+      var btt = document.getElementById('back-to-top');
+      if (btt) {
+        var onScroll = function () {
+          if (window.pageYOffset > 600) btt.classList.add('visible');
+          else btt.classList.remove('visible');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        btt.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
+    });
+  </script>
+
+  </body>
+</html>

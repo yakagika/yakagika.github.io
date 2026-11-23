@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+    <script>
+      (function () {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+        function stored() {
+          var t = null;
+          try { t = localStorage.getItem('theme'); } catch (e) {}
+          return (t === 'dark' || t === 'light') ? t : null;
+        }
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
+        if (mq) {
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
+        }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
+      })();
+    </script>
+    <title>yakagika - 質問紙調査</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../../../style.css?v=1795415080">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../../../" class="site-brand" aria-label="Home">
+          <span class="site-mark" aria-hidden="true">▮</span>
+          <span class="site-word">yakagika</span>
+        </a>
+      </div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../../../">Home</a>
+      <a href="../../../posts.html">Blog</a>
+      <a href="../../../lectures.html">Lecture</a>
+      <a href="../../../research.html">Research</a>
+      <a href="../../../lectures/seminar.html">Seminar</a>
+      <a href="../../../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      
+      <div id="lecture-toc" data-mode="series">
+  <h2>Index</h2>
+  <a href="../../../fields/survey/index.html">調査データの扱い</a>
+  <ul class="toc-root">
+    
+    <li class="toc-item toc-series-item current-block">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/survey/survey-design/index.html">質問紙の設計と分析手法の選び方</a>
+        
+      </div>
+      
+      <ul class="toc-sublist">
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/survey/survey-design/index.html">導入</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item current">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/survey/survey-design/questionnaire-surveys.html" aria-current="page">質問紙調査</a>
+          </div>
+          <ul class="toc-sublist"></ul>
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/survey/survey-design/questionnaire-data.html">利用データ</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/survey/survey-design/choose-analysis.html">分析手法の選び方</a>
+          </div>
+          
+        </li>
+        
+      </ul>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/survey/survey-analysis/index.html">質問紙データの分析</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/survey/survey-sem/index.html">共分散構造分析</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/survey/missing-basics/index.html">欠損の種類と単一代入法</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/survey/missing-multiple/index.html">多重代入法と補定方法の評価</a>
+        
+      </div>
+      
+    </li>
+    
+  </ul>
+</div>
+
+    </nav>
+
+    <div id="content">
+    
+<nav class="block-course-nav" aria-label="講義の並び">
+  <p>講義の並び</p>
+  <ul>
+    
+    <li class="course-occurrence">
+      <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+      <a href="../../../courses/dsp/selected.html">選択資料</a> (発展)
+      
+      <a href="../../../fields/bayes/bayes-results/index.html" rel="prev">← MCMC の実行, 診断, 結果の読み方</a>
+      
+      
+      
+      <a href="../../../fields/survey/survey-analysis/index.html" rel="next">質問紙データの分析 →</a>
+      
+      
+    </li>
+    
+  </ul>
+</nav>
+
+
+
+<article>
+  
+  <h1 id="questionnaire-surveys"><span id="質問紙調査"></span>質問紙調査</h1>
+<nav class="block-field-nav block-field-nav-narrow" aria-label="分野の目次">
+  <a href="../../../fields/survey/index.html">調査データの扱い</a>
+  <ol>
+    
+    <li>
+      
+      <strong><a href="../../../fields/survey/survey-design/index.html" aria-current="true">質問紙の設計と分析手法の選び方</a></strong>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/survey/survey-analysis/index.html">質問紙データの分析</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/survey/survey-sem/index.html">共分散構造分析</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/survey/missing-basics/index.html">欠損の種類と単一代入法</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/survey/missing-multiple/index.html">多重代入法と補定方法の評価</a>
+      
+      
+    </li>
+    
+  </ol>
+</nav>
+<nav class="chapter-nav-card">
+    <a class="prev" href="../../../fields/survey/survey-design/index.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">質問紙の設計と分析手法の選び方</span>
+    </a>
+    <a class="next" href="../../../fields/survey/survey-design/questionnaire-data.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">利用データ</span>
+    </a>
+</nav>
+
+<p>質問紙調査によるデータの収集は, 質問紙の設計や倫理面などで留意すべき点がいくつもあります. 自分でデータを収集する場合は, 質問紙の設計や調査の倫理を確認してください. なお, 本節の内容は, 教育・心理分野がご専門の江草遼平先生に監修いただきましたが, 資料に含まれる誤りは筆者の責任によるものです.</p>
+<h2 id="社会的態度の操作的な定義">社会的態度の操作的な定義</h2>
+<p>質問紙調査を行う研究では, 人の行動を説明・予測するための概念として, 人の行動の背後に<strong>社会的態度</strong>があると仮定します. <strong>社会的態度</strong>とはオールポートの定義によれば,</p>
+<ul>
+<li>経験によって構築された心理・神経生理的な準備状態</li>
+<li>人が関わる対象に対する行動を, 方向づけたり変えたりするもの</li>
+</ul>
+<p>とされています.</p>
+<p>これらの態度は直接観察することができません. そこで, 態度の測定には, 行動の測定を行い類推する手法を用います.</p>
+<h2 id="心理尺度-psychological-scale">心理尺度 (Psychological scale)</h2>
+<p>実際の行動を測定するのには実験環境, 参加者などの制約があり難しいことがあります. そこで, 心理尺度による測定方法がよく用いられます. 心理尺度とは態度に関する質問によって行動を測るもので, 普段目にするアンケートで用いられている手法がそれに当たります (英語で検索する際には “Questionnaire” や “Scale” のキーワードを含めるとヒットしやすくなります).</p>
+<p>厳密な心理尺度の構成は, それだけで 1 つの研究となるものです. 「心理尺度を使って何かを明らかにしたい」が目的の場合には, 可能であれば先行研究から心理尺度を援用して用いるか, そこに 1 つ 2 つ測定可能な指標を持ち込んで, それについて分析するのが望ましいです. 例えば, 共に先行研究がある”自尊感情の評価”と”大学生の恋愛観”の関係, あるいは”自尊感情の評価”と容易に測定可能な”100 ます計算でケアレスミスが何回起こるか”の関係などが挙げられます.</p>
+<p>既存の尺度を援用する際には, ものによって使用料金や著者の許諾を必要とする場合があるので, これらのチェックを忘れないようにする必要があります.</p>
+<p>心理尺度における質問手法にはいくつかの種類がありますが, ここでは代表的なものを 2 つ見てみましょう.</p>
+<div class="note">
+<ul>
+<li><h3 id="リッカート法-likert-scale-method">リッカート法 (Likert scale method)</h3></li>
+</ul>
+<p>リッカート法は質問項目について「とても当てはまる」, 「やや当てはまる」, 「どちらとも言えない」, 「ほとんど当てはまらない」, 「全く当てはまらない」などの段階化された回答を得る手法です.</p>
+<p>各回答の間は等間隔とは限らず, 測定が粗いため同じことについて複数の質問を集めることで測定誤差を小さくすることを試みます.</p>
+<p>例えば, 「授業における英語への関心」を測定するために, 「分からないときでも英語を聞こうとする」, 「分からないときでも英語を読もうとする」, 「英語で話すのが楽しい」など複数の項目を立てます.</p>
+<div class="warn">
+<p>リッカート法で得られたデータは厳密には順序尺度にあたりますが, 心理学分野では便宜的に間隔尺度として扱うことがあります. これは, 複数の項目の得点の合計や平均点を用いるための処置ですが, 他分野からは批判もあるので, その後の統計検定手法の選択などには注意する必要があります.</p>
+</div>
+</div>
+<div class="note">
+<ul>
+<li><h3 id="sd-法-semantic-differential-scale-method">SD 法 (Semantic Differential Scale Method)</h3></li>
+</ul>
+<p>SD 法は, 文章での質問ではなく形容詞対を用いる方法です. 例えば, ステンレスのコップを見たときの印象について, 「温かい」-「冷たい」, 「硬い」-「柔らかい」といった項目のどちらにより近いかを 5 段階, 7 段階の尺度で尋ねます. SD 法は感情や印象に関する評価に向いており, デザインやサービスなどの評価によく用いられます.</p>
+<p>SD 法は適当な形容詞対をリストアップするのに苦労があるので, リッカート法と比べると作成が難しいですが, 質問紙では異なる文章を用いる必要がありそうな複数の対象でも, 同じ質問紙で評価ができる場合があり, 比較が容易になるメリットがあります.</p>
+</div>
+<h2 id="因子-潜在変数">因子 (潜在変数)</h2>
+<p>ある態度を説明する際に, 複数の側面を必要とする場合があります. 例えば, 対人認知 (人に対する印象, ある人が好ましいかどうか) に関する研究では<a href="https://doi.org/10.1037/h0026086" title="https://doi.org/10.1037/h0026086">Rosenberg et al.(1968)</a>が, 対人的な印象を形成する認知次元として<strong>社会的望ましさ</strong>と<strong>知的望ましさ</strong>の 2 次元を見出しています.</p>
+<p><img src="../../../images/slds/ch16/rosenberg.png" /></p>
+<p>この説に基づけば, 対人認知の傾向を問うアンケートを行うには「社会的望ましさ」と「知的望ましさ」のどちらか一方でなく, 2 つの次元を持つ尺度が望ましいこととなります.
+このような概念構成の構造を知るには, 構成する因子 (上の例でいえば 2 つの望ましさ) を探索する必要があります.
+そのような複数の変数の中から少数の次元を探索する分析手法として<strong>因子分析</strong>があります.
+10 項目の 7 段階であるリッカート尺度によるアンケートがあったとしたとき, このアンケートの 10 個の項目がすべて 1 つのことについて測定しているのであれば, ある項目への回答が中間の「4: どちらでもない」であったとき, ほかの回答も「4: どちらでもない」かそれに近い回答が選ばれる傾向がみられるはずです. そうなっていないなら, その質問は他のことについて尋ねている可能性が高いとみなされます.
+アンケートの 10 個の項目が複数の次元について訊ねるものであるとき, いくつかの項目がほかの項目とは関係なく, まとまって高く反応する, 反対に低く反応するなどのケースが見受けられます. このまとまった項目が共通して持つ部分を因子とみなします.</p>
+<figure>
+<img src="../../../images/slds/ch16/food.png" alt="食べ物への態度を構成する 3 つの因子" />
+<figcaption aria-hidden="true">食べ物への態度を構成する 3 つの因子</figcaption>
+</figure>
+<p>図では, 直接観測できない因子を丸, 質問項目を四角で表し, 因子から質問項目への矢印で「その因子が回答に影響する」ことを表しています.</p>
+<p>因子分析では直接観測できる質問項目 (下位尺度) への反応から, 直接観測できない「食べ物への態度」を構成する因子を測定し, それによって全体の概念を説明します.
+各質問項目が因子につながる共通の部分を持っているかどうかは, 質問項目間の相関係数から求められます.
+質問項目によっては, 2 つ以上の因子にかかわることがあります. 例えば, わさびが寿司につきものであるなら, 多少は辛い物への態度が影響している可能性が考えられます. このようなケースでは, 下位尺度のグループ化において, 相関係数をもとに判断をする必要があります.</p>
+<figure>
+<img src="../../../images/slds/ch16/hot.png" alt="2 つの因子にかかわる質問項目" />
+<figcaption aria-hidden="true">2 つの因子にかかわる質問項目</figcaption>
+</figure>
+<p>図の赤い破線の矢印は, 「寿司が好き」という項目が, 生魚への態度だけでなく辛い物への態度からも影響を受けている場合を表しています.</p>
+<p>質問項目には, 尺度の全体に関わる部分があります. これを<strong>共通性</strong>といい, 逆に, 尺度に関わらない質問項目独自の要素を<strong>独自性</strong>と呼びます.
+例えば寿司が好きという行動は尺度全体における「食べ物への態度」と高く関わっているかもしれません. この場合にはこれが共通性とみなされます.
+しかし寿司が好きな人の中には「形がかわいいから好き」など食べ物に直接かかわらない要素があるかもしれません.
+このような時, 寿司が好きかという質問項目には独自性があるといえます.
+共通性と独自性は足して 1 になるようになっており, 共通性があまりに低い項目がある場合は共通因子を探るのに役に立たないことがあります. このような場合, その質問項目を除外して考えることもあります. 一方で, そのような質問項目から新しい因子が作成されたり, 回答者グループの属性に影響を受けているなど, データ全体の解釈において有用である場合もあるので慎重に考える必要があります.</p>
+<figure>
+<img src="../../../images/slds/ch16/communality.png" alt="項目の共通性と独自性" />
+<figcaption aria-hidden="true">項目の共通性と独自性</figcaption>
+</figure>
+<p>図は, 各項目の回答のばらつき (分散) を 1 としたときに, 共通性と独自性がそれぞれどれだけを占めるかを表したイメージです. 「寿司が好き」の方が「カルパッチョが好き」より共通性の割合が大きく, 食べ物への態度全体とより強く関わっている項目だといえます.</p>
+<p>各項目が因子から受ける影響の強さを因子負荷量と呼び, これが大きい項目が因子を解釈する際の中心となります.</p>
+<p>この解説では因子分析の手法そのもの (因子の数や項目のまとまりをデータから探す方法) は扱いませんが, <a href="../../../fields/survey/survey-sem/index.html#共分散構造分析">共分散構造分析</a>で因子分析のモデルを使います. これらの概念は解釈に必要なので, 忘れたら戻ってきてください.</p>
+<div class="warn">
+<ul>
+<li><h3 id="信頼性と妥当性">信頼性と妥当性</h3></li>
+</ul>
+<p>尺度は態度を測るためのものさしにあたるものです. よって, 測るたびに大きく数値が変わったり, 対象を測るのに十分な長さがないとなれば役に立ちません.</p>
+<p>そのような尺度の有用度を判断する基準として<strong>信頼性</strong>があります. 信頼性は, 尺度の測定誤差について吟味することです. 一貫性の測定として, クロンバッハのα係数がよく用いられますが, この解説では詳しく扱いません. 興味のある方は調べてみましょう.</p>
+<p>作成者の意図通りに尺度を測定できているかを表す<strong>妥当性</strong>という概念もよく利用されます. 妥当性の判断としては, より詳細には基準関連妥当性, 内容的妥当性, 構成概念妥当性を吟味することが求められますが, これも詳細は割愛します.</p>
+</div>
+<h2 id="質問紙の構成">質問紙の構成</h2>
+<h3 id="測りたい態度について設定する">測りたい態度について設定する</h3>
+<p>質問紙を構成する目的は, <strong>ある態度について類推することができる行動を計測すること</strong>です. したがって, まずその<strong>態度</strong>について明確化する必要があります.</p>
+<p>例えば「人の一生」のような巨大すぎる概念を対象にするのは相当無理があります. 「寝起き時の感情について」だとより限定されていて望ましいですが, 例えば少年と老人, 日本人と外国人では大きく異なるかもしれません. これらを比較することも一つの研究テーマとして面白いですが, まずは手におえる範囲までそれを訊ねる対象と扱う概念について小さくすることをおすすめします.</p>
+<p>このようなときに重要なのは先行研究です. これまで研究されてこなかった概念を 1 から作るにしても, 類似の研究について追試するにあたっても, 先行研究から大きなヒントを得ることが近道となります. 分析する概念に関する先行研究を集めてみましょう.</p>
+<h3 id="概念の構造を考える">概念の構造を考える</h3>
+<p>概念を構成する下位概念について, 事前にイメージすることも重要です. これらは, アンケートを回収した結果修正を要することもありますが, ひとまず質問項目をまんべんなくそろえるために重要なステップです.</p>
+<p>概念の構造には多様な種類がありますが, やはり先行研究から自分の知りたい概念についてどのような構造が適当であるかを吟味する必要があります.</p>
+<figure>
+<img src="../../../images/slds/ch16/image-structure.png" alt="上位・下位の構造, 並列構造, 類型的構造の例" />
+<figcaption aria-hidden="true">上位・下位の構造, 並列構造, 類型的構造の例</figcaption>
+</figure>
+<h3 id="項目の作成">項目の作成</h3>
+<p><a href="#心理尺度-psychological-scale">心理尺度</a>の解説でリッカート法と SD 法については示しています. これらの方法は得点化して計算することを考慮したものですが, それ以外の方法でもデータを補強したり, 集めることができます. いくつかの方法に関して概観してみましょう.</p>
+<div class="note">
+<ul>
+<li><h3 id="順位法">順位法</h3>
+順位法は提示された選択肢に順位をつけさせるものです. 例えば, 「カレー, ラーメン, とんかつの 3 つについて好きな順番をつけてください」のような質問項目が考えられます. この方法では, 順序尺度のデータを得ることができます.</li>
+</ul>
+</div>
+<div class="note">
+<ul>
+<li><h3 id="多肢選択法">多肢選択法</h3>
+多肢選択法は質問項目について, 複数の回答選択をさせるものです. 「以下の中から, 好きな授業名を 1 つ選べ」という質問では 1 つしか回答が得られませんが, 「好きなだけ選べ」とすれば複数の情報が手に入ります. 十分に設計された選択肢があれば傾向を得ることができます.</li>
+</ul>
+</div>
+<div class="note">
+<ul>
+<li><h3 id="自由記述法">自由記述法</h3>
+自由記述法は質問に対して, 自由に文章を書かせる方法です. 構造化されたデータを手に入れることはできませんが, 見逃していた要素, 想像もしていない要素が情報として得られる可能性があります. カテゴリー分類や自然言語処理によって解釈に寄与するデータを得ることができるかもしれません. 自然言語処理に関しては<a href="../../../fields/deep-learning/nlp-processing/index.html#自然言語処理">自然言語処理の解説</a>を参照してください.</li>
+</ul>
+</div>
+<div class="warn">
+<ul>
+<li><h3 id="項目作成の際の注意">項目作成の際の注意</h3>
+いずれの方法でも, 質問項目の作成においては以下の点に注意を払う必要があります. 実際に質問紙を構成するときは, 必要に応じてそれぞれの点を確認してください.</li>
+</ul>
+<ol type="1">
+<li><p>項目が適切に構成概念を反映していること</p></li>
+<li><p>項目がわかりやすいこと</p></li>
+<li><p>回答を誘導しないこと</p></li>
+<li><p>項目数が適切であること</p></li>
+<li><p>選択肢が適切であること</p></li>
+<li><p>逆転項目をいれるかどうか</p></li>
+<li><p>回答者に社会通念上許されない負担を与えないこと</p></li>
+</ol>
+</div>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../fields/survey/survey-design/index.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">質問紙の設計と分析手法の選び方</span>
+    </a>
+    <a class="next" href="../../../fields/survey/survey-design/questionnaire-data.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">利用データ</span>
+    </a>
+</nav>
+
+</article>
+
+
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        <nav class="footer-nav" aria-label="フッターナビゲーション">
+            <a href="../../../">Home</a>
+            <a href="../../../posts.html">Blog</a>
+            <a href="../../../lectures.html">Lecture</a>
+            <a href="../../../research.html">Research</a>
+            <a href="../../../rss.xml">RSS</a>
+            <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+        </nav>
+        <p class="footer-copy">&copy; yakagika &middot; Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>.</p>
+    </div>
+</div>
+
+
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="ページ先頭へ戻る" title="先頭へ戻る">↑</button>
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+            link.classList.add('external-link');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level;
+          switch (heading.tagName.toLowerCase()) {
+            case 'h2': level = 0; break;
+            case 'h3': level = 1; break;
+            case 'h4': level = 2; break;
+            default: return;
+          }
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          // Pandoc は `::: note` + 見出し の組み合わせを <section id="..." class="note">
+          // 内の <hN> として出力するため, 見出し自身に id が無い場合は
+          // 親 section の id を辿る.
+          var anchorId = heading.id;
+          if (!anchorId) {
+            var parentSection = heading.closest('section[id]');
+            if (parentSection) anchorId = parentSection.id;
+          }
+          anchor.href = '#' + anchorId;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi && !li.contains(currentLi)) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+
+      // ----------------------------------------
+      // スクロールスパイ: 表示中の見出しを TOC でハイライト
+      // ----------------------------------------
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0 || typeof IntersectionObserver === 'undefined') return;
+
+      var idToTocItem = new Map();
+      headings.forEach(function(h) {
+        if (!h.id) return;
+        var link = tocContainer.querySelector('a[href="#' + CSS.escape(h.id) + '"]');
+        if (link) {
+          var li = link.closest('.toc-item') || link.closest('li');
+          if (li) idToTocItem.set(h.id, li);
+        }
+      });
+
+      var visible = new Set();
+      var lastActive = null;
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+
+        // ドキュメント順で最初に可視な見出しをアクティブに
+        var firstVisible = null;
+        for (var i = 0; i < headings.length; i++) {
+          if (visible.has(headings[i].id)) {
+            firstVisible = headings[i].id;
+            break;
+          }
+        }
+        if (!firstVisible) return;
+
+        var tocItem = idToTocItem.get(firstVisible);
+        if (!tocItem || tocItem === lastActive) return;
+
+        if (lastActive) lastActive.classList.remove('toc-active');
+        tocItem.classList.add('toc-active');
+        lastActive = tocItem;
+
+        // TOC を必要なときだけスクロール
+        tocItem.scrollIntoView({
+          block: 'nearest',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
+      }, {
+        // ヘッダー (60px) を除いた上部 〜 画面下から60% を判定領域とする
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0
+      });
+
+      headings.forEach(function(h) { if (h.id) observer.observe(h); });
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
+      const pre = codeBlock.parentNode;
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
+      copyButton.textContent = 'Copy';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    // パスワード保護付き details (回答例用)
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll('details.protected').forEach(function (det) {
+        var pass = det.getAttribute('data-pass') || '';
+        var summary = det.querySelector('summary');
+        if (!summary) return;
+
+        var gate = document.createElement('div');
+        gate.className = 'pass-gate';
+        gate.innerHTML =
+          '<label>合言葉: <input type="password" autocomplete="off" spellcheck="false"></label>' +
+          '<button type="button">解除</button>' +
+          '<span class="pass-error" hidden>合言葉が違います</span>';
+        summary.insertAdjacentElement('afterend', gate);
+
+        var input = gate.querySelector('input');
+        var button = gate.querySelector('button');
+        var errorMsg = gate.querySelector('.pass-error');
+
+        function tryUnlock() {
+          if (input.value === pass) {
+            det.classList.add('unlocked');
+            errorMsg.hidden = true;
+          } else {
+            errorMsg.hidden = false;
+            input.select();
+          }
+        }
+
+        button.addEventListener('click', tryUnlock);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
+        });
+
+        det.addEventListener('toggle', function () {
+          if (det.open && !det.classList.contains('unlocked')) {
+            input.focus();
+          }
+        });
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            try {
+              katex.render( texText.data
+                          , mathElements[i]
+                          , { displayMode: mathElements[i].classList.contains("display")
+                            , throwOnError: true
+                           }
+                          );
+            } catch (e) {
+              // 1 つの数式のエラーで残り全ての数式が生 TeX のまま残らないようにする
+              console.error('KaTeX render error:', e.message, texText.data);
+            }
+          }
+      }
+    });
+  </script>
+
+  <!-- 見出しアンカーリンク + Back to top -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 記事見出しに hover で現れる # パーマリンクを付与
+      document.querySelectorAll('article h2[id], article h3[id]').forEach(function (h) {
+        var a = document.createElement('a');
+        a.className = 'heading-anchor';
+        a.href = '#' + h.id;
+        a.setAttribute('aria-label', 'このセクションへのリンク');
+        a.textContent = '#';
+        h.appendChild(a);
+      });
+
+      // Back to top: スクロール量に応じて表示
+      var btt = document.getElementById('back-to-top');
+      if (btt) {
+        var onScroll = function () {
+          if (window.pageYOffset > 600) btt.classList.add('visible');
+          else btt.classList.remove('visible');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        btt.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
+    });
+  </script>
+
+  </body>
+</html>

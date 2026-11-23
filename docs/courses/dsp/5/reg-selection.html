@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+    <script>
+      (function () {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+        function stored() {
+          var t = null;
+          try { t = localStorage.getItem('theme'); } catch (e) {}
+          return (t === 'dark' || t === 'light') ? t : null;
+        }
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
+        if (mq) {
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
+        }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
+      })();
+    </script>
+    <title>yakagika - モデル選択</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../../../style.css?v=1795415080">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+    <link rel="canonical" href="https://yakagika.github.io/fields/regression/reg-selection/index.html">
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../../../" class="site-brand" aria-label="Home">
+          <span class="site-mark" aria-hidden="true">▮</span>
+          <span class="site-word">yakagika</span>
+        </a>
+      </div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../../../">Home</a>
+      <a href="../../../posts.html">Blog</a>
+      <a href="../../../lectures.html">Lecture</a>
+      <a href="../../../research.html">Research</a>
+      <a href="../../../lectures/seminar.html">Seminar</a>
+      <a href="../../../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      
+      <div id="lecture-toc" data-mode="series">
+  <h2>Index</h2>
+  <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+  <ul class="toc-root">
+    
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/1.html">第 1 回 本資料の読み方</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/2.html">第 2 回 分析設計: データ分析の進め方</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/3.html">第 3 回 データの可視化</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/4.html">第 4 回 データの数値化</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item current-block">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/5.html">第 5 回 回帰分析</a>
+      </div>
+      
+      <ul class="toc-sublist">
+        <li class="toc-item toc-series-item no-children">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/5/reg-intro.html">回帰で何をするか / 出生率のデータで行う単回帰分析</a>
+    
+  </div>
+  
+</li>
+<li class="toc-item toc-series-item no-children">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/5/reg-multiple.html">重回帰分析と偏回帰係数 / GPA の重回帰分析</a>
+    
+  </div>
+  
+</li>
+<li class="toc-item toc-series-item no-children">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/5/reg-prediction.html">予測とは何か / 未使用のデータで予測の誤差を測る</a>
+    
+  </div>
+  
+</li>
+<li class="toc-item toc-series-item no-children">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/5/reg-causal.html">因果推論とは何か</a>
+    
+  </div>
+  
+</li>
+<li class="toc-item toc-series-item current">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/5/reg-selection.html" aria-current="page">モデル選択</a>
+    
+  </div>
+  <ul class="toc-sublist"></ul>
+</li>
+<li class="toc-item toc-series-item no-children">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/5/reg-selection-gpa.html">GPA で目的ごとに変数を選ぶ</a>
+    
+  </div>
+  
+</li>
+
+      </ul>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/6.html">第 6 回 機械学習の枠組みと決定木</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/7.html">第 7 回 クラスタリングとパターン発見</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/8.html">第 8 回 ニューラルネットワークと Transformer</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/9.html">第 9 回 自然言語処理</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/10.html">第 10 回 画像認識</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/11.html">第 11 回 総合実習 1</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/12.html">第 12 回 総合実習 2</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/13.html">第 13 回 発表回</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/selected.html">選択資料</a>
+      </div>
+      
+    </li>
+    
+  </ul>
+</div>
+
+    </nav>
+
+    <div id="content">
+    <article>
+  <header class="article-header">
+    <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+    <a href="../../../courses/dsp/5.html">第 5 回 回帰分析</a>
+    <h1 class="article-title">モデル選択</h1>
+  </header>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../courses/dsp/5/reg-causal.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">因果推論とは何か</span>
+    </a>
+    <a class="next" href="../../../courses/dsp/5/reg-selection-gpa.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">GPA で目的ごとに変数を選ぶ</span>
+    </a>
+</nav>
+
+  <div class="lesson-body">
+    <p>勉強時間と GPA の関係を調べる回帰式に, アルバイト時間を入れるかどうかを考えます.
+アルバイト時間を入れると, 勉強時間の係数はアルバイト時間が同じ学生どうしの比較を表します.
+新しい学生の GPA を予測する場合には, アルバイト時間を予測時に把握できるか, その情報を使うと予測の誤差が減るかを調べます.</p>
+<p>候補の説明変数のうち, どれを回帰式に入れるかを決めることを<strong>変数選択</strong>と呼びます.
+<strong>モデル選択</strong>は, 変数の組み合わせや回帰式の形が異なる候補から, 使うモデルを決めることです.
+何を知りたいかによって, 候補を比べる基準と, 選んだ式で確かめる結果が変わります.</p>
+<h1 id="model-selection">目的ごとの変数の選び方</h1>
+<p><a href="../../../courses/dsp/5/reg-intro.html#regression-goals">GPA のデータから問えること</a>の問いを使い, アルバイト時間を式に入れる基準を比べます.</p>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>目的</th>
+<th>GPA についての問い</th>
+<th>変数の選び方</th>
+<th>得る結果</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>関係の定量化</td>
+<td>アルバイト時間が同じで, 勉強時間が週 1 時間違う学生では, 平均 GPA はどれだけ違うか</td>
+<td>比較の条件にアルバイト時間を含めると, データを見る前に決めます.</td>
+<td>条件をそろえた平均の差を, 係数と信頼区間で示します.</td>
+</tr>
+<tr class="even">
+<td>予測</td>
+<td>新しい学生の GPA をどれだけ正確に当てられるか</td>
+<td>予測時に得られる変数を候補にし, 検証データか交差検証で予測誤差を比べます.</td>
+<td>選んだ式の予測誤差をテストデータで測ります.</td>
+</tr>
+<tr class="odd">
+<td>因果推論</td>
+<td>勉強時間を増やす取り組みをすると, 平均 GPA はどう変わるか</td>
+<td>介入の内容と, アルバイト時間などがどう決まるかについての仮定から, そろえる変数を決めます.</td>
+<td>仮定とともに, 介入した場合としなかった場合の平均の差を示します.</td>
+</tr>
+<tr class="even">
+<td>探索</td>
+<td>時間の使い方について, 次に確かめる価値のある関係は何か</td>
+<td>散布図や回帰の結果を見て, 次に調べる変数を選べます.</td>
+<td>選んだ関係を仮説とし, 別のデータで確かめます.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="関係の定量化">関係の定量化</h2>
+<p>勉強時間の係数を読むとき, 式に含めた他の説明変数は値をそろえる条件になります.
+例えば奨学生区分とアルバイト時間をそろえると決めたら, 両方を式に入れます.
+片方を式から外すと, 勉強時間の係数はその変数に条件を付けない比較を表します.
+そろえる条件は問いで先に決め, 推定後に P 値で変数を外す操作は避けます.
+有意でなかった係数も信頼区間とともに示せば, どの程度の大きさの差までデータと整合するかを読めます.
+係数の読み方は<a href="../../../courses/dsp/5/reg-multiple.html#partial-coefficients">偏回帰係数とそろえる条件</a>, GPA での計算は<a href="../../../courses/dsp/5/reg-selection-gpa.html#selection-quantification">関係の定量化: 式を問いで決める</a>にあります.</p>
+<h2 id="予測">予測</h2>
+<p>アルバイト時間を予測時に得られるなら, その変数を使う式と使わない式を候補にできます.
+候補ごとの係数を訓練データで求め, 当てはめに使わなかった検証データの誤差で比べます.
+交差検証では検証用にする組を交替させ, 各組で測った誤差をまとめて比べます.
+テストデータは候補を比べる前に取り分け, 式が決まった後に 1 回だけ評価に使います.
+データの役割は<a href="../../../courses/dsp/5/reg-prediction.html#training-validation-test">訓練データ・検証データ・テストデータ</a>,
+GPA で候補を比べる計算は<a href="../../../courses/dsp/5/reg-selection-gpa.html#selection-prediction">予測: 交差検証で選び, テストデータで 1 回だけ評価する</a>にあります.</p>
+<h2 id="因果推論">因果推論</h2>
+<p>勉強時間を増やすとアルバイト時間も変わり, それが GPA につながると仮定します.
+この構造で勉強時間への介入の結果をすべての経路について求めるなら,
+途中にあるアルバイト時間には条件を付けません.
+一方, 介入前のアルバイト時間が勉強時間と GPA の共通の原因だと仮定するなら, アルバイト時間をそろえます.
+そろえる変数は, 介入の問いと因果の構造についての仮定から決めます. データへの当てはまりからは経路の向きを決められません.
+<a href="../../../courses/dsp/5/reg-causal.html#causal-structure">アルバイト時間が決まる仕組み</a>では, 観測データの分布が同じでも介入の結果が異なる例を示しています.</p>
+<h2 id="探索">探索</h2>
+<p>例えば勉強時間と GPA の散布図を見て, アルバイト時間が似ている学生に絞っても同じ傾向が見られるかを調べます.
+探索中に比べる条件を変えたり, 回帰の P 値を手がかりに調べる変数を絞ったりできます.
+探索で見つけた関係は, 次のデータで調べる仮説になります.
+GPA で探索と確認を分ける手順は<a href="../../../courses/dsp/5/reg-selection-gpa.html#selection-exploration">探索: 探索用で選び, 確認用で確かめる</a>にあります.</p>
+<h2 id="同じデータで選んで検定する手順">同じデータで選んで検定する手順</h2>
+<p>例えば, 係数の P 値を使って次の手順で式を絞ることができます.</p>
+<ol type="1">
+<li>候補の説明変数をすべて入れて回帰式を当てはめます.</li>
+<li>定数項を除き, P 値が 0.05 以上で最も大きい変数を 1 つ外し, 当てはめ直します.</li>
+<li>残った説明変数の P 値がすべて 0.05 未満になるか, 説明変数がなくなるまで手順 2 を繰り返します.</li>
+</ol>
+<p>この手順では, 手元の標本で偶然強い関係が現れた変数も残りやすくなります.
+最初から式を決めていたときの検定と同じように最後の P 値を読むと,
+係数が 0 であっても有意と判断する頻度が, 予定した有意水準を上回ることがあります.
+通常の検定の計算には, どの標本ならその変数が選ばれるかという条件が入っていないためです.
+この違いは<a href="../../../fields/regression/reg-selection-lab/post-selection-simulation.html#post-selection-simulation">目的変数と無関係な変数を P 値で選ぶシミュレーション</a>で確かめられます.</p>
+<h1 id="all-variables-p-values">すべての変数を入れて P 値で比べることの問題</h1>
+<p>測った変数をすべて式に入れても, 係数ごとの P 値は, それぞれの係数が 0 かどうかを調べる量です.
+「どの要因が重要か」を答えるには, 重要さを何で測るのかを定める必要があります.
+係数表を読むときには, 次の 3 点を区別します.</p>
+<ol type="1">
+<li><strong>推定の精度</strong>. 係数が 0 かを調べるときの t 統計量は, 推定した係数をその標準誤差で割った値です.
+同じ大きさの係数でも, 標準誤差が小さければ P 値は小さくなります.
+標準誤差は, 標本の大きさ, 説明変数のばらつき, 多重共線性などで変わります.
+<a href="../../../fields/regression/reg-ols/coefficient-test.html#coefficient-test">回帰係数の分布・信頼区間・検定</a>と<a href="../../../courses/dsp/5/reg-multiple.html#multicollinearity">多重共線性と係数の精度</a>に計算があります.</li>
+<li><strong>係数の単位</strong>. 奨学生区分の係数は区分間の平均の差で, 勉強時間の係数は週 1 時間あたりの平均の差です.
+勉強時間を分に直すと, 同じ回帰式の傾きの数値は小さくなります. 標準誤差も同じ倍率で変わるため, P 値は同じです.
+係数の大きさを比べるなら, 各変数の何単位の差を比べるかを決めます. <a href="../../../courses/dsp/5/reg-multiple.html#standardization">係数の単位と標準化</a>に例があります.</li>
+<li><strong>そろえる条件</strong>. ある変数の係数は, 式に入った他の変数をそろえた比較です.
+ある変数から目的変数に至る経路の途中に別の説明変数があれば, その中間の変数を固定した比較には経由する経路が入りません.
+変数ごとに因果の問いを立てると, そろえるべき条件も変わります.
+一つの変数への介入を調べるために調整した式で, 他の変数の係数まで一律に介入の効果と読むことを,
+<strong>Table 2 の誤り</strong>と呼びます <span class="citation" data-cites="westreich2013table">(<a href="#ref-westreich2013table" role="doc-biblioref">Westreich &amp; Greenland, 2013</a>)</span>.</li>
+</ol>
+<h2 id="gpa-coefficients-and-p-values">合成 GPA の係数と P 値</h2>
+<p>架空の学生 100 人のデータから, 最終評価用の 30 人を先に取り分けました.
+残った 70 人の観測 GPA に, 表の 4 変数を含む切片つきの回帰式を最小二乗法で当てはめました.
+時間はどれも週あたりの時間で, 奨学生区分には奨学生を 1, 非奨学生を 0 とするダミー変数を使いました.
+表の P 値は各係数が 0 かを調べる通常の両側 t 検定の値です.</p>
+<table>
+<thead>
+<tr class="header">
+<th>説明変数</th>
+<th style="text-align: right;">係数</th>
+<th style="text-align: right;">標準誤差</th>
+<th style="text-align: right;">P 値</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>奨学生区分</td>
+<td style="text-align: right;">0.503</td>
+<td style="text-align: right;">0.054</td>
+<td style="text-align: right;"><span class="math inline">1.27\times 10^{-13}</span></td>
+</tr>
+<tr class="even">
+<td>勉強時間</td>
+<td style="text-align: right;">0.209</td>
+<td style="text-align: right;">0.012</td>
+<td style="text-align: right;"><span class="math inline">1.14\times 10^{-25}</span></td>
+</tr>
+<tr class="odd">
+<td>アルバイト時間</td>
+<td style="text-align: right;">-0.090</td>
+<td style="text-align: right;">0.016</td>
+<td style="text-align: right;"><span class="math inline">2.84\times 10^{-7}</span></td>
+</tr>
+<tr class="even">
+<td>運動時間</td>
+<td style="text-align: right;">0.002</td>
+<td style="text-align: right;">0.013</td>
+<td style="text-align: right;">0.853</td>
+</tr>
+</tbody>
+</table>
+<p>勉強時間の P 値は奨学生区分の P 値より小さく, 係数の数値は奨学生区分の方が大きくなりました.
+勉強時間の係数が表すのは, 他の 3 変数が同じで, 勉強時間が週 1 時間長い学生の平均 GPA が,
+式の上で 0.209 高いという比較です.
+奨学生区分については, 他の 3 変数が同じ学生を奨学生と非奨学生に分けて比べます.</p>
+<p>この合成データでは, 勉強時間からアルバイト時間を経由して GPA に至る関係を仮定しています.
+アルバイト時間を式に入れると, 勉強時間の係数は, アルバイト時間が同じ学生どうしで勉強時間が違うときの平均 GPA の差を表します.
+そのため, 勉強時間の違いがアルバイト時間を通じて GPA に結びつく分は, この係数に含まれません.
+アルバイト時間の P 値の大小によらず, すべての経路を含む介入の問いでは, この構造でアルバイト時間を固定しません.
+表の係数は打ち切った観測 GPA の平均を線形式で近似した値です.
+打ち切り前の潜在得点を作るときに使った係数との違いは<a href="../../../courses/dsp/5/reg-causal.html#causal-structure">アルバイト時間が決まる仕組み</a>にあります.</p>
+<h2 id="パネルデータで同じ個体を比べる">パネルデータで同じ個体を比べる</h2>
+<p>同じ個体を複数の時点で観測したデータを<strong>パネルデータ</strong>と呼びます.
+個体 <span class="math inline">i</span> の時点 <span class="math inline">t</span> での観測値を <span class="math inline">y_{it}</span> と <span class="math inline">x_{it}</span> とし, 個体ごとに切片 <span class="math inline">\alpha_i</span> を置くと, 式は次の形になります.</p>
+<p><span class="math display">
+y_{it} = \alpha_i + \beta x_{it} + \varepsilon_{it}.
+</span></p>
+<p>個体ごとの切片 <span class="math inline">\alpha_i</span> は<strong>個体固定効果</strong>です. 同じ個体の異なる時点の式の差を取ると, 切片が打ち消されます.
+<span class="math inline">\beta</span> は, 時点によらず一定の個体の違いを切片でそろえた上で, 同じ個体の中で <span class="math inline">x_{it}</span> が異なる時点を比べる係数です.
+多くの説明変数を式に入れて P 値で順位をつける場合には, 推定の精度, 係数の単位, そろえる条件の 3 点がパネル分析にも当てはまります.</p>
+<h1 id="information-criteria">情報量規準</h1>
+<p>運動時間の項を式に加えると, 係数を一つ余分に使って手元の GPA を当てはめられます.
+<strong>情報量規準</strong>では, 手元のデータへの当てはまりを表す量に, パラメータが増えるほど大きくなる項を足して候補を比べます.
+当てはまりを表す<strong>尤度</strong>は, 観測したデータが各パラメータのもとでどれほど得られやすいかを表します.
+連続値のモデルでは確率密度を使います. パラメータを最もよく当てはまる値にしたときの尤度を <span class="math inline">\hat L</span> とします.
+尤度の定義は<a href="../../../fields/bayes/bayes-intro/bayesian-basics.html#尤度-likelihood">尤度</a>にあります.</p>
+<p><strong>AIC (赤池情報量規準)</strong> と <strong>BIC (ベイズ情報量規準)</strong> は次の式で計算します.
+<span class="math inline">p</span> は推定するパラメータの総数, <span class="math inline">n</span> は標本の大きさです.
+切片と誤差分散も推定する正規線形回帰では, 説明変数を <span class="math inline">k</span> 個とすると <span class="math inline">p=k+2</span> です.</p>
+<p><span class="math display">
+\mathrm{AIC}=-2\log\hat L+2p, \qquad
+\mathrm{BIC}=-2\log\hat L+p\log n.
+</span></p>
+<p>AIC は, 同じ仕組みから得る新しいデータへの当てはまりを, 対数尤度を使って見積もる規準です.
+手元のデータで最大化した対数尤度は新しいデータに対する値より良く出やすいため, パラメータ数に応じた項を加えます.
+BIC は, 候補ごとに尤度をパラメータの事前分布で平均し, 得られた値を比べる考え方から導かれます <span class="citation" data-cites="konishi2004">(<a href="#ref-konishi2004" role="doc-biblioref">小西 &amp; 北川, 2004</a>)</span>.
+<span class="math inline">n</span> が 8 以上では <span class="math inline">\log n&gt;2</span> なので, パラメータを一つ増やしたときに加える値は BIC の方が大きくなります.
+どちらの規準でも, 同じ観測について尤度を求めた候補の間で, 規準の値が小さい式を選びます.</p>
+<p><a href="#gpa-coefficients-and-p-values">合成 GPA の係数と P 値</a>で使った 70 人で, 運動時間を入れる式と外す式を比べます.</p>
+<table>
+<thead>
+<tr class="header">
+<th>回帰式</th>
+<th style="text-align: right;">AIC</th>
+<th style="text-align: right;">BIC</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>運動時間を入れる</td>
+<td style="text-align: right;">-5.09</td>
+<td style="text-align: right;">8.40</td>
+</tr>
+<tr class="even">
+<td>運動時間を外す</td>
+<td style="text-align: right;">-7.06</td>
+<td style="text-align: right;">4.19</td>
+</tr>
+</tbody>
+</table>
+<p>どちらの規準でも, この 2 式では運動時間を外した方が小さくなりました.
+丸める前の値から求めた AIC の差は 1.96 です.
+最小の AIC との差が 2 程度以内なら, データから相応の支持がある候補に残すという目安があります <span class="citation" data-cites="burnham2002model">(<a href="#ref-burnham2002model" role="doc-biblioref">Burnham &amp; Anderson, 2002</a>)</span>.
+この目安では, 運動時間を入れた式も候補に残ります.</p>
+<p>係数を一つ加えた式で AIC が下がるには, 最大対数尤度の増分が 1 を超える必要があります.
+追加した係数が 0 かを調べる尤度比検定では, この増分の 2 倍を自由度 1 のカイ二乗分布に照らします.
+入れ子の式を比べ, この大標本近似が成り立つ条件では,
+AIC が小さい方に切り替えることは, 尤度比検定の P 値が約 0.157 未満で追加の項を残すことに対応します <span class="citation" data-cites="heinze2018variable">(<a href="#ref-heinze2018variable" role="doc-biblioref">Heinze et al., 2018</a>)</span>.
+回帰の係数表に表示される t 検定の P 値は別の計算で得られます.</p>
+<h1 id="stepwise">ステップワイズ法</h1>
+<p><strong>ステップワイズ法</strong>では, 説明変数を一つずつ加えるか外し, そのたびに候補の式を当てはめます.
+例えば勉強時間だけの式から始めると, 次の候補は奨学生区分, アルバイト時間, 運動時間をそれぞれ一つ加えた式です.
+加える基準を満たす候補があれば, その変数を入れた式を次の比較の出発点にします.
+どの式から出発し, どの変更を許すかによって, 次の選び方があります <span class="citation" data-cites="heinze2018variable james2021introduction">(<a href="#ref-heinze2018variable" role="doc-biblioref">Heinze et al., 2018</a>; <a href="#ref-james2021introduction" role="doc-biblioref">James et al., 2021, 6</a>)</span>.</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>選び方</th>
+<th>出発する式</th>
+<th>各段階の操作</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>前進選択</td>
+<td>切片だけの式や, 必ず入れる変数だけを含む式</td>
+<td>基準を満たす変数を一つずつ加えます.</td>
+</tr>
+<tr class="even">
+<td>後退消去</td>
+<td>候補をすべて含む式</td>
+<td>基準を満たさない変数を一つずつ外します.</td>
+</tr>
+<tr class="odd">
+<td>両方向</td>
+<td>切片だけの式や, あらかじめ指定した式</td>
+<td>変数を加える操作と外す操作の両方を候補にし, 基準に従って式を更新します.</td>
+</tr>
+</tbody>
+</table>
+<p>P 値を基準にするなら, 前進選択では候補に加える変数のうち, P 値が最小で所定の値を下回るものを採ります.
+後退消去では式に残っている変数のうち, P 値が最大で所定の値以上のものを外します.
+AIC を使うなら, 変更した候補のうち AIC が最も小さくなる式を採り,
+検討したどの変更でも AIC が下がらなくなったところで止めます.
+いずれも現在の式から一つ変えた候補を比べるので, 最終的な式は出発点や途中で採った変数に左右されます.</p>
+<p>予測では, ステップワイズ法で予測に使う候補を作り, 検証データか交差検証で誤差を比べられます.
+探索で候補を絞った場合には, 得られた関係を別のデータで確かめます.
+因果推論でそろえる変数は, 介入の問いと構造の仮定で決めます.
+ステップワイズ法の基準に使う P 値や AIC には, その変数がどの経路にあるかという情報は入りません.</p>
+<p>関係の定量化では, 選んだ後に同じデータで計算する通常の P 値は小さめに出やすく, 信頼区間も予定した被覆率を保てないことがあります.
+<span class="citation" data-cites="freedman1983note">Freedman (<a href="#ref-freedman1983note" role="doc-biblioref">1983</a>)</span> は, 目的変数と無関係な説明変数でも, ふるい分けの後で式を当てはめ直すと, 式全体の F 検定が有意になり得ることを示しました.
+<span class="citation" data-cites="harrell2015regression">Harrell (<a href="#ref-harrell2015regression" role="doc-biblioref">2015</a>)</span> は, ステップワイズ法で選んだ式に対する通常の検定や区間推定の問題を挙げています.</p>
+<h1 id="exercises">演習</h1>
+<h2 id="exercise-reg-selection-1">Exercise REG-SELECTION-1</h2>
+<p><strong>問いに応じてアルバイト時間を選ぶ</strong></p>
+<p>次の (a)〜(d) について, 回帰の目的を答え, アルバイト時間を式に入れるかどうかを何で決めるか説明してください.</p>
+<ul>
+<li><ol type="a">
+<li>奨学生区分とアルバイト時間が同じ学生どうしで, 勉強時間が週 1 時間違うときの平均 GPA の差を求めたい.</li>
+</ol></li>
+<li><ol start="2" type="a">
+<li>学期の初めに各学生のアルバイト時間の予定が分かる. この情報を使うと学期末の GPA の予測がどれだけ良くなるかを知りたい.</li>
+</ol></li>
+<li><ol start="3" type="a">
+<li>勉強時間を延ばす取り組みを行うと, アルバイト時間が減り, それを経由しても GPA が変わると仮定する. すべての経路を含む介入の平均差を知りたい.</li>
+</ol></li>
+<li><ol start="4" type="a">
+<li>時間の使い方をいくつか記録したところ, アルバイト時間と GPA の散布図に関係が見えた. 次に調べる仮説を立てたい.</li>
+</ol></li>
+</ul>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答
+</summary>
+<ul>
+<li><ol type="a">
+<li>関係の定量化です. 問いでアルバイト時間をそろえると決めているので, 奨学生区分とともに式に入れます. 勉強時間の係数は信頼区間とともに報告します.</li>
+</ol></li>
+<li><ol start="2" type="a">
+<li>予測です. 予定時間を含む式と含まない式を検証データか交差検証で比べ, 未使用データでの誤差を基準に選びます. テストデータは式を選んだ後に評価に使います.</li>
+</ol></li>
+<li><ol start="3" type="a">
+<li>因果推論です. この仮定では, アルバイト時間は介入した勉強時間から GPA までの中間の変数です. アルバイト時間を固定するとその経路を含む差が求められないので, 固定する条件から外します.</li>
+</ol></li>
+<li><ol start="4" type="a">
+<li>探索です. アルバイト時間を入れた式も使い, どの条件をそろえたときに関係が見られるかを調べます. 見つけた関係を仮説として, 変数の選択に使っていないデータで確かめます.</li>
+</ol></li>
+</ul>
+</details>
+<h2 id="exercise-reg-selection-2">Exercise REG-SELECTION-2</h2>
+<p><strong>一つの係数表で比べられること</strong></p>
+<p><a href="#gpa-coefficients-and-p-values">合成 GPA の係数と P 値</a>の表を使います.
+「勉強時間の P 値は奨学生区分の P 値より小さいので, 勉強時間の方が GPA を大きく変える」と報告したとします.
+P 値が何を測るか, 係数の単位, アルバイト時間をそろえていることの 3 点から, この報告に必要な修正を述べてください.</p>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答
+</summary>
+<ol type="1">
+<li>各 P 値は, 対応する係数が 0 かを調べる値です. 係数を標準誤差で割った t 統計量から求めるため, P 値の順位から係数の大小は判断できません.</li>
+<li>勉強時間の係数は週 1 時間の差に対する値で, 奨学生区分の係数は二つの区分間の差です. 何単位の差を比べるかを指定して, それぞれの平均の差を報告します.</li>
+<li>勉強時間の係数は, アルバイト時間を含む他の条件が同じ学生どうしの比較です. アルバイト時間が中間の変数になる構造では, その時間を経由する経路が比較から外れます. 勉強時間への介入についてすべての経路を含む平均差を述べるには, 因果の問いとそろえる条件を改めて定めます.</li>
+</ol>
+</details>
+<h2 id="bibliography">参考文献</h2>
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" data-line-spacing="2" role="list">
+<div id="ref-burnham2002model" class="csl-entry" role="listitem">
+Burnham, K. P., &amp; Anderson, D. R. (2002). <em>Model selection and multimodel inference: A practical information-theoretic approach</em> (2nd ed.). Springer. <a href="https://doi.org/10.1007/b97636">https://doi.org/10.1007/b97636</a>
+</div>
+<div id="ref-freedman1983note" class="csl-entry" role="listitem">
+Freedman, D. A. (1983). A note on screening regression equations. <em>The American Statistician</em>, <em>37</em>(2), 152–155. <a href="https://doi.org/10.1080/00031305.1983.10482729">https://doi.org/10.1080/00031305.1983.10482729</a>
+</div>
+<div id="ref-harrell2015regression" class="csl-entry" role="listitem">
+Harrell, F. E. (2015). <em>Regression modeling strategies: With applications to linear models, logistic and ordinal regression, and survival analysis</em> (2nd ed.). Springer. <a href="https://doi.org/10.1007/978-3-319-19425-7">https://doi.org/10.1007/978-3-319-19425-7</a>
+</div>
+<div id="ref-heinze2018variable" class="csl-entry" role="listitem">
+Heinze, G., Wallisch, C., &amp; Dunkler, D. (2018). Variable selection – a review and recommendations for the practicing statistician. <em>Biometrical Journal</em>, <em>60</em>(3), 431–449. <a href="https://doi.org/10.1002/bimj.201700067">https://doi.org/10.1002/bimj.201700067</a>
+</div>
+<div id="ref-james2021introduction" class="csl-entry" role="listitem">
+James, G., Witten, D., Hastie, T., &amp; Tibshirani, R. (2021). <em>An introduction to statistical learning: With applications in r</em> (2nd ed.). Springer. <a href="https://doi.org/10.1007/978-1-0716-1418-1">https://doi.org/10.1007/978-1-0716-1418-1</a>
+</div>
+<div id="ref-westreich2013table" class="csl-entry" role="listitem">
+Westreich, D., &amp; Greenland, S. (2013). The table 2 fallacy: Presenting and interpreting confounder and modifier coefficients. <em>American Journal of Epidemiology</em>, <em>177</em>(4), 292–298. <a href="https://doi.org/10.1093/aje/kws412">https://doi.org/10.1093/aje/kws412</a>
+</div>
+<div id="ref-konishi2004" class="csl-entry" role="listitem">
+小西貞則, &amp; 北川源四郎. (2004). <span class="ja-title">『情報量規準』</span>. 朝倉書店.
+</div>
+</div>
+  </div>
+  
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../courses/dsp/5/reg-causal.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">因果推論とは何か</span>
+    </a>
+    <a class="next" href="../../../courses/dsp/5/reg-selection-gpa.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">GPA で目的ごとに変数を選ぶ</span>
+    </a>
+</nav>
+
+</article>
+
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        <nav class="footer-nav" aria-label="フッターナビゲーション">
+            <a href="../../../">Home</a>
+            <a href="../../../posts.html">Blog</a>
+            <a href="../../../lectures.html">Lecture</a>
+            <a href="../../../research.html">Research</a>
+            <a href="../../../rss.xml">RSS</a>
+            <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+        </nav>
+        <p class="footer-copy">&copy; yakagika &middot; Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>.</p>
+    </div>
+</div>
+
+
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="ページ先頭へ戻る" title="先頭へ戻る">↑</button>
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+            link.classList.add('external-link');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h1[id], h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level = Number(heading.tagName.slice(1)) - 1;
+          if (!heading.id) return;
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          // Pandoc は `::: note` + 見出し の組み合わせを <section id="..." class="note">
+          // 内の <hN> として出力するため, 見出し自身に id が無い場合は
+          // 親 section の id を辿る.
+          var anchorId = heading.id;
+          if (!anchorId) {
+            var parentSection = heading.closest('section[id]');
+            if (parentSection) anchorId = parentSection.id;
+          }
+          anchor.href = '#' + anchorId;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi && !li.contains(currentLi)) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+
+      // ----------------------------------------
+      // スクロールスパイ: 表示中の見出しを TOC でハイライト
+      // ----------------------------------------
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0 || typeof IntersectionObserver === 'undefined') return;
+
+      var idToTocItem = new Map();
+      headings.forEach(function(h) {
+        if (!h.id) return;
+        var link = tocContainer.querySelector('a[href="#' + CSS.escape(h.id) + '"]');
+        if (link) {
+          var li = link.closest('.toc-item') || link.closest('li');
+          if (li) idToTocItem.set(h.id, li);
+        }
+      });
+
+      var visible = new Set();
+      var lastActive = null;
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+
+        // ドキュメント順で最初に可視な見出しをアクティブに
+        var firstVisible = null;
+        for (var i = 0; i < headings.length; i++) {
+          if (visible.has(headings[i].id)) {
+            firstVisible = headings[i].id;
+            break;
+          }
+        }
+        if (!firstVisible) return;
+
+        var tocItem = idToTocItem.get(firstVisible);
+        if (!tocItem || tocItem === lastActive) return;
+
+        if (lastActive) lastActive.classList.remove('toc-active');
+        tocItem.classList.add('toc-active');
+        lastActive = tocItem;
+
+        // TOC を必要なときだけスクロール
+        tocItem.scrollIntoView({
+          block: 'nearest',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
+      }, {
+        // ヘッダー (60px) を除いた上部 〜 画面下から60% を判定領域とする
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0
+      });
+
+      headings.forEach(function(h) { if (h.id) observer.observe(h); });
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
+      const pre = codeBlock.parentNode;
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
+      copyButton.textContent = 'Copy';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    // パスワード保護付き details (回答例用)
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll('details.protected').forEach(function (det) {
+        var pass = det.getAttribute('data-pass') || '';
+        var summary = det.querySelector('summary');
+        if (!summary) return;
+
+        var gate = document.createElement('div');
+        gate.className = 'pass-gate';
+        gate.innerHTML =
+          '<label>合言葉: <input type="password" autocomplete="off" spellcheck="false"></label>' +
+          '<button type="button">解除</button>' +
+          '<span class="pass-error" hidden>合言葉が違います</span>';
+        summary.insertAdjacentElement('afterend', gate);
+
+        var input = gate.querySelector('input');
+        var button = gate.querySelector('button');
+        var errorMsg = gate.querySelector('.pass-error');
+
+        function tryUnlock() {
+          if (input.value === pass) {
+            det.classList.add('unlocked');
+            errorMsg.hidden = true;
+          } else {
+            errorMsg.hidden = false;
+            input.select();
+          }
+        }
+
+        button.addEventListener('click', tryUnlock);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
+        });
+
+        det.addEventListener('toggle', function () {
+          if (det.open && !det.classList.contains('unlocked')) {
+            input.focus();
+          }
+        });
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            try {
+              katex.render( texText.data
+                          , mathElements[i]
+                          , { displayMode: mathElements[i].classList.contains("display")
+                            , throwOnError: true
+                           }
+                          );
+            } catch (e) {
+              // 1 つの数式のエラーで残り全ての数式が生 TeX のまま残らないようにする
+              console.error('KaTeX render error:', e.message, texText.data);
+            }
+          }
+      }
+    });
+  </script>
+
+  <!-- 見出しアンカーリンク + Back to top -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 記事見出しに hover で現れる # パーマリンクを付与
+      document.querySelectorAll('article h2[id], article h3[id]').forEach(function (h) {
+        var a = document.createElement('a');
+        a.className = 'heading-anchor';
+        a.href = '#' + h.id;
+        a.setAttribute('aria-label', 'このセクションへのリンク');
+        a.textContent = '#';
+        h.appendChild(a);
+      });
+
+      // Back to top: スクロール量に応じて表示
+      var btt = document.getElementById('back-to-top');
+      if (btt) {
+        var onScroll = function () {
+          if (window.pageYOffset > 600) btt.classList.add('visible');
+          else btt.classList.remove('visible');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        btt.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
+    });
+  </script>
+
+  </body>
+</html>

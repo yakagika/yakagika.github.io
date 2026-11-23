@@ -1,0 +1,1309 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+    <script>
+      (function () {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+        function stored() {
+          var t = null;
+          try { t = localStorage.getItem('theme'); } catch (e) {}
+          return (t === 'dark' || t === 'light') ? t : null;
+        }
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
+        if (mq) {
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
+        }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
+      })();
+    </script>
+    <title>yakagika - 中心と広がりの基本統計量</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../../../style.css?v=1795415080">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+    <link rel="canonical" href="https://yakagika.github.io/fields/descriptive/num-summary/index.html">
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../../../" class="site-brand" aria-label="Home">
+          <span class="site-mark" aria-hidden="true">▮</span>
+          <span class="site-word">yakagika</span>
+        </a>
+      </div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../../../">Home</a>
+      <a href="../../../posts.html">Blog</a>
+      <a href="../../../lectures.html">Lecture</a>
+      <a href="../../../research.html">Research</a>
+      <a href="../../../lectures/seminar.html">Seminar</a>
+      <a href="../../../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      
+      <div id="lecture-toc" data-mode="series">
+  <h2>Index</h2>
+  <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+  <ul class="toc-root">
+    
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/1.html">第 1 回 本資料の読み方</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/2.html">第 2 回 分析設計: データ分析の進め方</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/3.html">第 3 回 データの可視化</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item current-block">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/4.html">第 4 回 データの数値化</a>
+      </div>
+      
+      <ul class="toc-sublist">
+        <li class="toc-item toc-series-item current">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/4/num-summary.html" aria-current="page">中心と広がりの基本統計量</a>
+    
+  </div>
+  <ul class="toc-sublist"></ul>
+</li>
+<li class="toc-item toc-series-item no-children">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/4/num-correlation.html">相関とカテゴリーの関連</a>
+    
+  </div>
+  
+</li>
+<li class="toc-item toc-series-item no-children">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/4/num-distance.html">距離と類似度</a>
+    
+  </div>
+  
+</li>
+
+      </ul>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/5.html">第 5 回 回帰分析</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/6.html">第 6 回 機械学習の枠組みと決定木</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/7.html">第 7 回 クラスタリングとパターン発見</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/8.html">第 8 回 ニューラルネットワークと Transformer</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/9.html">第 9 回 自然言語処理</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/10.html">第 10 回 画像認識</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/11.html">第 11 回 総合実習 1</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/12.html">第 12 回 総合実習 2</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/13.html">第 13 回 発表回</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/selected.html">選択資料</a>
+      </div>
+      
+    </li>
+    
+  </ul>
+</div>
+
+    </nav>
+
+    <div id="content">
+    <article>
+  <header class="article-header">
+    <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+    <a href="../../../courses/dsp/4.html">第 4 回 データの数値化</a>
+    <h1 class="article-title">中心と広がりの基本統計量</h1>
+  </header>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../courses/dsp/4.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">第 4 回 データの数値化</span>
+    </a>
+    <a class="next" href="../../../courses/dsp/4/num-correlation.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">相関とカテゴリーの関連</span>
+    </a>
+</nav>
+
+  <div class="lesson-body">
+    <h2 id="データの数値化">データの数値化</h2>
+<p>データを可視化することで, データの大まかな傾向はつかめます. しかし, グラフではデータの特徴を大まかにしか捉えることができません.
+データの特徴を具体的に述べるには, それを数値にする必要があります.</p>
+<p>例えば, 以下のヒストグラム (<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch9/histogram_A_B_data.csv">データ</a>) を見てみましょう.</p>
+<figure>
+<img src="../../../images/slds/ch9/histogram-compare.png" alt="ヒストグラムの比較" />
+<figcaption aria-hidden="true">ヒストグラムの比較</figcaption>
+</figure>
+<p>ヒストグラム B と比較して, A はデータの<strong>中心が右</strong>にあり, データの<strong>散らばりが大きい</strong>ように見えます. しかし, A の中心が B よりどの程度右にあり, A の散らばりがどの程度大きいのかは, グラフからは読み取れません.
+このように, グラフによる比較では, 抽象的な印象しか語ることができないため, データの中心や, 散らばりを数値で表すことが必要です.</p>
+<p>数値化の対象となる量は, 同時に扱う変数の数と, 各変数が量的か質的かで, おおよそ決まります. 下の樹形図を上から順にたどって, 求める数値を選んでください. 数値の名前をクリックすると, その統計量の解説に移動します.</p>
+<div id="choose-stat" class="choice-tree">
+<ul>
+<li><span class="ct-root">データの数値化</span>
+<ul>
+<li><span class="ct-dim">変数が 1 つ</span>
+<ul>
+<li><span class="ct-type">量的</span> → 分布が単峰で左右対称か
+<ul>
+<li><span class="ct-type">はい</span> → <a href="#%E7%AE%97%E8%A1%93%E5%B9%B3%E5%9D%87-mean">平均</a> と <a href="#dispersion">標準偏差</a></li>
+<li><span class="ct-type">いいえ (歪んでいる, 外れ値がある)</span> → <a href="#%E4%B8%AD%E5%A4%AE%E5%80%A4-median">中央値</a> と <a href="#%E5%9B%9B%E5%88%86%E4%BD%8D%E6%95%B0-quartiles">四分位範囲</a></li>
+</ul></li>
+<li><span class="ct-type">質的</span> → <a href="#%E6%9C%80%E9%A0%BB%E5%80%A4-mode">最頻値</a> と各カテゴリーの割合</li>
+</ul></li>
+<li><span class="ct-dim">変数が 2 つ</span>
+<ul>
+<li><span class="ct-type">量的 × 量的</span> → <a href="../../../courses/dsp/4/num-correlation.html#%E3%83%94%E3%82%A2%E3%82%BD%E3%83%B3%E3%81%AE%E7%A9%8D%E7%8E%87%E7%9B%B8%E9%96%A2%E4%BF%82%E6%95%B0">ピアソンの積率相関係数</a></li>
+<li><span class="ct-type">順序 × 順序</span> → <a href="../../../courses/dsp/4/num-correlation.html#%E3%82%B9%E3%83%94%E3%82%A2%E3%83%9E%E3%83%B3%E3%81%AE%E9%A0%86%E4%BD%8D%E7%9B%B8%E9%96%A2%E4%BF%82%E6%95%B0">スピアマンの順位相関係数</a></li>
+<li><span class="ct-type">名義 × 質的</span> → <a href="../../../courses/dsp/4/num-correlation.html#chi2-%E7%B5%B1%E8%A8%88%E9%87%8F"><span class="math inline">\chi^2</span> 統計量とクラメールの連関係数 <span class="math inline">V</span></a></li>
+</ul></li>
+<li><span class="ct-dim">変数が 3 つ以上</span>
+<ul>
+<li>2 つずつの相関を一覧にする → <a href="../../../courses/dsp/4/num-correlation.html#%E7%9B%B8%E9%96%A2%E4%BF%82%E6%95%B0%E3%81%AE%E3%83%92%E3%83%BC%E3%83%88%E3%83%9E%E3%83%83%E3%83%97">相関係数のヒートマップ</a></li>
+<li>3 つ目の変数の影響を除いて 2 つの関係を見る → <a href="../../../fields/descriptive/num-partial/index.html#partial-correlation">偏相関係数</a></li>
+<li>多数の変数をまとめて扱う → <a href="../../../courses/dsp/5/reg-intro.html">回帰分析などの多変量解析</a></li>
+</ul></li>
+</ul></li>
+</ul>
+</div>
+<p>平均と中央値のどちらを使うかは, <a href="#%E4%B8%AD%E5%BF%83%E3%82%92%E8%A1%A8%E3%81%99%E4%BB%A3%E8%A1%A8%E5%80%A4%E3%81%AE%E4%BD%BF%E3%81%84%E5%88%86%E3%81%91">中心を表す代表値の使い分け</a>で説明します.</p>
+<h1 id="basic-stats">基本統計量</h1>
+<p>量的データを客観的に評価するために, 分布の特徴を数値で表したものを<strong>基本統計量 (代表値)</strong>といいます.</p>
+<div class="note">
+<ul>
+<li>基本統計量</li>
+</ul>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: center;">名称</th>
+<th style="text-align: left;">概要</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">平均 (Mean)</td>
+<td style="text-align: left;">データの平均値. 量的データの分布の中心傾向を示す</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">中央値 (Median)</td>
+<td style="text-align: left;">データの順位における中央. 量的データの分布の中心傾向を示す</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">最頻値 (Mode)</td>
+<td style="text-align: left;">最も度数の多い値. 量的データの分布の中心傾向を示す</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">標準偏差 (Standard Deviation)</td>
+<td style="text-align: left;">データのばらつき具合を示す.</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">分散 (Variance)</td>
+<td style="text-align: left;">データのばらつき具合を示す.</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">尖度 (Kurtosis)</td>
+<td style="text-align: left;">外れ値の度合い</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">歪度 (Skewness)</td>
+<td style="text-align: left;">分布の歪み</td>
+</tr>
+</tbody>
+</table>
+</div>
+<p>Python では, pandas の DataFrame に対して, <code>.describe()</code> メソッドを適用すると, データ数 (<code>count</code>), 平均値 (<code>mean</code>), 中央値 (<code>50%</code>), 四分位数 (<code>25%,75%</code>), 標準偏差 (<code>std</code>), 最大値 (<code>max</code>), 最小値 (<code>min</code>) などが求まります.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/histogram_A_B_data.csv'</span>)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df.describe())</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co">python quantify.py</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co">       Histogram_A  Histogram_B</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co">count  1000.000000  1000.000000</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co">mean     60.289981    50.708362</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co">std      14.688239     9.974544</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co">min      11.380990    20.596114</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co">25%      50.286145    43.937583</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co">50%      60.379509    50.630771</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="co">75%      69.719158    57.288822</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="co">max     117.790972    81.931076</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>それぞれの統計量の意味を順番に見ていきましょう.</p>
+<h1 id="central-tendency">中心を表す基本統計量</h1>
+<p>ヒストグラムにおける峰のある位置, 分布の中心がどこにあるかを表す統計量には, <strong>平均値</strong>, <strong>中央値</strong>, <strong>最頻値</strong>などがあります. この 3 つは, いずれも分布の中心を表す統計量ですが, 分布の歪みによって意味が異なり, 使い分けが必要となります.</p>
+<ul>
+<li><h3 id="算術平均-mean"><strong>算術平均 (mean)</strong></h3>
+分布の中心を表す統計量としてもっとも一般的なものに, 平均値があります. しかし, 一口に平均といっても, いくつかの種類があるので注意しましょう. 分布の中心を表す場合に用いられる平均は基本的に算術平均ですが, ここでは異なる定義の平均として, <strong>幾何平均</strong>と<strong>調和平均</strong>も紹介します.</li>
+</ul>
+<p>一般に「平均」といったときにイメージされる, すべてのデータの和をデータの個数で割った値を<strong>算術平均</strong>といいます.</p>
+<p>算術平均は対象とするデータを足し合わせることによって基準となる値が算出される場合に使用します.</p>
+<div class="note">
+<p><span class="math inline">n</span> 個の観測値 <span class="math inline">x_1, x_2, ..., x_n</span> のとき, 平均値 <span class="math inline">\bar{x}</span> は</p>
+<p><span class="math display"> \bar{x} = \frac{1}{n} (x_1 + ... + x_n) = \frac{1}{n} \sum_{i=1}^{n} x_i </span></p>
+</div>
+<p>例: 165, 171, 189 の算術平均は</p>
+<p><span class="math display"> \bar{x} = \frac{1}{3} (165 + 171 + 189) = 175 </span></p>
+<p>となります.</p>
+<p><code>pandas</code> で平均を求めるには, <code>.mean()</code> を利用します.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.DataFrame({<span class="st">'x'</span>:[<span class="dv">165</span>,<span class="dv">171</span>,<span class="dv">189</span>]})</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df[<span class="st">'x'</span>].mean()) <span class="co">#&gt;&gt;&gt;175</span></span></code></pre></div>
+<ul>
+<li><h3 id="幾何平均-geometric-mean"><strong>幾何平均 (geometric mean)</strong></h3></li>
+</ul>
+<p>すべてのデータを乗じて, データの数で根を取った値を<strong>幾何平均</strong>といいます. 増加率, 減少率など対象とするデータを相互に乗じることによって基準となる値が算出される場合に使用します.</p>
+<div class="note">
+<p><span class="math inline">n</span> 個の観測値 <span class="math inline">x_1, x_2, ..., x_n</span> のとき, 幾何平均 <span class="math inline">x_G</span> は
+<span class="math display"> x_G = \sqrt[n]{x_1 \cdot x_2 \cdot ... \cdot x_n} = \left(\prod_{i=1}^{n} x_i\right)^{\frac{1}{n}} </span></p>
+</div>
+<p>例: 各年の売上と, その前年比 (前年の売上に対する倍率) が以下のように表されるとき, 売上が平均で何 % ずつ伸びているかを考えます.</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: center;">年度</th>
+<th style="text-align: center;">売上</th>
+<th style="text-align: center;">前年比</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">1</td>
+<td style="text-align: center;">300</td>
+<td style="text-align: center;"></td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">2</td>
+<td style="text-align: center;">350</td>
+<td style="text-align: center;">117%</td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">3</td>
+<td style="text-align: center;">600</td>
+<td style="text-align: center;">171%</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">4</td>
+<td style="text-align: center;">1000</td>
+<td style="text-align: center;">167%</td>
+</tr>
+</tbody>
+</table>
+<p>このとき算術平均を用いると,
+<span class="math display"> \text{算術平均} = \frac{1.17 + 1.71 + 1.67}{3} \approx 1.52 </span> となり,</p>
+<p><span class="math display"> 300 \cdot 1.52^3 \approx 1054 </span></p>
+<p>平均的な伸び率を 3 回乗じても 4 年目の売上の値になりません. これは, 毎年度の値に前年比を<strong>掛ける</strong>ことで次の年度の値が求まるのに対して, 算術平均は毎年度足す操作をした場合の平均値を求めているからです.</p>
+<p>そこで, 幾何平均を求めてみると,</p>
+<p><span class="math display"> \text{幾何平均} = \sqrt[3]{\frac{350}{300} \cdot \frac{600}{350} \cdot \frac{1000}{600}} = \sqrt[3]{\frac{1000}{300}} \approx 1.494, \\
+300 \cdot 1.494^3 \approx 1000 </span>
+となり, 4 年目の値と一致します.</p>
+<ul>
+<li><h3 id="調和平均-harmonic-mean"><strong>調和平均 (harmonic mean)</strong></h3>
+先ほどの幾何平均が掛け算の平均値だったのに対して, 割り算の平均値を<strong>調和平均</strong>といい, 速度などの定義に割り算が含まれている計算で用います.</li>
+</ul>
+<p>調和平均は, 別の値を対象とするデータで除して足し合わせることによって基準となる値が算出される場合に使用します.</p>
+<div class="note">
+<p><span class="math inline">n</span> 個の観測値 <span class="math inline">x_1, x_2, ..., x_n</span> のとき, 調和平均 <span class="math inline">x_H</span> は
+<span class="math display"> \frac{1}{x_H} = \frac{1}{n} \left( \frac{1}{x_1} + ... + \frac{1}{x_n} \right) \\
+ \iff \\
+ x_H = \frac{n}{\frac{1}{x_1} + ... + \frac{1}{x_n}} = \frac{n}{\sum_{i=1}^{n} \frac{1}{x_i}}</span></p>
+</div>
+<p>例: 平均速度</p>
+<p>100 km の道のりを行きは車 (60 km/h), 帰りは自転車 (30 km/h) で移動した場合, 算術平均は 45 km/h となります. しかし,
+かかった時間は <span class="math inline">\frac{\text{距離}}{\text{速度}}</span> で求まるので,
+車は <span class="math inline">\frac{100}{60}</span>, 自転車は <span class="math inline">\frac{100}{30}</span> となり, 速度は <span class="math inline">\frac{\text{距離}}{\text{時間}}</span> で求まるので,
+平均速度は</p>
+<p><span class="math display"> \frac{200}{\frac{100}{60} + \frac{100}{30}} = \frac{2}{\frac{1}{60} + \frac{1}{30}} = 40 </span></p>
+<p>となり, 算術平均の 45 km/h とは一致しません.
+右辺の <span class="math inline">\frac{2}{\frac{1}{60} + \frac{1}{30}}</span> が, 60 と 30 の調和平均です.</p>
+<ul>
+<li><h3 id="中央値-median"><strong>中央値 (median)</strong></h3></li>
+</ul>
+<p>中心を表す統計量として, データを昇順に並び替えて, そのちょうど真ん中の数を表す<strong>中央値</strong>もよく利用されます.</p>
+<div class="note">
+<p><span class="math inline">n</span> 個の観測値を大きさの順に並べ替えて <span class="math inline">x_1, x_2, ..., x_n</span> としたとき,
+中央値 <span class="math inline">\tilde{x}</span> は</p>
+<p><span class="math display"> \tilde{x} =
+\begin{cases}
+x_{\frac{n+1}{2}}, ~~&amp; n \text{ が奇数のとき} \\
+\frac{x_{ \frac{n}{2}} + x_{\frac{n}{2} + 1 }}{2}, ~~ &amp; n \text{ が偶数のとき}
+\end{cases}
+</span></p>
+</div>
+<p>例: 観測値が <span class="math inline">3, 4, 7, 9, 11, 12, 15</span> (<span class="math inline">n = 7</span>) のとき, 中央値は
+<span class="math display"> \tilde{x} = x_{\frac{n+1}{2}} = x_{\frac{8}{2}} = x_4 = 9 </span></p>
+<p>となります.</p>
+<p>また, 観測値が <span class="math inline">4, 5, 6, 10, 14, 17</span> のように偶数個の場合は
+<span class="math display"> \tilde{x} = \frac{x_{ \frac{n}{2}} + x_{\frac{n}{2} + 1 }}{2} = \frac{6 + 10}{2} = 8 </span></p>
+<p>となります.</p>
+<p><code>pandas</code> では, 中央値は <code>.median()</code> で求めることができます.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.DataFrame({<span class="st">'x'</span>:[<span class="dv">3</span>,<span class="dv">4</span>,<span class="dv">7</span>,<span class="dv">9</span>,<span class="dv">11</span>,<span class="dv">12</span>,<span class="dv">15</span>]})</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df[<span class="st">'x'</span>].median()) <span class="co">#9.0</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.DataFrame({<span class="st">'x'</span>:[<span class="dv">4</span>,<span class="dv">5</span>,<span class="dv">6</span>,<span class="dv">10</span>,<span class="dv">14</span>,<span class="dv">17</span>]})</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df[<span class="st">'x'</span>].median()) <span class="co">#8.0</span></span></code></pre></div>
+<p><code>pandas</code> を使わずに実装するときは, 添字を 1 つずらして読み替えます. 式の添字は 1 から始まりますが, Python のリストの添字は 0 から始まるためです. 読み替えると, 奇数のときの <span class="math inline">x_{\frac{n+1}{2}}</span> は <code>s[(n - 1) // 2]</code>, 偶数のときの <span class="math inline">x_{\frac{n}{2}}</span> と <span class="math inline">x_{\frac{n}{2} + 1}</span> は <code>s[n // 2 - 1]</code> と <code>s[n // 2]</code> になります. 奇数のとき <code>(n - 1) // 2</code> と <code>n // 2</code> は同じ位置を指すので, 場合分けをせずに次の 1 つの式で書けます.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> median(xs):</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    s <span class="op">=</span> <span class="bu">sorted</span>(xs)</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> <span class="bu">len</span>(s)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (s[(n <span class="op">-</span> <span class="dv">1</span>) <span class="op">//</span> <span class="dv">2</span>] <span class="op">+</span> s[n <span class="op">//</span> <span class="dv">2</span>]) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(median([<span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">7</span>, <span class="dv">9</span>, <span class="dv">11</span>, <span class="dv">12</span>, <span class="dv">15</span>]))  <span class="co"># 9.0</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(median([<span class="dv">4</span>, <span class="dv">5</span>, <span class="dv">6</span>, <span class="dv">10</span>, <span class="dv">14</span>, <span class="dv">17</span>]))  <span class="co"># 8.0</span></span></code></pre></div>
+<p>次の四分位数の説明でも, 位置は 0 から数えます.</p>
+<ul>
+<li><h3 id="四分位数-quartiles">四分位数 (quartiles)</h3></li>
+</ul>
+<p><strong>中央値</strong>: データを小さい順に並べたときに観測数が 50% となる点</p>
+<p><strong>四分位数</strong>:
+データを小さい順に並べたときに, 観測数が 25%, 50%, 75% となる点.
+第一四分位数 (25%), 第二四分位数 (50%), 第三四分位数 (75%)</p>
+<p><strong>四分位範囲</strong>:
+第三四分位数から第一四分位数を引いた値 (第一四分位数から第三四分位数までの幅)</p>
+<figure>
+<img src="../../../images/slds/ch9/quartiles.png" alt="四分位数" />
+<figcaption aria-hidden="true">四分位数</figcaption>
+</figure>
+<p><code>pandas</code> で四分位数を求めるには, <code>.quantile(q=%点の数値,interpolation='nearest')</code> を使います.
+<code>interpolation</code> (補間) は, 値がインデックス <code>i</code> と <code>j</code> の間にある場合に補間する方法を指定する引数で, 以下のような設定が可能です.</p>
+<p><code>.quantile()</code> では, データの最大インデックス (データ数 - 1) に <code>q</code> を掛けた位置の値を求めます. 例えば <code>xs=[2,5,8,9,11,13,15,16,19,22,24]</code> の 25% 点は, <code>10*0.25=2.5</code> となり <code>xs[2.5]</code> となるような点を求めます.</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">引数</th>
+<th style="text-align: left;">効果</th>
+<th style="text-align: left;">25% 点の場合の計算</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><code>'linear'</code></td>
+<td style="text-align: left;">線形補間</td>
+<td style="text-align: left;"><code>xs[2] + (xs[3] - xs[2]) * 0.5 = 8.5</code></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>'lower'</code></td>
+<td style="text-align: left;">小さい方</td>
+<td style="text-align: left;"><code>xs[2] = 8</code></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>'higher'</code></td>
+<td style="text-align: left;">大きい方</td>
+<td style="text-align: left;"><code>xs[3] = 9</code></td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>'midpoint'</code></td>
+<td style="text-align: left;">中間</td>
+<td style="text-align: left;"><code>(xs[2] + xs[3])/2 = 8.5</code></td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>'nearest'</code></td>
+<td style="text-align: left;">近い方</td>
+<td style="text-align: left;"><code>xs[2] = 8</code></td>
+</tr>
+</tbody>
+</table>
+<div class="sourceCode" id="cb5"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>xs <span class="op">=</span> [<span class="dv">2</span>,<span class="dv">5</span>,<span class="dv">8</span>,<span class="dv">9</span>,<span class="dv">11</span>,<span class="dv">13</span>,<span class="dv">15</span>,<span class="dv">16</span>,<span class="dv">19</span>,<span class="dv">22</span>,<span class="dv">24</span>]</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.DataFrame({<span class="st">'x'</span>:xs})</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'25%点:'</span>,df[<span class="st">'x'</span>].quantile(q<span class="op">=</span><span class="fl">0.25</span>, interpolation<span class="op">=</span><span class="st">'linear'</span>))</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'25%点:'</span>,df[<span class="st">'x'</span>].quantile(q<span class="op">=</span><span class="fl">0.25</span>, interpolation<span class="op">=</span><span class="st">'nearest'</span>))</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'50%点:'</span>,df[<span class="st">'x'</span>].quantile(q<span class="op">=</span><span class="fl">0.5</span>, interpolation<span class="op">=</span><span class="st">'nearest'</span>))</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'75%点:'</span>,df[<span class="st">'x'</span>].quantile(q<span class="op">=</span><span class="fl">0.75</span>, interpolation<span class="op">=</span><span class="st">'nearest'</span>))</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="co">25%点: 8.5</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="co">25%点: 8</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="co">50%点: 13</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="co">75%点: 19</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<ul>
+<li><h3 id="最頻値-mode">最頻値 (mode)</h3></li>
+</ul>
+<p>中心を表す統計量の最後は, 最も頻繁にあらわれる値を表す<strong>最頻値</strong>です. 量的データを度数分布表にまとめた場合は, 最も度数の高い階級を指します.</p>
+<div class="note">
+<p>最頻値の意味は, データの種類によって異なります.
+(※ 質的データの平均値などは定義できません)</p>
+<ul>
+<li><p>質的データの場合</p>
+<ul>
+<li>最大度数のカテゴリー</li>
+</ul></li>
+<li><p>量的データの場合</p>
+<ul>
+<li><p>最大度数の階級 = 最頻階級 (modal class)</p></li>
+<li><p>長さや気温など同じ間隔で値が存在するもの</p></li>
+</ul></li>
+</ul>
+</div>
+<p><code>pandas</code> で最頻値を求める方法はいろいろありますが, 単純に同じデータが最も多い値を探す場合には <code>.mode()</code> が利用できます. <code>.mode()</code> は最頻値が複数ある場合に対応するために <code>Series</code> を返すので, <code>[0]</code> で最初の値を取っています.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.DataFrame({<span class="st">'x'</span>:[<span class="st">'A'</span>,<span class="st">'A'</span>,<span class="st">'B'</span>,<span class="st">'C'</span>]})</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df[<span class="st">'x'</span>].mode()[<span class="dv">0</span>]) <span class="co"># A</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.DataFrame({<span class="st">'x'</span>:[<span class="dv">1</span>,<span class="dv">3</span>,<span class="dv">2</span>,<span class="dv">4</span>,<span class="dv">5</span>,<span class="dv">3</span>]})</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df[<span class="st">'x'</span>].mode()[<span class="dv">0</span>]) <span class="co"># 3</span></span></code></pre></div>
+<p>しかし, 連続値のデータでは同じ値がほとんど現れないため, この方法では最頻階級を求められません. 区間ごとの度数から最頻階級を求めるには, <code>value_counts()</code> の引数 <code>bins</code> で区間を指定します.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># ランダムな0から100までのデータの生成</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>np.random.seed(<span class="dv">0</span>)  <span class="co"># 再現性のためにシードを設定</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.DataFrame({<span class="st">'x'</span>:np.random.randint(<span class="dv">0</span>, <span class="dv">101</span>, size<span class="op">=</span><span class="dv">1000</span>)})</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="co">#10区切りで度数を求める</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>bins <span class="op">=</span> [<span class="dv">0</span>,<span class="dv">10</span>,<span class="dv">20</span>,<span class="dv">30</span>,<span class="dv">40</span>,<span class="dv">50</span>,<span class="dv">60</span>,<span class="dv">70</span>,<span class="dv">80</span>,<span class="dv">90</span>,<span class="dv">100</span>]</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>freq <span class="op">=</span> df[<span class="st">'x'</span>].value_counts(bins <span class="op">=</span>bins, sort<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(freq)</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="co">#最大の度数のindexを取得</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(freq.idxmax())</span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a><span class="co">      x</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a><span class="co">0    44</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a><span class="co">1    47</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="co">2    64</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a><span class="co">3    67</span></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a><span class="co">4    67</span></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a><span class="co">..   ..</span></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a><span class="co">995  79</span></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a><span class="co">996  41</span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a><span class="co">997  17</span></span>
+<span id="cb7-24"><a href="#cb7-24" aria-hidden="true" tabindex="-1"></a><span class="co">998  80</span></span>
+<span id="cb7-25"><a href="#cb7-25" aria-hidden="true" tabindex="-1"></a><span class="co">999  43</span></span>
+<span id="cb7-26"><a href="#cb7-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-27"><a href="#cb7-27" aria-hidden="true" tabindex="-1"></a><span class="co">[1000 rows x 1 columns]</span></span>
+<span id="cb7-28"><a href="#cb7-28" aria-hidden="true" tabindex="-1"></a><span class="co">(-0.001, 10.0]    121</span></span>
+<span id="cb7-29"><a href="#cb7-29" aria-hidden="true" tabindex="-1"></a><span class="co">(10.0, 20.0]       87</span></span>
+<span id="cb7-30"><a href="#cb7-30" aria-hidden="true" tabindex="-1"></a><span class="co">(20.0, 30.0]       96</span></span>
+<span id="cb7-31"><a href="#cb7-31" aria-hidden="true" tabindex="-1"></a><span class="co">(30.0, 40.0]      107</span></span>
+<span id="cb7-32"><a href="#cb7-32" aria-hidden="true" tabindex="-1"></a><span class="co">(40.0, 50.0]       94</span></span>
+<span id="cb7-33"><a href="#cb7-33" aria-hidden="true" tabindex="-1"></a><span class="co">(50.0, 60.0]       92</span></span>
+<span id="cb7-34"><a href="#cb7-34" aria-hidden="true" tabindex="-1"></a><span class="co">(60.0, 70.0]       97</span></span>
+<span id="cb7-35"><a href="#cb7-35" aria-hidden="true" tabindex="-1"></a><span class="co">(70.0, 80.0]      103</span></span>
+<span id="cb7-36"><a href="#cb7-36" aria-hidden="true" tabindex="-1"></a><span class="co">(80.0, 90.0]      103</span></span>
+<span id="cb7-37"><a href="#cb7-37" aria-hidden="true" tabindex="-1"></a><span class="co">(90.0, 100.0]     100</span></span>
+<span id="cb7-38"><a href="#cb7-38" aria-hidden="true" tabindex="-1"></a><span class="co">Name: count, dtype: int64</span></span>
+<span id="cb7-39"><a href="#cb7-39" aria-hidden="true" tabindex="-1"></a><span class="co">(-0.001, 10.0]</span></span>
+<span id="cb7-40"><a href="#cb7-40" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<div class="note">
+<ul>
+<li><h3 id="中心を表す代表値の使い分け">中心を表す代表値の使い分け</h3></li>
+</ul>
+<p>中心を表す基本統計量である, <strong>算術平均</strong>, <strong>中央値</strong>, <strong>最頻値</strong>は, ヒストグラムが<strong>単峰で左右対称</strong>である場合一致します. したがってヒストグラムを作成して単峰で左右対称である場合には, どの値を利用しても大きな違いは生まれません.</p>
+<p>一方で, 分布が歪んでいる場合には, それぞれの統計量の値が変わります. 分布が歪んでいる場合には, 算術平均よりも最頻値や中央値のほうが, 目的に合った中心を表すことがあります.</p>
+<figure>
+<img src="../../../images/slds/ch9/mean-median-mode.png" alt="分布の歪みと中心" />
+<figcaption aria-hidden="true">分布の歪みと中心</figcaption>
+</figure>
+<p>例えば, 以下の図は, 平成 21 年の国民生活基礎調査による, 世帯ごとの所得の分布を表したヒストグラムです.</p>
+<figure>
+<img src="../../../images/slds/ch9/mean-median-mode2.png" alt="厚生労働省 平成 21 年 国民生活基礎調査" />
+<figcaption aria-hidden="true"><a href="https://www.mhlw.go.jp/toukei/saikin/hw/k-tyosa/k-tyosa09/2-2.html">厚生労働省 平成 21 年 国民生活基礎調査</a></figcaption>
+</figure>
+<p>この図では, 分布が大きく右に歪んでいるため平均値, 中央値, 最頻値の値が異なっています. それぞれの値が何を意味するのかを考えてみましょう.</p>
+<ul>
+<li>平均値: 547 万円
+<ul>
+<li>全世帯の所得を足して世帯数で割った値 (仮に全世帯が平等に受け取るならこの金額)</li>
+</ul></li>
+<li>中央値: 427 万円
+<ul>
+<li>所得の低い順に並べたときに真ん中の世帯の所得 (これ以上なら真ん中より上の所得)</li>
+</ul></li>
+<li>最頻値: 250 万円
+<ul>
+<li>最も度数の多い階級 (街で適当に声をかけるとこれくらいである可能性が高い)</li>
+</ul></li>
+</ul>
+<p>このようなときに, 世間一般の人の感覚を表す値として平均値を利用することは適当ではないでしょう. 平均値は, 分布が歪んでいる場合には少数のデータに大きく引っ張られるため全体の傾向を表せない場合があります.</p>
+<p>例えば, 年収 300 万円の人が 100 人いる村に年収 50 億円の野球選手が引っ越してくると, 平均年収は約 5250 万円, 中央値と最頻値は 300 万円になります.</p>
+<p>統計量はそれぞれの意味を把握したうえで, 目的に応じて使い分けるようにしましょう.</p>
+</div>
+<p>この節に対応する演習は, <a href="#exercise-dsp4-1">Exercise DSP4-1</a>です.</p>
+<h1 id="dispersion">データの広がりを表す統計量</h1>
+<p>分布の中心がどこかという点のほかに, データがどのように広がっているかもデータの特徴を記述するうえでは重要です.</p>
+<figure>
+<img src="../../../images/slds/ch9/histogram-compare.png" alt="ヒストグラムの比較" />
+<figcaption aria-hidden="true">ヒストグラムの比較</figcaption>
+</figure>
+<p>データの広がり具合を<strong>散布度</strong>といいますが, 散布度を表す統計量として代表的なものに<strong>分散</strong>と<strong>標準偏差</strong>があります.</p>
+<p>データの散らばり具合を数値化するために, どのように考えるかを順を追って見ましょう.
+データがどの程度散らばっているかを考える際の基準の一つが算術平均 <span class="math inline">\bar{x}</span> です.
+各データ <span class="math inline">x_i</span> が, データの算術平均からどの程度離れているのかを考えてみましょう.</p>
+<figure>
+<img src="../../../images/slds/ch9/deviation.png" alt="偏差" />
+<figcaption aria-hidden="true">偏差</figcaption>
+</figure>
+<div class="note">
+<ul>
+<li><strong>偏差 (deviation)</strong></li>
+</ul>
+<p><span class="math display"> \text{観測値} x_i \text{と平均} \bar{x} \text{の差} = x_i - \bar{x} </span></p>
+</div>
+<p>この偏差がデータ全体でどのくらい大きいのかを考えるために<strong>偏差の平均</strong>を取ります.
+ただし, 平均からの差は, すべて足し合わせると 0 になるため, 絶対値を取ります. これを<strong>平均偏差</strong>と呼びます.</p>
+<div class="note">
+<ul>
+<li><strong>平均偏差 (mean deviation)</strong></li>
+</ul>
+<p>各観測値が平均からどれだけ離れているかの絶対値平均</p>
+<p><span class="math display"> d = \frac{1}{n} \sum_{i=1}^{n} |x_i - \bar{x}| </span></p>
+</div>
+<p>絶対値は式の変形で扱いにくいので, 絶対値の代わりに偏差を 2 乗して平均します (値は大きくなります). これが<strong>分散</strong>です.</p>
+<div class="note">
+<ul>
+<li><strong>分散 (variance)</strong></li>
+</ul>
+<p>各観測値の偏差の 2 乗の平均</p>
+<p><span class="math display"> S^2 = \frac{1}{n} \sum_{i=1}^{n} (x_i - \bar{x})^2 </span></p>
+</div>
+<p>2 乗すると値が大きくなるので, 単位をもとのデータに合わせるために分散の平方根をとります (例えば, <span class="math inline">x_i</span> の単位が kg のとき, <span class="math inline">S^2</span> の単位は <span class="math inline">\text{kg}^2</span> になります). これを標準偏差といいます.</p>
+<div class="note">
+<ul>
+<li><strong>標準偏差 (standard deviation)</strong></li>
+</ul>
+<p><span class="math display"> S = \sqrt{S^2} </span></p>
+</div>
+<p>例えば, データが <code>[9,6,12,18,10]</code> の場合を考えてみましょう. 何を計算しているのか, イメージしながら順番に計算していきましょう.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>data <span class="op">=</span> [<span class="dv">9</span>,<span class="dv">6</span>,<span class="dv">12</span>,<span class="dv">18</span>,<span class="dv">10</span>]</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.DataFrame({<span class="st">'data'</span>:data})</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="co">  data</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="co">0     9</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="co">1     6</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="co">2    12</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="co">3    18</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="co">4    10</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>まずは平均からの差 (偏差) を求めてみます.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="co">#平均</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>barx <span class="op">=</span> df[<span class="st">'data'</span>].mean()</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(barx) <span class="co">#11.0</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="co"># 偏差</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'dev'</span>] <span class="op">=</span> df[<span class="st">'data'</span>] <span class="op">-</span> barx</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="co">   data  dev</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="co">0     9 -2.0</span></span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="co">1     6 -5.0</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a><span class="co">2    12  1.0</span></span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a><span class="co">3    18  7.0</span></span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a><span class="co">4    10 -1.0</span></span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>次に偏差の 2 乗とその平均 (分散) を求めます.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co">#偏差の2乗</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'dev2'</span>] <span class="op">=</span> df[<span class="st">'dev'</span>] <span class="op">*</span> df[<span class="st">'dev'</span>]</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df)</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="co">   data  dev  dev2</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="co">0     9 -2.0   4.0</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="co">1     6 -5.0  25.0</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="co">2    12  1.0   1.0</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="co">3    18  7.0  49.0</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="co">4    10 -1.0   1.0</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="co">#偏差の2乗の平均(分散)</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df[<span class="st">'dev2'</span>].mean()) <span class="co">#16.0</span></span></code></pre></div>
+<p>最後に分散の平方根をとって, 標準偏差を求めます.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co">#偏差の2乗の平均の平方根(標準偏差)</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(np.sqrt(df[<span class="st">'dev2'</span>].mean())) <span class="co">#4.0</span></span></code></pre></div>
+<p>計算から, このデータの分散は <code>16</code>, 標準偏差は <code>4</code> であることが分かりました.</p>
+<p><code>pandas</code> では, 分散は <code>.var(ddof=0)</code>, 標準偏差は <code>.std(ddof=0)</code> で求めることができます.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'分散:'</span>,df[<span class="st">'data'</span>].var(ddof<span class="op">=</span><span class="dv">0</span>)) <span class="co">#16.0</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'標準偏差:'</span>,df[<span class="st">'data'</span>].std(ddof<span class="op">=</span><span class="dv">0</span>)) <span class="co">#4.0</span></span></code></pre></div>
+<div class="warn">
+<ul>
+<li>不偏分散, 不偏標準偏差</li>
+</ul>
+<p><code>.var()</code> と <code>.std()</code> における引数 <code>ddof=0</code> とはなんでしょうか. これは, 分散を求める際の分母の値から引く数を表しています (引いた後の値を自由度といいます).</p>
+<p>デフォルトの値は <code>ddof=1</code> で,</p>
+<p><span class="math display">\frac{1}{n-1} \sum_{i=1}^{n} (x_i - \bar{x})^2</span> を求めています.</p>
+<p>このような分母が <span class="math inline">n-1</span> となっている分散を<strong>不偏分散</strong>といいます. 一方で, <a href="#dispersion">分散の求め方</a>で計算した値を<strong>標本分散</strong>といいます.</p>
+<p>不偏分散の意味については, 統計学の解説を参照してください. ここでは, 一口に分散や標準偏差といっても,
+細かくは<strong>標本分散</strong>, <strong>不偏分散</strong>, <strong>母分散</strong>などの異なる概念があることに注意しましょう.
+特にプログラムで分散や標準偏差を求めるときは, どの値を計算しているのかを確かめましょう.
+ネット上の記事などにおいても混同していることが多いので, 実際に自分で計算して確かめることをおすすめします.</p>
+<p>例えば, <code>pandas</code> における <code>describe()</code> で表示される <code>std</code> は不偏標準偏差であり, <code>std(ddof=0)</code> の値とは異なります.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df[<span class="st">'data'</span>].describe())</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co">count     5.000000</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="co">mean     11.000000</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="co">std       4.472136</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="co">min       6.000000</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="co">25%       9.000000</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a><span class="co">50%      10.000000</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a><span class="co">75%      12.000000</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a><span class="co">max      18.000000</span></span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a><span class="co">Name: data, dtype: float64</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+</div>
+<p>この節に対応する演習は, <a href="#exercise-dsp4-1">Exercise DSP4-1</a>です.</p>
+<h1 id="exercises"><span id="演習"></span>演習</h1>
+<h2 id="exercise-dsp4-1">Exercise DSP4-1</h2>
+<p class="exercise-file">提出ファイル <code>dsp4-1.py</code></p>
+<p><strong>基本統計量を求める関数とヒストグラムのデータの基本統計量</strong></p>
+<p>対応する節: <a href="#central-tendency">中心を表す基本統計量</a>, <a href="#dispersion">データの広がりを表す統計量</a></p>
+<ol type="1">
+<li>数値のリストを受け取り, 算術平均, 幾何平均, 調和平均, 中央値, 標本標準偏差 (<span class="math inline">n</span> で割る標準偏差) をそれぞれ返す関数を, <code>pandas</code> や <code>numpy</code> の統計量の関数を使わずに作成してください. 本文の例 (165, 171, 189 の算術平均, 売上の前年比の幾何平均, 60 km/h と 30 km/h の調和平均, <code>[3,4,7,9,11,12,15]</code> と <code>[4,5,6,10,14,17]</code> の中央値, <code>[9,6,12,18,10]</code> の標準偏差) で結果を確かめてください.</li>
+<li><a href="#%E3%83%87%E3%83%BC%E3%82%BF%E3%81%AE%E6%95%B0%E5%80%A4%E5%8C%96">データの数値化の例で示したヒストグラム</a>の<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch9/histogram_A_B_data.csv">データ</a>について, 列ごとの算術平均, 中央値, 最頻階級 (値の範囲を 10 の区間に分けたとき), 標本分散, 標本標準偏差を求めてください.</li>
+</ol>
+<p>提出ファイル名: <code>dsp4-1.py</code></p>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答例
+</summary>
+<div class="sourceCode" id="cb14"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="co"># 問1</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> arith_mean(xs):</span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">sum</span>(xs) <span class="op">/</span> <span class="bu">len</span>(xs)</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> geo_mean(xs):</span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>    prod <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> x <span class="kw">in</span> xs:</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>        prod <span class="op">=</span> prod <span class="op">*</span> x</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> prod <span class="op">**</span> (<span class="dv">1</span> <span class="op">/</span> <span class="bu">len</span>(xs))</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> harm_mean(xs):</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">len</span>(xs) <span class="op">/</span> <span class="bu">sum</span>(<span class="dv">1</span> <span class="op">/</span> x <span class="cf">for</span> x <span class="kw">in</span> xs)</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> median(xs):</span>
+<span id="cb14-17"><a href="#cb14-17" aria-hidden="true" tabindex="-1"></a>    s <span class="op">=</span> <span class="bu">sorted</span>(xs)</span>
+<span id="cb14-18"><a href="#cb14-18" aria-hidden="true" tabindex="-1"></a>    n <span class="op">=</span> <span class="bu">len</span>(s)</span>
+<span id="cb14-19"><a href="#cb14-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (s[(n <span class="op">-</span> <span class="dv">1</span>) <span class="op">//</span> <span class="dv">2</span>] <span class="op">+</span> s[n <span class="op">//</span> <span class="dv">2</span>]) <span class="op">/</span> <span class="dv">2</span></span>
+<span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> sample_std(xs):</span>
+<span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a>    m <span class="op">=</span> arith_mean(xs)</span>
+<span id="cb14-23"><a href="#cb14-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> (<span class="bu">sum</span>((x <span class="op">-</span> m) <span class="op">**</span> <span class="dv">2</span> <span class="cf">for</span> x <span class="kw">in</span> xs) <span class="op">/</span> <span class="bu">len</span>(xs)) <span class="op">**</span> <span class="fl">0.5</span></span>
+<span id="cb14-24"><a href="#cb14-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-25"><a href="#cb14-25" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(arith_mean([<span class="dv">165</span>, <span class="dv">171</span>, <span class="dv">189</span>]))</span>
+<span id="cb14-26"><a href="#cb14-26" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(geo_mean([<span class="dv">350</span><span class="op">/</span><span class="dv">300</span>, <span class="dv">600</span><span class="op">/</span><span class="dv">350</span>, <span class="dv">1000</span><span class="op">/</span><span class="dv">600</span>]))</span>
+<span id="cb14-27"><a href="#cb14-27" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(harm_mean([<span class="dv">60</span>, <span class="dv">30</span>]))</span>
+<span id="cb14-28"><a href="#cb14-28" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(median([<span class="dv">3</span>, <span class="dv">4</span>, <span class="dv">7</span>, <span class="dv">9</span>, <span class="dv">11</span>, <span class="dv">12</span>, <span class="dv">15</span>]))</span>
+<span id="cb14-29"><a href="#cb14-29" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(median([<span class="dv">4</span>, <span class="dv">5</span>, <span class="dv">6</span>, <span class="dv">10</span>, <span class="dv">14</span>, <span class="dv">17</span>]))</span>
+<span id="cb14-30"><a href="#cb14-30" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(sample_std([<span class="dv">9</span>, <span class="dv">6</span>, <span class="dv">12</span>, <span class="dv">18</span>, <span class="dv">10</span>]))</span>
+<span id="cb14-31"><a href="#cb14-31" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb14-32"><a href="#cb14-32" aria-hidden="true" tabindex="-1"></a><span class="co">175.0</span></span>
+<span id="cb14-33"><a href="#cb14-33" aria-hidden="true" tabindex="-1"></a><span class="co">1.4938015821857216</span></span>
+<span id="cb14-34"><a href="#cb14-34" aria-hidden="true" tabindex="-1"></a><span class="co">40.0</span></span>
+<span id="cb14-35"><a href="#cb14-35" aria-hidden="true" tabindex="-1"></a><span class="co">9.0</span></span>
+<span id="cb14-36"><a href="#cb14-36" aria-hidden="true" tabindex="-1"></a><span class="co">8.0</span></span>
+<span id="cb14-37"><a href="#cb14-37" aria-hidden="true" tabindex="-1"></a><span class="co">4.0</span></span>
+<span id="cb14-38"><a href="#cb14-38" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb14-39"><a href="#cb14-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-40"><a href="#cb14-40" aria-hidden="true" tabindex="-1"></a><span class="co"># 問2</span></span>
+<span id="cb14-41"><a href="#cb14-41" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/histogram_A_B_data.csv'</span>)</span>
+<span id="cb14-42"><a href="#cb14-42" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> c <span class="kw">in</span> df.columns:</span>
+<span id="cb14-43"><a href="#cb14-43" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(c)</span>
+<span id="cb14-44"><a href="#cb14-44" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">'算術平均:'</span>, df[c].mean())</span>
+<span id="cb14-45"><a href="#cb14-45" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">'中央値:'</span>, df[c].median())</span>
+<span id="cb14-46"><a href="#cb14-46" aria-hidden="true" tabindex="-1"></a>    freq <span class="op">=</span> df[c].value_counts(bins<span class="op">=</span><span class="dv">10</span>, sort<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb14-47"><a href="#cb14-47" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">'最頻階級:'</span>, freq.idxmax())</span>
+<span id="cb14-48"><a href="#cb14-48" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">'標本分散:'</span>, df[c].var(ddof<span class="op">=</span><span class="dv">0</span>))</span>
+<span id="cb14-49"><a href="#cb14-49" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="st">'標本標準偏差:'</span>, df[c].std(ddof<span class="op">=</span><span class="dv">0</span>))</span>
+<span id="cb14-50"><a href="#cb14-50" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb14-51"><a href="#cb14-51" aria-hidden="true" tabindex="-1"></a><span class="co">Histogram_A</span></span>
+<span id="cb14-52"><a href="#cb14-52" aria-hidden="true" tabindex="-1"></a><span class="co">算術平均: 60.28998083741</span></span>
+<span id="cb14-53"><a href="#cb14-53" aria-hidden="true" tabindex="-1"></a><span class="co">中央値: 60.37950918</span></span>
+<span id="cb14-54"><a href="#cb14-54" aria-hidden="true" tabindex="-1"></a><span class="co">最頻階級: (53.945, 64.586]</span></span>
+<span id="cb14-55"><a href="#cb14-55" aria-hidden="true" tabindex="-1"></a><span class="co">標本分散: 215.52862269245915</span></span>
+<span id="cb14-56"><a href="#cb14-56" aria-hidden="true" tabindex="-1"></a><span class="co">標本標準偏差: 14.680893116307985</span></span>
+<span id="cb14-57"><a href="#cb14-57" aria-hidden="true" tabindex="-1"></a><span class="co">Histogram_B</span></span>
+<span id="cb14-58"><a href="#cb14-58" aria-hidden="true" tabindex="-1"></a><span class="co">算術平均: 50.708362372379995</span></span>
+<span id="cb14-59"><a href="#cb14-59" aria-hidden="true" tabindex="-1"></a><span class="co">中央値: 50.630771325</span></span>
+<span id="cb14-60"><a href="#cb14-60" aria-hidden="true" tabindex="-1"></a><span class="co">最頻階級: (45.13, 51.264]</span></span>
+<span id="cb14-61"><a href="#cb14-61" aria-hidden="true" tabindex="-1"></a><span class="co">標本分散: 99.39203194350507</span></span>
+<span id="cb14-62"><a href="#cb14-62" aria-hidden="true" tabindex="-1"></a><span class="co">標本標準偏差: 9.969555253044394</span></span>
+<span id="cb14-63"><a href="#cb14-63" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>A は B より平均が約 9.6 大きく, 標準偏差は B の約 1.5 倍です. <a href="#%E3%83%87%E3%83%BC%E3%82%BF%E3%81%AE%E6%95%B0%E5%80%A4%E5%8C%96">データの数値化で示したヒストグラム</a>で A の中心が右にあり散らばりが大きく見えたことを, 数値で言い表せます.</p>
+</details>
+  </div>
+  
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../courses/dsp/4.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">第 4 回 データの数値化</span>
+    </a>
+    <a class="next" href="../../../courses/dsp/4/num-correlation.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">相関とカテゴリーの関連</span>
+    </a>
+</nav>
+
+</article>
+
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        <nav class="footer-nav" aria-label="フッターナビゲーション">
+            <a href="../../../">Home</a>
+            <a href="../../../posts.html">Blog</a>
+            <a href="../../../lectures.html">Lecture</a>
+            <a href="../../../research.html">Research</a>
+            <a href="../../../rss.xml">RSS</a>
+            <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+        </nav>
+        <p class="footer-copy">&copy; yakagika &middot; Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>.</p>
+    </div>
+</div>
+
+
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="ページ先頭へ戻る" title="先頭へ戻る">↑</button>
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+            link.classList.add('external-link');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h1[id], h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level = Number(heading.tagName.slice(1)) - 1;
+          if (!heading.id) return;
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          // Pandoc は `::: note` + 見出し の組み合わせを <section id="..." class="note">
+          // 内の <hN> として出力するため, 見出し自身に id が無い場合は
+          // 親 section の id を辿る.
+          var anchorId = heading.id;
+          if (!anchorId) {
+            var parentSection = heading.closest('section[id]');
+            if (parentSection) anchorId = parentSection.id;
+          }
+          anchor.href = '#' + anchorId;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi && !li.contains(currentLi)) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+
+      // ----------------------------------------
+      // スクロールスパイ: 表示中の見出しを TOC でハイライト
+      // ----------------------------------------
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0 || typeof IntersectionObserver === 'undefined') return;
+
+      var idToTocItem = new Map();
+      headings.forEach(function(h) {
+        if (!h.id) return;
+        var link = tocContainer.querySelector('a[href="#' + CSS.escape(h.id) + '"]');
+        if (link) {
+          var li = link.closest('.toc-item') || link.closest('li');
+          if (li) idToTocItem.set(h.id, li);
+        }
+      });
+
+      var visible = new Set();
+      var lastActive = null;
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+
+        // ドキュメント順で最初に可視な見出しをアクティブに
+        var firstVisible = null;
+        for (var i = 0; i < headings.length; i++) {
+          if (visible.has(headings[i].id)) {
+            firstVisible = headings[i].id;
+            break;
+          }
+        }
+        if (!firstVisible) return;
+
+        var tocItem = idToTocItem.get(firstVisible);
+        if (!tocItem || tocItem === lastActive) return;
+
+        if (lastActive) lastActive.classList.remove('toc-active');
+        tocItem.classList.add('toc-active');
+        lastActive = tocItem;
+
+        // TOC を必要なときだけスクロール
+        tocItem.scrollIntoView({
+          block: 'nearest',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
+      }, {
+        // ヘッダー (60px) を除いた上部 〜 画面下から60% を判定領域とする
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0
+      });
+
+      headings.forEach(function(h) { if (h.id) observer.observe(h); });
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
+      const pre = codeBlock.parentNode;
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
+      copyButton.textContent = 'Copy';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    // パスワード保護付き details (回答例用)
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll('details.protected').forEach(function (det) {
+        var pass = det.getAttribute('data-pass') || '';
+        var summary = det.querySelector('summary');
+        if (!summary) return;
+
+        var gate = document.createElement('div');
+        gate.className = 'pass-gate';
+        gate.innerHTML =
+          '<label>合言葉: <input type="password" autocomplete="off" spellcheck="false"></label>' +
+          '<button type="button">解除</button>' +
+          '<span class="pass-error" hidden>合言葉が違います</span>';
+        summary.insertAdjacentElement('afterend', gate);
+
+        var input = gate.querySelector('input');
+        var button = gate.querySelector('button');
+        var errorMsg = gate.querySelector('.pass-error');
+
+        function tryUnlock() {
+          if (input.value === pass) {
+            det.classList.add('unlocked');
+            errorMsg.hidden = true;
+          } else {
+            errorMsg.hidden = false;
+            input.select();
+          }
+        }
+
+        button.addEventListener('click', tryUnlock);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
+        });
+
+        det.addEventListener('toggle', function () {
+          if (det.open && !det.classList.contains('unlocked')) {
+            input.focus();
+          }
+        });
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            try {
+              katex.render( texText.data
+                          , mathElements[i]
+                          , { displayMode: mathElements[i].classList.contains("display")
+                            , throwOnError: true
+                           }
+                          );
+            } catch (e) {
+              // 1 つの数式のエラーで残り全ての数式が生 TeX のまま残らないようにする
+              console.error('KaTeX render error:', e.message, texText.data);
+            }
+          }
+      }
+    });
+  </script>
+
+  <!-- 見出しアンカーリンク + Back to top -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 記事見出しに hover で現れる # パーマリンクを付与
+      document.querySelectorAll('article h2[id], article h3[id]').forEach(function (h) {
+        var a = document.createElement('a');
+        a.className = 'heading-anchor';
+        a.href = '#' + h.id;
+        a.setAttribute('aria-label', 'このセクションへのリンク');
+        a.textContent = '#';
+        h.appendChild(a);
+      });
+
+      // Back to top: スクロール量に応じて表示
+      var btt = document.getElementById('back-to-top');
+      if (btt) {
+        var onScroll = function () {
+          if (window.pageYOffset > 600) btt.classList.add('visible');
+          else btt.classList.remove('visible');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        btt.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
+    });
+  </script>
+
+  </body>
+</html>

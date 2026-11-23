@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+    <script>
+      (function () {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+        function stored() {
+          var t = null;
+          try { t = localStorage.getItem('theme'); } catch (e) {}
+          return (t === 'dark' || t === 'light') ? t : null;
+        }
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
+        if (mq) {
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
+        }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
+      })();
+    </script>
+    <title>yakagika - 人工知能の歴史と機械学習の枠組み</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../../../style.css?v=1795415080">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../../../" class="site-brand" aria-label="Home">
+          <span class="site-mark" aria-hidden="true">▮</span>
+          <span class="site-word">yakagika</span>
+        </a>
+      </div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../../../">Home</a>
+      <a href="../../../posts.html">Blog</a>
+      <a href="../../../lectures.html">Lecture</a>
+      <a href="../../../research.html">Research</a>
+      <a href="../../../lectures/seminar.html">Seminar</a>
+      <a href="../../../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      
+      <div id="lecture-toc" data-mode="series">
+  <h2>Index</h2>
+  <a href="../../../fields/machine-learning/index.html">機械学習</a>
+  <ul class="toc-root">
+    
+    <li class="toc-item toc-series-item current-block">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/machine-learning/ml-overview/index.html">人工知能の歴史と機械学習の枠組み</a>
+        
+      </div>
+      
+      <ul class="toc-sublist">
+        
+        <li class="toc-item toc-series-item current">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/machine-learning/ml-overview/index.html" aria-current="page">人工知能の歴史</a>
+          </div>
+          <ul class="toc-sublist"></ul>
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/machine-learning/ml-overview/why-ml-still-used.html">機械学習がまだ使われる理由</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/machine-learning/ml-overview/machine-learning.html">機械学習</a>
+          </div>
+          
+        </li>
+        
+      </ul>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/machine-learning/ml-classification/index.html">決定木と分類の評価</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/machine-learning/ml-classifiers/index.html">ランダムフォレスト, SVM, k 近傍法</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/machine-learning/ml-clustering/index.html">クラスタリングと主成分分析</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/machine-learning/ml-clustering-more/index.html">t-SNE, 密度と確率モデルによるクラスタリング</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/machine-learning/ml-association/index.html">アソシエーション分析</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/machine-learning/ml-network/index.html">ニューラルネットワークの構成と学習</a>
+        
+      </div>
+      
+    </li>
+    
+  </ul>
+</div>
+
+    </nav>
+
+    <div id="content">
+    
+<nav class="block-course-nav" aria-label="講義の並び">
+  <p>講義の並び</p>
+  <ul>
+    
+    <li class="course-occurrence">
+      <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+      <a href="../../../courses/dsp/6.html">第 6 回</a> (必修)
+      
+      <a href="../../../fields/regression/reg-logit/index.html" rel="prev">← 単位の取得確率を推定する</a>
+      
+      
+      
+      <a href="../../../fields/machine-learning/ml-classification/index.html" rel="next">決定木と分類の評価 →</a>
+      
+      
+    </li>
+    
+  </ul>
+</nav>
+
+
+
+<article>
+  
+  <header class="article-header">
+    <h1 class="article-title">人工知能の歴史と機械学習の枠組み</h1>
+<nav class="block-field-nav block-field-nav-narrow" aria-label="分野の目次">
+  <a href="../../../fields/machine-learning/index.html">機械学習</a>
+  <ol>
+    
+    <li>
+      
+      <strong><a href="../../../fields/machine-learning/ml-overview/index.html" aria-current="true">人工知能の歴史と機械学習の枠組み</a></strong>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/machine-learning/ml-classification/index.html">決定木と分類の評価</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/machine-learning/ml-classifiers/index.html">ランダムフォレスト, SVM, k 近傍法</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/machine-learning/ml-clustering/index.html">クラスタリングと主成分分析</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/machine-learning/ml-clustering-more/index.html">t-SNE, 密度と確率モデルによるクラスタリング</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/machine-learning/ml-association/index.html">アソシエーション分析</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/machine-learning/ml-network/index.html">ニューラルネットワークの構成と学習</a>
+      
+      
+    </li>
+    
+  </ol>
+</nav>
+
+  </header>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../fields/machine-learning/index.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">機械学習の目次</span>
+    </a>
+    <a class="next" href="../../../fields/machine-learning/ml-overview/why-ml-still-used.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">機械学習がまだ使われる理由</span>
+    </a>
+</nav>
+
+  
+  
+  <h2 id="人工知能の歴史">人工知能の歴史</h2>
+<p>統計, 機械学習, AI, データサイエンスなどの違いはそれほどはっきりしていません. このことは<a href="../../../fields/analysis-design/design-process/data-science.html#data-science">データサイエンスとは</a>でも扱いました.</p>
+<p>AI は <em>Artificial Intelligence (人工知能)</em> の略語です. 世の中では, 様々なものが AI と呼ばれており,</p>
+<div class="note">
+<ul>
+<li>Automated Instruments (自動化されたなにか)</li>
+<li>Anything IT-related (IT に関連したなんでも)</li>
+</ul>
+</div>
+<p>などの AI という用語の濫用を揶揄する言葉もあります.</p>
+<p>AI が研究の課題として最初に提起された 1956 年のダートマス会議の<a href="https://ojs.aaai.org/aimagazine/index.php/aimagazine/article/view/1904">提案書</a>では AI の研究を以下のように定義しています.</p>
+<blockquote>
+<p>この研究は, 学習のあらゆる側面, あるいは知能のその他の特徴は原則として, 機械がそれをシミュレートできるほど正確に記述できるという推測に基づいて進められる.</p>
+<p>機械に言語を使わせ, 抽象や概念を形成させ, 現在人間にしかできないような種類の問題を解決させ, 自らを向上させる方法を見つける試みがなされる.</p>
+<p>注意深く選ばれた科学者たちがひと夏の間, 一緒にこの問題に取り組めば, これらの問題のひとつやふたつに大きな進歩がもたらされると, 私たちは考えている.</p>
+</blockquote>
+<p>このように当初の AI の定義によれば, AI は,</p>
+<ol type="1">
+<li>抽象や概念を形成する</li>
+<li>現在人間にしかできないような種類の問題を解決し</li>
+<li>自らを向上させる方法を見つける</li>
+</ol>
+<p>ことができる機械であるとされています.</p>
+<p>当初の AI 研究では, 特に 2 番目の問題解決に焦点を当てていました.</p>
+<p>例えば, ノーベル経済学賞を受賞した, ハーバート・A・サイモンらが人間の問題解決の手法を模倣して作った最初期の AI である<strong>GPS (General Problem Solver) 一般問題解決器</strong>が有名です.</p>
+<p>GPS では, 「問題」を「現在と目標との差異」と定義して, 目標と現状の差を小さな差に分解し, それを順に解消していけば, おおよそすべての問題を解決できるとしました.</p>
+<div class="note">
+<ul>
+<li>目標: 対象 A を対象 B に変換せよ
+<ul>
+<li>対象 A と対象 B を照合し差 D を見つけよ</li>
+<li>サブゴール D を縮小せよ</li>
+<li>サブゴール A’を B に変換せよ</li>
+</ul></li>
+<li>目標: 対象 A と対象 B との間の差 D を縮小せよ
+<ul>
+<li>D を縮小するのに適した作用子 Q を探せ</li>
+<li>実行可能かどうかテストせよ</li>
+<li>サブゴール A に Q を適用して A’を作る</li>
+</ul></li>
+<li>目標: 対象 A に作用子 Q を適用せよ
+<ul>
+<li>Q の条件を A と照合し差を見つけよ</li>
+<li>サブゴール D を縮小せよ</li>
+<li>サブゴール A’に Q を適用せよ</li>
+</ul></li>
+</ul>
+<p>(cf. Newell, Allen, and Herbert A. Simon: “GPS, A Program that Simulates Human Thought,”Lernende Automaten, Munchen (R. Oldenbourg, ed.) (1961), Reprinted in Computers and Thought(Feigenbaum and Feldman, eds.) (1963) )</p>
+</div>
+<p>しかしこの手法は, 目標と現状を明確に記述でき, 両者の差を測ることができ, その差を埋める手段が定まっている問題 (チェスや迷路など) にしか適用できませんでした.</p>
+<p>その他にも, 基本的には当時の AI は, 「問題の解決の仕方」を人間が定義して, それを直接的にプログラムするという手法で開発されています.</p>
+<p>その後, AI の発展は以下の年表のような歴史を辿ります.</p>
+<div class="note">
+<table>
+<colgroup>
+<col style="width: 17%" />
+<col style="width: 82%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>AI ブーム</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>第1次 AI ブーム</td>
+<td>• 1956年: ダートマス会議でスタート<br>• 一般問題解決器 (現状と目標との差異)<br>• 一般的な問題解決の手順を, 人間が条件分岐などで直接プログラム<br>• 1960年代はじめ: 機械翻訳の失敗で収束</td>
+</tr>
+<tr class="even">
+<td>第2次 AI ブーム</td>
+<td>• 1980年代はじめ: エキスパートシステム, 機械翻訳<br>• 知識の活用を目指す (辞書などの知識をデータベースとして整理して利用)<br>• 1980年代はじめ: 第5世代コンピュータープロジェクト<br>• 1990年代はじめ: 知識導入・商業性で収束</td>
+</tr>
+<tr class="odd">
+<td>第3次 AI ブーム</td>
+<td>• 2010年から現在: ANN (Artificial Neural Network) の復活<br>• 検索エンジン研究で発達<br>• ゲームでの成功 (チェス, 将棋, 囲碁)<br>• パターン認識での成功例 (音声解析, 画像解析など)</td>
+</tr>
+<tr class="even">
+<td>第4次 AI ブーム</td>
+<td>• 現在: 生成系 AI<br>• 画像・動画・音声</td>
+</tr>
+</tbody>
+</table>
+<p>(cf. 寺野隆雄, 生成系AIの歴史・原理・現状, 千葉商科大学 2023年 第1回FD 「生成系AIに関するFD」 ,2023/05/18)</p>
+</div>
+<p>この歴史のすべては扱いませんが, 第3次以降の AI ブームは, ダートマス会議の提案にある「3. 自らを向上させる方法を見つける」に関わる技術の発展によるものです.</p>
+<p>この解説では, まず大規模言語モデルの歴史と, 大規模言語モデルがあっても機械学習が使われる理由を確かめます. 次に, この「自らを向上させる」機械である<strong>機械学習</strong>の概要と, 教師あり学習の手法の 1 つである<a href="../../../fields/machine-learning/ml-classification/decision-trees.html#決定木分析">決定木</a>, <a href="../../../fields/machine-learning/ml-classification/classification-evaluation.html#分類の評価">分類の評価</a>の方法を扱います.
+機械学習に関連する手法は, <a href="../../../fields/machine-learning/ml-clustering/clustering.html#クラスタリング">クラスタリング</a>, <a href="../../../fields/machine-learning/ml-network/index.html#ニューラルネットワーク概要">ニューラルネットワーク</a>, <a href="../../../fields/deep-learning/nlp-processing/index.html#自然言語処理">自然言語処理</a>, <a href="../../../fields/deep-learning/img-recognition/index.html#画像認識">画像認識</a>の解説を参照してください.</p>
+<h2 id="llm-history">大規模言語モデルの歴史</h2>
+<p>上の年表で第 4 次 AI ブームに挙げた生成系 AI のうち, 文章を扱うものの中心にあるのが<strong>大規模言語モデル (LLM; Large Language Model)</strong> です. LLM は, 大量の文章から言葉の並びの出やすさを学習したニューラルネットワークで, 文章の続きを 1 トークンずつ作ることで, 質問への回答, 要約, 翻訳, プログラムの作成などを行います. 普及までの流れは次のとおりです.</p>
+<table>
+<colgroup>
+<col style="width: 50%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>年</th>
+<th>出来事</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>2017</td>
+<td>Google の研究者らが Transformer を提案する (<a href="../../../fields/deep-learning/dl-transformer/index.html#transformer-と注意機構">Transformer と注意機構</a>). 文章の全体を並列に処理できるので, 大量のデータで大きなモデルを学習しやすい</td>
+</tr>
+<tr class="even">
+<td>2018</td>
+<td>Google が BERT, OpenAI が GPT を発表する. 大量の文章で事前学習したモデルに, 課題ごとの追加学習をする方法が自然言語処理で広がる (<a href="../../../fields/deep-learning/nlp-generation/pretraining-and-generation.html#pretraining-and-generation">事前学習と生成</a>)</td>
+</tr>
+<tr class="odd">
+<td>2020</td>
+<td>OpenAI が GPT-3 を発表する. パラメータの数は 1750 億で, 課題の例を数個, 入力 (プロンプト) に書くだけで課題を解けることを示した</td>
+</tr>
+<tr class="even">
+<td>2022</td>
+<td>11 月に OpenAI が ChatGPT を公開する. 指示に従うための追加学習をしたモデルを対話の形で誰でも使えるようにし, 利用者が急速に増えた</td>
+</tr>
+</tbody>
+</table>
+<p>その後は多くの企業や研究機関が同様のモデルを公開し, 公開されたモデルを自分の計算機で動かすこともできるようになりました. 事前学習, 指示に従うための追加学習, 生成の 3 段階の仕組みは, <a href="../../../fields/deep-learning/nlp-generation/pretraining-and-generation.html#pretraining-and-generation">事前学習と生成</a>で扱います.</p>
+<h2 id="llm-vs-ml">大規模言語モデルと機械学習の用途の違い</h2>
+<p>決定木, 回帰, 分類器などの機械学習は, 課題ごとに入力と出力の形が決まっている点で, LLM と用途が分かれます.</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th>決定木, 回帰, 分類器</th>
+<th>LLM</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>入力</td>
+<td>課題ごとに決めた説明変数 (表形式のデータなど)</td>
+<td>自然言語の文章 (指示と資料)</td>
+</tr>
+<tr class="even">
+<td>出力</td>
+<td>あらかじめ決めた形式の値 (クラス, 確率, 数値)</td>
+<td>文章 (形式は指示で変わる)</td>
+</tr>
+<tr class="odd">
+<td>学習</td>
+<td>課題ごとに, 正解付きのデータで学習する</td>
+<td>大量の文章で事前学習したモデルを, 多くの課題に使い回す</td>
+</tr>
+<tr class="even">
+<td>向く用途</td>
+<td>会員の退会予測のように, 決まった項目から決まった値を大量に求める</td>
+<td>問い合わせへの返信の下書き, 要約, 翻訳のように, 文章を作る</td>
+</tr>
+</tbody>
+</table>
+<p>LLM に文章の感情の分類を頼むこともでき, 同じ課題を<a href="../../../fields/deep-learning/nlp-bert/multilabel-classification.html#マルチラベル分類">BERT のファインチューニング</a>で解くこともできます. どちらでも解ける課題での使い分けは, <a href="../../../fields/machine-learning/ml-overview/why-ml-still-used.html#計算の費用と応答の速さ">計算の費用</a>, <a href="../../../fields/machine-learning/ml-overview/why-ml-still-used.html#決定性-同じ入力に同じ出力を返す性質">決定性</a>, <a href="../../../fields/machine-learning/ml-overview/why-ml-still-used.html#予測の根拠を読めること">説明可能性</a>で決まります.</p>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../fields/machine-learning/index.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">機械学習の目次</span>
+    </a>
+    <a class="next" href="../../../fields/machine-learning/ml-overview/why-ml-still-used.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">機械学習がまだ使われる理由</span>
+    </a>
+</nav>
+
+</article>
+
+
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        <nav class="footer-nav" aria-label="フッターナビゲーション">
+            <a href="../../../">Home</a>
+            <a href="../../../posts.html">Blog</a>
+            <a href="../../../lectures.html">Lecture</a>
+            <a href="../../../research.html">Research</a>
+            <a href="../../../rss.xml">RSS</a>
+            <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+        </nav>
+        <p class="footer-copy">&copy; yakagika &middot; Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>.</p>
+    </div>
+</div>
+
+
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="ページ先頭へ戻る" title="先頭へ戻る">↑</button>
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+            link.classList.add('external-link');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level;
+          switch (heading.tagName.toLowerCase()) {
+            case 'h2': level = 0; break;
+            case 'h3': level = 1; break;
+            case 'h4': level = 2; break;
+            default: return;
+          }
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          // Pandoc は `::: note` + 見出し の組み合わせを <section id="..." class="note">
+          // 内の <hN> として出力するため, 見出し自身に id が無い場合は
+          // 親 section の id を辿る.
+          var anchorId = heading.id;
+          if (!anchorId) {
+            var parentSection = heading.closest('section[id]');
+            if (parentSection) anchorId = parentSection.id;
+          }
+          anchor.href = '#' + anchorId;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi && !li.contains(currentLi)) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+
+      // ----------------------------------------
+      // スクロールスパイ: 表示中の見出しを TOC でハイライト
+      // ----------------------------------------
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0 || typeof IntersectionObserver === 'undefined') return;
+
+      var idToTocItem = new Map();
+      headings.forEach(function(h) {
+        if (!h.id) return;
+        var link = tocContainer.querySelector('a[href="#' + CSS.escape(h.id) + '"]');
+        if (link) {
+          var li = link.closest('.toc-item') || link.closest('li');
+          if (li) idToTocItem.set(h.id, li);
+        }
+      });
+
+      var visible = new Set();
+      var lastActive = null;
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+
+        // ドキュメント順で最初に可視な見出しをアクティブに
+        var firstVisible = null;
+        for (var i = 0; i < headings.length; i++) {
+          if (visible.has(headings[i].id)) {
+            firstVisible = headings[i].id;
+            break;
+          }
+        }
+        if (!firstVisible) return;
+
+        var tocItem = idToTocItem.get(firstVisible);
+        if (!tocItem || tocItem === lastActive) return;
+
+        if (lastActive) lastActive.classList.remove('toc-active');
+        tocItem.classList.add('toc-active');
+        lastActive = tocItem;
+
+        // TOC を必要なときだけスクロール
+        tocItem.scrollIntoView({
+          block: 'nearest',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
+      }, {
+        // ヘッダー (60px) を除いた上部 〜 画面下から60% を判定領域とする
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0
+      });
+
+      headings.forEach(function(h) { if (h.id) observer.observe(h); });
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
+      const pre = codeBlock.parentNode;
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
+      copyButton.textContent = 'Copy';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    // パスワード保護付き details (回答例用)
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll('details.protected').forEach(function (det) {
+        var pass = det.getAttribute('data-pass') || '';
+        var summary = det.querySelector('summary');
+        if (!summary) return;
+
+        var gate = document.createElement('div');
+        gate.className = 'pass-gate';
+        gate.innerHTML =
+          '<label>合言葉: <input type="password" autocomplete="off" spellcheck="false"></label>' +
+          '<button type="button">解除</button>' +
+          '<span class="pass-error" hidden>合言葉が違います</span>';
+        summary.insertAdjacentElement('afterend', gate);
+
+        var input = gate.querySelector('input');
+        var button = gate.querySelector('button');
+        var errorMsg = gate.querySelector('.pass-error');
+
+        function tryUnlock() {
+          if (input.value === pass) {
+            det.classList.add('unlocked');
+            errorMsg.hidden = true;
+          } else {
+            errorMsg.hidden = false;
+            input.select();
+          }
+        }
+
+        button.addEventListener('click', tryUnlock);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
+        });
+
+        det.addEventListener('toggle', function () {
+          if (det.open && !det.classList.contains('unlocked')) {
+            input.focus();
+          }
+        });
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            try {
+              katex.render( texText.data
+                          , mathElements[i]
+                          , { displayMode: mathElements[i].classList.contains("display")
+                            , throwOnError: true
+                           }
+                          );
+            } catch (e) {
+              // 1 つの数式のエラーで残り全ての数式が生 TeX のまま残らないようにする
+              console.error('KaTeX render error:', e.message, texText.data);
+            }
+          }
+      }
+    });
+  </script>
+
+  <!-- 見出しアンカーリンク + Back to top -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 記事見出しに hover で現れる # パーマリンクを付与
+      document.querySelectorAll('article h2[id], article h3[id]').forEach(function (h) {
+        var a = document.createElement('a');
+        a.className = 'heading-anchor';
+        a.href = '#' + h.id;
+        a.setAttribute('aria-label', 'このセクションへのリンク');
+        a.textContent = '#';
+        h.appendChild(a);
+      });
+
+      // Back to top: スクロール量に応じて表示
+      var btt = document.getElementById('back-to-top');
+      if (btt) {
+        var onScroll = function () {
+          if (window.pageYOffset > 600) btt.classList.add('visible');
+          else btt.classList.remove('visible');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        btt.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
+    });
+  </script>
+
+  </body>
+</html>

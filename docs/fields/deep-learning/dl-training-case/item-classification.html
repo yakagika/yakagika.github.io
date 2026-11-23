@@ -1,0 +1,1539 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+    <script>
+      (function () {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+        function stored() {
+          var t = null;
+          try { t = localStorage.getItem('theme'); } catch (e) {}
+          return (t === 'dark' || t === 'light') ? t : null;
+        }
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
+        if (mq) {
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
+        }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
+      })();
+    </script>
+    <title>yakagika - 事例: 品目名から製造業の中分類を当てる</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../../../style.css?v=1795415080">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../../../" class="site-brand" aria-label="Home">
+          <span class="site-mark" aria-hidden="true">▮</span>
+          <span class="site-word">yakagika</span>
+        </a>
+      </div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../../../">Home</a>
+      <a href="../../../posts.html">Blog</a>
+      <a href="../../../lectures.html">Lecture</a>
+      <a href="../../../research.html">Research</a>
+      <a href="../../../lectures/seminar.html">Seminar</a>
+      <a href="../../../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      
+      <div id="lecture-toc" data-mode="series">
+  <h2>Index</h2>
+  <a href="../../../fields/deep-learning/index.html">深層学習とその応用</a>
+  <ul class="toc-root">
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/dl-transformer/index.html">Transformer と自己教師あり学習</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/dl-lifecycle/index.html">AI の学習と推論, 評価, 再学習</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-processing/index.html">形態素解析, ワードクラウド, ユーザ定義辞書</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-syntax/index.html">係り受け解析とかな漢字変換</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-bert/index.html">BERT の事前学習とテキストの分類</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-generation/index.html">機械翻訳, 文章生成と生成 AI の仕組み</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-embedding/index.html">文章のベクトル, 次元削減と類似度</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-embedding-more/index.html">トピックモデル, n-gram, CLIP</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item current-block">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/dl-training-case/index.html">事例: 品目名の分類器を学習する</a>
+        
+      </div>
+      
+      <ul class="toc-sublist">
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/deep-learning/dl-training-case/index.html">導入</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/deep-learning/dl-training-case/prerequisites.html">前提知識</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item current">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/deep-learning/dl-training-case/item-classification.html" aria-current="page">事例: 品目名から製造業の中分類を当てる</a>
+          </div>
+          <ul class="toc-sublist"></ul>
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/deep-learning/dl-training-case/exercises.html">演習</a>
+          </div>
+          
+        </li>
+        
+      </ul>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/dl-training-procedure/index.html">Transformer の学習の手順</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-recognition/index.html">認識技術と手書き数字の認識</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-cnn/index.html">畳み込みニューラルネットワーク</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-age/index.html">顔画像による年代の分類</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-speech/index.html">音声認識の仕組み</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-more/index.html">ViT, 特徴量の可視化, Grad-CAM</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-age-code/index.html">年齢識別のコード全体</a>
+        
+      </div>
+      
+    </li>
+    
+  </ul>
+</div>
+
+    </nav>
+
+    <div id="content">
+    
+<nav class="block-course-nav" aria-label="講義の並び">
+  <p>講義の並び</p>
+  <ul>
+    
+    <li class="course-occurrence">
+      <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+      <a href="../../../courses/dsp/9.html">第 9 回</a> (発展)
+      
+      <a href="../../../fields/deep-learning/nlp-embedding-more/index.html" rel="prev">← トピックモデル, n-gram, CLIP</a>
+      
+      
+      
+      <a href="../../../fields/deep-learning/dl-training-procedure/index.html" rel="next">Transformer の学習の手順 →</a>
+      
+      
+    </li>
+    
+  </ul>
+</nav>
+
+
+
+<article>
+  
+  <h1 id="item-classification"><span id="事例-品目名から製造業の中分類を当てる"></span>事例: 品目名から製造業の中分類を当てる</h1>
+<nav class="block-field-nav block-field-nav-narrow" aria-label="分野の目次">
+  <a href="../../../fields/deep-learning/index.html">深層学習とその応用</a>
+  <ol>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/dl-transformer/index.html">Transformer と自己教師あり学習</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/dl-lifecycle/index.html">AI の学習と推論, 評価, 再学習</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-processing/index.html">形態素解析, ワードクラウド, ユーザ定義辞書</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-syntax/index.html">係り受け解析とかな漢字変換</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-bert/index.html">BERT の事前学習とテキストの分類</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-generation/index.html">機械翻訳, 文章生成と生成 AI の仕組み</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-embedding/index.html">文章のベクトル, 次元削減と類似度</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-embedding-more/index.html">トピックモデル, n-gram, CLIP</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <strong><a href="../../../fields/deep-learning/dl-training-case/index.html" aria-current="true">事例: 品目名の分類器を学習する</a></strong>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/dl-training-procedure/index.html">Transformer の学習の手順</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/img-recognition/index.html">認識技術と手書き数字の認識</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/img-cnn/index.html">畳み込みニューラルネットワーク</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/img-age/index.html">顔画像による年代の分類</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/img-speech/index.html">音声認識の仕組み</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/img-more/index.html">ViT, 特徴量の可視化, Grad-CAM</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/img-age-code/index.html">年齢識別のコード全体</a>
+      
+      
+    </li>
+    
+  </ol>
+</nav>
+<nav class="chapter-nav-card">
+    <a class="prev" href="../../../fields/deep-learning/dl-training-case/prerequisites.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">前提知識</span>
+    </a>
+    <a class="next" href="../../../fields/deep-learning/dl-training-case/exercises.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">演習</span>
+    </a>
+</nav>
+
+<p>企業の取引記録や製品の一覧を産業ごとに集計するには, 品目の名前 (「バター」「ピアノ線」など) を, その品目を作る産業の分類に振り分ける必要があります. 品目の数が多いと人手では振り分けきれないので, 品目名を入力にして分類を答える AI を作ります. <a href="../../../fields/deep-learning/nlp-bert/multilabel-classification.html#マルチラベル分類">マルチラベル分類で使った日本語 BERT</a>を追加学習 (ファインチューニング) して, 品目名から製造業の分類を当てます.</p>
+<h2 id="データ-日本標準産業分類の内容例示">データ: 日本標準産業分類の内容例示</h2>
+<p><strong>日本標準産業分類</strong>は, 統計を産業ごとに集計するために総務省が定めた分類です. 大分類, 中分類, 小分類, 細分類の 4 段階があり, 製造業 (大分類 E) は 24 の中分類に分かれます. 総務省は分類ごとに, その分類に含まれる事業の例 (内容例示) も公開しています. 例えば細分類「伸線業」の内容例示には, 「鉄線製造業」「ピアノ線製造業」などが並んでいます.</p>
+<p><a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/dsp10/manufacturing_items.csv">こちら</a>のデータは, 製造業の内容例示から事業の名前を抜き出し, 末尾の「製造業」を落として品目名にしたものです (「バター製造業」→「バター」). 1 行が 1 品目で, 3,615 品目あります. 総務省「日本標準産業分類 (令和5年7月告示) 分類項目名, 説明及び内容例示」の<a href="https://www.soumu.go.jp/main_content/000935526.pdf">製造業の資料</a>を加工して作成しました. 総務省が作成したデータではありません. ダウンロードして, プログラムを置くディレクトリの <code>data</code> ディレクトリに保存してください.</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">列</th>
+<th style="text-align: left;">内容</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;"><code>item</code></td>
+<td style="text-align: left;">品目名</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>mid_code</code></td>
+<td style="text-align: left;">中分類の番号 (09〜32)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>mid_name</code></td>
+<td style="text-align: left;">中分類の名前</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><code>small_code</code></td>
+<td style="text-align: left;">小分類の番号 (3 桁)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><code>fine_code</code></td>
+<td style="text-align: left;">細分類の番号 (4 桁)</td>
+</tr>
+</tbody>
+</table>
+<p><code>item</code> から <code>mid_name</code> (24 クラス) を当てます. 1 つの品目は 1 つの中分類にだけ属するので, <a href="../../../fields/deep-learning/nlp-bert/multilabel-classification.html#マルチラベル分類">マルチラベル分類</a>と違い, 24 クラスから 1 つを選ぶ多クラス分類になります.</p>
+<p>次のライブラリを使います. <code>uv add</code> しておいてください.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> add torch transformers fugashi unidic-lite pandas scikit-learn matplotlib matplotlib-fontja</span></code></pre></div>
+<p>まず, データを読み込み, 中分類ごとの品目の数を確かめます.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib_fontja</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="co"># 番号の先頭の 0 を残すため, すべての列を文字列として読む</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/manufacturing_items.csv'</span>, dtype<span class="op">=</span><span class="bu">str</span>)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(df.head())</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'品目の数: </span><span class="sc">{</span><span class="bu">len</span>(df)<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="co"># 中分類の番号の順に, 中分類の名前を並べる</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>classes <span class="op">=</span> df.drop_duplicates(<span class="st">'mid_code'</span>).sort_values(<span class="st">'mid_code'</span>)[<span class="st">'mid_name'</span>].tolist()</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>counts <span class="op">=</span> df[<span class="st">'mid_name'</span>].value_counts()[classes]</span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">7</span>))</span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>ax.barh(classes[::<span class="op">-</span><span class="dv">1</span>], counts[::<span class="op">-</span><span class="dv">1</span>])</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">'品目の数'</span>)</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>fig.tight_layout()</span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>plt.close(fig)</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a><span class="co">    item mid_code mid_name small_code fine_code</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a><span class="co">0  ブロック肉       09   食料品製造業        091      0911</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a><span class="co">1   冷凍食肉       09   食料品製造業        091      0911</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a><span class="co">2    部分肉       09   食料品製造業        091      0911</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a><span class="co">3  ソーセージ       09   食料品製造業        091      0912</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a><span class="co">4     ハム       09   食料品製造業        091      0912</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a><span class="co">品目の数: 3615</span></span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<figure>
+<img src="../../../images/dsp/ch10/item-counts.png" alt="中分類ごとの品目の数" />
+<figcaption aria-hidden="true">中分類ごとの品目の数</figcaption>
+</figure>
+<p>品目の数は中分類によって大きく違います. 最も多い繊維工業は 343 品目, 最も少ない石油製品・石炭製品製造業は 27 品目です. クラスの件数に偏りがあると, <a href="../../../fields/machine-learning/ml-classification/classification-evaluation.html#accuracy-precision-recall">Accuracy</a> だけでは少ないクラスを見逃していても気づけません. そこで, 評価では中分類ごとの Recall も確かめます.</p>
+<h2 id="モデル-bert-に-softmax-の出力層を付ける">モデル: BERT に softmax の出力層を付ける</h2>
+<p>モデルは<a href="../../../fields/deep-learning/nlp-bert/multilabel-classification.html#マルチラベル分類">マルチラベル分類</a>と同じ形で, BERT の出力を平均した品目名のベクトルを, 線形変換で 24 クラスのスコアに変えます. マルチラベル分類との違いは, スコアを確率に変える関数と損失関数です.</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;"></th>
+<th style="text-align: left;"><a href="../../../fields/deep-learning/nlp-bert/multilabel-classification.html#マルチラベル分類">マルチラベル分類</a></th>
+<th style="text-align: left;">品目名の多クラス分類</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">1 つの入力に付く正解</td>
+<td style="text-align: left;">0 個以上 (ネガティブとポジティブの両方もある)</td>
+<td style="text-align: left;">ちょうど 1 個</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">スコアを確率に変える関数</td>
+<td style="text-align: left;">ラベルごとに sigmoid 関数</td>
+<td style="text-align: left;">24 クラスまとめて softmax 関数</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">確率の合計</td>
+<td style="text-align: left;">決まらない (ラベルごとに 0 から 1)</td>
+<td style="text-align: left;">1</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">損失関数</td>
+<td style="text-align: left;"><code>BCEWithLogitsLoss</code></td>
+<td style="text-align: left;"><code>CrossEntropyLoss</code></td>
+</tr>
+</tbody>
+</table>
+<p>softmax 関数と交差エントロピー損失は, <a href="../../../fields/machine-learning/ml-network/network-architecture.html#ニューラルネットワークの構成">ニューラルネットワークの出力層</a>と<a href="../../../fields/machine-learning/ml-network/network-training.html#ニューラルネットワークの学習">学習</a>で使います. PyTorch の <code>CrossEntropyLoss</code> は, 線形変換の出力 (スコア) を受け取り, 内部で softmax を計算してから交差エントロピーを求めます. そのため, モデル自体は softmax を通す前のスコアを返します.</p>
+<p>学習の設定とモデルを用意します. 設定の値の意味は, <a href="#学習の手順を実行する">学習の手順を実行する</a>で説明します.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> copy</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> random</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> time</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> train_test_split</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> transformers <span class="im">import</span> AutoTokenizer, BertModel, get_linear_schedule_with_warmup</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="co"># 日本語の学習済み BERT</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>MODEL_NAME <span class="op">=</span> <span class="st">'tohoku-nlp/bert-base-japanese-whole-word-masking'</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>EPOCHS <span class="op">=</span> <span class="dv">8</span>  <span class="co"># 訓練データを繰り返して学習する最大の回数</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>PATIENCE <span class="op">=</span> <span class="dv">2</span>  <span class="co"># 検証用の損失が何エポック続けて最小を更新しなければ止めるか</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>MAX_LENGTH <span class="op">=</span> <span class="dv">32</span>  <span class="co"># 1 品目から読み込む最大のトークン数</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>LEARNING_RATE <span class="op">=</span> <span class="fl">3e-5</span></span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>WARMUP_RATIO <span class="op">=</span> <span class="fl">0.1</span>  <span class="co"># 学習率を 0 から上げていく期間 (全ステップに対する割合)</span></span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>BATCH_SIZE <span class="op">=</span> <span class="dv">32</span></span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a><span class="co"># 使うデバイスの選択</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> torch.backends.mps.is_available():</span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>    device <span class="op">=</span> torch.device(<span class="st">'mps'</span>)  <span class="co"># Mac GPU</span></span>
+<span id="cb3-23"><a href="#cb3-23" aria-hidden="true" tabindex="-1"></a><span class="cf">elif</span> torch.cuda.is_available():</span>
+<span id="cb3-24"><a href="#cb3-24" aria-hidden="true" tabindex="-1"></a>    device <span class="op">=</span> torch.device(<span class="st">'cuda:0'</span>)  <span class="co"># Win GPU</span></span>
+<span id="cb3-25"><a href="#cb3-25" aria-hidden="true" tabindex="-1"></a><span class="cf">else</span>:</span>
+<span id="cb3-26"><a href="#cb3-26" aria-hidden="true" tabindex="-1"></a>    device <span class="op">=</span> torch.device(<span class="st">'cpu'</span>)  <span class="co"># CPU</span></span>
+<span id="cb3-27"><a href="#cb3-27" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Using device: </span><span class="sc">{</span>device<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb3-28"><a href="#cb3-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-29"><a href="#cb3-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-30"><a href="#cb3-30" aria-hidden="true" tabindex="-1"></a><span class="co"># 多クラス分類用のモデル</span></span>
+<span id="cb3-31"><a href="#cb3-31" aria-hidden="true" tabindex="-1"></a><span class="kw">class</span> BertForClassification(torch.nn.Module):</span>
+<span id="cb3-32"><a href="#cb3-32" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>, model_name, num_classes):</span>
+<span id="cb3-33"><a href="#cb3-33" aria-hidden="true" tabindex="-1"></a>        <span class="bu">super</span>().<span class="fu">__init__</span>()</span>
+<span id="cb3-34"><a href="#cb3-34" aria-hidden="true" tabindex="-1"></a>        <span class="co"># 学習済みの BERT を読み込む</span></span>
+<span id="cb3-35"><a href="#cb3-35" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.bert <span class="op">=</span> BertModel.from_pretrained(model_name)</span>
+<span id="cb3-36"><a href="#cb3-36" aria-hidden="true" tabindex="-1"></a>        <span class="co"># BERT の出力を各クラスのスコアに変える線形変換</span></span>
+<span id="cb3-37"><a href="#cb3-37" aria-hidden="true" tabindex="-1"></a>        <span class="va">self</span>.linear <span class="op">=</span> torch.nn.Linear(<span class="va">self</span>.bert.config.hidden_size, num_classes)</span>
+<span id="cb3-38"><a href="#cb3-38" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-39"><a href="#cb3-39" aria-hidden="true" tabindex="-1"></a>    <span class="kw">def</span> forward(<span class="va">self</span>, input_ids, attention_mask, token_type_ids<span class="op">=</span><span class="va">None</span>):</span>
+<span id="cb3-40"><a href="#cb3-40" aria-hidden="true" tabindex="-1"></a>        output <span class="op">=</span> <span class="va">self</span>.bert(</span>
+<span id="cb3-41"><a href="#cb3-41" aria-hidden="true" tabindex="-1"></a>            input_ids<span class="op">=</span>input_ids,</span>
+<span id="cb3-42"><a href="#cb3-42" aria-hidden="true" tabindex="-1"></a>            attention_mask<span class="op">=</span>attention_mask,</span>
+<span id="cb3-43"><a href="#cb3-43" aria-hidden="true" tabindex="-1"></a>            token_type_ids<span class="op">=</span>token_type_ids,</span>
+<span id="cb3-44"><a href="#cb3-44" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb3-45"><a href="#cb3-45" aria-hidden="true" tabindex="-1"></a>        <span class="co"># [PAD] 以外のトークンの出力を平均して, 品目名のベクトルにする</span></span>
+<span id="cb3-46"><a href="#cb3-46" aria-hidden="true" tabindex="-1"></a>        mask <span class="op">=</span> attention_mask.unsqueeze(<span class="op">-</span><span class="dv">1</span>)</span>
+<span id="cb3-47"><a href="#cb3-47" aria-hidden="true" tabindex="-1"></a>        sentence_vector <span class="op">=</span> (output.last_hidden_state <span class="op">*</span> mask).<span class="bu">sum</span>(<span class="dv">1</span>) <span class="op">/</span> mask.<span class="bu">sum</span>(<span class="dv">1</span>)</span>
+<span id="cb3-48"><a href="#cb3-48" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">self</span>.linear(sentence_vector)</span>
+<span id="cb3-49"><a href="#cb3-49" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-50"><a href="#cb3-50" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-51"><a href="#cb3-51" aria-hidden="true" tabindex="-1"></a>random.seed(<span class="dv">0</span>)</span>
+<span id="cb3-52"><a href="#cb3-52" aria-hidden="true" tabindex="-1"></a>torch.manual_seed(<span class="dv">0</span>)  <span class="co"># 線形変換の初期値を固定する</span></span>
+<span id="cb3-53"><a href="#cb3-53" aria-hidden="true" tabindex="-1"></a>tokenizer <span class="op">=</span> AutoTokenizer.from_pretrained(MODEL_NAME)</span>
+<span id="cb3-54"><a href="#cb3-54" aria-hidden="true" tabindex="-1"></a>model <span class="op">=</span> BertForClassification(MODEL_NAME, num_classes<span class="op">=</span><span class="bu">len</span>(classes)).to(device)</span></code></pre></div>
+<p>品目名は短く, 9 割の品目は <code>[CLS]</code> と <code>[SEP]</code> を含めて 12 トークン以下です. 最も長い品目名でも 75 トークンなので, <code>MAX_LENGTH</code> を 32 にしても切り捨てられるのは 19 品目だけです.</p>
+<p>データを学習用 (60%), 検証用 (20%), テスト用 (20%) に分けます. <a href="../../../fields/machine-learning/ml-classification/classification-evaluation.html#訓練データとテストデータ">訓練データとテストデータ</a>を用意するときと同様に, <code>train_test_split</code> の <code>stratify</code> を指定して, 3 つのデータで中分類の割合をそろえます. 割合をそろえないと, 27 品目しかない中分類がテスト用にほとんど入らないことがあります.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>texts <span class="op">=</span> df[<span class="st">'item'</span>].tolist()</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>labels <span class="op">=</span> df[<span class="st">'mid_name'</span>].<span class="bu">map</span>({name: k <span class="cf">for</span> k, name <span class="kw">in</span> <span class="bu">enumerate</span>(classes)}).to_numpy()</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 学習用 (60%), 検証用 (20%), テスト用 (20%) に分ける. 中分類の割合を 3 つでそろえる</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>index <span class="op">=</span> np.arange(<span class="bu">len</span>(df))</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>train_index, rest_index <span class="op">=</span> train_test_split(</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>    index, test_size<span class="op">=</span><span class="fl">0.4</span>, stratify<span class="op">=</span>labels, random_state<span class="op">=</span><span class="dv">0</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>val_index, test_index <span class="op">=</span> train_test_split(</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    rest_index, test_size<span class="op">=</span><span class="fl">0.5</span>, stratify<span class="op">=</span>labels[rest_index], random_state<span class="op">=</span><span class="dv">0</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>train_index <span class="op">=</span> <span class="bu">list</span>(train_index)</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'学習: </span><span class="sc">{</span><span class="bu">len</span>(train_index)<span class="sc">}</span><span class="ss">, 検証: </span><span class="sc">{</span><span class="bu">len</span>(val_index)<span class="sc">}</span><span class="ss">, テスト: </span><span class="sc">{</span><span class="bu">len</span>(test_index)<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> make_batch(batch_index):</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;品目名を BERT への入力に変え, device へ送る.&quot;&quot;&quot;</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>    encoding <span class="op">=</span> tokenizer(</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>        [texts[i] <span class="cf">for</span> i <span class="kw">in</span> batch_index],</span>
+<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>        max_length<span class="op">=</span>MAX_LENGTH,</span>
+<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>        padding<span class="op">=</span><span class="st">'longest'</span>,</span>
+<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>        truncation<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>        return_tensors<span class="op">=</span><span class="st">'pt'</span>,</span>
+<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>    encoding <span class="op">=</span> {key: value.to(device) <span class="cf">for</span> key, value <span class="kw">in</span> encoding.items()}</span>
+<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>    y <span class="op">=</span> torch.tensor(labels[batch_index]).to(device)</span>
+<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> encoding, y</span>
+<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-29"><a href="#cb4-29" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-30"><a href="#cb4-30" aria-hidden="true" tabindex="-1"></a>loss_function <span class="op">=</span> torch.nn.CrossEntropyLoss()</span>
+<span id="cb4-31"><a href="#cb4-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-32"><a href="#cb4-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-33"><a href="#cb4-33" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> evaluate(data_index):</span>
+<span id="cb4-34"><a href="#cb4-34" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;損失と, 予測したクラスの番号を返す.&quot;&quot;&quot;</span></span>
+<span id="cb4-35"><a href="#cb4-35" aria-hidden="true" tabindex="-1"></a>    model.<span class="bu">eval</span>()</span>
+<span id="cb4-36"><a href="#cb4-36" aria-hidden="true" tabindex="-1"></a>    total_loss, predicted <span class="op">=</span> <span class="fl">0.0</span>, []</span>
+<span id="cb4-37"><a href="#cb4-37" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> torch.no_grad():</span>
+<span id="cb4-38"><a href="#cb4-38" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">0</span>, <span class="bu">len</span>(data_index), <span class="dv">128</span>):</span>
+<span id="cb4-39"><a href="#cb4-39" aria-hidden="true" tabindex="-1"></a>            encoding, y <span class="op">=</span> make_batch(data_index[i : i <span class="op">+</span> <span class="dv">128</span>])</span>
+<span id="cb4-40"><a href="#cb4-40" aria-hidden="true" tabindex="-1"></a>            scores <span class="op">=</span> model(<span class="op">**</span>encoding)</span>
+<span id="cb4-41"><a href="#cb4-41" aria-hidden="true" tabindex="-1"></a>            total_loss <span class="op">+=</span> loss_function(scores, y).item() <span class="op">*</span> <span class="bu">len</span>(y)</span>
+<span id="cb4-42"><a href="#cb4-42" aria-hidden="true" tabindex="-1"></a>            predicted <span class="op">+=</span> scores.argmax(dim<span class="op">=</span><span class="dv">1</span>).tolist()</span>
+<span id="cb4-43"><a href="#cb4-43" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> total_loss <span class="op">/</span> <span class="bu">len</span>(data_index), np.array(predicted)</span>
+<span id="cb4-44"><a href="#cb4-44" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-45"><a href="#cb4-45" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb4-46"><a href="#cb4-46" aria-hidden="true" tabindex="-1"></a><span class="co">学習: 2169, 検証: 723, テスト: 723</span></span>
+<span id="cb4-47"><a href="#cb4-47" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>予測するクラスは, スコアが最大のクラス (<code>argmax</code>) です. softmax は大小の順を変えないので, 確率が最大のクラスと同じになります.</p>
+<h2 id="学習の手順を実行する">学習の手順を実行する</h2>
+<p>学習のループは<a href="../../../fields/deep-learning/nlp-bert/multilabel-classification.html#マルチラベル分類">マルチラベル分類</a>とほぼ同じですが, 次の 3 点を加えています.</p>
+<ul>
+<li><strong>AdamW</strong>: 重みを更新する方法 (最適化手法) です. <a href="../../../fields/machine-learning/ml-network/network-training.html#ニューラルネットワークの学習">ニューラルネットワークの学習</a>で説明する勾配降下法は, すべての重みを同じ学習率で動かします. <a href="../../../fields/deep-learning/nlp-bert/multilabel-classification.html#マルチラベル分類">マルチラベル分類</a>で使った Adam は, 重みごとに過去の勾配の大きさを覚えておき, 勾配が大きく揺れる重みは小さく, 安定した重みは大きく動かすように更新の幅を調整します. AdamW は Adam に, 毎回の更新で重みを 0 の方へ少しだけ縮める操作 (重み減衰, weight decay) を加えたものです. 重みが極端な値になるのを防ぎ, 過学習を抑える効果があります. Transformer の学習では AdamW が標準的に使われます.</li>
+<li><strong>ウォームアップと学習率の減衰</strong>: 学習率を一定にせず, ステップごとに変えます. 最初の 1 割のステップ (<code>WARMUP_RATIO</code>) では学習率を 0 から <code>LEARNING_RATE</code> まで少しずつ上げ (<strong>ウォームアップ</strong>), その後は最後のステップで 0 になるように直線的に下げます (<strong>線形減衰</strong>). 学習の初めは, 新しく付けた線形変換の重みがでたらめな値なので, 勾配が大きく不安定です. その段階で大きな学習率で更新すると, 事前学習で得た BERT の重みまで大きく崩れることがあります. ウォームアップは, この段階の更新を小さくするための工夫です. 学習の終わりに学習率を下げるのは, 損失の小さい所の周りで重みが行き来し続けないようにするためです. <code>get_linear_schedule_with_warmup</code> がこの学習率の変え方を作り, <code>scheduler.step()</code> を呼ぶたびに学習率を 1 ステップ分進めます.</li>
+<li><strong>早期終了 (early stopping)</strong>: エポックごとに検証用の損失を測り, 損失が最小になったときの重みを取っておきます. 検証用の損失が <code>PATIENCE</code> エポック続けて最小を更新しなければ, それ以上学習しても過学習が進むだけと判断して学習を止め, 取っておいた重みに戻します. 何エポック学習するかを, 検証用のデータで決めることになります.</li>
+</ul>
+<div class="sourceCode" id="cb5"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>optimizer <span class="op">=</span> torch.optim.AdamW(model.parameters(), lr<span class="op">=</span>LEARNING_RATE)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>total_steps <span class="op">=</span> EPOCHS <span class="op">*</span> ((<span class="bu">len</span>(train_index) <span class="op">+</span> BATCH_SIZE <span class="op">-</span> <span class="dv">1</span>) <span class="op">//</span> BATCH_SIZE)</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>scheduler <span class="op">=</span> get_linear_schedule_with_warmup(</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    optimizer,</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    num_warmup_steps<span class="op">=</span><span class="bu">int</span>(WARMUP_RATIO <span class="op">*</span> total_steps),</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    num_training_steps<span class="op">=</span>total_steps,</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>history <span class="op">=</span> []</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>best_loss, best_state, best_epoch <span class="op">=</span> <span class="bu">float</span>(<span class="st">'inf'</span>), <span class="va">None</span>, <span class="dv">0</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>start <span class="op">=</span> time.time()</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> epoch <span class="kw">in</span> <span class="bu">range</span>(EPOCHS):</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    model.train()</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    random.shuffle(train_index)</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    train_loss <span class="op">=</span> <span class="fl">0.0</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">0</span>, <span class="bu">len</span>(train_index), BATCH_SIZE):</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>        encoding, y <span class="op">=</span> make_batch(train_index[i : i <span class="op">+</span> BATCH_SIZE])</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>        loss <span class="op">=</span> loss_function(model(<span class="op">**</span>encoding), y)</span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>        loss.backward()</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>        optimizer.step()</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>        scheduler.step()  <span class="co"># 学習率を 1 ステップ分変える</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>        optimizer.zero_grad()</span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>        train_loss <span class="op">+=</span> loss.item() <span class="op">*</span> <span class="bu">len</span>(y)</span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>    train_loss <span class="op">/=</span> <span class="bu">len</span>(train_index)</span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>    val_loss, val_predicted <span class="op">=</span> evaluate(val_index)</span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>    val_accuracy <span class="op">=</span> (val_predicted <span class="op">==</span> labels[val_index]).mean()</span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>    history.append((train_loss, val_loss))</span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'Epoch </span><span class="sc">{</span>epoch <span class="op">+</span> <span class="dv">1</span><span class="sc">}</span><span class="ss">/</span><span class="sc">{</span>EPOCHS<span class="sc">}</span><span class="ss">'</span>, end<span class="op">=</span><span class="st">' '</span>)</span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'train_loss: </span><span class="sc">{</span>train_loss<span class="sc">:.3f}</span><span class="ss"> val_loss: </span><span class="sc">{</span>val_loss<span class="sc">:.3f}</span><span class="ss">'</span>, end<span class="op">=</span><span class="st">' '</span>)</span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'val_accuracy: </span><span class="sc">{</span>val_accuracy<span class="sc">:.3f}</span><span class="ss">'</span>)</span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>    <span class="co"># 検証用の損失が最小のときの重みを取っておく</span></span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> val_loss <span class="op">&lt;</span> best_loss:</span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>        best_loss, best_epoch <span class="op">=</span> val_loss, epoch <span class="op">+</span> <span class="dv">1</span></span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a>        best_state <span class="op">=</span> copy.deepcopy(model.state_dict())</span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a>    <span class="cf">elif</span> epoch <span class="op">+</span> <span class="dv">1</span> <span class="op">-</span> best_epoch <span class="op">&gt;=</span> PATIENCE:</span>
+<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a>        <span class="bu">print</span>(<span class="ss">f'</span><span class="sc">{</span>PATIENCE<span class="sc">}</span><span class="ss"> エポック続けて検証用の損失が下がらないので止めます'</span>)</span>
+<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a>        <span class="cf">break</span></span>
+<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'学習時間: </span><span class="sc">{</span>time<span class="sc">.</span>time() <span class="op">-</span> start<span class="sc">:.0f}</span><span class="ss"> 秒'</span>)</span>
+<span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-40"><a href="#cb5-40" aria-hidden="true" tabindex="-1"></a>model.load_state_dict(best_state)  <span class="co"># 検証用の損失が最小だったエポックの重みに戻す</span></span>
+<span id="cb5-41"><a href="#cb5-41" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'</span><span class="sc">{</span>best_epoch<span class="sc">}</span><span class="ss"> エポック目の重みを使います'</span>)</span>
+<span id="cb5-42"><a href="#cb5-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-43"><a href="#cb5-43" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb5-44"><a href="#cb5-44" aria-hidden="true" tabindex="-1"></a><span class="co">Using device: mps</span></span>
+<span id="cb5-45"><a href="#cb5-45" aria-hidden="true" tabindex="-1"></a><span class="co">Epoch 1/8 train_loss: 2.899 val_loss: 2.131 val_accuracy: 0.368</span></span>
+<span id="cb5-46"><a href="#cb5-46" aria-hidden="true" tabindex="-1"></a><span class="co">Epoch 2/8 train_loss: 1.626 val_loss: 1.180 val_accuracy: 0.678</span></span>
+<span id="cb5-47"><a href="#cb5-47" aria-hidden="true" tabindex="-1"></a><span class="co">Epoch 3/8 train_loss: 0.873 val_loss: 1.017 val_accuracy: 0.707</span></span>
+<span id="cb5-48"><a href="#cb5-48" aria-hidden="true" tabindex="-1"></a><span class="co">Epoch 4/8 train_loss: 0.495 val_loss: 0.942 val_accuracy: 0.732</span></span>
+<span id="cb5-49"><a href="#cb5-49" aria-hidden="true" tabindex="-1"></a><span class="co">Epoch 5/8 train_loss: 0.305 val_loss: 0.950 val_accuracy: 0.739</span></span>
+<span id="cb5-50"><a href="#cb5-50" aria-hidden="true" tabindex="-1"></a><span class="co">Epoch 6/8 train_loss: 0.187 val_loss: 0.978 val_accuracy: 0.743</span></span>
+<span id="cb5-51"><a href="#cb5-51" aria-hidden="true" tabindex="-1"></a><span class="co">2 エポック続けて検証用の損失が下がらないので止めます</span></span>
+<span id="cb5-52"><a href="#cb5-52" aria-hidden="true" tabindex="-1"></a><span class="co">学習時間: 34 秒</span></span>
+<span id="cb5-53"><a href="#cb5-53" aria-hidden="true" tabindex="-1"></a><span class="co">4 エポック目の重みを使います</span></span>
+<span id="cb5-54"><a href="#cb5-54" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>学習の時間は, Apple M5 Max の Mac で MPS を使って 34 秒, 同じ Mac で CPU だけを使って 228 秒でした. 損失と正解率の値は, PC や環境によって少し変わります. 一般的な PC の CPU ではこれより長くかかるので, 時間がかかりすぎる場合は, 共通資料の<a href="../../../lectures/colab.html">Google Colaboratory による GPU 計算</a>の手順で Colab の GPU を使ってください.</p>
+<p>訓練用と検証用の損失の推移を図にします.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots()</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>epochs <span class="op">=</span> <span class="bu">range</span>(<span class="dv">1</span>, <span class="bu">len</span>(history) <span class="op">+</span> <span class="dv">1</span>)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>ax.plot(epochs, [h[<span class="dv">0</span>] <span class="cf">for</span> h <span class="kw">in</span> history], marker<span class="op">=</span><span class="st">'o'</span>, label<span class="op">=</span><span class="st">'訓練用'</span>)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>ax.plot(epochs, [h[<span class="dv">1</span>] <span class="cf">for</span> h <span class="kw">in</span> history], marker<span class="op">=</span><span class="st">'o'</span>, label<span class="op">=</span><span class="st">'検証用'</span>)</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>ax.axvline(best_epoch, color<span class="op">=</span><span class="st">'gray'</span>, linestyle<span class="op">=</span><span class="st">'--'</span>, label<span class="op">=</span><span class="st">'検証用の損失が最小'</span>)</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">'エポック'</span>)</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'交差エントロピー損失'</span>)</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>ax.legend()</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>plt.close(fig)</span></code></pre></div>
+<figure>
+<img src="../../../images/dsp/ch10/loss-curve.png" alt="訓練用と検証用の損失の推移" />
+<figcaption aria-hidden="true">訓練用と検証用の損失の推移</figcaption>
+</figure>
+<p>訓練用の損失はエポックごとに下がり続け, 6 エポック目には 0.19 になります. 一方, 検証用の損失は 4 エポック目の 0.94 が最小で, その後は少しずつ上がります. 4 エポック目より後は, 訓練用の品目名への当てはまりだけが良くなり, 初めて見る品目名への当てはまりは良くならない状態で, <a href="../../../fields/deep-learning/dl-lifecycle/model-evaluation.html#モデルの評価">モデルの評価</a>で説明した過学習が始まっています. 早期終了は, この 4 エポック目の重みを選びます.</p>
+<p>1 エポック目で訓練用の損失 (2.90) が検証用の損失 (2.13) より大きいのは, 訓練用の損失が 1 エポックの間の平均だからです. エポックの初めのでたらめな予測の損失も平均に入るので, エポックの終わりに測る検証用の損失より大きくなります. 24 クラスにでたらめな確率を付けたときの交差エントロピーは, <span class="math inline">-\log (1/24) \approx 3.18</span> です.</p>
+<h3 id="学習率を変えて比べる">学習率を変えて比べる</h3>
+<p><code>LEARNING_RATE</code> を 1e-5 (<span class="math inline">10^{-5}</span>), 3e-5, 1e-4, 3e-4 に変えて, 検証用の損失の推移を比べました. 比べやすいように早期終了を外し, どの学習率でも 8 エポックすべて学習しています. 上の学習とは別に走らせたので, 3e-5 の値も上の出力と少し違います. 星印は, 検証用の損失が最小になったエポックです.</p>
+<figure>
+<img src="../../../images/dsp/ch10/lr-compare.png" alt="学習率ごとの検証用の損失の推移" />
+<figcaption aria-hidden="true">学習率ごとの検証用の損失の推移</figcaption>
+</figure>
+<ul>
+<li><strong>1e-5</strong>: 損失は 8 エポック目まで下がり続け, 最小値は 1.09 です. 学習率が小さく重みの変化が遅いので, 8 エポックでは学習が終わっていません.</li>
+<li><strong>3e-5</strong>: 4 エポック目に最小値 0.95 に達し, その後はほぼ横ばいです.</li>
+<li><strong>1e-4</strong>: 3 エポック目に最小値 1.03 に達しますが, その後は上がっていきます. 重みの変化が速く, 早い段階で過学習が始まります.</li>
+<li><strong>3e-4</strong>: 3 エポック目の 1.26 が最小で, それより下がりません. 学習率が大きすぎて, 事前学習で得た重みが大きく崩れたと考えられます.</li>
+</ul>
+<p>この比較から, 3e-5 か 1e-4 の付近が適切な学習率だと分かります. ただし, 学習の結果は乱数の種 (線形変換の重みの初期値と, 訓練データを並べる順) によっても変わります. 3e-5 と 1e-4 で種を 3 通りに変えると, 検証用の損失の最小値は 3e-5 で 0.93〜0.98, 1e-4 で 0.97〜1.07 でした. 3e-5 の方が損失が小さく, 種による揺れも小さいので, この事例では 3e-5 を使います.</p>
+<p>ウォームアップの有無も, 3e-5 と 1e-4 でそれぞれ種を 3 通りに変えて比べました. ウォームアップを外したときの検証用の損失の最小値は, 3e-5 で 0.94〜0.99, 1e-4 で 0.97〜1.03 で, ウォームアップを入れたときと範囲が重なります. この事例では, ウォームアップの有無による差は, 種による揺れより小さく, 効果は確かめられませんでした. 本節の追加学習は, 学習するデータが 2,169 品目と少なく, ステップの数も 1 エポックあたり 68 回と少ないためと考えられます. ウォームアップは, 大きな学習率で大量のデータを学習する事前学習で, 学習の初めに損失が発散するのを防ぐために使われてきた方法です. 本節のコードでは, Transformer の学習の標準的な書き方として入れています.</p>
+<p>学習率のように, 学習の前に人が決める値を<strong>ハイパーパラメータ</strong>といいます. ハイパーパラメータは検証用のデータで比べて決め, テストデータは最後の評価にだけ使います. テストデータで比べて選ぶと, テストデータに合う値を選んだことになり, 初めて見るデータでの性能を正しく測れなくなるからです.</p>
+<h2 id="テストデータでの評価">テストデータでの評価</h2>
+<p>検証用の損失が最小だった重みで, テストデータを評価します. 中分類ごとの Recall は, その中分類の品目のうち, 正しくその中分類と予測できた割合です. 24 個の Recall の平均 (macro 平均) は, 品目の少ない中分類も多い中分類も同じ重みで扱うので, 少ない中分類を見逃しているかどうかが Accuracy より表れやすい指標です.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> accuracy_score, confusion_matrix, recall_score</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>test_loss, test_predicted <span class="op">=</span> evaluate(test_index)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>y_test <span class="op">=</span> labels[test_index]</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>recall <span class="op">=</span> recall_score(y_test, test_predicted, average<span class="op">=</span><span class="va">None</span>)  <span class="co"># 中分類ごとの Recall</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Accuracy: </span><span class="sc">{</span>accuracy_score(y_test, test_predicted)<span class="sc">:.3f}</span><span class="ss">'</span>)</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Recall の平均: </span><span class="sc">{</span>recall<span class="sc">.</span>mean()<span class="sc">:.3f}</span><span class="ss">'</span>)</span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Recall の低い中分類を 5 つ表示する</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> k <span class="kw">in</span> np.argsort(recall)[:<span class="dv">5</span>]:</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'</span><span class="sc">{</span>recall[k]<span class="sc">:.2f}</span><span class="ss"> </span><span class="sc">{</span>classes[k]<span class="sc">}</span><span class="ss"> (</span><span class="sc">{</span>(y_test <span class="op">==</span> k)<span class="sc">.</span><span class="bu">sum</span>()<span class="sc">}</span><span class="ss"> 品目)'</span>)</span></code></pre></div>
+<p>テストデータでの Accuracy は 0.732, Recall の平均は 0.699 で, Recall の平均の方が低くなりました. Recall の低い 5 つの中分類は次のとおりです.</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">中分類</th>
+<th style="text-align: right;">テスト用の品目の数</th>
+<th style="text-align: right;">Recall</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">家具・装備品製造業</td>
+<td style="text-align: right;">18</td>
+<td style="text-align: right;">0.50</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">石油製品・石炭製品製造業</td>
+<td style="text-align: right;">6</td>
+<td style="text-align: right;">0.50</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">飲料・たばこ・飼料製造業</td>
+<td style="text-align: right;">13</td>
+<td style="text-align: right;">0.54</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">鉄鋼業</td>
+<td style="text-align: right;">13</td>
+<td style="text-align: right;">0.54</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">ゴム製品製造業</td>
+<td style="text-align: right;">13</td>
+<td style="text-align: right;">0.54</td>
+</tr>
+</tbody>
+</table>
+<p>Recall の低い中分類は, 石油製品・石炭製品製造業 (テスト用に 6 品目) や鉄鋼業 (13 品目) のように, 品目の少ないものが並びます. 学習に使える例が少ないクラスほど, 予測が難しくなります. ただし, テスト用の品目が 6〜18 しかないので, 1 品目の当たり外れで Recall が 0.05〜0.17 変わります. 品目の少ない中分類の Recall は, 細かい値の差を比べるのでなく, 目安として読みます.</p>
+<p>次に, <a href="../../../fields/deep-learning/dl-lifecycle/model-evaluation.html#モデルの評価">モデルの評価</a>と同じく混同行列を作り, 取り違えの多い組を調べます. 24 × 24 の表は見渡しにくいので, 対角線の外 (誤り) の数が多い組を 6 つ表示します.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>matrix <span class="op">=</span> confusion_matrix(y_test, test_predicted)  <span class="co"># 行が正解, 列が予測</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>pairs <span class="op">=</span> []</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(classes)):</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> j <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(classes)):</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> i <span class="op">!=</span> j <span class="kw">and</span> matrix[i, j] <span class="op">&gt;</span> <span class="dv">0</span>:</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>            pairs.append((matrix[i, j], classes[i], classes[j]))</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> n, true_name, predicted_name <span class="kw">in</span> <span class="bu">sorted</span>(pairs, reverse<span class="op">=</span><span class="va">True</span>)[:<span class="dv">6</span>]:</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'</span><span class="sc">{</span>n<span class="sc">}</span><span class="ss"> 件: 正解 </span><span class="sc">{</span>true_name<span class="sc">}</span><span class="ss"> → 予測 </span><span class="sc">{</span>predicted_name<span class="sc">}</span><span class="ss">'</span>)</span></code></pre></div>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">正解</th>
+<th style="text-align: left;">予測</th>
+<th style="text-align: right;">件数</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">家具・装備品製造業</td>
+<td style="text-align: left;">その他の製造業</td>
+<td style="text-align: right;">5</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">化学工業</td>
+<td style="text-align: left;">食料品製造業</td>
+<td style="text-align: right;">5</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">電気機械器具製造業</td>
+<td style="text-align: left;">情報通信機械器具製造業</td>
+<td style="text-align: right;">4</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">金属製品製造業</td>
+<td style="text-align: left;">その他の製造業</td>
+<td style="text-align: right;">4</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">繊維工業</td>
+<td style="text-align: left;">その他の製造業</td>
+<td style="text-align: right;">4</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">窯業・土石製品製造業</td>
+<td style="text-align: left;">その他の製造業</td>
+<td style="text-align: right;">4</td>
+</tr>
+</tbody>
+</table>
+<p>6 組のうち 4 組は, 予測が「その他の製造業」です. その他の製造業は, 貴金属製品, 時計, 楽器, がん具, 事務用品, 生活雑貨のほか, 他の中分類に入らない品目を集めた分類なので, 品目の種類がばらばらです. そのため, ほかの中分類の品目のうち典型から外れたものが, この分類と予測されやすいと考えられます.</p>
+<p>最後に, 誤分類した品目の例を見ます.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>wrong <span class="op">=</span> [</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    (texts[i], classes[t], classes[p])</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> i, t, p <span class="kw">in</span> <span class="bu">zip</span>(test_index, y_test, test_predicted)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> t <span class="op">!=</span> p</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>]</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'誤り: </span><span class="sc">{</span><span class="bu">len</span>(wrong)<span class="sc">}</span><span class="ss"> / </span><span class="sc">{</span><span class="bu">len</span>(test_index)<span class="sc">}</span><span class="ss">'</span>)</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>random.seed(<span class="dv">1</span>)</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> item, true_name, predicted_name <span class="kw">in</span> random.sample(wrong, <span class="dv">8</span>):</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f'</span><span class="sc">{</span>item<span class="sc">}</span><span class="ss">: 正解 </span><span class="sc">{</span>true_name<span class="sc">}</span><span class="ss">, 予測 </span><span class="sc">{</span>predicted_name<span class="sc">}</span><span class="ss">'</span>)</span></code></pre></div>
+<p>テスト用の 723 品目のうち, 誤分類は 194 品目でした. そこから選んだ 8 品目は次のとおりです.</p>
+<table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">品目名</th>
+<th style="text-align: left;">正解</th>
+<th style="text-align: left;">予測</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">魔法瓶</td>
+<td style="text-align: left;">その他の製造業</td>
+<td style="text-align: left;">窯業・土石製品製造業</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">自動入場機</td>
+<td style="text-align: left;">業務用機械器具製造業</td>
+<td style="text-align: left;">情報通信機械器具製造業</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">ルームユニット</td>
+<td style="text-align: left;">その他の製造業</td>
+<td style="text-align: left;">家具・装備品製造業</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">鉄線</td>
+<td style="text-align: left;">鉄鋼業</td>
+<td style="text-align: left;">金属製品製造業</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">大豆グルー</td>
+<td style="text-align: left;">化学工業</td>
+<td style="text-align: left;">食料品製造業</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">びょうぶ</td>
+<td style="text-align: left;">家具・装備品製造業</td>
+<td style="text-align: left;">その他の製造業</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">エアコンユニット</td>
+<td style="text-align: left;">電子部品・デバイス・電子回路製造業</td>
+<td style="text-align: left;">はん用機械器具製造業</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">真珠核</td>
+<td style="text-align: left;">その他の製造業</td>
+<td style="text-align: left;">窯業・土石製品製造業</td>
+</tr>
+</tbody>
+</table>
+<p>誤りの中には, 品目名だけでは正しい分類を決められないものが含まれます. 産業分類は, 品目が何であるかだけでなく, 何を材料にどの工程で作るかで分類を分けているからです.</p>
+<ul>
+<li><strong>鉄線</strong>: 線材 (鋼を細長く延ばした素材) から線を引いて鉄線を作る事業 (伸線業) は鉄鋼業です. 一方, 他から受け入れた鉄線で作るビニル被覆鉄線や有刺鉄線は金属製品製造業です. くぎも, 線材から一貫して作るもの (「くぎ (線材から一貫作業によるもの)」) は鉄鋼業, 受け入れた鉄線から作るもの (「鉄くぎ (受け入れた鉄線によるもの)」) は金属製品製造業に分かれます. 品目名「鉄線」だけでは, 鉄鋼業の製品なのか, 金属製品の材料なのかが決まりません. モデルは金属製品製造業を選びました.</li>
+<li><strong>大豆グルー</strong>: グルーは接着剤のことで, 接着剤の製造は化学工業です. モデルは「大豆」から食料品製造業を選びました. 用途を表す語 (グルー) より, 材料を表す語 (大豆) に引きずられた誤りです.</li>
+<li><strong>魔法瓶</strong>: 魔法瓶は生活雑貨としてその他の製造業に入りますが, 魔法瓶の中のガラス製の瓶は窯業・土石製品製造業, 電子式の保温ジャーは電気機械器具製造業です. 同じ「魔法瓶」の周りの品目が, 材料と仕組みで 3 つの中分類に分かれています.</li>
+</ul>
+<p>研究や実務で品目を分類するときは, 品目名に加えて, 材料や工程が分かる情報 (製品の説明文, 売り手の業種など) を入力に加えると, この種の誤りを減らせます.</p>
+<h3 id="新しい品目を分類する">新しい品目を分類する</h3>
+<p>学習したモデルで, データにない品目名を分類します. softmax で 24 クラスの確率を求め, 確率の高い 3 つを表示します.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>items <span class="op">=</span> [<span class="st">'ノンアルコールビール'</span>, <span class="st">'スマートフォン'</span>, <span class="st">'電動アシスト自転車'</span>, <span class="st">'猫用おもちゃ'</span>, <span class="st">'木製まな板'</span>]</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>encoding <span class="op">=</span> tokenizer(</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>    items, max_length<span class="op">=</span>MAX_LENGTH, padding<span class="op">=</span><span class="st">'longest'</span>, truncation<span class="op">=</span><span class="va">True</span>, return_tensors<span class="op">=</span><span class="st">'pt'</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>encoding <span class="op">=</span> {key: value.to(device) <span class="cf">for</span> key, value <span class="kw">in</span> encoding.items()}</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>model.<span class="bu">eval</span>()</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="cf">with</span> torch.no_grad():</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>    probability <span class="op">=</span> torch.softmax(model(<span class="op">**</span>encoding), dim<span class="op">=</span><span class="dv">1</span>).cpu().numpy()</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> item, p <span class="kw">in</span> <span class="bu">zip</span>(items, probability):</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>    top <span class="op">=</span> np.argsort(p)[::<span class="op">-</span><span class="dv">1</span>][:<span class="dv">3</span>]  <span class="co"># 確率の高い 3 つのクラス</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(item, <span class="st">' / '</span>.join(<span class="ss">f'</span><span class="sc">{</span>classes[k]<span class="sc">}</span><span class="ss"> </span><span class="sc">{</span>p[k]<span class="sc">:.2f}</span><span class="ss">'</span> <span class="cf">for</span> k <span class="kw">in</span> top))</span></code></pre></div>
+<p>結果は次のとおりです. 括弧の中は確率です.</p>
+<table>
+<colgroup>
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+<col style="width: 25%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">品目名</th>
+<th style="text-align: left;">1 位</th>
+<th style="text-align: left;">2 位</th>
+<th style="text-align: left;">3 位</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">ノンアルコールビール</td>
+<td style="text-align: left;">飲料・たばこ・飼料製造業 (0.67)</td>
+<td style="text-align: left;">化学工業 (0.18)</td>
+<td style="text-align: left;">食料品製造業 (0.04)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">スマートフォン</td>
+<td style="text-align: left;">情報通信機械器具製造業 (0.72)</td>
+<td style="text-align: left;">電気機械器具製造業 (0.11)</td>
+<td style="text-align: left;">その他の製造業 (0.05)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">電動アシスト自転車</td>
+<td style="text-align: left;">輸送用機械器具製造業 (0.54)</td>
+<td style="text-align: left;">電気機械器具製造業 (0.22)</td>
+<td style="text-align: left;">はん用機械器具製造業 (0.14)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">猫用おもちゃ</td>
+<td style="text-align: left;">その他の製造業 (0.96)</td>
+<td style="text-align: left;">化学工業 (0.01)</td>
+<td style="text-align: left;">木材・木製品製造業(家具を除く) (0.01)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">木製まな板</td>
+<td style="text-align: left;">木材・木製品製造業(家具を除く) (0.78)</td>
+<td style="text-align: left;">家具・装備品製造業 (0.17)</td>
+<td style="text-align: left;">その他の製造業 (0.02)</td>
+</tr>
+</tbody>
+</table>
+<p>5 品目とも, 確率が最も高いクラスはもっともらしい中分類です. 確率の大きさにも情報があります. 猫用おもちゃには 0.96 を付けていますが, 電動アシスト自転車は輸送用機械器具製造業に 0.54, 電気機械器具製造業に 0.22 と分かれています. 実務では, 最も高い確率が基準 (例えば 0.5) を下回る品目だけを人が確かめるようにすると, 確かめる手間を減らせます.</p>
+<h2 id="発展-追加学習しない分類と比べる">追加学習しない分類と比べる</h2>
+<p><a href="../../../fields/deep-learning/nlp-embedding/index.html#自然言語ベクトル抽出によるデータ可視化と類似度評価">文章のベクトル化と類似度の評価</a>では, BERT が出力するベクトルのコサイン類似度で文の近さを測りました. 追加学習をしなくても, このベクトルで分類できるかを確かめます. 次の 2 つの方法を比べます. どちらも重みは更新しません.</p>
+<ol type="1">
+<li><strong>中分類の名前と比べる</strong>: 品目名と 24 個の中分類の名前をそれぞれベクトルにし, cosine 類似度が最も大きい中分類を予測とします. 訓練データを使いません.</li>
+<li><strong>訓練データの平均と比べる</strong>: 訓練用の品目名のベクトルを中分類ごとに平均し, その平均との cosine 類似度が最も大きい中分類を予測とします.</li>
+</ol>
+<p><a href="#事例-品目名から製造業の中分類を当てる">品目名から製造業の中分類を当てる事例</a>のコードを実行したあとに, 続けて実行します. <code>MODEL_NAME</code>, <code>MAX_LENGTH</code>, <code>device</code>, <code>tokenizer</code>, <code>texts</code>, <code>labels</code>, <code>classes</code>, <code>train_index</code>, <code>test_index</code>, <code>y_test</code> をそのまま使います.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 追加学習していない BERT</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>bert <span class="op">=</span> BertModel.from_pretrained(MODEL_NAME).to(device)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>bert.<span class="bu">eval</span>()</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> embed(strings):</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;文字列ごとに, [PAD] 以外のトークンの出力の平均を長さ 1 にしたベクトルを返す.&quot;&quot;&quot;</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    vectors <span class="op">=</span> []</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> torch.no_grad():</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> i <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">0</span>, <span class="bu">len</span>(strings), <span class="dv">128</span>):</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>            encoding <span class="op">=</span> tokenizer(</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>                strings[i : i <span class="op">+</span> <span class="dv">128</span>],</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>                max_length<span class="op">=</span>MAX_LENGTH,</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>                padding<span class="op">=</span><span class="st">'longest'</span>,</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>                truncation<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>                return_tensors<span class="op">=</span><span class="st">'pt'</span>,</span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>            )</span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>            encoding <span class="op">=</span> {key: value.to(device) <span class="cf">for</span> key, value <span class="kw">in</span> encoding.items()}</span>
+<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a>            hidden <span class="op">=</span> bert(<span class="op">**</span>encoding).last_hidden_state</span>
+<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a>            mask <span class="op">=</span> encoding[<span class="st">'attention_mask'</span>].unsqueeze(<span class="op">-</span><span class="dv">1</span>)</span>
+<span id="cb11-21"><a href="#cb11-21" aria-hidden="true" tabindex="-1"></a>            vectors.append(((hidden <span class="op">*</span> mask).<span class="bu">sum</span>(<span class="dv">1</span>) <span class="op">/</span> mask.<span class="bu">sum</span>(<span class="dv">1</span>)).cpu().numpy())</span>
+<span id="cb11-22"><a href="#cb11-22" aria-hidden="true" tabindex="-1"></a>    vectors <span class="op">=</span> np.concatenate(vectors)</span>
+<span id="cb11-23"><a href="#cb11-23" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> vectors <span class="op">/</span> np.linalg.norm(vectors, axis<span class="op">=</span><span class="dv">1</span>, keepdims<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb11-24"><a href="#cb11-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-25"><a href="#cb11-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-26"><a href="#cb11-26" aria-hidden="true" tabindex="-1"></a>item_vectors <span class="op">=</span> embed(texts)</span>
+<span id="cb11-27"><a href="#cb11-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-28"><a href="#cb11-28" aria-hidden="true" tabindex="-1"></a><span class="co"># (1) 中分類の名前のベクトルと比べる</span></span>
+<span id="cb11-29"><a href="#cb11-29" aria-hidden="true" tabindex="-1"></a>class_vectors <span class="op">=</span> embed(classes)</span>
+<span id="cb11-30"><a href="#cb11-30" aria-hidden="true" tabindex="-1"></a>predicted <span class="op">=</span> (item_vectors[test_index] <span class="op">@</span> class_vectors.T).argmax(axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb11-31"><a href="#cb11-31" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'中分類の名前'</span>, end<span class="op">=</span><span class="st">' '</span>)</span>
+<span id="cb11-32"><a href="#cb11-32" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Accuracy: </span><span class="sc">{</span>accuracy_score(y_test, predicted)<span class="sc">:.3f}</span><span class="ss">'</span>, end<span class="op">=</span><span class="st">' '</span>)</span>
+<span id="cb11-33"><a href="#cb11-33" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Recall の平均: </span><span class="sc">{</span>recall_score(y_test, predicted, average<span class="op">=</span><span class="va">None</span>)<span class="sc">.</span>mean()<span class="sc">:.3f}</span><span class="ss">'</span>)</span>
+<span id="cb11-34"><a href="#cb11-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-35"><a href="#cb11-35" aria-hidden="true" tabindex="-1"></a><span class="co"># (2) 訓練データの品目のベクトルを中分類ごとに平均したものと比べる</span></span>
+<span id="cb11-36"><a href="#cb11-36" aria-hidden="true" tabindex="-1"></a>train_labels <span class="op">=</span> labels[train_index]</span>
+<span id="cb11-37"><a href="#cb11-37" aria-hidden="true" tabindex="-1"></a>class_vectors <span class="op">=</span> np.stack(</span>
+<span id="cb11-38"><a href="#cb11-38" aria-hidden="true" tabindex="-1"></a>    [item_vectors[train_index][train_labels <span class="op">==</span> k].mean(axis<span class="op">=</span><span class="dv">0</span>) <span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(<span class="bu">len</span>(classes))]</span>
+<span id="cb11-39"><a href="#cb11-39" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb11-40"><a href="#cb11-40" aria-hidden="true" tabindex="-1"></a>class_vectors <span class="op">/=</span> np.linalg.norm(class_vectors, axis<span class="op">=</span><span class="dv">1</span>, keepdims<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb11-41"><a href="#cb11-41" aria-hidden="true" tabindex="-1"></a>predicted <span class="op">=</span> (item_vectors[test_index] <span class="op">@</span> class_vectors.T).argmax(axis<span class="op">=</span><span class="dv">1</span>)</span>
+<span id="cb11-42"><a href="#cb11-42" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'訓練データの平均'</span>, end<span class="op">=</span><span class="st">' '</span>)</span>
+<span id="cb11-43"><a href="#cb11-43" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Accuracy: </span><span class="sc">{</span>accuracy_score(y_test, predicted)<span class="sc">:.3f}</span><span class="ss">'</span>, end<span class="op">=</span><span class="st">' '</span>)</span>
+<span id="cb11-44"><a href="#cb11-44" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f'Recall の平均: </span><span class="sc">{</span>recall_score(y_test, predicted, average<span class="op">=</span><span class="va">None</span>)<span class="sc">.</span>mean()<span class="sc">:.3f}</span><span class="ss">'</span>)</span></code></pre></div>
+<p>ベクトルを長さ 1 にそろえておくと, 内積 (<code>@</code>) がそのまま cosine 類似度になります. 2 つの方法の結果を, 追加学習の結果と並べます.</p>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">方法</th>
+<th style="text-align: left;">重みの更新</th>
+<th style="text-align: left;">訓練データ</th>
+<th style="text-align: right;">Accuracy</th>
+<th style="text-align: right;">Recall の平均</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">中分類の名前と比べる</td>
+<td style="text-align: left;">なし</td>
+<td style="text-align: left;">使わない</td>
+<td style="text-align: right;">0.160</td>
+<td style="text-align: right;">0.197</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">訓練データの平均と比べる</td>
+<td style="text-align: left;">なし</td>
+<td style="text-align: left;">使う</td>
+<td style="text-align: right;">0.516</td>
+<td style="text-align: right;">0.544</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">追加学習 (<a href="#テストデータでの評価">テストデータでの評価</a>)</td>
+<td style="text-align: left;">あり</td>
+<td style="text-align: left;">使う</td>
+<td style="text-align: right;">0.732</td>
+<td style="text-align: right;">0.699</td>
+</tr>
+</tbody>
+</table>
+<p>中分類の名前と比べる方法は, 24 クラスなのででたらめに選んだとき (約 0.04) よりは当たりますが, Accuracy は 0.16 にとどまります. 事前学習した BERT のベクトルは, 文の中での語の使われ方を予測するために作られたもので, 「バター」と「食料品製造業」が近くなるようには作られていないからです. 訓練データの平均と比べると 0.52 まで上がり, 重みを更新する追加学習で 0.73 まで上がります. 品目と中分類の対応をデータから学ぶほど, 分類が正確になります.</p>
+<p>品目の少ない中分類に限って Recall を比べると, 訓練データの平均と比べる方法が追加学習を上回る中分類もあります. 例えば印刷・同関連業 (全体で 32 品目) では, 学習率 3e-5 で種とウォームアップの有無を変えた追加学習 6 回のどれでも, 平均と比べる方法の Recall (0.86) が追加学習 (0.71) を上回りました. ただし, この差はテスト用の 7 品目のうち 1 品目の違いです. 鉄鋼業やゴム製品製造業では, どちらが上回るかが種によって入れ替わりました. 平均と比べる方法は, 品目の数によらず 1 つの中分類を 1 つの平均ベクトルで表すので, 品目の多い中分類に予測が偏りにくい性質があります. 品目の少ない中分類での性能をこれ以上比べるには, テスト用の品目の数が足りません.</p>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../fields/deep-learning/dl-training-case/prerequisites.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">前提知識</span>
+    </a>
+    <a class="next" href="../../../fields/deep-learning/dl-training-case/exercises.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">演習</span>
+    </a>
+</nav>
+
+</article>
+
+
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        <nav class="footer-nav" aria-label="フッターナビゲーション">
+            <a href="../../../">Home</a>
+            <a href="../../../posts.html">Blog</a>
+            <a href="../../../lectures.html">Lecture</a>
+            <a href="../../../research.html">Research</a>
+            <a href="../../../rss.xml">RSS</a>
+            <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+        </nav>
+        <p class="footer-copy">&copy; yakagika &middot; Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>.</p>
+    </div>
+</div>
+
+
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="ページ先頭へ戻る" title="先頭へ戻る">↑</button>
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+            link.classList.add('external-link');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level;
+          switch (heading.tagName.toLowerCase()) {
+            case 'h2': level = 0; break;
+            case 'h3': level = 1; break;
+            case 'h4': level = 2; break;
+            default: return;
+          }
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          // Pandoc は `::: note` + 見出し の組み合わせを <section id="..." class="note">
+          // 内の <hN> として出力するため, 見出し自身に id が無い場合は
+          // 親 section の id を辿る.
+          var anchorId = heading.id;
+          if (!anchorId) {
+            var parentSection = heading.closest('section[id]');
+            if (parentSection) anchorId = parentSection.id;
+          }
+          anchor.href = '#' + anchorId;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi && !li.contains(currentLi)) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+
+      // ----------------------------------------
+      // スクロールスパイ: 表示中の見出しを TOC でハイライト
+      // ----------------------------------------
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0 || typeof IntersectionObserver === 'undefined') return;
+
+      var idToTocItem = new Map();
+      headings.forEach(function(h) {
+        if (!h.id) return;
+        var link = tocContainer.querySelector('a[href="#' + CSS.escape(h.id) + '"]');
+        if (link) {
+          var li = link.closest('.toc-item') || link.closest('li');
+          if (li) idToTocItem.set(h.id, li);
+        }
+      });
+
+      var visible = new Set();
+      var lastActive = null;
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+
+        // ドキュメント順で最初に可視な見出しをアクティブに
+        var firstVisible = null;
+        for (var i = 0; i < headings.length; i++) {
+          if (visible.has(headings[i].id)) {
+            firstVisible = headings[i].id;
+            break;
+          }
+        }
+        if (!firstVisible) return;
+
+        var tocItem = idToTocItem.get(firstVisible);
+        if (!tocItem || tocItem === lastActive) return;
+
+        if (lastActive) lastActive.classList.remove('toc-active');
+        tocItem.classList.add('toc-active');
+        lastActive = tocItem;
+
+        // TOC を必要なときだけスクロール
+        tocItem.scrollIntoView({
+          block: 'nearest',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
+      }, {
+        // ヘッダー (60px) を除いた上部 〜 画面下から60% を判定領域とする
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0
+      });
+
+      headings.forEach(function(h) { if (h.id) observer.observe(h); });
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
+      const pre = codeBlock.parentNode;
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
+      copyButton.textContent = 'Copy';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    // パスワード保護付き details (回答例用)
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll('details.protected').forEach(function (det) {
+        var pass = det.getAttribute('data-pass') || '';
+        var summary = det.querySelector('summary');
+        if (!summary) return;
+
+        var gate = document.createElement('div');
+        gate.className = 'pass-gate';
+        gate.innerHTML =
+          '<label>合言葉: <input type="password" autocomplete="off" spellcheck="false"></label>' +
+          '<button type="button">解除</button>' +
+          '<span class="pass-error" hidden>合言葉が違います</span>';
+        summary.insertAdjacentElement('afterend', gate);
+
+        var input = gate.querySelector('input');
+        var button = gate.querySelector('button');
+        var errorMsg = gate.querySelector('.pass-error');
+
+        function tryUnlock() {
+          if (input.value === pass) {
+            det.classList.add('unlocked');
+            errorMsg.hidden = true;
+          } else {
+            errorMsg.hidden = false;
+            input.select();
+          }
+        }
+
+        button.addEventListener('click', tryUnlock);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
+        });
+
+        det.addEventListener('toggle', function () {
+          if (det.open && !det.classList.contains('unlocked')) {
+            input.focus();
+          }
+        });
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            try {
+              katex.render( texText.data
+                          , mathElements[i]
+                          , { displayMode: mathElements[i].classList.contains("display")
+                            , throwOnError: true
+                           }
+                          );
+            } catch (e) {
+              // 1 つの数式のエラーで残り全ての数式が生 TeX のまま残らないようにする
+              console.error('KaTeX render error:', e.message, texText.data);
+            }
+          }
+      }
+    });
+  </script>
+
+  <!-- 見出しアンカーリンク + Back to top -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 記事見出しに hover で現れる # パーマリンクを付与
+      document.querySelectorAll('article h2[id], article h3[id]').forEach(function (h) {
+        var a = document.createElement('a');
+        a.className = 'heading-anchor';
+        a.href = '#' + h.id;
+        a.setAttribute('aria-label', 'このセクションへのリンク');
+        a.textContent = '#';
+        h.appendChild(a);
+      });
+
+      // Back to top: スクロール量に応じて表示
+      var btt = document.getElementById('back-to-top');
+      if (btt) {
+        var onScroll = function () {
+          if (window.pageYOffset > 600) btt.classList.add('visible');
+          else btt.classList.remove('visible');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        btt.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
+    });
+  </script>
+
+  </body>
+</html>

@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+    <script>
+      (function () {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+        function stored() {
+          var t = null;
+          try { t = localStorage.getItem('theme'); } catch (e) {}
+          return (t === 'dark' || t === 'light') ? t : null;
+        }
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
+        if (mq) {
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
+        }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
+      })();
+    </script>
+    <title>yakagika - Transformer と自己教師あり学習</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../../../style.css?v=1795415080">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../../../" class="site-brand" aria-label="Home">
+          <span class="site-mark" aria-hidden="true">▮</span>
+          <span class="site-word">yakagika</span>
+        </a>
+      </div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../../../">Home</a>
+      <a href="../../../posts.html">Blog</a>
+      <a href="../../../lectures.html">Lecture</a>
+      <a href="../../../research.html">Research</a>
+      <a href="../../../lectures/seminar.html">Seminar</a>
+      <a href="../../../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      
+      <div id="lecture-toc" data-mode="series">
+  <h2>Index</h2>
+  <a href="../../../fields/deep-learning/index.html">深層学習とその応用</a>
+  <ul class="toc-root">
+    
+    <li class="toc-item toc-series-item current-block">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/dl-transformer/index.html">Transformer と自己教師あり学習</a>
+        
+      </div>
+      
+      <ul class="toc-sublist">
+        
+        <li class="toc-item toc-series-item current">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/deep-learning/dl-transformer/index.html" aria-current="page">Transformer と注意機構</a>
+          </div>
+          <ul class="toc-sublist"></ul>
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/deep-learning/dl-transformer/self-supervised-learning.html">自己教師あり学習</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/deep-learning/dl-transformer/model-evaluation-retraining.html">学習したモデルの評価と再学習</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/deep-learning/dl-transformer/exercises.html">演習</a>
+          </div>
+          
+        </li>
+        
+      </ul>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/dl-lifecycle/index.html">AI の学習と推論, 評価, 再学習</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-processing/index.html">形態素解析, ワードクラウド, ユーザ定義辞書</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-syntax/index.html">係り受け解析とかな漢字変換</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-bert/index.html">BERT の事前学習とテキストの分類</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-generation/index.html">機械翻訳, 文章生成と生成 AI の仕組み</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-embedding/index.html">文章のベクトル, 次元削減と類似度</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/nlp-embedding-more/index.html">トピックモデル, n-gram, CLIP</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/dl-training-case/index.html">事例: 品目名の分類器を学習する</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/dl-training-procedure/index.html">Transformer の学習の手順</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-recognition/index.html">認識技術と手書き数字の認識</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-cnn/index.html">畳み込みニューラルネットワーク</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-age/index.html">顔画像による年代の分類</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-speech/index.html">音声認識の仕組み</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-more/index.html">ViT, 特徴量の可視化, Grad-CAM</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/deep-learning/img-age-code/index.html">年齢識別のコード全体</a>
+        
+      </div>
+      
+    </li>
+    
+  </ul>
+</div>
+
+    </nav>
+
+    <div id="content">
+    
+<nav class="block-course-nav" aria-label="講義の並び">
+  <p>講義の並び</p>
+  <ul>
+    
+    <li class="course-occurrence">
+      <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+      <a href="../../../courses/dsp/8.html">第 8 回</a> (必修)
+      
+      <a href="../../../fields/machine-learning/ml-network/index.html" rel="prev">← ニューラルネットワークの構成と学習</a>
+      
+      
+      
+      <a href="../../../fields/deep-learning/dl-lifecycle/index.html" rel="next">AI の学習と推論, 評価, 再学習 →</a>
+      
+      
+    </li>
+    
+  </ul>
+</nav>
+
+
+
+<article>
+  
+  <header class="article-header">
+    <h1 class="article-title">Transformer と自己教師あり学習</h1>
+<nav class="block-field-nav block-field-nav-narrow" aria-label="分野の目次">
+  <a href="../../../fields/deep-learning/index.html">深層学習とその応用</a>
+  <ol>
+    
+    <li>
+      
+      <strong><a href="../../../fields/deep-learning/dl-transformer/index.html" aria-current="true">Transformer と自己教師あり学習</a></strong>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/dl-lifecycle/index.html">AI の学習と推論, 評価, 再学習</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-processing/index.html">形態素解析, ワードクラウド, ユーザ定義辞書</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-syntax/index.html">係り受け解析とかな漢字変換</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-bert/index.html">BERT の事前学習とテキストの分類</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-generation/index.html">機械翻訳, 文章生成と生成 AI の仕組み</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-embedding/index.html">文章のベクトル, 次元削減と類似度</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/nlp-embedding-more/index.html">トピックモデル, n-gram, CLIP</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/dl-training-case/index.html">事例: 品目名の分類器を学習する</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/dl-training-procedure/index.html">Transformer の学習の手順</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/img-recognition/index.html">認識技術と手書き数字の認識</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/img-cnn/index.html">畳み込みニューラルネットワーク</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/img-age/index.html">顔画像による年代の分類</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/img-speech/index.html">音声認識の仕組み</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/img-more/index.html">ViT, 特徴量の可視化, Grad-CAM</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/deep-learning/img-age-code/index.html">年齢識別のコード全体</a>
+      
+      
+    </li>
+    
+  </ol>
+</nav>
+
+  </header>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../fields/deep-learning/index.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">深層学習とその応用の目次</span>
+    </a>
+    <a class="next" href="../../../fields/deep-learning/dl-transformer/self-supervised-learning.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">自己教師あり学習</span>
+    </a>
+</nav>
+
+  
+  <nav class="block-prerequisites" aria-label="前提となるブロック">
+    <h2 id="block-prerequisites">前提となるブロック</h2>
+    <ul>
+      
+      <li><a href="../../../fields/machine-learning/ml-network/index.html">ニューラルネットワークの構成と学習</a></li>
+      
+      <li><a href="../../../fields/descriptive/num-distance/index.html">距離と類似度</a></li>
+      
+    </ul>
+  </nav>
+  
+  
+  <h2 id="transformer-と注意機構">Transformer と注意機構</h2>
+<p><strong>Transformer</strong> は, 文章のような並びのデータを扱うために 2017 年に提案されたニューラルネットワークの構成です. <a href="../../../fields/deep-learning/nlp-bert/index.html#ニューラル言語モデル">BERT</a> も, 対話型の生成 AI の中で動いている大規模言語モデルも, Transformer を土台にしています. Transformer の中心にあるのが<strong>注意機構 (attention)</strong> です.</p>
+<h2 id="系列データと注意機構">系列データと注意機構</h2>
+<p>文章, 音声, 株価の推移のように, 要素の並び順に意味があるデータを<strong>系列データ</strong>といいます. 文章は単語 (正確には<strong>トークン</strong>と呼ばれる, 単語や文字の断片) の並びとして扱います. 例として, 「猫が鳴く」という文を「猫」「が」「鳴く」の 3 つのトークンに分けて扱います.</p>
+<p>ニューラルネットワークは数値しか扱えないので, 各トークンを数値の組 (ベクトル) で表します. このベクトルは, 意味の近いトークンほど近くなるように学習で決まります (<a href="../../../fields/descriptive/num-distance/index.html#距離と類似度">距離と類似度</a>を参照). この例では手計算のために, 2 つの数値の組で表すことにします.</p>
+<table>
+<thead>
+<tr class="header">
+<th>トークン</th>
+<th>ベクトル</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>猫</td>
+<td><span class="math inline">\boldsymbol{x}_1 = (2, 0.5)</span></td>
+</tr>
+<tr class="even">
+<td>が</td>
+<td><span class="math inline">\boldsymbol{x}_2 = (0, 1)</span></td>
+</tr>
+<tr class="odd">
+<td>鳴く</td>
+<td><span class="math inline">\boldsymbol{x}_3 = (1, 0.5)</span></td>
+</tr>
+</tbody>
+</table>
+<h3 id="固定したベクトルの限界と注意機構の目的">固定したベクトルの限界と注意機構の目的</h3>
+<p>このベクトルはトークンごとに 1 つに決まり, どの文に現れても同じです. しかし, 単語の意味は周りの単語によって変わります. 「鳴く」は「猫が鳴く」と「鳥が鳴く」で思い浮かべる声が違いますし, 「かける」は「電話をかける」と「眼鏡をかける」で意味が違います.</p>
+<p>文の中での役割も, 他の単語との関係で決まります. 英語の The animal didn’t cross the street because it was too tired. の it は animal を指しますが, 最後の tired を wide に変えると street を指します. it が何を指すかは, it 自身ではなく文中の他の単語との関係から決まります. トークンごとに 1 つに決めたベクトルでは, 意味や役割が文脈によって変わることを表せません.</p>
+<p><strong>注意機構</strong>の目的は, 各トークンのベクトルを, 同じ文の中の他のトークンとの関係に基づいて作り直し, 文脈に応じたベクトルにすることです. 作り直すのはトークンごとで, 文全体から 1 つの値を取り出すわけではありません. 「猫が鳴く」なら, 「鳴く」は鳴いているのが猫だという情報を含んだベクトルに作り直され, 「猫」と「が」もそれぞれ作り直されます.</p>
+<p>Transformer より前は, <strong>RNN (再帰型ニューラルネットワーク)</strong> が文を扱う主な方法でした. RNN は文を先頭から 1 トークンずつ読み, それまでに読んだ内容を 1 つのベクトルに書き足していきます. 離れたトークンの情報は何回もの書き足しを経て届くので薄まりやすく, 前のトークンを読み終えるまで次のトークンの計算に進めないので, 並列に計算できません. 注意機構では, 各トークンが距離に関係なく文中のどのトークンも直接参照でき, すべてのトークンの計算を同時に行えます.</p>
+<h3 id="注意の重みの計算">注意の重みの計算</h3>
+<p>ベクトルを作り直すには, 2 つの計算が要ります. 1 つは, あるトークンにとって文中の各トークン (自分自身を含む) がどれだけ関係が深いかを数値で測ることです. もう 1 つは, 関係の深いトークンほど大きな割合で情報を取り込んで, 新しいベクトルを作ることです. 「猫が鳴く」の「鳴く」なら, 誰が鳴くのかを表す「猫」の情報を最も大きな割合で取り込みます. 次の図は, 「鳴く」が各トークンから情報を取り込む割合を, 矢印の太さと数値で表したものです. 3 つの割合の合計は 1 で, この割合を<strong>注意の重み</strong>といいます.</p>
+<figure>
+<img src="../../../images/dsp/ch8/attention-arrows.png" alt="「鳴く」が各トークンから取り込む割合 (注意の重み)" />
+<figcaption aria-hidden="true">「鳴く」が各トークンから取り込む割合 (注意の重み)</figcaption>
+</figure>
+<p>図の上段が新しいベクトルを作るトークン, 下段が参照されるトークンです. 「鳴く」は「猫」を 0.56, 自分自身を 0.28, 「が」を 0.16 の割合で取り込みます. これらの数値の求め方は, この後の手順で計算します. 取り込むとは, 各トークンのベクトルを注意の重みで重み付けして足し合わせ, 「鳴く」の新しいベクトルとすることです. 重みの合計が 1 なので, これは全トークンのベクトルの重み付きの平均になります.</p>
+<p>関係の深さは, 2 つのトークンのベクトルがどれだけ似ているかで測ります. 文のトークンの数を <span class="math inline">n</span>, トークン <span class="math inline">i</span> のベクトルを <span class="math inline">\boldsymbol{x}_i</span>, ベクトルの次元の数を <span class="math inline">d</span> とし, <span class="math inline">\boldsymbol{x}_i</span> の <span class="math inline">k</span> 番目の成分を <span class="math inline">x_{ik}</span> と書きます. トークン <span class="math inline">i</span> の新しいベクトルは, 次の手順で求めます. 「鳴く」なら <span class="math inline">i = 3</span>, <span class="math inline">n = 3</span>, <span class="math inline">d = 2</span> です.</p>
+<ol type="1">
+<li><p>トークン <span class="math inline">i</span> のベクトルと, 各トークン <span class="math inline">j</span> (<span class="math inline">j = 1, \dots, n</span>. 自分自身を含む) のベクトルの内積を求めます. 内積は, 対応する成分同士を掛けて足した値で, 2 つのベクトルの向きが揃っていて長いほど大きくなります (<a href="../../../fields/descriptive/num-distance/index.html#コサイン類似度">コサイン類似度</a>の分子にあたります).</p>
+<p><span class="math display">
+ \boldsymbol{x}_i \cdot \boldsymbol{x}_j = x_{i1} x_{j1} + x_{i2} x_{j2} + \dots + x_{id} x_{jd}
+ </span></p></li>
+<li><p>内積を次元の数 <span class="math inline">d</span> の平方根 <span class="math inline">\sqrt{d}</span> で割り, その値を <span class="math inline">s_{ij}</span> とします. 次元が大きいほど内積は大きな値になりやすく, 大きすぎると 3 の softmax が 1 つのトークンにほぼ全部の重みを付けて学習が進みにくくなるので, 値の大きさをそろえる調整です. この割り算がなくても 3 以降の計算の仕組みは変わりません.</p>
+<p><span class="math display">
+ s_{ij} = \frac{\boldsymbol{x}_i \cdot \boldsymbol{x}_j}{\sqrt{d}}
+ </span></p></li>
+<li><p><span class="math inline">s_{i1}, \dots, s_{in}</span> を softmax 関数 (<a href="../../../fields/machine-learning/ml-network/network-architecture.html#ニューラルネットワークの構成">ニューラルネットワークの構成</a>の出力層で使った関数) に通し, トークン <span class="math inline">i</span> がトークン <span class="math inline">j</span> に付ける注意の重み <span class="math inline">a_{ij}</span> に変えます. 分母は <span class="math inline">l = 1</span> から <span class="math inline">n</span> までの和なので, <span class="math inline">a_{i1} + \dots + a_{in} = 1</span> になります.</p>
+<p><span class="math display">
+ a_{ij} = \frac{\exp(s_{ij})}{\sum_{l=1}^{n} \exp(s_{il})}
+ </span></p></li>
+<li><p>注意の重みで各トークンのベクトルを重み付けして足し合わせ, トークン <span class="math inline">i</span> の新しいベクトル <span class="math inline">\boldsymbol{z}_i</span> とします.</p>
+<p><span class="math display">
+ \boldsymbol{z}_i = \sum_{j=1}^{n} a_{ij} \boldsymbol{x}_j
+ </span></p></li>
+</ol>
+<p>4 つの手順をまとめると, 処理全体は, <span class="math inline">n</span> 個のトークンのベクトルをすべて受け取り, トークン <span class="math inline">i</span> の新しいベクトルを返す次の関数になります.</p>
+<p><span class="math display">
+\boldsymbol{z}_i = \sum_{j=1}^{n} \frac{\exp\left( \boldsymbol{x}_i \cdot \boldsymbol{x}_j / \sqrt{d} \right)}{\sum_{l=1}^{n} \exp\left( \boldsymbol{x}_i \cdot \boldsymbol{x}_l / \sqrt{d} \right)} \, \boldsymbol{x}_j
+</span></p>
+<p>「鳴く」(<span class="math inline">\boldsymbol{x}_3</span>) について, 実際に計算してみましょう. <span class="math inline">\sqrt{2} \approx 1.414</span> です.</p>
+<table>
+<colgroup>
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>参照するトークン</th>
+<th>1. 内積</th>
+<th>2. <span class="math inline">\sqrt{2}</span> で割る</th>
+<th><span class="math inline">e^{(2 の値)}</span></th>
+<th>3. 注意の重み</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>猫</td>
+<td><span class="math inline">1 \times 2 + 0.5 \times 0.5 = 2.25</span></td>
+<td><span class="math inline">1.591</span></td>
+<td><span class="math inline">4.909</span></td>
+<td><span class="math inline">4.909 / 8.753 \approx 0.56</span></td>
+</tr>
+<tr class="even">
+<td>が</td>
+<td><span class="math inline">1 \times 0 + 0.5 \times 1 = 0.5</span></td>
+<td><span class="math inline">0.354</span></td>
+<td><span class="math inline">1.424</span></td>
+<td><span class="math inline">1.424 / 8.753 \approx 0.16</span></td>
+</tr>
+<tr class="odd">
+<td>鳴く</td>
+<td><span class="math inline">1 \times 1 + 0.5 \times 0.5 = 1.25</span></td>
+<td><span class="math inline">0.884</span></td>
+<td><span class="math inline">2.420</span></td>
+<td><span class="math inline">2.420 / 8.753 \approx 0.28</span></td>
+</tr>
+<tr class="even">
+<td>合計</td>
+<td></td>
+<td></td>
+<td><span class="math inline">8.753</span></td>
+<td><span class="math inline">1</span></td>
+</tr>
+</tbody>
+</table>
+<p>4 の重み付きの和 <span class="math inline">\boldsymbol{z}_3</span> は次のようになります.</p>
+<p><span class="math display">
+\boldsymbol{z}_3 = 0.56 \times (2, 0.5) + 0.16 \times (0, 1) + 0.28 \times (1, 0.5) \approx (1.40, 0.58)
+</span></p>
+<p>次の図は, 3 つのトークンのベクトルと, 「鳴く」の新しいベクトルを, 2 次元の平面に矢印で描いたものです.</p>
+<figure>
+<img src="../../../images/dsp/ch8/attention-weighted-sum.png" alt="3 つのトークンのベクトルと「鳴く」の新しいベクトル" />
+<figcaption aria-hidden="true">3 つのトークンのベクトルと「鳴く」の新しいベクトル</figcaption>
+</figure>
+<p>新しいベクトル <span class="math inline">(1.40, 0.58)</span> (橙) は, 0 以上で合計が 1 の重みを付けた平均なので, 3 つのベクトルの先端を結ぶ三角形 (破線) の内側に入ります. 最も大きな重み 0.56 を「猫」に付けたので, もとの <span class="math inline">(1, 0.5)</span> から「猫」の <span class="math inline">(2, 0.5)</span> の方向へ動いています. 第 1 成分は「猫」の 2 が大きな割合で混ざって 1 から 1.40 に増え, 第 2 成分は「が」の 1 が混ざった分だけ 0.5 から 0.58 に増えています. こうして「鳴く」は, 鳴いているのが猫であるという情報を含んだベクトルになります.</p>
+<p>同じ計算を「猫」と「が」についても行うと, 注意の重みは次の図のようになります. 行が新しいベクトルを計算するトークン, 列が参照されるトークンで, 各行の重みの合計は 1 です.</p>
+<figure>
+<img src="../../../images/dsp/ch8/attention-weights.png" alt="「猫が鳴く」の注意の重み" />
+<figcaption aria-hidden="true">「猫が鳴く」の注意の重み</figcaption>
+</figure>
+<h3 id="学習で決まるもの">学習で決まるもの</h3>
+<p>この例では, 「鳴く」から見て「猫」との内積が最も大きくなるように, ベクトルを手で決めました. 実際のモデルでは, ベクトルを人が決めることはせず, トークンのベクトルと, <a href="#クエリ-キー-バリュー">クエリとキーによる関係の測り方</a> (ベクトルの変換) を学習で決めます. 注意の重みそのものは, 学習で保存される値ではありません. 文が入力されるたびに, その文のトークンのベクトルから計算されます. 関係の測り方を学習しておくので, 初めて見る文にも, その文に合った重みが付きます.</p>
+<p>モデルに文法や単語の意味を教えることもしません. 学習では, 文の一部を隠して当てる問題 (<a href="../../../fields/deep-learning/dl-transformer/self-supervised-learning.html#自己教師あり学習">自己教師あり学習</a>) の損失を小さくします. 「鳴く」の意味を決めるには誰が鳴いているかが役立ち, it を含む文の続きを当てるには it が何を指すかが役立ちます. そのため学習の結果として, 述語から主語へ, 代名詞からそれが指す名詞へ大きな重みを付ける関係の測り方が得られます. 学習済みのモデルでは, このような重みの付き方が実際に観察されています. ただし, すべての重みが人に解釈できる関係になるわけではありません.</p>
+<p>この節に対応する演習は, <a href="../../../fields/deep-learning/dl-transformer/exercises.html#exercise-dsp8-2">Exercise DSP8-2</a>です.</p>
+<h2 id="自己注意と-transformer-の構成">自己注意と Transformer の構成</h2>
+<h3 id="クエリ-キー-バリュー">クエリ, キー, バリュー</h3>
+<p><a href="#注意の重みの計算">注意の重みの計算</a>では, 1 つのベクトルを 3 つの役割で使っていました. 重みを計算する側 (「鳴く」), 重みを計算される側 (各トークン), 足し合わされる中身 (各トークン) です. Transformer では, 各トークンのベクトル <span class="math inline">\boldsymbol{x}_i</span> から, 役割ごとに別のベクトルを作ります.</p>
+<ul>
+<li><strong>クエリ (Query)</strong> <span class="math inline">\boldsymbol{q}_i = W_Q \boldsymbol{x}_i</span>: 重みを計算する側のベクトル. 「どんな情報を探しているか」を表す.</li>
+<li><strong>キー (Key)</strong> <span class="math inline">\boldsymbol{k}_j = W_K \boldsymbol{x}_j</span>: 重みを計算される側のベクトル. 「どんな情報を持っているか」を表す.</li>
+<li><strong>バリュー (Value)</strong> <span class="math inline">\boldsymbol{v}_j = W_V \boldsymbol{x}_j</span>: 足し合わされる中身のベクトル.</li>
+</ul>
+<p><span class="math inline">W_Q, W_K, W_V</span> は, <a href="../../../fields/machine-learning/ml-network/network-architecture.html#ニューラルネットワークの構成">ニューラルネットワークの構成</a>の重み行列 <span class="math inline">W</span> と同じく, 学習で決まる行列です. <a href="#学習で決まるもの">学習で決まるもの</a>で述べた関係の測り方は <span class="math inline">W_Q</span> と <span class="math inline">W_K</span> にあたり, <span class="math inline">W_V</span> は取り込む情報の中身を決めます. トークン <span class="math inline">i</span> の新しいベクトル <span class="math inline">\boldsymbol{z}_i</span> は, <a href="#注意の重みの計算">注意の重みの計算</a>の式の内積 <span class="math inline">\boldsymbol{x}_i \cdot \boldsymbol{x}_j</span> をクエリとキーの内積 <span class="math inline">\boldsymbol{q}_i \cdot \boldsymbol{k}_j</span> に, 足し合わせる <span class="math inline">\boldsymbol{x}_j</span> をバリュー <span class="math inline">\boldsymbol{v}_j</span> に置き換えて計算します.</p>
+<p><span class="math display">
+a_{ij} = \frac{\exp\left( \boldsymbol{q}_i \cdot \boldsymbol{k}_j / \sqrt{d} \right)}{\sum_{l=1}^{n} \exp\left( \boldsymbol{q}_i \cdot \boldsymbol{k}_l / \sqrt{d} \right)}, \qquad \boldsymbol{z}_i = \sum_{j=1}^{n} a_{ij} \boldsymbol{v}_j
+</span></p>
+<p>ここで <span class="math inline">n</span> はトークンの数, <span class="math inline">a_{ij}</span> はトークン <span class="math inline">i</span> がトークン <span class="math inline">j</span> に付ける注意の重みです. 全トークンのクエリ, キー, バリューを行に並べた行列を <span class="math inline">Q, K, V</span> とすると, 全トークン分の計算を 1 つの式で書けます.</p>
+<p><span class="math display">
+\text{Attention}(Q, K, V) = \text{softmax}\left( \frac{Q K^{\top}}{\sqrt{d}} \right) V
+</span></p>
+<p><span class="math inline">Q K^{\top}</span> は, すべてのクエリとキーの組の内積を並べた <span class="math inline">n \times n</span> の表で, 「猫が鳴く」の注意の重みの図のもとになる値です. softmax は行ごとに適用します. <a href="#注意の重みの計算">注意の重みの計算</a>の手計算は, <span class="math inline">W_Q, W_K, W_V</span> をすべて単位行列 (ベクトルを変えない行列) にした場合にあたります.</p>
+<p>この式は, 文のトークンのベクトルから直接書くこともできます. トークンのベクトル <span class="math inline">\boldsymbol{x}_1, \dots, \boldsymbol{x}_n</span> を行に並べた <span class="math inline">n \times d</span> の行列を <span class="math inline">X</span> とします (<span class="math inline">d</span> はベクトルの次元). <span class="math inline">X</span> の行に対しては, <span class="math inline">\boldsymbol{q}_i = W_Q \boldsymbol{x}_i</span> は <span class="math inline">X</span> に右から <span class="math inline">W_Q^{\top}</span> を掛けることにあたるので, <span class="math inline">Q = X W_Q^{\top}</span>, <span class="math inline">K = X W_K^{\top}</span>, <span class="math inline">V = X W_V^{\top}</span> です. これを Attention の式に入れると, 自己注意 1 段分の出力 <span class="math inline">Z</span> (<span class="math inline">i</span> 行目が <span class="math inline">\boldsymbol{z}_i</span>) は <span class="math inline">X</span> と 3 つの行列だけで決まります.</p>
+<p><span class="math display">
+Z = \text{softmax}\left( \frac{(X W_Q^{\top})(X W_K^{\top})^{\top}}{\sqrt{d}} \right) X W_V^{\top}
+</span></p>
+<p>同じ文の中のトークン同士で注意の重みを計算するので, この仕組みを<strong>自己注意 (self-attention)</strong> といいます. 実際の Transformer では, 異なる <span class="math inline">W_Q, W_K, W_V</span> の組を複数用意して自己注意を並列に計算し, 結果をつなげて使います (<strong>マルチヘッド注意</strong>). 組ごとに, 主語と述語の関係, 近くの単語との関係のように, 異なる種類の関係を捉えられます.</p>
+<p>自己注意の計算には, トークンの並び順が入っていません. 「猫が鳴く」と「鳴くが猫」で, 各トークンが受け取る重み付きの和は同じになります. そこで, 各トークンのベクトルに「文の何番目か」を表すベクトルを足してから入力します. これを<strong>位置の情報 (位置エンコーディング)</strong> といいます.</p>
+<h3 id="エンコーダとデコーダ">エンコーダとデコーダ</h3>
+<p>Transformer は, 自己注意と, トークンごとに同じ全結合層を適用する層を 1 組として, これを何段も積み重ねた構成です. 全体は, 入力の文を読み取る<strong>エンコーダ</strong>と, 出力の文を 1 トークンずつ作る<strong>デコーダ</strong>に分かれます.</p>
+<figure>
+<img src="../../../images/dsp/ch8/transformer.png" alt="Transformer の構成 (1 組分)" />
+<figcaption aria-hidden="true">Transformer の構成 (1 組分)</figcaption>
+</figure>
+<ul>
+<li><strong>エンコーダ</strong>の自己注意は, 文中のすべてのトークンを参照します. 文の前後の両方から文脈を取り込めるので, 文の意味を読み取るのに向きます. <a href="../../../fields/deep-learning/nlp-bert/index.html#ニューラル言語モデル">BERT</a> は, エンコーダだけを積み重ねたモデルです.</li>
+<li><strong>デコーダ</strong>の自己注意は, 自分より前のトークンだけを参照します. これから作るトークンは, 作る時点ではまだ存在しないからです. 1 トークンずつ文を作っていく生成に向き, 対話型の生成 AI で使われる大規模言語モデル (GPT など) は, デコーダだけを積み重ねたモデルです. GPT などはエンコーダを持たないので, 図の「エンコーダの出力への注意」を除いたデコーダを積み重ねます. 生成の仕組みは<a href="../../../fields/deep-learning/nlp-generation/pretraining-and-generation.html#pretraining-and-generation">事前学習と生成</a>で扱います.</li>
+</ul>
+<p>もとの Transformer は機械翻訳のために作られ, エンコーダで翻訳前の文を読み取り, デコーダがその出力に注意を向けながら翻訳後の文を作ります (図の破線).</p>
+<h3 id="transformer-全体が学習で決めるもの">Transformer 全体が学習で決めるもの</h3>
+<p>Transformer 全体は, 自己注意と全結合層を何段も重ね, 最後に出力層の softmax で各トークンの確率を出す関数です. 入力の文 <span class="math inline">\boldsymbol{x}</span> からその確率への対応を <span class="math inline">f_{\theta}(\boldsymbol{x})</span> と書きます. <span class="math inline">\theta</span> は学習で決まるものをまとめた記号で, 各トークンのベクトル (埋め込み), 各段の <span class="math inline">W_Q, W_K, W_V</span>, 全結合層の重みとバイアス, 出力層の重みがすべて入ります. 自己注意の式に入る <span class="math inline">X</span> も, 文の各トークンに対応するベクトルに位置の情報を足したものなので, <span class="math inline">\theta</span> から決まります.</p>
+<p>このとき学習は, <span class="math inline">N</span> 個の訓練データについて, 損失の平均が最小になる <span class="math inline">\theta</span> を求めることです. <span class="math inline">s</span> 番目の訓練データの入力 (トークンの並び) を <span class="math inline">\boldsymbol{x}^{(s)}</span>, 正解を <span class="math inline">\boldsymbol{y}^{(s)}</span> とします.</p>
+<p><span class="math display">
+\hat{\theta} = \arg\min_{\theta} \; \frac{1}{N} \sum_{s=1}^{N} L\left( f_{\theta}(\boldsymbol{x}^{(s)}), \boldsymbol{y}^{(s)} \right)
+</span></p>
+<p><span class="math inline">L</span> は<a href="../../../fields/machine-learning/ml-network/network-training.html#ニューラルネットワークの学習">ニューラルネットワークの学習</a>の損失関数で, 1 つのデータについて, モデルの出力 <span class="math inline">f_{\theta}(\boldsymbol{x}^{(s)})</span> と正解 <span class="math inline">\boldsymbol{y}^{(s)}</span> のずれを表します. <span class="math inline">\arg\min_{\theta}</span> は, 続く値を最小にする <span class="math inline">\theta</span> を表す記号です. 実際には, 同じ節の勾配降下法で <span class="math inline">\theta</span> を繰り返し更新し, 損失の平均が十分に小さくなった <span class="math inline">\theta</span> を <span class="math inline">\hat{\theta}</span> として使います. <span class="math inline">\boldsymbol{x}^{(s)}</span> の <span class="math inline">(s)</span> は訓練データの番号で, トークンの番号 <span class="math inline">i</span> とは別です. 何を <span class="math inline">\boldsymbol{x}^{(s)}</span> と <span class="math inline">\boldsymbol{y}^{(s)}</span> に置くかは, <a href="../../../fields/deep-learning/dl-transformer/self-supervised-learning.html#自己教師あり学習">自己教師あり学習</a>で扱います. 文の一部を隠した文が入力 <span class="math inline">\boldsymbol{x}^{(s)}</span>, 隠したトークンが正解 <span class="math inline">\boldsymbol{y}^{(s)}</span> です.</p>
+<p>この節に対応する演習は, <a href="../../../fields/deep-learning/dl-transformer/exercises.html#exercise-dsp8-2">Exercise DSP8-2</a>です.</p>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../fields/deep-learning/index.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">深層学習とその応用の目次</span>
+    </a>
+    <a class="next" href="../../../fields/deep-learning/dl-transformer/self-supervised-learning.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">自己教師あり学習</span>
+    </a>
+</nav>
+
+</article>
+
+
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        <nav class="footer-nav" aria-label="フッターナビゲーション">
+            <a href="../../../">Home</a>
+            <a href="../../../posts.html">Blog</a>
+            <a href="../../../lectures.html">Lecture</a>
+            <a href="../../../research.html">Research</a>
+            <a href="../../../rss.xml">RSS</a>
+            <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+        </nav>
+        <p class="footer-copy">&copy; yakagika &middot; Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>.</p>
+    </div>
+</div>
+
+
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="ページ先頭へ戻る" title="先頭へ戻る">↑</button>
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+            link.classList.add('external-link');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level;
+          switch (heading.tagName.toLowerCase()) {
+            case 'h2': level = 0; break;
+            case 'h3': level = 1; break;
+            case 'h4': level = 2; break;
+            default: return;
+          }
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          // Pandoc は `::: note` + 見出し の組み合わせを <section id="..." class="note">
+          // 内の <hN> として出力するため, 見出し自身に id が無い場合は
+          // 親 section の id を辿る.
+          var anchorId = heading.id;
+          if (!anchorId) {
+            var parentSection = heading.closest('section[id]');
+            if (parentSection) anchorId = parentSection.id;
+          }
+          anchor.href = '#' + anchorId;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi && !li.contains(currentLi)) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+
+      // ----------------------------------------
+      // スクロールスパイ: 表示中の見出しを TOC でハイライト
+      // ----------------------------------------
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0 || typeof IntersectionObserver === 'undefined') return;
+
+      var idToTocItem = new Map();
+      headings.forEach(function(h) {
+        if (!h.id) return;
+        var link = tocContainer.querySelector('a[href="#' + CSS.escape(h.id) + '"]');
+        if (link) {
+          var li = link.closest('.toc-item') || link.closest('li');
+          if (li) idToTocItem.set(h.id, li);
+        }
+      });
+
+      var visible = new Set();
+      var lastActive = null;
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+
+        // ドキュメント順で最初に可視な見出しをアクティブに
+        var firstVisible = null;
+        for (var i = 0; i < headings.length; i++) {
+          if (visible.has(headings[i].id)) {
+            firstVisible = headings[i].id;
+            break;
+          }
+        }
+        if (!firstVisible) return;
+
+        var tocItem = idToTocItem.get(firstVisible);
+        if (!tocItem || tocItem === lastActive) return;
+
+        if (lastActive) lastActive.classList.remove('toc-active');
+        tocItem.classList.add('toc-active');
+        lastActive = tocItem;
+
+        // TOC を必要なときだけスクロール
+        tocItem.scrollIntoView({
+          block: 'nearest',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
+      }, {
+        // ヘッダー (60px) を除いた上部 〜 画面下から60% を判定領域とする
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0
+      });
+
+      headings.forEach(function(h) { if (h.id) observer.observe(h); });
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
+      const pre = codeBlock.parentNode;
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
+      copyButton.textContent = 'Copy';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    // パスワード保護付き details (回答例用)
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll('details.protected').forEach(function (det) {
+        var pass = det.getAttribute('data-pass') || '';
+        var summary = det.querySelector('summary');
+        if (!summary) return;
+
+        var gate = document.createElement('div');
+        gate.className = 'pass-gate';
+        gate.innerHTML =
+          '<label>合言葉: <input type="password" autocomplete="off" spellcheck="false"></label>' +
+          '<button type="button">解除</button>' +
+          '<span class="pass-error" hidden>合言葉が違います</span>';
+        summary.insertAdjacentElement('afterend', gate);
+
+        var input = gate.querySelector('input');
+        var button = gate.querySelector('button');
+        var errorMsg = gate.querySelector('.pass-error');
+
+        function tryUnlock() {
+          if (input.value === pass) {
+            det.classList.add('unlocked');
+            errorMsg.hidden = true;
+          } else {
+            errorMsg.hidden = false;
+            input.select();
+          }
+        }
+
+        button.addEventListener('click', tryUnlock);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
+        });
+
+        det.addEventListener('toggle', function () {
+          if (det.open && !det.classList.contains('unlocked')) {
+            input.focus();
+          }
+        });
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            try {
+              katex.render( texText.data
+                          , mathElements[i]
+                          , { displayMode: mathElements[i].classList.contains("display")
+                            , throwOnError: true
+                           }
+                          );
+            } catch (e) {
+              // 1 つの数式のエラーで残り全ての数式が生 TeX のまま残らないようにする
+              console.error('KaTeX render error:', e.message, texText.data);
+            }
+          }
+      }
+    });
+  </script>
+
+  <!-- 見出しアンカーリンク + Back to top -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 記事見出しに hover で現れる # パーマリンクを付与
+      document.querySelectorAll('article h2[id], article h3[id]').forEach(function (h) {
+        var a = document.createElement('a');
+        a.className = 'heading-anchor';
+        a.href = '#' + h.id;
+        a.setAttribute('aria-label', 'このセクションへのリンク');
+        a.textContent = '#';
+        h.appendChild(a);
+      });
+
+      // Back to top: スクロール量に応じて表示
+      var btt = document.getElementById('back-to-top');
+      if (btt) {
+        var onScroll = function () {
+          if (window.pageYOffset > 600) btt.classList.add('visible');
+          else btt.classList.remove('visible');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        btt.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
+    });
+  </script>
+
+  </body>
+</html>

@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+    <script>
+      (function () {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+        function stored() {
+          var t = null;
+          try { t = localStorage.getItem('theme'); } catch (e) {}
+          return (t === 'dark' || t === 'light') ? t : null;
+        }
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
+        if (mq) {
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
+        }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
+      })();
+    </script>
+    <title>yakagika - GPA で目的ごとに変数を選ぶ</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../../../style.css?v=1795415080">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+    <link rel="canonical" href="https://yakagika.github.io/fields/regression/reg-selection-gpa/index.html">
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../../../" class="site-brand" aria-label="Home">
+          <span class="site-mark" aria-hidden="true">▮</span>
+          <span class="site-word">yakagika</span>
+        </a>
+      </div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../../../">Home</a>
+      <a href="../../../posts.html">Blog</a>
+      <a href="../../../lectures.html">Lecture</a>
+      <a href="../../../research.html">Research</a>
+      <a href="../../../lectures/seminar.html">Seminar</a>
+      <a href="../../../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      
+      <div id="lecture-toc" data-mode="series">
+  <h2>Index</h2>
+  <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+  <ul class="toc-root">
+    
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/1.html">第 1 回 本資料の読み方</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/2.html">第 2 回 分析設計: データ分析の進め方</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/3.html">第 3 回 データの可視化</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/4.html">第 4 回 データの数値化</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item current-block">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/5.html">第 5 回 回帰分析</a>
+      </div>
+      
+      <ul class="toc-sublist">
+        <li class="toc-item toc-series-item no-children">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/5/reg-intro.html">回帰で何をするか / 出生率のデータで行う単回帰分析</a>
+    
+  </div>
+  
+</li>
+<li class="toc-item toc-series-item no-children">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/5/reg-multiple.html">重回帰分析と偏回帰係数 / GPA の重回帰分析</a>
+    
+  </div>
+  
+</li>
+<li class="toc-item toc-series-item no-children">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/5/reg-prediction.html">予測とは何か / 未使用のデータで予測の誤差を測る</a>
+    
+  </div>
+  
+</li>
+<li class="toc-item toc-series-item no-children">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/5/reg-causal.html">因果推論とは何か</a>
+    
+  </div>
+  
+</li>
+<li class="toc-item toc-series-item no-children">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/5/reg-selection.html">モデル選択</a>
+    
+  </div>
+  
+</li>
+<li class="toc-item toc-series-item current">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/5/reg-selection-gpa.html" aria-current="page">GPA で目的ごとに変数を選ぶ</a>
+    
+  </div>
+  <ul class="toc-sublist"></ul>
+</li>
+
+      </ul>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/6.html">第 6 回 機械学習の枠組みと決定木</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/7.html">第 7 回 クラスタリングとパターン発見</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/8.html">第 8 回 ニューラルネットワークと Transformer</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/9.html">第 9 回 自然言語処理</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/10.html">第 10 回 画像認識</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/11.html">第 11 回 総合実習 1</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/12.html">第 12 回 総合実習 2</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/13.html">第 13 回 発表回</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/selected.html">選択資料</a>
+      </div>
+      
+    </li>
+    
+  </ul>
+</div>
+
+    </nav>
+
+    <div id="content">
+    <article>
+  <header class="article-header">
+    <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+    <a href="../../../courses/dsp/5.html">第 5 回 回帰分析</a>
+    <h1 class="article-title">GPA で目的ごとに変数を選ぶ</h1>
+  </header>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../courses/dsp/5/reg-selection.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">モデル選択</span>
+    </a>
+    <a class="next" href="../../../courses/dsp/6.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">第 6 回 機械学習の枠組みと決定木</span>
+    </a>
+</nav>
+
+  <div class="lesson-body">
+    <p>同じ合成 GPA データを使っても, どの変数を式に入れるかは分析の目的で変わります.
+平均 GPA の差を求めるなら, どの条件をそろえて比べるかを先に決めます.
+新しい学生の GPA を予測するなら, 候補の式を予測誤差で比べます.
+探索では, データに見つけた関係から仮説を立てます. 各目的で何を基準に変数を選ぶかは<a href="../../../courses/dsp/5/reg-selection.html#model-selection">目的ごとの変数の選び方</a>にまとめています.</p>
+<h2 id="selection-gpa-data">合成 GPA データの準備</h2>
+<p><a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch11/multiple_regression.csv"><code>multiple_regression.csv</code></a> には, 合成した 100 人分のデータが入っています.
+CSV をダウンロードしてコードと同じフォルダに置き, そのフォルダからコードを実行してください.
+先頭列には行番号が入っているので, <code>index_col=0</code> で行のインデックスとして読み込みます.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> statsmodels.formula.api <span class="im">as</span> smf</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> mean_squared_error</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> KFold, train_test_split</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">&quot;multiple_regression.csv&quot;</span>, index_col<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>train, test <span class="op">=</span> train_test_split(df, test_size<span class="op">=</span><span class="fl">0.3</span>, random_state<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Training: </span><span class="sc">{</span><span class="bu">len</span>(train)<span class="sc">}</span><span class="ss">, held out: </span><span class="sc">{</span><span class="bu">len</span>(test)<span class="sc">}</span><span class="ss">&quot;</span>)</span></code></pre></div>
+<pre class="text"><code>Training: 70, held out: 30</code></pre>
+<p>GPA は 0〜4 点で, 勉強時間 (<code>Study_Hours</code>), アルバイト時間 (<code>Part_time_Work</code>), 運動時間 (<code>Sports_hours</code>) は週あたりの時間です.
+<code>Scholarship</code> は奨学生なら <code>True</code>, それ以外なら <code>False</code> です. いずれも配布データの単位のまま使います.
+読み込んだ直後に最終評価用の 30 人を取り分けます.
+関係の定量化, 予測, 探索は, それぞれ別の分析例として学習用の 70 人から始めます.</p>
+<h1 id="selection-quantification">関係の定量化: 式を問いで決める</h1>
+<p>奨学生かどうかとアルバイト時間が同じ学生どうしで, 勉強時間が週 1 時間長い学生の平均 GPA は何点高いでしょうか.
+データの値を見る前に, 問いでそろえる条件から式を決めます.
+この場合は <a href="../../../courses/dsp/5/reg-multiple.html#gpa-coefficients">GPA の重回帰分析</a>と同じ式になります.
+<a href="#selection-gpa-data">合成 GPA データの準備</a>を実行したセッションで, 学習用の 70 人について係数と 95% 信頼区間を求めます.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>formula <span class="op">=</span> <span class="st">&quot;GPA ~ Scholarship + Study_Hours + Part_time_Work&quot;</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>fit <span class="op">=</span> smf.ols(formula, data<span class="op">=</span>train).fit()</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>intervals <span class="op">=</span> fit.conf_int(alpha<span class="op">=</span><span class="fl">0.05</span>)</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>coefficient_table <span class="op">=</span> pd.DataFrame(</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    {<span class="st">&quot;Estimate&quot;</span>: fit.params, <span class="st">&quot;Lower&quot;</span>: intervals[<span class="dv">0</span>], <span class="st">&quot;Upper&quot;</span>: intervals[<span class="dv">1</span>]}</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(coefficient_table.to_string(float_format<span class="op">=</span><span class="kw">lambda</span> value: <span class="ss">f&quot;</span><span class="sc">{</span>value<span class="sc">:.3f}</span><span class="ss">&quot;</span>))</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>without_work <span class="op">=</span> smf.ols(<span class="st">&quot;GPA ~ Scholarship + Study_Hours&quot;</span>, data<span class="op">=</span>train).fit()</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Study hours without part-time work: </span><span class="sc">{</span>without_work<span class="sc">.</span>params[<span class="st">'Study_Hours'</span>]<span class="sc">:.3f}</span><span class="ss">&quot;</span>)</span></code></pre></div>
+<pre class="text"><code>                     Estimate  Lower  Upper
+Intercept               0.836  0.194  1.479
+Scholarship[T.True]     0.504  0.398  0.610
+Study_Hours             0.209  0.185  0.233
+Part_time_Work         -0.090 -0.121 -0.060
+Study hours without part-time work: 0.267</code></pre>
+<p>奨学生区分とアルバイト時間が同じ学生どうしでは, 勉強時間が週 1 時間長い学生ほど, 平均 GPA が約 0.209 点高いと推定されます.
+95% 信頼区間は 0.185〜0.233 点です.
+各係数は, 推定値と信頼区間をそろえて報告します.</p>
+<p>アルバイト時間を外した式でも, 勉強時間が週 1 時間違う学生を比べます.
+ただし, こちらの式でそろえる条件は奨学生区分だけで, 推定した平均 GPA の差は約 0.267 点です.
+P 値を基準に変数を外す手順では, 外れた変数が比較の条件からも外れます.
+問いでそろえると決めた変数は, P 値の大小にかかわらず式に残します.
+係数が表す比較の違いは, <a href="../../../courses/dsp/5/reg-multiple.html#partial-coefficients">偏回帰係数とそろえる条件</a>で確かめられます.</p>
+<h1 id="selection-prediction">予測: 交差検証で選び, テストデータで 1 回だけ評価する</h1>
+<p>新しい学生の GPA を予測する式を, 学習用の 70 人で比べます.
+候補は <a href="../../../courses/dsp/5/reg-multiple.html#gpa-coefficients">GPA の重回帰分析</a>の式 A, 運動時間を足した式 B, アルバイト時間を外した式 C です.</p>
+<p><a href="#selection-gpa-data">合成 GPA データの準備</a>を実行してから, 学習用データを 14 人ずつの 5 組に分けます.
+1 組を検証用とし, 他の 4 組の 56 人で係数を求めます.
+検証用の組を入れ替えて 5 回予測し, 5 組の MSE の平均を交差検証の MSE (CV MSE) とします.
+組の分け方はすべての候補で共通です. 各データの役割は<a href="../../../courses/dsp/5/reg-prediction.html#training-validation-test">訓練データ・検証データ・テストデータ</a>で確認できます.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>formulas <span class="op">=</span> {</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;A&quot;</span>: <span class="st">&quot;GPA ~ Scholarship + Study_Hours + Part_time_Work&quot;</span>,</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;B&quot;</span>: <span class="st">&quot;GPA ~ Scholarship + Study_Hours + Part_time_Work + Sports_hours&quot;</span>,</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;C&quot;</span>: <span class="st">&quot;GPA ~ Scholarship + Study_Hours&quot;</span>,</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>folds <span class="op">=</span> KFold(n_splits<span class="op">=</span><span class="dv">5</span>, shuffle<span class="op">=</span><span class="va">True</span>, random_state<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>splits <span class="op">=</span> <span class="bu">list</span>(folds.split(train))</span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>scores <span class="op">=</span> []</span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> name, formula <span class="kw">in</span> formulas.items():</span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    validation_errors <span class="op">=</span> []</span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> fit_indices, validation_indices <span class="kw">in</span> splits:</span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>        fitting <span class="op">=</span> train.iloc[fit_indices]</span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>        validation <span class="op">=</span> train.iloc[validation_indices]</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>        fit <span class="op">=</span> smf.ols(formula, data<span class="op">=</span>fitting).fit()</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>        predicted <span class="op">=</span> fit.predict(validation)</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>        validation_errors.append(mean_squared_error(validation[<span class="st">&quot;GPA&quot;</span>], predicted))</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    full_fit <span class="op">=</span> smf.ols(formula, data<span class="op">=</span>train).fit()</span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>    scores.append(</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>        {</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;Model&quot;</span>: name,</span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;CV MSE&quot;</span>: <span class="bu">sum</span>(validation_errors) <span class="op">/</span> <span class="bu">len</span>(validation_errors),</span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>            <span class="st">&quot;AIC&quot;</span>: full_fit.aic,</span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>        },</span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>scores <span class="op">=</span> pd.DataFrame(scores)</span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(scores.to_string(index<span class="op">=</span><span class="va">False</span>, float_format<span class="op">=</span><span class="kw">lambda</span> value: <span class="ss">f&quot;</span><span class="sc">{</span>value<span class="sc">:.5f}</span><span class="ss">&quot;</span>))</span></code></pre></div>
+<pre class="text"><code>Model  CV MSE      AIC
+    A 0.06265 -9.05519
+    B 0.06339 -7.09237
+    C 0.08188 18.55755</code></pre>
+<p><code>KFold</code> が返すのは行の位置なので, <code>iloc</code> で学習用データから行を取り出します.
+AIC は候補ごとに同じ 70 人で当てはめて計算します.
+<code>statsmodels</code> の <code>aic</code> は誤差分散をパラメータ数に含めないため, 誤差分散を含めて <span class="math inline">p=k+2</span> とする<a href="../../../courses/dsp/5/reg-selection.html#information-criteria">情報量規準</a>の式より, 同じ式の AIC が 2 小さくなります.
+候補間の AIC の差はどちらの数え方でも同じなので, AIC が最小になる式も同じです.</p>
+<p>CV MSE と AIC はともに小さい値を選ぶ規準で, このデータではどちらも式 A が最小です.
+GPA の二乗誤差を測るのが目的なので, CV MSE を採用基準にします.
+式を決めたら, 学習用の 70 人で係数を求め直し, テストデータの 30 人で MSE を 1 回だけ求めます.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>best_name <span class="op">=</span> scores.loc[scores[<span class="st">&quot;CV MSE&quot;</span>].idxmin(), <span class="st">&quot;Model&quot;</span>]</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>best_fit <span class="op">=</span> smf.ols(formulas[best_name], data<span class="op">=</span>train).fit()</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>test_prediction <span class="op">=</span> best_fit.predict(test)</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>test_mse <span class="op">=</span> mean_squared_error(test[<span class="st">&quot;GPA&quot;</span>], test_prediction)</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Selected model: </span><span class="sc">{</span>best_name<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Test MSE: </span><span class="sc">{</span>test_mse<span class="sc">:.5f}</span><span class="ss">&quot;</span>)</span></code></pre></div>
+<pre class="text"><code>Selected model: A
+Test MSE: 0.03363</code></pre>
+<p>式 A のテスト MSE は約 0.034 で, CV MSE の約 0.063 を下回りました (単位はいずれも GPA 点の二乗).
+評価に使う学生が違い (テストは 30 人の 1 組), 係数を求めた人数も交差検証では 56 人, 最終評価では 70 人なので, 今回の大小関係だけから一般の傾向は判断できません.
+式 A と B の CV MSE の差は約 0.00074 で, 式を選ぶときは表示のために丸める前の値を使います.
+候補をさらに増やしたときに, 選択に使った誤差をどう読むかは <a href="../../../fields/regression/reg-selection-lab/variable-selection-test-mse.html#variable-selection-test-mse">説明変数の組み合わせを交差検証で比べる</a>で扱います.</p>
+<h1 id="selection-exploration">探索: 探索用で選び, 確認用で確かめる</h1>
+<p>GPA と関係しそうな変数をデータから探します.
+<a href="#selection-gpa-data">合成 GPA データの準備</a>を実行したら, 学習用の 70 人を探索用 35 人と確認用 35 人に分けます.
+図を作ること, 相関を求めること, 式に入れる候補を選ぶことに使うのは探索用の 35 人です.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>explore, confirm <span class="op">=</span> train_test_split(train, test_size<span class="op">=</span><span class="fl">0.5</span>, random_state<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Exploration: </span><span class="sc">{</span><span class="bu">len</span>(explore)<span class="sc">}</span><span class="ss">, confirmation: </span><span class="sc">{</span><span class="bu">len</span>(confirm)<span class="sc">}</span><span class="ss">&quot;</span>)</span></code></pre></div>
+<pre class="text"><code>Exploration: 35, confirmation: 35</code></pre>
+<h2 id="散布図行列と相関">散布図行列と相関</h2>
+<p>散布図行列では行の変数が縦軸, 列の変数が横軸です. 対角線上には各変数のヒストグラムが並びます.
+奨学生区分はカテゴリなので, この図には 4 つの数値変数を使います.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>numeric_columns <span class="op">=</span> [<span class="st">&quot;GPA&quot;</span>, <span class="st">&quot;Study_Hours&quot;</span>, <span class="st">&quot;Sports_hours&quot;</span>, <span class="st">&quot;Part_time_Work&quot;</span>]</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(<span class="dv">4</span>, <span class="dv">4</span>, figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="dv">9</span>), layout<span class="op">=</span><span class="st">&quot;constrained&quot;</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>pd.plotting.scatter_matrix(</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    explore[numeric_columns],</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    ax<span class="op">=</span>axes,</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    diagonal<span class="op">=</span><span class="st">&quot;hist&quot;</span>,</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    range_padding<span class="op">=</span><span class="fl">0.12</span>,</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    color<span class="op">=</span><span class="st">&quot;#23658b&quot;</span>,</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>    alpha<span class="op">=</span><span class="fl">0.7</span>,</span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>plt.close(fig)</span></code></pre></div>
+<figure>
+<img src="../../../images/fields/regression/reg-selection-gpa/scatter-matrix.png" class="wide" alt="探索用 35 人の数値変数の散布図行列" />
+<figcaption aria-hidden="true">探索用 35 人の数値変数の散布図行列</figcaption>
+</figure>
+<p>最上段では, 勉強時間が長い学生ほど GPA が高く, アルバイト時間が長い学生ほど GPA が低い傾向があります.
+運動時間と GPA の点は, 広い範囲に散らばっています.
+合成データには勉強時間が約 -0.48 時間の学生が 1 人います. 配布データの値をそのまま使います.</p>
+<p>Pearson の相関係数を求めてヒートマップにします.
+負の相関は青, 正の相関は赤に対応します.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>correlations <span class="op">=</span> explore[numeric_columns].corr()</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">6</span>), layout<span class="op">=</span><span class="st">&quot;constrained&quot;</span>)</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>sns.heatmap(</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    correlations,</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    ax<span class="op">=</span>ax,</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>    vmin<span class="op">=-</span><span class="dv">1</span>,</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>    vmax<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a>    center<span class="op">=</span><span class="dv">0</span>,</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>    cmap<span class="op">=</span><span class="st">&quot;RdBu_r&quot;</span>,</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>    annot<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>    fmt<span class="op">=</span><span class="st">&quot;.2f&quot;</span>,</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a>    square<span class="op">=</span><span class="va">True</span>,</span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>ax.tick_params(axis<span class="op">=</span><span class="st">&quot;x&quot;</span>, labelrotation<span class="op">=</span><span class="dv">25</span>)</span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>ax.tick_params(axis<span class="op">=</span><span class="st">&quot;y&quot;</span>, labelrotation<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>plt.close(fig)</span></code></pre></div>
+<figure>
+<img src="../../../images/fields/regression/reg-selection-gpa/correlations.png" alt="探索用 35 人の数値変数の相関係数" />
+<figcaption aria-hidden="true">探索用 35 人の数値変数の相関係数</figcaption>
+</figure>
+<p>GPA との相関係数は, 勉強時間が 0.93, アルバイト時間が -0.87, 運動時間が 0.10 です.
+勉強時間とアルバイト時間の組にも -0.83 の相関があります.
+重回帰で両方の時間を入れたときは, 他方の時間をそろえた比較になります.
+説明変数どうしの関係が強いときは, <a href="../../../courses/dsp/5/reg-multiple.html#multicollinearity">多重共線性と係数の精度</a>で見たように, 係数の精度を区間の広さで確かめます.</p>
+<h2 id="p-値を使った後退消去">P 値を使った後退消去</h2>
+<p>散布図と相関係数で見た GPA との関係の強さは, 時間の種類によって異なります.
+変数を外すかは P 値を使った後退消去で決めるため, 3 種類の時間と奨学生区分の 4 変数すべてを候補にし, 探索用の 35 人で切片つきの式を当てはめます.
+切片を除いた係数のうち, 最も大きな P 値が 0.05 以上なら, 対応する変数を 1 つ除いて係数を求め直します.
+すべての P 値が 0.05 未満になるか, 候補をすべて除いた時点で止めます.
+この手順は <a href="../../../courses/dsp/5/reg-selection.html#stepwise">ステップワイズ法</a>のうち, 変数を順に除く<strong>後退消去</strong>です.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>selected <span class="op">=</span> [<span class="st">&quot;Scholarship&quot;</span>, <span class="st">&quot;Study_Hours&quot;</span>, <span class="st">&quot;Part_time_Work&quot;</span>, <span class="st">&quot;Sports_hours&quot;</span>]</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="cf">while</span> selected:</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>    formula <span class="op">=</span> <span class="st">&quot;GPA ~ &quot;</span> <span class="op">+</span> <span class="st">&quot; + &quot;</span>.join(selected)</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    fit <span class="op">=</span> smf.ols(formula, data<span class="op">=</span>explore).fit()</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    p_values <span class="op">=</span> fit.pvalues.drop(<span class="st">&quot;Intercept&quot;</span>)</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    p_values <span class="op">=</span> p_values.rename({<span class="st">&quot;Scholarship[T.True]&quot;</span>: <span class="st">&quot;Scholarship&quot;</span>})</span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(p_values.to_string(float_format<span class="op">=</span><span class="kw">lambda</span> value: <span class="ss">f&quot;</span><span class="sc">{</span>value<span class="sc">:.3g}</span><span class="ss">&quot;</span>))</span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>    largest <span class="op">=</span> p_values.idxmax()</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> p_values[largest] <span class="op">&lt;</span> <span class="fl">0.05</span>:</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>        <span class="cf">break</span></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>    selected.remove(largest)</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>    <span class="bu">print</span>(<span class="ss">f&quot;Remove: </span><span class="sc">{</span>largest<span class="sc">}</span><span class="ss">&quot;</span>)</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>selected_formula <span class="op">=</span> <span class="st">&quot;GPA ~ &quot;</span> <span class="op">+</span> (<span class="st">&quot; + &quot;</span>.join(selected) <span class="cf">if</span> selected <span class="cf">else</span> <span class="st">&quot;1&quot;</span>)</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Selected formula: </span><span class="sc">{</span>selected_formula<span class="sc">}</span><span class="ss">&quot;</span>)</span></code></pre></div>
+<pre class="text"><code>Scholarship      1.16e-05
+Study_Hours      3.13e-09
+Part_time_Work    0.00121
+Sports_hours        0.715
+Remove: Sports_hours
+Scholarship      8.49e-06
+Study_Hours      6.26e-10
+Part_time_Work   0.000765
+Selected formula: GPA ~ Scholarship + Study_Hours + Part_time_Work</code></pre>
+<p>奨学生区分は <code>False</code> が基準なので, <code>Scholarship[T.True]</code> の P 値を奨学生区分の P 値として使います.
+この標本では運動時間の P 値が 0.715 で最も大きく, 運動時間を除いた式で他の 3 変数が残りました.
+候補がすべて除かれた場合の式は <code>GPA ~ 1</code> で, 切片だけが残ります.
+探索用データで計算した P 値は変数を選ぶために使います.
+同じデータで選び, その P 値で仮説を検定すると, 変数が選ばれた経緯が通常の検定の計算に入らず, P 値が小さく出やすくなります.
+詳しくは <a href="../../../fields/regression/reg-selection-more/post-selection.html#post-selection">選んだ後の推論</a>を参照してください.</p>
+<h2 id="確認用の-35-人で係数を求める">確認用の 35 人で係数を求める</h2>
+<p>探索で選んだ式を固定し, 確認用の 35 人だけで係数と 95% 信頼区間を求めます.</p>
+<div class="sourceCode" id="cb15"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>check <span class="op">=</span> smf.ols(selected_formula, data<span class="op">=</span>confirm).fit()</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>intervals <span class="op">=</span> check.conf_int(alpha<span class="op">=</span><span class="fl">0.05</span>)</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>report <span class="op">=</span> pd.DataFrame(</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    {</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Estimate&quot;</span>: check.params,</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Lower&quot;</span>: intervals[<span class="dv">0</span>],</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Upper&quot;</span>: intervals[<span class="dv">1</span>],</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;Width&quot;</span>: intervals[<span class="dv">1</span>] <span class="op">-</span> intervals[<span class="dv">0</span>],</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    },</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(report.to_string(float_format<span class="op">=</span><span class="kw">lambda</span> value: <span class="ss">f&quot;</span><span class="sc">{</span>value<span class="sc">:.3f}</span><span class="ss">&quot;</span>))</span></code></pre></div>
+<pre class="text"><code>                     Estimate  Lower  Upper  Width
+Intercept               0.728  0.103  1.354  1.251
+Scholarship[T.True]     0.560  0.455  0.666  0.211
+Study_Hours             0.226  0.203  0.249  0.046
+Part_time_Work         -0.096 -0.127 -0.066  0.061</code></pre>
+<p>確認用データでは式を固定したまま全係数を報告します.
+奨学生区分とアルバイト時間が同じ学生どうしでは, 勉強時間が週 1 時間長い学生ほど, 平均 GPA が約 0.226 点高いと推定されます.
+その 95% 信頼区間は 0.203〜0.249 点で, 幅は約 0.046 点です.
+奨学生区分についても, 平均 GPA の差には約 0.211 点の区間幅があります.</p>
+<p>データを分けると, 係数の推定に使えるのは 35 人です.
+一般に人数が少ないと信頼区間は広くなりやすく, 実際の幅は各標本の説明変数の散らばりや残差にも左右されます.
+この分割で得た勉強時間の区間幅は, <a href="#selection-quantification">問いで決めた式を 70 人で推定した区間</a>の幅と同程度です.
+探索で選んだ関係は, 独立な確認用の標本から得た区間を添えて記録し, 新しいデータでも確かめる仮説として扱います.</p>
+<h1 id="exercises">演習</h1>
+<h2 id="exercise-reg-selection-gpa-1">Exercise REG-SELECTION-GPA-1</h2>
+<p><strong>運動時間が異なる学生の平均 GPA の差</strong></p>
+<p>奨学生区分, 勉強時間, アルバイト時間が同じ学生どうしで, 運動時間が週 1 時間違うと平均 GPA はどれだけ違うでしょうか.
+この問いを立ててから, 学習用の 70 人に運動時間も含む重回帰式を当てはめます.
+運動時間の係数と 95% 信頼区間を報告し, 区間から差の向きについて何がいえるかを書いてください.</p>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答
+</summary>
+<div class="sourceCode" id="cb17"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> statsmodels.formula.api <span class="im">as</span> smf</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> train_test_split</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">&quot;multiple_regression.csv&quot;</span>, index_col<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a>train, test <span class="op">=</span> train_test_split(df, test_size<span class="op">=</span><span class="fl">0.3</span>, random_state<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>formula <span class="op">=</span> <span class="st">&quot;GPA ~ Scholarship + Study_Hours + Part_time_Work + Sports_hours&quot;</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>fit <span class="op">=</span> smf.ols(formula, data<span class="op">=</span>train).fit()</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>estimate <span class="op">=</span> fit.params[<span class="st">&quot;Sports_hours&quot;</span>]</span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>lower, upper <span class="op">=</span> fit.conf_int(alpha<span class="op">=</span><span class="fl">0.05</span>).loc[<span class="st">&quot;Sports_hours&quot;</span>]</span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Sports hours: </span><span class="sc">{</span>estimate<span class="sc">:.3f}</span><span class="ss">, 95% CI [</span><span class="sc">{</span>lower<span class="sc">:.3f}</span><span class="ss">, </span><span class="sc">{</span>upper<span class="sc">:.3f}</span><span class="ss">]&quot;</span>)</span></code></pre></div>
+<pre class="text"><code>Sports hours: 0.002, 95% CI [-0.023, 0.028]</code></pre>
+<p>区間は 0 をまたぐため, このデータからは差の向きまで決められません.
+運動時間の係数が答えるのは演習で先に立てた問いなので, 運動時間を式に含めて区間を報告します.</p>
+</details>
+  </div>
+  
+<section class="course-advanced">
+  <h2 id="course-advanced">発展 (参考資料で読む)</h2>
+  <ul>
+    
+    <li>
+      <a href="../../../fields/regression/reg-ols/index.html">回帰分析は何を行っているのか</a> (理論)
+      
+
+    </li>
+    
+    <li>
+      <a href="../../../fields/regression/reg-selection-more/index.html">その他のモデル選択の手法と選んだ後の推論</a> (理論)
+      
+
+    </li>
+    
+    <li>
+      <a href="../../../fields/regression/reg-selection-lab/index.html">変数選択の結果を実験で確かめる</a> (コード)
+      
+
+    </li>
+    
+    <li>
+      <a href="../../../fields/regression/reg-glm/index.html">一般化線形モデルと二値の応答</a> (理論)
+      
+
+    </li>
+    
+    <li>
+      <a href="../../../fields/regression/reg-logit/index.html">単位の取得確率を推定する</a> (コード)
+      
+
+    </li>
+    
+  </ul>
+</section>
+
+
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../courses/dsp/5/reg-selection.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">モデル選択</span>
+    </a>
+    <a class="next" href="../../../courses/dsp/6.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">第 6 回 機械学習の枠組みと決定木</span>
+    </a>
+</nav>
+
+</article>
+
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        <nav class="footer-nav" aria-label="フッターナビゲーション">
+            <a href="../../../">Home</a>
+            <a href="../../../posts.html">Blog</a>
+            <a href="../../../lectures.html">Lecture</a>
+            <a href="../../../research.html">Research</a>
+            <a href="../../../rss.xml">RSS</a>
+            <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+        </nav>
+        <p class="footer-copy">&copy; yakagika &middot; Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>.</p>
+    </div>
+</div>
+
+
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="ページ先頭へ戻る" title="先頭へ戻る">↑</button>
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+            link.classList.add('external-link');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h1[id], h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level = Number(heading.tagName.slice(1)) - 1;
+          if (!heading.id) return;
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          // Pandoc は `::: note` + 見出し の組み合わせを <section id="..." class="note">
+          // 内の <hN> として出力するため, 見出し自身に id が無い場合は
+          // 親 section の id を辿る.
+          var anchorId = heading.id;
+          if (!anchorId) {
+            var parentSection = heading.closest('section[id]');
+            if (parentSection) anchorId = parentSection.id;
+          }
+          anchor.href = '#' + anchorId;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi && !li.contains(currentLi)) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+
+      // ----------------------------------------
+      // スクロールスパイ: 表示中の見出しを TOC でハイライト
+      // ----------------------------------------
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0 || typeof IntersectionObserver === 'undefined') return;
+
+      var idToTocItem = new Map();
+      headings.forEach(function(h) {
+        if (!h.id) return;
+        var link = tocContainer.querySelector('a[href="#' + CSS.escape(h.id) + '"]');
+        if (link) {
+          var li = link.closest('.toc-item') || link.closest('li');
+          if (li) idToTocItem.set(h.id, li);
+        }
+      });
+
+      var visible = new Set();
+      var lastActive = null;
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+
+        // ドキュメント順で最初に可視な見出しをアクティブに
+        var firstVisible = null;
+        for (var i = 0; i < headings.length; i++) {
+          if (visible.has(headings[i].id)) {
+            firstVisible = headings[i].id;
+            break;
+          }
+        }
+        if (!firstVisible) return;
+
+        var tocItem = idToTocItem.get(firstVisible);
+        if (!tocItem || tocItem === lastActive) return;
+
+        if (lastActive) lastActive.classList.remove('toc-active');
+        tocItem.classList.add('toc-active');
+        lastActive = tocItem;
+
+        // TOC を必要なときだけスクロール
+        tocItem.scrollIntoView({
+          block: 'nearest',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
+      }, {
+        // ヘッダー (60px) を除いた上部 〜 画面下から60% を判定領域とする
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0
+      });
+
+      headings.forEach(function(h) { if (h.id) observer.observe(h); });
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
+      const pre = codeBlock.parentNode;
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
+      copyButton.textContent = 'Copy';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    // パスワード保護付き details (回答例用)
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll('details.protected').forEach(function (det) {
+        var pass = det.getAttribute('data-pass') || '';
+        var summary = det.querySelector('summary');
+        if (!summary) return;
+
+        var gate = document.createElement('div');
+        gate.className = 'pass-gate';
+        gate.innerHTML =
+          '<label>合言葉: <input type="password" autocomplete="off" spellcheck="false"></label>' +
+          '<button type="button">解除</button>' +
+          '<span class="pass-error" hidden>合言葉が違います</span>';
+        summary.insertAdjacentElement('afterend', gate);
+
+        var input = gate.querySelector('input');
+        var button = gate.querySelector('button');
+        var errorMsg = gate.querySelector('.pass-error');
+
+        function tryUnlock() {
+          if (input.value === pass) {
+            det.classList.add('unlocked');
+            errorMsg.hidden = true;
+          } else {
+            errorMsg.hidden = false;
+            input.select();
+          }
+        }
+
+        button.addEventListener('click', tryUnlock);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
+        });
+
+        det.addEventListener('toggle', function () {
+          if (det.open && !det.classList.contains('unlocked')) {
+            input.focus();
+          }
+        });
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            try {
+              katex.render( texText.data
+                          , mathElements[i]
+                          , { displayMode: mathElements[i].classList.contains("display")
+                            , throwOnError: true
+                           }
+                          );
+            } catch (e) {
+              // 1 つの数式のエラーで残り全ての数式が生 TeX のまま残らないようにする
+              console.error('KaTeX render error:', e.message, texText.data);
+            }
+          }
+      }
+    });
+  </script>
+
+  <!-- 見出しアンカーリンク + Back to top -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 記事見出しに hover で現れる # パーマリンクを付与
+      document.querySelectorAll('article h2[id], article h3[id]').forEach(function (h) {
+        var a = document.createElement('a');
+        a.className = 'heading-anchor';
+        a.href = '#' + h.id;
+        a.setAttribute('aria-label', 'このセクションへのリンク');
+        a.textContent = '#';
+        h.appendChild(a);
+      });
+
+      // Back to top: スクロール量に応じて表示
+      var btt = document.getElementById('back-to-top');
+      if (btt) {
+        var onScroll = function () {
+          if (window.pageYOffset > 600) btt.classList.add('visible');
+          else btt.classList.remove('visible');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        btt.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
+    });
+  </script>
+
+  </body>
+</html>

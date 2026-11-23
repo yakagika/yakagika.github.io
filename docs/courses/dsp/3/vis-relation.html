@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+    <script>
+      (function () {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+        function stored() {
+          var t = null;
+          try { t = localStorage.getItem('theme'); } catch (e) {}
+          return (t === 'dark' || t === 'light') ? t : null;
+        }
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
+        if (mq) {
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
+        }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
+      })();
+    </script>
+    <title>yakagika - 散布図, 散布図行列, ヒートマップ / 軸の選び方と誇張の影響</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../../../style.css?v=1795415080">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+    <link rel="canonical" href="https://yakagika.github.io/fields/descriptive/vis-relation/index.html">
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../../../" class="site-brand" aria-label="Home">
+          <span class="site-mark" aria-hidden="true">▮</span>
+          <span class="site-word">yakagika</span>
+        </a>
+      </div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../../../">Home</a>
+      <a href="../../../posts.html">Blog</a>
+      <a href="../../../lectures.html">Lecture</a>
+      <a href="../../../research.html">Research</a>
+      <a href="../../../lectures/seminar.html">Seminar</a>
+      <a href="../../../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      
+      <div id="lecture-toc" data-mode="series">
+  <h2>Index</h2>
+  <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+  <ul class="toc-root">
+    
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/1.html">第 1 回 本資料の読み方</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/2.html">第 2 回 分析設計: データ分析の進め方</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item current-block">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/3.html">第 3 回 データの可視化</a>
+      </div>
+      
+      <ul class="toc-sublist">
+        <li class="toc-item toc-series-item no-children">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/3/vis-basic.html">図の選び方と基礎的なグラフ</a>
+    
+  </div>
+  
+</li>
+<li class="toc-item toc-series-item no-children">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/3/vis-distribution.html">度数分布表, ヒストグラム, 箱ひげ図</a>
+    
+  </div>
+  
+</li>
+<li class="toc-item toc-series-item current">
+  <div class="toc-row">
+    <span class="toc-toggle">▾</span>
+    <a href="../../../courses/dsp/3/vis-relation.html" aria-current="page">散布図, 散布図行列, ヒートマップ / 軸の選び方と誇張の影響</a>
+    
+  </div>
+  <ul class="toc-sublist"></ul>
+</li>
+
+      </ul>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/4.html">第 4 回 データの数値化</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/5.html">第 5 回 回帰分析</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/6.html">第 6 回 機械学習の枠組みと決定木</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/7.html">第 7 回 クラスタリングとパターン発見</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/8.html">第 8 回 ニューラルネットワークと Transformer</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/9.html">第 9 回 自然言語処理</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/10.html">第 10 回 画像認識</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/11.html">第 11 回 総合実習 1</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/12.html">第 12 回 総合実習 2</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/13.html">第 13 回 発表回</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../courses/dsp/selected.html">選択資料</a>
+      </div>
+      
+    </li>
+    
+  </ul>
+</div>
+
+    </nav>
+
+    <div id="content">
+    <article>
+  <header class="article-header">
+    <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+    <a href="../../../courses/dsp/3.html">第 3 回 データの可視化</a>
+    <h1 class="article-title">散布図, 散布図行列, ヒートマップ / 軸の選び方と誇張の影響</h1>
+  </header>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../courses/dsp/3/vis-distribution.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">度数分布表, ヒストグラム, 箱ひげ図</span>
+    </a>
+    <a class="next" href="../../../courses/dsp/4.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">第 4 回 データの数値化</span>
+    </a>
+</nav>
+
+  <div class="lesson-body">
+    <h2 id="scatter">散布図</h2>
+<p>観測項目を個別に可視化する方法は<a href="../../../courses/dsp/3/vis-basic.html">図の選び方と基礎的なグラフ</a>を参照してください. 複数の観測項目の関係性を可視化する代表的な手法に散布図があります.</p>
+<p><a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/scatter.csv">こちら</a>のデータは Google トレンドにおける同時期の <code>AI</code> というワードの検索量と, <code>Python</code> というワードの検索量を表しています.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>     <span class="ex">AI</span>  Python</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">0</span>    34      27</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="ex">1</span>    40      26</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="ex">2</span>    59      28</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="ex">3</span>    46      29</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="ex">4</span>    36      29</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="ex">..</span>   ..     ...</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="ex">255</span>  58      83</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="ex">256</span>  69      87</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="ex">257</span>  59      82</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="ex">258</span>  62      84</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="ex">259</span>  59      87</span></code></pre></div>
+<p>この 2 つの検索量がどのような関係にあるのかを散布図を用いて確認してみましょう.
+散布図は <code>plt.scatter(x軸の値のリスト,y軸の値のリスト)</code> の形で作成できます.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/scatter.csv'</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="co">#散布図のx軸を指定</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>x_column <span class="op">=</span> <span class="st">'AI'</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co">#散布図のy軸を指定</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>y_column <span class="op">=</span> <span class="st">'Python'</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>x_value <span class="op">=</span> df[x_column]</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>y_value <span class="op">=</span> df[y_column]</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>plt.scatter(x_value, y_value)</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>plt.ylabel(y_column)</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>plt.xlabel(x_column)</span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<figure>
+<img src="../../../images/slds/ch8/scatter.png" alt="散布図" />
+<figcaption aria-hidden="true">散布図</figcaption>
+</figure>
+<p>散布図を見ると, <code>AI</code> に関する検索量が増えるにつれて, <code>Python</code> の検索量が増えるという関係が見えてきます.</p>
+<p>この関係の度合いを数値化する<strong><a href="../../../courses/dsp/4/num-correlation.html#correlation">相関係数</a></strong>や, 関係の仕方を説明する<strong><a href="../../../courses/dsp/5/reg-intro.html">回帰分析</a></strong>は, それぞれの解説を参照してください.</p>
+<p>この節に対応する演習は, <a href="#exercise-dsp3-3">Exercise DSP3-3</a>です.</p>
+<h1 id="scatter-matrix">散布図行列(ペアプロット)</h1>
+<p><a href="#scatter">散布図</a>では 2 つの量的データの関係が読めます. 観測項目が 3 つ以上あると, どの項目とどの項目の間に関係があるのかを一枚の散布図では表せません. そこで, <strong>すべての量的データの組み合わせについて散布図を一度に並べた</strong>ものが<strong>散布図行列 (ペアプロット)</strong>です.</p>
+<p><a href="../../../courses/dsp/3/vis-basic.html#stacked-bar">積み上げ棒グラフ</a>で使った都道府県別のデータ (<a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/pref_stats.csv">こちら</a>) で, 平均身長 (<code>height</code>), 体重 (<code>weight</code>), 食費 (<code>food</code>), 睡眠時間 (<code>sleep</code>), 運動時間 (<code>sports</code>) の散布図行列を描きます (<code>pref</code> 列が都道府県名).</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>      <span class="ex">height</span>  weight   food  sleep  sports</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">pref</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="ex">北海道</span>   170.4    63.7  65739    477      15</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="ex">青森県</span>   169.8    62.8  64889    490      13</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="ex">岩手県</span>   170.6    63.7  70156    489      13</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="ex">..</span>       ...     ...    ...    ...     ...</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="ex">鹿児島県</span>  169.7    61.4  65377    479      18</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="ex">沖縄県</span>   168.7    60.6  56298    482      20</span></code></pre></div>
+<p>散布図行列は <code>seaborn</code> の <code>.pairplot()</code> メソッドを使うと, データフレームを渡すだけで作成できます. 数値の列がすべて自動的に対象になります.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># pref 列を見出し(index)として読み込みます.</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="co"># このファイルはBOM付きUTF-8なので encoding='utf-8-sig' を指定します.</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/pref_stats.csv'</span>, encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>, index_col<span class="op">=</span><span class="st">'pref'</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co"># データフレームを渡すだけで,全組み合わせの散布図が作成されます.</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>sns.pairplot(df)</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>plt.close()</span></code></pre></div>
+<figure>
+<img src="../../../images/slds/ch8/scatter-matrix.png" alt="散布図行列" />
+<figcaption aria-hidden="true">散布図行列</figcaption>
+</figure>
+<p><strong>対角線上</strong>には各項目単体の<strong>ヒストグラム</strong>が, <strong>対角線以外</strong>にはその行と列の項目を軸にした<strong>散布図</strong>が並びます. これによって, 例えば「食費 (<code>food</code>) が多い都道府県ほど平均身長 (<code>height</code>) が高い傾向がある」といった項目間の関係を, 一度に見渡すことができます.</p>
+<p>各組み合わせの関係の強さを数値で表す方法 (<strong>相関係数</strong>) は, <a href="../../../courses/dsp/4/num-correlation.html#correlation">相関係数</a>で詳しく扱います.</p>
+<h1 id="heatmap">ヒートマップ</h1>
+<p>ヒートマップとは, 表形式の数値を各セルの色によって表現する可視化手法です. 2 つの質的データの組み合わせごとに数えた表 (同時度数分布表) のような, 数値の並んだ表を一目で読めるようにします.</p>
+<p><a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/cross_table_data.csv">こちら</a>のデータは, ある講義の学生ごとに, 受講した時限 (<code>Period</code>, 1〜5 時限) と成績 (<code>Grade</code>, S, A, B, C, F) を記録したものです. 時限ごとに各成績の学生が占める割合の表を作り, ヒートマップにします. 表の作り方は<a href="../../../fields/descriptive/vis-more/index.html#同時度数分布表">同時度数分布表</a>で詳しく扱います.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/cross_table_data.csv'</span>)</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="co"># 成績 (行) と時限 (列) の組み合わせごとに数え,</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="co"># normalize='columns' で各列 (時限) の合計が 1 になる割合に直します.</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>cross <span class="op">=</span> pd.crosstab(df[<span class="st">'Grade'</span>], df[<span class="st">'Period'</span>], normalize<span class="op">=</span><span class="st">'columns'</span>)</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>cross <span class="op">=</span> cross.reindex([<span class="st">'S'</span>,<span class="st">'A'</span>,<span class="st">'B'</span>,<span class="st">'C'</span>,<span class="st">'F'</span>], axis<span class="op">=</span><span class="st">'index'</span>)</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(cross)</span></code></pre></div>
+<div class="sourceCode" id="cb6"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">Period</span>         1         2        3         4         5</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">Grade</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="ex">S</span>       0.195652  0.227273  0.37500  0.111111  0.047619</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="ex">A</span>       0.152174  0.318182  0.21875  0.138889  0.095238</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="ex">B</span>       0.195652  0.227273  0.21875  0.305556  0.166667</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="ex">C</span>       0.304348  0.136364  0.09375  0.416667  0.428571</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="ex">F</span>       0.152174  0.090909  0.09375  0.027778  0.261905</span></code></pre></div>
+<p>ヒートマップは <code>seaborn</code> の <code>.heatmap()</code> を利用することで簡単に作成できます.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>sns.heatmap( cross  <span class="co">#ヒートマップを作成したいテーブル</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>           , cmap<span class="op">=</span>plt.get_cmap(<span class="st">'Reds'</span>) <span class="co">#カラーマップ(省略可)</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>           , linewidths<span class="op">=</span><span class="fl">.5</span> <span class="co">#線の太さを指定することでセルを囲う線を表示</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>           , annot<span class="op">=</span><span class="va">True</span>  <span class="co">#セルに数値を表示</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>           )</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<figure>
+<img src="../../../images/slds/ch8/heatmap.png" alt="ヒートマップ" />
+<figcaption aria-hidden="true">ヒートマップ</figcaption>
+</figure>
+<p>このヒートマップでは, 数値が大きいほど, 色が濃くなっており 2, 3 時限において B 以上の成績を取る学生の割合が大きいこと, 4, 5 時限において C や F などの成績を取る人の割合が大きいことが視覚的に分かります.</p>
+<p>ヒートマップは複数の数値間の相関係数や距離を可視化する際にも良く用いられるので, 覚えておきましょう.</p>
+<p>この節に対応する演習は, <a href="#exercise-dsp3-3">Exercise DSP3-3</a>です.</p>
+<h1 id="exercises"><span id="演習"></span>演習</h1>
+<h2 id="exercise-dsp3-3">Exercise DSP3-3</h2>
+<p class="exercise-file">提出ファイル <code>dsp3-3.py</code></p>
+<p><strong>複数のグループを折れ線・散布図・ヒートマップで比べる</strong></p>
+<p>対応する節: <a href="../../../courses/dsp/3/vis-basic.html#line">折れ線グラフ</a>, <a href="#scatter">散布図</a>, <a href="#heatmap">ヒートマップ</a>, <a href="../../../fields/descriptive/vis-design/for-graph.html#for-graph">for 文を利用したグラフ</a>, <a href="../../../fields/descriptive/vis-design/subplots.html#グラフの分割">グラフの分割</a></p>
+<p>問 1 では, <a href="../../../fields/descriptive/vis-design/for-graph.html#for-graph">for 文を利用したグラフ</a>と<a href="../../../fields/descriptive/vis-design/subplots.html#グラフの分割">グラフの分割</a>を使います.</p>
+<ol type="1">
+<li><a href="https://trends.google.co.jp/trends/">Google トレンド</a>で 4 つのワードの同じ期間の推移を調べ, CSV をダウンロードしてください. この CSV から, <a href="../../../fields/descriptive/vis-design/for-graph.html#for-graph">for 文を利用したグラフ</a>と<a href="../../../fields/descriptive/vis-design/subplots.html#グラフの分割">グラフの分割</a>を使って, 次の 2 通りの折れ線グラフを作成してください.
+<ul>
+<li>1 つのグラフに表示: for 文で 4 本の折れ線を色を変えて重ね, 凡例も表示する.</li>
+<li>グラフの分割: グラフを 4 つに分割し, ワードごとの折れ線グラフを 1 つずつ描く.</li>
+</ul></li>
+<li><a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/beetle_datal.csv">こちら</a>のカブトムシの種類別の体長と体重のデータを使って<a href="#scatter">散布図</a>を作成してください. カブトムシの種類別に, 点の色と形を変えてください.</li>
+<li><a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/forest_beetle_data.csv">こちら</a>の森の地点別に採取できたカブトムシの種類を記録したデータを<a href="#heatmap">ヒートマップ</a>で可視化し, どの森でどのカブトムシが採れやすいかを分析してください.</li>
+</ol>
+<p>提出ファイル名: <code>dsp3-3.py</code></p>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答例
+</summary>
+<div class="sourceCode" id="cb8"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib_fontja</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="co"># 問1: Google トレンドの CSV は先頭の 2 行が説明なので, skiprows=2 で読み飛ばします.</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="co"># (ダウンロードした CSV の先頭を確認し, 説明の行数に合わせて調整します.)</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>trends <span class="op">=</span> pd.read_csv(<span class="st">'data/trends.csv'</span>, skiprows<span class="op">=</span><span class="dv">2</span>, index_col<span class="op">=</span><span class="dv">0</span>, parse_dates<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="co"># 1 つのグラフに表示: for 文で列ごとに折れ線を重ね, 凡例を付けます.</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> word <span class="kw">in</span> trends.columns:</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    plt.plot(trends.index, trends[word], label<span class="op">=</span>word)</span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'検索の相対的な人気度'</span>)</span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>plt.legend()</span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>plt.xticks(rotation<span class="op">=</span><span class="dv">15</span>)</span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a><span class="co"># グラフの分割: 2 行 2 列に分け, それぞれにワードを 1 つずつ描きます.</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(nrows<span class="op">=</span><span class="dv">2</span>, ncols<span class="op">=</span><span class="dv">2</span>, sharex<span class="op">=</span><span class="va">True</span>, sharey<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ax, word <span class="kw">in</span> <span class="bu">zip</span>(axes.flatten(), trends.columns):</span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>    ax.plot(trends.index, trends[word])</span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>    ax.set_title(word)</span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a><span class="co"># 問2: 種類ごとに色と点の形を変えて重ねます.</span></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>beetle <span class="op">=</span> pd.read_csv(<span class="st">'data/beetle_datal.csv'</span>)</span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>markers <span class="op">=</span> [<span class="st">'o'</span>, <span class="st">'s'</span>, <span class="st">'^'</span>, <span class="st">'D'</span>]</span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (name, group), marker <span class="kw">in</span> <span class="bu">zip</span>(beetle.groupby(<span class="st">'Type'</span>), markers):</span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>    plt.scatter(group[<span class="st">'Length'</span>], group[<span class="st">'Weight'</span>], marker<span class="op">=</span>marker, label<span class="op">=</span>name)</span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'体長 (mm)'</span>)</span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'体重 (g)'</span>)</span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>plt.legend()</span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(beetle[[<span class="st">'Length'</span>, <span class="st">'Weight'</span>]].corr().<span class="bu">round</span>(<span class="dv">2</span>))</span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(beetle.groupby(<span class="st">'Type'</span>)[[<span class="st">'Length'</span>, <span class="st">'Weight'</span>]].mean().<span class="bu">round</span>(<span class="dv">1</span>))</span>
+<span id="cb8-37"><a href="#cb8-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-38"><a href="#cb8-38" aria-hidden="true" tabindex="-1"></a><span class="co"># 問3: 森 (行) と種類 (列) の組み合わせごとに数え, ヒートマップにします.</span></span>
+<span id="cb8-39"><a href="#cb8-39" aria-hidden="true" tabindex="-1"></a>forest <span class="op">=</span> pd.read_csv(<span class="st">'data/forest_beetle_data.csv'</span>)</span>
+<span id="cb8-40"><a href="#cb8-40" aria-hidden="true" tabindex="-1"></a>cross <span class="op">=</span> pd.crosstab(forest[<span class="st">'Location'</span>], forest[<span class="st">'Type'</span>])</span>
+<span id="cb8-41"><a href="#cb8-41" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(cross.to_string())</span>
+<span id="cb8-42"><a href="#cb8-42" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-43"><a href="#cb8-43" aria-hidden="true" tabindex="-1"></a>sns.heatmap(cross, cmap<span class="op">=</span>plt.get_cmap(<span class="st">'Reds'</span>), linewidths<span class="op">=</span><span class="fl">.5</span>, annot<span class="op">=</span><span class="va">True</span>, fmt<span class="op">=</span><span class="st">'d'</span>)</span>
+<span id="cb8-44"><a href="#cb8-44" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<div class="sourceCode" id="cb9"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>        <span class="ex">Length</span>  Weight</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="ex">Length</span>    1.00    0.65</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="ex">Weight</span>    0.65    1.00</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>                      <span class="ex">Length</span>  Weight</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a><span class="ex">Type</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a><span class="ex">Allomyrina</span> dichotoma    50.2    21.0</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="ex">Chalcosoma</span> atlas        51.3    19.7</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="ex">Dynastes</span> hercules       47.9    19.8</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a><span class="ex">Megasoma</span> elephas        49.5    20.5</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a><span class="ex">Type</span>      Allomyrina dichotoma  Chalcosoma atlas  Dynastes hercules  Megasoma elephas</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a><span class="ex">Location</span></span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a><span class="ex">Forest</span> A                    47                11                 12                 6</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a><span class="ex">Forest</span> B                    14                 9                 43                 8</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a><span class="ex">Forest</span> C                    11                 7                  8                49</span>
+<span id="cb9-15"><a href="#cb9-15" aria-hidden="true" tabindex="-1"></a><span class="ex">Forest</span> D                    11                54                 11                 8</span></code></pre></div>
+<p>問 1: 同じデータを, 1 つのグラフに重ねる描き方と, ワードごとに分ける描き方で表しています. 重ねると 4 本の水準の違いを直接比べられ, 分けると 1 本ごとの上下の動きが読み取りやすくなります. 分割では <code>sharex=True, sharey=True</code> で軸をそろえているので, 分けても水準の違いは比べられます.</p>
+<p>問 2: 体長が大きいほど体重も大きい傾向があります (相関係数 0.65). 一方, 4 種類の点は重なり合っていて, 種類ごとの平均も体長 48〜51 mm, 体重 20〜21 g と近いため, 種類による違いはこの図からほとんど読み取れません.</p>
+<p>問 3: 森ごとに最も多く採れる種類が異なります. Forest A は Allomyrina dichotoma (47 個体), Forest B は Dynastes hercules (43 個体), Forest C は Megasoma elephas (49 個体), Forest D は Chalcosoma atlas (54 個体) が最も多く, 他の種類は 6〜14 個体にとどまります. 各森の採取数は 74〜84 個体と大きく違わないので, 個体数のまま比べられます.</p>
+</details>
+<h1 class="lesson-block-title" id="vis-reading">軸の選び方と誇張の影響</h1>
+<h2 id="axis-choice">縦軸と横軸の選び方</h2>
+<p>同じデータでも, 縦軸と横軸に何を取るかで読み取れることが変わります. そのため, 図を描く前に, 問いに対して軸の候補を書き出します. <a href="../../../courses/dsp/3/vis-basic.html#stacked-bar">積み上げ棒グラフ</a>で使った都道府県別のデータで, 問い「運動時間は地域によって違うか」に対する候補を書き出すと, 次のようになります.</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>軸</th>
+<th>候補</th>
+<th>読み取りやすいこと</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>横軸</td>
+<td>都道府県 (北から南の順)</td>
+<td>地理的な並びに沿った変化</td>
+</tr>
+<tr class="even">
+<td>横軸</td>
+<td>都道府県 (運動時間の長い順)</td>
+<td>順位, 上位と下位の都道府県</td>
+</tr>
+<tr class="odd">
+<td>横軸</td>
+<td>地方</td>
+<td>地方単位の違い</td>
+</tr>
+<tr class="even">
+<td>縦軸</td>
+<td>運動時間 (分)</td>
+<td>各都道府県の水準</td>
+</tr>
+<tr class="odd">
+<td>縦軸</td>
+<td>階級ごとの都道府県数</td>
+<td>地方の中の内訳 (合計は地方の都道府県数に左右される)</td>
+</tr>
+<tr class="even">
+<td>縦軸</td>
+<td>階級ごとの都道府県数の割合</td>
+<td>都道府県数の違う地方同士の内訳の比較</td>
+</tr>
+</tbody>
+</table>
+<p>候補を並べたら, 問いに答えられる組み合わせを選びます. 軸の比較と誇張の例のために, <a href="../../../courses/dsp/3/vis-basic.html#stacked-bar">積み上げ棒グラフ</a>と同じ手順でデータを読み込み直します. <a href="#exaggeration">誇張と強調が読み取りに与える影響</a>のコードも, この <code>df</code> と <code>order</code> を使います.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/pref_stats.csv'</span>, encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>region <span class="op">=</span> pd.read_csv(<span class="st">'data/pref_region.csv'</span>, encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>)</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="co"># pref 列が一致する行同士をつないで, 地方の列を加えます.</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> df.merge(region, on<span class="op">=</span><span class="st">'pref'</span>)</span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="co"># 運動時間を 3 つの階級に分けます. (0, 14], (14, 17], (17, 60] の区間になります.</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>df[<span class="st">'sports_class'</span>] <span class="op">=</span> pd.cut(df[<span class="st">'sports'</span>]</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>                           ,bins<span class="op">=</span>[<span class="dv">0</span>, <span class="dv">14</span>, <span class="dv">17</span>, <span class="dv">60</span>]</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>                           ,labels<span class="op">=</span>[<span class="st">'14分以下'</span>, <span class="st">'15〜17分'</span>, <span class="st">'18分以上'</span>])</span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="co"># 地方の並び順</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>order <span class="op">=</span> [<span class="st">'北海道'</span>, <span class="st">'東北'</span>, <span class="st">'関東'</span>, <span class="st">'中部'</span>, <span class="st">'近畿'</span>, <span class="st">'中国'</span>, <span class="st">'四国'</span>, <span class="st">'九州・沖縄'</span>]</span></code></pre></div>
+<h2 id="axis-count-ratio">実数か割合か</h2>
+<p><a href="../../../courses/dsp/3/vis-basic.html#stacked-bar">積み上げ棒グラフ</a>の図は縦軸が都道府県数 (実数) なので, 棒全体の高さが地方ごとに違います. 縦軸を地方の中での割合にすると, どの地方の棒も高さが 1 になり, 内訳の割合を直接比べられます.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="co"># normalize='index' で, 各行 (地方) の合計が 1 になるように割合に直します.</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>ratio <span class="op">=</span> pd.crosstab(df[<span class="st">'region'</span>], df[<span class="st">'sports_class'</span>], normalize<span class="op">=</span><span class="st">'index'</span>).reindex(order)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(ratio.<span class="bu">round</span>(<span class="dv">2</span>))</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>ratio.plot.bar(stacked<span class="op">=</span><span class="va">True</span>, rot<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'地方'</span>)</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'都道府県数の割合'</span>)</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>plt.legend(title<span class="op">=</span><span class="st">'運動時間'</span>, bbox_to_anchor<span class="op">=</span>(<span class="dv">1</span>, <span class="dv">1</span>))</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="ex">sports_class</span>  14分以下  15〜17分  18分以上</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="ex">region</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="ex">北海道</span>            0.00    1.00   0.00</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="ex">東北</span>             0.83    0.17   0.00</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="ex">関東</span>             0.00    1.00   0.00</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="ex">中部</span>             0.44    0.44   0.11</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="ex">近畿</span>             0.00    0.57   0.43</span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="ex">中国</span>             0.20    0.80   0.00</span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="ex">四国</span>             0.00    0.50   0.50</span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="ex">九州・沖縄</span>          0.12    0.12   0.75</span></code></pre></div>
+<p><code>bbox_to_anchor=(1, 1)</code> は, 凡例を図の右上の外に置く指定です.</p>
+<figure>
+<img src="../../../images/dsp/ch3/stacked-bar-ratio.png" alt="地方ごとの運動時間の階級別の割合" />
+<figcaption aria-hidden="true">地方ごとの運動時間の階級別の割合</figcaption>
+</figure>
+<p>18 分以上の県は, 実数では近畿が 3 県, 四国が 2 県で近畿のほうが多いのに対し, 割合では四国が 0.50, 近畿が 0.43 で四国のほうが大きくなります. 実数の図は「どの地方に 18 分以上の県が多いか」に, 割合の図は「どの地方で 18 分以上の県の比率が高いか」に答えます. ただし北海道は 1 道だけなので, 割合は 0 か 1 にしかなりません. 割合の図では, もとの件数が少ないグループの値が大きく振れる点に注意が要ります.</p>
+<p>都道府県の人口や面積のように比べる単位の大きさが違うときも, 同じ判断が要ります. 例えば都道府県ごとの病院の数は人口の多い都道府県ほど多くなりやすく, 医療の手厚さを比べるなら人口あたりの数に直します.</p>
+<h2 id="axis-log">対数軸</h2>
+<p>値が何桁にもわたって開いているとき (例えば 10 と 100000 が同じ図に並ぶとき) は, 縦軸を対数軸 (<code>plt.yscale('log')</code>) にする方法があります. 対数軸では目盛りの等間隔が等しい比 (何倍か) を表すので, 小さい値同士の違いも読めるようになります. 一方で, 棒の長さは値に比例しなくなるので, 対数軸には棒グラフより点や線で描く図が向きます.</p>
+<p>都道府県別のデータでは, 開きの最も大きい食費でも最大 (83506 円) が最小 (56298 円) の約 1.5 倍にとどまり, 対数軸にしても図はほとんど変わりません. 対数軸を使うかどうかは, 値の最大と最小の比を確かめてから決めます.</p>
+<h2 id="axis-order">横軸の並べ方</h2>
+<p>都道府県ごとの棒グラフでは, 横軸に都道府県をどの順に並べるかで読み取れることが変わります. データのファイルは北海道から沖縄県まで北から南の順に並んでいるので, そのまま描いた図と, 運動時間の長い順に並べ替えた図を比べます.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(nrows<span class="op">=</span><span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">7</span>))</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="co"># 上: ファイルの並び (北海道から沖縄県まで, 北から南の順) のまま描きます.</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].bar(df[<span class="st">'pref'</span>], df[<span class="st">'sports'</span>])</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_title(<span class="st">'北から南の順'</span>)</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a><span class="co"># 下: 運動時間の長い順に並べ替えてから描きます.</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>df_sorted <span class="op">=</span> df.sort_values(<span class="st">'sports'</span>, ascending<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].bar(df_sorted[<span class="st">'pref'</span>], df_sorted[<span class="st">'sports'</span>])</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_title(<span class="st">'運動時間の長い順'</span>)</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ax <span class="kw">in</span> axes:</span>
+<span id="cb13-13"><a href="#cb13-13" aria-hidden="true" tabindex="-1"></a>    ax.set_ylabel(<span class="st">'運動時間 (分)'</span>)</span>
+<span id="cb13-14"><a href="#cb13-14" aria-hidden="true" tabindex="-1"></a>    ax.tick_params(axis<span class="op">=</span><span class="st">'x'</span>, rotation<span class="op">=</span><span class="dv">90</span>)</span>
+<span id="cb13-15"><a href="#cb13-15" aria-hidden="true" tabindex="-1"></a>fig.tight_layout()</span>
+<span id="cb13-16"><a href="#cb13-16" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<p><code>plt.subplots(nrows=2)</code> は 1 枚の図を上下 2 つの領域に分け, <code>axes[0]</code>, <code>axes[1]</code> でそれぞれの領域に描きます (<a href="../../../fields/descriptive/vis-design/subplots.html#グラフの分割">グラフの分割</a>で詳しく扱います).</p>
+<figure>
+<img src="../../../images/dsp/ch3/axis-order.png" alt="運動時間の棒グラフ: 北から南の順と長い順" />
+<figcaption aria-hidden="true">運動時間の棒グラフ: 北から南の順と長い順</figcaption>
+</figure>
+<p>北から南の順の図では, 東北の各県 (12〜15 分) が低く, 九州の長崎県から沖縄県 (18〜20 分) が高く, 南へ行くほど運動時間が長くなる傾向が見えます. 長い順の図では, 最も長いのが熊本県と沖縄県 (20 分), 最も短いのが山形県 (12 分) という順位が読めますが, 地理的な傾向は読めません. 地域による違いを見るには北から南の順が, 順位を見るには長い順が向きます.</p>
+<p>この節に対応する演習は, <a href="#exercise-dsp3-2">Exercise DSP3-2</a>です.</p>
+<h1 id="exaggeration">誇張と強調が読み取りに与える影響</h1>
+<p>同じデータでも, 軸の範囲, 立体的な描き方, 色の付け方によって, 図から受ける印象は大きく変わります. 誇張された図は, グループの間の小さい差を大きく見せたり, 関係のないものを関係があるように見せたりします. 次の 3 つの例では, 誇張された図を同じデータの適切な図と並べます.</p>
+<h2 id="exaggeration-baseline">縦軸を 0 から始めない棒グラフ</h2>
+<p>地方ごとの平均身長 (都道府県の値の単純平均) を, 縦軸を 169 cm から始めた棒グラフと, 0 から始めた棒グラフで描きます.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 地方ごとに, 都道府県の平均身長を平均します.</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>height <span class="op">=</span> df.groupby(<span class="st">'region'</span>)[<span class="st">'height'</span>].mean().reindex(order)</span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(height.<span class="bu">round</span>(<span class="dv">1</span>))</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(ncols<span class="op">=</span><span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">4</span>))</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].bar(height.index, height)</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_ylim(<span class="dv">169</span>, <span class="fl">170.6</span>)   <span class="co"># 縦軸を 169 cm から始める</span></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_title(<span class="st">'縦軸を 169 cm から始めた棒グラフ'</span>)</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].bar(height.index, height)</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_ylim(<span class="dv">0</span>, <span class="dv">180</span>)       <span class="co"># 縦軸を 0 から始める</span></span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_title(<span class="st">'縦軸を 0 から始めた棒グラフ'</span>)</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ax <span class="kw">in</span> axes:</span>
+<span id="cb14-13"><a href="#cb14-13" aria-hidden="true" tabindex="-1"></a>    ax.set_ylabel(<span class="st">'平均身長 (cm)'</span>)</span>
+<span id="cb14-14"><a href="#cb14-14" aria-hidden="true" tabindex="-1"></a>    ax.tick_params(axis<span class="op">=</span><span class="st">'x'</span>, rotation<span class="op">=</span><span class="dv">45</span>)</span>
+<span id="cb14-15"><a href="#cb14-15" aria-hidden="true" tabindex="-1"></a>fig.tight_layout()</span>
+<span id="cb14-16"><a href="#cb14-16" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<div class="sourceCode" id="cb15"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="ex">region</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="ex">北海道</span>      170.4</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="ex">東北</span>       170.3</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="ex">関東</span>       170.3</span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="ex">中部</span>       170.2</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="ex">近畿</span>       170.2</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="ex">中国</span>       169.5</span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a><span class="ex">四国</span>       169.4</span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a><span class="ex">九州・沖縄</span>    169.4</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a><span class="ex">Name:</span> height, dtype: float64</span></code></pre></div>
+<figure>
+<img src="../../../images/dsp/ch3/exaggeration-baseline.png" alt="縦軸の始まりを変えた平均身長の棒グラフ" />
+<figcaption aria-hidden="true">縦軸の始まりを変えた平均身長の棒グラフ</figcaption>
+</figure>
+<p>左の図では, 北海道の棒が九州・沖縄の棒の約 3.9 倍の長さに見えます. 北海道と九州・沖縄の平均身長の実際の差は約 1.0 cm で, 北海道の値は九州・沖縄の値の約 1.006 倍にすぎません. 棒グラフは棒の長さで値を表すので, 縦軸を 0 以外から始めると, 長さの比が値の比と食い違います. 右の図のように縦軸を 0 から始めると, 地方ごとの平均身長はほぼ同じだと読み取れます.</p>
+<p>地方の間の 1 cm 程度の差そのものを見せたいときは, 縦軸を切り詰めるのではなく, 全国平均との差を棒にするなど, 0 を基準にした別の量を描きます. なお, 散布図, 折れ線グラフ, 箱ひげ図は長さでなく位置で値を表すので, 縦軸を 0 から始める必要はありません. 縦軸を 0 から始めない場合も, 軸の目盛りと単位を必ず表示します.</p>
+<h2 id="exaggeration-3dpie">3D の円グラフ</h2>
+<p>次の図は, 地方ごとの都道府県数を, 立体的に描いた円グラフ (左) と棒グラフ (右) で表したものです. <code>matplotlib</code> には立体的な円グラフを描く関数はなく, 比較のために作った図ですが, 表計算ソフトでは簡単に作れます.</p>
+<figure>
+<img src="../../../images/dsp/ch3/exaggeration-3dpie.png" alt="3D 風の円グラフと棒グラフ" />
+<figcaption aria-hidden="true">3D 風の円グラフと棒グラフ</figcaption>
+</figure>
+<p>関東 (7 都県) と近畿 (7 府県) は同じ数ですが, 左の図では手前にある関東のほうが大きく見えます. 手前の扇形にだけ側面が描き足され, その分だけ面積が大きく見えるからです. また, 円を傾けて楕円にすると, 左右に向いた扇形より手前や奥に向いた扇形のほうが細く見えます. 東北 (6 県) も, 手前にあるために奥の近畿 (7 府県) と同じかそれ以上の大きさに見えます. 立体にすると, 扇形の見かけの面積が値でなく位置で決まります. 構成を見せるなら平面の円グラフを, 値を正確に比べるなら右の棒グラフを使います.</p>
+<h2 id="exaggeration-color">過剰な色の強調</h2>
+<p>色は, 図の中で区別したいものを示すために使います. 次のコードは, 都道府県ごとの運動時間を, 棒ごとに違う色で描いた図と, 伝えたい県だけに色を付けた図を描きます.</p>
+<div class="sourceCode" id="cb16"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>fig, axes <span class="op">=</span> plt.subplots(nrows<span class="op">=</span><span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">12</span>, <span class="dv">7</span>))</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="co"># 上: 棒ごとに違う色を付けた図</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>rainbow <span class="op">=</span> plt.get_cmap(<span class="st">'hsv'</span>)(np.linspace(<span class="dv">0</span>, <span class="dv">1</span>, <span class="bu">len</span>(df)))</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].bar(df[<span class="st">'pref'</span>], df[<span class="st">'sports'</span>], color<span class="op">=</span>rainbow)</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">0</span>].set_title(<span class="st">'棒ごとに色を変えた図'</span>)</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a><span class="co"># 下: 伝えたい都道府県 (運動時間が最も長い県) だけに色を付けた図</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>top <span class="op">=</span> df[<span class="st">'sports'</span>] <span class="op">==</span> df[<span class="st">'sports'</span>].<span class="bu">max</span>()</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>colors <span class="op">=</span> np.where(top, <span class="st">'tab:red'</span>, <span class="st">'lightgray'</span>)</span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].bar(df[<span class="st">'pref'</span>], df[<span class="st">'sports'</span>], color<span class="op">=</span>colors)</span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>axes[<span class="dv">1</span>].set_title(<span class="st">'運動時間が最も長い県だけに色を付けた図'</span>)</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> ax <span class="kw">in</span> axes:</span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>    ax.set_ylabel(<span class="st">'運動時間 (分)'</span>)</span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>    ax.tick_params(axis<span class="op">=</span><span class="st">'x'</span>, rotation<span class="op">=</span><span class="dv">90</span>)</span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>fig.tight_layout()</span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<p><code>plt.get_cmap('hsv')</code> は色相を一周する色の列 (カラーマップ) で, <code>np.linspace(0, 1, len(df))</code> で都道府県の数だけ色を取り出しています. <code>np.where(条件, A, B)</code> は, 条件が真の要素を A に, 偽の要素を B にした配列を返します.</p>
+<figure>
+<img src="../../../images/dsp/ch3/exaggeration-color.png" alt="運動時間の棒グラフ: 棒ごとに色を変えた図と 2 県だけに色を付けた図" />
+<figcaption aria-hidden="true">運動時間の棒グラフ: 棒ごとに色を変えた図と 2 県だけに色を付けた図</figcaption>
+</figure>
+<p>上の図の色は何の情報も表していませんが, 読み手は色に意味を探します. 例えば北海道と沖縄県は同じ赤で描かれているので, 色だけを見ると同じグループに属すると読めます. 明るい黄色や緑の棒にも視線が向くので, どの棒に注目すべきかが図から読み取れません. 下の図は, 運動時間が最も長い熊本県と沖縄県 (20 分) だけを赤にし, 残りを灰色にしています. 伝えたい点が 1 つに定まり, 2 県と他の県との運動時間の差も棒の長さで読めます.</p>
+<p>図を人に見せる前に, 次の 4 点を確かめます.</p>
+<ul>
+<li>棒グラフの縦軸が 0 から始まっていること.</li>
+<li>必要のない立体表現や装飾を使っていないこと.</li>
+<li>色を, 区別したいものだけに付けていること.</li>
+<li>軸のラベルと単位が書かれていること.</li>
+</ul>
+<p>この節に対応する演習は, <a href="#exercise-dsp3-1">Exercise DSP3-1</a>です.</p>
+<h1 id="vis-reading-exercises"><span id="vis-reading-演習"></span>演習</h1>
+<h2 id="exercise-dsp3-1">Exercise DSP3-1</h2>
+<p class="exercise-file">提出ファイル <code>dsp3-1.py</code></p>
+<p><strong>誇張された棒グラフを直す</strong></p>
+<p>対応する節: <a href="#exaggeration">誇張と強調が読み取りに与える影響</a></p>
+<p>次のコードは, 地方ごとの平均体重 (都道府県の値の単純平均) を描きます.</p>
+<div class="sourceCode" id="cb17"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/pref_stats.csv'</span>, encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>)</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>region <span class="op">=</span> pd.read_csv(<span class="st">'data/pref_region.csv'</span>, encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>)</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> df.merge(region, on<span class="op">=</span><span class="st">'pref'</span>)</span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>order <span class="op">=</span> [<span class="st">'北海道'</span>, <span class="st">'東北'</span>, <span class="st">'関東'</span>, <span class="st">'中部'</span>, <span class="st">'近畿'</span>, <span class="st">'中国'</span>, <span class="st">'四国'</span>, <span class="st">'九州・沖縄'</span>]</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a>weight <span class="op">=</span> df.groupby(<span class="st">'region'</span>)[<span class="st">'weight'</span>].mean().reindex(order)</span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a>colors <span class="op">=</span> plt.get_cmap(<span class="st">'hsv'</span>)(np.linspace(<span class="dv">0</span>, <span class="dv">1</span>, <span class="bu">len</span>(weight)))</span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a>plt.bar(weight.index, weight, color<span class="op">=</span>colors)</span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a>plt.ylim(<span class="dv">61</span>, <span class="fl">64.5</span>)</span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'平均体重 (kg)'</span>)</span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">'東北地方の体重は中国地方の何倍も重い!'</span>)</span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<ol type="1">
+<li>描かれた図で, 東北の棒は中国の棒の何倍の長さに見えるかを求めてください. また, 実際の平均体重は何倍かを求めてください.</li>
+<li><a href="#exaggeration">誇張と強調が読み取りに与える影響</a>の 4 つの点検項目に沿って図を直してください. 色は, 平均体重が最も重い地方だけに付けてください.</li>
+</ol>
+<p>提出ファイル名: <code>dsp3-1.py</code></p>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答例
+</summary>
+<div class="sourceCode" id="cb18"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib_fontja</span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/pref_stats.csv'</span>, encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>)</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>region <span class="op">=</span> pd.read_csv(<span class="st">'data/pref_region.csv'</span>, encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>)</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> df.merge(region, on<span class="op">=</span><span class="st">'pref'</span>)</span>
+<span id="cb18-9"><a href="#cb18-9" aria-hidden="true" tabindex="-1"></a>order <span class="op">=</span> [<span class="st">'北海道'</span>, <span class="st">'東北'</span>, <span class="st">'関東'</span>, <span class="st">'中部'</span>, <span class="st">'近畿'</span>, <span class="st">'中国'</span>, <span class="st">'四国'</span>, <span class="st">'九州・沖縄'</span>]</span>
+<span id="cb18-10"><a href="#cb18-10" aria-hidden="true" tabindex="-1"></a>weight <span class="op">=</span> df.groupby(<span class="st">'region'</span>)[<span class="st">'weight'</span>].mean().reindex(order)</span>
+<span id="cb18-11"><a href="#cb18-11" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(weight.<span class="bu">round</span>(<span class="dv">2</span>))</span>
+<span id="cb18-12"><a href="#cb18-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-13"><a href="#cb18-13" aria-hidden="true" tabindex="-1"></a><span class="co"># 問1: 縦軸 61 kg から上の部分の長さの比と, 実際の値の比</span></span>
+<span id="cb18-14"><a href="#cb18-14" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'棒の長さの比:'</span>, <span class="bu">round</span>((weight[<span class="st">'東北'</span>] <span class="op">-</span> <span class="dv">61</span>) <span class="op">/</span> (weight[<span class="st">'中国'</span>] <span class="op">-</span> <span class="dv">61</span>), <span class="dv">1</span>))</span>
+<span id="cb18-15"><a href="#cb18-15" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">'実際の値の比:'</span>, <span class="bu">round</span>(weight[<span class="st">'東北'</span>] <span class="op">/</span> weight[<span class="st">'中国'</span>], <span class="dv">3</span>))</span>
+<span id="cb18-16"><a href="#cb18-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-17"><a href="#cb18-17" aria-hidden="true" tabindex="-1"></a><span class="co"># 問2: 縦軸を 0 から始め, 色は伝えたい地方 (最も重い東北) だけに付ける</span></span>
+<span id="cb18-18"><a href="#cb18-18" aria-hidden="true" tabindex="-1"></a>colors <span class="op">=</span> np.where(weight.index <span class="op">==</span> weight.idxmax(), <span class="st">'tab:red'</span>, <span class="st">'lightgray'</span>)</span>
+<span id="cb18-19"><a href="#cb18-19" aria-hidden="true" tabindex="-1"></a>plt.bar(weight.index, weight, color<span class="op">=</span>colors)</span>
+<span id="cb18-20"><a href="#cb18-20" aria-hidden="true" tabindex="-1"></a>plt.ylim(<span class="dv">0</span>, <span class="dv">70</span>)</span>
+<span id="cb18-21"><a href="#cb18-21" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'平均体重 (kg)'</span>)</span>
+<span id="cb18-22"><a href="#cb18-22" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">'地方別の平均体重 (都道府県の値の単純平均)'</span>)</span>
+<span id="cb18-23"><a href="#cb18-23" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<div class="sourceCode" id="cb19"><pre class="sourceCode sh"><code class="sourceCode bash"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="ex">region</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="ex">北海道</span>      63.70</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a><span class="ex">東北</span>       63.97</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a><span class="ex">関東</span>       62.24</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="ex">中部</span>       61.89</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a><span class="ex">近畿</span>       62.03</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a><span class="ex">中国</span>       61.22</span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a><span class="ex">四国</span>       62.68</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a><span class="ex">九州・沖縄</span>    61.81</span>
+<span id="cb19-10"><a href="#cb19-10" aria-hidden="true" tabindex="-1"></a><span class="ex">Name:</span> weight, dtype: float64</span>
+<span id="cb19-11"><a href="#cb19-11" aria-hidden="true" tabindex="-1"></a><span class="ex">棒の長さの比:</span> 13.5</span>
+<span id="cb19-12"><a href="#cb19-12" aria-hidden="true" tabindex="-1"></a><span class="ex">実際の値の比:</span> 1.045</span></code></pre></div>
+<p>問 1: 東北の棒は中国の棒の約 13.5 倍の長さに見えますが, 実際の平均体重は約 1.045 倍 (約 2.8 kg の差) です. 縦軸が 61 kg から始まっているため, 61 kg を超えた部分だけの長さを比べることになります.</p>
+<p>問 2: 縦軸を 0 から始め, 棒ごとの色をやめて東北だけを赤にし, 誇張したタイトルを内容を表すタイトルに替えています. 軸のラベルと単位は元の図にもあるので残します.</p>
+</details>
+<h2 id="exercise-dsp3-2">Exercise DSP3-2</h2>
+<p class="exercise-file">提出ファイル <code>dsp3-2.py</code></p>
+<p><strong>見せたいことに合う図を選んで描く</strong></p>
+<p>対応する節: <a href="../../../courses/dsp/3/vis-basic.html#choose-graph">グラフの選び方</a>, <a href="#axis-choice">縦軸と横軸の選び方</a></p>
+<p>都道府県別のデータと地方の表を使い, 次の 2 つの問いに答える図を描いてください. それぞれ, 図で見せたいこと (比較, 構成, 分布, 変化, 関係のどれか), 選んだ図の種類, 縦軸と横軸に取ったものを書き, 図から読み取れることを 1〜2 文で述べてください.</p>
+<ol type="1">
+<li>睡眠時間の散らばり方は, 地方によってどう違うか.</li>
+<li>食費の多い都道府県ほど, 平均身長は高いか.</li>
+</ol>
+<p>提出ファイル名: <code>dsp3-2.py</code></p>
+<details class="protected" data-pass="yakagika">
+<summary>
+回答例
+</summary>
+<div class="sourceCode" id="cb20"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib_fontja</span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">'data/pref_stats.csv'</span>, encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>)</span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a>region <span class="op">=</span> pd.read_csv(<span class="st">'data/pref_region.csv'</span>, encoding<span class="op">=</span><span class="st">'utf-8-sig'</span>)</span>
+<span id="cb20-7"><a href="#cb20-7" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> df.merge(region, on<span class="op">=</span><span class="st">'pref'</span>)</span>
+<span id="cb20-8"><a href="#cb20-8" aria-hidden="true" tabindex="-1"></a>order <span class="op">=</span> [<span class="st">'北海道'</span>, <span class="st">'東北'</span>, <span class="st">'関東'</span>, <span class="st">'中部'</span>, <span class="st">'近畿'</span>, <span class="st">'中国'</span>, <span class="st">'四国'</span>, <span class="st">'九州・沖縄'</span>]</span>
+<span id="cb20-9"><a href="#cb20-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-10"><a href="#cb20-10" aria-hidden="true" tabindex="-1"></a><span class="co"># 問1: 分布の比較なので箱ひげ図. 横軸に地方, 縦軸に睡眠時間</span></span>
+<span id="cb20-11"><a href="#cb20-11" aria-hidden="true" tabindex="-1"></a>data <span class="op">=</span> [df[df[<span class="st">'region'</span>] <span class="op">==</span> r][<span class="st">'sleep'</span>] <span class="cf">for</span> r <span class="kw">in</span> order]</span>
+<span id="cb20-12"><a href="#cb20-12" aria-hidden="true" tabindex="-1"></a>plt.boxplot(data, tick_labels<span class="op">=</span>order)</span>
+<span id="cb20-13"><a href="#cb20-13" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'地方'</span>)</span>
+<span id="cb20-14"><a href="#cb20-14" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'睡眠時間 (分)'</span>)</span>
+<span id="cb20-15"><a href="#cb20-15" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb20-16"><a href="#cb20-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb20-17"><a href="#cb20-17" aria-hidden="true" tabindex="-1"></a><span class="co"># 問2: 2 つの量的データの関係なので散布図. 横軸に食費, 縦軸に身長</span></span>
+<span id="cb20-18"><a href="#cb20-18" aria-hidden="true" tabindex="-1"></a>plt.scatter(df[<span class="st">'food'</span>], df[<span class="st">'height'</span>])</span>
+<span id="cb20-19"><a href="#cb20-19" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'食費 (円)'</span>)</span>
+<span id="cb20-20"><a href="#cb20-20" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'平均身長 (cm)'</span>)</span>
+<span id="cb20-21"><a href="#cb20-21" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code></pre></div>
+<p>問 1: 見せたいことは分布なので, 横軸に地方, 縦軸に睡眠時間 (分) を取った箱ひげ図を描きます. 東北は中央値が約 490 分と最も長く, 関東は中央値が 463 分と最も短くなります. 北海道は 1 道だけなので箱にならず, 1 本の線になります.</p>
+<p>問 2: 見せたいことは 2 つの量的データの関係なので, 横軸に食費 (円), 縦軸に平均身長 (cm) を取った散布図を描きます. 食費の多い都道府県ほど平均身長が高い傾向が見えます. ただし, この図から食費が身長を高くするという因果関係までは読み取れません.</p>
+<p><code>plt.boxplot()</code> の <code>tick_labels=</code> は <code>matplotlib</code> 3.9 以降の引数名で, それより前の版では <code>labels=</code> を使います.</p>
+</details>
+  </div>
+  
+<section class="course-advanced">
+  <h2 id="course-advanced">発展 (参考資料で読む)</h2>
+  <ul>
+    
+    <li>
+      <a href="../../../fields/descriptive/vis-design/index.html">グラフのデザイン, 繰り返し描画と分割</a> (コード)
+      
+
+    </li>
+    
+    <li>
+      <a href="../../../fields/descriptive/vis-more/index.html">同時度数分布表, 密度, 多変数の図</a> (コード)
+      
+
+    </li>
+    
+  </ul>
+</section>
+
+
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../courses/dsp/3/vis-distribution.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">度数分布表, ヒストグラム, 箱ひげ図</span>
+    </a>
+    <a class="next" href="../../../courses/dsp/4.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">第 4 回 データの数値化</span>
+    </a>
+</nav>
+
+</article>
+
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        <nav class="footer-nav" aria-label="フッターナビゲーション">
+            <a href="../../../">Home</a>
+            <a href="../../../posts.html">Blog</a>
+            <a href="../../../lectures.html">Lecture</a>
+            <a href="../../../research.html">Research</a>
+            <a href="../../../rss.xml">RSS</a>
+            <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+        </nav>
+        <p class="footer-copy">&copy; yakagika &middot; Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>.</p>
+    </div>
+</div>
+
+
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="ページ先頭へ戻る" title="先頭へ戻る">↑</button>
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+            link.classList.add('external-link');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h1[id], h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level = Number(heading.tagName.slice(1)) - 1;
+          if (!heading.id) return;
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          // Pandoc は `::: note` + 見出し の組み合わせを <section id="..." class="note">
+          // 内の <hN> として出力するため, 見出し自身に id が無い場合は
+          // 親 section の id を辿る.
+          var anchorId = heading.id;
+          if (!anchorId) {
+            var parentSection = heading.closest('section[id]');
+            if (parentSection) anchorId = parentSection.id;
+          }
+          anchor.href = '#' + anchorId;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi && !li.contains(currentLi)) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+
+      // ----------------------------------------
+      // スクロールスパイ: 表示中の見出しを TOC でハイライト
+      // ----------------------------------------
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0 || typeof IntersectionObserver === 'undefined') return;
+
+      var idToTocItem = new Map();
+      headings.forEach(function(h) {
+        if (!h.id) return;
+        var link = tocContainer.querySelector('a[href="#' + CSS.escape(h.id) + '"]');
+        if (link) {
+          var li = link.closest('.toc-item') || link.closest('li');
+          if (li) idToTocItem.set(h.id, li);
+        }
+      });
+
+      var visible = new Set();
+      var lastActive = null;
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+
+        // ドキュメント順で最初に可視な見出しをアクティブに
+        var firstVisible = null;
+        for (var i = 0; i < headings.length; i++) {
+          if (visible.has(headings[i].id)) {
+            firstVisible = headings[i].id;
+            break;
+          }
+        }
+        if (!firstVisible) return;
+
+        var tocItem = idToTocItem.get(firstVisible);
+        if (!tocItem || tocItem === lastActive) return;
+
+        if (lastActive) lastActive.classList.remove('toc-active');
+        tocItem.classList.add('toc-active');
+        lastActive = tocItem;
+
+        // TOC を必要なときだけスクロール
+        tocItem.scrollIntoView({
+          block: 'nearest',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
+      }, {
+        // ヘッダー (60px) を除いた上部 〜 画面下から60% を判定領域とする
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0
+      });
+
+      headings.forEach(function(h) { if (h.id) observer.observe(h); });
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
+      const pre = codeBlock.parentNode;
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
+      copyButton.textContent = 'Copy';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    // パスワード保護付き details (回答例用)
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll('details.protected').forEach(function (det) {
+        var pass = det.getAttribute('data-pass') || '';
+        var summary = det.querySelector('summary');
+        if (!summary) return;
+
+        var gate = document.createElement('div');
+        gate.className = 'pass-gate';
+        gate.innerHTML =
+          '<label>合言葉: <input type="password" autocomplete="off" spellcheck="false"></label>' +
+          '<button type="button">解除</button>' +
+          '<span class="pass-error" hidden>合言葉が違います</span>';
+        summary.insertAdjacentElement('afterend', gate);
+
+        var input = gate.querySelector('input');
+        var button = gate.querySelector('button');
+        var errorMsg = gate.querySelector('.pass-error');
+
+        function tryUnlock() {
+          if (input.value === pass) {
+            det.classList.add('unlocked');
+            errorMsg.hidden = true;
+          } else {
+            errorMsg.hidden = false;
+            input.select();
+          }
+        }
+
+        button.addEventListener('click', tryUnlock);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
+        });
+
+        det.addEventListener('toggle', function () {
+          if (det.open && !det.classList.contains('unlocked')) {
+            input.focus();
+          }
+        });
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            try {
+              katex.render( texText.data
+                          , mathElements[i]
+                          , { displayMode: mathElements[i].classList.contains("display")
+                            , throwOnError: true
+                           }
+                          );
+            } catch (e) {
+              // 1 つの数式のエラーで残り全ての数式が生 TeX のまま残らないようにする
+              console.error('KaTeX render error:', e.message, texText.data);
+            }
+          }
+      }
+    });
+  </script>
+
+  <!-- 見出しアンカーリンク + Back to top -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 記事見出しに hover で現れる # パーマリンクを付与
+      document.querySelectorAll('article h2[id], article h3[id]').forEach(function (h) {
+        var a = document.createElement('a');
+        a.className = 'heading-anchor';
+        a.href = '#' + h.id;
+        a.setAttribute('aria-label', 'このセクションへのリンク');
+        a.textContent = '#';
+        h.appendChild(a);
+      });
+
+      // Back to top: スクロール量に応じて表示
+      var btt = document.getElementById('back-to-top');
+      if (btt) {
+        var onScroll = function () {
+          if (window.pageYOffset > 600) btt.classList.add('visible');
+          else btt.classList.remove('visible');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        btt.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
+    });
+  </script>
+
+  </body>
+</html>

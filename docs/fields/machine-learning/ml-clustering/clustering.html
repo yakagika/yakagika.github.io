@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+    <script>
+      (function () {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+        function stored() {
+          var t = null;
+          try { t = localStorage.getItem('theme'); } catch (e) {}
+          return (t === 'dark' || t === 'light') ? t : null;
+        }
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
+        if (mq) {
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
+        }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
+      })();
+    </script>
+    <title>yakagika - クラスタリング</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../../../style.css?v=1795415080">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../../../" class="site-brand" aria-label="Home">
+          <span class="site-mark" aria-hidden="true">▮</span>
+          <span class="site-word">yakagika</span>
+        </a>
+      </div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../../../">Home</a>
+      <a href="../../../posts.html">Blog</a>
+      <a href="../../../lectures.html">Lecture</a>
+      <a href="../../../research.html">Research</a>
+      <a href="../../../lectures/seminar.html">Seminar</a>
+      <a href="../../../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      
+      <div id="lecture-toc" data-mode="series">
+  <h2>Index</h2>
+  <a href="../../../fields/machine-learning/index.html">機械学習</a>
+  <ul class="toc-root">
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/machine-learning/ml-overview/index.html">人工知能の歴史と機械学習の枠組み</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/machine-learning/ml-classification/index.html">決定木と分類の評価</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/machine-learning/ml-classifiers/index.html">ランダムフォレスト, SVM, k 近傍法</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item current-block">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/machine-learning/ml-clustering/index.html">クラスタリングと主成分分析</a>
+        
+      </div>
+      
+      <ul class="toc-sublist">
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/machine-learning/ml-clustering/index.html">クラスタリングとパターン発見</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/machine-learning/ml-clustering/store-purchase-data.html">例題のデータ: 大学の売店の購買記録</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item current">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/machine-learning/ml-clustering/clustering.html" aria-current="page">クラスタリング</a>
+          </div>
+          <ul class="toc-sublist"></ul>
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/machine-learning/ml-clustering/exercises.html">演習</a>
+          </div>
+          
+        </li>
+        
+      </ul>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/machine-learning/ml-clustering-more/index.html">t-SNE, 密度と確率モデルによるクラスタリング</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/machine-learning/ml-association/index.html">アソシエーション分析</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/machine-learning/ml-network/index.html">ニューラルネットワークの構成と学習</a>
+        
+      </div>
+      
+    </li>
+    
+  </ul>
+</div>
+
+    </nav>
+
+    <div id="content">
+    
+<nav class="block-course-nav" aria-label="講義の並び">
+  <p>講義の並び</p>
+  <ul>
+    
+    <li class="course-occurrence">
+      <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+      <a href="../../../courses/dsp/7.html">第 7 回</a> (必修)
+      
+      <a href="../../../fields/machine-learning/ml-classifiers/index.html" rel="prev">← ランダムフォレスト, SVM, k 近傍法</a>
+      
+      
+      
+      <a href="../../../fields/machine-learning/ml-clustering-more/index.html" rel="next">t-SNE, 密度と確率モデルによるクラスタリング →</a>
+      
+      
+    </li>
+    
+  </ul>
+</nav>
+
+
+
+<article>
+  
+  <h1 id="clustering"><span id="クラスタリング"></span>クラスタリング</h1>
+<nav class="block-field-nav block-field-nav-narrow" aria-label="分野の目次">
+  <a href="../../../fields/machine-learning/index.html">機械学習</a>
+  <ol>
+    
+    <li>
+      
+      <a href="../../../fields/machine-learning/ml-overview/index.html">人工知能の歴史と機械学習の枠組み</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/machine-learning/ml-classification/index.html">決定木と分類の評価</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/machine-learning/ml-classifiers/index.html">ランダムフォレスト, SVM, k 近傍法</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <strong><a href="../../../fields/machine-learning/ml-clustering/index.html" aria-current="true">クラスタリングと主成分分析</a></strong>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/machine-learning/ml-clustering-more/index.html">t-SNE, 密度と確率モデルによるクラスタリング</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/machine-learning/ml-association/index.html">アソシエーション分析</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/machine-learning/ml-network/index.html">ニューラルネットワークの構成と学習</a>
+      
+      
+    </li>
+    
+  </ol>
+</nav>
+<nav class="chapter-nav-card">
+    <a class="prev" href="../../../fields/machine-learning/ml-clustering/store-purchase-data.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">例題のデータ: 大学の売店の購買記録</span>
+    </a>
+    <a class="next" href="../../../fields/machine-learning/ml-clustering/exercises.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">演習</span>
+    </a>
+</nav>
+
+<p>観測対象を, 互いに似たもの同士が同じグループに入るように分ける手法を<strong>クラスタリング</strong>といい, 分けられた各グループを<strong>クラスタ</strong>といいます.</p>
+<p>クラスタリングと<a href="../../../fields/machine-learning/ml-classification/classification-evaluation.html#分類の評価">分類</a>は, どちらもデータをグループに分けます. 違いは正解の有無です. 分類では正解ラベルの付いたデータから分け方の規則を学び, 正解率で評価できます. クラスタリングには正解ラベルがありません. そのため, 何をもって「似ている」とするか, いくつのクラスタに分けるかを分析者が決め, 得られたクラスタが何を表すかも分析者が解釈します. 売店の会員にも「昼食を買う会員」のような正解ラベルは付いていません.</p>
+<p>「似ている」の尺度には, <a href="../../../fields/descriptive/num-distance/index.html#ユークリッド距離">ユークリッド距離</a>を使います. 来店回数 (回) と購入額 (円) は単位も散らばりも違うので, <a href="../../../fields/descriptive/num-distance/index.html#標準化">標準化</a>してから距離を計算します.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 項目ごとに標準化する (平均0, 標準偏差1)</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>z <span class="op">=</span> (member <span class="op">-</span> member.mean()) <span class="op">/</span> member.std(ddof<span class="op">=</span><span class="dv">0</span>)</span></code></pre></div>
+<p>クラスタリングの手法は, 大きく 2 種類に分かれます.</p>
+<ul>
+<li><strong>非階層クラスタリング</strong>: クラスタの数を先に決め, データをその数のクラスタに分割します. 代表例は k-means 法です.</li>
+<li><strong>階層クラスタリング</strong>: 近いデータ同士を順に併合していき, 併合の過程を樹形図として得ます. クラスタの数は樹形図を見てから決めます.</li>
+</ul>
+<h2 id="非階層クラスタリング-k-means-法">非階層クラスタリング: k-means 法</h2>
+<p><strong>k-means 法</strong>は, クラスタの数 <span class="math inline">K</span> を決めたうえで, 各データを最も近い<strong>重心</strong> (クラスタに属するデータの平均の位置) のクラスタに割り当てる手法です. 重心は割り当てが決まらないと計算できず, 割り当ては重心が決まらないと決められません. そこで, 次の手順で両者を交互に更新します.</p>
+<ol type="1">
+<li><span class="math inline">K</span> 個の重心の初期値を置きます.</li>
+<li>各データを, 最も近い重心のクラスタに割り当てます.</li>
+<li>各クラスタに属するデータの平均を計算し, 新しい重心とします.</li>
+<li>割り当てが変わらなくなるまで, 2 と 3 を繰り返します.</li>
+</ol>
+<p>次の図は, 標準化した会員のデータに <span class="math inline">K = 4</span> で k-means 法を適用したときの途中経過です. 赤い × が重心, 点の色が割り当てられたクラスタを表します. 初期値では重心が塊から外れていますが, 更新のたびに重心が塊の中心へ移ります. 4 回目の更新では, 4 つの重心がそれぞれ 1 つの塊の中心に来ています.</p>
+<figure>
+<img src="../../../images/dsp/ch7/kmeans-steps.png" alt="k-means 法の更新の過程" />
+<figcaption aria-hidden="true">k-means 法の更新の過程</figcaption>
+</figure>
+<p>k-means 法は, 各データと所属クラスタの重心との距離の 2 乗の総和 (<strong>クラスタ内誤差平方和</strong>) を小さくする手法です. クラスタ <span class="math inline">c</span> に属するデータの集合を <span class="math inline">C_c</span>, その重心を <span class="math inline">\boldsymbol{\mu}_c</span> とすると, クラスタ内誤差平方和は次の式で表されます.</p>
+<p><span class="math display"> W = \sum_{c=1}^{K} \sum_{i \in C_c} d(\boldsymbol{x}_i, \boldsymbol{\mu}_c)^2 </span></p>
+<p>手順 2 (最も近い重心への割り当て) も手順 3 (平均への重心の移動) も <span class="math inline">W</span> を増やさないので, 更新を繰り返すと <span class="math inline">W</span> はいずれ減らなくなり, 割り当てが止まります.</p>
+<h3 id="scikit-learn-による-k-means-法">scikit-learn による k-means 法</h3>
+<p><code>scikit-learn</code> の <code>KMeans</code> で, 標準化した会員のデータを 4 つのクラスタに分けます.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.cluster <span class="im">import</span> KMeans</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="co"># クラスタ数4, 初期値を変えて10回実行し最良の結果を採用する</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>km <span class="op">=</span> KMeans(n_clusters<span class="op">=</span><span class="dv">4</span>, random_state<span class="op">=</span><span class="dv">0</span>, n_init<span class="op">=</span><span class="dv">10</span>)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>member[<span class="st">'cluster'</span>] <span class="op">=</span> km.fit_predict(z)  <span class="co"># 各会員のクラスタ番号</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(member[<span class="st">'cluster'</span>].value_counts().sort_index())</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="co">cluster</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a><span class="co">0    52</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a><span class="co">1    31</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a><span class="co">2    42</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a><span class="co">3    75</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a><span class="co"># クラスタごとに, もとの単位での平均を求める</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(member.groupby(<span class="st">'cluster'</span>)[[<span class="st">'visits'</span>, <span class="st">'amount_per_visit'</span>]].mean().<span class="bu">round</span>(<span class="dv">1</span>))</span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a><span class="co">         visits  amount_per_visit</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a><span class="co">cluster</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a><span class="co">0          54.8             296.9</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a><span class="co">1           6.9            1476.9</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a><span class="co">2           5.2             427.6</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a><span class="co">3          34.6             461.2</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>plt.scatter(member[<span class="st">'visits'</span>], member[<span class="st">'amount_per_visit'</span>], c<span class="op">=</span>member[<span class="st">'cluster'</span>], cmap<span class="op">=</span><span class="st">'viridis'</span>, s<span class="op">=</span><span class="dv">15</span>)</span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'来店回数'</span>)</span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'1 回あたりの購入額 (円)'</span>)</span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>plt.close()</span></code></pre></div>
+<figure>
+<img src="../../../images/dsp/ch7/kmeans-result.png" alt="k-means 法の結果" />
+<figcaption aria-hidden="true">k-means 法の結果</figcaption>
+</figure>
+<p>k-means 法は, 散布図で見えた 4 つの塊をそれぞれ 1 つのクラスタとして取り出しました. 塊から離れた数人の会員も, いずれかのクラスタに割り当てられています. k-means 法では, どのデータも必ずどれか 1 つのクラスタに属します.</p>
+<p>クラスタ番号はクラスタを区別する記号にすぎず, 番号の大小に意味はありません. 実行する環境によって番号が入れ替わることもあるので, 番号ではなくクラスタの平均を見て, どのクラスタかを判断してください.</p>
+<p>クラスタが何を表すかは, 集計に使わなかった情報も合わせて見ると分かりやすくなります. 会員ごとに, 購入額のうち各カテゴリが占める割合を求め, クラスタごとに平均します.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 会員×カテゴリの購入額の表を作り, 行の合計で割って割合にする</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>share <span class="op">=</span> log.pivot_table(index<span class="op">=</span><span class="st">'member_id'</span>, columns<span class="op">=</span><span class="st">'category'</span>, values<span class="op">=</span><span class="st">'price'</span>,</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>                        aggfunc<span class="op">=</span><span class="st">'sum'</span>, fill_value<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>share <span class="op">=</span> share.div(share.<span class="bu">sum</span>(axis<span class="op">=</span><span class="dv">1</span>), axis<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(share.join(member[<span class="st">'cluster'</span>]).groupby(<span class="st">'cluster'</span>).mean().<span class="bu">round</span>(<span class="dv">2</span>))</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="co">category    文具    菓子    食事    飲料</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="co">cluster</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="co">0        0.00  0.40  0.07  0.53</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="co">1        0.15  0.12  0.55  0.19</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="co">2        0.85  0.00  0.02  0.13</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="co">3        0.00  0.04  0.73  0.23</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p><code>pivot_table</code> は, 行 (<code>index</code>) と列 (<code>columns</code>) に指定した項目の組み合わせごとに値を集計し, 表の形に並べるメソッドです. 2 つの表を合わせると, 4 つのクラスタに次のような名前を付けられます.</p>
+<table>
+<thead>
+<tr class="header">
+<th>クラスタ</th>
+<th>来店回数</th>
+<th>1 回あたりの購入額</th>
+<th>多いカテゴリ</th>
+<th>名前</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0</td>
+<td>約 55 回</td>
+<td>約 300 円</td>
+<td>飲料, 菓子</td>
+<td>カフェ利用の会員</td>
+</tr>
+<tr class="even">
+<td>1</td>
+<td>約 7 回</td>
+<td>約 1480 円</td>
+<td>全カテゴリ</td>
+<td>まとめ買いの会員</td>
+</tr>
+<tr class="odd">
+<td>2</td>
+<td>約 5 回</td>
+<td>約 430 円</td>
+<td>文具</td>
+<td>文具を買う会員</td>
+</tr>
+<tr class="even">
+<td>3</td>
+<td>約 35 回</td>
+<td>約 460 円</td>
+<td>食事</td>
+<td>昼食を買う会員</td>
+</tr>
+</tbody>
+</table>
+<p>名前はデータが付けたものではなく, 分析者が平均を読んで付けたものです. このように, クラスタごとの特徴を言葉にするところまでが, クラスタリングによる分析です.</p>
+<h3 id="初期値への依存">初期値への依存</h3>
+<p>k-means 法の結果は重心の初期値に左右されます. 次の図は, <code>n_init=1</code> (初期値を 1 通りだけ試す) で, 別の乱数から初期値を選んだときの結果です. 昼食の会員とカフェ利用の会員が 1 つのクラスタにまとめられ, 塊から離れた 2 人の会員だけの小さなクラスタができています.</p>
+<figure>
+<img src="../../../images/dsp/ch7/kmeans-local.png" alt="初期値によっては別の結果で止まる" />
+<figcaption aria-hidden="true">初期値によっては別の結果で止まる</figcaption>
+</figure>
+<p>この状態でも, どのデータも最も近い重心に割り当てられているので, 手順 2 と 3 を繰り返しても変化しません. クラスタ内誤差平方和は 56.7 で, 先ほどの結果 (24.7) の 2 倍以上あります. k-means 法の更新は <span class="math inline">W</span> を減らす方向にしか進まないので, 最初に悪い位置から始めると, より良い分け方があっても抜け出せません.</p>
+<p><code>KMeans</code> の <code>n_init=10</code> は, 初期値を変えて 10 回実行し, クラスタ内誤差平方和が最も小さい結果を採用する指定です. <code>random_state=0</code> は初期値の乱数を固定し, 何度実行しても同じ結果が得られるようにする指定です.</p>
+<p>この節に対応する演習は, <a href="../../../fields/machine-learning/ml-clustering/exercises.html#exercise-dsp7-1">Exercise DSP7-1</a>と<a href="../../../fields/machine-learning/ml-association/exercises.html#exercise-dsp7-3">Exercise DSP7-3</a>です.</p>
+<h2 id="pca">次元削減: 主成分分析</h2>
+<p>ここまでのクラスタリングには, 来店回数と 1 回あたりの購入額の 2 項目だけを使いました. 購買記録には, 会員が何を買ったか (15 品目) も記録されています. 品目ごとの購入額の割合を加えると, 会員 1 人を 17 項目で表せます.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 会員×品目の購入額の表を作り, 行の合計で割って割合にする</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>item_share <span class="op">=</span> log.pivot_table(index<span class="op">=</span><span class="st">'member_id'</span>, columns<span class="op">=</span><span class="st">'item'</span>, values<span class="op">=</span><span class="st">'price'</span>,</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>                             aggfunc<span class="op">=</span><span class="st">'sum'</span>, fill_value<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>item_share <span class="op">=</span> item_share.div(item_share.<span class="bu">sum</span>(axis<span class="op">=</span><span class="dv">1</span>), axis<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="co"># 来店回数と1回あたりの購入額に, 15品目の割合を横に並べる</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>feat <span class="op">=</span> member[[<span class="st">'visits'</span>, <span class="st">'amount_per_visit'</span>]].join(item_share)</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(feat.shape)</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="co">(200, 17)</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>z17 <span class="op">=</span> (feat <span class="op">-</span> feat.mean()) <span class="op">/</span> feat.std(ddof<span class="op">=</span><span class="dv">0</span>)  <span class="co"># 項目ごとに標準化する</span></span></code></pre></div>
+<p>17 項目の散布図は描けません. 2 項目ずつの散布図なら描けますが, 組み合わせは 136 通りあり, どの組み合わせの図にも全体の構造が現れるとは限りません. そこで, 多数の項目が持つ情報をできるだけ失わずに, 少数の項目にまとめます. データを表す項目の数を<strong>次元</strong>といい, 次元を減らす手法を<strong>次元削減</strong>といいます. 次元削減の代表的な手法が<strong>主成分分析 (PCA: Principal Component Analysis)</strong> です.</p>
+<h3 id="主成分分析の考え方">主成分分析の考え方</h3>
+<p>2 項目のデータで考えます. 次の図の (a) は, 標準化した 2 つの変数 <span class="math inline">x, y</span> の散布図です. 点は右上がりの直線の周りに集まっています. 点のばらつき (分散) が最も大きい方向を<strong>第 1 主成分</strong>といい, 図の赤い直線がその方向です. 各点から赤い直線へ垂線を下ろし, 垂線の足の位置 (原点からの符号付きの距離) だけを残すと, (b) のように各点を 1 つの数値で表せます. この数値を<strong>主成分得点</strong>といいます.</p>
+<figure>
+<img src="../../../images/dsp/ch7/pca-projection.png" class="small" alt="主成分分析: 第 1 主成分の直線へ射影して 1 次元で表す" />
+<figcaption aria-hidden="true">主成分分析: 第 1 主成分の直線へ射影して 1 次元で表す</figcaption>
+</figure>
+<p>1 次元で表すと, 垂線の長さ (第 1 主成分に直交する方向の位置) の情報が失われます. 第 1 主成分は分散が最も大きい方向なので, 1 本の直線に射影する方法のうちで, 失われる情報が最も少なくなります. 失われた方向のばらつきは, 第 1 主成分に直交する方向 (図のオレンジの矢印) が表します. これを<strong>第 2 主成分</strong>といいます. 項目が <span class="math inline">n</span> 個あるときは, それまでの主成分のすべてに直交する方向のうち分散が最大の方向を順に選び, 第 <span class="math inline">n</span> 主成分まで求めます.</p>
+<p>式で書くと次のようになります. 標準化した <span class="math inline">i</span> 番目のデータを, <span class="math inline">n</span> 個の項目の値を並べた行ベクトル <span class="math inline">\boldsymbol{x}_i = [x_{i1}, \dots, x_{in}]</span> で表します. 長さ 1 の列ベクトル <span class="math inline">\boldsymbol{w} = [w_1, \dots, w_n]^\top</span> について, <span class="math inline">\boldsymbol{x}_i \boldsymbol{w} = w_1 x_{i1} + \dots + w_n x_{in}</span> は, データ <span class="math inline">i</span> を <span class="math inline">\boldsymbol{w}</span> の方向の直線に射影した位置です. 第 1 主成分の方向 <span class="math inline">\boldsymbol{w}_1</span> は, データ <span class="math inline">N</span> 個の <span class="math inline">\boldsymbol{x}_i \boldsymbol{w}</span> の分散を最大にする <span class="math inline">\boldsymbol{w}</span> です.</p>
+<p><span class="math display"> \boldsymbol{w}_1 = \mathop{\mathrm{arg\,max}}_{\|\boldsymbol{w}\| = 1} \frac{1}{N} \sum_{i=1}^{N} (\boldsymbol{x}_i \boldsymbol{w})^2 </span></p>
+<p>各項目を標準化して平均を 0 にしたので, <span class="math inline">\boldsymbol{x}_i \boldsymbol{w}</span> の平均も 0 になり, 2 乗の平均がそのまま分散になります. 第 2 主成分の方向 <span class="math inline">\boldsymbol{w}_2</span> は, <span class="math inline">\boldsymbol{w}_1</span> に直交する <span class="math inline">\boldsymbol{w}</span> のうちで同じ分散を最大にするものです. <span class="math inline">\boldsymbol{w}_k</span> の各成分は, 第 <span class="math inline">k</span> 主成分の得点を計算するときに各項目に掛ける重みで, 主成分の<strong>係数</strong>と呼ばれます. 上の図のデータでは <span class="math inline">\boldsymbol{w}_1 = [0.71, 0.71]^\top</span> なので, 第 1 主成分得点は <span class="math inline">0.71x + 0.71y</span> です.</p>
+<p>各主成分の得点の分散が, もとの全項目の分散の合計に占める割合を<strong>寄与率</strong>といいます. 寄与率は, その主成分が, もとのデータのばらつきのうちどれだけを表しているかを示します. 上の図のデータでは第 1 主成分の寄与率が 0.91 なので, 1 次元にしてもばらつきの 91% が残ります.</p>
+<h3 id="scikit-learn-による主成分分析">scikit-learn による主成分分析</h3>
+<p>17 項目を標準化したデータに, <code>scikit-learn</code> の <code>PCA</code> を適用します.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.decomposition <span class="im">import</span> PCA</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>pca <span class="op">=</span> PCA()</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>score <span class="op">=</span> pca.fit_transform(z17)  <span class="co"># 各会員の主成分得点 (200行×17列)</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(pca.explained_variance_ratio_[:<span class="dv">5</span>].<span class="bu">round</span>(<span class="dv">3</span>))  <span class="co"># 寄与率</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="co">[0.357 0.291 0.125 0.05  0.031]</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(pca.explained_variance_ratio_.cumsum()[:<span class="dv">5</span>].<span class="bu">round</span>(<span class="dv">3</span>))  <span class="co"># 累積寄与率</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="co">[0.357 0.648 0.773 0.823 0.855]</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p><code>fit_transform</code> は, 主成分を求め (fit), 各データの主成分得点を計算 (transform) します. 戻り値の 0 列目が第 1 主成分の得点, 1 列目が第 2 主成分の得点です. <code>explained_variance_ratio_</code> に各主成分の寄与率が入っています. 寄与率を第 1 主成分から順に足したものを<strong>累積寄与率</strong>といいます. 寄与率と累積寄与率をグラフにします.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>ratio <span class="op">=</span> pca.explained_variance_ratio_</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>k <span class="op">=</span> np.arange(<span class="dv">1</span>, <span class="bu">len</span>(ratio) <span class="op">+</span> <span class="dv">1</span>)  <span class="co"># 主成分の番号 1, 2, ..., 17</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots()</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>ax.bar(k, ratio, label<span class="op">=</span><span class="st">'寄与率'</span>)</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>ax.plot(k, ratio.cumsum(), marker<span class="op">=</span><span class="st">'o'</span>, color<span class="op">=</span><span class="st">'tab:red'</span>, label<span class="op">=</span><span class="st">'累積寄与率'</span>)</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>ax.set_xticks(k)</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>ax.set_xlabel(<span class="st">'主成分'</span>)</span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'割合'</span>)</span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>ax.legend()</span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>plt.close(fig)</span></code></pre></div>
+<figure>
+<img src="../../../images/dsp/ch7/pca-ratio.png" alt="寄与率と累積寄与率" />
+<figcaption aria-hidden="true">寄与率と累積寄与率</figcaption>
+</figure>
+<p>累積寄与率は第 3 主成分までで 0.773 になり, 第 4 主成分からは 1 つ増やしても 0.05 以下しか増えません. 17 項目のばらつきの 77% を 3 つの主成分で表せるので, 以下では第 3 主成分までを使います. 使う主成分の数は, このように寄与率が急に小さくなる位置で決めるか, 累積寄与率が目安の値 (70% や 80% がよく使われます) を超える位置で決めます.</p>
+<p>主成分が何を表すかは, 係数 (<code>pca.components_</code>) を見て判断します. <code>components_</code> の <span class="math inline">k-1</span> 行目が第 <span class="math inline">k</span> 主成分の係数です.</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>coef <span class="op">=</span> pd.DataFrame(pca.components_[:<span class="dv">3</span>].T, index<span class="op">=</span>feat.columns,</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>                    columns<span class="op">=</span>[<span class="st">'PC1'</span>, <span class="st">'PC2'</span>, <span class="st">'PC3'</span>])</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(coef.<span class="bu">round</span>(<span class="dv">2</span>))</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="co">                   PC1   PC2   PC3</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="co">visits            0.32  0.10 -0.36</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="co">amount_per_visit -0.10  0.18  0.57</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="co">おにぎり             -0.17  0.35 -0.23</span></span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="co">お茶               -0.28  0.12 -0.34</span></span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a><span class="co">カップ麺             -0.14  0.33  0.28</span></span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a><span class="co">ガム                0.35 -0.02  0.21</span></span>
+<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a><span class="co">クッキー              0.39 -0.08  0.02</span></span>
+<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="co">コーヒー              0.39 -0.08 -0.01</span></span>
+<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a><span class="co">サンドイッチ           -0.14  0.31  0.25</span></span>
+<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a><span class="co">ジュース              0.13  0.29  0.28</span></span>
+<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a><span class="co">チョコレート            0.35  0.06  0.08</span></span>
+<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="co">ノート              -0.17 -0.31  0.09</span></span>
+<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a><span class="co">パン                0.18  0.30  0.00</span></span>
+<span id="cb7-19"><a href="#cb7-19" aria-hidden="true" tabindex="-1"></a><span class="co">ボールペン            -0.17 -0.27  0.14</span></span>
+<span id="cb7-20"><a href="#cb7-20" aria-hidden="true" tabindex="-1"></a><span class="co">ルーズリーフ           -0.18 -0.31  0.15</span></span>
+<span id="cb7-21"><a href="#cb7-21" aria-hidden="true" tabindex="-1"></a><span class="co">弁当               -0.18  0.35 -0.22</span></span>
+<span id="cb7-22"><a href="#cb7-22" aria-hidden="true" tabindex="-1"></a><span class="co">消しゴム             -0.13 -0.20  0.04</span></span>
+<span id="cb7-23"><a href="#cb7-23" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<ul>
+<li><strong>第 1 主成分</strong>: コーヒー, クッキー (0.39), ガム, チョコレート (0.35) と来店回数 (0.32) の係数が正で大きく, お茶 (-0.28) が負です. コーヒーと菓子をよく買い, よく来る会員ほど得点が高くなります.</li>
+<li><strong>第 2 主成分</strong>: 弁当, おにぎり (0.35), カップ麺, サンドイッチ, パンの係数が正, ノート, ルーズリーフ (-0.31), ボールペンが負です. 食事の品目を買う会員ほど高く, 文具を買う会員ほど低くなります.</li>
+<li><strong>第 3 主成分</strong>: 1 回あたりの購入額 (0.57) が正, 来店回数 (-0.36) が負です. たまに来て 1 回に多く買う会員ほど高くなります.</li>
+</ul>
+<p>主成分の向き (係数の符号) は, 実行する環境によって反転することがあります. 反転しても主成分得点の正負が入れ替わるだけなので, 読み取れる内容は変わりません.</p>
+<p>第 1 主成分と第 2 主成分, 第 1 主成分と第 3 主成分の得点で散布図を描きます.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>fig, (ax1, ax2) <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="fl">4.5</span>))</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>ax1.scatter(score[:, <span class="dv">0</span>], score[:, <span class="dv">1</span>], s<span class="op">=</span><span class="dv">15</span>)</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>ax1.set_xlabel(<span class="st">'第 1 主成分'</span>)</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>ax1.set_ylabel(<span class="st">'第 2 主成分'</span>)</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>ax2.scatter(score[:, <span class="dv">0</span>], score[:, <span class="dv">2</span>], s<span class="op">=</span><span class="dv">15</span>)</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>ax2.set_xlabel(<span class="st">'第 1 主成分'</span>)</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>ax2.set_ylabel(<span class="st">'第 3 主成分'</span>)</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>plt.close(fig)</span></code></pre></div>
+<figure>
+<img src="../../../images/dsp/ch7/pca-score.png" alt="主成分得点の散布図" />
+<figcaption aria-hidden="true">主成分得点の散布図</figcaption>
+</figure>
+<p>左の図には塊が 3 つ見えます. 第 1 主成分が大きい右の塊はコーヒーと菓子を買う会員, 第 2 主成分が小さい左下の塊は文具を買う会員, 第 2 主成分が大きい左上の塊は食事の品目を買う会員です. 右の図で第 1 主成分と第 3 主成分の組にすると, 左上にあった食事の会員が, 第 3 主成分が 3 付近の塊と -1 付近の塊に分かれます. 第 3 主成分は 1 回あたりの購入額が大きい会員ほど高いので, 上の塊は 1 回に多く買う会員, 下の塊は来店回数の多い会員です. 第 2 主成分までの散布図では重なっていた 2 つの塊が, 第 3 主成分では分かれています.</p>
+<p>この節に対応する演習は, <a href="../../../fields/machine-learning/ml-clustering/exercises.html#exercise-dsp7-4">Exercise DSP7-4</a>です.</p>
+<h2 id="階層クラスタリングとデンドログラム">階層クラスタリングとデンドログラム</h2>
+<p><strong>階層クラスタリング</strong>は, 近いもの同士を順に併合してクラスタを大きくしていく手法です.</p>
+<ol type="1">
+<li>各データを, それぞれ 1 つのデータだけを含むクラスタとします.</li>
+<li>最も近い 2 つのクラスタを併合します.</li>
+<li>全体が 1 つのクラスタになるまで 2 を繰り返します.</li>
+</ol>
+<p>手順 2 では, データ同士でなく, クラスタ同士の距離が要ります. クラスタ同士の距離の定め方を<strong>連結法</strong>といい, 次のようなものがあります.</p>
+<ul>
+<li><strong>最短距離法 (単連結法)</strong>: 2 つのクラスタから 1 つずつデータを選んだ組のうち, 最も近い組の距離.</li>
+<li><strong>最長距離法 (完全連結法)</strong>: 同じく, 最も遠い組の距離.</li>
+<li><strong>群平均法</strong>: すべての組の距離の平均.</li>
+<li><strong>ウォード法</strong>: 2 つのクラスタを併合したときの, クラスタ内誤差平方和の増加量. 増加量が最も小さい組から併合します.</li>
+</ul>
+<p>次の図は, 青とオレンジの 2 つのクラスタについて, 各連結法が使う距離を赤い線で示したものです. 最短距離法と最長距離法は 1 組の距離だけを, 群平均法は 25 組すべての距離を使います. ウォード法の図の × は重心です. 併合後の重心までの距離 (赤い実線) の 2 乗の和から, 併合前のそれぞれの重心までの距離 (点線) の 2 乗の和を引いた値が, クラスタ内誤差平方和の増加量です.</p>
+<figure>
+<img src="../../../images/dsp/ch7/linkage.png" class="wide" alt="連結法が使う距離" />
+<figcaption aria-hidden="true">連結法が使う距離</figcaption>
+</figure>
+<p>併合の過程を樹形図で表したものを<strong>デンドログラム</strong>といいます. 横軸にデータが並び, 縦軸は併合したときのクラスタ間の距離を表します. 低い位置でつながっているデータほど似ています. デンドログラムを好きな高さで水平に切ると, 切り口より下でつながっているデータが 1 つのクラスタになります. 切る高さを変えればクラスタの数が変わるので, 数を決める前に全体の構造を見られます.</p>
+<h3 id="scipy-による階層クラスタリング">scipy による階層クラスタリング</h3>
+<p><a href="#pca">次元削減: 主成分分析</a>で求めた, 第 3 主成分までの主成分得点をウォード法でクラスタリングします. 200 人分をすべて横軸に並べると読めないので, <code>truncate_mode='lastp'</code> で最後の 20 回の併合だけを描きます.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy.cluster.hierarchy <span class="im">import</span> linkage, dendrogram, fcluster</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="co"># 第3主成分までの得点について, ウォード法で併合の過程を計算する</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>Z <span class="op">=</span> linkage(score[:, :<span class="dv">3</span>], method<span class="op">=</span><span class="st">'ward'</span>)</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>fig, ax <span class="op">=</span> plt.subplots(figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="fl">4.5</span>))</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>dendrogram(Z, truncate_mode<span class="op">=</span><span class="st">'lastp'</span>, p<span class="op">=</span><span class="dv">20</span>, leaf_rotation<span class="op">=</span><span class="dv">90</span>, ax<span class="op">=</span>ax)</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>ax.set_ylabel(<span class="st">'距離'</span>)</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>plt.close(fig)</span></code></pre></div>
+<figure>
+<img src="../../../images/dsp/ch7/pca-dendrogram.png" alt="会員のデンドログラム (第 3 主成分まで, ウォード法, 最後の 20 回の併合)" />
+<figcaption aria-hidden="true">会員のデンドログラム (第 3 主成分まで, ウォード法, 最後の 20 回の併合)</figcaption>
+</figure>
+<p>横軸の括弧付きの数字は, その枝の下にまとめられた会員の人数です. 高さ 48 と 44 の併合で全体が 3 つに分かれ, 高さ 28 の併合でさらに 2 つに分かれます. その下の併合はすべて高さ 7 以下です. 併合の高さが 28 から 7 以下へ大きく下がるので, 高さ 10 から 25 の間で切って 4 つのクラスタにするのが自然です.</p>
+<p>指定した数のクラスタに切るには <code>fcluster</code> を使います. 4 つに切り, 2 項目で求めた k-means 法の結果とクロス表で比べます.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>member[<span class="st">'hcluster'</span>] <span class="op">=</span> fcluster(Z, t<span class="op">=</span><span class="dv">4</span>, criterion<span class="op">=</span><span class="st">'maxclust'</span>)  <span class="co"># 4つのクラスタに切る</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(pd.crosstab(member[<span class="st">'cluster'</span>], member[<span class="st">'hcluster'</span>]))</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="co">hcluster   1   2   3   4</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="co">cluster</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="co">0         51   0   0   1</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="co">1          0   0  31   0</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="co">2          0  40   0   2</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a><span class="co">3          4   0   0  71</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a>cols <span class="op">=</span> [<span class="st">'visits'</span>, <span class="st">'amount_per_visit'</span>, <span class="st">'弁当'</span>, <span class="st">'コーヒー'</span>, <span class="st">'ルーズリーフ'</span>]</span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(feat.groupby(member[<span class="st">'hcluster'</span>])[cols].mean().<span class="bu">round</span>(<span class="dv">2</span>))</span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a><span class="co">          visits  amount_per_visit    弁当  コーヒー  ルーズリーフ</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a><span class="co">hcluster</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a><span class="co">1          53.89            293.97  0.00  0.46    0.00</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a><span class="co">2           4.58            404.87  0.00  0.00    0.39</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a><span class="co">3           6.94           1476.89  0.23  0.05    0.07</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a><span class="co">4          33.99            481.45  0.47  0.01    0.00</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>各行の度数がほぼ 1 つの列に集まっているので, 17 項目を 3 つの主成分にまとめてから階層クラスタリングした結果は, 2 項目の k-means 法とほぼ同じ 4 つのクラスタになります. クラスタごとの平均から, 1 はカフェ利用 (コーヒーの割合 0.46), 2 は文具 (ルーズリーフの割合 0.39), 3 はまとめ買い (1 回あたり約 1480 円), 4 は昼食 (弁当の割合 0.47) の会員と読めます. 2 つの手法で所属が違う会員は 7 人で, 2 項目の散布図で塊の境界付近か塊と塊の間にいた会員です. 来店回数と購入額だけでは決めにくかった所属を, 何を買ったかの情報で決めています.</p>
+<p>主成分得点の散布図を, 階層クラスタリングの結果で色分けします.</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>fig, (ax1, ax2) <span class="op">=</span> plt.subplots(<span class="dv">1</span>, <span class="dv">2</span>, figsize<span class="op">=</span>(<span class="dv">10</span>, <span class="fl">4.5</span>))</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>ax1.scatter(score[:, <span class="dv">0</span>], score[:, <span class="dv">1</span>], c<span class="op">=</span>member[<span class="st">'hcluster'</span>], cmap<span class="op">=</span><span class="st">'viridis'</span>, s<span class="op">=</span><span class="dv">15</span>)</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>ax1.set_xlabel(<span class="st">'第 1 主成分'</span>)</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>ax1.set_ylabel(<span class="st">'第 2 主成分'</span>)</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>ax2.scatter(score[:, <span class="dv">0</span>], score[:, <span class="dv">2</span>], c<span class="op">=</span>member[<span class="st">'hcluster'</span>], cmap<span class="op">=</span><span class="st">'viridis'</span>, s<span class="op">=</span><span class="dv">15</span>)</span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>ax2.set_xlabel(<span class="st">'第 1 主成分'</span>)</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>ax2.set_ylabel(<span class="st">'第 3 主成分'</span>)</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>plt.close(fig)</span></code></pre></div>
+<figure>
+<img src="../../../images/dsp/ch7/pca-hcluster.png" alt="階層クラスタリングの結果 (主成分得点の散布図)" />
+<figcaption aria-hidden="true">階層クラスタリングの結果 (主成分得点の散布図)</figcaption>
+</figure>
+<p>左の図の左上の塊には, 2 つのクラスタ (まとめ買いと昼食の会員) の点が混ざっています. 右の図では, この 2 つのクラスタが第 3 主成分の方向に分かれています.</p>
+<p>使う主成分を第 2 主成分までに減らすと, この 2 つのクラスタを分けられなくなります.</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># 第2主成分までの得点で, 同じように4つに切る</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>h2 <span class="op">=</span> fcluster(linkage(score[:, :<span class="dv">2</span>], method<span class="op">=</span><span class="st">'ward'</span>), t<span class="op">=</span><span class="dv">4</span>, criterion<span class="op">=</span><span class="st">'maxclust'</span>)</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(pd.crosstab(member[<span class="st">'cluster'</span>], h2))</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="co">col_0     1   2   3   4</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="co">cluster</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="co">0        51   0   0   1</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="co">1         0   0  14  17</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a><span class="co">2         0  40   0   2</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="co">3         4   0   2  69</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a><span class="co">&quot;&quot;&quot;</span></span></code></pre></div>
+<p>まとめ買いの会員 (k-means 法のクラスタ 1) の 31 人のうち 17 人が, 昼食の会員と同じクラスタ 4 に入ります. クラスタ 3 の 16 人は, 残るまとめ買いの会員 14 人と昼食の会員 2 人です. 寄与率の小さい主成分を捨てると, その主成分の方向にしか表れない違いも失われます. 使う主成分の数を寄与率で決めるのは, 失う情報の量を確かめるためです.</p>
+<p>連結法を変えると結果も変わります. 最短距離法は, 最も近い 1 組の距離だけでクラスタ同士をつなぐので, 塊の間に点が並んでいると別々の塊まで 1 つにつながります. データを同程度の大きさのグループに分ける目的なら, ウォード法か群平均法をまず試します.</p>
+<p>この節に対応する演習は, <a href="../../../fields/machine-learning/ml-clustering/exercises.html#exercise-dsp7-2">Exercise DSP7-2</a>です.</p>
+<h2 id="クラスタリング結果の評価-エルボー法とシルエット係数">クラスタリング結果の評価: エルボー法とシルエット係数</h2>
+<p>クラスタリングには正解ラベルが無いので, <a href="../../../fields/machine-learning/ml-classification/classification-evaluation.html#accuracy-precision-recall">分類の正解率</a>は計算できません. 代わりに, クラスタ内のデータがまとまっているか, 他のクラスタと離れているかを数値にします. この数値は主に, クラスタの数 <span class="math inline">K</span> を決めるときに使います. <a href="#非階層クラスタリング-k-means-法">非階層クラスタリング: k-means 法</a>では散布図を見て <span class="math inline">K = 4</span> としましたが, 項目が 3 つ以上あると散布図 1 枚では塊を数えられません.</p>
+<h3 id="エルボー法">エルボー法</h3>
+<p>k-means 法のクラスタ内誤差平方和 <span class="math inline">W</span> は, <span class="math inline">K</span> を増やすほど小さくなります. データの数だけクラスタを作れば <span class="math inline">W = 0</span> になるので, <span class="math inline">W</span> が最小になる <span class="math inline">K</span> を選ぶわけにはいきません. そこで, <span class="math inline">K</span> を 1 から順に増やして <span class="math inline">W</span> をグラフにし, 減り方が急に緩やかになる <span class="math inline">K</span> を選びます. グラフが肘 (エルボー) のように折れ曲がる点を探すので, <strong>エルボー法</strong>と呼ばれます.</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> z[[<span class="st">'visits'</span>, <span class="st">'amount_per_visit'</span>]]</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>inertias <span class="op">=</span> []</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">1</span>, <span class="dv">9</span>):</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    km <span class="op">=</span> KMeans(n_clusters<span class="op">=</span>k, random_state<span class="op">=</span><span class="dv">0</span>, n_init<span class="op">=</span><span class="dv">10</span>).fit(X)</span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    inertias.append(km.inertia_)  <span class="co"># クラスタ内誤差平方和</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>plt.plot(<span class="bu">range</span>(<span class="dv">1</span>, <span class="dv">9</span>), inertias, marker<span class="op">=</span><span class="st">'o'</span>)</span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'クラスタ数 k'</span>)</span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'クラスタ内誤差平方和'</span>)</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>plt.close()</span></code></pre></div>
+<figure>
+<img src="../../../images/dsp/ch7/elbow.png" alt="エルボー法" />
+<figcaption aria-hidden="true">エルボー法</figcaption>
+</figure>
+<p><span class="math inline">K = 4</span> までは <span class="math inline">W</span> が大きく減り (400 → 172 → 60 → 25), <span class="math inline">K = 5</span> 以降はほとんど減りません. 4 つ目のクラスタを加えると塊が 1 つずつに分かれますが, 5 つ目以降は同じ塊を割るだけだからです. この図からは <span class="math inline">K = 4</span> を選びます.</p>
+<h3 id="シルエット係数">シルエット係数</h3>
+<p>折れ曲がりがはっきりしないグラフでは, エルボー法で <span class="math inline">K</span> を決められません. そのようなときは, データ 1 つずつについて「自分のクラスタにどれだけ馴染んでいるか」を測る<strong>シルエット係数</strong>を使います. データ <span class="math inline">i</span> について,</p>
+<ul>
+<li><span class="math inline">a(i)</span>: 同じクラスタに属する他のデータとの距離の平均</li>
+<li><span class="math inline">b(i)</span>: 最も近い別のクラスタに属するデータとの距離の平均</li>
+</ul>
+<p>とすると, シルエット係数は次の式で表されます.</p>
+<p><span class="math display"> s(i) = \frac{b(i) - a(i)}{\max(a(i), b(i))} </span></p>
+<p><span class="math inline">s(i)</span> は <span class="math inline">-1</span> から <span class="math inline">1</span> の値をとります. <span class="math inline">1</span> に近いほど, 自分のクラスタの中では近く, 別のクラスタからは遠い位置にあります. <span class="math inline">0</span> 付近は 2 つのクラスタの境界にあるデータ, 負の値は別のクラスタに割り当てた方が近いデータです. 全データの <span class="math inline">s(i)</span> の平均を, クラスタリング全体の評価に使います.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode py"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> silhouette_score</span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>scores <span class="op">=</span> []</span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> k <span class="kw">in</span> <span class="bu">range</span>(<span class="dv">2</span>, <span class="dv">9</span>):  <span class="co"># クラスタが2つ以上ないと b(i) が定義できない</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    labels <span class="op">=</span> KMeans(n_clusters<span class="op">=</span>k, random_state<span class="op">=</span><span class="dv">0</span>, n_init<span class="op">=</span><span class="dv">10</span>).fit_predict(X)</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    scores.append(silhouette_score(X, labels))</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb14-8"><a href="#cb14-8" aria-hidden="true" tabindex="-1"></a>plt.plot(<span class="bu">range</span>(<span class="dv">2</span>, <span class="dv">9</span>), scores, marker<span class="op">=</span><span class="st">'o'</span>)</span>
+<span id="cb14-9"><a href="#cb14-9" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'クラスタ数 k'</span>)</span>
+<span id="cb14-10"><a href="#cb14-10" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'シルエット係数の平均'</span>)</span>
+<span id="cb14-11"><a href="#cb14-11" aria-hidden="true" tabindex="-1"></a>plt.show()</span>
+<span id="cb14-12"><a href="#cb14-12" aria-hidden="true" tabindex="-1"></a>plt.close()</span></code></pre></div>
+<figure>
+<img src="../../../images/dsp/ch7/silhouette.png" alt="シルエット係数" />
+<figcaption aria-hidden="true">シルエット係数</figcaption>
+</figure>
+<p>シルエット係数の平均は <span class="math inline">K = 4</span> で最大 (0.673) になり, エルボー法と同じ <span class="math inline">K</span> を支持します. ただし <span class="math inline">K = 2</span> (0.643) や <span class="math inline">K = 3</span> (0.646) との差は小さく, 指標だけで <span class="math inline">K</span> がはっきり決まるわけではありません. 指標の差が小さいときは, 候補の <span class="math inline">K</span> ごとにクラスタの平均を求め, 特徴を言葉で説明できる分け方を選びます (<a href="../../../fields/machine-learning/ml-clustering/exercises.html#exercise-dsp7-1">Exercise DSP7-1</a>).</p>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../fields/machine-learning/ml-clustering/store-purchase-data.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">例題のデータ: 大学の売店の購買記録</span>
+    </a>
+    <a class="next" href="../../../fields/machine-learning/ml-clustering/exercises.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">演習</span>
+    </a>
+</nav>
+
+</article>
+
+
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        <nav class="footer-nav" aria-label="フッターナビゲーション">
+            <a href="../../../">Home</a>
+            <a href="../../../posts.html">Blog</a>
+            <a href="../../../lectures.html">Lecture</a>
+            <a href="../../../research.html">Research</a>
+            <a href="../../../rss.xml">RSS</a>
+            <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+        </nav>
+        <p class="footer-copy">&copy; yakagika &middot; Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>.</p>
+    </div>
+</div>
+
+
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="ページ先頭へ戻る" title="先頭へ戻る">↑</button>
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+            link.classList.add('external-link');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level;
+          switch (heading.tagName.toLowerCase()) {
+            case 'h2': level = 0; break;
+            case 'h3': level = 1; break;
+            case 'h4': level = 2; break;
+            default: return;
+          }
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          // Pandoc は `::: note` + 見出し の組み合わせを <section id="..." class="note">
+          // 内の <hN> として出力するため, 見出し自身に id が無い場合は
+          // 親 section の id を辿る.
+          var anchorId = heading.id;
+          if (!anchorId) {
+            var parentSection = heading.closest('section[id]');
+            if (parentSection) anchorId = parentSection.id;
+          }
+          anchor.href = '#' + anchorId;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi && !li.contains(currentLi)) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+
+      // ----------------------------------------
+      // スクロールスパイ: 表示中の見出しを TOC でハイライト
+      // ----------------------------------------
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0 || typeof IntersectionObserver === 'undefined') return;
+
+      var idToTocItem = new Map();
+      headings.forEach(function(h) {
+        if (!h.id) return;
+        var link = tocContainer.querySelector('a[href="#' + CSS.escape(h.id) + '"]');
+        if (link) {
+          var li = link.closest('.toc-item') || link.closest('li');
+          if (li) idToTocItem.set(h.id, li);
+        }
+      });
+
+      var visible = new Set();
+      var lastActive = null;
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+
+        // ドキュメント順で最初に可視な見出しをアクティブに
+        var firstVisible = null;
+        for (var i = 0; i < headings.length; i++) {
+          if (visible.has(headings[i].id)) {
+            firstVisible = headings[i].id;
+            break;
+          }
+        }
+        if (!firstVisible) return;
+
+        var tocItem = idToTocItem.get(firstVisible);
+        if (!tocItem || tocItem === lastActive) return;
+
+        if (lastActive) lastActive.classList.remove('toc-active');
+        tocItem.classList.add('toc-active');
+        lastActive = tocItem;
+
+        // TOC を必要なときだけスクロール
+        tocItem.scrollIntoView({
+          block: 'nearest',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
+      }, {
+        // ヘッダー (60px) を除いた上部 〜 画面下から60% を判定領域とする
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0
+      });
+
+      headings.forEach(function(h) { if (h.id) observer.observe(h); });
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
+      const pre = codeBlock.parentNode;
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
+      copyButton.textContent = 'Copy';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    // パスワード保護付き details (回答例用)
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll('details.protected').forEach(function (det) {
+        var pass = det.getAttribute('data-pass') || '';
+        var summary = det.querySelector('summary');
+        if (!summary) return;
+
+        var gate = document.createElement('div');
+        gate.className = 'pass-gate';
+        gate.innerHTML =
+          '<label>合言葉: <input type="password" autocomplete="off" spellcheck="false"></label>' +
+          '<button type="button">解除</button>' +
+          '<span class="pass-error" hidden>合言葉が違います</span>';
+        summary.insertAdjacentElement('afterend', gate);
+
+        var input = gate.querySelector('input');
+        var button = gate.querySelector('button');
+        var errorMsg = gate.querySelector('.pass-error');
+
+        function tryUnlock() {
+          if (input.value === pass) {
+            det.classList.add('unlocked');
+            errorMsg.hidden = true;
+          } else {
+            errorMsg.hidden = false;
+            input.select();
+          }
+        }
+
+        button.addEventListener('click', tryUnlock);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
+        });
+
+        det.addEventListener('toggle', function () {
+          if (det.open && !det.classList.contains('unlocked')) {
+            input.focus();
+          }
+        });
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            try {
+              katex.render( texText.data
+                          , mathElements[i]
+                          , { displayMode: mathElements[i].classList.contains("display")
+                            , throwOnError: true
+                           }
+                          );
+            } catch (e) {
+              // 1 つの数式のエラーで残り全ての数式が生 TeX のまま残らないようにする
+              console.error('KaTeX render error:', e.message, texText.data);
+            }
+          }
+      }
+    });
+  </script>
+
+  <!-- 見出しアンカーリンク + Back to top -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 記事見出しに hover で現れる # パーマリンクを付与
+      document.querySelectorAll('article h2[id], article h3[id]').forEach(function (h) {
+        var a = document.createElement('a');
+        a.className = 'heading-anchor';
+        a.href = '#' + h.id;
+        a.setAttribute('aria-label', 'このセクションへのリンク');
+        a.textContent = '#';
+        h.appendChild(a);
+      });
+
+      // Back to top: スクロール量に応じて表示
+      var btt = document.getElementById('back-to-top');
+      if (btt) {
+        var onScroll = function () {
+          if (window.pageYOffset > 600) btt.classList.add('visible');
+          else btt.classList.remove('visible');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        btt.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
+    });
+  </script>
+
+  </body>
+</html>

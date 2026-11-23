@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+    <script>
+      (function () {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+        function stored() {
+          var t = null;
+          try { t = localStorage.getItem('theme'); } catch (e) {}
+          return (t === 'dark' || t === 'light') ? t : null;
+        }
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
+        if (mq) {
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
+        }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
+      })();
+    </script>
+    <title>yakagika - グラフの選び方:データの次元と種別</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../../../style.css?v=1795415080">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../../../" class="site-brand" aria-label="Home">
+          <span class="site-mark" aria-hidden="true">▮</span>
+          <span class="site-word">yakagika</span>
+        </a>
+      </div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../../../">Home</a>
+      <a href="../../../posts.html">Blog</a>
+      <a href="../../../lectures.html">Lecture</a>
+      <a href="../../../research.html">Research</a>
+      <a href="../../../lectures/seminar.html">Seminar</a>
+      <a href="../../../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      
+      <div id="lecture-toc" data-mode="series">
+  <h2>Index</h2>
+  <a href="../../../fields/descriptive/index.html">記述統計</a>
+  <ul class="toc-root">
+    
+    <li class="toc-item toc-series-item current-block">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/descriptive/vis-basic/index.html">図の選び方と基礎的なグラフ</a>
+        
+      </div>
+      
+      <ul class="toc-sublist">
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/descriptive/vis-basic/index.html">データの可視化</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item current">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/descriptive/vis-basic/choose-graph.html" aria-current="page">グラフの選び方:データの次元と種別</a>
+          </div>
+          <ul class="toc-sublist"></ul>
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/descriptive/vis-basic/basic-graphs.html">基礎的なグラフ (棒グラフ, 円グラフ, 折れ線グラフ)</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/descriptive/vis-basic/pie.html">円グラフ</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/descriptive/vis-basic/stacked-bar.html">積み上げ棒グラフ</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/descriptive/vis-basic/line.html">折れ線グラフ</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/descriptive/vis-basic/exercises.html">演習</a>
+          </div>
+          
+        </li>
+        
+      </ul>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/descriptive/vis-design/index.html">グラフのデザイン, 繰り返し描画と分割</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/descriptive/vis-distribution/index.html">度数分布表, ヒストグラム, 箱ひげ図</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/descriptive/vis-relation/index.html">散布図, 散布図行列, ヒートマップ</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/descriptive/vis-more/index.html">同時度数分布表, 密度, 多変数の図</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/descriptive/vis-reading/index.html">軸の選び方と誇張の影響</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/descriptive/num-summary/index.html">中心と広がりの基本統計量</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/descriptive/num-correlation/index.html">相関とカテゴリーの関連</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/descriptive/num-partial/index.html">偏相関係数</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/descriptive/num-distance/index.html">距離と類似度</a>
+        
+      </div>
+      
+    </li>
+    
+  </ul>
+</div>
+
+    </nav>
+
+    <div id="content">
+    
+<nav class="block-course-nav" aria-label="講義の並び">
+  <p>講義の並び</p>
+  <ul>
+    
+    <li class="course-occurrence">
+      <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+      <a href="../../../courses/dsp/3.html">第 3 回</a> (必修)
+      
+      <a href="../../../fields/analysis-design/design-process/index.html" rel="prev">← 分析設計: データ分析の進め方</a>
+      
+      
+      
+      <a href="../../../fields/descriptive/vis-design/index.html" rel="next">グラフのデザイン, 繰り返し描画と分割 →</a>
+      
+      
+    </li>
+    
+  </ul>
+</nav>
+
+
+
+<article>
+  
+  <h1 id="choose-graph">グラフの選び方:データの次元と種別</h1>
+<nav class="block-field-nav block-field-nav-narrow" aria-label="分野の目次">
+  <a href="../../../fields/descriptive/index.html">記述統計</a>
+  <ol>
+    
+    <li>
+      
+      <strong><a href="../../../fields/descriptive/vis-basic/index.html" aria-current="true">図の選び方と基礎的なグラフ</a></strong>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/descriptive/vis-design/index.html">グラフのデザイン, 繰り返し描画と分割</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/descriptive/vis-distribution/index.html">度数分布表, ヒストグラム, 箱ひげ図</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/descriptive/vis-relation/index.html">散布図, 散布図行列, ヒートマップ</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/descriptive/vis-more/index.html">同時度数分布表, 密度, 多変数の図</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/descriptive/vis-reading/index.html">軸の選び方と誇張の影響</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/descriptive/num-summary/index.html">中心と広がりの基本統計量</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/descriptive/num-correlation/index.html">相関とカテゴリーの関連</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/descriptive/num-partial/index.html">偏相関係数</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/descriptive/num-distance/index.html">距離と類似度</a>
+      
+      
+    </li>
+    
+  </ol>
+</nav>
+<nav class="chapter-nav-card">
+    <a class="prev" href="../../../fields/descriptive/vis-basic/index.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">図の選び方と基礎的なグラフ</span>
+    </a>
+    <a class="next" href="../../../fields/descriptive/vis-basic/basic-graphs.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">基礎的なグラフ (棒グラフ, 円グラフ, 折れ線グラフ)</span>
+    </a>
+</nav>
+
+<p>グラフを作る前に, まず <strong>どのグラフを使うか</strong> を決めましょう. 使うべきグラフは, 同時に見る観測項目の数 (データの <strong>次元</strong>) と, 各項目が <strong>質的データ</strong> か <strong>量的データ</strong> かで, おおよそ決まります.</p>
+<p>下の樹形図は, 観測項目の数 (データの次元) と各項目の種別を上から順にたどって, 代表的なグラフを選ぶためのものです. 各グラフ名をクリックすると, そのグラフの解説に移動します.</p>
+<div class="choice-tree" role="group" aria-label="データの次元と種別からグラフを選ぶ樹形図">
+<ul>
+<li>
+<div class="ct-line">
+<span class="ct-root">データ</span>
+</div>
+<ul>
+<li>
+<div class="ct-line">
+<span class="ct-dim">1次元データ</span>
+</div>
+<ul>
+<li>
+<div class="ct-line">
+<span class="ct-type">量的</span><span class="ct-arrow">→</span><a class="ct-g" href="../../../fields/descriptive/vis-distribution/index.html#histogram"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M4 28h24"></path><rect class="f" x="6" y="20" width="5" height="8"></rect><rect class="f" x="11" y="10" width="5" height="18"></rect><rect class="f" x="16" y="6" width="5" height="22"></rect><rect class="f" x="21" y="16" width="5" height="12"></rect></svg>ヒストグラム</a>
+</div>
+</li>
+<li>
+<div class="ct-line">
+<span class="ct-type">質的</span><span class="ct-arrow">→</span><a class="ct-g" href="../../../fields/descriptive/vis-basic/basic-graphs.html#bar"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M4 28h24"></path><rect class="f" x="5" y="18" width="5" height="10"></rect><rect class="f" x="13" y="8" width="5" height="20"></rect><rect class="f" x="21" y="21" width="5" height="7"></rect></svg>棒グラフ</a><a class="ct-g" href="../../../fields/descriptive/vis-basic/pie.html#pie"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="11"></circle><path class="f" d="M16 16V5A11 11 0 0 1 25.5 21.5Z"></path></svg>円グラフ</a>
+</div>
+</li>
+</ul>
+</li>
+<li>
+<div class="ct-line">
+<span class="ct-dim">2次元データ</span>
+</div>
+<ul>
+<li>
+<div class="ct-line">
+<span class="ct-type">質的 × 質的</span><span class="ct-arrow">→</span><a class="ct-g" href="../../../fields/descriptive/vis-relation/heatmap.html#heatmap"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><rect class="f" style="fill-opacity:0.9" x="4" y="4" width="7" height="7"></rect><rect class="f" style="fill-opacity:0.5" x="12" y="4" width="7" height="7"></rect><rect class="f" style="fill-opacity:0.15" x="20" y="4" width="7" height="7"></rect><rect class="f" style="fill-opacity:0.4" x="4" y="12" width="7" height="7"></rect><rect class="f" style="fill-opacity:0.8" x="12" y="12" width="7" height="7"></rect><rect class="f" style="fill-opacity:0.3" x="20" y="12" width="7" height="7"></rect><rect class="f" style="fill-opacity:0.15" x="4" y="20" width="7" height="7"></rect><rect class="f" style="fill-opacity:0.35" x="12" y="20" width="7" height="7"></rect><rect class="f" style="fill-opacity:0.9" x="20" y="20" width="7" height="7"></rect></svg>ヒートマップ</a>
+</div>
+</li>
+<li>
+<div class="ct-line">
+<span class="ct-type">質的 × 量的</span><span class="ct-arrow">→</span><a class="ct-g" href="../../../fields/descriptive/vis-basic/basic-graphs.html#bar"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M4 28h24"></path><rect class="f" x="5" y="18" width="5" height="10"></rect><rect class="f" x="13" y="8" width="5" height="20"></rect><rect class="f" x="21" y="21" width="5" height="7"></rect></svg>棒グラフ</a><a class="ct-g" href="../../../fields/descriptive/vis-distribution/boxplot.html#boxplot"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4v6M16 22v6M12 4h8M12 28h8"></path><rect class="f" x="9" y="10" width="14" height="12"></rect><path d="M9 16h14"></path></svg>箱ひげ図</a>
+</div>
+</li>
+<li>
+<div class="ct-line">
+<span class="ct-type">量的 × 量的</span><span class="ct-arrow">→</span><a class="ct-g" href="../../../fields/descriptive/vis-relation/index.html#scatter"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 4v24h23"></path><circle class="d" cx="10" cy="22" r="1.7"></circle><circle class="d" cx="14" cy="18" r="1.7"></circle><circle class="d" cx="18" cy="20" r="1.7"></circle><circle class="d" cx="20" cy="13" r="1.7"></circle><circle class="d" cx="25" cy="9" r="1.7"></circle><circle class="d" cx="13" cy="24" r="1.7"></circle></svg>散布図</a>
+</div>
+</li>
+<li>
+<div class="ct-line">
+<span class="ct-type">時間 × 量的</span><span class="ct-arrow">→</span><a class="ct-g" href="../../../fields/descriptive/vis-basic/line.html#line"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 4v24h23"></path><path d="M8 22l6-7 5 4 8-11"></path></svg>折れ線グラフ</a>
+</div>
+</li>
+</ul>
+</li>
+<li>
+<div class="ct-line">
+<span class="ct-dim">3次元以上のデータ</span>
+</div>
+<ul>
+<li>
+<div class="ct-line">
+<span class="ct-type">量的 3 つ</span><span class="ct-arrow">→</span><a class="ct-g" href="../../../fields/descriptive/vis-more/scatter-3d.html#scatter-3d"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M14 20V4M14 20L4 28M14 20l14 6"></path><circle class="d" cx="18" cy="10" r="1.7"></circle><circle class="d" cx="21" cy="17" r="1.7"></circle><circle class="d" cx="9" cy="22" r="1.7"></circle><circle class="d" cx="16" cy="15" r="1.7"></circle><circle class="d" cx="23" cy="23" r="1.7"></circle></svg>3次元プロット</a><a class="ct-g" href="../../../fields/descriptive/vis-more/scatter-3d.html#scatter-3d"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 4v24h23"></path><circle class="f" cx="11" cy="21" r="2.3"></circle><circle class="f" style="fill-opacity:.5" cx="17" cy="15" r="4"></circle><circle class="f" cx="24" cy="9" r="3"></circle><circle class="f" style="fill-opacity:.1" cx="23" cy="22" r="3"></circle></svg>色・大きさ付き散布図</a>
+</div>
+</li>
+<li>
+<div class="ct-line">
+<span class="ct-type">量的が多数</span><span class="ct-arrow">→</span><a class="ct-g" href="../../../fields/descriptive/vis-relation/scatter-matrix.html#scatter-matrix"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="4" width="24" height="24"></rect><path d="M12 4v24M20 4v24M4 12h24M4 20h24"></path><rect class="f" x="4" y="4" width="8" height="8"></rect><rect class="f" x="12" y="12" width="8" height="8"></rect><rect class="f" x="20" y="20" width="8" height="8"></rect><circle class="d" cx="14.5" cy="9.5" r="0.9"></circle><circle class="d" cx="17.5" cy="6.5" r="0.9"></circle><circle class="d" cx="22.5" cy="9.5" r="0.9"></circle><circle class="d" cx="25.5" cy="6.5" r="0.9"></circle><circle class="d" cx="6.5" cy="17.5" r="0.9"></circle><circle class="d" cx="9.5" cy="14.5" r="0.9"></circle><circle class="d" cx="22.5" cy="17.5" r="0.9"></circle><circle class="d" cx="25.5" cy="14.5" r="0.9"></circle><circle class="d" cx="6.5" cy="25.5" r="0.9"></circle><circle class="d" cx="9.5" cy="22.5" r="0.9"></circle><circle class="d" cx="14.5" cy="25.5" r="0.9"></circle><circle class="d" cx="17.5" cy="22.5" r="0.9"></circle></svg>散布図行列</a>
+</div>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</div>
+<div class="note">
+<ul>
+<li><h3 id="ヒストグラムと棒グラフの違い">ヒストグラムと棒グラフの違い</h3></li>
+</ul>
+<p>1 次元データをどちらのグラフで表すかは, 「質的か量的か」だけでは決まりません. 効いてくるのは次の 2 点です.</p>
+<ul>
+<li><strong>順序があるか</strong>: 累積度数・中央値・分布の歪みといった「並び方から読み取る情報」は, カテゴリに順序が無いと意味を持ちません.</li>
+<li><strong>連続量を階級 (階級幅) に区切ったものか</strong>: 面積が度数に比例する, というヒストグラム本来の読み方は, 連続量を区間に分けて初めて成り立ちます.</li>
+</ul>
+<p>この 2 点で整理すると, 次のようになります.</p>
+<ul>
+<li><strong>名義尺度</strong> (血液型・職業など順序の無いカテゴリ) は <strong>棒グラフ</strong> で表し, 棒を離して並べます. 並び順は任意で, 棒を入れ替えても中身は変わらないので, 「形」を読んではいけません.</li>
+<li><strong>順序尺度</strong> (満足度・成績・難易度など順序のあるカテゴリ) は順序があるので累積度数や歪みが読め, 棒を隙間なく詰めて <strong>ヒストグラムのように</strong> 描いても構いません. ただしカテゴリは離散的で階級幅の概念が無いため, <strong>厳密な意味でのヒストグラムではありません</strong>.</li>
+<li><strong>量的データ</strong> (身長・気温など連続した数値) は階級に区切って <strong>ヒストグラム</strong> で表します. 棒を隙間なく並べ, 階級幅・面積=度数 といった本来の読み方ができます.</li>
+</ul>
+<p>構成比を一般向けに伝えたいときは <strong>円グラフ</strong> も使えます. 棒を離すか詰めるかは「連続量を階級に区切ったか」で決まり, 質的データでも順序尺度なら詰めて (ヒストグラム風に) 描いてかまいません.</p>
+</div>
+<p>樹形図はデータの形からグラフを選ぶ方法です. グラフを選ぶもう 1 つの手がかりは, 図で何を見せたいか (比較, 構成, 分布, 変化, 関係) です. 見せたいことごとに, 次のグラフが使えます.</p>
+<ul>
+<li><strong>比較</strong>: <a href="../../../fields/descriptive/vis-basic/basic-graphs.html#bar">棒グラフ</a></li>
+<li><strong>構成</strong>: <a href="../../../fields/descriptive/vis-basic/pie.html#pie">円グラフ</a>, <a href="../../../fields/descriptive/vis-basic/stacked-bar.html#stacked-bar">積み上げ棒グラフ</a></li>
+<li><strong>分布</strong>: <a href="../../../fields/descriptive/vis-distribution/index.html#histogram">ヒストグラム</a>, <a href="../../../fields/descriptive/vis-distribution/boxplot.html#boxplot">箱ひげ図</a></li>
+<li><strong>変化</strong>: <a href="../../../fields/descriptive/vis-basic/line.html#line">折れ線グラフ</a> (複数の系列を重ねる方法は <a href="../../../fields/descriptive/vis-design/for-graph.html#for-graph">for 文を利用したグラフ</a>)</li>
+<li><strong>関係</strong>: <a href="../../../fields/descriptive/vis-relation/index.html#scatter">散布図</a>, <a href="../../../fields/descriptive/vis-relation/scatter-matrix.html#scatter-matrix">散布図行列</a>, <a href="../../../fields/descriptive/vis-relation/heatmap.html#heatmap">ヒートマップ</a>, <a href="../../../fields/descriptive/vis-more/relation-diagram.html#relation-diagram">変数の関係を図で表す</a></li>
+</ul>
+<p>同じデータでも, 軸に何を取るかで読み取れることが変わり (<a href="../../../fields/descriptive/vis-reading/index.html#axis-choice">縦軸と横軸の選び方</a>), 軸の範囲や色の付け方によっては, グループの間に実際より大きな差があるように見えます (<a href="../../../fields/descriptive/vis-reading/exaggeration.html#exaggeration">誇張と強調が読み取りに与える影響</a>).</p>
+<p>この節に対応する演習は, <a href="../../../fields/descriptive/vis-reading/exercises.html#exercise-dsp3-2">Exercise DSP3-2</a>です.</p>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../fields/descriptive/vis-basic/index.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">図の選び方と基礎的なグラフ</span>
+    </a>
+    <a class="next" href="../../../fields/descriptive/vis-basic/basic-graphs.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">基礎的なグラフ (棒グラフ, 円グラフ, 折れ線グラフ)</span>
+    </a>
+</nav>
+
+</article>
+
+
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        <nav class="footer-nav" aria-label="フッターナビゲーション">
+            <a href="../../../">Home</a>
+            <a href="../../../posts.html">Blog</a>
+            <a href="../../../lectures.html">Lecture</a>
+            <a href="../../../research.html">Research</a>
+            <a href="../../../rss.xml">RSS</a>
+            <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+        </nav>
+        <p class="footer-copy">&copy; yakagika &middot; Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>.</p>
+    </div>
+</div>
+
+
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="ページ先頭へ戻る" title="先頭へ戻る">↑</button>
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+            link.classList.add('external-link');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level;
+          switch (heading.tagName.toLowerCase()) {
+            case 'h2': level = 0; break;
+            case 'h3': level = 1; break;
+            case 'h4': level = 2; break;
+            default: return;
+          }
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          // Pandoc は `::: note` + 見出し の組み合わせを <section id="..." class="note">
+          // 内の <hN> として出力するため, 見出し自身に id が無い場合は
+          // 親 section の id を辿る.
+          var anchorId = heading.id;
+          if (!anchorId) {
+            var parentSection = heading.closest('section[id]');
+            if (parentSection) anchorId = parentSection.id;
+          }
+          anchor.href = '#' + anchorId;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi && !li.contains(currentLi)) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+
+      // ----------------------------------------
+      // スクロールスパイ: 表示中の見出しを TOC でハイライト
+      // ----------------------------------------
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0 || typeof IntersectionObserver === 'undefined') return;
+
+      var idToTocItem = new Map();
+      headings.forEach(function(h) {
+        if (!h.id) return;
+        var link = tocContainer.querySelector('a[href="#' + CSS.escape(h.id) + '"]');
+        if (link) {
+          var li = link.closest('.toc-item') || link.closest('li');
+          if (li) idToTocItem.set(h.id, li);
+        }
+      });
+
+      var visible = new Set();
+      var lastActive = null;
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+
+        // ドキュメント順で最初に可視な見出しをアクティブに
+        var firstVisible = null;
+        for (var i = 0; i < headings.length; i++) {
+          if (visible.has(headings[i].id)) {
+            firstVisible = headings[i].id;
+            break;
+          }
+        }
+        if (!firstVisible) return;
+
+        var tocItem = idToTocItem.get(firstVisible);
+        if (!tocItem || tocItem === lastActive) return;
+
+        if (lastActive) lastActive.classList.remove('toc-active');
+        tocItem.classList.add('toc-active');
+        lastActive = tocItem;
+
+        // TOC を必要なときだけスクロール
+        tocItem.scrollIntoView({
+          block: 'nearest',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
+      }, {
+        // ヘッダー (60px) を除いた上部 〜 画面下から60% を判定領域とする
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0
+      });
+
+      headings.forEach(function(h) { if (h.id) observer.observe(h); });
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
+      const pre = codeBlock.parentNode;
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
+      copyButton.textContent = 'Copy';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    // パスワード保護付き details (回答例用)
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll('details.protected').forEach(function (det) {
+        var pass = det.getAttribute('data-pass') || '';
+        var summary = det.querySelector('summary');
+        if (!summary) return;
+
+        var gate = document.createElement('div');
+        gate.className = 'pass-gate';
+        gate.innerHTML =
+          '<label>合言葉: <input type="password" autocomplete="off" spellcheck="false"></label>' +
+          '<button type="button">解除</button>' +
+          '<span class="pass-error" hidden>合言葉が違います</span>';
+        summary.insertAdjacentElement('afterend', gate);
+
+        var input = gate.querySelector('input');
+        var button = gate.querySelector('button');
+        var errorMsg = gate.querySelector('.pass-error');
+
+        function tryUnlock() {
+          if (input.value === pass) {
+            det.classList.add('unlocked');
+            errorMsg.hidden = true;
+          } else {
+            errorMsg.hidden = false;
+            input.select();
+          }
+        }
+
+        button.addEventListener('click', tryUnlock);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
+        });
+
+        det.addEventListener('toggle', function () {
+          if (det.open && !det.classList.contains('unlocked')) {
+            input.focus();
+          }
+        });
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            try {
+              katex.render( texText.data
+                          , mathElements[i]
+                          , { displayMode: mathElements[i].classList.contains("display")
+                            , throwOnError: true
+                           }
+                          );
+            } catch (e) {
+              // 1 つの数式のエラーで残り全ての数式が生 TeX のまま残らないようにする
+              console.error('KaTeX render error:', e.message, texText.data);
+            }
+          }
+      }
+    });
+  </script>
+
+  <!-- 見出しアンカーリンク + Back to top -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 記事見出しに hover で現れる # パーマリンクを付与
+      document.querySelectorAll('article h2[id], article h3[id]').forEach(function (h) {
+        var a = document.createElement('a');
+        a.className = 'heading-anchor';
+        a.href = '#' + h.id;
+        a.setAttribute('aria-label', 'このセクションへのリンク');
+        a.textContent = '#';
+        h.appendChild(a);
+      });
+
+      // Back to top: スクロール量に応じて表示
+      var btt = document.getElementById('back-to-top');
+      if (btt) {
+        var onScroll = function () {
+          if (window.pageYOffset > 600) btt.classList.add('visible');
+          else btt.classList.remove('visible');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        btt.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
+    });
+  </script>
+
+  </body>
+</html>
