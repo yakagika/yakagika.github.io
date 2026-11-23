@@ -19,7 +19,6 @@ IMAGE_ROOT = Path(__file__).resolve().parents[1] / "images/fields/regression"
 POPULATION_SIZE = 200_000
 POPULATION_SEED = 2026
 SAMPLE_SIZE = 100
-LINE_SEEDS = (2028, 2029, 2030, 2031)
 INTERVAL_SEED = 2027
 INTERVAL_REPETITIONS = 1_000
 INTERVALS_SHOWN = 60
@@ -45,54 +44,6 @@ def fit_ols(
     """
     design = sm.add_constant(sample[predictors].astype(float))
     return sm.OLS(sample[response], design).fit()
-
-
-def draw_sample_lines(
-    population_fit: sm.regression.linear_model.RegressionResultsWrapper,
-    sample_fits: list[sm.regression.linear_model.RegressionResultsWrapper],
-) -> None:
-    """勉強時間で観測 GPA を当てはめた母集団近似と標本の直線を保存する."""
-    hours = np.array([2, 18])
-    fig, ax = plt.subplots(figsize=(7.2, 4.3), layout="constrained")
-    styles = (
-        ("#0072b2", (0, (6, 3))),
-        ("#b13b00", (0, (3, 2))),
-        ("#00765f", (0, (6, 2, 1, 2))),
-        ("#8e4b8b", (0, (1, 2))),
-    )
-    population_line = (
-        population_fit.params["const"] + population_fit.params[STUDY] * hours
-    )
-    ax.plot(
-        hours,
-        population_line,
-        color=POPULATION_COLOR,
-        linewidth=2.7,
-        label=f"Population approximation (n = {POPULATION_SIZE:,})",
-    )
-    for index, (fit, (color, linestyle)) in enumerate(
-        zip(sample_fits, styles, strict=True)
-    ):
-        line = fit.params["const"] + fit.params[STUDY] * hours
-        ax.plot(
-            hours,
-            line,
-            color=color,
-            linestyle=linestyle,
-            linewidth=1.9,
-            label=f"Sample {index + 1} (n = {SAMPLE_SIZE})",
-        )
-
-    ax.set(
-        xlabel="Study time (hours per week)", ylabel="Fitted GPA (points)", xlim=(2, 18)
-    )
-    ax.set_xticks(np.arange(2, 19, 2))
-    ax.grid(color="#dedede", linewidth=0.7)
-    ax.legend(loc="upper left", frameon=True, framealpha=1)
-    output = IMAGE_ROOT / "reg-intro" / "sample-regression-lines.png"
-    output.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(output, dpi=200, facecolor="white")
-    plt.close(fig)
 
 
 def calculate_intervals(response: str, reference: float) -> tuple[np.ndarray, np.ndarray]:
@@ -512,15 +463,6 @@ def main() -> None:
     study_auxiliary = fit_ols(population, STUDY, [SCHOLARSHIP, WORK])
     study_vif = 1 / (1 - study_auxiliary.rsquared)
 
-    sample_fits = [
-        fit_ols(
-            draw_sample(np.random.default_rng(seed), SAMPLE_SIZE, STRUCTURE),
-            "GPA",
-            [STUDY],
-        )
-        for seed in LINE_SEEDS
-    ]
-    draw_sample_lines(simple, sample_fits)
     latent_reference = fit_ols(population, "GPA_latent", [STUDY]).params[STUDY]
     observed_reference = simple.params[STUDY]
     latent_intervals, latent_covers = calculate_intervals("GPA_latent", latent_reference)
@@ -531,8 +473,6 @@ def main() -> None:
     print(f"Population approximation (n = {POPULATION_SIZE:,}, seed = {POPULATION_SEED})")
     print(f"Simple regression: intercept = {simple.params['const']:.6f}")
     print(f"Simple regression: slope = {observed_reference:.6f}")
-    for seed, fit in zip(LINE_SEEDS, sample_fits, strict=True):
-        print(f"Sample seed {seed}: slope = {fit.params[STUDY]:.6f}")
     for label, fit in (
         ("With work time", with_work),
         ("Without work time", without_work),
