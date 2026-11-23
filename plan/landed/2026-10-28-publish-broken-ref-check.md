@@ -2,10 +2,10 @@
 plan_id: publish-broken-ref-check
 status: landed
 created: 2026-10-28
-updated: 2026-10-28
+updated: 2026-11-22
 priority: medium
-next_actor: user
-next_action: "次の publish.sh の実行で検査の段が通ることを本人が確かめる"
+next_actor: none
+next_action: "なし (公開時に検査の段が通ったことを 2026-11-22 に本人が確認)"
 ---
 
 # 公開前に参照切れを検査する
@@ -41,3 +41,4 @@ next_action: "次の publish.sh の実行で検査の段が通ることを本人
 ## 変更履歴
 
 - 2026-10-28: 本人が設計を承認. 1f4b592 で `scripts/check_local_refs.py` と `publish.sh` の変更を main へ取り込んだ. 試作の対象に `link` の href と `script` の src を足した (CSS と script の欠落も拾うため). 現在の `docs/` で 0 件. `docs/` の copy から画像 1 枚を消すと 1 件, `style.css` を消すと全ページ分を報告し, 終了コード 1 を返すことを確かめた. publish.sh は `set -e` で, 検査が失敗すると commit と push に進まない. 実行は `uv run --no-project python`.
+- 2026-11-22: 確認待ちを閉じた (本人の回答「通ったので閉じる」). 対象は 2026-10-29, 11-09, 11-18, 11-20 の 4 回の公開. 補助の根拠として, 4 回分の `docs/` (各 114 HTML) に現在の検査を掛け直して参照切れ 0 件. 当時の実行の記録は見ていない.
