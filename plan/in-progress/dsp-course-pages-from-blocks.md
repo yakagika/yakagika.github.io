@@ -5,7 +5,7 @@ created: 2026-11-23
 updated: 2026-11-23
 priority: high
 next_actor: agent
-next_action: "今日 (2026-11-23) 切り替える. 下の節「切り替え」の手順 1〜4 を進め, 最後に push と publish の承認を本人に問う"
+next_action: "今日 (2026-11-23) 切り替える. 下の節「切り替え」の手順 2 (codex dsp-switch を実行中) を受領し, 手順 3, 4 を進め, 最後に push と publish の承認を本人に問う"
 ---
 
 # dsp の講義のページを参考資料のブロックから組み, 発展は参考資料へのリンクにする
@@ -104,8 +104,8 @@ next_action: "今日 (2026-11-23) 切り替える. 下の節「切り替え」�
 
 ### 手順
 
-1. 仕組み (codex dsp-course-pages): feedback 2 (左の欄, 閉じた講義でも検査, 閉じた講義の canonical) は受領済み (3 件とも試験つき, 既存ページ不変, rebuild 12.4 → 13.6 秒). feedback 3 (ブロックの題名の区切り, `briefs/course-pages-fb3.md`) を実行中. 受領 → clone で commit → main へ rebase (`templates/block-page-cards.html` は codex の `hasPrevious` の版を採る. main 側の `$if(previousUrl)$` の版は分野の目次でも同じ出力になる) → 写しで検査 → land.
-2. 切り替えの内容 (codex へ新しく委譲. 1 と file が重なるのは `courses/dsp.yaml` だけ): `courses/dsp.yaml` を `open: true` に. 回帰の 14 ブロックを `open: true` に. 旧ページ `lectures/dsp/dsp1.md`〜`dsp16.md` の冒頭に, 対応する新しいページへの案内を置く (対応の案: dsp1 → 講義の目次と「本資料の読み方」, dsp2〜dsp9 → 第 2〜9 回, dsp10 → 第 8 回の dl-lifecycle と参考資料の dl-training-*, dsp11 → 第 10 回, dsp12 → 総合実習の講義専用ページ, dsp13〜16 → 選択資料. 節の単位の対応は `scripts/dsp_migration/` の表から作る). `pages/lectures.markdown` の dsp のカードを `courses/dsp/index.html` へ向け, 回帰分析の分野のカードの「公開までは「データサイエンス実践」の第5章を参照.」を除く. `courses/dsp/guide.md` の「発展の節」の説明と章立てを, 新しい形 (発展は各回の最後のページと回のページの「発展 (参考資料で読む)」の一覧) に書き直す. 第 5 回の intro の第 16 章へのリンクは参考資料の因果推論のブロックへ向けるか検討. 対応表 (`plan/landed/2026-11-20-dsp-curriculum-matrix.md`) の節アンカーを新しいページへ付け替える. 文の執筆は writing-style に従う.
+1. 仕組み (codex dsp-course-pages): **land 済み** (8fa43d17, tag `landed/dsp-course-pages-mechanism`). feedback 2 (左の欄, 閉じた講義でも検査, 閉じた講義の canonical) と feedback 3 (2 つ目以降のブロックの前に題名の見出し `h1.lesson-block-title`, 試験 `check_lesson_block_titles`. 区切りの id がブロックの本文の id と重なると build が止まることも試験で確かめた) を受領. rebase の衝突は `templates/block-page-cards.html` だけで, codex の `hasPrevious` の版を採った. 写しの検査 (main 7d58c746 と比較): build 警告 0, 試験, rebuild (17.9 秒), 参照, 旧 ID が通過. 既存 387 ページは不変, 追加は courses/dsp/<n>/ の 25 件で全部 noindex かつ canonical 無し, sitemap 不変. codex の subagent 0, 開いた外部の domain は本人のサイトと 127.0.0.1 だけ.
+2. 切り替えの内容 (2026-11-23 に codex へ委譲. 依頼文 `briefs/dsp-switch.md`, slug dsp-switch. 回帰以外のブロックから旧 dsp5 への 36 件と回帰のブロックから旧 dsp13, dsp16 への 5 件のリンクを参考資料へ付け替えること, 講義専用ページの「第N章」を回に直すこと (旧 Ch11 → 第 10 回のずれに注意) も足した): `courses/dsp.yaml` を `open: true` に. 回帰の 14 ブロックを `open: true` に. 旧ページ `lectures/dsp/dsp1.md`〜`dsp16.md` の冒頭に, 対応する新しいページへの案内を置く (対応の案: dsp1 → 講義の目次と「本資料の読み方」, dsp2〜dsp9 → 第 2〜9 回, dsp10 → 第 8 回の dl-lifecycle と参考資料の dl-training-*, dsp11 → 第 10 回, dsp12 → 総合実習の講義専用ページ, dsp13〜16 → 選択資料. 節の単位の対応は `scripts/dsp_migration/` の表から作る). `pages/lectures.markdown` の dsp のカードを `courses/dsp/index.html` へ向け, 回帰分析の分野のカードの「公開までは「データサイエンス実践」の第5章を参照.」を除く. `courses/dsp/guide.md` の「発展の節」の説明と章立てを, 新しい形 (発展は各回の最後のページと回のページの「発展 (参考資料で読む)」の一覧) に書き直す. 第 5 回の intro の第 16 章へのリンクは参考資料の因果推論のブロックへ向けるか検討. 対応表 (`plan/landed/2026-11-20-dsp-curriculum-matrix.md`) の節アンカーを新しいページへ付け替える. 文の執筆は writing-style に従う.
 3. coordinator: CLAUDE.md の dsp の節 (新しい講義のページが正, 旧ページは案内つきで残して後で削除) と分野とブロックの節 (回帰は開いた) を直す. 親計画 (lecture-block-restructure) の Phase 5 の記述と台帳 (ブロックを開く時期) を更新する.
 4. 全体を写しで検査 (build, 試験, rebuild, 参照, 旧 ID, 撮影) → 本人に push と publish の承認を問う (publish.sh は未 commit の file も公開する. 未送信の commit は約 90 件. 公開される範囲を報告に並べる).
 
@@ -129,3 +129,4 @@ next_action: "今日 (2026-11-23) 切り替える. 下の節「切り替え」�
 - 2026-11-23: 起草 (coordinator). 現状は main で確かめた.
 - 2026-11-23: 本人の回答 4 つを記録 (すべて推奨の案).
 - 2026-11-23: codex へ 2 本を委譲. 仕組み (依頼文 `_scratch/dsp-layout/handoff-1122/briefs/course-pages.md`, slug dsp-course-pages, effort high) と reg-selection の分割 (`briefs/reg-selection-split.md`, slug dsp-reg-selection-split. 新しい発展のブロック reg-selection-more へ 4 節を移す). 設計の決定: 講義のページの URL は `courses/<course>/<n>/<最初のブロック名>.html`, まとめ方は回の `pages:` (省略時は 1 ブロック 1 ページ), 2 つ目以降のブロックの重なる id は `<ブロック名>-<id>`, 講義の順の移動は 目次 → 回 → 講義専用ページ (初出だけ) → 講義のページ → 次の回. 見本は 2 ブロックをまとめたページを含む第 3 回も見せる (第 4 回は 1 ブロック 1 ページだけのため).
+- 2026-11-23: 講義のページの仕組みを land (8fa43d17). 切り替えの内容を codex へ委譲 (`briefs/dsp-switch.md`).
