@@ -6,7 +6,7 @@ requires:
   - reg-intro
 ---
 
-[回帰式と回帰係数](block:reg-intro#regression-equation)では, 勉強時間と平均 GPA の関係を直線で表しました.
+[回帰式と回帰係数](block:reg-intro#regression-equation)では, x の値が同じ観測の y の平均を直線の式で表しました.
 母集団で平均がどう変わるかを表す式と, 一つの標本から求める直線を区別すると,
 標本を取り直したときに傾きが変わる理由と, そのばらつきの測り方が分かります.
 
@@ -16,10 +16,9 @@ requires:
 母集団で, 勉強時間が同じ学生の GPA を平均した値が**条件つき期待値** $E(Y \mid X)$ です.
 例えば, $E(Y \mid X = 10)$ は, 週 10 時間勉強する学生の平均 GPA です.
 説明変数の値ごとにこの平均を与える式を**母回帰式**と呼びます.
-[回帰式と回帰係数](block:reg-intro#regression-equation)の $m(x)$ を母回帰式として書くと,
-$m(x)=E(Y \mid X=x)$ です.
 
 母回帰式が直線のときは $E(Y \mid X) = \beta_0 + \beta_1 X$ と書けます.
+[回帰式と回帰係数](block:reg-intro#regression-equation)の式で, 誤差を除いた $\beta_0 + \beta_1 x$ がこれにあたります.
 週あたりの勉強時間が 1 時間異なる学生を比べると, 母集団の平均 GPA の差は $\beta_1$ です.
 $\beta_0$ と $\beta_1$ は母集団の係数なので, 同じ母集団から標本を取り直しても値は固定です.
 
