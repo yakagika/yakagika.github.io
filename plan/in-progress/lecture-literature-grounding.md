@@ -133,9 +133,11 @@ next_action: "Phase 2 (第13章, 第16章, 第14章) を, 講義資料の再編 
 
 ## 入手待ちの文献 (2026-11-23, 回帰分析の 13 ブロック)
 
-回帰分析の 13 ブロックで引く 21 件の本文を確かめた (Sonnet 2 本. 結果は `_scratch/dsp-layout/handoff-1122/lit/result-a.md`, `result-b.md`). 12 件は本文を確かめ, 論文 DB へ検証の水準の記録を依頼した (papers への handoff, chain `haskell-blog-2026-11-23T21-36-09-671554-…`). 次の 9 件は入手できなかった. 入手するまでは中身の説明を足さず, 引用の位置だけを直す (回帰の 13 ブロックの指示書の方針). 入手は本人が大学図書館か購入で行う (外部の入手待ち. Todoist に「回帰分析の参考資料で引く文献 9 件を大学図書館か購入で入手する」を登録した).
+回帰分析の 13 ブロックで引く 21 件の本文を確かめた (Sonnet 2 本. 結果は `_scratch/dsp-layout/handoff-1122/lit/result-a.md`, `result-b.md`). 12 件は本文を確かめ, 論文 DB へ検証の水準の記録を依頼した (papers への handoff, chain `haskell-blog-2026-11-23T21-36-09-671554-…`). 次の 9 件は入手できなかった. 入手するまでは中身の説明を足さず, 引用の位置だけを直す (回帰の 13 ブロックの指示書の方針). 入手は本人が大学図書館か購入で行う (外部の入手待ち. Todoist に「回帰分析の参考資料で引く文献 10 件を大学図書館か購入で入手する」を登録した. leamer1983let を加えて 10 件).
 
-papers は 12 件のうち 11 件を記録した (2026-11-23). leamer1983let だけは, PDF が個人のサイトに置かれた写しで公開の許可が分からないため, papers が本人の判断待ちにした (level は identity のまま, PDF は `~/Documents/Papers/_db/inbox/haskell-blog-2026-11-23/` に残っている). 本人が受け入れると決めるまで, leamer1983let も中身の説明を足さない扱いにする (モデル選択のブロックの指示書に書く).
+papers は 12 件のうち 11 件を記録した (2026-11-23). leamer1983let は, PDF が個人のサイトに置かれた写しで公開の許可が分からないため, 本人が papers の session で「取り込まない」と裁定した (PDF は削除, level は identity のまま). leamer1983let も上の 9 件と同じく中身の説明を足さず, 入手の候補に加える (下の表の最後の行).
+
+英文の抜粋を PDF の本文で照合した (`_scratch/dsp-layout/handoff-1122/lit/quote-check.md`). gelman2014statistical の "even with just one analysis of the data" だけは本文に無い (趣旨は本文が支持する). 引用符で引くときは本文の文を使う.
 
 | bibkey | 試した経路 | 入手元の候補 |
 |---|---|---|
@@ -148,6 +150,7 @@ papers は 12 件のうち 11 件を記録した (2026-11-23). leamer1983let だ
 | burnham2002model | 手元に無い | 大学図書館の Springer Link (doi 10.1007/b97636), 購入 |
 | konishi2004 | 手元に無い | 図書館, 購入 (朝倉書店『情報量規準』, 2004) |
 | hendry2014empirical | 手元に無い | 大学図書館の MIT Press (doi 10.7551/mitpress/9780262028356.001.0001), 購入 |
+| leamer1983let | 個人のサイトの写し (本人の裁定で取り込まない) | 大学図書館の JSTOR (American Economic Review 73(1): 31-43, 1983) |
 
 ## 依存
 
