@@ -461,6 +461,7 @@ Prob (F-statistic): 0.108
 :::
 
 介入の効果を問う方法は[因果推論とは何か](block:reg-causal)で扱います.
+出生率の例で, 日本での介入の効果を求めるのに何が要るかは[国の間の出生率の比較と国内での介入](block:reg-causal#fertility-intervention)で述べます.
 その前に, [重回帰分析と偏回帰係数](block:reg-multiple)では, 説明変数を 2 つ以上にして, 他の変数の値が同じ観測どうしを比べる方法を考えます.
 
 # 演習 {#exercises}
