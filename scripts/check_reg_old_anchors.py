@@ -2,7 +2,7 @@
 """旧 DSP 第 5 章の ID と回帰分析のブロックへの対応を調べる.
 
 使い方: python3 scripts/check_reg_old_anchors.py [docs]
-旧 ID は生成済み HTML で, 行き先はブロックの Markdown で調べる.
+旧 ID は生成済み HTML で, 行き先はブロックの Markdown の見出しと囲みの ID から調べる.
 成功時は旧 ID と行き先の URL を TSV で出力する.
 問題があれば該当する項目を列挙して終了コード 1 を返す.
 """
@@ -21,6 +21,8 @@ DSP5_LINK = re.compile(r"""(?<![\w.-])dsp5\.html#([^\s<>()"'`\]]+)""")
 FENCE = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
 HEADING = re.compile(r"^(#{1,6})[ \t]+(.*)$")
 HEADING_ID = re.compile(r"[ \t]+\{#([^\s}]+)(?:[ \t]+[^}]*)?\}[ \t]*$")
+DIV_OPEN = re.compile(r"^ {0,3}:{3,}[ \t]*\{(.*)\}[ \t]*$")
+DIV_ATTRIBUTE = re.compile(r"""(?:[^\s"']|"[^"]*"|'[^']*')+""")
 
 
 def read_mappings(path: Path, issues: list[str]) -> dict[str, tuple[str, str]]:
@@ -42,8 +44,8 @@ def read_mappings(path: Path, issues: list[str]) -> dict[str, tuple[str, str]]:
         return mappings
 
 
-def heading_urls(source: Path, base_url: str) -> dict[str, str]:
-    """ブロックの明示 ID を, 所属するページの URL に対応させる."""
+def anchor_urls(source: Path, base_url: str) -> dict[str, str]:
+    """見出しと囲みの明示 ID を, 所属するページの URL に対応させる."""
     urls = {}
     page_url = f"{base_url}/index.html"
     fence = ""
@@ -57,6 +59,14 @@ def heading_urls(source: Path, base_url: str) -> dict[str, str]:
             continue
         if marker:
             fence = marker[1]
+            continue
+        div = DIV_OPEN.match(line)
+        if div:
+            for attribute in DIV_ATTRIBUTE.findall(div[1]):
+                if attribute.startswith("#") and len(attribute) > 1:
+                    encoded = quote(attribute[1:], safe="")
+                    urls[attribute[1:]] = f"{page_url}#{encoded}"
+                    break
             continue
         heading = HEADING.match(line)
         if not heading:
@@ -114,10 +124,10 @@ def main() -> int:
             continue
         if target_id:
             if block not in block_urls:
-                block_urls[block] = heading_urls(repo / source, base_url)
+                block_urls[block] = anchor_urls(repo / source, base_url)
             url = block_urls[block].get(target_id)
             if url is None:
-                issues.append(f"#{old_id}: 行き先の見出し ID がありません {source}#{target_id}")
+                issues.append(f"#{old_id}: 行き先の見出し・囲み ID がありません {source}#{target_id}")
                 continue
         else:
             url = f"{base_url}/index.html"
