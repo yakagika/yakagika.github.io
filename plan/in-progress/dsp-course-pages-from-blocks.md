@@ -109,6 +109,8 @@ next_action: "公開済み (2026-11-23, d7440e56). 残りは旧ページの削�
 3. **済み (2026-11-23)**. coordinator: CLAUDE.md の dsp の節 (新しい講義のページが正, 旧ページは案内つきで残して後で削除) と分野とブロックの節 (回帰は開いた) を直す. 親計画 (lecture-block-restructure) の Phase 5 の記述と台帳 (ブロックを開く時期) を更新する.
 4. **公開済み** (2026-11-23. 本人の回答 (AskUserQuestion)「今 publish する」. publish の commit d7440e56 で未送信の 91 commit と生成した docs を push. 公開されたサイトで講義の目次, 回のページ, 講義のページの区切りの見出し, 回帰の目次, 旧第 5 章の案内, 講義一覧のカード, sitemap を確かめた). 承認を問うときの記録: 本人に push と publish の承認を問う (publish.sh は未 commit の file も公開する. 未送信の commit は約 90 件. 公開される範囲を報告に並べる).
 
+5. **回のページの廃止: land 済み** (2026-11-23, 33d9fd96, tag `landed/drop-session-pages`. 本人「講義資料の「この回のページ」が載っているページは必要ないので消して下さい.」). 本人の回答 (AskUserQuestion): 回の説明文は最初の講義のページへ移す. 講義のページが無い回 (第 1 回, 第 11〜13 回) は講義専用ページを直接指す. 補足のページ (選択資料) は残す. codex (slug drop-session-pages) が実装し, Sonnet の差分の照合で全項目 pass. 検査: stack build, test_block_site.py, check_reg_old_anchors.py, check_local_refs.py が通過. 未公開: 次の publish で `docs/courses/dsp/1.html`〜`13.html` (古い生成物) を消す (Hakyll は出力しなくなった file を消さない). 理由 c (公開は本人の承認待ち).
+
 ### 旧講義ページの削除の計画
 
 - 本人の決定 (2026-11-23): しばらく残した後, 一定の期間で削除する. 期間は未定. 今学期の dsp の授業が終わった時点で, 削除の日を本人に問う (理由 a. この計画の next_action に引き継ぐ).
