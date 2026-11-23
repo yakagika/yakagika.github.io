@@ -5,7 +5,7 @@ created: 2026-11-20
 updated: 2026-11-23
 priority: high
 next_actor: agent
-next_action: "reg13-decisions.md (scratch の briefs) から回帰の A, B, E の指示書を書き codex Sol を 3 本出す. 並行して文献の PDF の MANIFEST を書き papers へ handoff する"
+next_action: "回帰の A, B, E を codex Sol に出した (slug reg13-a/b/e, 指示書は scratch の briefs/reg13-*.md). 返ったら受入の検査をし land する. 並行して文献の PDF の MANIFEST を書き papers へ handoff する"
 ---
 
 # 講義資料を分野とブロックに分け, 講義はブロックの並びかブロックへのリンクで組む
@@ -731,7 +731,7 @@ A, B では切り替えまで同じ本文が 2 つの URL に出る. 切り替�
   - 指示書の型: 見本で差分が最小だった型 (「旧の文を写す. 変えてよい箇所は列挙する. 変えた箇所は表で返す」). ブロックごとに戻さない項目 (決定と食い違う 33 件のうち該当分) を付ける. コード, 出力, 数値, 標本の人数, 式は今の版のまま. 規則の file (`writing/local/lecture-discourse.md`) と reg-intro の直し (c7a73966) を見本として読ませる.
   - 受入の検査に足すもの: コードと出力の fence が直す前後で集合として一致する. `{#id}` の集合が裁定した分を除いて同じ. 演習が変わっていない. `本講義|第 .* 章|授業で|(発展)|この講義|DSP5-` が無い. データの初出が導入より前に無い. 触れた節の逆アウトライン (段落ごとの主張を 1 文で並べたもの) を codex に返させ, coordinator が A→B→C と読めるかを確かめる.
   - 確かめたこと: 対応表 (`plan/landed/2026-11-20-dsp-curriculum-matrix.md`) に model-fit, inference, binary-response を指すアンカーは無い.
-  - 進み具合 (2026-11-23 coordinator, advisor の 2 回目の助言を反映): 文献の確認 (Sonnet 2 本) が返った. 本文を確かめたのは 12 件, 入手できないのは 9 件. 直す引用が 3 か所 (reg-selection-more:48 の james chap. 6 は不支持, :122 の efron は §16.6, reg-causal:154 の hernan chap. 2 は一部支持). 抜粋は C, D の指示書の前に PDF の本文で照合する. ブロックをまたぐ決定 (経路と冒頭が頼ってよい範囲, 潜在得点の正本の段落を reg-multiple と reg-ols#coverage に置く, 記号表と実際のデータでの事例を囲みにする, 図 7 枚は codex が座標から計算する script で SVG を書き logistic-function は新しい置き場, 冒頭と終わりの文の案, C, D へのリンクの ID を固定) は `_scratch/dsp-layout/handoff-1122/briefs/reg13-decisions.md` に書いた. 次: その file から A, B, E の指示書を書いて codex Sol を 3 本出す. 並行して PDF の MANIFEST を書き papers へ handoff する. 検査 script は `_scratch/dsp-layout/handoff-1122/verify-reg.sh` に写した.
+  - 進み具合 (2026-11-23 coordinator, advisor の 2 回目の助言を反映): 文献の確認 (Sonnet 2 本) が返った. 本文を確かめたのは 12 件, 入手できないのは 9 件. 直す引用が 3 か所 (reg-selection-more:48 の james chap. 6 は不支持, :122 の efron は §16.6, reg-causal:154 の hernan chap. 2 は一部支持). 抜粋は C, D の指示書の前に PDF の本文で照合する. ブロックをまたぐ決定 (経路と冒頭が頼ってよい範囲, 潜在得点の正本の段落を reg-multiple と reg-ols#coverage に置く, 記号表と実際のデータでの事例を囲みにする, 図 7 枚は codex が座標から計算する script で SVG を書き logistic-function は新しい置き場, 冒頭と終わりの文の案, C, D へのリンクの ID を固定) は `_scratch/dsp-layout/handoff-1122/briefs/reg13-decisions.md` に書いた. 次: その file から A, B, E の指示書を書いて codex Sol を 3 本出す. 並行して PDF の MANIFEST を書き papers へ handoff する. 検査 script は `_scratch/dsp-layout/handoff-1122/verify-reg.sh` に写した. 指示書 (2026-11-23 後半): `briefs/reg13-a.md`, `reg13-b.md`, `reg13-e.md` を書き, codex Sol で slug reg13-a, reg13-b, reg13-e を出した (共通の方針は `briefs/reg13-common-policy.md`). A は 1 回目に STOP した: 指示書が「導入のブロックに GPA の例は無い」と書いたが, 導入の `#regression-goals` には目的を比べる架空の学生の記録 (数値と生成の仕組みは無い) がある. 前提を正して差し戻した (`reg13-a-fb1.md`). 指示書の型の直し: 他のブロックの中身についての前提は, 書く前に file で確かめる. B, E の指示書には導入のブロックの今の状態を書いた. coordinator の裁定: 判定し直しの表の reg-multiple の復元案 (節の順序の入れ替え) は採らず節の順序を保つ. reg-logit の 221 行 (固定した曲線に別条件の観測点を重ねる旧図) は戻さない.
 - 対応表の追随: 旧ページが正本の間は節アンカーを変えない (54 件が生成 HTML にあることを確認). land の時に当てる CLAUDE.md と対応表の文は `_scratch/dsp-layout/handoff-1122/after-land-docs.md`.
 - 未 land の成果の退避 (2026-11-22): commit せずに patch と tar を `_scratch/dsp-layout/handoff-1122/backup/` に置き, 復元の一致を確かめた. 隔離 clone の WIP commit と fetch を求める規約より, 本人に示した「commit は別に指示をいただく」を優先した. WIP commit の可否は commit の承認と一緒に聞く.
 
