@@ -706,6 +706,7 @@ A, B では切り替えまで同じ本文が 2 つの URL に出る. 切り替�
 - 依頼文 (codex): 「旧の文を写す. 変えてよいのは列挙した箇所だけ. 変えた箇所は表で返す」と書く. SVG の図は Claude が figure-codex-svg で描く.
 - 受入の検査を 2 つ足す: 写した段落を旧 dsp5 の行と diff し, 差分が上の一覧と一致するか. 分野の順に読み, GPA・出生率・単位取得の初出がデータを導入する箇所より前に無いか (grep). `reg-intro` では GPA の初出が目的の節になる.
 - 見本の後に追随するもの: `reg-ols` の冒頭「勉強時間と平均 GPA の関係を直線で表しました」は `reg-intro` が一般の記号に戻ると合わなくなる (残りの範囲の直しで扱う).
+- 見本の進み具合 (2026-11-23 coordinator): codex Sol (slug reg-intro-sample, 依頼文 `briefs/reg-intro-sample.md`) が本文を直し, 写しの diff は図の 2 行だけだった. 目的の節の見出しは「回帰分析の目的」(ID は同じ. リンクする 3 ブロックの文字列も変えた). 依頼 7 の各要素 (用途を整理した表であること, 定量化から順に他の用途の注意点を見ること) と導入の終わりのつなぎ, 標本の節の 1 文目の「同じ仕組み」を feedback 1 回目で直させている. 旧図 2 枚は Claude が SVG で描いた (置き場 `_scratch/dsp-layout/handoff-1122/figs-reg-intro/`. 受領で `images/fields/regression/reg-intro/` に SVG と PNG を置く). 旧図から変えた点: 図 1 は傾きの吹き出しの誤記だけ. 図 2 は左の破線 1 本を破線で囲んだ平面に, 右の曲線をロジスティック関数の S 字にした. 右の点は旧図のまま曲線の周りに置いた (観測値は 0 か 1 なので本人に示す). 洗い出しの表の判定し直しは codex Astra (slug reg-restore-rejudge) が実行中.
 - 対応表の追随: 旧ページが正本の間は節アンカーを変えない (54 件が生成 HTML にあることを確認). land の時に当てる CLAUDE.md と対応表の文は `_scratch/dsp-layout/handoff-1122/after-land-docs.md`.
 - 未 land の成果の退避 (2026-11-22): commit せずに patch と tar を `_scratch/dsp-layout/handoff-1122/backup/` に置き, 復元の一致を確かめた. 隔離 clone の WIP commit と fetch を求める規約より, 本人に示した「commit は別に指示をいただく」を優先した. WIP commit の可否は commit の承認と一緒に聞く.
 
