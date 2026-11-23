@@ -716,6 +716,7 @@ A, B では切り替えまで同じ本文が 2 つの URL に出る. 切り替�
   - 根本の一つ: manifest の profile の targets と CLAUDE.md の執筆規約の対象が posts/ と lectures/ だけで, fields/ と courses/ を含まない. 足す.
   - 文献の中身は論文 DB の note (`~/Documents/Papers/_db/notes/{leek2015what,hernan2019second,shmueli2010explain,gelman2020regression}.md`, iCloud 配下なので /usr/bin/grep) で確かめてから書く.
 - 囲みの依頼 (2026-11-23 本人, 未着手): 原文「頻度論とベイズ統計学 も 1ブロックに入れるほどの内容ではなく, 回帰分析の目的の部分でNoteなどに入れておけば十分かと思います. 新規作成の箇所にはNoteやWarnなどがないので,どこに使うべきか検討して導入して下さい.」→ reg-intro の節 #inference (頻度論とベイズ統計学) を目的の節の中の `::: note` へ移す (ID #inference の参照を確かめる. 節ページ inference.html が消えるので check_reg_old_anchors と旧 ID の対応を確かめる). 新しく書いた箇所 (目的の節など) で, 補足は `::: note`, 誤用や誤解への注意は `::: warn` を使う箇所を選んで入れる (旧資料での使い方を手本にする). 取り入れる規則の file にも囲みの使い分けを書く.
+- 短い節の統合の依頼 (2026-11-23 本人, 未着手): 原文「結果が0か1かのときも,線形と非線形のところで直接扱えば良い気がします. このくらいの長さの部分は,わざわざ分けないで,文中に入れられる部分は入れてしまいましょう.」→ reg-intro の節 #binary-response (結果が 0 か 1 のとき) を, 回帰式の節の線形回帰と非線形回帰の箇条 (ロジスティック回帰の 1 文) の所へ入れる. 節ページ binary-response.html が消えるので ID の参照 (回帰式の節の `[結果が 0 か 1 のとき](#binary-response)` など) と check_reg_old_anchors を確かめる. 一般則として, 数段落の短い節は前後の節の文中に入れる (規則の file に書く. 残りの 13 ブロックでも当てる).
 - 対応表の追随: 旧ページが正本の間は節アンカーを変えない (54 件が生成 HTML にあることを確認). land の時に当てる CLAUDE.md と対応表の文は `_scratch/dsp-layout/handoff-1122/after-land-docs.md`.
 - 未 land の成果の退避 (2026-11-22): commit せずに patch と tar を `_scratch/dsp-layout/handoff-1122/backup/` に置き, 復元の一致を確かめた. 隔離 clone の WIP commit と fetch を求める規約より, 本人に示した「commit は別に指示をいただく」を優先した. WIP commit の可否は commit の承認と一緒に聞く.
 
