@@ -1,20 +1,11 @@
-"""合成 GPA の因果グラフを描き, 観測 GPA の回帰係数と介入の平均差を出力する."""
+"""合成 GPA の回帰係数と介入の平均差を出力する."""
 
-from pathlib import Path
-
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import statsmodels.api as sm
-from matplotlib.axes import Axes
-from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
 
 from make_reg_gpa import draw_sample, intervene
 
-OUTPUT = (
-    Path(__file__).resolve().parents[1]
-    / "images/fields/regression/reg-causal/gpa-causal-graphs.png"
-)
 SAMPLE_SIZE = 200_000
 SEED = 2026
 STUDY_SHIFT = 1
@@ -51,63 +42,5 @@ def print_comparisons() -> None:
         )
 
 
-def draw_graph(ax: Axes, title: str, study_work_edge: tuple[str, str]) -> None:
-    """勉強時間とアルバイト時間の間の矢印を指定して因果グラフを描く."""
-    positions = {
-        "Study hours": (0.19, 0.20),
-        "Part-time work": (0.50, 0.78),
-        "GPA": (0.81, 0.20),
-    }
-    boxes = {}
-    for label, (x, y) in positions.items():
-        is_work = label == "Part-time work"
-        box = FancyBboxPatch(
-            (x - 0.164, y - 0.095),
-            0.328,
-            0.19,
-            boxstyle="round,pad=0.008,rounding_size=0.035",
-            facecolor="#edf6fc" if is_work else "#f7f8fa",
-            edgecolor="#0072b2" if is_work else "#495363",
-            linewidth=1.3,
-        )
-        ax.add_patch(box)
-        boxes[label] = box
-        ax.text(x, y, label, ha="center", va="center", fontsize=12, color="#172232")
-
-    edges = (("Study hours", "GPA"), ("Part-time work", "GPA"), study_work_edge)
-    for source, target in edges:
-        arrow = FancyArrowPatch(
-            positions[source],
-            positions[target],
-            patchA=boxes[source],
-            patchB=boxes[target],
-            shrinkA=3,
-            shrinkB=3,
-            arrowstyle="-|>",
-            mutation_scale=16,
-            linewidth=1.6,
-            color="#0072b2" if (source, target) == study_work_edge else "#495363",
-            zorder=2,
-        )
-        ax.add_patch(arrow)
-
-    ax.set(xlim=(0, 1), ylim=(0, 1))
-    ax.set_title(title, fontsize=14, pad=8)
-    ax.set_axis_off()
-
-
-def main() -> None:
-    print_comparisons()
-
-    plt.switch_backend("Agg")
-    fig, (left, right) = plt.subplots(1, 2, figsize=(10, 2.75), layout="constrained")
-    fig.get_layout_engine().set(w_pad=0.12, h_pad=0.12, wspace=0.06)
-    draw_graph(left, "(A) Mediator", ("Study hours", "Part-time work"))
-    draw_graph(right, "(B) Confounder", ("Part-time work", "Study hours"))
-    OUTPUT.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(OUTPUT, dpi=200, facecolor="white")
-    plt.close(fig)
-
-
 if __name__ == "__main__":
-    main()
+    print_comparisons()
