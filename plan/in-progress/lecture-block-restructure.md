@@ -5,7 +5,7 @@ created: 2026-11-20
 updated: 2026-11-23
 priority: high
 next_actor: agent
-next_action: "回帰の C, D の指示書を digest (briefs/reg13-c-digest.md, reg13-d-digest.md) と共通の方針から書き, codex Sol に出す (A, B, E は land 済み)"
+next_action: "回帰の C の指示書 (_scratch/dsp-layout/handoff-1122/briefs/reg13-c.md. 書き終えた) を codex Sol に出し, D の裁定 (briefs/reg13-d-decisions.md) から D1 (reg-selection, reg-selection-gpa) と D2 (reg-selection-more, reg-selection-lab, 旧 ID の検査の script) の指示書を同じ型で書いて出す (A, B, E は land 済み)"
 ---
 
 # 講義資料を分野とブロックに分け, 講義はブロックの並びかブロックへのリンクで組む
