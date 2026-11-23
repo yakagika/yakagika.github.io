@@ -131,6 +131,24 @@ next_action: "Phase 2 (第13章, 第16章, 第14章) を, 講義資料の再編 
 
 一覧は検査の script が `writing/citations/unverified.md` に書き出す (publish のたびに更新される). Todoist: この repo の project に「講義資料の未照合の引用を照合する」を登録した (2026-11-20).
 
+## 入手待ちの文献 (2026-11-23, 回帰分析の 13 ブロック)
+
+回帰分析の 13 ブロックで引く 21 件の本文を確かめた (Sonnet 2 本. 結果は `_scratch/dsp-layout/handoff-1122/lit/result-a.md`, `result-b.md`). 12 件は本文を確かめ, 論文 DB へ検証の水準の記録を依頼した (papers への handoff, chain `haskell-blog-2026-11-23T21-36-09-671554-…`). 次の 9 件は入手できなかった. 入手するまでは中身の説明を足さず, 引用の位置だけを直す (回帰の 13 ブロックの指示書の方針). 入手は本人が大学図書館か購入で行う (外部の入手待ち. Todoist に「回帰分析の参考資料で引く文献 9 件を大学図書館か購入で入手する」を登録した).
+
+papers は 12 件のうち 11 件を記録した (2026-11-23). leamer1983let だけは, PDF が個人のサイトに置かれた写しで公開の許可が分からないため, papers が本人の判断待ちにした (level は identity のまま, PDF は `~/Documents/Papers/_db/inbox/haskell-blog-2026-11-23/` に残っている). 本人が受け入れると決めるまで, leamer1983let も中身の説明を足さない扱いにする (モデル選択のブロックの指示書に書く).
+
+| bibkey | 試した経路 | 入手元の候補 |
+|---|---|---|
+| westreich2013table | PMC の PDF, Europe PMC, OUP の PDF (どれも bot の検問), NCBI efetch (本文が空) | 大学図書館経由の OUP (Am J Epidemiol 177(4): 292-298, doi 10.1093/aje/kws412) か, ブラウザで PMC3626058 の PDF を手で保存 |
+| angrist2009mostly | 無料公開の PDF は無い (書籍) | 大学図書館, 購入 (Princeton University Press, 2009) |
+| freedman1983note | Berkeley の Freedman のサイト 3 URL, T&F の直リンク, Web 検索 | 大学図書館 (T&F, American Statistician 37(2): 152-155), ILL |
+| simmons2011false | Sage, SSRN, 大学の写し (どれも HTML が返る) | Sage の大学経由, SSRN abstract=1850704 を手で取得 |
+| leeb2005model | Web 検索, Cowles d1500 (本文でない), Sinica の講演要旨 (1 頁) | Cambridge Core の大学経由 (doi 10.1017/S0266466605050036) |
+| harrell2015regression | 手元に無い | 大学図書館の Springer Link (doi 10.1007/978-3-319-19425-7), 購入 |
+| burnham2002model | 手元に無い | 大学図書館の Springer Link (doi 10.1007/b97636), 購入 |
+| konishi2004 | 手元に無い | 図書館, 購入 (朝倉書店『情報量規準』, 2004) |
+| hendry2014empirical | 手元に無い | 大学図書館の MIT Press (doi 10.7551/mitpress/9780262028356.001.0001), 購入 |
+
 ## 依存
 
 - 論文 DB への取り込みと検証の水準の記録は papers repo で行う (cross-repo handoff. 灰色文献でない論文と本は, 本文の PDF の入手が前提).
