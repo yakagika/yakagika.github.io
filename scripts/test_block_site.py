@@ -93,7 +93,8 @@ class Page(HTMLParser):
         self.links: set[str] = set()
         self.prerequisites: list[str] = []
         self.occurrences: list[dict[str, str]] = []
-        self.nav_stack: list[list[str]] = []
+        self.nav_stack: list[tuple[list[str], tuple[int, int]]] = []
+        self.empty_chapter_cards: set[tuple[int, int]] = set()
         self.items: list[dict[str, str] | None] = []
         self.session_depth: int | None = None
         self.session_rows: list[tuple[set[str], list[str]]] = []
@@ -119,7 +120,10 @@ class Page(HTMLParser):
         if tag == "meta" and attrs.get("name") == "robots":
             self.robots.update(re.split(r"[,\s]+", attrs.get("content") or ""))
         if tag == "nav":
-            self.nav_stack.append(classes)
+            position = self.getpos()
+            self.nav_stack.append((classes, position))
+            if "chapter-nav-card" in classes:
+                self.empty_chapter_cards.add(position)
         if tag == "ol" and "session-blocks" in classes:
             self.session_depth = len(self.items)
         if tag == "li":
@@ -131,6 +135,9 @@ class Page(HTMLParser):
                 self.occurrences.append(occurrence)
         href = attrs.get("href")
         if tag == "a" and href:
+            if href.strip():
+                for _, position in self.nav_stack:
+                    self.empty_chapter_cards.discard(position)
             url = urlsplit(urljoin(f"/{self.path}", href))
             if url.scheme or url.netloc:
                 return
@@ -138,7 +145,7 @@ class Page(HTMLParser):
             if url.fragment:
                 target += "#" + unquote(url.fragment)
             self.links.add(target)
-            if any("block-prerequisites" in names for names in self.nav_stack):
+            if any("block-prerequisites" in names for names, _ in self.nav_stack):
                 self.prerequisites.append(target)
             rel = attrs.get("rel")
             if self.items and self.items[-1] is not None:
@@ -179,6 +186,15 @@ def local_targets(path: str, html: str) -> list[str]:
         unquote(urlsplit(urljoin(f"/{path}", unescape(href))).path).lstrip("/")
         for href in re.findall(r' href="([^"]+)"', html)
     ]
+
+
+def check_chapter_navigation_cards(site: Path) -> None:
+    for group in ("lectures", "courses", "fields"):
+        for path in sorted((site / group).rglob("*.html")):
+            route = path.relative_to(site).as_posix()
+            page = Page(site, route)
+            lines = sorted({line for line, _ in page.empty_chapter_cards})
+            check(not lines, f"{route}: chapter-nav-card without a link on lines {lines}")
 
 
 def check_reference_material_names(site: Path) -> None:
@@ -634,6 +650,7 @@ def main() -> int:
         shutil.copytree(REPO / "fixtures", root / "fixtures")
         subprocess.run([str(executable), "build"], cwd=root, env=FIXTURE_ENV, check=True)
         site = root / "_fixture_site"
+        check_chapter_navigation_cards(site)
         check_reference_material_names(site)
         check_reference_navigation(site)
         check_html(site)

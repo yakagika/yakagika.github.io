@@ -22,7 +22,7 @@ import qualified Data.Set as S
 import Control.Monad (foldM, mplus)
 import Data.Char (toLower)
 import Data.List (elemIndex, find, isPrefixOf, sortBy)
-import Data.Maybe (fromMaybe)
+import Data.Maybe (fromMaybe, isJust)
 import Data.Ord (Down(..))
 import           Data.Time.Clock (UTCTime)
 import           Data.Time.Clock.POSIX (getPOSIXTime)
@@ -269,6 +269,7 @@ main = do
                 open       <- isOpen underlying
 
                 let postCtxWithChapters = postCtx tags <>
+                        chapterNavigationContext prev next <>
                         field "previousChapter" (\_ -> maybe (noResult "no prev") (return . toUrl) prev) <>
                         field "nextChapter" (\_ -> maybe (noResult "no next") (return . toUrl) next) <>
                         field "previousChapterTitle" (\_ -> return "") <>
@@ -371,6 +372,7 @@ main = do
             let seriesHtml = renderSeriesHtml underlying series
 
             let postCtxWithChapters = postCtx tags <>
+                  chapterNavigationContext prev next <>
                   field "previousChapter" (\_ -> maybe (noResult "no prev") (return . toUrl) prev) <>
                   field "nextChapter" (\_ -> maybe (noResult "no next") (return . toUrl) next) <>
                   field "previousChapterTitle" (\_ -> return prevTitle) <>
@@ -720,6 +722,10 @@ filterM :: Monad m => (a -> m Bool) -> [a] -> m [a]
 filterM p = mapM (\x -> (,) x <$> p x) >=> pure . map fst . filter snd
 
 --------------------------------------------------------------------------------
+chapterNavigationContext :: Maybe FilePath -> Maybe FilePath -> Context a
+chapterNavigationContext prev next =
+    boolField "hasChapterNavigation" (const (isJust prev || isJust next))
+
 -- | Look up the title of a chapter by its filename (e.g. "fp1.html" -> "Ch1 ...")
 getChapterTitle :: Maybe String -> Compiler String
 getChapterTitle Nothing     = return ""
