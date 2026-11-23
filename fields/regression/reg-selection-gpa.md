@@ -130,7 +130,7 @@ Model  CV MSE      AIC
 
 `KFold` が返すのは行の位置なので, `iloc` で学習用データから行を取り出します.
 AIC は候補ごとに同じ 70 人で当てはめて計算します.
-`statsmodels` の `aic` は誤差分散をパラメータ数に含めないため, 誤差分散を含めて $p=k+2$ とする[その他の手法の問題と使いどころ](block:reg-selection#other-methods)の表より, 同じ式の AIC が 2 小さくなります.
+`statsmodels` の `aic` は誤差分散をパラメータ数に含めないため, 誤差分散を含めて $p=k+2$ とする[情報量規準](block:reg-selection#information-criteria)の式より, 同じ式の AIC が 2 小さくなります.
 候補間の AIC の差はどちらの数え方でも同じなので, AIC が最小になる式も同じです.
 
 CV MSE と AIC はともに小さい値を選ぶ規準で, このデータではどちらも式 A が最小です.
@@ -270,7 +270,7 @@ Selected formula: GPA ~ Scholarship + Study_Hours + Part_time_Work
 候補がすべて除かれた場合の式は `GPA ~ 1` で, 切片だけが残ります.
 探索用データで計算した P 値は変数を選ぶために使います.
 同じデータで選び, その P 値で仮説を検定すると, 変数が選ばれた経緯が通常の検定の計算に入らず, P 値が小さく出やすくなります.
-詳しくは [選んだ後の推論](block:reg-selection#post-selection)を参照してください.
+詳しくは [選んだ後の推論](block:reg-selection-more#post-selection)を参照してください.
 
 ## 確認用の 35 人で係数を求める
 
