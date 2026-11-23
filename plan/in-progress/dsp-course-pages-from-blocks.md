@@ -5,7 +5,7 @@ created: 2026-11-23
 updated: 2026-11-23
 priority: high
 next_actor: agent
-next_action: "仕組み (講義のページへの本文の組み込み, ページのまとめ方の指定, id の区別, リンクの行き先, 講義の順の移動) と reg-selection の分割の依頼文を書いて codex へ委譲し, 第 4 回の見本を作って本人に見せる"
+next_action: "codex の 2 本 (仕組み: dsp-course-pages, reg-selection の分割: dsp-reg-selection-split) を受領して検査し, /tmp の写しで dsp を開いた第 3 回と第 4 回の見本を撮影して本人に見せ, 切り替えの時期を問う"
 ---
 
 # dsp の講義のページを参考資料のブロックから組み, 発展は参考資料へのリンクにする
@@ -84,3 +84,4 @@ next_action: "仕組み (講義のページへの本文の組み込み, ペー�
 
 - 2026-11-23: 起草 (coordinator). 現状は main で確かめた.
 - 2026-11-23: 本人の回答 4 つを記録 (すべて推奨の案).
+- 2026-11-23: codex へ 2 本を委譲. 仕組み (依頼文 `_scratch/dsp-layout/handoff-1122/briefs/course-pages.md`, slug dsp-course-pages, effort high) と reg-selection の分割 (`briefs/reg-selection-split.md`, slug dsp-reg-selection-split. 新しい発展のブロック reg-selection-more へ 4 節を移す). 設計の決定: 講義のページの URL は `courses/<course>/<n>/<最初のブロック名>.html`, まとめ方は回の `pages:` (省略時は 1 ブロック 1 ページ), 2 つ目以降のブロックの重なる id は `<ブロック名>-<id>`, 講義の順の移動は 目次 → 回 → 講義専用ページ (初出だけ) → 講義のページ → 次の回. 見本は 2 ブロックをまとめたページを含む第 3 回も見せる (第 4 回は 1 ブロック 1 ページだけのため).
