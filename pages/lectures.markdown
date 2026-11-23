@@ -31,6 +31,63 @@ title: Lectures
 
 特別講義 (データサイエンス) で学生が行った研究の発表資料・論文は [過去の研究事例](/slds_papers.html) にまとめています.
 
+## 教科書 (分野別)
+
+分野ごとに読める教科書です. 講義では, この中から必要な部分を選んで使います.
+
+```{=html}
+<div class="lecture-series-grid">
+  <a class="series-card" href="fields/analysis-design/index.html">
+    <span class="series-badge">Analysis Design</span>
+    <span class="series-title">分析設計</span>
+    <span class="series-desc">目的, データ, 手法を組み合わせて分析を設計する方法.</span>
+    <span class="series-cta">教科書を見る →</span>
+  </a>
+  <a class="series-card" href="fields/descriptive/index.html">
+    <span class="series-badge">Descriptive Statistics</span>
+    <span class="series-title">記述統計</span>
+    <span class="series-desc">グラフによる可視化, 基本統計量, 相関, 距離と類似度.</span>
+    <span class="series-cta">教科書を見る →</span>
+  </a>
+  <a class="series-card" href="fields/regression/index.html">
+    <span class="series-badge">Regression</span>
+    <span class="series-title">回帰分析 (準備中)</span>
+    <span class="series-desc">関係の定量化, 推測, 予測, 因果推論. 公開までは「データサイエンス実践」の第5章を参照.</span>
+    <span class="series-cta">教科書を見る →</span>
+  </a>
+  <a class="series-card" href="fields/machine-learning/index.html">
+    <span class="series-badge">Machine Learning</span>
+    <span class="series-title">機械学習</span>
+    <span class="series-desc">決定木, クラスタリング, アソシエーション分析, ニューラルネットワーク.</span>
+    <span class="series-cta">教科書を見る →</span>
+  </a>
+  <a class="series-card" href="fields/deep-learning/index.html">
+    <span class="series-badge">Deep Learning</span>
+    <span class="series-title">深層学習とその応用</span>
+    <span class="series-desc">Transformer, 自然言語処理, 画像認識, モデルの学習.</span>
+    <span class="series-cta">教科書を見る →</span>
+  </a>
+  <a class="series-card" href="fields/bayes/index.html">
+    <span class="series-badge">Bayesian Statistics</span>
+    <span class="series-title">ベイズ統計学</span>
+    <span class="series-desc">ベイズ統計学の基礎と PyMC による統計モデリング.</span>
+    <span class="series-cta">教科書を見る →</span>
+  </a>
+  <a class="series-card" href="fields/causal/index.html">
+    <span class="series-badge">Causal Inference</span>
+    <span class="series-title">因果推論 (作成中)</span>
+    <span class="series-desc">観察データから因果効果を推定する方法.</span>
+    <span class="series-cta">教科書を見る →</span>
+  </a>
+  <a class="series-card" href="fields/survey/index.html">
+    <span class="series-badge">Survey Data</span>
+    <span class="series-title">調査データの扱い</span>
+    <span class="series-desc">質問紙調査, 共分散構造分析, 欠損値補定.</span>
+    <span class="series-cta">教科書を見る →</span>
+  </a>
+</div>
+```
+
 ## ゼミ
 
 ```{=html}
