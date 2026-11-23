@@ -24,7 +24,23 @@ renderField siteCtx site fieldData = do
             <> boolField "hasPrerequisites" (const (not (null prerequisites)))
             <> rows "prerequisites" blockLinkContext (const prerequisites)
             <> rows "blocks" listedBlock (const blocks)
-    makeItem "" >>= layout "templates/block-field.html" ctx siteCtx
+    makeItem "" >>= layout "templates/block-field.html" (ctx <> fieldIndex fieldData blocks Nothing) siteCtx
+
+fieldIndex :: Field -> [Block] -> Maybe (Block, Page) -> Context a
+fieldIndex fieldData blocks current =
+    boolField "fieldIndex" (const True)
+    <> boolField "fieldIndexCurrent" (const (maybe True (const False) current))
+    <> constField "fieldTitle" (escapeHtml (fieldTitle fieldData))
+    <> constField "fieldUrl" (siteUrl (fieldPath fieldData))
+    <> rows "fieldBlocks" blockContext (const blocks)
+  where
+    blockContext = blockLinkContext
+        <> boolField "current" (isCurrentBlock . itemBody)
+        <> rows "pages" pageContext (\b -> [(b, p) | p <- blockPages b])
+    pageContext = linkContext (navigationPageTitle . snd) (uncurry pagePath)
+        <> boolField "current" (\item -> currentPath == Just (uncurry pagePath (itemBody item)))
+    isCurrentBlock b = Just (blockName b) == fmap (blockName . fst) current
+    currentPath = fmap (uncurry pagePath) current
 
 renderCourse :: Context String -> Course -> Compiler (Item String)
 renderCourse siteCtx course = do
@@ -93,45 +109,60 @@ renderPage :: Context String -> Site -> Block -> Page -> Item String -> Compiler
 renderPage siteCtx site block page body = do
     fieldData <- maybe (fail ("Missing field for block: " ++ blockName block)) pure
         (find ((== blockField block) . fieldName) (siteFields site))
-    let currentPage = find ((== pageKey page) . pageKey . middle) (adjacent (blockPages block))
+    let blocks = map (blockNamed site) (fieldBlocks fieldData)
+        currentPage = find ((== pageKey page) . pageKey . middle) (adjacent (blockPages block))
         anchors = [anchor | (anchor, key) <- Map.toList (blockAnchors block), key == pageKey page]
         occurrences = courseOccurrences site block
         prerequisites = map (blockNamed site) (blockRequires block)
-        current = boolField "current" ((== blockName block) . blockName . itemBody)
-        pageNavigation = boolField "hasPageNavigation" (const (length (blockPages block) > 1))
+        closedPageNavigation = boolField "hasPageNavigation" (const (length (blockPages block) > 1))
             <> neighborContext navigationPageTitle (pagePath block) (const False)
-            (const (currentPage >>= previous)) (const (currentPage >>= next))
+                (const (currentPage >>= previous)) (const (currentPage >>= next))
         ctx = titleAndDescription (pageTitle page) ""
-            <> constField "fieldTitle" (escapeHtml (fieldTitle fieldData))
-            <> constField "fieldUrl" (siteUrl (fieldPath fieldData))
+            <> fieldIndex fieldData blocks (Just (block, page))
             <> boolField "open" (const (blockOpen block))
             <> boolField "introPage" (const (pageKey page == "index"))
             <> boolField "hasPrerequisites" (const (not (null prerequisites)))
             <> rows "prerequisites" blockLinkContext (const prerequisites)
-            <> rows "fieldBlocks" (blockLinkContext <> current)
-                (const (map (blockNamed site) (fieldBlocks fieldData)))
             <> boolField "hasOccurrences" (const (not (null occurrences)))
             <> rows "occurrences" (occurrenceContext site) (const occurrences)
             <> rows "anchors" (value "anchor" id) (const anchors)
-            <> pageNavigation
+            <> closedPageNavigation
         pageTemplate = "templates/block-page.html"
-        renderFieldNavigation :: String -> Compiler (Item String)
-        renderFieldNavigation variant = loadAndApplyTemplate "templates/block-field-nav.html"
-            (constField "fieldNavVariant" variant <> ctx) body
         flags
-            | blockOpen block = constField "post" "true"
+            | blockOpen block = mempty
             | otherwise       = constField "noindex" "true"
-    wideNavigation   <- renderFieldNavigation "block-field-nav-wide"
-    narrowNavigation <- renderFieldNavigation "block-field-nav-narrow"
+    narrowNavigation <- loadAndApplyTemplate "templates/block-field-nav.html" ctx body
+    cards <- if blockOpen block
+        then itemBody <$> loadAndApplyTemplate "templates/block-page-cards.html"
+            (fieldPageNavigation fieldData blocks block page) body
+        else pure ""
 
     pageBody <- if blockOpen block
         then pure body
         else loadAndApplyTemplate "templates/placeholder.html"
             (constField "category" "Lecture" <> ctx) (fmap (const "") body)
-    let pageContext = constField "wideFieldNavigation" (itemBody wideNavigation) <> ctx
+    let pageContext = constField "pageNavigationCards" cards <> ctx
+        afterTitle
+            | pageKey page == "index" = narrowNavigation
+            | otherwise = fmap (++ cards) narrowNavigation
     loadAndApplyTemplate pageTemplate (pageContext <> bodyField "body") pageBody
-        >>= insertAfterTitle narrowNavigation
+        >>= insertAfterTitle afterTitle
         >>= layoutContent ctx (flags <> siteCtx)
+
+fieldPageNavigation :: Field -> [Block] -> Block -> Page -> Context a
+fieldPageNavigation fieldData blocks block page =
+    neighborContext fst snd (const False) (const (target previous)) (const (target next))
+  where
+    publicPages = [(b, p) | b <- blocks, blockOpen b, p <- blockPages b]
+    here = pagePath block page
+    current = find ((== here) . uncurry pagePath . middle) (adjacent publicPages)
+    target select = Just $ maybe (fieldTitle fieldData ++ "の目次", fieldPath fieldData) destination
+        (current >>= select)
+    destination (b, p) = (label, pagePath b p)
+      where
+        label
+            | blockName b == blockName block || pageTitle p == blockTitle b = pageTitle p
+            | otherwise = pageTitle p ++ " (" ++ blockTitle b ++ ")"
 
 -- | Insert navigation after the first h1 without re-rendering its inline HTML
 -- or the rest of the page. The title comes from the template or Pandoc.

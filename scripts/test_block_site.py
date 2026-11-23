@@ -13,7 +13,7 @@ import subprocess
 import sys
 import tempfile
 from collections import Counter
-from html import escape
+from html import escape, unescape
 from html.parser import HTMLParser
 from pathlib import Path
 from urllib.parse import unquote, urljoin, urlsplit
@@ -91,7 +91,6 @@ class Page(HTMLParser):
         self.toc_targets: list[tuple[str, str, int]] = []
         self.robots: set[str] = set()
         self.links: set[str] = set()
-        self.nav: dict[str, dict[str, str]] = {}
         self.prerequisites: list[str] = []
         self.occurrences: list[dict[str, str]] = []
         self.nav_stack: list[list[str]] = []
@@ -142,10 +141,6 @@ class Page(HTMLParser):
             if any("block-prerequisites" in names for names in self.nav_stack):
                 self.prerequisites.append(target)
             rel = attrs.get("rel")
-            if rel:
-                for navigation in self.nav_stack:
-                    for name in navigation:
-                        self.nav.setdefault(name, {})[rel] = target
             if self.items and self.items[-1] is not None:
                 self.items[-1][rel or target] = target
             if self.session_depth is not None and len(self.items) > self.session_depth:
@@ -178,23 +173,96 @@ class Page(HTMLParser):
         duplicates = sorted(ident for ident, count in self.ids.items() if count > 1)
         check(not duplicates, f"{self.path}: duplicate IDs: {duplicates}")
 
-    def check_field_navigation(self) -> None:
-        versions = list(re.finditer(
-            r'<nav class="block-field-nav block-field-nav-(wide|narrow)"([^>]*>.*?)</nav>',
-            self.source, re.S,
-        ))
-        check([match[1] for match in versions] == ["wide", "narrow"],
-              f"{self.path}: expected two field navigation positions")
-        wide, narrow = versions
-        check(wide[2] == narrow[2], f"{self.path}: field navigation differs between layouts")
-        title_end = self.source.index("</h1>") + len("</h1>")
-        check(wide.end() < title_end <= narrow.start()
-              and not self.source[title_end:narrow.start()].strip(),
-              f"{self.path}: narrow field navigation must immediately follow the title")
-        for navigation in ("block-course-nav", "block-page-nav"):
-            position = self.source.find(f'class="{navigation}"')
-            check(position == -1 or wide.end() < position < title_end,
-                  f"{self.path}: {navigation} must precede the title")
+
+def local_targets(path: str, html: str) -> list[str]:
+    return [
+        unquote(urlsplit(urljoin(f"/{path}", unescape(href))).path).lstrip("/")
+        for href in re.findall(r' href="([^"]+)"', html)
+    ]
+
+
+def check_reference_material_names(site: Path) -> None:
+    lectures = (site / "lectures.html").read_text(encoding="utf-8")
+    description = ("各講義で共通の内容を扱うため, 共通の資料として分離しました. "
+                   "各講義ではそれぞれ必要な部分を利用します.")
+    check("教科書" not in lectures, "Lecture index still says 教科書")
+    check(f">{description}</p>" in lectures, "Lecture index lacks the specified description")
+    check('id="参考資料-分野別">参考資料 (分野別)</h2>' in lectures, "Wrong field heading")
+    check(lectures.count('class="series-cta">参考資料を見る →</span>') == 8, "Wrong field card labels")
+    for path in (site / "fields").glob("*/index.html"):
+        check("教科書" not in path.read_text(encoding="utf-8"), f"{path}: still says 教科書")
+
+
+def check_reference_navigation(site: Path) -> None:
+    for index in sorted((site / "fields").glob("*/index.html")):
+        field = index.relative_to(site).as_posix()
+        field_index = Page(site, field)
+        listing = field_index.source.split('<ol class="field-blocks">', 1)[1].split("</article>", 1)[0]
+        blocks: dict[str, list[str]] = {}
+        for route in local_targets(field, listing):
+            name = route.rsplit("/", 1)[0]
+            blocks.setdefault(name, [])
+            if route not in blocks[name]:
+                blocks[name].append(route)
+        block_indexes = [routes[0] for routes in blocks.values()]
+        block_pages = {route: Page(site, route) for routes in blocks.values() for route in routes}
+        check(set(block_pages) == {path.relative_to(site).as_posix() for path in index.parent.glob("*/*.html")},
+              f"{field}: field listing does not cover all block pages")
+        public = [route for route, page in block_pages.items() if "noindex" not in page.robots]
+        titles = {route: re.search(r"<title>yakagika - (.*?)</title>", page.source)[1]
+                  for route, page in {field: field_index, **block_pages}.items()}
+        previous: dict[str, str] = {}
+        following: dict[str, str] = {}
+        for route, page in {field: field_index, **block_pages}.items():
+            sidebar = re.search(r'<div id="lecture-toc" data-mode="series">(.*?)</nav>', page.source, re.S)
+            check(sidebar is not None, f"{route}: missing series Index")
+            sidebar_links = local_targets(route, sidebar[1])
+            block_routes = blocks.get(route.rsplit("/", 1)[0], [])
+            expected_links = [field, *block_indexes]
+            draft_count = sum("noindex" in block_pages[block].robots for block in block_indexes)
+            check(sidebar[1].count('class="badge badge-draft">準備中</span>') == draft_count,
+                  f"{route}: wrong number of draft badges in the Index")
+            if block_routes:
+                position = expected_links.index(block_routes[0]) + 1
+                expected_links[position:position] = block_routes
+            check(sidebar_links == expected_links, f"{route}: wrong Index order: {sidebar_links}")
+            current = re.findall(r'<a href="([^"]+)" aria-current="page">', sidebar[1])
+            check(len(current) == 1 and local_targets(route, f' href="{current[0]}"') == [route],
+                  f"{route}: Index must mark the current page")
+            check("block-field-nav-wide" not in page.source, f"{route}: duplicate desktop field navigation")
+            if route != field:
+                check(re.search(r'</h1>\s*<nav class="block-field-nav block-field-nav-narrow"', page.source) is not None,
+                      f"{route}: mobile field navigation must immediately follow the title")
+            if route not in public:
+                continue
+            cards = list(re.finditer(r'<nav class="chapter-nav-card">.*?</nav>', page.source, re.S))
+            check(len(cards) == 2 and cards[0][0] == cards[1][0], f"{route}: expected two identical navigation cards")
+            check(page.source.index("</h1>") < cards[0].start() < cards[1].start()
+                  and re.match(r"\s*</article>", page.source[cards[1].end():]) is not None,
+                  f"{route}: navigation cards must bracket the page body")
+            for direction, label, edges in (("prev", "← Previous", previous), ("next", "Next →", following)):
+                link = re.search(rf'<a class="{direction}" href="[^"]+"[^>]*>\s*'
+                                 rf'<span class="nav-label">{label}</span>\s*'
+                                 r'<span class="nav-title">([^<]+)</span>', cards[0][0])
+                check(link is not None, f"{route}: missing {label} on navigation card")
+                target, = local_targets(route, link[0])
+                edges[route] = target
+                expected_title = titles[target]
+                if target == field:
+                    expected_title += "の目次"
+                elif target.rsplit("/", 1)[0] != route.rsplit("/", 1)[0]:
+                    target_block = target.rsplit("/", 1)[0] + "/index.html"
+                    if titles[target_block] != expected_title:
+                        expected_title += f" ({titles[target_block]})"
+                check(link[1] == expected_title, f"{route}: wrong title for {target}: {link[1]}")
+        for ordered, edges in ((public, following), (public[::-1], previous)):
+            if not ordered:
+                continue
+            route = ordered[0]
+            for expected in ordered:
+                check(route == expected, f"{field}: expected {expected}, reached {route}")
+                route = edges[route]
+            check(route == field, f"{field}: last card should return to the field index")
 
 
 def check_html(site: Path) -> None:
@@ -209,8 +277,6 @@ def check_html(site: Path) -> None:
 
     for path, page in pages.items():
         is_block = path.startswith("fields/") and path.count("/") == 3
-        if is_block:
-            page.check_field_navigation()
         if is_block or path in {GUIDE, CHECKLIST, DRAFT_GUIDE}:
             page.check_toc_targets()
         for link in page.links:
@@ -251,10 +317,11 @@ def check_html(site: Path) -> None:
     field = pages[f"{REGRESSION}/index.html"].source
     escaped_heading = escape("予測に使う標本 <A> & <B>")
     check(f">{escaped_heading}</a>" in field, "Field index lacks the escaped first top-level heading")
-    check(f"← {escaped_heading}</a>" in pages[CHECK_SAMPLE].source, "Page navigation lacks the escaped heading")
+    check('class="nav-title">予測の復習用ブロック</span>' in pages[CHECK_SAMPLE].source,
+          "Page navigation lacks the page title")
     check('class="article-title">予測の復習用ブロック</h1>' in pages[EXTENSION].source,
           "The index heading changed the block title")
-    check("← 導入</a>" in pages[VARIABLES].source and ">回帰分析の補足</a>" not in field,
+    check(">導入</a>" in field and ">回帰分析の補足</a>" not in field,
           "A heading inside a note changed the index label")
 
     pages[OVERVIEW].has_links(f"{VARIABLES}#variables", f"{VARIABLES}#observation", f"{FIT}#数式")
@@ -315,12 +382,7 @@ def check_html(site: Path) -> None:
     for path in (FIT, GUIDE):
         check("ref-james2021introduction" in pages[path].ids, f"{path}: cited entry is missing")
 
-    variables = pages[VARIABLES]
-    check(variables.nav.get("block-page-nav") == {"prev": OVERVIEW},
-          f"{VARIABLES}: wrong within-block navigation")
     overview = pages[OVERVIEW]
-    check(overview.nav.get("block-page-nav") == {"next": VARIABLES},
-          f"{OVERVIEW}: wrong within-block navigation")
     expected_neighbors = {
         PRACTICE_1: (SAMPLING, FITTING),
         PRACTICE_2: (PREDICTION, UNCERTAINTY),
@@ -572,6 +634,8 @@ def main() -> int:
         shutil.copytree(REPO / "fixtures", root / "fixtures")
         subprocess.run([str(executable), "build"], cwd=root, env=FIXTURE_ENV, check=True)
         site = root / "_fixture_site"
+        check_reference_material_names(site)
+        check_reference_navigation(site)
         check_html(site)
         check_feeds(site)
         subprocess.run([sys.executable, str(REPO / "scripts/check_local_refs.py"), str(site)], check=True)
