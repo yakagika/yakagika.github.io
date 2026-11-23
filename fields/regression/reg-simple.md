@@ -11,6 +11,19 @@ requires:
 
 # 出生率と時間配分の表の結合 {#oecd-data}
 
+日本経済新聞の図は, 国ごとに家事・育児時間の男女差を棒で, 合計特殊出生率を点で示しています.
+
+![国ごとの家事・育児時間の男女差と合計特殊出生率を並べた日本経済新聞の図](/images/fields/regression/reg-simple/oecd-nikkei.png){.wide}
+
+出典 [日本経済新聞, 男性の育児・家事時間と出生率についての記事](https://www.nikkei.com/article/DGXZQOFE308UG0Q1A830C2000000/)
+
+内閣府の図は, 横軸を男性の家事・育児等労働時間割合とし, 合計特殊出生率との関係を散布図と回帰直線で示しています.
+直線の傾きは, 図に含まれる国どうしで, 男性の家事・育児等労働時間割合が違うときの出生率の平均的な差を表します.
+
+![男性の家事・育児等労働時間割合と合計特殊出生率の散布図および回帰直線を示す内閣府の図](/images/fields/regression/reg-simple/oecd-cabinet.png){.wide}
+
+出典 [内閣府 政策統括官（経済社会システム担当）第４回会議資料「選択する未来2.0」資料２ 参考資料②(事務局資料)](https://www5.cao.go.jp/keizai2/keizai-syakai/future2/20200409/shiryou2.pdf)
+
 [`fertility_rates.csv`](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch11/fertility_rates.csv) と
 [`time_used.csv`](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch11/time_used.csv) をダウンロードし, コードと同じフォルダに置いてください.
 コードはそのフォルダから実行してください.
