@@ -5,7 +5,7 @@ created: 2026-11-20
 updated: 2026-11-23
 priority: high
 next_actor: agent
-next_action: "教科書の切り替え (f1027962) と講義固有の情報の移動 (d00707a0) は land 済み. push と publish は本人の指示待ち (未 push 69. publish.sh は未 commit の file も公開するので実行しない). 回帰の 4 問は本人の通読の後"
+next_action: "教科書の移動 (左の欄と上下のカード) を codex へ委譲して受け入れる. 依頼文と手順は _scratch/dsp-layout/handoff-1122/README.md の末尾. push と publish は本人の指示待ち (未 push 70). 回帰の 4 問は本人の通読の後"
 ---
 
 # 講義資料を分野とブロックに分け, 講義はブロックの並びかブロックへのリンクで組む
@@ -630,6 +630,7 @@ A, B では切り替えまで同じ本文が 2 つの URL に出る. 切り替�
 - 教科書の切り替えの land (2026-11-23, coordinator): 変換の script 5 本を撤去し (表 4 つと README を残す), 教科書の 403 行から旧章立てと講義への依存を外した. 対象は書き換えの表の切り替え前 348 件, 公開前の判定で「機械的な変換で解消」としてリンクの文字列が残っていた行, 全文検索で見つけた同じ型. 依頼文で切り替え前の 348 件だけを渡したのが漏れの原因. 差し戻し 2 回 (中身や文の役割を変えた書き換え, course-info の漏れ). Sonnet が分野ごとに全行を照合して合格. 検査は main fdcf5617 の写しで build, rebuild, 参照, 旧 ID, 試験, 引用, 目次のリンク 1,555 件 (L4). 載せ直した commit と写しの tree が一致. recovery tag `pre-land/lecture-block-restructure-textbook-switch` (fdcf5617) → f1027962 → tag `landed/lecture-block-restructure-textbook-switch`. 「(発展)」は取り決めどおり外し, 提出 file 名は「演習の改名は現行のまま」により残した. 変えた文の一覧 (HTML) は本人に送った.
 - 本人の回答 3 (2026-11-23, AskUserQuestion): (1) 教科書の書き換えを main に取り込む (2) 講義固有の情報 26 件 (`_scratch/dsp-layout/tables/course_info.tsv`) は講義の並びへ今移す. 回に固有のものは `courses/dsp.yaml` の回の intro, 講義全体のものは `courses/dsp/scope.md` か `guide.md`. 教科書とは別の commit. どれも push と publish の承認ではない.
 - 講義固有の情報の移動の land (2026-11-23, coordinator): codex が 26 件を照合し, 回の intro 7 件 (可視化, 数値化, ニューラルネットワーク, 画像認識), guide 2 件, scope 6 件を書いた. 4 件は他の行にまとめ, 4 件は既出. 質問紙調査の 2 件 (学生自身がデータを集める, 質問項目を個別に解説する) は codex が今の構成と食い違うとして STOP し, 本人の回答 4 で「書かない」. 同じ理由で「先行研究の調べ方は別の機会に扱う」も書かない (特別講義から写した文で, dsp に扱う回が無い). 差分 3 file 23 行は主戦が読んだ. main 26fb8adf の写しで閉じた / 公開した状態の rebuild, 参照, 引用, 試験が通り, 公開した状態で書いた文が回のページと専用ページに出ることを確かめた (L4). tree の一致を確かめて pre-land tag (26fb8adf) → d00707a0 → tag `landed/lecture-block-restructure-course-info`.
+- 本人の依頼 (2026-11-23): 「教科書にもナビゲーションを付ける, 次のページへ進めるようにする, などを実装してください.」 案 (1 上下のカード, 2 ブロックの境を越える, 3 現在地の表示, 4 分野の目次を左の欄へ) を示した. 回答 (自由記述): 「講義資料と同じように左の欄と上下の移動カードで」. 解釈: 旧講義ページと同じく, 左の欄の Index に分野の目次 (開いているブロックの下にページ一覧と見出し), 本文の上と下に chapter-nav-card, ブロックの境を越える. 現在地の表示は旧講義ページに無いので入れない. 狭い画面は旧講義ページの左の欄の振る舞いに合わせ, 隠れるなら題名の直後の目次を残す.
 - 対応表の追随: 旧ページが正本の間は節アンカーを変えない (54 件が生成 HTML にあることを確認). land の時に当てる CLAUDE.md と対応表の文は `_scratch/dsp-layout/handoff-1122/after-land-docs.md`.
 - 未 land の成果の退避 (2026-11-22): commit せずに patch と tar を `_scratch/dsp-layout/handoff-1122/backup/` に置き, 復元の一致を確かめた. 隔離 clone の WIP commit と fetch を求める規約より, 本人に示した「commit は別に指示をいただく」を優先した. WIP commit の可否は commit の承認と一緒に聞く.
 
