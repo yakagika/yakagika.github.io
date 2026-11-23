@@ -80,6 +80,10 @@ next_action: "codex の 2 本 (dsp-course-pages の feedback, dsp-reg-selection-
 
 - reg-selection の分け方: 原文「取り敢えずAとして,情報実践の内容の必修,非必修は全て一度再点検します.」 A = 小節「情報量規準」を必修の reg-selection に残し (ステップワイズ法の前に最上位の節 `information-criteria` として置く), 残りの手法, 経緯, 選んだ後の推論, 文献を発展のブロック reg-selection-more へ移す. 第 5 回の intro の授業で扱う項目に情報量規準を加える. 本人が講義全体の必修と発展の分け方を点検し直すので, 分割で見つかった依存 (必修が発展にしか説明の無い用語を使う箇所) は止めずにリンクで指し, 一覧を点検の材料として本人に渡す.
 
+### reg-selection の分割の land (2026-11-23)
+
+- codex (feedback で A) が実装. 移した本文は元と同一 (行の集合で比べた. 変わったのは「情報量規準」の見出しの段, 発展から必修の情報量規準へのリンク 2 つ, 新しいブロックの導入 3 文). 新しいブロックの題名は「その他のモデル選択の手法と選んだ後の推論」. 必修から発展へ新たにリンクで指す依存は無かった (codex の報告). 写しで試験, rebuild, 参照, 旧 ID の対応表が通過. 変わった HTML は `fields/regression/` だけ (既存 78 件は左の欄に新しいブロックが加わった変化, 追加 6 件, 削除 4 件. 削除は閉じた準備中のページで公開していなかった). sitemap は不変. main へ ff-merge (48d90e24) → tag `landed/dsp-course-pages-reg-selection-split`.
+
 ## 対象ファイル (案 1 を採るとき)
 
 `src/Block*.hs` (回のページの下にページを作る, 本文の組み込み, id の区別, リンクの行き先), `templates/block-session.html` と新しい template, `courses/dsp.yaml` (ページのまとめ方の指定), `scripts/test_block_site.py`, `fixtures/`. 切り替えの時に `lectures/dsp/dsp1.md` の発展の説明, 対応表, CLAUDE.md の dsp の節.
