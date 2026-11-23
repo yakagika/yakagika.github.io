@@ -76,15 +76,16 @@ blockRules fixtures root reader writer ctx cite = do
   cs <- paths courses
   ms <- paths materials
   site <- preprocess $ readSite reader fs bs cs ms
-  coursePlans <- preprocess $ forM (siteCourses site) $ \c -> (,) c <$> courseLessons site c
+  coursePlans <- preprocess $ forM (siteCourses site) $ \c -> (,) c <$> planCourseSections site c
   let outputs = [(fieldPath f,fieldSource f,True) | f <- siteFields site] ++
                 [(pagePath b p,blockSource b,blockOpen b) | b <- M.elems (siteBlocks site), p <- blockPages b] ++
-                [(path,courseSource c,courseOpen c) | c <- siteCourses site,
-                   path <- coursePath c : map (sectionPath c . fst) (courseSections c)] ++
+                [(path,courseSource c,courseOpen c) | (c, sections) <- coursePlans,
+                   path <- coursePath c : [sectionDestination section | section <- sections,
+                                          Supplement _ <- [sectionId section]]] ++
                 [(materialPath c m,materialSource m,courseOpen c) | c <- siteCourses site,
                    m <- M.elems (coursePages c)] ++
                 [(lessonPath c lesson,courseSource c,courseOpen c && lessonOpen lesson)
-                | (c, lessons) <- coursePlans, lesson <- lessons]
+                | (c, sections) <- coursePlans, section <- sections, lesson <- sectionLessons section]
   preprocess $ unique "fields/courses" "output path" [(p,src) | (p,src,_) <- outputs]
   match inputs $ version "source" $ compile getResourceBody
   -- A change of order, visibility or target ID may affect pages in other fields.
@@ -101,27 +102,38 @@ blockRules fixtures root reader writer ctx cite = do
       body <- if blockOpen b
         then renderDocument (blockBibliography b) (`M.member` blockAnchors b) (pageDoc p)
         else makeItem ""
-      renderPage ctx site b p body
-  forM_ coursePlans $ \(c, lessons) -> do
+      renderPage ctx site coursePlans b p body
+  forM_ coursePlans $ \(c, sections) -> do
     let render compiler
           | courseOpen c = compiler
           | otherwise = renderClosedCourse ctx c
-        navigation = courseNavigation c lessons
+        navigation = courseNavigation c sections
+        lessons = concatMap sectionLessons sections
     register (coursePath c) $ render (renderCourse ctx c navigation)
-    forM_ (courseSections c) $ \(key,s) -> do
-      let inSession = filter ((== key) . Numbered . lessonNumber) lessons
-      intro <- preprocess $ either (failAt $ courseSource c) pure $ sessionDoc reader site c lessons key s
-      register (sectionPath c key) $ render $ do
-        html <- writePandocWith writer <$> makeItem intro
-        renderSession ctx site c navigation inSession key s html
-      forM_ (zip inSession (map (const False) (drop 1 inSession) ++ [True])) $ \(lesson, lastInSession) ->
-        register (lessonPath c lesson) $ do
-          -- Validate the same rendered page even while its course is closed.
-          body <- renderLessonDocument site c lessons lesson
-          html <- renderLesson root ctx site c navigation s lesson lastInSession body
+    forM_ sections $ \section -> case sectionId section of
+      Supplement _ -> do
+        intro <- preprocess $ either (failAt $ courseSource c) pure $
+          sessionDoc reader site c lessons section S.empty
+        register (sectionDestination section) $ render $ do
+          html <- writePandocWith writer <$> makeItem intro
+          renderSupplement ctx site c navigation section html
+      Numbered _ -> do
+        let inSession = sectionLessons section
+        forM_ (zip inSession (map (const False) (drop 1 inSession) ++ [True])) $ \(lesson, lastInSession) -> do
           let path = lessonPath c lesson
-          unique path "HTML ID" [(anchor, path) | anchor <- htmlIds (T.pack (itemBody html))]
-          if courseOpen c then pure html else renderClosedCourse ctx c
+          register path $ do
+            -- Validate the same rendered page even while its course is closed.
+            body <- renderLessonDocument site c lessons lesson
+            intro <- if path == sectionDestination section
+              then do
+                let lessonIds = S.fromList (htmlIds (T.pack (itemBody body)))
+                doc <- either (failAt $ courseSource c) pure $
+                  sessionDoc reader site c lessons section lessonIds
+                itemBody . writePandocWith writer <$> makeItem doc
+              else pure ""
+            html <- renderLesson root ctx site c navigation section lesson intro lastInSession body
+            unique path "HTML ID" [(anchor, path) | anchor <- htmlIds (T.pack (itemBody html))]
+            if courseOpen c then pure html else renderClosedCourse ctx c
     forM_ (M.elems $ coursePages c) $ \m ->
       register (materialPath c m) $ do
         body <- if courseOpen c

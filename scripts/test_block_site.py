@@ -29,7 +29,7 @@ PRACTICE = "courses/sample-practice"
 STATISTICS = "courses/sample-statistics"
 DRAFT = "courses/sample-draft"
 DRAFT_GUIDE = f"{DRAFT}/guide.html"
-DRAFT_ROUTES = {f"{DRAFT}/index.html", f"{DRAFT}/1.html", f"{DRAFT}/follow-up.html", DRAFT_GUIDE}
+DRAFT_ROUTES = {f"{DRAFT}/index.html", f"{DRAFT}/follow-up.html", DRAFT_GUIDE}
 DRAFT_LESSON = f"{DRAFT}/1/sample-overview.html"
 OVERVIEW = f"{REGRESSION}/sample-overview/index.html"
 VARIABLES = f"{REGRESSION}/sample-overview/variables.html"
@@ -43,12 +43,11 @@ CHECK_SAMPLE = f"{REGRESSION}/sample-extension/check-sample.html"
 SAMPLING = f"{INFERENCE}/sample-sampling/index.html"
 SAMPLE = f"{INFERENCE}/sample-sampling/sample.html"
 UNCERTAINTY = f"{INFERENCE}/sample-uncertainty/index.html"
-PRACTICE_1 = f"{PRACTICE}/1.html"
-PRACTICE_2 = f"{PRACTICE}/2.html"
 FOLLOW_UP = f"{PRACTICE}/follow-up.html"
 GUIDE = f"{PRACTICE}/guide.html"
 CHECKLIST = f"{PRACTICE}/checklist.html"
 REVIEW = f"{PRACTICE}/review.html"
+HANDOUT = f"{PRACTICE}/handout.html"
 FOLLOW_UP_GUIDE = f"{PRACTICE}/follow-up-guide.html"
 PRACTICE_INDEX = f"{PRACTICE}/index.html"
 PRACTICE_SAMPLING = f"{PRACTICE}/1/sample-sampling.html"
@@ -58,20 +57,24 @@ PRACTICE_OVERVIEW_2 = f"{PRACTICE}/2/sample-overview.html"
 PRACTICE_UNCERTAINTY = f"{PRACTICE}/2/sample-uncertainty.html"
 PRACTICE_CONTENT = {
     PRACTICE_INDEX: ('class="course-sessions"', 'class="course-materials"', 'class="course-supplements"'),
-    PRACTICE_1: ("FIXTURE_OPEN_FIRST_INTRO", 'id="session-pages"', 'id="course-advanced"'),
-    PRACTICE_2: ("FIXTURE_OPEN_SECOND_INTRO",),
+    PRACTICE_SAMPLING: ("FIXTURE_OPEN_FIRST_INTRO", 'class="course-materials"'),
+    PRACTICE_OVERVIEW_2: ("FIXTURE_OPEN_SECOND_INTRO", 'class="course-materials"'),
     FOLLOW_UP: ("FIXTURE_OPEN_SUPPLEMENT_INTRO",),
     GUIDE: ("FIXTURE_OPEN_GUIDE_BODY", "FIXTURE_OPEN_GUIDE_ANSWER"),
     CHECKLIST: ("FIXTURE_OPEN_CHECKLIST_BODY",),
     REVIEW: ("FIXTURE_OPEN_REVIEW_BODY",),
+    HANDOUT: ("FIXTURE_OPEN_HANDOUT_BODY",),
     FOLLOW_UP_GUIDE: ("FIXTURE_OPEN_FOLLOW_UP_GUIDE_BODY",),
     PRACTICE_FITTING: ("FIXTURE_FITTING_INTRO",),
 }
-STATISTICS_1 = f"{STATISTICS}/1.html"
-STATISTICS_2 = f"{STATISTICS}/2.html"
 STATISTICS_OVERVIEW = f"{STATISTICS}/1/sample-overview.html"
 STATISTICS_SAMPLING = f"{STATISTICS}/2/sample-sampling.html"
 STATISTICS_UNCERTAINTY = f"{STATISTICS}/2/sample-uncertainty.html"
+REMOVED_ROUTES = {
+    f"{course}/{number}.html"
+    for course, count in ((PRACTICE, 4), (STATISTICS, 2), (DRAFT, 1), ("courses/dsp", 13))
+    for number in range(1, count + 1)
+}
 
 OPEN_ROUTES = {
     f"{REGRESSION}/index.html",
@@ -79,9 +82,9 @@ OPEN_ROUTES = {
     f"{CLOSED_FIELD}/index.html",
     OVERVIEW, VARIABLES, FITTING, FIT, RESIDUALS, EXERCISES, EXTENSION, CHECK_SAMPLE,
     SAMPLING, SAMPLE, UNCERTAINTY, f"{INFERENCE}/sample-uncertainty/variation.html",
-    PRACTICE_INDEX, PRACTICE_1, PRACTICE_2, FOLLOW_UP, GUIDE, CHECKLIST, REVIEW, FOLLOW_UP_GUIDE,
+    PRACTICE_INDEX, FOLLOW_UP, GUIDE, CHECKLIST, REVIEW, HANDOUT, FOLLOW_UP_GUIDE,
     PRACTICE_SAMPLING, PRACTICE_FITTING, PRACTICE_OVERVIEW_2, PRACTICE_UNCERTAINTY,
-    f"{STATISTICS}/index.html", STATISTICS_1, STATISTICS_2, STATISTICS_OVERVIEW,
+    f"{STATISTICS}/index.html", STATISTICS_OVERVIEW,
     STATISTICS_SAMPLING, STATISTICS_UNCERTAINTY,
 }
 CLOSED_ROUTES = {
@@ -327,6 +330,8 @@ def check_reference_navigation(site: Path) -> None:
 
 
 def check_html(site: Path) -> None:
+    for path in sorted(REMOVED_ROUTES):
+        check(not (site / path).exists(), f"Standalone numbered session still exists: {path}")
     expected = OPEN_ROUTES | CLOSED_ROUTES
     actual = {
         path.relative_to(site).as_posix()
@@ -357,14 +362,14 @@ def check_html(site: Path) -> None:
                      "session-exercises", "course-materials", "draft-1.py", 'class="protected"'):
             check(text not in page.source, f"{path}: contains {text}")
         allowed = {f"{DRAFT}/index.html"} if path == DRAFT_GUIDE else set()
-        check(not page.links & ((DRAFT_ROUTES | {OVERVIEW, PREDICTION}) - allowed),
+        check(not page.links & ((DRAFT_ROUTES | {DRAFT_LESSON, OVERVIEW, PREDICTION}) - allowed),
               f"{path}: links to a session or block in the closed course")
     pages[DRAFT_GUIDE].has_links(f"{DRAFT}/index.html")
     for anchor in ("draft-heading", "draft-answer"):
         check(f'<span id="{anchor}"></span>' in pages[DRAFT_GUIDE].source,
               f"{DRAFT_GUIDE}: missing empty anchor {anchor}")
     check_no_marker(site, "FIXTURE_CLOSED_")
-    check("準備中" in pages[PRACTICE_1].source, f"{PRACTICE_1}: missing closed-block notice")
+    check("準備中" in pages[PRACTICE_PREDICTION].source, f"{PRACTICE_PREDICTION}: missing closed-block notice")
     check("準備中" in pages[f"{REGRESSION}/index.html"].source, "Field index lacks closed-block notice")
     prerequisites = pages[EXTENSION].source.split('class="block-prerequisites"', 1)[1].split("</nav>", 1)[0]
     check(pages[EXTENSION].prerequisites == [PREDICTION, SAMPLING]
@@ -391,22 +396,32 @@ def check_html(site: Path) -> None:
     pages[FITTING].has_links(f"{FIT}#数式", f"{EXERCISES}#exercise-sample-fitting-1")
     pages[UNCERTAINTY].has_links(f"{VARIABLES}#variables", f"{SAMPLE}#sample")
     pages[EXERCISES].has_links(f"{FIT}#fit")
-    pages[PRACTICE_1].has_links(f"{PRACTICE_FITTING}#sample-fitting-数式",
-                                f"{PRACTICE_FITTING}#exercise-sample-fitting-1",
-                                CHECKLIST, f"{PRACTICE_1}#session-intro", PRACTICE_UNCERTAINTY,
-                                f"{CHECK_SAMPLE}#check-sample")
-    pages[STATISTICS_1].has_links(f"{EXERCISES}#exercise-sample-fitting-1")
-    pages[PRACTICE_INDEX].has_links(PRACTICE_1, PRACTICE_2, GUIDE, CHECKLIST, FOLLOW_UP)
+    pages[PRACTICE_SAMPLING].has_links(f"{PRACTICE_FITTING}#sample-fitting-数式",
+                                      CHECKLIST, f"{PRACTICE_SAMPLING}#session-intro",
+                                      f"{PRACTICE_SAMPLING}#sample", PRACTICE_UNCERTAINTY,
+                                      f"{CHECK_SAMPLE}#check-sample")
+    pages[STATISTICS_OVERVIEW].has_links(FITTING)
+    pages[PRACTICE_INDEX].has_links(GUIDE, CHECKLIST, FOLLOW_UP)
     index = pages[PRACTICE_INDEX].source
     escaped_guide_link = f">{escape('実践の進め方 <A> & <B>')}</a>"
     check(escaped_guide_link in index, f"{PRACTICE_INDEX}: material title was not escaped")
     check(index.index(escaped_guide_link) < index.index(">提出前の確認</a>")
           < index.index('class="course-sessions"') < index.index(">予測の復習</a></h2>"),
           "Course materials, numbered sessions and supplements are out of order")
-    for path in (PRACTICE_1, FOLLOW_UP):
-        content = pages[path].source
-        check(content.index('class="course-materials"') < content.index('class="session-blocks"'),
-              f"{path}: materials must precede blocks")
+    for route, expected_sessions in ((PRACTICE_INDEX, [PRACTICE_SAMPLING, PRACTICE_OVERVIEW_2, HANDOUT, HANDOUT]),
+                                     (f"{STATISTICS}/index.html", [STATISTICS_OVERVIEW, STATISTICS_SAMPLING])):
+        sessions = pages[route].source.split('class="course-sessions"', 1)[1].split("</ol>", 1)[0]
+        check(local_targets(route, sessions) == expected_sessions, f"{route}: wrong session destinations")
+    for route, marker, material in ((PRACTICE_SAMPLING, "FIXTURE_OPEN_FIRST_INTRO", CHECKLIST),
+                                    (PRACTICE_OVERVIEW_2, "FIXTURE_OPEN_SECOND_INTRO", REVIEW)):
+        content = pages[route].source.split("<article>", 1)[1]
+        check(content.index("</header>") < content.index('class="chapter-nav-card"')
+              < content.index(marker) < content.index('class="course-materials"')
+              < content.index('class="lesson-body"'), f"{route}: wrong intro or material list placement")
+        materials = content.split('class="course-materials"', 1)[1].split("</ul>", 1)[0]
+        check(local_targets(route, materials) == [material], f"{route}: wrong materials listed")
+    check(pages[FOLLOW_UP].source.index('class="course-materials"')
+          < pages[FOLLOW_UP].source.index('class="session-blocks"'), f"{FOLLOW_UP}: materials must precede blocks")
     supplements_materials = pages[FOLLOW_UP].source.split('class="course-materials"', 1)[1].split("</ul>", 1)[0]
     check(escaped_guide_link in supplements_materials, f"{FOLLOW_UP}: material title was not escaped")
     pages[FOLLOW_UP].has_links(f"{GUIDE}#予測", CHECKLIST, GUIDE, EXTENSION)
@@ -420,23 +435,11 @@ def check_html(site: Path) -> None:
           f"{GUIDE}: only the page title should be h1")
     for heading in (("h2", "当てはめ"), ("h3", "model-details"), ("h2", "bibliography")):
         check(heading in guide_headings, f"{GUIDE}: expected {heading}")
-    pages[f"{STATISTICS}/index.html"].has_links(STATISTICS_1, STATISTICS_2)
     pages[f"{REGRESSION}/index.html"].has_links(OVERVIEW, FITTING)
     pages[f"{INFERENCE}/index.html"].has_links(SAMPLING, UNCERTAINTY, OVERVIEW)
-    check("practice-1.py" in pages[PRACTICE_1].source, f"{PRACTICE_1}: missing assignment filename")
-    check("statistics-1.py" in pages[STATISTICS_1].source, f"{STATISTICS_1}: missing assignment filename")
-    for session, expected_rows in {
-        PRACTICE_1: [(PRACTICE_SAMPLING, ""), (PRACTICE_FITTING, "practice-1.py"), (PRACTICE_PREDICTION, "準備中")],
-        PRACTICE_2: [(PRACTICE_OVERVIEW_2, ""), (PRACTICE_UNCERTAINTY, "")],
-        FOLLOW_UP: [(EXTENSION, "必修")],
-        STATISTICS_1: [(STATISTICS_OVERVIEW, "")],
-        STATISTICS_2: [(STATISTICS_SAMPLING, ""), (STATISTICS_UNCERTAINTY, "")],
-    }.items():
-        rows = pages[session].session_rows
-        check(len(rows) == len(expected_rows), f"{session}: wrong block count")
-        for (links, text), (target, label) in zip(rows, expected_rows):
-            check(target in links and label in "".join(text),
-                  f"{session}: expected {target} with label {label}")
+    rows = pages[FOLLOW_UP].session_rows
+    check(len(rows) == 1 and EXTENSION in rows[0][0] and "必修" in "".join(rows[0][1]),
+          f"{FOLLOW_UP}: wrong block list")
     check("class=\"protected\"" in pages[EXERCISES].source, f"{EXERCISES}: missing protected answer")
     check("note-heading" in pages[VARIABLES].ids, f"{VARIABLES}: missing nested heading from Div")
     check("コードフェンス内" in pages[VARIABLES].source, f"{VARIABLES}: missing fenced code")
@@ -448,13 +451,13 @@ def check_html(site: Path) -> None:
 
     overview = pages[OVERVIEW]
     expected_neighbors = {
-        PRACTICE_1: (SAMPLING, FITTING),
-        PRACTICE_2: (EXTENSION, UNCERTAINTY),
-        STATISTICS_1: (None, FITTING),
+        PRACTICE_FITTING: (SAMPLING, FITTING),
+        PRACTICE_OVERVIEW_2: (EXTENSION, UNCERTAINTY),
+        STATISTICS_OVERVIEW: (None, FITTING),
     }
     check(len(overview.occurrences) == len(expected_neighbors), f"{OVERVIEW}: wrong occurrence count")
     for path in (OVERVIEW, PREDICTION):
-        check(not pages[path].links & DRAFT_ROUTES, f"{path}: links to the closed course")
+        check(not pages[path].links & (DRAFT_ROUTES | {DRAFT_LESSON}), f"{path}: links to the closed course")
     for session, neighbors in expected_neighbors.items():
         matching = [occ for occ in overview.occurrences if session in occ.values()]
         check(len(matching) == 1, f"{OVERVIEW}: missing or duplicate occurrence for {session}")
@@ -466,7 +469,9 @@ def check_html(site: Path) -> None:
           f"{EXTENSION}: incorrect supplement placement")
     check(">予測の復習</a> (必修)" in pages[EXTENSION].source and "第 3 回" not in pages[EXTENSION].source,
           f"{EXTENSION}: supplement was numbered as a session")
-    check(any(PRACTICE_2 in occ and occ.get("next") == EXTENSION for occ in pages[UNCERTAINTY].occurrences),
+    check(any(PRACTICE_SAMPLING in occ and occ.get("prev") == PREDICTION for occ in pages[EXTENSION].occurrences),
+          f"{EXTENSION}: advanced occurrence does not link to the first lesson")
+    check(any(PRACTICE_UNCERTAINTY in occ and occ.get("next") == EXTENSION for occ in pages[UNCERTAINTY].occurrences),
           f"{UNCERTAINTY}: missing next block from supplement")
     check_lesson_content(pages)
     check_lesson_block_titles(pages)
@@ -486,16 +491,31 @@ def check_lesson_content(pages: dict[str, Page]) -> None:
     check(("h1", "variables") in lesson.headings and ("h1", "residuals") in lesson.headings,
           f"{lesson.path}: a block heading level changed")
     lesson.has_links(f"{lesson.path}#sample-fitting-数式", f"{lesson.path}#sample-fitting-formula-note",
-                     f"{lesson.path}#fit", f"{CHECK_SAMPLE}#check-sample", PRACTICE_INDEX, PRACTICE_1)
+                     f"{lesson.path}#fit", f"{CHECK_SAMPLE}#check-sample")
+    session_lessons = {
+        PRACTICE_SAMPLING: (PRACTICE_SAMPLING, PRACTICE_FITTING, PRACTICE_PREDICTION),
+        PRACTICE_OVERVIEW_2: (PRACTICE_OVERVIEW_2, PRACTICE_UNCERTAINTY),
+    }
+    for first_lesson, routes in session_lessons.items():
+        for route in routes:
+            source = pages[route].source
+            header = source.split('<header class="article-header">', 1)[1].split("</header>", 1)[0]
+            check(local_targets(route, header) == [PRACTICE_INDEX, first_lesson],
+                  f"{route}: wrong lesson header links")
+            if route != first_lesson:
+                check('class="course-materials"' not in source
+                      and "FIXTURE_OPEN_FIRST_INTRO" not in source and "FIXTURE_OPEN_SECOND_INTRO" not in source,
+                      f"{route}: session intro or materials repeated after the first lesson")
     check(re.search(r'id="exercise-sample-fitting-1"[^>]*>.*?</h2>\s*'
                     r'<p class="exercise-file">提出ファイル <code>practice-1.py</code></p>',
                     lesson.source, re.S) is not None,
           f"{lesson.path}: missing submission filename immediately after the exercise")
-    for route in (PRACTICE_1, PRACTICE_PREDICTION):
+    for route, target in ((PRACTICE_PREDICTION, EXTENSION), (STATISTICS_OVERVIEW, FITTING)):
         page = pages[route]
-        check("発展 (参考資料で読む)" in page.source and EXTENSION in page.links,
+        check("発展 (参考資料で読む)" in page.source and target in page.links,
               f"{route}: missing advanced reading")
-    check("発展 (参考資料で読む)" not in lesson.source, f"{lesson.path}: advanced reading appears before the last lesson")
+    for route in (PRACTICE_SAMPLING, PRACTICE_FITTING):
+        check('id="course-advanced"' not in pages[route].source, f"{route}: advanced reading appears before the last lesson")
     check("発展 (参考資料で読む)" not in pages[PRACTICE_UNCERTAINTY].source,
           f"{PRACTICE_UNCERTAINTY}: an empty advanced list is visible")
     check('<nav class="chapter-nav-card">' not in pages[DRAFT_LESSON].source,
@@ -526,18 +546,18 @@ def check_lesson_canonical(pages: dict[str, Page]) -> None:
 
 
 def check_session_sidebar_headings(pages: dict[str, Page]) -> None:
-    for route in (PRACTICE_1, PRACTICE_2, FOLLOW_UP, PRACTICE_FITTING, GUIDE):
+    for route in (PRACTICE_SAMPLING, PRACTICE_OVERVIEW_2, FOLLOW_UP, PRACTICE_FITTING, GUIDE):
         source = pages[route].source
         series = source.split("if (mode === 'series') {", 1)[1].split("attachSeriesToggleEvents();", 1)[0]
         has_headings = "buildHeadingsList(content)" in series
-        check(has_headings == (route in {PRACTICE_FITTING, GUIDE}),
+        check(has_headings == (route != FOLLOW_UP),
               f"{route}: wrong heading insertion in the series Index")
 
 
 def check_repeated_required_links(pages: dict[str, Page]) -> None:
-    first = pages[PRACTICE_1]
-    second = pages[PRACTICE_2]
-    first.has_links(PRACTICE_FITTING, PRACTICE_UNCERTAINTY)
+    first = pages[PRACTICE_SAMPLING]
+    second = pages[PRACTICE_OVERVIEW_2]
+    first.has_links(f"{PRACTICE_FITTING}#sample-fitting-数式", PRACTICE_UNCERTAINTY)
     second.has_links(f"{PRACTICE_OVERVIEW_2}#variables", PRACTICE_FITTING)
     check(f"{PRACTICE_FITTING}#variables" not in second.links, f"{second.path}: preferred an earlier round")
     pages[PRACTICE_UNCERTAINTY].has_links(f"{PRACTICE_OVERVIEW_2}#variables")
@@ -546,9 +566,9 @@ def check_repeated_required_links(pages: dict[str, Page]) -> None:
 
 
 def check_course_navigation_order(pages: dict[str, Page]) -> None:
-    order = [PRACTICE_INDEX, GUIDE, CHECKLIST, PRACTICE_1, PRACTICE_SAMPLING, PRACTICE_FITTING,
-             PRACTICE_PREDICTION, PRACTICE_2, REVIEW, PRACTICE_OVERVIEW_2, PRACTICE_UNCERTAINTY,
-             FOLLOW_UP, FOLLOW_UP_GUIDE]
+    order = [PRACTICE_INDEX, GUIDE, CHECKLIST, PRACTICE_SAMPLING, PRACTICE_FITTING,
+             PRACTICE_PREDICTION, REVIEW, PRACTICE_OVERVIEW_2, PRACTICE_UNCERTAINTY,
+             HANDOUT, FOLLOW_UP, FOLLOW_UP_GUIDE]
     for index, route in enumerate(order):
         source = pages[route].source
         cards = re.findall(r'<nav class="chapter-nav-card">.*?</nav>', source, re.S)
@@ -564,12 +584,16 @@ def check_course_navigation_order(pages: dict[str, Page]) -> None:
         check(len(current) == 1 and local_targets(route, f' href="{current[0]}"') == [route],
               f"{route}: wrong current page in Index")
         links = local_targets(route, sidebar[1])
-        check(links[:4] == [PRACTICE_INDEX, GUIDE, CHECKLIST, PRACTICE_1],
+        check(links[:4] == [PRACTICE_INDEX, GUIDE, CHECKLIST, PRACTICE_SAMPLING],
               f"{route}: wrong order of course-level materials")
         if route == PRACTICE_FITTING:
-            active = [PRACTICE_1, CHECKLIST, PRACTICE_SAMPLING, PRACTICE_FITTING, PRACTICE_PREDICTION]
+            active = [PRACTICE_SAMPLING, CHECKLIST, PRACTICE_SAMPLING, PRACTICE_FITTING, PRACTICE_PREDICTION]
             check(links[3:8] == active and "current-block" in sidebar[1] and "準備中" in sidebar[1],
                   f"{route}: wrong active session hierarchy or closed-page badge")
+        if route == HANDOUT:
+            start = links.index(HANDOUT)
+            check(links[start:] == [HANDOUT, REVIEW, HANDOUT, FOLLOW_UP],
+                  f"{route}: wrong material-only section hierarchy")
         if route == FOLLOW_UP_GUIDE:
             start = links.index(FOLLOW_UP)
             check(links[start:] == [FOLLOW_UP, CHECKLIST, GUIDE, FOLLOW_UP_GUIDE],
@@ -596,6 +620,8 @@ def check_feeds(site: Path) -> None:
         check(locations.count(path) == 1, f"sitemap must list {path} once")
     for path in sorted(CLOSED_ROUTES):
         check(path not in locations, f"sitemap includes closed page {path}")
+    for path in sorted(REMOVED_ROUTES):
+        check(path not in locations, f"sitemap includes standalone numbered session {path}")
 
     tags = list((site / "tags").glob("*.html"))
     tag_feeds = list((site / "tags").glob("*.xml"))
@@ -649,11 +675,12 @@ def check_invalid(
         root = Path(directory)
         shutil.copytree(REPO / "fixtures", root / "fixtures")
         shutil.copytree(REPO / "bib", root / "bib")
+        (root / "templates").symlink_to(REPO / "templates", target_is_directory=True)
         path = root / "fixtures" / source
         text = path.read_text(encoding="utf-8")
         check(text.count(original) == 1, f"Mutation must match once in {source}: {original!r}")
         path.write_text(text.replace(original, replacement, 1), encoding="utf-8")
-        expect_failed_build(executable, root, f"fixtures/{reported_by or source}", *diagnostics)
+        expect_failed_build(executable, root, reported_by or f"fixtures/{source}", *diagnostics)
 
 
 def expect_failed_build(executable: Path, root: Path, *diagnostics: str) -> None:
@@ -685,13 +712,22 @@ def check_invalid_inputs(executable: Path) -> None:
         "required block sample-fitting requires earlier required block sample-overview",
     )
     check_invalid_pages(executable, practice)
+    check_invalid(executable, practice, "    materials: [handout, review]\n    blocks: []",
+                  "    blocks: []", "第 3 回", "numbered session needs at least one lesson or material")
+    check_invalid(executable, practice, "    materials: [handout, review]",
+                  "    intro: この回の案内\n    materials: [handout, review]",
+                  "第 3 回", "session intro requires a lesson")
+    check_invalid(executable, practice,
+                  "## この回の案内 {#session-intro}",
+                  '## この回の案内 {#session-intro}\n\n      <span id="sample">重複する ID</span>',
+                  "duplicate HTML ID sample", reported_by=PRACTICE_SAMPLING)
     check_invalid(
         executable, fitting, "# 演習 {#exercises}",
         "::: {#refs}\n:::\n\n# 演習 {#exercises}", "reserved bibliography ID #refs",
     )
     check_invalid(
         executable, f"{REGRESSION}/field.yaml", "  - sample-prediction\n", "",
-        "block is missing from field.yaml", reported_by=f"{REGRESSION}/sample-prediction.md",
+        "block is missing from field.yaml", reported_by=f"fixtures/{REGRESSION}/sample-prediction.md",
     )
     check_invalid(
         executable, f"{REGRESSION}/field.yaml", "  - sample-prediction", "  - sample-prediction\n  - sample-missing",
@@ -727,7 +763,7 @@ def check_invalid_inputs(executable: Path) -> None:
         check_invalid(executable, draft, original, broken, diagnostic)
     for names, duplicate, route in (
         ("[guide, checklist]", "guide", PRACTICE_INDEX),
-        ("[checklist]", "checklist", PRACTICE_1),
+        ("[checklist]", "checklist", "第 1 回 標本と当てはめ"),
         ("[checklist, guide, follow-up-guide]", "guide", FOLLOW_UP),
     ):
         check_invalid(executable, practice, f"materials: {names}",
@@ -735,15 +771,16 @@ def check_invalid_inputs(executable: Path) -> None:
                       f"duplicate material in {route} {duplicate}")
     check_invalid(executable, practice, "materials: [guide, checklist]", "materials: [guide, checklist, missing]",
                   "missing material file: missing")
-    for key in ("guide", "index", "1"):
+    for key in ("guide", "index"):
         check_invalid(executable, practice, "id: follow-up", f"id: '{key}'",
                       f"duplicate output path {PRACTICE}/{key}.html")
     check_invalid(executable, practice, "id: follow-up", "id: Bad_name", "invalid supplement id")
+    check_invalid(executable, practice, "id: follow-up", "id: '1'", "invalid supplement id")
     check_invalid(executable, practice, "  - id: follow-up", "  - {id: follow-up, title: 復習, blocks: []}\n  - id: follow-up",
                   f"duplicate output path {FOLLOW_UP}")
     for key, diagnostic in (
         ("index", f"duplicate output path {PRACTICE_INDEX}"),
-        ("1", f"duplicate output path {PRACTICE_1}"),
+        ("1", "invalid material name"),
         ("follow-up", f"duplicate output path {FOLLOW_UP}"),
         ("Bad_name", "invalid material name"),
         ("orphan", "material is missing from"),

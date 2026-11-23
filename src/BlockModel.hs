@@ -48,6 +48,9 @@ data Exercise = Exercise { exerciseId :: String, exerciseFile :: Maybe String }
 data Lesson = Lesson { lessonNumber :: Int, lessonBlocks :: [LessonBlock] }
 data LessonBlock = LessonBlock { lessonEntry :: Entry, lessonBlock :: Block,
                                  lessonRenamedIds :: M.Map String String }
+data CourseSection = CourseSection
+    { sectionId :: SectionId, sectionSession :: Session, sectionLessons :: [Lesson],
+      sectionDestination :: FilePath }
 
 fieldPath :: Field -> FilePath
 fieldPath f = "fields" </> fieldName f </> "index.html"
@@ -67,9 +70,8 @@ coursePath c = "courses" </> courseName c </> "index.html"
 coursePagePath :: Course -> String -> FilePath
 coursePagePath c key = takeDirectory (coursePath c) </> key <.> "html"
 
-sectionPath :: Course -> SectionId -> FilePath
-sectionPath c (Numbered n) = coursePagePath c (show n)
-sectionPath c (Supplement key) = coursePagePath c key
+sectionPath :: Course -> String -> FilePath
+sectionPath = coursePagePath
 
 courseSections :: Course -> [(SectionId, Session)]
 courseSections c = zipWith (\n s -> (Numbered n, s)) [1..] (courseSessions c)
@@ -211,13 +213,13 @@ htmlIds :: T.Text -> [String]
 htmlIds html = [T.unpack i | HTML.TagOpen _ attrs <- HTML.parseTags html,
                              (name,i) <- attrs, T.toLower name == "id", not (T.null i)]
 
-courseLessons :: Site -> Course -> IO [Lesson]
-courseLessons site course = fmap concat $ forM (courseSections course) $ \(key, session) -> do
+planCourseSections :: Site -> Course -> IO [CourseSection]
+planCourseSections site course = forM (courseSections course) $ \(key, session) -> do
     let err = failAt (courseSource course) . ((sectionTitle key session ++ ": pages: ") ++)
         required = filter ((== "required") . entryLevel) (sessionBlocks session)
         entries = M.fromList [(entryBlock entry, entry) | entry <- required]
         names = map entryBlock required
-    case key of
+    lessons <- case key of
       Supplement _ -> do
         forM_ (sessionPages session) $ \_ -> err "only numbered sessions can specify pages"
         pure []
@@ -230,6 +232,8 @@ courseLessons site course = fmap concat $ forM (courseSections course) $ \(key, 
               err "list each required block once, in blocks order"
             pure (map (map (entries M.!)) pages)
         pure [Lesson number (groupBlocks group) | group <- groups]
+    destination <- sectionTarget course key session lessons
+    pure (CourseSection key session lessons destination)
   where
     groupBlocks = reverse . snd . foldl' addBlock (S.empty, [])
     addBlock (seen, soFar) entry =
@@ -237,6 +241,19 @@ courseLessons site course = fmap concat $ forM (courseSections course) $ \(key, 
           ids = M.keysSet (blockAnchors block)
           renamed = M.fromSet (\i -> blockName block ++ "-" ++ i) (S.intersection seen ids)
       in (S.union seen ids, LessonBlock entry block renamed : soFar)
+
+sectionTarget :: Course -> SectionId -> Session -> [Lesson] -> IO FilePath
+sectionTarget course key session lessons = case key of
+    Supplement slug -> pure (sectionPath course slug)
+    Numbered _ -> case lessons of
+      first : _ -> pure (lessonPath course first)
+      [] -> case sessionMaterials session of
+        [] -> err "numbered session needs at least one lesson or material"
+        first : _ -> do
+          unless (null (sessionIntro session)) $ err "session intro requires a lesson"
+          pure (materialPath course (coursePages course M.! first))
+  where
+    err message = failAt (courseSource course) (sectionTitle key session ++ ": " ++ message)
 
 lessonAnchor :: LessonBlock -> String -> String
 lessonAnchor b anchor = M.findWithDefault anchor anchor (lessonRenamedIds b)
@@ -389,11 +406,12 @@ attachMaterials c materials = do
       pages = M.fromList [(materialName m,m) | m <- materials]
       sections = courseSections c
       materialLists = (coursePath c, courseMaterials c)
-        : [(sectionPath c key, sessionMaterials s) | (key,s) <- sections]
+        : [(sectionTitle key s, sessionMaterials s) | (key,s) <- sections, Numbered _ <- [key]]
+        ++ [(sectionPath c key, sessionMaterials s) | (key,s) <- courseSupplements c]
       referenced = S.fromList (concatMap snd materialLists)
       supplements = map fst (courseSupplements c)
       routes = [(coursePath c,source)]
-        ++ [(sectionPath c key,source) | (key,_) <- sections]
+        ++ [(sectionPath c key,source) | key <- supplements]
         ++ [(materialPath c m,materialSource m) | m <- materials]
   unique source "output path" routes
   forM_ materialLists $ \(path,names) ->
@@ -470,6 +488,12 @@ resolveLinksWith site current course override doc = do
           path = if samePage then "" else toUrl (blockDir b </> key <.> "html")
       Right (path ++ "#" ++ fragment)
 
-sessionDoc :: P.ReaderOptions -> Site -> Course -> [Lesson] -> SectionId -> Session -> Either String P.Pandoc
-sessionDoc opts site c lessons key s = markdown opts (sessionIntro s)
-    >>= resolveLinksWith site Nothing (Just c) (Just (resolveLessonTarget c lessons key Nothing))
+sessionDoc :: P.ReaderOptions -> Site -> Course -> [Lesson] -> CourseSection -> S.Set String
+           -> Either String P.Pandoc
+sessionDoc opts site c lessons section lessonIds = markdown opts (sessionIntro (sectionSession section))
+    >>= resolveLinksWith site Nothing (Just c) (Just target)
+  where
+    target url
+      | Just fragment <- stripPrefix "#" url
+      , S.member (unEscapeString fragment) lessonIds = Just (Right url)
+      | otherwise = resolveLessonTarget c lessons (sectionId section) Nothing url

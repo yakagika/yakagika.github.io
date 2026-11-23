@@ -27,7 +27,7 @@ Python の環境構築と基礎は, 共通資料の[プログラミング基礎]
 
 ## 発展の参考資料 {#発展の参考資料}
 
-授業では, 各回の講義のページの内容を扱います. 授業で扱わない発展の内容は, 回のページと, 各回の最後の講義のページにある「発展 (参考資料で読む)」の一覧から開けます. 演習で発展の内容を使う場合は, 回のページの説明に記載しています.
+授業では, 各回の講義のページの内容を扱います. 授業で扱わない発展の内容は, 各回の最後の講義のページにある「発展 (参考資料で読む)」の一覧から開けます. 演習で発展の内容を使う場合は, 各回の最初の講義のページの冒頭に記載しています.
 
 
 ## デザインについて {#デザインについて}
@@ -54,19 +54,19 @@ Python の環境構築と基礎は, 共通資料の[プログラミング基礎]
 
 資料は, 分野ごとの参考資料と, 参考資料から授業で扱う部分を回ごとに並べた講義のページで構成します.
 
-- [第 1 回 本資料の読み方](/courses/dsp/1.html)
-- [第 2 回 分析設計: データ分析の進め方](/courses/dsp/2.html)
-- [第 3 回 データの可視化](/courses/dsp/3.html)
-- [第 4 回 データの数値化](/courses/dsp/4.html)
-- [第 5 回 回帰分析](/courses/dsp/5.html)
-- [第 6 回 機械学習の枠組みと決定木](/courses/dsp/6.html)
-- [第 7 回 クラスタリングとパターン発見](/courses/dsp/7.html)
-- [第 8 回 ニューラルネットワークと Transformer](/courses/dsp/8.html)
-- [第 9 回 自然言語処理](/courses/dsp/9.html)
-- [第 10 回 画像認識](/courses/dsp/10.html)
-- [第 11 回 総合実習 1](/courses/dsp/11.html)
-- [第 12 回 総合実習 2](/courses/dsp/12.html)
-- [第 13 回 発表回](/courses/dsp/13.html)
+- [第 1 回 本資料の読み方](/courses/dsp/guide.html)
+- [第 2 回 分析設計: データ分析の進め方](/courses/dsp/2/design-process.html)
+- [第 3 回 データの可視化](/courses/dsp/3/vis-basic.html)
+- [第 4 回 データの数値化](/courses/dsp/4/num-summary.html)
+- [第 5 回 回帰分析](/courses/dsp/5/reg-intro.html)
+- [第 6 回 機械学習の枠組みと決定木](/courses/dsp/6/ml-overview.html)
+- [第 7 回 クラスタリングとパターン発見](/courses/dsp/7/ml-clustering.html)
+- [第 8 回 ニューラルネットワークと Transformer](/courses/dsp/8/ml-network.html)
+- [第 9 回 自然言語処理](/courses/dsp/9/nlp-processing.html)
+- [第 10 回 画像認識](/courses/dsp/10/img-recognition.html)
+- [第 11 回 総合実習 1](/courses/dsp/capstone.html)
+- [第 12 回 総合実習 2](/courses/dsp/capstone.html)
+- [第 13 回 発表回](/courses/dsp/capstone.html)
 
 第 11〜13 回の課題と発表の要綱は, [総合実習](material:capstone)にまとめています.
 
@@ -95,7 +95,7 @@ Python の環境構築と基礎も, 他の講義と共通の資料を利用し�
 
 ## 演習データ {#演習データ}
 
-演習は, 各回のページの一覧と, 対応する講義のページの本文から開けます. 回答例がある演習では, 演習の下にある回答欄をパスワードで開けます.
+演習は, 対応する講義のページの本文にあります. 回答例がある演習では, 演習の下にある回答欄をパスワードで開けます.
 
 利用するデータは[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/)からダウンロード可能です. 本資料で扱われるデータは基本的に,ダミーデータです.したがって,分析例として導かれている結論も,現実の事象を表しているわけではないことに注意してください.研究などにも利用することはできません.
 
