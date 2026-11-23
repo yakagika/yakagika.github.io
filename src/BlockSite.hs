@@ -19,7 +19,7 @@ import System.IO.Temp (withTempDirectory)
 import System.FilePath
 import Text.Read (readMaybe)
 import qualified Text.Pandoc as P
-import Text.Pandoc.Walk (query)
+import Text.Pandoc.Walk (query, walk)
 
 -- Inspect the routes Hakyll will actually run (including versions such as tag RSS).
 -- Hakyll itself keeps the first compiler for a given Identifier.
@@ -66,16 +66,20 @@ blockRules fixtures reader writer ctx cite = do
       fields = sources "fields/*/field.yaml"
       blocks = sources "fields/*/*.md"
       courses = sources "courses/*.yaml"
-      inputs = fields .||. blocks .||. courses
+      materials = sources "courses/*/*.md"
+      inputs = fields .||. blocks .||. courses .||. materials
       paths pattern = map toFilePath <$> getMatches pattern
   fs <- paths fields
   bs <- paths blocks
   cs <- paths courses
-  site <- preprocess $ readSite reader fs bs cs
+  ms <- paths materials
+  site <- preprocess $ readSite reader fs bs cs ms
   let outputs = [(fieldPath f,fieldSource f,True) | f <- siteFields site] ++
                 [(pagePath b p,blockSource b,blockOpen b) | b <- M.elems (siteBlocks site), p <- blockPages b] ++
                 [(path,courseSource c,courseOpen c) | c <- siteCourses site,
-                   path <- coursePath c : map (sessionPath c) [1..length (courseSessions c)]]
+                   path <- coursePath c : map (sectionPath c . fst) (courseSections c)] ++
+                [(materialPath c m,materialSource m,courseOpen c) | c <- siteCourses site,
+                   m <- M.elems (coursePages c)]
   preprocess $ unique "fields/courses" "output path" [(p,src) | (p,src,_) <- outputs]
   match inputs $ version "source" $ compile getResourceBody
   -- A change of order, visibility or target ID may affect pages in other fields.
@@ -89,29 +93,39 @@ blockRules fixtures reader writer ctx cite = do
   forM_ (siteFields site) $ \f -> register (fieldPath f) (renderField ctx site f)
   forM_ (M.elems $ siteBlocks site) $ \b -> forM_ (blockPages b) $ \p ->
     register (pagePath b p) $ do
-      body <- if not (blockOpen b) then makeItem "" else do
-        let doc = pageDoc p
-        rendered <- case blockBibliography b of
-          Just bib | or (query hasCite doc) -> do
-            let anchor = head [name | n <- [0 :: Int ..],
-                                 let name = if n == 0 then "bibliography" else "bibliography-" ++ show n,
-                                 M.notMember name (blockAnchors b)]
-            makeItem (appendBibliography anchor doc) >>= cite bib
-          _ -> makeItem doc
-        pure $ writePandocWith writer rendered
+      body <- if blockOpen b
+        then renderDocument (blockBibliography b) (`M.member` blockAnchors b) (pageDoc p)
+        else makeItem ""
       renderPage ctx site b p body
   forM_ (siteCourses site) $ \c -> do
     let render compiler
           | courseOpen c = compiler
           | otherwise = renderClosedCourse ctx c
     register (coursePath c) $ render (renderCourse ctx c)
-    forM_ (zip [1..] $ courseSessions c) $ \(n,s) -> do
-      intro <- preprocess $ either (failAt $ courseSource c) pure $ sessionDoc reader site s
-      register (sessionPath c n) $ render $ do
+    forM_ (courseSections c) $ \(key,s) -> do
+      intro <- preprocess $ either (failAt $ courseSource c) pure $ sessionDoc reader site c s
+      register (sectionPath c key) $ render $ do
         html <- writePandocWith writer <$> makeItem intro
-        renderSession ctx site c n s html
+        renderSession ctx site c key s html
+    forM_ (M.elems $ coursePages c) $ \m ->
+      register (materialPath c m) $ do
+        body <- if courseOpen c
+          then renderDocument (materialBibliography m) (`S.member` materialAnchors m)
+                 (walk demoteMaterialHeading (materialDoc m))
+          else makeItem ""
+        renderMaterial ctx c m body
   pure outputs
   where
+    demoteMaterialHeading (P.Header level attrs inlines) = P.Header (min 6 (level + 1)) attrs inlines
+    demoteMaterialHeading block = block
+    renderDocument bibliography containsId doc = do
+      rendered <- case bibliography of
+        Just bib | or (query hasCite doc) -> do
+          let candidates = "bibliography" : ["bibliography-" ++ show n | n <- [1 :: Int ..]]
+              anchor = head (dropWhile containsId candidates)
+          makeItem (appendBibliography anchor doc) >>= cite bib
+        _ -> makeItem doc
+      pure $ writePandocWith writer rendered
     hasCite (P.Cite _ _) = [True]
     hasCite _ = []
     appendBibliography anchor (P.Pandoc meta bs) = P.Pandoc meta $

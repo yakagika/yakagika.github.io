@@ -1,5 +1,5 @@
 ---
-title: 標本の取り方
+title: 標本の取り方 <A> & <B>
 kind: theory
 open: true
 ---

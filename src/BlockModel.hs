@@ -3,6 +3,7 @@ module BlockModel where
 
 import Control.Monad (foldM, forM, forM_, unless, when)
 import Data.Aeson (FromJSON(..), Value(Object), withObject, (.:), (.:!), (.:?), (.!=))
+import qualified Data.Aeson.KeyMap as KM
 import Data.Aeson.Types (parseEither)
 import Data.Char (isAsciiLower)
 import Data.Generics (everything, mkQ)
@@ -29,8 +30,15 @@ data Block = Block { blockName, blockTitle, blockField, blockKind :: String, blo
                      blockPages :: [Page], blockAnchors, blockExercises :: M.Map String String }
 data Page = Page { pageKey, pageTitle :: String, pageDoc :: P.Pandoc }
 data Course = Course { courseName, courseTitle, courseDescription :: String, courseSource :: FilePath,
-                       courseOpen :: Bool, courseSessions :: [Session] }
-data Session = Session { sessionTitle :: String, sessionIntro :: String, sessionBlocks :: [Entry] }
+                       courseOpen :: Bool, courseSessions :: [Session],
+                       courseMaterials :: [String], courseSupplements :: [(String, Session)],
+                       coursePages :: M.Map String Material }
+data Session = Session { sessionTitle :: String, sessionIntro :: String, sessionBlocks :: [Entry],
+                         sessionMaterials :: [String] }
+data SectionId = Numbered Int | Supplement String
+data Material = Material { materialName, materialTitle :: String, materialSource :: FilePath,
+                           materialBibliography :: Maybe String, materialDoc :: P.Pandoc,
+                           materialAnchors :: S.Set String }
 data Entry = Entry { entryBlock, entryLevel :: String, entryExercises :: [Exercise] }
 data Exercise = Exercise { exerciseId :: String, exerciseFile :: Maybe String }
 
@@ -49,11 +57,23 @@ blockPath b = blockDir b </> "index.html"
 coursePath :: Course -> FilePath
 coursePath c = "courses" </> courseName c </> "index.html"
 
-sessionPath :: Course -> Int -> FilePath
-sessionPath c n = "courses" </> courseName c </> show n <.> "html"
+coursePagePath :: Course -> String -> FilePath
+coursePagePath c key = takeDirectory (coursePath c) </> key <.> "html"
+
+sectionPath :: Course -> SectionId -> FilePath
+sectionPath c (Numbered n) = coursePagePath c (show n)
+sectionPath c (Supplement key) = coursePagePath c key
+
+courseSections :: Course -> [(SectionId, Session)]
+courseSections c = zipWith (\n s -> (Numbered n, s)) [1..] (courseSessions c)
+    ++ [(Supplement key, s) | (key,s) <- courseSupplements c]
+
+materialPath :: Course -> Material -> FilePath
+materialPath c = coursePagePath c . materialName
 
 instance FromJSON Session where
-  parseJSON = withObject "session" $ \o -> Session <$> o .: "title" <*> o .:? "intro" .!= "" <*> o .: "blocks"
+  parseJSON = withObject "session" $ \o ->
+    Session <$> o .: "title" <*> o .:? "intro" .!= "" <*> o .: "blocks" <*> o .:? "materials" .!= []
 instance FromJSON Entry where
   parseJSON = withObject "course block" $ \o -> Entry <$> o .: "block" <*> o .: "level" <*> o .:? "exercises" .!= []
 instance FromJSON Exercise where
@@ -76,9 +96,27 @@ readCourse :: FilePath -> IO Course
 readCourse path = readYaml path $ withObject "course" $ \o ->
   Course (takeBaseName path) <$> o .: "title" <*> o .: "description" <*> pure path
     <*> o .:! "open" .!= False <*> o .: "sessions"
+    <*> o .:? "materials" .!= [] <*> (o .:? "supplements" .!= [] >>= mapM supplement)
+    <*> pure M.empty
+  where
+    supplement = withObject "supplement" $ \o -> (,) <$> o .: "id" <*> parseJSON (Object o)
 
 markdown :: P.ReaderOptions -> String -> Either String P.Pandoc
 markdown opts = either (Left . show) Right . P.runPure . P.readMarkdown opts . T.pack
+
+readMaterial :: P.ReaderOptions -> FilePath -> IO Material
+readMaterial opts path = do
+  source <- readFile path
+  (metadata, body) <- either (failAt path . show) pure (parsePage source)
+  (title, bibliography) <- either (failAt path) pure $
+    flip parseEither (Object metadata) $ withObject "course material" $ \o -> do
+      when (KM.member "open" o) $ fail "material inherits open from its course"
+      (,) <$> o .: "title" <*> o .:? "bibliography"
+  doc <- either (failAt path) pure $ markdown opts body
+  let ids = documentIds doc
+  checkBibliographyId path doc
+  unique path "ID" [(i,path) | i <- ids]
+  pure $ Material (takeBaseName path) title path bibliography doc (S.fromList ids)
 
 readBlock :: P.ReaderOptions -> FilePath -> IO Block
 readBlock opts path = do
@@ -107,9 +145,7 @@ readBlock opts path = do
   P.Pandoc meta blocks <- readWith opts
   let pages = splitPages meta title blocks
       ids = [(i, pageKey p) | p <- pages, i <- documentIds (pageDoc p)]
-      refsDiv (P.Div (i,_,_) _) = [i == "refs"]
-      refsDiv _ = []
-  when (or $ query refsDiv blocks) $ failAt path "reserved bibliography ID #refs on Div"
+  checkBibliographyId path (P.Pandoc meta blocks)
   unique path "ID" ids
   exercises <- fmap concat $ forM pages $ \p -> do
     forM (query exerciseHeading (pageDoc p)) $ \(_,i,t) -> do
@@ -118,6 +154,13 @@ readBlock opts path = do
       pure (i,t)
   pure $ Block (takeBaseName path) title (takeFileName $ takeDirectory path) kind path
                open requires bibliography pages (M.fromList ids) (M.fromList exercises)
+
+checkBibliographyId :: FilePath -> P.Pandoc -> IO ()
+checkBibliographyId path doc =
+  when (or $ query refsDiv doc) $ failAt path "reserved bibliography ID #refs on Div"
+  where
+    refsDiv (P.Div (i,_,_) _) = [i == "refs"]
+    refsDiv _ = []
 
 splitPages :: P.Meta -> String -> [P.Block] -> [Page]
 splitPages meta title blocks =
@@ -152,14 +195,22 @@ unique source label = go M.empty
       Just other -> failAt source ("duplicate " ++ label ++ " " ++ k ++ " (" ++ other ++ ", " ++ origin ++ ")")
       Nothing -> go (M.insert k origin seen) xs
 
-readSite :: P.ReaderOptions -> [FilePath] -> [FilePath] -> [FilePath] -> IO Site
-readSite opts fieldFiles blockFiles courseFiles = do
+readSite :: P.ReaderOptions -> [FilePath] -> [FilePath] -> [FilePath] -> [FilePath] -> IO Site
+readSite opts fieldFiles blockFiles courseFiles materialFiles = do
   fields <- mapM readField fieldFiles
   blocks <- mapM (readBlock opts) blockFiles
-  courses <- mapM readCourse courseFiles
+  courseInputs <- mapM readCourse courseFiles
+  materials <- mapM (readMaterial opts) materialFiles
   unique "fields" "block" [(blockName b, blockSource b) | b <- blocks]
   unique "fields" "field" [(fieldName f, fieldSource f) | f <- fields]
-  unique "courses" "course" [(courseName c, courseSource c) | c <- courses]
+  unique "courses" "course" [(courseName c, courseSource c) | c <- courseInputs]
+  let parentCourse = takeFileName . takeDirectory . materialSource
+      materialsByCourse = M.fromListWith (++) [(parentCourse m,[m]) | m <- materials]
+  forM_ materials $ \m ->
+    unless (any ((== parentCourse m) . courseName) courseInputs) $
+      failAt (materialSource m) ("unknown course " ++ parentCourse m)
+  courses <- forM courseInputs $ \c ->
+    attachMaterials c (M.findWithDefault [] (courseName c) materialsByCourse)
   let catalog = M.fromList [(blockName b,b) | b <- blocks]
       site = Site fields catalog courses
   forM_ blocks $ \b -> do
@@ -193,20 +244,55 @@ readSite opts fieldFiles blockFiles courseFiles = do
             forM_ (blockRequires b) $ \r -> unless (S.member r seen) $
               err ("required block " ++ name ++ " requires earlier required block " ++ r)
             pure $ S.insert name seen
-    _ <- foldM check S.empty (concatMap sessionBlocks $ courseSessions c)
+    _ <- foldM check S.empty (concatMap (sessionBlocks . snd) $ courseSections c)
     pure ()
   -- Resolve during registration, including closed bodies, so a broken reference fails
   -- even when its target page would otherwise come from the cache.
   resolved <- forM blocks $ \b -> do
     pages <- forM (blockPages b) $ \p -> do
       doc <- either (failAt $ blockSource b) pure $
-        resolveLinks site (Just (b,p)) (pageDoc p)
+        resolveLinks site (Just (b,p)) Nothing (pageDoc p)
       pure p {pageDoc = doc}
     pure (blockName b,b {blockPages = pages})
-  pure site {siteBlocks = M.fromList resolved}
+  resolvedCourses <- forM courses $ \c -> do
+    pages <- forM (coursePages c) $ \m -> do
+      doc <- either (failAt $ materialSource m) pure $
+        resolveLinks site Nothing (Just c) (materialDoc m)
+      pure m {materialDoc = doc}
+    pure c {coursePages = pages}
+  pure site {siteBlocks = M.fromList resolved, siteCourses = resolvedCourses}
 
-resolveLinks :: Site -> Maybe (Block,Page) -> P.Pandoc -> Either String P.Pandoc
-resolveLinks site current = walkM rewrite
+attachMaterials :: Course -> [Material] -> IO Course
+attachMaterials c materials = do
+  let source = courseSource c
+      pages = M.fromList [(materialName m,m) | m <- materials]
+      sections = courseSections c
+      materialLists = (coursePath c, courseMaterials c)
+        : [(sectionPath c key, sessionMaterials s) | (key,s) <- sections]
+      referenced = S.fromList (concatMap snd materialLists)
+      supplements = map fst (courseSupplements c)
+      routes = [(coursePath c,source)]
+        ++ [(sectionPath c key,source) | (key,_) <- sections]
+        ++ [(materialPath c m,materialSource m) | m <- materials]
+  unique source "output path" routes
+  forM_ materialLists $ \(path,names) ->
+    unique source ("material in " ++ path) [(name,name) | name <- names]
+  forM_ supplements $ \key -> unless (validSlug key) $
+    failAt source ("invalid supplement id: " ++ key)
+  forM_ materials $ \m -> do
+    unless (validSlug (materialName m)) $
+      failAt (materialSource m) ("invalid material name: " ++ materialName m)
+    unless (S.member (materialName m) referenced) $
+      failAt (materialSource m) ("material is missing from " ++ source)
+  forM_ referenced $ \name -> unless (M.member name pages) $
+    failAt source ("missing material file: " ++ name)
+  pure c {coursePages = pages}
+  where
+    validSlug (c0:cs) = isAsciiLower c0 && all (\x -> isAsciiLower x || x `elem` ['0'..'9'] || x == '-') cs
+    validSlug [] = False
+
+resolveLinks :: Site -> Maybe (Block,Page) -> Maybe Course -> P.Pandoc -> Either String P.Pandoc
+resolveLinks site current course doc = walkM rewrite doc
   where
     rewrite (P.Link a label (url,title)) = do
       target <- resolve (T.unpack url)
@@ -218,8 +304,20 @@ resolveLinks site current = walkM rewrite
           b <- maybe (Left $ "unknown block link: " ++ url) Right $
                  M.lookup (unEscapeString name) (siteBlocks site)
           if null fragment then Right (toUrl $ blockPath b) else anchor b (tail fragment)
+      | Just ref <- stripPrefix "material:" url = do
+          c <- maybe (Left $ "material link outside its course: " ++ url) Right course
+          let (name,fragment) = break (== '#') ref
+          m <- maybe (Left $ "unknown material link: " ++ url) Right $
+                 M.lookup (unEscapeString name) (coursePages c)
+          unless (null fragment || S.member (unEscapeString $ tail fragment) (materialAnchors m)) $
+            Left ("unknown ID: " ++ url)
+          Right (toUrl (materialPath c m) ++ fragment)
       | Just fragment <- stripPrefix "#" url, Just (b,_) <- current = anchor b fragment
+      | Just fragment <- stripPrefix "#" url, Just _ <- course =
+          if S.member (unEscapeString fragment) localIds
+            then Right url else Left ("unknown local ID: " ++ url)
       | otherwise = Right url
+    localIds = S.fromList (documentIds doc)
     anchor b fragment = do
       let idText = unEscapeString fragment
       key <- maybe (Left $ "unknown ID: block:" ++ blockName b ++ "#" ++ fragment) Right $
@@ -228,5 +326,5 @@ resolveLinks site current = walkM rewrite
           path = if samePage then "" else toUrl (blockDir b </> key <.> "html")
       Right (path ++ "#" ++ fragment)
 
-sessionDoc :: P.ReaderOptions -> Site -> Session -> Either String P.Pandoc
-sessionDoc opts site s = markdown opts (sessionIntro s) >>= resolveLinks site Nothing
+sessionDoc :: P.ReaderOptions -> Site -> Course -> Session -> Either String P.Pandoc
+sessionDoc opts site c s = markdown opts (sessionIntro s) >>= resolveLinks site Nothing (Just c)

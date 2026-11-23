@@ -6,6 +6,12 @@ open: true
 
 [説明変数](#variables), [観測値](#observation), [当てはめの数式](block:sample-fitting#数式)を参照できます.
 
+::: note
+
+## 回帰分析の補足
+
+:::
+
 # 説明変数 {#variables}
 
 例では[勉強時間]{#observation}を説明変数とします. [当てはめ](block:sample-fitting)でこの変数を使います.

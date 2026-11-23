@@ -4,7 +4,7 @@
 使い方:
     uv run --no-project python scripts/check_citations.py [--papers DIR] [--no-write]
 
-対象は ``lectures/**/*.md`` と ``fields/**/*.md``. 引用には front matter の
+対象は ``lectures/**/*.md``, ``fields/**/*.md``, ``courses/**/*.md``. 引用には front matter の
 ``bibliography: <name>`` を使う.
 本文の引用キー ([@key], @key) ごとに次を調べる.
 
@@ -15,7 +15,7 @@
 警告 (publish は止めない):
   - 検証の水準が identity か abstract (本文を確かめていない = 未照合の引用).
   - ``lectures/`` で引用があるのに文献表の位置 (``::: {#refs}``) が無い.
-    ``fields/`` の文献表はページごとに自動生成する.
+    ``fields/`` と ``courses/`` の文献表はページごとに自動生成する.
   - ``bibliography`` の指定が無い章に ``[@key]`` がある (処理されず元の文字列が出る).
 
 未照合の引用の一覧は ``writing/citations/unverified.md`` に書き出す (``--no-write`` で抑止).
@@ -87,7 +87,8 @@ def main() -> int:
     unverified: list[tuple[str, str, str]] = []  # (章, キー, 水準)
     n_pages = n_cites = 0
 
-    sources = [*REPO.glob("lectures/**/*.md"), *REPO.glob("fields/**/*.md")]
+    sources = [md for directory in ("lectures", "fields", "courses")
+               for md in (REPO / directory).rglob("*.md")]
     for md in sorted(sources):
         rel = md.relative_to(REPO)
         text = md.read_text(encoding="utf-8")
