@@ -30,6 +30,7 @@ STATISTICS = "courses/sample-statistics"
 DRAFT = "courses/sample-draft"
 DRAFT_GUIDE = f"{DRAFT}/guide.html"
 DRAFT_ROUTES = {f"{DRAFT}/index.html", f"{DRAFT}/1.html", f"{DRAFT}/follow-up.html", DRAFT_GUIDE}
+DRAFT_LESSON = f"{DRAFT}/1/sample-overview.html"
 OVERVIEW = f"{REGRESSION}/sample-overview/index.html"
 VARIABLES = f"{REGRESSION}/sample-overview/variables.html"
 FITTING = f"{REGRESSION}/sample-fitting/index.html"
@@ -47,17 +48,30 @@ PRACTICE_2 = f"{PRACTICE}/2.html"
 FOLLOW_UP = f"{PRACTICE}/follow-up.html"
 GUIDE = f"{PRACTICE}/guide.html"
 CHECKLIST = f"{PRACTICE}/checklist.html"
+REVIEW = f"{PRACTICE}/review.html"
+FOLLOW_UP_GUIDE = f"{PRACTICE}/follow-up-guide.html"
 PRACTICE_INDEX = f"{PRACTICE}/index.html"
+PRACTICE_SAMPLING = f"{PRACTICE}/1/sample-sampling.html"
+PRACTICE_FITTING = f"{PRACTICE}/1/sample-overview.html"
+PRACTICE_PREDICTION = f"{PRACTICE}/1/sample-prediction.html"
+PRACTICE_OVERVIEW_2 = f"{PRACTICE}/2/sample-overview.html"
+PRACTICE_UNCERTAINTY = f"{PRACTICE}/2/sample-uncertainty.html"
 PRACTICE_CONTENT = {
     PRACTICE_INDEX: ('class="course-sessions"', 'class="course-materials"', 'class="course-supplements"'),
-    PRACTICE_1: ("FIXTURE_OPEN_FIRST_INTRO",),
+    PRACTICE_1: ("FIXTURE_OPEN_FIRST_INTRO", 'id="session-pages"', 'id="course-advanced"'),
     PRACTICE_2: ("FIXTURE_OPEN_SECOND_INTRO",),
     FOLLOW_UP: ("FIXTURE_OPEN_SUPPLEMENT_INTRO",),
     GUIDE: ("FIXTURE_OPEN_GUIDE_BODY", "FIXTURE_OPEN_GUIDE_ANSWER"),
     CHECKLIST: ("FIXTURE_OPEN_CHECKLIST_BODY",),
+    REVIEW: ("FIXTURE_OPEN_REVIEW_BODY",),
+    FOLLOW_UP_GUIDE: ("FIXTURE_OPEN_FOLLOW_UP_GUIDE_BODY",),
+    PRACTICE_FITTING: ("FIXTURE_FITTING_INTRO",),
 }
 STATISTICS_1 = f"{STATISTICS}/1.html"
 STATISTICS_2 = f"{STATISTICS}/2.html"
+STATISTICS_OVERVIEW = f"{STATISTICS}/1/sample-overview.html"
+STATISTICS_SAMPLING = f"{STATISTICS}/2/sample-sampling.html"
+STATISTICS_UNCERTAINTY = f"{STATISTICS}/2/sample-uncertainty.html"
 
 OPEN_ROUTES = {
     f"{REGRESSION}/index.html",
@@ -65,14 +79,17 @@ OPEN_ROUTES = {
     f"{CLOSED_FIELD}/index.html",
     OVERVIEW, VARIABLES, FITTING, FIT, RESIDUALS, EXERCISES, EXTENSION, CHECK_SAMPLE,
     SAMPLING, SAMPLE, UNCERTAINTY, f"{INFERENCE}/sample-uncertainty/variation.html",
-    f"{PRACTICE}/index.html", PRACTICE_1, PRACTICE_2, FOLLOW_UP, GUIDE, CHECKLIST,
-    f"{STATISTICS}/index.html", STATISTICS_1, STATISTICS_2,
+    PRACTICE_INDEX, PRACTICE_1, PRACTICE_2, FOLLOW_UP, GUIDE, CHECKLIST, REVIEW, FOLLOW_UP_GUIDE,
+    PRACTICE_SAMPLING, PRACTICE_FITTING, PRACTICE_OVERVIEW_2, PRACTICE_UNCERTAINTY,
+    f"{STATISTICS}/index.html", STATISTICS_1, STATISTICS_2, STATISTICS_OVERVIEW,
+    STATISTICS_SAMPLING, STATISTICS_UNCERTAINTY,
 }
 CLOSED_ROUTES = {
     f"{CLOSED_FIELD}/sample-closed-block/index.html",
     PREDICTION,
     f"{REGRESSION}/sample-prediction/forecast.html",
     f"{REGRESSION}/sample-prediction/exercises.html",
+    DRAFT_LESSON, PRACTICE_PREDICTION,
 } | DRAFT_ROUTES
 
 
@@ -321,7 +338,8 @@ def check_html(site: Path) -> None:
 
     for path, page in pages.items():
         is_block = path.startswith("fields/") and path.count("/") == 3
-        if is_block or path in {GUIDE, CHECKLIST, DRAFT_GUIDE}:
+        is_lesson = path.startswith("courses/") and path.count("/") == 3
+        if is_block or is_lesson or path in {GUIDE, CHECKLIST, DRAFT_GUIDE}:
             page.check_toc_targets()
         for link in page.links:
             target, separator, fragment = link.partition("#")
@@ -330,7 +348,7 @@ def check_html(site: Path) -> None:
         check(("noindex" in page.robots) == (path in CLOSED_ROUTES), f"{path}: wrong robots metadata")
         if path in CLOSED_ROUTES:
             check("準備中" in page.source, f"{path}: missing closed-page notice")
-    for path in sorted(DRAFT_ROUTES):
+    for path in sorted(DRAFT_ROUTES | {DRAFT_LESSON}):
         page = pages[path]
         labels = ("準備講義の資料",) if path == DRAFT_GUIDE else ("統計の準備講義の説明です.",)
         for text in ('class="placeholder"', "統計の準備講義", *labels):
@@ -373,8 +391,10 @@ def check_html(site: Path) -> None:
     pages[FITTING].has_links(f"{FIT}#数式", f"{EXERCISES}#exercise-sample-fitting-1")
     pages[UNCERTAINTY].has_links(f"{VARIABLES}#variables", f"{SAMPLE}#sample")
     pages[EXERCISES].has_links(f"{FIT}#fit")
-    pages[PRACTICE_1].has_links(f"{FIT}#数式", f"{EXERCISES}#exercise-sample-fitting-1",
-                                CHECKLIST, f"{PRACTICE_1}#session-intro")
+    pages[PRACTICE_1].has_links(f"{PRACTICE_FITTING}#sample-fitting-数式",
+                                f"{PRACTICE_FITTING}#exercise-sample-fitting-1",
+                                CHECKLIST, f"{PRACTICE_1}#session-intro", PRACTICE_UNCERTAINTY,
+                                f"{CHECK_SAMPLE}#check-sample")
     pages[STATISTICS_1].has_links(f"{EXERCISES}#exercise-sample-fitting-1")
     pages[PRACTICE_INDEX].has_links(PRACTICE_1, PRACTICE_2, GUIDE, CHECKLIST, FOLLOW_UP)
     index = pages[PRACTICE_INDEX].source
@@ -392,7 +412,7 @@ def check_html(site: Path) -> None:
     pages[FOLLOW_UP].has_links(f"{GUIDE}#予測", CHECKLIST, GUIDE, EXTENSION)
     pages[GUIDE].has_links(PRACTICE_INDEX, f"{GUIDE}#予測", f"{CHECKLIST}#submission", f"{FIT}#fit")
     pages[CHECKLIST].has_links(f"{GUIDE}#予測")
-    for text in ('class="math inline"', 'class="sourceCode python"', 'class="protected"', 'id="lecture-toc" data-mode="single"'):
+    for text in ('class="math inline"', 'class="sourceCode python"', 'class="protected"', 'id="lecture-toc" data-mode="series"'):
         check(text in pages[GUIDE].source, f"{GUIDE}: missing {text}")
     guide_headings = pages[GUIDE].headings
     check([heading for heading in guide_headings if heading[0] == "h1"] == [("h1", None)]
@@ -406,11 +426,11 @@ def check_html(site: Path) -> None:
     check("practice-1.py" in pages[PRACTICE_1].source, f"{PRACTICE_1}: missing assignment filename")
     check("statistics-1.py" in pages[STATISTICS_1].source, f"{STATISTICS_1}: missing assignment filename")
     for session, expected_rows in {
-        PRACTICE_1: [(SAMPLING, "必修"), (OVERVIEW, "必修"), (FITTING, "必修"), (PREDICTION, "準備中")],
-        PRACTICE_2: [(OVERVIEW, "発展"), (UNCERTAINTY, "必修")],
+        PRACTICE_1: [(PRACTICE_SAMPLING, ""), (PRACTICE_FITTING, "practice-1.py"), (PRACTICE_PREDICTION, "準備中")],
+        PRACTICE_2: [(PRACTICE_OVERVIEW_2, ""), (PRACTICE_UNCERTAINTY, "")],
         FOLLOW_UP: [(EXTENSION, "必修")],
-        STATISTICS_1: [(OVERVIEW, "必修"), (FITTING, "発展")],
-        STATISTICS_2: [(SAMPLING, "必修"), (UNCERTAINTY, "必修")],
+        STATISTICS_1: [(STATISTICS_OVERVIEW, "")],
+        STATISTICS_2: [(STATISTICS_SAMPLING, ""), (STATISTICS_UNCERTAINTY, "")],
     }.items():
         rows = pages[session].session_rows
         check(len(rows) == len(expected_rows), f"{session}: wrong block count")
@@ -422,14 +442,14 @@ def check_html(site: Path) -> None:
     check("コードフェンス内" in pages[VARIABLES].source, f"{VARIABLES}: missing fenced code")
     check("fenced-heading" not in pages[VARIABLES].ids, f"{VARIABLES}: fenced text became a heading")
     for path, page in pages.items():
-        check(("refs" in page.ids) == (path in {FIT, GUIDE}), f"{path}: wrong bibliography placement")
-    for path in (FIT, GUIDE):
+        check(("refs" in page.ids) == (path in {FIT, GUIDE, PRACTICE_FITTING}), f"{path}: wrong bibliography placement")
+    for path in (FIT, GUIDE, PRACTICE_FITTING):
         check("ref-james2021introduction" in pages[path].ids, f"{path}: cited entry is missing")
 
     overview = pages[OVERVIEW]
     expected_neighbors = {
         PRACTICE_1: (SAMPLING, FITTING),
-        PRACTICE_2: (PREDICTION, UNCERTAINTY),
+        PRACTICE_2: (EXTENSION, UNCERTAINTY),
         STATISTICS_1: (None, FITTING),
     }
     check(len(overview.occurrences) == len(expected_neighbors), f"{OVERVIEW}: wrong occurrence count")
@@ -441,13 +461,119 @@ def check_html(site: Path) -> None:
         occurrence = matching[0]
         check((occurrence.get("prev"), occurrence.get("next")) == neighbors,
               f"{OVERVIEW}: wrong neighbors for {session}: {occurrence}")
-    supplement, = pages[EXTENSION].occurrences
+    supplement, = (occ for occ in pages[EXTENSION].occurrences if FOLLOW_UP in occ)
     check(FOLLOW_UP in supplement and supplement.get("prev") == UNCERTAINTY and "next" not in supplement,
           f"{EXTENSION}: incorrect supplement placement")
     check(">予測の復習</a> (必修)" in pages[EXTENSION].source and "第 3 回" not in pages[EXTENSION].source,
           f"{EXTENSION}: supplement was numbered as a session")
     check(any(PRACTICE_2 in occ and occ.get("next") == EXTENSION for occ in pages[UNCERTAINTY].occurrences),
           f"{UNCERTAINTY}: missing next block from supplement")
+    check_lesson_content(pages)
+    check_lesson_block_titles(pages)
+    check_lesson_canonical(pages)
+    check_session_sidebar_headings(pages)
+    check_repeated_required_links(pages)
+    check_course_navigation_order(pages)
+
+
+def check_lesson_content(pages: dict[str, Page]) -> None:
+    lesson = pages[PRACTICE_FITTING]
+    check(lesson.source.index("FIXTURE_OVERVIEW_INTRO") < lesson.source.index("FIXTURE_FITTING_INTRO"),
+          f"{lesson.path}: block introductions are out of order")
+    for ident in ("数式", "sample-fitting-数式", "formula-note", "sample-fitting-formula-note",
+                  "variables", "residuals", "exercises"):
+        check(lesson.ids[ident] == 1, f"{lesson.path}: expected exactly one ID {ident}")
+    check(("h1", "variables") in lesson.headings and ("h1", "residuals") in lesson.headings,
+          f"{lesson.path}: a block heading level changed")
+    lesson.has_links(f"{lesson.path}#sample-fitting-数式", f"{lesson.path}#sample-fitting-formula-note",
+                     f"{lesson.path}#fit", f"{CHECK_SAMPLE}#check-sample", PRACTICE_INDEX, PRACTICE_1)
+    check(re.search(r'id="exercise-sample-fitting-1"[^>]*>.*?</h2>\s*'
+                    r'<p class="exercise-file">提出ファイル <code>practice-1.py</code></p>',
+                    lesson.source, re.S) is not None,
+          f"{lesson.path}: missing submission filename immediately after the exercise")
+    for route in (PRACTICE_1, PRACTICE_PREDICTION):
+        page = pages[route]
+        check("発展 (参考資料で読む)" in page.source and EXTENSION in page.links,
+              f"{route}: missing advanced reading")
+    check("発展 (参考資料で読む)" not in lesson.source, f"{lesson.path}: advanced reading appears before the last lesson")
+    check("発展 (参考資料で読む)" not in pages[PRACTICE_UNCERTAINTY].source,
+          f"{PRACTICE_UNCERTAINTY}: an empty advanced list is visible")
+    check('<nav class="chapter-nav-card">' not in pages[DRAFT_LESSON].source,
+          f"{DRAFT_LESSON}: a closed course has navigation cards")
+    check("block-prerequisites" not in lesson.source and "course-occurrence" not in lesson.source,
+          f"{lesson.path}: reference material navigation is present in the lesson")
+
+
+def check_lesson_block_titles(pages: dict[str, Page]) -> None:
+    lesson = pages[PRACTICE_FITTING]
+    title = re.search(r'<h1\b(?=[^>]*\bid="sample-fitting")(?=[^>]*\bclass="lesson-block-title")[^>]*>'
+                      r'単回帰の当てはめ</h1>\s*<p>FIXTURE_FITTING_INTRO</p>', lesson.source)
+    check(title is not None, f"{lesson.path}: missing block title immediately before the second block")
+    check(lesson.source.count('class="lesson-block-title"') == 1
+          and lesson.source.index("FIXTURE_OVERVIEW_INTRO") < title.start(),
+          f"{lesson.path}: unexpected block title before the first block")
+    for route in (PRACTICE_SAMPLING, PRACTICE_OVERVIEW_2):
+        check('class="lesson-block-title"' not in pages[route].source,
+              f"{route}: unexpected block title on a single-block page")
+
+
+def check_lesson_canonical(pages: dict[str, Page]) -> None:
+    for route, canonical in ((PRACTICE_FITTING, OVERVIEW), (PRACTICE_PREDICTION, PREDICTION)):
+        check(f'<link rel="canonical" href="https://yakagika.github.io/{canonical}">' in pages[route].source,
+              f"{route}: missing absolute canonical URL")
+    check('rel="canonical"' not in pages[DRAFT_LESSON].source,
+          f"{DRAFT_LESSON}: a closed course has a canonical URL")
+
+
+def check_session_sidebar_headings(pages: dict[str, Page]) -> None:
+    for route in (PRACTICE_1, PRACTICE_2, FOLLOW_UP, PRACTICE_FITTING, GUIDE):
+        source = pages[route].source
+        series = source.split("if (mode === 'series') {", 1)[1].split("attachSeriesToggleEvents();", 1)[0]
+        has_headings = "buildHeadingsList(content)" in series
+        check(has_headings == (route in {PRACTICE_FITTING, GUIDE}),
+              f"{route}: wrong heading insertion in the series Index")
+
+
+def check_repeated_required_links(pages: dict[str, Page]) -> None:
+    first = pages[PRACTICE_1]
+    second = pages[PRACTICE_2]
+    first.has_links(PRACTICE_FITTING, PRACTICE_UNCERTAINTY)
+    second.has_links(f"{PRACTICE_OVERVIEW_2}#variables", PRACTICE_FITTING)
+    check(f"{PRACTICE_FITTING}#variables" not in second.links, f"{second.path}: preferred an earlier round")
+    pages[PRACTICE_UNCERTAINTY].has_links(f"{PRACTICE_OVERVIEW_2}#variables")
+    check("FIXTURE_OVERVIEW_INTRO" in pages[PRACTICE_OVERVIEW_2].source,
+          f"{PRACTICE_OVERVIEW_2}: missing repeated block")
+
+
+def check_course_navigation_order(pages: dict[str, Page]) -> None:
+    order = [PRACTICE_INDEX, GUIDE, CHECKLIST, PRACTICE_1, PRACTICE_SAMPLING, PRACTICE_FITTING,
+             PRACTICE_PREDICTION, PRACTICE_2, REVIEW, PRACTICE_OVERVIEW_2, PRACTICE_UNCERTAINTY,
+             FOLLOW_UP, FOLLOW_UP_GUIDE]
+    for index, route in enumerate(order):
+        source = pages[route].source
+        cards = re.findall(r'<nav class="chapter-nav-card">.*?</nav>', source, re.S)
+        check(len(cards) == 2 and cards[0] == cards[1], f"{route}: expected two identical cards")
+        targets = [order[index - 1]] if index else []
+        targets.append(order[(index + 1) % len(order)])
+        check(local_targets(route, cards[0]) == targets, f"{route}: wrong Previous or Next destination")
+        if index == 0:
+            check("<span></span>" in cards[0], f"{route}: missing empty Previous slot")
+        sidebar = re.search(r'<div id="lecture-toc" data-mode="series">(.*?)</nav>', source, re.S)
+        check(sidebar is not None, f"{route}: missing series Index")
+        current = re.findall(r'<a href="([^"]+)" aria-current="page">', sidebar[1])
+        check(len(current) == 1 and local_targets(route, f' href="{current[0]}"') == [route],
+              f"{route}: wrong current page in Index")
+        links = local_targets(route, sidebar[1])
+        check(links[:4] == [PRACTICE_INDEX, GUIDE, CHECKLIST, PRACTICE_1],
+              f"{route}: wrong order of course-level materials")
+        if route == PRACTICE_FITTING:
+            active = [PRACTICE_1, CHECKLIST, PRACTICE_SAMPLING, PRACTICE_FITTING, PRACTICE_PREDICTION]
+            check(links[3:8] == active and "current-block" in sidebar[1] and "準備中" in sidebar[1],
+                  f"{route}: wrong active session hierarchy or closed-page badge")
+        if route == FOLLOW_UP_GUIDE:
+            start = links.index(FOLLOW_UP)
+            check(links[start:] == [FOLLOW_UP, CHECKLIST, GUIDE, FOLLOW_UP_GUIDE],
+                  f"{route}: missing supplement materials from the Index")
 
 
 def check_no_marker(site: Path, marker: str) -> None:
@@ -554,9 +680,11 @@ def check_invalid_inputs(executable: Path) -> None:
     check_invalid(executable, overview, variables, "# 説明変数", "expected explicit", "ID")
     check_invalid(
         executable, practice,
-        "- block: sample-overview\n        level: required", "- block: sample-overview\n        level: advanced",
+        "- block: sample-overview\n        level: required\n      - block: sample-fitting",
+        "- block: sample-overview\n        level: advanced\n      - block: sample-fitting",
         "required block sample-fitting requires earlier required block sample-overview",
     )
+    check_invalid_pages(executable, practice)
     check_invalid(
         executable, fitting, "# 演習 {#exercises}",
         "::: {#refs}\n:::\n\n# 演習 {#exercises}", "reserved bibliography ID #refs",
@@ -600,7 +728,7 @@ def check_invalid_inputs(executable: Path) -> None:
     for names, duplicate, route in (
         ("[guide, checklist]", "guide", PRACTICE_INDEX),
         ("[checklist]", "checklist", PRACTICE_1),
-        ("[checklist, guide]", "guide", FOLLOW_UP),
+        ("[checklist, guide, follow-up-guide]", "guide", FOLLOW_UP),
     ):
         check_invalid(executable, practice, f"materials: {names}",
                       f"materials: {names[:-1]}, {duplicate}]",
@@ -662,6 +790,41 @@ def check_invalid_inputs(executable: Path) -> None:
         )
 
 
+def check_invalid_pages(executable: Path, source: str) -> None:
+    valid = "pages: [[sample-sampling], [sample-overview, sample-fitting], [sample-prediction]]"
+    for groups in (
+        "[[sample-sampling], [sample-overview], [sample-prediction]]",
+        "[[sample-sampling], [sample-overview, sample-fitting], [sample-prediction, sample-extension]]",
+        "[[sample-overview, sample-sampling], [sample-fitting], [sample-prediction]]",
+        "[[sample-sampling], [sample-overview, sample-fitting], [sample-prediction, sample-missing]]",
+        "[[sample-sampling], [sample-overview, sample-fitting, sample-fitting], [sample-prediction]]",
+    ):
+        check_invalid(executable, source, valid, f"pages: {groups}", "第 1 回", "list each required block once")
+    check_invalid(executable, source, valid, valid[:-1] + ", []]", "第 1 回", "empty page")
+
+
+def check_closed_lesson_duplicate_ids(executable: Path) -> None:
+    # Collide with a renamed source ID and with a generated block title, respectively.
+    for duplicate in ("sample-fitting-formula-note", "sample-fitting"):
+        with tempfile.TemporaryDirectory(prefix="block-site-closed-lesson-") as directory:
+            root = Path(directory)
+            fixtures = root / "fixtures"
+            shutil.copytree(REPO / "fixtures/fields", fixtures / "fields")
+            shutil.copytree(REPO / "fixtures" / DRAFT, fixtures / DRAFT)
+            for name in ("bib", "templates"):
+                (root / name).symlink_to(REPO / name, target_is_directory=True)
+            draft = (REPO / "fixtures" / f"{DRAFT}.yaml").read_text(encoding="utf-8")
+            draft = draft.replace("      - block: sample-prediction",
+                                  "      - block: sample-fitting\n        level: required\n"
+                                  "      - block: sample-prediction", 1)
+            draft = draft.replace("supplements:", "    pages: [[sample-overview, sample-fitting]]\nsupplements:", 1)
+            (fixtures / f"{DRAFT}.yaml").write_text(draft, encoding="utf-8")
+            overview = fixtures / REGRESSION / "sample-overview.md"
+            with overview.open("a", encoding="utf-8") as body:
+                body.write(f'\n<span id="{duplicate}">予備の説明</span>\n')
+            expect_failed_build(executable, root, DRAFT_LESSON, f"duplicate HTML ID {duplicate}")
+
+
 def main() -> int:
     executable = Path(subprocess.check_output(
         ["stack", "exec", "--", "which", "main"], cwd=REPO, text=True,
@@ -686,6 +849,7 @@ def main() -> int:
         subprocess.run([sys.executable, str(REPO / "scripts/check_local_refs.py"), str(site)], check=True)
         check_course_closure(executable, root, site)
     check_invalid_inputs(executable)
+    check_closed_lesson_duplicate_ids(executable)
     print("Block site acceptance checks passed.")
     return 0
 

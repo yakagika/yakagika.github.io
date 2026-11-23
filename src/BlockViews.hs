@@ -1,8 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
-module BlockViews (renderField, renderCourse, renderSession, renderClosedCourse, renderMaterial, renderPage) where
+module BlockViews
+    ( courseNavigation, renderField, renderCourse, renderSession, renderClosedCourse
+    , renderMaterial, renderLesson, renderPage
+    ) where
 
 import BlockModel
-import Data.List (find, nub)
+import Data.List (find, nub, nubBy)
+import Control.Applicative ((<|>))
+import Data.Maybe (isNothing, listToMaybe)
 import qualified Data.Map.Strict as Map
 import Data.Maybe (listToMaybe)
 import qualified Data.Set as Set
@@ -45,8 +50,54 @@ fieldIndex fieldData blocks current =
     isCurrentBlock b = Just (blockName b) == fmap (blockName . fst) current
     currentPath = fmap (uncurry pagePath) current
 
-renderCourse :: Context String -> Course -> Compiler (Item String)
-renderCourse siteCtx course = do
+data CourseStop = CourseStop
+    { stopPath :: FilePath, stopTitle :: String, stopSection :: Maybe SectionId, stopDraft :: Bool }
+
+courseNavigation :: Course -> [Lesson] -> [CourseStop]
+courseNavigation course lessons = nubBy (\a b -> stopPath a == stopPath b) $
+    CourseStop (coursePath course) (courseTitle course ++ "の目次") Nothing False :
+    (materials Nothing (courseMaterials course) ++ concatMap sectionStops (courseSections course))
+  where
+    materials key names =
+        [CourseStop (materialPath course material) (materialTitle material) key False
+        | name <- names, let material = coursePages course Map.! name]
+    sectionStops (key, session) =
+        CourseStop (sectionPath course key) (sectionTitle key session) (Just key) False :
+        materials (Just key) (sessionMaterials session) ++
+        [CourseStop (lessonPath course lesson) (lessonTitle lesson) (Just key) (not (lessonOpen lesson))
+        | lesson <- lessons, Numbered (lessonNumber lesson) == key]
+
+coursePageContext :: Course -> [CourseStop] -> FilePath -> Context a
+coursePageContext course navigation here =
+    courseLink course
+    <> boolField "courseIndex" (const True)
+    <> boolField "courseIndexCurrent" (const (here == index))
+    <> rows "indexMaterials" itemContext (const indexMaterials)
+    <> rows "indexSections" sectionContext (const sections)
+    <> boolField "hasPrevious" (const (here /= index))
+    <> neighborContext stopTitle stopPath stopDraft (const (current >>= previous)) (const nextStop)
+  where
+    index = coursePath course
+    current = find ((== here) . stopPath . middle) (adjacent navigation)
+    currentSection = current >>= stopSection . middle
+    nextStop = (current >>= next) <|> listToMaybe navigation
+    indexMaterials = takeWhile (isNothing . stopSection) (drop 1 navigation)
+    sections = [(key, stop, session) | (key, session) <- courseSections course,
+                                       stop <- navigation, stopPath stop == sectionPath course key]
+    itemContext = linkContext stopTitle stopPath
+        <> boolField "current" ((== here) . stopPath . itemBody)
+        <> boolField "draft" (stopDraft . itemBody)
+    sectionContext = linkContext (\(_, stop, _) -> stopTitle stop) (\(_, stop, _) -> stopPath stop)
+        <> boolField "currentSection" (\item -> let (key, _, _) = itemBody item in currentSection == Just key)
+        <> boolField "current" (\item -> let (_, stop, _) = itemBody item in here == stopPath stop)
+        <> rows "sectionPages" itemContext sectionPages
+    sectionPages (key, section, session) =
+        [stop | name <- sessionMaterials session, stop <- navigation, stopPath stop == coursePagePath course name] ++
+        [stop | stop <- navigation, stopSection stop == Just key, stopPath stop /= stopPath section,
+                stopPath stop `notElem` map (materialPath course) (Map.elems (coursePages course))]
+
+renderCourse :: Context String -> Course -> [CourseStop] -> Compiler (Item String)
+renderCourse siteCtx course navigation = do
     let (sessions, supplements) = splitAt (length (courseSessions course)) (courseSections course)
         sessionCtx = linkContext (sessionTitle . snd) (sectionPath course . fst)
         ctx = titleAndDescription (courseTitle course) (courseDescription course)
@@ -54,6 +105,7 @@ renderCourse siteCtx course = do
             <> boolField "hasSupplements" (const (not (null supplements)))
             <> rows "supplements" sessionCtx (const supplements)
             <> materialList course (courseMaterials course)
+            <> coursePageContext course navigation (coursePath course)
     makeItem "" >>= layout "templates/block-course.html" ctx siteCtx
 
 renderClosedCourse :: Context String -> Course -> Compiler (Item String)
@@ -63,41 +115,87 @@ renderClosedCourse siteCtx course = makeItem ""
     ctx = titleAndDescription (courseTitle course) (courseDescription course)
         <> constField "category" "Lecture"
 
-renderSession :: Context String -> Site -> Course -> SectionId -> Session -> Item String -> Compiler (Item String)
-renderSession siteCtx site course key session = layout "templates/block-session.html" ctx siteCtx
+renderSession :: Context String -> Site -> Course -> [CourseStop] -> [Lesson]
+              -> SectionId -> Session -> Item String -> Compiler (Item String)
+renderSession siteCtx site course navigation lessons key session = layout "templates/block-session.html" ctx siteCtx
   where
     ctx = titleAndDescription (sessionTitle session) ""
-        <> courseLink course
+        <> coursePageContext course navigation (sectionPath course key)
+        <> boolField "courseSessionIndex" (const True)
         <> boolField "numbered" (const (isNumbered key))
         <> materialList course (sessionMaterials session)
         <> boolField "hasBlocks" (const (not (null (sessionBlocks session))))
         <> rows "blocks" entryContext (const [(blockNamed site (entryBlock e), e) | e <- sessionBlocks session])
+        <> boolField "hasLessons" (const (not (null lessons)))
+        <> rows "lessons" lessonContext (const lessons)
+        <> advancedList site session True
     entryContext = linkContext (blockTitle . fst) (blockPath . fst)
         <> boolField "draft" (not . blockOpen . fst . itemBody)
         <> value "level" (levelLabel . entryLevel . snd)
         <> value "kind" (kindLabel . blockKind . fst)
-        <> boolField "hasExercises" (not . null . entryExercises . snd . itemBody)
-        <> rows "exercises" exerciseContext (\(b, e) -> [(b, x) | x <- entryExercises e])
-    exerciseContext = value "label" exerciseTitle
-        <> field "url" (pure . uncurry exerciseUrl . itemBody)
-        <> optionalValue "file" (exerciseFile . snd)
-    exerciseTitle (b, x) = blockExercises b Map.! exerciseId x
+        <> entryExerciseList
+    lessonContext = linkContext lessonTitle (lessonPath course)
+        <> rows "draftBlocks" (value "draftTitle" blockTitle) (filter (not . blockOpen) . map lessonBlock . lessonBlocks)
+        <> boolField "hasExercises" (not . null . lessonExercises . itemBody)
+        <> rows "exercises" exerciseContext lessonExercises
+    lessonExercises lesson = [(lessonBlock part, exercise, url part exercise)
+        | part <- lessonBlocks lesson, exercise <- entryExercises (lessonEntry part)]
+      where
+        url part exercise = siteUrl (lessonPath course lesson) ++ anchorSuffix (lessonAnchor part (exerciseId exercise))
 
     isNumbered (Numbered _) = True
     isNumbered (Supplement _) = False
 
-renderMaterial :: Context String -> Course -> Material -> Item String -> Compiler (Item String)
-renderMaterial siteCtx course material body
-    | courseOpen course = wrap (constField "post" "true") body
+exerciseContext :: Context (Block, Exercise, String)
+exerciseContext = value "label" (\(b, x, _) -> blockExercises b Map.! exerciseId x)
+    <> field "url" (\item -> let (_, _, url) = itemBody item in pure url)
+    <> optionalValue "file" (\(_, x, _) -> exerciseFile x)
+
+entryExerciseList :: Context (Block, Entry)
+entryExerciseList = boolField "hasExercises" (not . null . entryExercises . snd . itemBody)
+    <> rows "exercises" exerciseContext (\(b, e) -> [(b, x, exerciseUrl b x) | x <- entryExercises e])
+
+advancedList :: Site -> Session -> Bool -> Context a
+advancedList site session includeExercises =
+    boolField "hasAdvanced" (const (not (null entries)))
+    <> rows "advancedBlocks" entryContext (const entries)
+  where
+    entries = [(blockNamed site (entryBlock e), e) | e <- sessionBlocks session, entryLevel e == "advanced"]
+    entryContext = linkContext (blockTitle . fst) (blockPath . fst)
+        <> boolField "draft" (not . blockOpen . fst . itemBody)
+        <> value "kind" (kindLabel . blockKind . fst)
+        <> if includeExercises then entryExerciseList else mempty
+
+renderLesson :: String -> Context String -> Site -> Course -> [CourseStop] -> Session -> Lesson
+             -> Bool -> Item String -> Compiler (Item String)
+renderLesson root siteCtx site course navigation session lesson lastInSession =
+    layout "templates/block-lesson.html" ctx (canonical <> flags <> siteCtx)
+  where
+    canonical = constField "canonical" (escapeHtml (root ++ toUrl (blockPath (lessonBlock (head (lessonBlocks lesson))))))
+    key = Numbered (lessonNumber lesson)
+    ctx = titleAndDescription (lessonTitle lesson) ""
+        <> coursePageContext course navigation (lessonPath course lesson)
+        <> boolField "lessonIndex" (const True)
+        <> constField "sessionUrl" (siteUrl (sectionPath course key))
+        <> constField "sessionTitle" (escapeHtml (sectionTitle key session))
+        <> boolField "lastInSession" (const lastInSession)
+        <> advancedList site session False
+    flags
+        | lessonOpen lesson = mempty
+        | otherwise = constField "noindex" "true"
+
+renderMaterial :: Context String -> Course -> [CourseStop] -> Material -> Item String -> Compiler (Item String)
+renderMaterial siteCtx course navigation material body
+    | courseOpen course = wrap (coursePageContext course navigation (materialPath course material)) mempty body
     | otherwise = loadAndApplyTemplate "templates/placeholder.html"
         (constField "category" "Lecture" <> ctx) (fmap (const "") body)
-        >>= wrap (constField "noindex" "true")
+        >>= wrap mempty (constField "noindex" "true")
   where
     ctx = titleAndDescription (materialTitle material) ""
         <> courseLink course
         <> boolField "open" (const (courseOpen course))
         <> rows "anchors" (value "anchor" id) (const (Set.toList (materialAnchors material)))
-    wrap flags = layout "templates/block-material.html" ctx (flags <> siteCtx)
+    wrap nav flags = layout "templates/block-material.html" (ctx <> nav) (flags <> siteCtx)
 
 courseLink :: Course -> Context a
 courseLink course = constField "courseTitle" (escapeHtml (courseTitle course))
@@ -154,7 +252,8 @@ renderPage siteCtx site block page body = do
 
 fieldPageNavigation :: Field -> [Block] -> Block -> Page -> Context a
 fieldPageNavigation fieldData blocks block page =
-    neighborContext fst snd (const False) (const (target previous)) (const (target next))
+    boolField "hasPrevious" (const True)
+    <> neighborContext fst snd (const False) (const (target previous)) (const (target next))
   where
     here = pagePath block page
     current = find ((== here) . uncurry pagePath . middle) (adjacent (publicFieldPages blocks))

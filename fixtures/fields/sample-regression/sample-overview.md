@@ -4,6 +4,8 @@ kind: theory
 open: true
 ---
 
+FIXTURE_OVERVIEW_INTRO
+
 [説明変数](#variables), [観測値](#observation), [当てはめの数式](block:sample-fitting#数式)を参照できます.
 
 ::: note
@@ -27,3 +29,9 @@ open: true
 この見出しは説明変数のページに含まれます.
 
 :::
+
+## 数式
+
+式に使う標本を確かめます. [当てはめの目印](block:sample-fitting#formula-note)も参照できます.
+
+<span id="formula-note">説明変数を確かめます.</span>

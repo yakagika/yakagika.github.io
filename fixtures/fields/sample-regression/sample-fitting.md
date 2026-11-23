@@ -8,13 +8,17 @@ requires:
 bibliography: lectures
 ---
 
+FIXTURE_FITTING_INTRO
+
 [数式](#数式)と[当てはめの演習](#exercise-sample-fitting-1)を参照できます.
 
 # 当てはめ {#fit}
 
 ## 数式
 
-例のモデルは $y = a + bx$ です. 回帰の文献に [@james2021introduction] があります.
+例のモデルは $y = a + bx$ です. 回帰の文献に [@james2021introduction] があります. [標本の確認](block:sample-extension#check-sample)も参照できます.
+
+<span id="formula-note">当てはめの式を確かめます.</span>
 
 ~~~ python
 a, b, x = 2, 3, 1

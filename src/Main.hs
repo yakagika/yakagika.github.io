@@ -212,10 +212,11 @@ main = do
   now <- getPOSIXTime
   let cssVersion = show (round now :: Integer)
       versionCtx = constField "cssVersion" cssVersion
+      siteRoot = "https://yakagika.github.io"
   fixtures <- (== Just "1") <$> lookupEnv "BLOG_FIXTURES"
   let siteConfig = config fixtures
   hakyllWith siteConfig $ checkedRoutes siteConfig $ \pathKey -> do
-    outputs <- blockRules fixtures customReaderOptions customWriterOptions (versionCtx <> mathCtx) citeDocument
+    outputs <- blockRules fixtures siteRoot customReaderOptions customWriterOptions (versionCtx <> mathCtx) citeDocument
     create ["css/syntax.css"] $ do
       route idRoute
       compile $ do
@@ -491,7 +492,7 @@ main = do
             lectures <- filterOpen =<< loadAllSnapshots "lectures/**" "content"
             newPages <- sitemapItems siteConfig pathKey outputs
             let allPosts = posts ++ lectures ++ newPages
-            let sitemapCtx = constField "root" "https://yakagika.github.io" <>
+            let sitemapCtx = constField "root" siteRoot <>
                              listField "entries" (generatedMtime outputs <> postCtx tags) (return allPosts)
 
             makeItem ""

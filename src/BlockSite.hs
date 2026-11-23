@@ -3,17 +3,19 @@ module BlockSite (checkedRoutes, blockRules, sitemapItems, generatedMtime) where
 
 import BlockModel
 import BlockViews
-import Control.Monad (forM, forM_, unless, void, when)
+import Control.Monad (foldM, forM, forM_, unless, void, when)
 import Control.Monad.IO.Class (liftIO)
 import qualified Control.Monad.RWS as RWS
 import qualified Data.Map.Strict as M
 import qualified Data.Set as S
 import Data.Maybe (catMaybes)
+import Data.List (stripPrefix)
 import qualified Data.Text as T
 import qualified Data.Text.Normalize as Unicode
 import Data.Time.Format (defaultTimeLocale, formatTime)
 import Hakyll
 import Hakyll.Core.Rules.Internal (Rules(..), RuleSet(..), rulesProvider)
+import Network.URI (unEscapeString)
 import System.Directory (doesFileExist, removeFile, renameFile)
 import System.IO.Temp (withTempDirectory)
 import System.FilePath
@@ -59,9 +61,9 @@ pathComparison cache = withTempDirectory cache "route-probe" $ \dir -> do
 
 type Outputs = [(FilePath, FilePath, Bool)] -- output, parent source, public
 
-blockRules :: Bool -> P.ReaderOptions -> P.WriterOptions -> Context String
+blockRules :: Bool -> String -> P.ReaderOptions -> P.WriterOptions -> Context String
            -> (String -> Item P.Pandoc -> Compiler (Item P.Pandoc)) -> Rules Outputs
-blockRules fixtures reader writer ctx cite = do
+blockRules fixtures root reader writer ctx cite = do
   let sources glob = if fixtures then fromGlob glob .||. fromGlob ("fixtures/" ++ glob) else fromGlob glob
       fields = sources "fields/*/field.yaml"
       blocks = sources "fields/*/*.md"
@@ -74,12 +76,15 @@ blockRules fixtures reader writer ctx cite = do
   cs <- paths courses
   ms <- paths materials
   site <- preprocess $ readSite reader fs bs cs ms
+  coursePlans <- preprocess $ forM (siteCourses site) $ \c -> (,) c <$> courseLessons site c
   let outputs = [(fieldPath f,fieldSource f,True) | f <- siteFields site] ++
                 [(pagePath b p,blockSource b,blockOpen b) | b <- M.elems (siteBlocks site), p <- blockPages b] ++
                 [(path,courseSource c,courseOpen c) | c <- siteCourses site,
                    path <- coursePath c : map (sectionPath c . fst) (courseSections c)] ++
                 [(materialPath c m,materialSource m,courseOpen c) | c <- siteCourses site,
-                   m <- M.elems (coursePages c)]
+                   m <- M.elems (coursePages c)] ++
+                [(lessonPath c lesson,courseSource c,courseOpen c && lessonOpen lesson)
+                | (c, lessons) <- coursePlans, lesson <- lessons]
   preprocess $ unique "fields/courses" "output path" [(p,src) | (p,src,_) <- outputs]
   match inputs $ version "source" $ compile getResourceBody
   -- A change of order, visibility or target ID may affect pages in other fields.
@@ -97,39 +102,101 @@ blockRules fixtures reader writer ctx cite = do
         then renderDocument (blockBibliography b) (`M.member` blockAnchors b) (pageDoc p)
         else makeItem ""
       renderPage ctx site b p body
-  forM_ (siteCourses site) $ \c -> do
+  forM_ coursePlans $ \(c, lessons) -> do
     let render compiler
           | courseOpen c = compiler
           | otherwise = renderClosedCourse ctx c
-    register (coursePath c) $ render (renderCourse ctx c)
+        navigation = courseNavigation c lessons
+    register (coursePath c) $ render (renderCourse ctx c navigation)
     forM_ (courseSections c) $ \(key,s) -> do
-      intro <- preprocess $ either (failAt $ courseSource c) pure $ sessionDoc reader site c s
+      let inSession = filter ((== key) . Numbered . lessonNumber) lessons
+      intro <- preprocess $ either (failAt $ courseSource c) pure $ sessionDoc reader site c lessons key s
       register (sectionPath c key) $ render $ do
         html <- writePandocWith writer <$> makeItem intro
-        renderSession ctx site c key s html
+        renderSession ctx site c navigation inSession key s html
+      forM_ (zip inSession (map (const False) (drop 1 inSession) ++ [True])) $ \(lesson, lastInSession) ->
+        register (lessonPath c lesson) $ do
+          -- Validate the same rendered page even while its course is closed.
+          body <- renderLessonDocument site c lessons lesson
+          html <- renderLesson root ctx site c navigation s lesson lastInSession body
+          let path = lessonPath c lesson
+          unique path "HTML ID" [(anchor, path) | anchor <- htmlIds (T.pack (itemBody html))]
+          if courseOpen c then pure html else renderClosedCourse ctx c
     forM_ (M.elems $ coursePages c) $ \m ->
       register (materialPath c m) $ do
         body <- if courseOpen c
           then renderDocument (materialBibliography m) (`S.member` materialAnchors m)
                  (walk demoteMaterialHeading (materialDoc m))
           else makeItem ""
-        renderMaterial ctx c m body
+        renderMaterial ctx c navigation m body
   pure outputs
   where
     demoteMaterialHeading (P.Header level attrs inlines) = P.Header (min 6 (level + 1)) attrs inlines
     demoteMaterialHeading block = block
-    renderDocument bibliography containsId doc = do
-      rendered <- case bibliography of
+    renderDocument bibliography containsId doc =
+      writePandocWith writer <$> prepareDocument bibliography containsId doc
+    prepareDocument bibliography containsId doc =
+      case bibliography of
         Just bib | or (query hasCite doc) -> do
           let candidates = "bibliography" : ["bibliography-" ++ show n | n <- [1 :: Int ..]]
               anchor = head (dropWhile containsId candidates)
           makeItem (appendBibliography anchor doc) >>= cite bib
         _ -> makeItem doc
-      pure $ writePandocWith writer rendered
     hasCite (P.Cite _ _) = [True]
     hasCite _ = []
     appendBibliography anchor (P.Pandoc meta bs) = P.Pandoc meta $
       bs ++ [P.Header 2 (T.pack anchor,[],[]) [P.Str "参考文献"], P.Div ("refs",[],[]) []]
+
+    -- Run citeproc with each block's bibliography, then write all blocks at once
+    -- so Pandoc can assign page-wide identifiers to footnotes and code.
+    renderLessonDocument site course lessons lesson = do
+      let parts = lessonBlocks lesson
+          titleIds = map (blockName . lessonBlock) (drop 1 parts)
+          reserved = S.fromList (titleIds ++ concatMap partAnchors parts)
+      (_, documents) <- foldM (renderPart site course lessons lesson) (reserved, [])
+          (zip (False : repeat True) parts)
+      let body = concat [blocks | P.Pandoc _ blocks <- reverse documents]
+      writePandocWith writer <$> makeItem (P.Pandoc P.nullMeta body)
+
+    renderPart site course lessons lesson (used, documents) (showTitle, part)
+      | blockOpen block = do
+          original <- either (failAt $ blockSource block) pure $ lessonDocument site course lessons lesson part
+          let originalIds = S.fromList (documentIds original)
+          cited <- itemBody <$> prepareDocument (blockBibliography block) (`S.member` originalIds) original
+          let generated = S.fromList (documentIds cited) S.\\ originalIds
+              (nextIds, names) = foldl allocate (used, M.empty) (S.toList generated)
+              body = walk (rewriteCitation names) (renameDocumentIds names cited)
+          pure (nextIds, prependTitle body : documents)
+      | otherwise = pure (used, prependTitle (closedPart showTitle part) : documents)
+      where
+        block = lessonBlock part
+        prependTitle doc@(P.Pandoc meta blocks)
+          | showTitle = P.Pandoc meta $
+              P.Header 1 (T.pack (blockName block), ["lesson-block-title"], [])
+                [P.Str (T.pack (blockTitle block))] : blocks
+          | otherwise = doc
+        allocate (ids, names) anchor
+          | S.notMember anchor ids = (S.insert anchor ids, names)
+          | otherwise =
+              let base = blockName block ++ "-" ++ anchor
+                  candidates = base : [base ++ "-" ++ show n | n <- [1 :: Int ..]]
+                  chosen = head (filter (`S.notMember` ids) candidates)
+              in (S.insert chosen ids, M.insert anchor chosen names)
+
+    rewriteCitation names (P.Link attrs label (url, title))
+      | Just fragment <- stripPrefix "#" (T.unpack url)
+      , Just renamed <- M.lookup (unEscapeString fragment) names =
+          P.Link attrs label (T.pack (anchorSuffix renamed), title)
+    rewriteCitation _ inline = inline
+
+    partAnchors part = map (lessonAnchor part) (M.keys (blockAnchors (lessonBlock part)))
+    closedPart showTitle part = P.Pandoc P.nullMeta $
+      P.Para (label ++ [P.Span ("", ["badge", "badge-draft"], []) [P.Str "準備中"]])
+      : [P.Plain [P.Span (T.pack anchor, [], []) []] | anchor <- partAnchors part]
+      where
+        label
+          | showTitle = []
+          | otherwise = [P.Strong [P.Str (T.pack (blockTitle (lessonBlock part)))], P.Space]
 
 dependOnSources :: Compiler ()
 dependOnSources = void (loadBody "block-site-sources" :: Compiler String)

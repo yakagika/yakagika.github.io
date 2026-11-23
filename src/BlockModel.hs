@@ -1,46 +1,53 @@
 {-# LANGUAGE OverloadedStrings #-}
 module BlockModel where
 
+import Control.Applicative ((<|>))
 import Control.Monad (foldM, forM, forM_, unless, when)
 import Data.Aeson (FromJSON(..), Value(Object), withObject, (.:), (.:!), (.:?), (.!=))
 import qualified Data.Aeson.KeyMap as KM
 import Data.Aeson.Types (parseEither)
 import Data.Char (isAsciiLower)
-import Data.Generics (everything, mkQ)
+import Data.Generics (everywhere, everything, mkQ, mkT)
 import Data.Graph (SCC(..), stronglyConnComp)
-import Data.List (isPrefixOf, stripPrefix)
+import Data.List (find, foldl', intercalate, isPrefixOf, stripPrefix)
+import Data.Maybe (fromMaybe, listToMaybe)
 import qualified Data.Map.Strict as M
 import qualified Data.Set as S
 import qualified Data.Text as T
 import qualified Data.Yaml as Y
 import Hakyll (toUrl)
 import Hakyll.Core.Provider.Metadata (parsePage)
-import Network.URI (unEscapeString)
+import Network.URI (escapeURIString, isUnreserved, unEscapeString)
 import System.FilePath
 import qualified Text.HTML.TagSoup as HTML
 import qualified Text.Pandoc as P
 import Text.Pandoc.Shared (stringify)
-import Text.Pandoc.Walk (query, walkM)
+import Text.Pandoc.Walk (query, walk, walkM)
 
 data Site = Site { siteFields :: [Field], siteBlocks :: M.Map String Block, siteCourses :: [Course] }
 data Field = Field { fieldName, fieldTitle, fieldDescription :: String, fieldSource :: FilePath,
                      fieldBlocks :: [String] }
 data Block = Block { blockName, blockTitle, blockField, blockKind :: String, blockSource :: FilePath,
                      blockOpen :: Bool, blockRequires :: [String], blockBibliography :: Maybe String,
-                     blockPages :: [Page], blockAnchors, blockExercises :: M.Map String String }
+                     blockDocument :: P.Pandoc, blockPages :: [Page],
+                     blockAnchors, blockExercises :: M.Map String String }
 data Page = Page { pageKey, pageTitle :: String, pageDoc :: P.Pandoc }
 data Course = Course { courseName, courseTitle, courseDescription :: String, courseSource :: FilePath,
                        courseOpen :: Bool, courseSessions :: [Session],
                        courseMaterials :: [String], courseSupplements :: [(String, Session)],
                        coursePages :: M.Map String Material }
 data Session = Session { sessionTitle :: String, sessionIntro :: String, sessionBlocks :: [Entry],
-                         sessionMaterials :: [String] }
+                         sessionMaterials :: [String], sessionPages :: Maybe [[String]] }
 data SectionId = Numbered Int | Supplement String
+    deriving Eq
 data Material = Material { materialName, materialTitle :: String, materialSource :: FilePath,
                            materialBibliography :: Maybe String, materialDoc :: P.Pandoc,
                            materialAnchors :: S.Set String }
 data Entry = Entry { entryBlock, entryLevel :: String, entryExercises :: [Exercise] }
 data Exercise = Exercise { exerciseId :: String, exerciseFile :: Maybe String }
+data Lesson = Lesson { lessonNumber :: Int, lessonBlocks :: [LessonBlock] }
+data LessonBlock = LessonBlock { lessonEntry :: Entry, lessonBlock :: Block,
+                                 lessonRenamedIds :: M.Map String String }
 
 fieldPath :: Field -> FilePath
 fieldPath f = "fields" </> fieldName f </> "index.html"
@@ -71,9 +78,24 @@ courseSections c = zipWith (\n s -> (Numbered n, s)) [1..] (courseSessions c)
 materialPath :: Course -> Material -> FilePath
 materialPath c = coursePagePath c . materialName
 
+lessonPath :: Course -> Lesson -> FilePath
+lessonPath c lesson = takeDirectory (coursePath c) </> show (lessonNumber lesson)
+    </> blockName (lessonBlock (head (lessonBlocks lesson))) <.> "html"
+
+lessonTitle :: Lesson -> String
+lessonTitle = intercalate " / " . map (blockTitle . lessonBlock) . lessonBlocks
+
+lessonOpen :: Lesson -> Bool
+lessonOpen = any (blockOpen . lessonBlock) . lessonBlocks
+
+sectionTitle :: SectionId -> Session -> String
+sectionTitle (Numbered n) s = "第 " ++ show n ++ " 回 " ++ sessionTitle s
+sectionTitle (Supplement _) s = sessionTitle s
+
 instance FromJSON Session where
   parseJSON = withObject "session" $ \o ->
     Session <$> o .: "title" <*> o .:? "intro" .!= "" <*> o .: "blocks" <*> o .:? "materials" .!= []
+        <*> o .:! "pages"
 instance FromJSON Entry where
   parseJSON = withObject "course block" $ \o -> Entry <$> o .: "block" <*> o .: "level" <*> o .:? "exercises" .!= []
 instance FromJSON Exercise where
@@ -153,7 +175,7 @@ readBlock opts path = do
         failAt path ("exercise heading must be on exercises page: " ++ t)
       pure (i,t)
   pure $ Block (takeBaseName path) title (takeFileName $ takeDirectory path) kind path
-               open requires bibliography pages (M.fromList ids) (M.fromList exercises)
+               open requires bibliography (P.Pandoc meta blocks) pages (M.fromList ids) (M.fromList exercises)
 
 checkBibliographyId :: FilePath -> P.Pandoc -> IO ()
 checkBibliographyId path doc =
@@ -184,8 +206,107 @@ documentIds (P.Pandoc _ blocks) =
     rawBlock _ = []
     rawInline (P.RawInline (P.Format "html") html) = htmlIds html
     rawInline _ = []
-    htmlIds html = [T.unpack i | HTML.TagOpen _ attrs <- HTML.parseTags html,
-                                 (name,i) <- attrs, T.toLower name == "id", not (T.null i)]
+
+htmlIds :: T.Text -> [String]
+htmlIds html = [T.unpack i | HTML.TagOpen _ attrs <- HTML.parseTags html,
+                             (name,i) <- attrs, T.toLower name == "id", not (T.null i)]
+
+courseLessons :: Site -> Course -> IO [Lesson]
+courseLessons site course = fmap concat $ forM (courseSections course) $ \(key, session) -> do
+    let err = failAt (courseSource course) . ((sectionTitle key session ++ ": pages: ") ++)
+        required = filter ((== "required") . entryLevel) (sessionBlocks session)
+        entries = M.fromList [(entryBlock entry, entry) | entry <- required]
+        names = map entryBlock required
+    case key of
+      Supplement _ -> do
+        forM_ (sessionPages session) $ \_ -> err "only numbered sessions can specify pages"
+        pure []
+      Numbered number -> do
+        groups <- case sessionPages session of
+          Nothing -> pure (map (:[]) required)
+          Just pages -> do
+            when (any null pages) $ err "empty page"
+            unless (concat pages == names && S.size (S.fromList names) == length names) $
+              err "list each required block once, in blocks order"
+            pure (map (map (entries M.!)) pages)
+        pure [Lesson number (groupBlocks group) | group <- groups]
+  where
+    groupBlocks = reverse . snd . foldl' addBlock (S.empty, [])
+    addBlock (seen, soFar) entry =
+      let block = siteBlocks site M.! entryBlock entry
+          ids = M.keysSet (blockAnchors block)
+          renamed = M.fromSet (\i -> blockName block ++ "-" ++ i) (S.intersection seen ids)
+      in (S.union seen ids, LessonBlock entry block renamed : soFar)
+
+lessonAnchor :: LessonBlock -> String -> String
+lessonAnchor b anchor = M.findWithDefault anchor anchor (lessonRenamedIds b)
+
+anchorSuffix :: String -> String
+anchorSuffix anchor = '#' : escapeURIString isUnreserved anchor
+
+lessonDocument :: Site -> Course -> [Lesson] -> Lesson -> LessonBlock -> Either String P.Pandoc
+lessonDocument site course lessons lesson part = do
+    linked <- resolveLinksWith site Nothing (Just course) (Just (resolveLessonTarget course lessons key current))
+        (blockDocument block)
+    pure (renameDocumentIds (lessonRenamedIds part) $ walk addFile linked)
+  where
+    block = lessonBlock part
+    key = Numbered (lessonNumber lesson)
+    current = Just (lesson, part)
+    files = M.fromList [(exerciseId ex, name) | ex <- entryExercises (lessonEntry part),
+                                                 Just name <- [exerciseFile ex]]
+    addFile = concatMap withFile
+    withFile heading@(P.Header _ (anchor, _, _) _)
+      | Just name <- M.lookup (T.unpack anchor) files =
+        [heading, P.RawBlock (P.Format "html")
+          (T.concat ["<p class=\"exercise-file\">提出ファイル <code>", HTML.escapeHTML (T.pack name), "</code></p>"])]
+    withFile blockItem = [blockItem]
+
+resolveLessonTarget :: Course -> [Lesson] -> SectionId -> Maybe (Lesson, LessonBlock)
+                    -> String -> Maybe (Either String String)
+resolveLessonTarget course lessons key current url
+    | Just ref <- stripPrefix "block:" url =
+        let (name, fragment) = break (== '#') ref
+            matching = [(lesson, part) | lesson <- lessons, part <- lessonBlocks lesson,
+                                          blockName (lessonBlock part) == unEscapeString name]
+            sameRound (lesson, _) = Numbered (lessonNumber lesson) == key
+        in fmap (\target -> destination target (stripPrefix "#" fragment))
+            (find sameRound matching <|> listToMaybe matching)
+    | Just fragment <- stripPrefix "#" url, Just target <- current = Just (destination target (Just fragment))
+    | otherwise = Nothing
+  where
+    destination (lesson, part) fragment = do
+      let path = toUrl (lessonPath course lesson)
+          block = lessonBlock part
+      case fragment of
+        Nothing -> Right path
+        Just encoded -> do
+          let anchor = unEscapeString encoded
+              local = maybe False ((== lessonPath course lesson) . lessonPath course . fst) current
+          unless (M.member anchor (blockAnchors block)) $
+            Left ("unknown ID: block:" ++ blockName block ++ "#" ++ encoded)
+          Right $ (if local then "" else path) ++ anchorSuffix (lessonAnchor part anchor)
+
+renameDocumentIds :: M.Map String String -> P.Pandoc -> P.Pandoc
+renameDocumentIds names
+    | M.null names = id
+    | otherwise = walk renameRawInline . walk renameRawBlock . everywhere (mkT renameAttr)
+  where
+    replace old = maybe old T.pack (M.lookup (T.unpack old) names)
+    renameAttr :: P.Attr -> P.Attr
+    renameAttr (anchor, classes, attrs) = (replace anchor, classes, attrs)
+    renameRawBlock (P.RawBlock format@(P.Format "html") html) = P.RawBlock format (renameHtml html)
+    renameRawBlock b = b
+    renameRawInline (P.RawInline format@(P.Format "html") html) = P.RawInline format (renameHtml html)
+    renameRawInline i = i
+    renameHtml html
+      | any (`M.member` names) (htmlIds html) = HTML.renderTags (map renameTag (HTML.parseTags html))
+      | otherwise = html
+    renameTag (HTML.TagOpen tag attrs) = HTML.TagOpen tag (map renameId attrs)
+    renameTag tag = tag
+    renameId (name, anchor)
+      | T.toLower name == "id" = (name, replace anchor)
+    renameId attr = attr
 
 unique :: MonadFail m => FilePath -> String -> [(String,String)] -> m ()
 unique source label = go M.empty
@@ -292,13 +413,36 @@ attachMaterials c materials = do
     validSlug [] = False
 
 resolveLinks :: Site -> Maybe (Block,Page) -> Maybe Course -> P.Pandoc -> Either String P.Pandoc
-resolveLinks site current course doc = walkM rewrite doc
+resolveLinks site current course = resolveLinksWith site current course Nothing
+
+resolveLinksWith :: Site -> Maybe (Block, Page) -> Maybe Course
+                 -> Maybe (String -> Maybe (Either String String)) -> P.Pandoc -> Either String P.Pandoc
+resolveLinksWith site current course override doc = do
+    linked <- walkM rewrite doc
+    case override of
+      Nothing -> pure linked
+      Just _ -> walkM rewriteRawBlock linked >>= walkM rewriteRawInline
   where
     rewrite (P.Link a label (url,title)) = do
       target <- resolve (T.unpack url)
       pure $ P.Link a label (T.pack target,title)
     rewrite x = Right x
-    resolve url
+    rewriteRawBlock (P.RawBlock format@(P.Format "html") html) = P.RawBlock format <$> rewriteHtml html
+    rewriteRawBlock b = pure b
+    rewriteRawInline (P.RawInline format@(P.Format "html") html) = P.RawInline format <$> rewriteHtml html
+    rewriteRawInline i = pure i
+    rewriteHtml html = do
+      let tags = HTML.parseTags html
+      updated <- mapM rewriteTag tags
+      pure (if tags == updated then html else HTML.renderTags updated)
+    rewriteTag (HTML.TagOpen tag attrs)
+      | T.toLower tag == "a" = HTML.TagOpen tag <$> mapM rewriteHref attrs
+    rewriteTag tag = pure tag
+    rewriteHref (name, url)
+      | T.toLower name == "href" && url /= "#" = (,) name . T.pack <$> resolve (T.unpack url)
+    rewriteHref attr = pure attr
+    resolve url = fromMaybe (defaultTarget url) (override >>= ($ url))
+    defaultTarget url
       | Just ref <- stripPrefix "block:" url = do
           let (name,fragment) = break (== '#') ref
           b <- maybe (Left $ "unknown block link: " ++ url) Right $
@@ -326,5 +470,6 @@ resolveLinks site current course doc = walkM rewrite doc
           path = if samePage then "" else toUrl (blockDir b </> key <.> "html")
       Right (path ++ "#" ++ fragment)
 
-sessionDoc :: P.ReaderOptions -> Site -> Course -> Session -> Either String P.Pandoc
-sessionDoc opts site c s = markdown opts (sessionIntro s) >>= resolveLinks site Nothing (Just c)
+sessionDoc :: P.ReaderOptions -> Site -> Course -> [Lesson] -> SectionId -> Session -> Either String P.Pandoc
+sessionDoc opts site c lessons key s = markdown opts (sessionIntro s)
+    >>= resolveLinksWith site Nothing (Just c) (Just (resolveLessonTarget c lessons key Nothing))

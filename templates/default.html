@@ -73,7 +73,8 @@
 
     <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
     <meta name="description" content="Personal home page and blog of yakagika.">
-    $if(noindex)$<meta name="robots" content="noindex,nofollow">$endif$
+    $if(noindex)$<meta name="robots" content="noindex,nofollow">$endif$$if(canonical)$
+    <link rel="canonical" href="$canonical$">$endif$
 
     $if(katex)$
       $katex$
@@ -135,6 +136,7 @@
       </div>
       $endif$
 $if(fieldIndex)$      $partial("templates/block-field-index.html")$
+$endif$$if(courseIndex)$      $partial("templates/block-course-index.html")$
 $endif$    </nav>
 
     $body$
@@ -188,7 +190,7 @@ $endif$    </nav>
 
       // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
       function buildHeadingsList(content) {
-        var headings = content.querySelectorAll('h2, h3, h4');
+        var headings = content.querySelectorAll('$if(lessonIndex)$h1[id], $endif$h2, h3, h4');
         if (headings.length === 0) return null;
 
         var rootList = document.createElement('ul');
@@ -198,13 +200,14 @@ $endif$    </nav>
         headings.forEach(function(heading) {
           if (heading.closest('li')) return;
 
-          var level;
+          var level$if(lessonIndex)$ = Number(heading.tagName.slice(1)) - 1;
+          if (!heading.id) return;$else$;
           switch (heading.tagName.toLowerCase()) {
             case 'h2': level = 0; break;
             case 'h3': level = 1; break;
             case 'h4': level = 2; break;
             default: return;
-          }
+          }$endif$
 
           var parentUL = null;
           for (var i = level; i >= 0; i--) {
@@ -285,7 +288,7 @@ $endif$    </nav>
         var currentLi = tocContainer.querySelector('.toc-series-item.current');
         var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
 
-        if (currentLi) {
+$if(courseSessionIndex)$$else$        if (currentLi) {
           var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
           var headingsList = buildHeadingsList(content);
           if (headingsList && sublistContainer) {
@@ -296,9 +299,9 @@ $endif$    </nav>
           }
         }
 
-        // 現在の章以外は折りたたむ
+$endif$        // 現在の章以外は折りたたむ
         allSeriesItems.forEach(function(li) {
-          if (li !== currentLi$if(fieldIndex)$ && !li.contains(currentLi)$endif$) {
+          if (li !== currentLi$if(fieldIndex)$ && !li.contains(currentLi)$endif$$if(courseIndex)$ && !li.contains(currentLi)$endif$) {
             li.classList.add('collapsed');
           }
         });
