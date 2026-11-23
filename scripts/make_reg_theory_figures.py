@@ -368,7 +368,7 @@ def draw_variation_decomposition(hours: np.ndarray, observed: np.ndarray) -> Non
     ax.set(xlim=(2, 18.6), xticks=[4, 8, 12, 16, x_i])
     ax.set_xticklabels(["4", "8", "12", "16", r"$x_i$"])
     ax.legend(loc="upper left", fontsize=10.5)
-    save_teaching_figure(fig, "reg-ols", "decomposition-one-observation.png")
+    save_teaching_figure(fig, "reg-simple", "decomposition-one-observation.png")
 
     fig, ax = plt.subplots(figsize=(6.6, 4.2), layout="constrained")
     ax.axhline(average, color="#7a7a7a", linestyle=":", label=r"Mean $\bar y$")
@@ -392,7 +392,7 @@ def draw_variation_decomposition(hours: np.ndarray, observed: np.ndarray) -> Non
     ax.scatter(hours, observed, color=POPULATION_COLOR, s=20, zorder=4)
     ax.legend(loc="upper left", fontsize=10.5)
     label_gpa_axes(ax)
-    save_teaching_figure(fig, "reg-ols", "decomposition-all-observations.png")
+    save_teaching_figure(fig, "reg-simple", "decomposition-all-observations.png")
 
 
 def draw_fit_comparison(x: np.ndarray, deviations: np.ndarray) -> None:
@@ -429,7 +429,7 @@ def draw_fit_comparison(x: np.ndarray, deviations: np.ndarray) -> None:
             label_gpa_axes(ax)
             ax.set_xticks([6, 10, 14])
         axes[1].set_ylabel("")
-        save_teaching_figure(fig, "reg-ols", filename)
+        save_teaching_figure(fig, "reg-simple", filename)
 
 
 def draw_teaching_figures() -> None:

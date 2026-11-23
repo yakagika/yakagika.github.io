@@ -169,7 +169,7 @@ MSE と RMSE は [Exercise REG-PREDICTION-1](#exercise-reg-prediction-1) で計�
 # 当てはまりと過学習 {#overfitting}
 
 予測では, 個々の係数が表す比較を読み取る手順を経ずに, 式全体の予測値を使って評価できます.
-[決定係数](block:reg-ols#model-fit)は回帰式を当てはめた標本での当てはまりの要約です.
+[決定係数](block:reg-simple#model-fit)は回帰式を当てはめた標本での当てはまりの要約です.
 新しい学生でどのくらい外れるかは, 未使用のデータで測ります.
 
 同じ学生の GPA を予測する二つの式を比べてみます. 誤差の二乗和を $S$, 実測 GPA の平均との差の二乗和を $T$ とすると,
