@@ -4,8 +4,8 @@ status: in-progress
 created: 2026-11-23
 updated: 2026-11-23
 priority: high
-next_actor: agent
-next_action: "codex の 2 本 (仕組み: dsp-course-pages, reg-selection の分割: dsp-reg-selection-split) を受領して検査し, /tmp の写しで dsp を開いた第 3 回と第 4 回の見本を撮影して本人に見せ, 切り替えの時期を問う"
+next_actor: user
+next_action: "本人に AUQ: reg-selection の分け方 (AIC の小節を必修に残す / その他の手法の節を丸ごと必修に残す / 予定どおり 4 節を移して必修から発展へリンクする). 回答を dsp-reg-selection-split の codex へ feedback で渡す. 並行して dsp-course-pages の feedback (仕様の 2 点を決めた) の受領"
 ---
 
 # dsp の講義のページを参考資料のブロックから組み, 発展は参考資料へのリンクにする
@@ -69,6 +69,12 @@ next_action: "codex の 2 本 (仕組み: dsp-course-pages, reg-selection の分
 2. ページの単位: 1 ブロック 1 ページを基本にし, 小さいものだけ 2 つまとめる (上の表の割り方).
 3. reg-selection の自習の節: ブロックを分ける (自習の節を発展のブロックへ移す. 参考資料の URL が変わる分は旧 ID の対応を付ける).
 4. 切り替えの時期: 仕組みを作り, 第 4 回 (データの数値化) の見本を本人が見てから決める. 旧ページはそれまでそのまま.
+
+## 実装中に分かったこと (2026-11-23)
+
+- reg-selection の分割は codex が止めた (STOP). 必修の「ステップワイズ法」(reg-selection.md:151 付近) が AIC を採否と停止の基準に使い, 必修の reg-selection-gpa (133 行) も AIC の数え方 $p=k+2$ を other-methods の節へのリンクで参照する. AIC の定義と式は移す予定の other-methods の小節「情報量規準」(約 1.4k 字) にしか無い. 文字数: 残す 3 節 6.1k, other-methods 3.4k (うち情報量規準 1.4k), 経緯 1.3k, 選んだ後の推論 1.0k, 文献 0.7k, 演習 1.5k. 本人に分け方を問う.
+- 講義のページの仕組みも codex が実装前に止めた. 仕様の穴 2 点 (同じ必修のブロックが複数の回に出るときのリンクの行き先, 番号付きの回に属さない講義専用ページの講義の順での位置) を coordinator が決めて feedback で返した (`briefs/course-pages-fb1.md`). 行き先は同じ回 → 最初に必修に置く回 → 参考資料の順. 講義の順は目次 → 目次の materials → 各回 (回のページ → materials → 講義のページ) → 選択資料 → 目次で, 講義専用ページは初出の位置だけ.
+- codex の調べでは, 第 3 回と第 4 回の必修 7 ブロックに, 参考資料のページ分けを前提にした言い回し (「前のページ」など) は無い.
 
 ## 対象ファイル (案 1 を採るとき)
 
