@@ -636,7 +636,7 @@ http://download.tensorflow.org/example_images/flower_photos.tgz
 
 ConvNeXt を学習し, エポックごとの損失と正解率のグラフと, 混同行列を出力してください.
 
-- 参照: [第 10 回](/courses/dsp/10/img-recognition.html)の[画像認識の実施](block:img-age#run-convnext)と, [年齢識別のコード全体](block:img-age-code#age-full-code)の, 学習から混同行列までのコード.
+- 参照: [第 10 回](/courses/dsp/10/img-recognition.html)の[画像認識の実施](block:img-age#run-convnext)と, [画像の分類のコード全体](block:img-age-code#age-full-code)の, 学習から混同行列までのコード.
 - ヒント: クラス数 `num_classes` を 5 に替えます. 混同行列を作る部分の `np.arange(6)` も 5 に替えます. データのフォルダを手順 2 で作ったものに替えます. 特徴量の抽出と, PCA, t-SNE 以降のコードは使いません.
 
 ### 手順 4: 結果を読む {#手順-4-結果を読む}

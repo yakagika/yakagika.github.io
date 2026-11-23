@@ -1,11 +1,11 @@
 ---
-title: "年齢識別のコード全体"
+title: "画像の分類のコード全体"
 kind: code
 open: true
 requires:
   - img-age
 ---
-## 年齢識別のコード全体 {#age-full-code}
+## 画像の分類のコード全体 {#age-full-code}
 
 [顔による年齢識別](block:img-age#age-classification)から[Grad-CAM と Guided Backpropagation](block:img-more#grad-cam)までのコードの全体は, 次のとおりです. 特徴マップ以降を試すたびに学習し直すのは大変なので, 2 回目以降は学習を飛ばし, 保存した重みを読み込むように分岐しています.
 

@@ -1,5 +1,5 @@
 ---
-title: "事例: 品目名の分類器を学習する"
+title: "事例: 文章の分類器を学習する"
 kind: code
 open: true
 requires:

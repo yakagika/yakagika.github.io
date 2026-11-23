@@ -1,5 +1,5 @@
 ---
-title: "認識技術と手書き数字の認識"
+title: "認識技術とパターン認識"
 kind: code
 open: true
 requires:
