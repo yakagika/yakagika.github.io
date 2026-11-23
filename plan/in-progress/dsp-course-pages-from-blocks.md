@@ -4,8 +4,8 @@ status: in-progress
 created: 2026-11-23
 updated: 2026-11-23
 priority: high
-next_actor: agent
-next_action: "codex の 2 本 (dsp-course-pages の feedback, dsp-reg-selection-split の feedback で A) を受領して検査し, /tmp の写しで dsp を開いた第 3 回と第 4 回の見本を撮影して本人に見せ, 切り替えの時期を問う"
+next_actor: user
+next_action: "本人が見本 (/tmp/blog-verify-cp/docs を http://127.0.0.1:8765/ で配信. dsp を open にした写し) を見た後に AUQ: 仕組みの取り込み / 切り替えの時期 / まとめたページのブロックの区切り. 並行して dsp-course-pages の feedback 2 (回のページの左の欄, 閉じた講義での検査, 閉じた講義の canonical) を受領し, clone で commit → main へ rebase (block-page-cards.html は codex の hasPrevious の版を採る) → 写しで再検査"
 ---
 
 # dsp の講義のページを参考資料のブロックから組み, 発展は参考資料へのリンクにする
@@ -83,6 +83,14 @@ next_action: "codex の 2 本 (dsp-course-pages の feedback, dsp-reg-selection-
 ### reg-selection の分割の land (2026-11-23)
 
 - codex (feedback で A) が実装. 移した本文は元と同一 (行の集合で比べた. 変わったのは「情報量規準」の見出しの段, 発展から必修の情報量規準へのリンク 2 つ, 新しいブロックの導入 3 文). 新しいブロックの題名は「その他のモデル選択の手法と選んだ後の推論」. 必修から発展へ新たにリンクで指す依存は無かった (codex の報告). 写しで試験, rebuild, 参照, 旧 ID の対応表が通過. 変わった HTML は `fields/regression/` だけ (既存 78 件は左の欄に新しいブロックが加わった変化, 追加 6 件, 削除 4 件. 削除は閉じた準備中のページで公開していなかった). sitemap は不変. main へ ff-merge (48d90e24) → tag `landed/dsp-course-pages-reg-selection-split`.
+
+### 講義のページの仕組みの受領 (2026-11-23, 途中)
+
+- codex (feedback 1 で仕様の 2 点を決めた後) が実装. subagent 0. codex が開いた外部の domain は本人のサイト (yakagika.github.io) だけ (4 回. canonical の URL の確認と推測).
+- Sonnet の読解: 指摘 7 件. 「生の HTML を書き換えると実体参照が崩れる」は TagSoup で実際に往復させて誤りと確かめた (`&lt;` `&amp;` `&quot;` は再エスケープされる). 採った指摘: 閉じた講義で講義のページの検査 (リンク, id) が走らない, 閉じた講義の講義のページに canonical が出る. 採らなかった指摘: 選択資料の回の h2 に id が付いた (本番は閉じていて不変, 害なし), 回のページの発展の一覧に発展のブロックの演習も出る (従来の回のページの動作を残したもの).
+- 写しの検査 (main f0bdae99 の上に 3-way で当てた. 衝突は block-page-cards.html だけで, codex の hasPrevious の版を採った): build 警告 0, 試験 (直す前の仕組みでは失敗), rebuild, 参照, 旧 ID が通過. 既存 385 ページは不変, 追加は courses/dsp/<n>/ の 25 件で全部 noindex, sitemap 不変. dsp を open にした写しでも参照の検査が通る.
+- 見本の撮影 (`scratchpad/cp-shots/`): 第 4 回の回のページ, 講義のページ. 2 ブロックのページ (第 3 回 vis-relation / vis-reading) で 2 つ目の演習の id が `vis-reading-exercises` に変わり, 重複 0. 提出ファイル名, 発展の一覧, canonical も出力で確かめた. 見え方の問題: 回のページの左の欄に回のページ自身の見出しが講義のページの一覧の後ろへ混ざる. feedback 2 で直す (`briefs/course-pages-fb2.md`).
+- 本人に問うこと (次の AUQ): (1) 仕組みを main に取り込むか (dsp は閉じているので本番は noindex の準備中のページ 25 件が増えるだけ). (2) 切り替えの時期 (今学期の残りの回から / 来年度 / 直した見本をもう一度見てから). (3) 2 ブロックをまとめたページで, 2 つ目のブロックの前に区切り (ブロックの題名) を置くか (いまは 1 つ目の演習の直後に 2 つ目の本文が続く).
 
 ## 対象ファイル (案 1 を採るとき)
 
