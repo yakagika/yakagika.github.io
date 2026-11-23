@@ -5,7 +5,7 @@ open: true
 ---
 ## 環境構築 {#環境構築}
 
-それでは, 実際にプログラム上でこのモデルを構築, 推定してみましょう.
+実際にプログラム上で[階層モデル](block:bayes-modeling#モデル全体像)を構築, 推定してみましょう.
 
 `Python` においてベイズ統計学に基づいた統計モデリングを実施するためのライブラリとして `PyMC5` があります (古い Version として `PyMC3` があり全く異なる記法などを用いているので注意してください).
 
@@ -13,18 +13,18 @@ open: true
 
 PyMC の計算バックエンド `PyTensor` は **実行時に C コードをコンパイル** する設計で, Python の wheel だけでは完結せず, `g++`・`MKL` (BLAS/LAPACK)・`libpython` 等の非 Python 依存を必要とします. このため Windows では `pip` (および pip ベースの `uv`) 経由のインストールでは pytensor が Python fallback モードに陥り, **MCMC サンプリングが極端に低速** になります (1 draw あたり約 3 秒, 4 チェーン×2000 draws で数時間程度).
 
-そこで本講義では OS ごとにツールを使い分けます.
+PyMC を動かす環境は, OS に応じて次のように用意します.
 
 | OS | ツール |
 |---|---|
-| **Mac / Linux** | これまで通り `uv` |
+| **Mac / Linux** | `uv` |
 | **Windows** | `pixi` |
 
 `pixi` は `uv` と同じく Rust 製・lockfile ベース・プロジェクト単位管理の高速ツールですが, **conda-forge エコシステムをバックエンドとする** 点が `uv` と異なります. conda-forge には `pytensor` 用の C コンパイラ (`m2w64-toolchain`/g++) や `MKL` などが pre-compiled binary として揃っているため, Windows でも追加のビルド環境構築なしに PyMC を高速に動作させられます. 操作感は `uv` とほぼ同じ (`pixi add`, `pixi run`, `pixi.lock`) で, PyMC 公式も現在は pixi を最も推奨しています.
 
 # []{#mac-linux-uv-での環境構築}Mac / Linux: uv での環境構築 {#pymc-uv}
 
-これまでの章と同様に `uv` を使ってローカルに PyMC をインストールします.
+Mac または Linux では, `uv` で PyMC をインストールします.
 
 ~~~ sh
 uv init -p 3.11.9 pymc-project
@@ -34,7 +34,7 @@ uv add "pymc>=5" arviz numpy pandas matplotlib scipy seaborn graphviz statsmodel
 
 ::: warn
 - **Python のバージョン**: PyMC 5 系の wheel が安定して提供されているため `-p 3.11.9` などで 3.11 系を指定してください. Python 3.14 では一部依存パッケージのビルドが通らないことがあります.
-- **arviz の trace プロットについて**: `arviz 1.0` 以降では `plot_trace` の subplot 数に上限 (40) があるため, `alpha` のような高次元変数を含める場合は `coords` で代表数名分にサブセットする必要があります (後述のコードでは対応済).
+- **arviz の trace プロットについて**: `arviz 1.0` 以降では `plot_trace` の subplot 数に上限 (40) があるため, `alpha` のような高次元変数を含める場合は `coords` で代表数名分にサブセットする必要があります ([モデル診断と可視化のコード](block:bayes-results#モデル診断と可視化)では対応済).
 :::
 
 **画像保存用ディレクトリの作成** (PyMC コードが `save_dir = 'images/'` に書き出すため, **先に作成しておく必要があります**):
@@ -124,7 +124,7 @@ WARN win-arm64 is not supported by the current environment,
 :::
 
 ::: warn
-**arviz の trace プロットについて**: `arviz 1.0` 以降では `plot_trace` の subplot 数に上限 (40) があるため, `alpha` のような高次元変数を含める場合は `coords` で代表数名分にサブセットする必要があります (後述のコードでは対応済).
+**arviz の trace プロットについて**: `arviz 1.0` 以降では `plot_trace` の subplot 数に上限 (40) があるため, `alpha` のような高次元変数を含める場合は `coords` で代表数名分にサブセットする必要があります ([モデル診断と可視化のコード](block:bayes-results#モデル診断と可視化)では対応済).
 :::
 
 ## 画像保存用ディレクトリの作成 {#画像保存用ディレクトリの作成}
@@ -161,13 +161,13 @@ pixi run python .\main.py
 ::: warn
 **`pixi shell` は使わない**
 
-`pixi shell` は Windows on ARM 環境で `program not found` エラーとなる既知の不具合があります. 本講義では一貫して `pixi run <コマンド>` の形で実行してください. 日常使いには `pixi run` で十分です.
+`pixi shell` は Windows on ARM 環境で `program not found` エラーとなる既知の不具合があります. この例では `pixi run <コマンド>` の形で実行してください. 日常使いには `pixi run` で十分です.
 :::
 
 # []{#参考-過去の環境構築方法について}(参考) 過去の環境構築方法について {#legacy-pymc-setup}
 
 ::: warn
-この講義では以前 `pyenv` + `anaconda` を利用した環境構築を行っていました. 過去にその方法で環境を構築した方は, [旧版の環境構築手順 (備忘録)](/posts/2025-04-20-pymc-pyenv-setup-archive.html) を参照してアンインストールしてください.
+以前の PyMC 環境を `pyenv` と `anaconda` で構築した方は, [旧版の環境構築手順 (備忘録)](/posts/2025-04-20-pymc-pyenv-setup-archive.html)を参照してアンインストールしてください.
 :::
 
 

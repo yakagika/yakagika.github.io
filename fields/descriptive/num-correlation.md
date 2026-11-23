@@ -8,9 +8,9 @@ requires:
 ---
 ## 相関 {#correlation}
 
-基本統計量は, 一つの観測項目に対する数値化の手法でしたが, 可視化における散布図のように, 2 つの観測項目間の関係を数値で表すことが可能です.
+[基本統計量](block:num-summary#basic-stats)で 1 つの観測項目の特徴を要約できるように, [散布図](block:vis-relation#scatter)で表した 2 つの観測項目間の関係も数値で表せます.
 
-[第3章](block:vis-relation#scatter)の散布図で扱った[事例](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/scatter.csv)についてもう一度考えてみましょう.
+[散布図](block:vis-relation#scatter)で扱った[事例](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/scatter.csv)についてもう一度考えてみましょう.
 
 ~~~ sh
      AI  Python
@@ -65,7 +65,7 @@ Google トレンドの `AI` と `Python` の検索数から散布図を作成す
 ![相関関係](/images/slds/ch9/corre1.png)
 
 
-相関関係を数値化したものを**相関係数 (correlation coefficient)**といいます. 相関係数には, データの尺度に応じていくつかの種類があります. どれを使うかは, 章の冒頭の[樹形図](block:num-summary#choose-stat)の「変数が 2 つ」の枝のとおりです.
+相関関係を数値化したものを**相関係数 (correlation coefficient)**といいます. 相関係数には, データの尺度に応じていくつかの種類があります. どれを使うかは, [統計量の選び方の樹形図](block:num-summary#choose-stat)の「変数が 2 つ」の枝のとおりです.
 
 :::
 
@@ -333,7 +333,7 @@ print("相関係数:",correlation) #0.4545454545454545
 
 相関係数はデータの関係を探るために便利な数値であり, 複数の観測項目からなるデータを扱う場合には, 最初に相関係数をとってそれぞれにどのような関係があるのかを確認するようにしましょう.
 
-次の[データ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch9/coeff_multi.csv)は, e-Stat (政府統計の総合窓口) から取得した, 都道府県別の身長, 体重, 食費, 睡眠の平均時間, スポーツの平均時間に関するデータです. [第3章](block:vis-relation#scatter-matrix)で散布図行列を描いたデータと同じものです.
+次の[データ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch9/coeff_multi.csv)は, e-Stat (政府統計の総合窓口) から取得した, 都道府県別の身長, 体重, 食費, 睡眠の平均時間, スポーツの平均時間に関するデータです. [散布図行列](block:vis-relation#scatter-matrix)で使ったデータと同じものです.
 
 ~~~ sh
 python coeff.py
@@ -513,12 +513,12 @@ plt.show()
 
 量的データには積率相関係数, 順位尺度データに対しては, 順位相関係数を求めることで 2 つのデータの関連性を確かめることができました. では, 名義尺度データの場合はどのようにすればよいのでしょうか.
 
-名義尺度を含めた質的変数の関係性を可視化するには, [第3章](block:vis-relation#heatmap)で扱った同時度数分布表が利用できました. 数値化においても, 同時度数分布表を用いることができます.
+名義尺度を含めた質的変数の関係性の可視化には, [ヒートマップ](block:vis-relation#heatmap)の例のように同時度数分布表が使えます. 数値化においても, 同時度数分布表を用いることができます.
 
 ![同時度数分布表](/images/slds/ch9/cross-table2.png)
 
 
-質的変数間の関連度合いは, 同時度数分布表の数値を利用した **ピアソンの $\chi^2$ 統計量 (カイにじょうとうけいりょう)**で表すことができます. [第3章](block:vis-relation#heatmap)では同時度数分布表から列相対度数を求めましたが, ここで使うのは相対度数ではなく度数です.
+質的変数間の関連度合いは, 同時度数分布表の数値を利用した **ピアソンの $\chi^2$ 統計量 (カイにじょうとうけいりょう)**で表すことができます. [ヒートマップ](block:vis-relation#heatmap)の例では同時度数分布表から列相対度数を求めましたが, ここで使うのは相対度数ではなく度数です.
 
 $$
 \chi_o^2 = \sum_{i=1}^{r} \sum_{j=1}^{c} \frac{(n_{ij} - E_{ij})^2}{E_{ij}} \quad (r: \text{行数},\ c: \text{列数})
@@ -532,7 +532,7 @@ $$
 
 で求められます.
 
-この $\chi_o^2$ が大きいほど, 2 つの変数の間の関連が強いといえます. この値を利用して, 行と列のデータが独立であるかを検定する **$\chi^2$ 検定 (独立性の検定)** を行うこともできます. $\chi^2$ 検定は[第14章](/lectures/dsp14.html)の質問紙調査の分析で使います. ここでは, この値から 2 つのデータの関連の度合いを判断する方法を見ていきましょう.
+この $\chi_o^2$ が大きいほど, 2 つの変数の間の関連が強いといえます. この値を利用して, 行と列のデータが独立であるかを検定する **$\chi^2$ 検定 (独立性の検定)** を行うこともできます. $\chi^2$ 検定は[質問紙調査の独立性の検定](block:survey-analysis#独立性の検定)で使います. ここでは, この値から 2 つのデータの関連の度合いを判断する方法を見ていきましょう.
 
 $\chi_o^2$ の値は, 同時度数分布表の行数や列数に依存して値が変わるため, 相関係数のように, 「特定の値から関連があるといえる」といった利用法には適しません.
 
@@ -554,7 +554,7 @@ $$
 $\chi_o^2$ は `scipy.stats` の `chi2_contingency(度数分布表,correction=False)` で求めることができます.
 返り値は $\chi_o^2$, p 値, 自由度, 期待度数の 4 つです.
 
-[第3章](block:vis-relation#heatmap)で扱った, 時限と成績の関係を記録した[データ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/cross_table_data.csv)を利用して, クラメールの連関係数 $V$ を求めてみましょう.
+[ヒートマップ](block:vis-relation#heatmap)で使った, 時限と成績の関係を記録した[データ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/cross_table_data.csv)を利用して, クラメールの連関係数 $V$ を求めてみましょう.
 
 
 ~~~ sh
@@ -592,7 +592,7 @@ cross = cross.reindex([1,2,3,4,5],axis='columns')
 cross = cross.reindex(['S','A','B','C','F'],axis='index')
 print(cross)
 
-#可視化(第3章の復習): 列相対度数のヒートマップ
+# 列相対度数をヒートマップで可視化
 cross_rel = cross.copy()
 for c in cross_rel.columns:
     cross_rel[c] = cross_rel[c] / cross_rel[c].sum()
@@ -642,7 +642,7 @@ print(v) #0.232896792395609
 3. A と B の共通要因となりうる要因を統制して (影響を取り除いて) も, 両者に関係が見出される.
 :::
 
-因果関係を示すには, 特に 3. の条件を確かめるために, A 以外の条件を揃えて B の発生確率を比べる**対照実験**などの手法を使います. この資料では実験は扱いません. A によって B を説明するという関係は, [第5章](/lectures/dsp5.html)の回帰分析で扱います.
+因果関係を示すには, 特に 3. の条件を確かめるために, A 以外の条件を揃えて B の発生確率を比べる**対照実験**などの手法を使います. A によって B を説明するという関係は, [回帰分析](/lectures/dsp5.html)で扱います.
 
 このように, 相関関係と因果関係は異なる概念として理解する必要があります.
 
@@ -660,9 +660,9 @@ print(v) #0.232896792395609
 
 ![因果があっても相関がない例](/images/slds/ch9/y-x-8.png)
 
-相関に似た概念として, 3 つ目の変数の影響を除いた相関を表す**偏相関係数**があります. 続く[偏相関係数](block:num-partial#partial-correlation)で扱います.
+相関に似た概念として, 3 つ目の変数の影響を除いた相関を表す**偏相関係数**があります. [偏相関係数](block:num-partial#partial-correlation)で扱います.
 
-この節に対応する演習は, 章末の[Exercise DSP4-2](#exercise-dsp4-2)です.
+この節に対応する演習は, [Exercise DSP4-2](#exercise-dsp4-2)です.
 
 # []{#演習}演習 {#exercises}
 

@@ -7,7 +7,7 @@ requires:
 ---
 ## 散布図 {#scatter}
 
-これまではデータの各観測項目を独立に可視化してきました. 複数の観測項目の関係性を可視化する代表的な手法に散布図があります.
+観測項目を個別に可視化する方法は[図の選び方と基礎的なグラフ](block:vis-basic)を参照してください. 複数の観測項目の関係性を可視化する代表的な手法に散布図があります.
 
 [こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/scatter.csv)のデータは Google トレンドにおける同時期の `AI` というワードの検索量と, `Python` というワードの検索量を表しています.
 
@@ -48,13 +48,13 @@ plt.show()
 
 散布図を見ると, `AI` に関する検索量が増えるにつれて, `Python` の検索量が増えるという関係が見えてきます.
 
-この関係の度合いを数値化する**相関係数**や, 関係の仕方を説明する**回帰分析**に関しては後ほど扱います.
+この関係の度合いを数値化する**[相関係数](block:num-correlation#correlation)**や, 関係の仕方を説明する**[回帰分析](/lectures/dsp5.html#simple-regression)**は, それぞれの解説を参照してください.
 
-この節に対応する演習は, 章末の[Exercise DSP3-3](#exercise-dsp3-3)です.
+この節に対応する演習は, [Exercise DSP3-3](#exercise-dsp3-3)です.
 
 # 散布図行列(ペアプロット) {#scatter-matrix}
 
-散布図は 2 つの量的データの関係を見る手法でしたが, 観測項目が 3 つ以上あると, どの項目とどの項目の間に関係があるのかを一枚の散布図では表せません. そこで, **すべての量的データの組み合わせについて散布図を一度に並べた**ものが**散布図行列 (ペアプロット)**です.
+[散布図](block:vis-relation#scatter)では 2 つの量的データの関係が読めます. 観測項目が 3 つ以上あると, どの項目とどの項目の間に関係があるのかを一枚の散布図では表せません. そこで, **すべての量的データの組み合わせについて散布図を一度に並べた**ものが**散布図行列 (ペアプロット)**です.
 
 [積み上げ棒グラフ](block:vis-basic#stacked-bar)で使った都道府県別のデータ ([こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/pref_stats.csv)) で, 平均身長 (`height`), 体重 (`weight`), 食費 (`food`), 睡眠時間 (`sleep`), 運動時間 (`sports`) の散布図行列を描きます (`pref` 列が都道府県名).
 
@@ -85,7 +85,7 @@ plt.close()
 
 **対角線上**には各項目単体の**ヒストグラム**が, **対角線以外**にはその行と列の項目を軸にした**散布図**が並びます. これによって, 例えば「食費 (`food`) が多い都道府県ほど平均身長 (`height`) が高い傾向がある」といった項目間の関係を, 一度に見渡すことができます.
 
-各組み合わせの関係の強さを数値で表す方法 (**相関係数**) は, [第4章](/lectures/dsp4.html)で詳しく扱います.
+各組み合わせの関係の強さを数値で表す方法 (**相関係数**) は, [相関係数](block:num-correlation#correlation)で詳しく扱います.
 
 # ヒートマップ {#heatmap}
 
@@ -129,7 +129,7 @@ plt.show()
 
 ヒートマップは複数の数値間の相関係数や距離を可視化する際にも良く用いられるので, 覚えておきましょう.
 
-この節に対応する演習は, 章末の[Exercise DSP3-3](#exercise-dsp3-3)です.
+この節に対応する演習は, [Exercise DSP3-3](#exercise-dsp3-3)です.
 
 # []{#演習}演習 {#exercises}
 
@@ -139,7 +139,7 @@ plt.show()
 
 対応する節: [折れ線グラフ](block:vis-basic#line), [散布図](#scatter), [ヒートマップ](#heatmap), [for 文を利用したグラフ](block:vis-design#for-graph), [グラフの分割](block:vis-design#グラフの分割)
 
-問 1 では, 授業では扱わない (発展) の節を使います.
+問 1 では, [for 文を利用したグラフ](block:vis-design#for-graph)と[グラフの分割](block:vis-design#グラフの分割)を使います.
 
 1. [Google トレンド](https://trends.google.co.jp/trends/)で 4 つのワードの同じ期間の推移を調べ, CSV をダウンロードしてください. この CSV から, [for 文を利用したグラフ](block:vis-design#for-graph)と[グラフの分割](block:vis-design#グラフの分割)を使って, 次の 2 通りの折れ線グラフを作成してください.
     - 1 つのグラフに表示: for 文で 4 本の折れ線を色を変えて重ね, 凡例も表示する.

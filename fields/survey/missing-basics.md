@@ -8,17 +8,17 @@ requires:
   - ml-classification
 ---
 
-本章は, データの一部が欠けているときの扱い方をまとめる章です. 最初の[欠損値と補定](#missing-and-imputation)で 2 つの言葉の意味を確かめ, 次の[補定方法の選び方](#choose-method)で手元のデータに合う方法を決めてから, 必要な節へ進んでください.
+データの一部が欠けているときの扱い方をまとめます. 最初の[欠損値と補定](#missing-and-imputation)で 2 つの言葉の意味を確かめ, 次の[補定方法の選び方](#choose-method)で手元のデータに合う方法を決めてから, 必要な節へ進んでください.
 
-# []{#前提となる章}前提となる章 {#imputation-prerequisites}
+# []{#前提となる章}前提となる手法 {#imputation-prerequisites}
 
-- [第4章](/lectures/dsp4.html): 平均や中央値などの[基本統計量](block:num-summary#basic-stats)と[中心を表す基本統計量](block:num-summary#central-tendency), 変数どうしの関係を表す[相関](block:num-correlation#correlation). 補定に使う値の計算と, 補定が相関に与える影響の確認に使います.
-- [第5章](/lectures/dsp5.html): [重回帰分析](/lectures/dsp5.html#multiple-regression)と[回帰の評価](/lectures/dsp5.html#regression-evaluation). 回帰による補定と, 補定後の分析結果の比較に使います. すでに[単回帰分析](/lectures/dsp5.html#simple-regression)のデータの準備で, データの無い国を `dropna` で除外しています. 本章はこの処理を一般化します.
-- [第6章](/lectures/dsp6.html): [決定木分析](block:ml-classification#決定木分析)による分類と, [訓練データとテストデータ](block:ml-classification#訓練データとテストデータ)の分け方. カテゴリー変数の補定と, 補定をどの段階で行うかの判断に使います.
-- [第14章](/lectures/dsp14.html): 質問紙調査では無回答が欠損の主な原因になります.
+- 平均や中央値などの[基本統計量](block:num-summary#basic-stats)と[中心を表す基本統計量](block:num-summary#central-tendency), 変数どうしの関係を表す[相関](block:num-correlation#correlation). 補定に使う値の計算と, 補定が相関に与える影響の確認に使います.
+- [回帰分析](/lectures/dsp5.html): [重回帰分析](/lectures/dsp5.html#multiple-regression)と[回帰の評価](/lectures/dsp5.html#regression-evaluation). 回帰による補定と, 補定後の分析結果の比較に使います. [単回帰分析](/lectures/dsp5.html#simple-regression)のデータの準備で, データの無い国を `dropna` で除外しています. 欠損値の扱いでは, この行削除の手順を一般化します.
+- [決定木](block:ml-classification#決定木分析)はカテゴリー変数の補定に使います. [訓練データとテストデータの分け方](block:ml-classification#訓練データとテストデータ)は, 補定をどの段階で行うかを判断するために使います.
+- [質問紙調査](block:survey-design#questionnaire-surveys)では, 無回答が欠損の主な原因になります.
 
 ::: warn
-本章では次のライブラリを使います. `uv add` しておいてください (`scikit-learn` は, `import` するときには `sklearn` と書きます).
+欠損値の補定のコード例には次のライブラリを使います. `uv add` しておいてください (`scikit-learn` は, `import` するときには `sklearn` と書きます).
 
 ~~~ sh
 uv add pandas matplotlib matplotlib-fontja scikit-learn statsmodels
@@ -40,7 +40,7 @@ uv add pandas matplotlib matplotlib-fontja scikit-learn statsmodels
 
 欠損値があると, そのままでは計算できない分析があります. 支出の平均は C の値が無いと 3 人分では求められず, 回帰分析は欠損値のある行を使えません. 欠損値のある行を除けば計算はできますが, データが減り, 除いた行が特定の学生に偏っていれば結果も偏ります.
 
-欠けた値を, 他の情報から推測した値で埋めることを**欠損値補定** (imputation, 本章では単に**補定**とも書きます) といいます. 上の表の C の支出なら, 次のような埋め方があります.
+欠けた値を他の情報から推測して埋めることを**欠損値補定** (imputation, 以下では**補定**) といいます. 上の表の C の支出なら, 次のような埋め方があります.
 
 - 回答した A と B の支出の平均 55 千円で埋める.
 - アルバイトが 5 時間長いと支出が 10 千円多いという A と B の関係から, 70 千円と推測して埋める.
@@ -53,7 +53,7 @@ uv add pandas matplotlib matplotlib-fontja scikit-learn statsmodels
 
 ![補定方法の選び方](/images/dsp/ch15/choose-method.png)
 
-図の各箱は, 次の節で説明します.
+図の各箱に対応する説明は, 次のリンクから読めます.
 
 - 欠損を数え, 欠け方を調べる: [欠損値を見つけて数える](#missing-check), [欠損の種類](#missing-types)
 - どの補定でも偏りは除けない: [欠損の種類](#missing-types)
@@ -72,7 +72,7 @@ uv add pandas matplotlib matplotlib-fontja scikit-learn statsmodels
 
 ## 例題のデータ: 学生生活調査 {#survey-data}
 
-[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/dsp15/student_survey.csv)のデータは, ある大学で学生 400 人に行った生活調査の回答です (練習用に作成した架空のデータです). 質問紙調査 ([第14章](/lectures/dsp14.html)) では, 答えたくない質問や答えにくい質問が無回答になり, それがデータの欠損になります.
+[こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/dsp15/student_survey.csv)のデータは, ある大学で学生 400 人に行った生活調査の回答です (練習用に作成した架空のデータです). [質問紙調査](block:survey-design#questionnaire-surveys) では, 答えたくない質問や答えにくい質問が無回答になり, それがデータの欠損になります.
 
 | 列 | 内容 |
 |---|---|
@@ -84,7 +84,7 @@ uv add pandas matplotlib matplotlib-fontja scikit-learn statsmodels
 | `spending` | 1 か月の支出 (千円) |
 | `sleep_hours` | 平均の睡眠時間 (時間) |
 
-架空のデータなので, 無回答だった項目の本当の値も分かっています. [こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/dsp15/student_survey_true.csv)の答え合わせ用のデータには, 全員の本当の値が入っています. 実際の調査では本当の値は分かりません. 本章では, 補った値がどれだけ本当の値に近いかを確かめるためにだけ使います.
+架空のデータなので, 無回答だった項目の本当の値も分かっています. [こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/dsp15/student_survey_true.csv)の答え合わせ用のデータには, 全員の本当の値が入っています. 実際の調査では本当の値は分かりません. 答え合わせ用のデータで, 補った値がどれだけ本当の値に近いかを確かめるためにだけ使います.
 
 2 つのファイルを `data/student_survey.csv` と `data/student_survey_true.csv` として保存します.
 
@@ -139,9 +139,9 @@ dtype: float64
 
 支出が 24.2%, 居住形態が 10.0%, アルバイト時間が 7.0% 欠けています. 欠けている変数が 3 つあるので, どれか 1 つでも欠けている行を除くと, 400 行のうち 249 行しか残りません.
 
-欠損が生じる原因には, 無回答のほかに, 測定の失敗 (機器の故障, 記録漏れ), 調査の対象外 (一人暮らしでない学生に家賃を聞かない), データの結合時の不一致 ([第5章](/lectures/dsp5.html)で国名の表記が合わずに結合できなかった国) があります. 調査の対象外による欠損は, 補うべき値がそもそも存在しないので, 補定の対象にしません.
+欠損が生じる原因には, 無回答のほかに, 測定の失敗 (機器の故障, 記録漏れ), 調査の対象外 (一人暮らしでない学生に家賃を聞かない), データの結合時の不一致 ([単回帰分析](/lectures/dsp5.html)で国名の表記が合わずに結合できなかった国) があります. 調査の対象外による欠損は, 補うべき値がそもそも存在しないので, 補定の対象にしません.
 
-この節に対応する演習は, 章末の[Exercise DSP15-1](#exercise-dsp15-1)です.
+対応する演習は [Exercise DSP15-1](#exercise-dsp15-1) です.
 
 ## 欠損の種類: MCAR, MAR, MNAR {#missing-types}
 
@@ -151,7 +151,7 @@ dtype: float64
 - **MAR** (Missing At Random, ランダムな欠損): 値が欠けるかどうかが, 観測された他の変数の値だけに左右される. 例: アルバイトの時間が長い学生ほど, 支出の質問を飛ばしやすい (アルバイトの時間は答えている).
 - **MNAR** (Missing Not At Random, ランダムでない欠損): 値が欠けるかどうかが, 欠けた値そのものに左右される. 例: 支出が多い学生ほど, 支出の質問に答えたがらない.
 
-欠損の種類によって, 以降の節の方法で補った結果に偏りが出るかどうかが変わります.
+欠損の種類によって, [補定方法](#choose-method)で補った結果に偏りが出るかどうかが変わります.
 
 | 欠損の種類 | 欠損のある行の削除 | 他の変数を使う補定 (回帰補完, 多重代入法) |
 |---|---|---|
@@ -202,11 +202,11 @@ Name: housing, dtype: float64
 
 MNAR かどうかは, 検定では判定できません. χ二乗検定や t 検定で欠損の有無と他の変数の関係を調べると, 欠け方が他の変数と関係していること (MCAR でないこと) は示せます. しかし MAR と MNAR の違いは, 欠けた値そのものと欠け方の関係にあります. 欠けた値は観測されていないので, この関係はどの検定にもかけられません.
 
-そのため MNAR が疑われるときは, 欠け方の仮定を変えると結論がどれだけ変わるかを調べます. このような分析を**感度分析** (sensitivity analysis) といいます. 補った値を一定の量 δ だけずらして分析をやり直す方法は, **δ 調整** (delta adjustment) と呼ばれます. δ を少しずつ大きくして結論が変わる δ を探し, その大きさのずれが現実にありうるかを調査の内容から判断します. 感度分析の詳しい手順は, 本章では扱いません.
+そのため MNAR が疑われるときは, 欠け方の仮定を変えると結論がどれだけ変わるかを調べます. このような分析を**感度分析** (sensitivity analysis) といいます. 補った値を一定の量 δ だけずらして分析をやり直す方法は, **δ 調整** (delta adjustment) と呼ばれます. δ を少しずつ大きくして結論が変わる δ を探し, その大きさのずれが現実にありうるかを調査の内容から判断します. 感度分析の詳しい手順は, この解説では扱いません.
 
 :::
 
-この節に対応する演習は, 章末の[Exercise DSP15-1](#exercise-dsp15-1)です.
+対応する演習は [Exercise DSP15-1](#exercise-dsp15-1) です.
 
 ## 欠損のある行を削除する方法 {#deletion}
 
@@ -293,7 +293,7 @@ Name: count, dtype: int64
 
 この方法は値を推測しないので, 推測の誤りが入りません. 無回答であること自体に意味がある場合 (例えば, 無回答の学生は退学しやすい) には, 「無回答」のカテゴリが分析に役立ちます. 一方, 自宅, 一人暮らし, 寮の割合を知りたい場合には使えません.
 
-**分類モデルで予測して補う**: 居住形態を答えた学生のデータで, 他の変数から居住形態を当てる分類モデルを学習します. 学習したモデルで, 無回答の学生の居住形態を予測して補います. ここでは[第6章](/lectures/dsp6.html)の[決定木](block:ml-classification#決定木分析)を使います. 予測に使う変数は, 欠損の無い通学時間, 学年, 睡眠時間にします. 自宅生は通学時間が長いので, 通学時間が居住形態の手がかりになります.
+**分類モデルで予測して補う**: 居住形態を答えた学生のデータで, 他の変数から居住形態を当てる分類モデルを学習します. 学習したモデルで, 無回答の学生の居住形態を予測して補います. ここでは[決定木](block:ml-classification#決定木分析)を使います. 予測に使う変数は, 欠損の無い通学時間, 学年, 睡眠時間にします. 自宅生は通学時間が長いので, 通学時間が居住形態の手がかりになります.
 
 ~~~ py
 from sklearn.tree import DecisionTreeClassifier
@@ -323,7 +323,7 @@ Name: proportion, dtype: float64
 
 無回答の 40 人は, 自宅 21 人, 一人暮らし 19 人と予測されました. 補った後の自宅の割合は 53.0% で, 本当の割合 (52.8%) に近くなっています. 一方, 寮と予測された学生はいません. 寮生も一人暮らしの学生も通学時間が短く, 予測に使った 3 つの変数では 2 つを区別できないためです. 分類モデルでの補完は, 予測に使える変数が補う変数と関係しているときに役立ちます. 関係する変数が無ければ, 予測はほぼ最頻値になり, 最頻値補完と同じ結果になります.
 
-1 人ずつの予測がどれだけ当たっているかは, 答え合わせ用のデータで確かめられます. この節に対応する演習は, 章末の[Exercise DSP15-2](#exercise-dsp15-2)です.
+1 人ずつの予測がどれだけ当たっているかは, 答え合わせ用のデータで確かめられます. 対応する演習は [Exercise DSP15-2](#exercise-dsp15-2) です.
 
 ### 回帰補完と確率的回帰補完 {#regression-imputation}
 
@@ -429,7 +429,7 @@ for name, s in candidates.items():
 
 確率的回帰補完は, 1 人ずつの値の当たり方では回帰補完より劣ります. 乱数を足した分だけ, 補った値が本当の値から離れるからです. 1 人ずつの値を当てたいなら回帰補完, 分布や変数間の関係を保ちたいなら確率的回帰補完を選びます.
 
-この節に対応する演習は, 章末の[Exercise DSP15-3](#exercise-dsp15-3)です.
+対応する演習は [Exercise DSP15-3](#exercise-dsp15-3) です.
 
 ### その他の手法 {#other-methods}
 

@@ -8,7 +8,7 @@ requires:
 ## ベイズ統計学による統計モデリング実践 {#ベイズ統計学による統計モデリング実践}
 
 それでは, 実際にベイズ統計学に基づいた統計モデリングを実施してみましょう.
-[第5章](/lectures/dsp5.html)の重回帰で使ったものとよく似た[データ (hierarchical_regression.csv)](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch12/hierarchical_regression.csv) を事例として利用します.
+[GPA の重回帰分析](/lectures/dsp5.html)で使ったものとよく似た[データ (hierarchical_regression.csv)](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch12/hierarchical_regression.csv) を事例として利用します.
 
 | GPA | Scholarship | Study_Hours | Sports_hours | Part_time_Work | StudentID |
 |-----|-------------|-------------|--------------|----------------|-----------|
@@ -95,12 +95,12 @@ plt.close()
 
 ![](/images/slds/ch12/PairplotwithScholarship.png)
 
-以前のデータと概ね似た傾向 (奨学金ありが少し高い, 勉強時間と GPA に相関, 勉強時間とバイト時間に負の相関など) が確認できます.
-ただし, 第5章のデータと比べるとデータ全体のばらつきが大きいことが分かります.
+[回帰分析で使ったデータ](/lectures/dsp5.html#multiple-regression)と概ね似た傾向 (奨学金ありが少し高い, 勉強時間と GPA に相関, 勉強時間とバイト時間に負の相関など) が確認できます.
+ただし, [GPA の重回帰分析で用いたデータ](/lectures/dsp5.html#multiple-regression)と比べるとデータ全体のばらつきが大きいことが分かります.
 
 ![](/images/slds/ch12/kde-compare.png)
 
-[第5章](/lectures/dsp5.html)と同様の手法で, 線形重回帰の実施と結果の確認を行います.
+[GPA の重回帰分析](/lectures/dsp5.html)と同様の手法で, 線形重回帰の実施と結果の確認を行います.
 
 ~~~ py
 
@@ -278,7 +278,7 @@ $$g(E[y_i]) = E[y_i] = \mu_i = \eta_i$$
 他の分布では, 例えば:
 
 - ポアソン分布: 対数リンク関数 $g(E[y_i]) = \log(E[y_i]) = \eta_i$
-- 二項分布: ロジットリンク関数 $g(E[y_i]) = \log\left(\frac{E[y_i]}{1-E[y_i]}\right) = \eta_i$ (目的変数が 2 値のときのロジスティック回帰. 例は[第5章](/lectures/dsp5.html)の[一般化線形モデル: ロジスティック回帰](/lectures/dsp5.html#logistic-regression))
+- 二項分布: ロジットリンク関数 $g(E[y_i]) = \log\left(\frac{E[y_i]}{1-E[y_i]}\right) = \eta_i$ (目的変数が 2 値のときのロジスティック回帰. 例は[回帰分析](/lectures/dsp5.html)の[一般化線形モデル: ロジスティック回帰](/lectures/dsp5.html#logistic-regression))
 
 などが用いられます.
 
@@ -458,7 +458,7 @@ $$p(y | \alpha, \beta_{st}, \beta_{ss}, \sigma) = \prod_{i=1}^{N} N(y_i | \mu_i,
 - $\sigma_{\alpha} \sim HN(1)$: ランダム切片の標準偏差 (半正規分布)
 
 
-以下は後述のコードから生成されるモデル全体像を表す図です. 
+以下は[PyMC によるモデルの実装](block:bayes-pymc#pymc-実装)のコードから生成されるモデル全体像を表す図です. 
 
 ![](/images/slds/ch12/hierarchical_bayes_model.png)
 

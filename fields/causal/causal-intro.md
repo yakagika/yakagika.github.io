@@ -10,18 +10,18 @@ requires:
 
 ::: warn
 
-この章は作成中です. 見出しと扱う内容の予定だけを載せています.
+因果推論の教材は作成中です. ここでは扱う予定の項目を示します.
 
 :::
 
-本章は, 変数の間の関係から「ある要因が結果を変えるか」を調べる因果推論の考え方と手法をまとめる章です.
+変数の間の関係から「ある要因が結果を変えるか」を調べる因果推論の考え方と手法をまとめます.
 
-# []{#前提となる章}前提となる章 {#causal-inference-prerequisites}
+# []{#前提となる章}前提となる概念と関連資料 {#causal-inference-prerequisites}
 
-- [第4章](/lectures/dsp4.html): [因果関係と相関](block:num-correlation#因果関係と相関). 統計的因果関係の条件と偽相関を説明していますが, 実験は扱っていません. 本章はそこで保留した部分を扱います. [偏相関係数](block:num-partial#partial-correlation)は, 共通要因の影響を取り除く最も簡単な方法です.
-- [第5章](/lectures/dsp5.html): [重回帰分析](/lectures/dsp5.html#multiple-regression). 他の変数を一定にしたときの係数として, 回帰で共通要因を調整する方法に使います.
-- [第13章](/lectures/dsp13.html): [ベイズの定理](block:bayes-intro#ベイズの定理)の条件付き確率と, [一般化線形モデル (GLM)](block:bayes-modeling#一般化線形モデル-glm). 傾向スコアの推定と, 結果が 2 値のときの効果の推定に使います.
-- [第14章](/lectures/dsp14.html): [共分散構造分析](block:survey-sem#共分散構造分析). 適合度が良くても矢印の向きの因果関係の証明にはならない, という注意があります. 本章はその根拠づけを扱います.
+- [因果関係と相関](block:num-correlation#因果関係と相関). 統計的因果関係の条件と偽相関を説明していますが, 実験は扱っていません. 因果推論の解説では, そこで保留した部分を扱います. [偏相関係数](block:num-partial#partial-correlation)は, 共通要因の影響を取り除く最も簡単な方法です.
+- [回帰分析](/lectures/dsp5.html): [重回帰分析](/lectures/dsp5.html#multiple-regression). 他の変数を一定にしたときの係数として, 回帰で共通要因を調整する方法に使います.
+- [ベイズの定理](block:bayes-intro#ベイズの定理)の条件付き確率と, [一般化線形モデル (GLM)](block:bayes-modeling#一般化線形モデル-glm). 傾向スコアの推定と, 結果が 2 値のときの効果の推定に使います.
+- [共分散構造分析](block:survey-sem#共分散構造分析). 適合度が良くても矢印の向きの因果関係の証明にはならない, という注意があります. その根拠づけは因果推論で扱います.
 
 # []{#因果推論}因果推論 {#causal-inference}
 
@@ -49,7 +49,7 @@ requires:
 
 - 共変量を調整する回帰分析, 観測されない交絡による偏り
 - 層別解析
-- 傾向スコア: 処置を受ける確率をロジスティック回帰 ([第5章](/lectures/dsp5.html#logistic-regression)) で推定する方法
+- 傾向スコア: 処置を受ける確率を[ロジスティック回帰](/lectures/dsp5.html#logistic-regression)で推定する方法
 - 傾向スコアによるマッチング, 逆確率重み付け (IPW)
 - 共変量のバランスの確認 (標準化平均差)
 

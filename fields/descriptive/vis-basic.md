@@ -8,7 +8,7 @@ open: true
 ## データの可視化 {#データの可視化}
 
 
-ここまでで, プログラミングを利用してデータを読み込み, 編集ができるようになりました. これから, データを分析する手法を学習しましょう. データ分析の第一歩は, データの**可視化**です.
+プログラミングを利用してデータを読み込み, 編集できるようになりました. これから, データを分析する手法を学習しましょう. データ分析の第一歩は, データの**可視化**です.
 
 統計データはテーブル形式のまま, 眺めても理解できません. データを可視化することで, データの特徴や意味を理解する助けになります. ここでは, データを可視化するいくつかの方法を学びましょう.
 
@@ -49,7 +49,7 @@ Python におけるグラフ作成の, 代表的なライブラリには, [`matp
 
 :::
 
-本章のコードは, 先頭に以下の記述があることを前提とします.
+グラフを描くコード例は, 先頭に以下の記述があることを前提とします.
 
 ~~~ py
 import pandas as pd
@@ -64,14 +64,14 @@ import seaborn as sns
 
 グラフを作る前に, まず **どのグラフを使うか** を決めましょう. 使うべきグラフは, 同時に見る観測項目の数 (データの **次元**) と, 各項目が **質的データ** か **量的データ** かで, おおよそ決まります.
 
-下の樹形図は, 観測項目の数 (データの次元) と各項目の種別を上から順にたどって, 代表的なグラフを選ぶためのものです. 各グラフ名をクリックすると, 本章の対応する解説に移動します.
+下の樹形図は, 観測項目の数 (データの次元) と各項目の種別を上から順にたどって, 代表的なグラフを選ぶためのものです. 各グラフ名をクリックすると, そのグラフの解説に移動します.
 
 <div class="choice-tree" role="group" aria-label="データの次元と種別からグラフを選ぶ樹形図">
 <ul>
 <li><div class="ct-line"><span class="ct-root">データ</span></div><ul>
 <li><div class="ct-line"><span class="ct-dim">1次元データ</span></div><ul><li><div class="ct-line"><span class="ct-type">量的</span><span class="ct-arrow">→</span><a class="ct-g" href="/fields/descriptive/vis-distribution/index.html#histogram"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M4 28h24"/><rect class="f" x="6" y="20" width="5" height="8"/><rect class="f" x="11" y="10" width="5" height="18"/><rect class="f" x="16" y="6" width="5" height="22"/><rect class="f" x="21" y="16" width="5" height="12"/></svg>ヒストグラム</a></div></li><li><div class="ct-line"><span class="ct-type">質的</span><span class="ct-arrow">→</span><a class="ct-g" href="/fields/descriptive/vis-basic/basic-graphs.html#bar"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M4 28h24"/><rect class="f" x="5" y="18" width="5" height="10"/><rect class="f" x="13" y="8" width="5" height="20"/><rect class="f" x="21" y="21" width="5" height="7"/></svg>棒グラフ</a><a class="ct-g" href="/fields/descriptive/vis-basic/pie.html#pie"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><circle cx="16" cy="16" r="11"/><path class="f" d="M16 16V5A11 11 0 0 1 25.5 21.5Z"/></svg>円グラフ</a></div></li></ul></li>
 <li><div class="ct-line"><span class="ct-dim">2次元データ</span></div><ul><li><div class="ct-line"><span class="ct-type">質的 × 質的</span><span class="ct-arrow">→</span><a class="ct-g" href="/fields/descriptive/vis-relation/heatmap.html#heatmap"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><rect class="f" style="fill-opacity:0.9" x="4" y="4" width="7" height="7"/><rect class="f" style="fill-opacity:0.5" x="12" y="4" width="7" height="7"/><rect class="f" style="fill-opacity:0.15" x="20" y="4" width="7" height="7"/><rect class="f" style="fill-opacity:0.4" x="4" y="12" width="7" height="7"/><rect class="f" style="fill-opacity:0.8" x="12" y="12" width="7" height="7"/><rect class="f" style="fill-opacity:0.3" x="20" y="12" width="7" height="7"/><rect class="f" style="fill-opacity:0.15" x="4" y="20" width="7" height="7"/><rect class="f" style="fill-opacity:0.35" x="12" y="20" width="7" height="7"/><rect class="f" style="fill-opacity:0.9" x="20" y="20" width="7" height="7"/></svg>ヒートマップ</a></div></li><li><div class="ct-line"><span class="ct-type">質的 × 量的</span><span class="ct-arrow">→</span><a class="ct-g" href="/fields/descriptive/vis-basic/basic-graphs.html#bar"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M4 28h24"/><rect class="f" x="5" y="18" width="5" height="10"/><rect class="f" x="13" y="8" width="5" height="20"/><rect class="f" x="21" y="21" width="5" height="7"/></svg>棒グラフ</a><a class="ct-g" href="/fields/descriptive/vis-distribution/boxplot.html#boxplot"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M16 4v6M16 22v6M12 4h8M12 28h8"/><rect class="f" x="9" y="10" width="14" height="12"/><path d="M9 16h14"/></svg>箱ひげ図</a></div></li><li><div class="ct-line"><span class="ct-type">量的 × 量的</span><span class="ct-arrow">→</span><a class="ct-g" href="/fields/descriptive/vis-relation/index.html#scatter"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 4v24h23"/><circle class="d" cx="10" cy="22" r="1.7"/><circle class="d" cx="14" cy="18" r="1.7"/><circle class="d" cx="18" cy="20" r="1.7"/><circle class="d" cx="20" cy="13" r="1.7"/><circle class="d" cx="25" cy="9" r="1.7"/><circle class="d" cx="13" cy="24" r="1.7"/></svg>散布図</a></div></li><li><div class="ct-line"><span class="ct-type">時間 × 量的</span><span class="ct-arrow">→</span><a class="ct-g" href="/fields/descriptive/vis-basic/line.html#line"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 4v24h23"/><path d="M8 22l6-7 5 4 8-11"/></svg>折れ線グラフ</a></div></li></ul></li>
-<li><div class="ct-line"><span class="ct-dim">3次元以上のデータ</span></div><ul><li><div class="ct-line"><span class="ct-type">量的 3 つ</span><span class="ct-arrow">→</span><a class="ct-g" href="/fields/descriptive/vis-more/scatter-3d.html#scatter-3d"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M14 20V4M14 20L4 28M14 20l14 6"/><circle class="d" cx="18" cy="10" r="1.7"/><circle class="d" cx="21" cy="17" r="1.7"/><circle class="d" cx="9" cy="22" r="1.7"/><circle class="d" cx="16" cy="15" r="1.7"/><circle class="d" cx="23" cy="23" r="1.7"/></svg>3次元プロット<small class="ct-tag">発展</small></a><a class="ct-g" href="/fields/descriptive/vis-more/scatter-3d.html#scatter-3d"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 4v24h23"/><circle class="f" cx="11" cy="21" r="2.3"/><circle class="f" style="fill-opacity:.5" cx="17" cy="15" r="4"/><circle class="f" cx="24" cy="9" r="3"/><circle class="f" style="fill-opacity:.1" cx="23" cy="22" r="3"/></svg>色・大きさ付き散布図<small class="ct-tag">発展</small></a></div></li><li><div class="ct-line"><span class="ct-type">量的が多数</span><span class="ct-arrow">→</span><a class="ct-g" href="/fields/descriptive/vis-relation/scatter-matrix.html#scatter-matrix"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="4" width="24" height="24"/><path d="M12 4v24M20 4v24M4 12h24M4 20h24"/><rect class="f" x="4" y="4" width="8" height="8"/><rect class="f" x="12" y="12" width="8" height="8"/><rect class="f" x="20" y="20" width="8" height="8"/><circle class="d" cx="14.5" cy="9.5" r="0.9"/><circle class="d" cx="17.5" cy="6.5" r="0.9"/><circle class="d" cx="22.5" cy="9.5" r="0.9"/><circle class="d" cx="25.5" cy="6.5" r="0.9"/><circle class="d" cx="6.5" cy="17.5" r="0.9"/><circle class="d" cx="9.5" cy="14.5" r="0.9"/><circle class="d" cx="22.5" cy="17.5" r="0.9"/><circle class="d" cx="25.5" cy="14.5" r="0.9"/><circle class="d" cx="6.5" cy="25.5" r="0.9"/><circle class="d" cx="9.5" cy="22.5" r="0.9"/><circle class="d" cx="14.5" cy="25.5" r="0.9"/><circle class="d" cx="17.5" cy="22.5" r="0.9"/></svg>散布図行列</a></div></li></ul></li>
+<li><div class="ct-line"><span class="ct-dim">3次元以上のデータ</span></div><ul><li><div class="ct-line"><span class="ct-type">量的 3 つ</span><span class="ct-arrow">→</span><a class="ct-g" href="/fields/descriptive/vis-more/scatter-3d.html#scatter-3d"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M14 20V4M14 20L4 28M14 20l14 6"/><circle class="d" cx="18" cy="10" r="1.7"/><circle class="d" cx="21" cy="17" r="1.7"/><circle class="d" cx="9" cy="22" r="1.7"/><circle class="d" cx="16" cy="15" r="1.7"/><circle class="d" cx="23" cy="23" r="1.7"/></svg>3次元プロット</a><a class="ct-g" href="/fields/descriptive/vis-more/scatter-3d.html#scatter-3d"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 4v24h23"/><circle class="f" cx="11" cy="21" r="2.3"/><circle class="f" style="fill-opacity:.5" cx="17" cy="15" r="4"/><circle class="f" cx="24" cy="9" r="3"/><circle class="f" style="fill-opacity:.1" cx="23" cy="22" r="3"/></svg>色・大きさ付き散布図</a></div></li><li><div class="ct-line"><span class="ct-type">量的が多数</span><span class="ct-arrow">→</span><a class="ct-g" href="/fields/descriptive/vis-relation/scatter-matrix.html#scatter-matrix"><svg class="ct-ico" viewBox="0 0 32 32" aria-hidden="true"><rect x="4" y="4" width="24" height="24"/><path d="M12 4v24M20 4v24M4 12h24M4 20h24"/><rect class="f" x="4" y="4" width="8" height="8"/><rect class="f" x="12" y="12" width="8" height="8"/><rect class="f" x="20" y="20" width="8" height="8"/><circle class="d" cx="14.5" cy="9.5" r="0.9"/><circle class="d" cx="17.5" cy="6.5" r="0.9"/><circle class="d" cx="22.5" cy="9.5" r="0.9"/><circle class="d" cx="25.5" cy="6.5" r="0.9"/><circle class="d" cx="6.5" cy="17.5" r="0.9"/><circle class="d" cx="9.5" cy="14.5" r="0.9"/><circle class="d" cx="22.5" cy="17.5" r="0.9"/><circle class="d" cx="25.5" cy="14.5" r="0.9"/><circle class="d" cx="6.5" cy="25.5" r="0.9"/><circle class="d" cx="9.5" cy="22.5" r="0.9"/><circle class="d" cx="14.5" cy="25.5" r="0.9"/><circle class="d" cx="17.5" cy="22.5" r="0.9"/></svg>散布図行列</a></div></li></ul></li>
 </ul></li>
 </ul>
 </div>
@@ -95,7 +95,7 @@ import seaborn as sns
 
 :::
 
-樹形図はデータの形からグラフを選ぶ方法です. グラフを選ぶもう 1 つの手がかりは, 図で何を見せたいか (比較, 構成, 分布, 変化, 関係) です. 見せたいことと本章の節の対応は次のとおりです.
+樹形図はデータの形からグラフを選ぶ方法です. グラフを選ぶもう 1 つの手がかりは, 図で何を見せたいか (比較, 構成, 分布, 変化, 関係) です. 見せたいことごとに, 次のグラフが使えます.
 
 - **比較**: [棒グラフ](#bar)
 - **構成**: [円グラフ](#pie), [積み上げ棒グラフ](#stacked-bar)
@@ -105,7 +105,7 @@ import seaborn as sns
 
 同じデータでも, 軸に何を取るかで読み取れることが変わり ([縦軸と横軸の選び方](block:vis-reading#axis-choice)), 軸の範囲や色の付け方によっては, グループの間に実際より大きな差があるように見えます ([誇張と強調が読み取りに与える影響](block:vis-reading#exaggeration)).
 
-この節に対応する演習は, 章末の[Exercise DSP3-2](block:vis-reading#exercise-dsp3-2)です.
+この節に対応する演習は, [Exercise DSP3-2](block:vis-reading#exercise-dsp3-2)です.
 
 # 基礎的なグラフ (棒グラフ, 円グラフ, 折れ線グラフ) {#basic-graphs}
 
@@ -305,13 +305,13 @@ plt.show()
 
 グラフ作成の基本は, これで終わりです. あとは, それぞれのグラフごとに `plt.bar()` の部分を使い分け, グラフのデザインを変更することで, 様々なグラフが作成できます. 色, スタイル, 凡例などの変更は, [グラフのデザインの変更](block:vis-design#design)にまとめてあります.
 
-この節に対応する演習は, 章末の[Exercise DSP3-4](#exercise-dsp3-4)です.
+この節に対応する演習は, [Exercise DSP3-4](#exercise-dsp3-4)です.
 
 
 
 # 円グラフ {#pie}
 
-先ほどと同じデータ `bar_pie.csv` を利用して円グラフを作成してみます.
+[棒グラフの例](block:vis-basic#bar)と同じデータ `bar_pie.csv` を利用して円グラフを作成してみます.
 
 ~~~ py
 """
@@ -348,13 +348,13 @@ plt.show()
 
 ![円グラフ](/images/slds/ch8/pie-graph1.png)
 
-この節に対応する演習は, 章末の[Exercise DSP3-4](#exercise-dsp3-4)です.
+この節に対応する演習は, [Exercise DSP3-4](#exercise-dsp3-4)です.
 
 # 積み上げ棒グラフ {#stacked-bar}
 
 円グラフは 1 つの全体の内訳を表します. 複数のグループの内訳を並べて比べるときは, 棒を内訳ごとに色分けして積み上げた**積み上げ棒グラフ**を使います. 棒全体の高さがグループの合計を, 色ごとの長さが内訳を表します.
 
-積み上げ棒グラフの例には, 都道府県別のデータ ([こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/pref_stats.csv)) を使います. e-Stat の都道府県データから 2006 年の値を集めたもので, 列は次のとおりです. このデータは本章の後半の[散布図行列](block:vis-relation#scatter-matrix), [縦軸と横軸の選び方](block:vis-reading#axis-choice), [誇張と強調が読み取りに与える影響](block:vis-reading#exaggeration)でも使います.
+積み上げ棒グラフの例には, 都道府県別のデータ ([こちら](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch8/pref_stats.csv)) を使います. e-Stat の都道府県データから 2006 年の値を集めたもので, 列は次のとおりです. このデータは[散布図行列](block:vis-relation#scatter-matrix), [縦軸と横軸の選び方](block:vis-reading#axis-choice), [誇張と強調が読み取りに与える影響](block:vis-reading#exaggeration)でも使います.
 
 | 列 | 内容 |
 |---|---|
@@ -453,7 +453,7 @@ Name: Location_1, dtype: float64
 
 折れ線グラフは, 横軸が時間のように順序と間隔を持つときに使います. 都道府県や商品の種類のように順序の無いカテゴリーを線でつなぐと, 存在しない「変化」を描くことになるので, 棒グラフを使います. 複数の地点の気温を 1 つの図に重ねる方法は, [for 文を利用したグラフ](block:vis-design#for-graph)で扱います.
 
-この節に対応する演習は, 章末の[Exercise DSP3-3](block:vis-relation#exercise-dsp3-3)と[Exercise DSP3-4](#exercise-dsp3-4)です.
+この節に対応する演習は, [Exercise DSP3-3](block:vis-relation#exercise-dsp3-3)と[Exercise DSP3-4](#exercise-dsp3-4)です.
 
 # []{#演習}演習 {#exercises}
 

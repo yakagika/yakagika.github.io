@@ -7,7 +7,7 @@ requires:
 ---
 ## MCMC {#mcmc}
 
-続いて, 作成したモデルを MCMC によって, 推定します.
+[PyMC で作成したモデル](block:bayes-pymc#pymc-model-construction)を MCMC によって, 推定します.
 
 
 ~~~py
@@ -44,7 +44,7 @@ requires:
 
 - **`return_inferencedata=True`**: 結果を `arviz` の `InferenceData` 形式で返します. これにより, 可視化や診断が容易になります.
 
-**`pm.sample_posterior_predictive(trace, extend_inferencedata=True)`** は, 推定された事後分布から新しいデータを生成します. これにより, モデルの予測性能を評価したり, 予測区間を計算したりできます. `extend_inferencedata=True` を指定すると, 生成された事後予測サンプルが既存の `trace` (`InferenceData`) に `posterior_predictive` グループとして追加されます. なお, 以前のバージョンの解説では `idata = trace.copy(); idata.extend(posterior_predictive)` という書き方を使っていましたが, 新しい `arviz`/`xarray` では `trace.copy()` が `DataTree` を返すため `extend` メソッドが使えず `AttributeError` になります. そのため, 本講義では `extend_inferencedata=True` を推奨します.
+**`pm.sample_posterior_predictive(trace, extend_inferencedata=True)`** は, 推定された事後分布から新しいデータを生成します. これにより, モデルの予測性能を評価したり, 予測区間を計算したりできます. `extend_inferencedata=True` を指定すると, 生成された事後予測サンプルが既存の `trace` (`InferenceData`) に `posterior_predictive` グループとして追加されます. なお, 以前のコード例では `idata = trace.copy(); idata.extend(posterior_predictive)` という書き方を使っていましたが, 新しい `arviz`/`xarray` では `trace.copy()` が `DataTree` を返すため `extend` メソッドが使えず `AttributeError` になります. そのため, 事後予測サンプルの追加には `extend_inferencedata=True` を推奨します.
 
 :::
 
@@ -132,7 +132,7 @@ NUTS: [z_alpha, mu_alpha, sigma_alpha, beta_st, beta_ss]
 
 # []{#モデル診断と可視化}モデル診断と可視化 {#mcmc-diagnostics}
 
-まずは作成したモデルを確認します.
+まずは[PyMC で作成したモデル](block:bayes-pymc#pymc-model-construction)を確認します.
 
 ~~~ py
     graph = model_to_graphviz(model)
@@ -266,7 +266,7 @@ NUTS: [z_alpha, mu_alpha, sigma_alpha, beta_st, beta_ss]
 
 # []{#結果の可視化}結果の可視化 {#bayesian-results-visualization}
 
-続いて今回のモデルの説明能力について可視化していきます.
+[MCMC の実行](block:bayes-results#mcmc)で推定したモデルの説明能力について可視化していきます.
 
 
 
@@ -300,7 +300,7 @@ NUTS: [z_alpha, mu_alpha, sigma_alpha, beta_st, beta_ss]
     plt.close()
 ~~~
 
-- `idata = trace`: 直前の `pm.sample_posterior_predictive(trace, extend_inferencedata=True)` によって, `trace` (`InferenceData`) には既に `posterior_predictive` グループが含まれています. そのまま参照を別名で受けるだけで, 事後予測分布にアクセスできます.
+- `idata = trace`: [MCMC の実行](block:bayes-results#mcmc)での `pm.sample_posterior_predictive(trace, extend_inferencedata=True)` によって, `trace` (`InferenceData`) には既に `posterior_predictive` グループが含まれています. そのまま参照を別名で受けるだけで, 事後予測分布にアクセスできます.
 - `idata.posterior_predictive["GPA"].stack(sample=("chain", "draw"))`: `(chain, draw)` という 2 つの軸を 1 本の `sample` 軸にまとめて, 1 サンプル単位で取り出しやすい形に整えます.
 - `for i in sample_idx`: ランダムに選んだ 100 本の事後予測サンプルを KDE で薄く重ね描きします. これが「事後予測分布の範囲」を表す青い帯になります.
 - `ppc_mean = ... .mean(dim=("chain", "draw"))`: すべてのチェーン・ドローを平均した「事後予測平均」をオレンジで描き, 観測データを黒で重ねます.
@@ -315,7 +315,7 @@ AttributeError: module 'arviz' has no attribute 'plot_ppc'
 
 というエラーになります. 上記のコードでは, バージョン依存を避けるために `matplotlib`/`seaborn` で同等のプロットを直接構築しています.
 
-なお, 以前の解説で使っていた `idata = trace.copy(); idata.extend(posterior_predictive)` という書き方は, 新しい `arviz`/`xarray` では `trace.copy()` が `DataTree` を返すため `AttributeError: 'DataTree' object has no attribute 'extend'` が発生します. 本講義では `sample_posterior_predictive` に `extend_inferencedata=True` を渡して `trace` へ直接追加する書き方を採用しています.
+なお, 以前のコード例で使っていた `idata = trace.copy(); idata.extend(posterior_predictive)` という書き方は, 新しい `arviz`/`xarray` では `trace.copy()` が `DataTree` を返すため `AttributeError: 'DataTree' object has no attribute 'extend'` が発生します. [MCMC の実行](block:bayes-results#mcmc)では `sample_posterior_predictive` に `extend_inferencedata=True` を渡して `trace` へ直接追加する書き方を採用しています.
 
 :::
 
@@ -334,7 +334,7 @@ AttributeError: module 'arviz' has no attribute 'plot_ppc'
 
 ## 予測値の確認 {#予測値の確認}
 
-つぎに, 線形回帰と同様に予測値と実測値の関係と kde プロットを見てみましょう. まずは予測値を取り出します.
+[重回帰での結果確認](block:bayes-modeling#重回帰での結果確認)と同様に予測値と実測値の関係と kde プロットを見てみましょう. まずは予測値を取り出します.
 
 ~~~ py
     # 事後予測分布から予測値(平均)を取り出す
