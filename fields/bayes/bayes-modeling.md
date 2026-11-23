@@ -95,8 +95,8 @@ plt.close()
 
 ![](/images/slds/ch12/PairplotwithScholarship.png)
 
-[回帰分析で使ったデータ](block:reg-multiple#partial-coefficients)と概ね似た傾向 (奨学金ありが少し高い, 勉強時間と GPA に相関, 勉強時間とバイト時間に負の相関など) が確認できます.
-ただし, [GPA の重回帰分析で用いたデータ](block:reg-multiple#partial-coefficients)と比べるとデータ全体のばらつきが大きいことが分かります.
+[重回帰分析で使ったデータ](block:reg-gpa#gpa-stratified)と概ね似た傾向 (奨学金ありが少し高い, 勉強時間と GPA に相関, 勉強時間とバイト時間に負の相関など) が確認できます.
+ただし, [重回帰分析で使ったデータ](block:reg-gpa#gpa-stratified)と比べるとデータ全体のばらつきが大きいことが分かります.
 
 ![](/images/slds/ch12/kde-compare.png)
 
