@@ -177,7 +177,7 @@ $\beta_1=0$ ならオッズ比は 1 で, $\beta_1>0$ なら 1 より大きくな
 観測値を固定して母数を動かす考え方は[尤度](block:bayes-intro#尤度-likelihood)で,
 その値が最大になる母数を選ぶ手順は[最尤推定](block:bayes-intro#最尤推定-maximum-likelihood-estimation)で, 確率の積を対数の和に直して計算する方法とともに説明しています.
 
-実際の係数と取得確率の計算は[単位の取得確率を推定する](block:reg-logit)で行います.
+実際の係数と取得確率の計算は[ロジスティック回帰分析](block:reg-logit)で行います.
 
 # 演習 {#exercises}
 

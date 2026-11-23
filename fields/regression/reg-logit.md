@@ -1,5 +1,5 @@
 ---
-title: 単位の取得確率を推定する
+title: ロジスティック回帰分析
 kind: code
 open: true
 requires:

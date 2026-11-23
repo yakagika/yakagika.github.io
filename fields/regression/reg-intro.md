@@ -115,7 +115,7 @@ $$
 分野ごとにどのような問題が調べられ, どのような方法が使われてきたかは, [学問分野ごとの手法の違いと経緯](block:reg-selection-more#model-selection-history)にあります.
 
 関係の定量化と母集団への推測から始めます.
-まず [OECD の出生率のデータで行う単回帰分析](block:reg-simple)で, 関係の大きさを傾きで表します.
+まず[単回帰分析](block:reg-simple)で, OECD の出生率のデータを使い, 関係の大きさを傾きで表します.
 [重回帰分析](block:reg-multiple)では, 条件をそろえたときの平均の差を考え, [合成 GPA のデータ](block:reg-gpa)で実際に回帰係数を求めます.
 次に, 予測と因果推論でそれぞれ注意する点を順に確かめます.
 [予測](block:reg-prediction)では[未使用のデータで予測の誤差を測り](block:reg-evaluate), [因果推論](block:reg-causal)では介入した場合の平均の差を求めるための条件を考えます.

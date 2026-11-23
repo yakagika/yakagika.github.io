@@ -1,5 +1,5 @@
 ---
-title: 出生率のデータで行う単回帰分析
+title: 単回帰分析
 kind: code
 open: true
 requires:

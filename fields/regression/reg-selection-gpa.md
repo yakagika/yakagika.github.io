@@ -1,5 +1,5 @@
 ---
-title: GPA で目的ごとに変数を選ぶ
+title: 目的ごとに変数を選ぶ
 kind: code
 open: true
 requires:

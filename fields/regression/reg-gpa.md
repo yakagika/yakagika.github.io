@@ -1,5 +1,5 @@
 ---
-title: GPA の重回帰分析
+title: 重回帰分析
 kind: code
 open: true
 requires:
