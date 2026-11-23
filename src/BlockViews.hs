@@ -4,6 +4,7 @@ module BlockViews (renderField, renderCourse, renderSession, renderClosedCourse,
 import BlockModel
 import Data.List (find, nub)
 import qualified Data.Map.Strict as Map
+import Data.Maybe (listToMaybe)
 import qualified Data.Set as Set
 import qualified Data.Text as T
 import Hakyll
@@ -20,10 +21,12 @@ renderField siteCtx site fieldData = do
         listedBlock = blockLinkContext
             <> rows "pages" (linkContext (navigationPageTitle . snd) (uncurry pagePath))
                 (\b -> [(b, p) | p <- blockPages b])
+        firstPage = fieldPageDestination Nothing <$> listToMaybe (publicFieldPages blocks)
         ctx = titleAndDescription (fieldTitle fieldData) (fieldDescription fieldData)
             <> boolField "hasPrerequisites" (const (not (null prerequisites)))
             <> rows "prerequisites" blockLinkContext (const prerequisites)
             <> rows "blocks" listedBlock (const blocks)
+            <> neighborContext fst snd (const False) (const Nothing) (const firstPage)
     makeItem "" >>= layout "templates/block-field.html" (ctx <> fieldIndex fieldData blocks Nothing) siteCtx
 
 fieldIndex :: Field -> [Block] -> Maybe (Block, Page) -> Context a
@@ -153,16 +156,21 @@ fieldPageNavigation :: Field -> [Block] -> Block -> Page -> Context a
 fieldPageNavigation fieldData blocks block page =
     neighborContext fst snd (const False) (const (target previous)) (const (target next))
   where
-    publicPages = [(b, p) | b <- blocks, blockOpen b, p <- blockPages b]
     here = pagePath block page
-    current = find ((== here) . uncurry pagePath . middle) (adjacent publicPages)
-    target select = Just $ maybe (fieldTitle fieldData ++ "の目次", fieldPath fieldData) destination
+    current = find ((== here) . uncurry pagePath . middle) (adjacent (publicFieldPages blocks))
+    target select = Just $ maybe (fieldTitle fieldData ++ "の目次", fieldPath fieldData)
+        (fieldPageDestination (Just block))
         (current >>= select)
-    destination (b, p) = (label, pagePath b p)
-      where
-        label
-            | blockName b == blockName block || pageTitle p == blockTitle b = pageTitle p
-            | otherwise = pageTitle p ++ " (" ++ blockTitle b ++ ")"
+
+publicFieldPages :: [Block] -> [(Block, Page)]
+publicFieldPages blocks = [(block, page) | block <- blocks, blockOpen block, page <- blockPages block]
+
+fieldPageDestination :: Maybe Block -> (Block, Page) -> (String, FilePath)
+fieldPageDestination currentBlock (block, page) = (label, pagePath block page)
+  where
+    label
+        | fmap blockName currentBlock == Just (blockName block) || pageTitle page == blockTitle block = pageTitle page
+        | otherwise = pageTitle page ++ " (" ++ blockTitle block ++ ")"
 
 -- | Insert navigation after the first h1 without re-rendering its inline HTML
 -- or the rest of the page. The title comes from the template or Pandoc.

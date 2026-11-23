@@ -24,6 +24,7 @@ FIXTURE_ENV = {**os.environ, "BLOG_FIXTURES": "1"}
 
 REGRESSION = "fields/sample-regression"
 INFERENCE = "fields/sample-inference"
+CLOSED_FIELD = "fields/sample-closed"
 PRACTICE = "courses/sample-practice"
 STATISTICS = "courses/sample-statistics"
 DRAFT = "courses/sample-draft"
@@ -61,12 +62,14 @@ STATISTICS_2 = f"{STATISTICS}/2.html"
 OPEN_ROUTES = {
     f"{REGRESSION}/index.html",
     f"{INFERENCE}/index.html",
+    f"{CLOSED_FIELD}/index.html",
     OVERVIEW, VARIABLES, FITTING, FIT, RESIDUALS, EXERCISES, EXTENSION, CHECK_SAMPLE,
     SAMPLING, SAMPLE, UNCERTAINTY, f"{INFERENCE}/sample-uncertainty/variation.html",
     f"{PRACTICE}/index.html", PRACTICE_1, PRACTICE_2, FOLLOW_UP, GUIDE, CHECKLIST,
     f"{STATISTICS}/index.html", STATISTICS_1, STATISTICS_2,
 }
 CLOSED_ROUTES = {
+    f"{CLOSED_FIELD}/sample-closed-block/index.html",
     PREDICTION,
     f"{REGRESSION}/sample-prediction/forecast.html",
     f"{REGRESSION}/sample-prediction/exercises.html",
@@ -213,9 +216,10 @@ def check_reference_navigation(site: Path) -> None:
     for index in sorted((site / "fields").glob("*/index.html")):
         field = index.relative_to(site).as_posix()
         field_index = Page(site, field)
-        listing = field_index.source.split('<ol class="field-blocks">', 1)[1].split("</article>", 1)[0]
+        listing = re.search(r'<ol class="field-blocks">(.*?)^  </ol>', field_index.source, re.S | re.M)
+        check(listing is not None, f"{field}: missing field listing")
         blocks: dict[str, list[str]] = {}
-        for route in local_targets(field, listing):
+        for route in local_targets(field, listing[1]):
             name = route.rsplit("/", 1)[0]
             blocks.setdefault(name, [])
             if route not in blocks[name]:
@@ -229,6 +233,30 @@ def check_reference_navigation(site: Path) -> None:
                   for route, page in {field: field_index, **block_pages}.items()}
         previous: dict[str, str] = {}
         following: dict[str, str] = {}
+        index_cards = list(re.finditer(r'<nav class="chapter-nav-card">.*?</nav>', field_index.source, re.S))
+        if public:
+            check(len(index_cards) == 2 and index_cards[0][0] == index_cards[1][0],
+                  f"{field}: expected two identical navigation cards")
+            top, bottom = index_cards
+            check(re.search(r'</header>\s*$', field_index.source[:top.start()]) is not None
+                  and re.match(r"\s*</article>", field_index.source[bottom.end():]) is not None
+                  and top.end() <= listing.start() < listing.end() <= bottom.start(),
+                  f"{field}: navigation cards must bracket the page body")
+            link = re.fullmatch(r'<nav class="chapter-nav-card">\s*<span></span>\s*'
+                                r'<a class="next" href="[^"]+"[^>]*>\s*'
+                                r'<span class="nav-label">Next →</span>\s*'
+                                r'<span class="nav-title">([^<]+)</span>\s*</a>\s*</nav>', top[0])
+            check(link is not None, f"{field}: expected a right-aligned Next link only")
+            target, = local_targets(field, link[0])
+            check(target == public[0], f"{field}: expected the first public page, reached {target}")
+            expected_title = titles[target]
+            block_title = titles[target.rsplit("/", 1)[0] + "/index.html"]
+            if expected_title != block_title:
+                expected_title += f" ({block_title})"
+            check(link[1] == expected_title, f"{field}: wrong title for {target}: {link[1]}")
+            following[field] = target
+        else:
+            check(not index_cards, f"{field}: navigation card without a public destination")
         for route, page in {field: field_index, **block_pages}.items():
             sidebar = re.search(r'<div id="lecture-toc" data-mode="series">(.*?)</nav>', page.source, re.S)
             check(sidebar is not None, f"{route}: missing series Index")
@@ -271,7 +299,7 @@ def check_reference_navigation(site: Path) -> None:
                     if titles[target_block] != expected_title:
                         expected_title += f" ({titles[target_block]})"
                 check(link[1] == expected_title, f"{route}: wrong title for {target}: {link[1]}")
-        for ordered, edges in ((public, following), (public[::-1], previous)):
+        for ordered, edges in (([field, *public] if public else [], following), (public[::-1], previous)):
             if not ordered:
                 continue
             route = ordered[0]
@@ -285,7 +313,7 @@ def check_html(site: Path) -> None:
     expected = OPEN_ROUTES | CLOSED_ROUTES
     actual = {
         path.relative_to(site).as_posix()
-        for group in (REGRESSION, INFERENCE, PRACTICE, STATISTICS, DRAFT)
+        for group in (REGRESSION, INFERENCE, CLOSED_FIELD, PRACTICE, STATISTICS, DRAFT)
         for path in (site / group).rglob("*.html")
     }
     check(actual == expected, f"Missing routes: {sorted(expected - actual)}. Extra routes: {sorted(actual - expected)}.")
