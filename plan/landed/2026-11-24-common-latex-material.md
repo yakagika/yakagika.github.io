@@ -1,20 +1,20 @@
 ---
 plan_id: common-latex-material
-status: in-progress
+status: landed
 created: 2026-10-08
-updated: 2026-10-09
+updated: 2026-11-24
 priority: medium
 next_actor: agent
-next_action: "Windows の TeX Live で .ps の図 (dvipdfmx が Ghostscript で変換) が通るかを確かめ, 済めば landed へ移す"
+next_action: "なし (2026-11-24 landed)"
 ---
 
 # 共通資料 - LaTeX による原稿作成と, 共通資料の一覧の分割
 
 ## メタ情報
 
-- **状態**: in-progress (2026-10-08 承認. エンジンは pLaTeX に変更, Python の資料も共通資料の枠に入れる)
+- **状態**: landed (2026-11-24). in-progress (2026-10-08 承認. エンジンは pLaTeX に変更, Python の資料も共通資料の枠に入れる)
 - **作成日**: 2026-10-08
-- **最終更新**: 2026-10-09
+- **最終更新**: 2026-11-24
 - **対象**: `lectures/common/latex.md` (新規), `lectures/common/git.md` (Collaborator 節の拡充),
   `lectures/common/setup.md` (次に読む資料の一覧), `lectures/common/agent.md` (章ナビ),
   `pages/lectures.markdown` (共通設定のカードを 4 枚に分割), `images/common/git/` と `images/common/latex/` (図)
@@ -139,7 +139,7 @@ latex.md の執筆が本体 (1 session). 図の撮影に本人の Chrome の許�
 | 図の撮影 (GitHub の Collaborators の画面, VSCode の LaTeX Workshop の画面) | 2026-10-09 に本人撮影の Windows のビルド後の画面を「保存でビルドされることの確認」に差し込んだ (`build-result-win.png`). PDF を開くショートカット (Ctrl + Alt + V / Cmd + Option + V) も同じ節に追記 |
 | サイトへの公開 (docs/ の Publish と push) | 2026-10-09 に公開済み (222d369). LaTeX Workshop の画面の図は TeX Live の導入が長引いたため, 図なしで先に公開する (本人指示). 図を差し込んだら再度 Publish する |
 | 図の撮影の受け取り | collab-settings.png と collab-add.png は 2026-10-09 に git.md の手順 3, 4 へ差し込み済み. collab-pending.png は実際に招待しないと撮れないため図なし (2026-10-09 本人). LaTeX Workshop の画面は 2026-10-09 に build-result-win.png として差し込み済み. 撮影の残りは無い |
-| Windows の TeX Live 導入の実機確認 | 2026-10-09 に本人の Windows 機でテンプレートのビルドと PDF の右側表示まで通った (スクリーンショットで確認). `.ps` の図だけ未確認 (next_action) |
+| Windows の TeX Live 導入の実機確認 | 2026-10-09 に本人の Windows 機でテンプレートのビルドと PDF の右側表示まで通った (スクリーンショットで確認). `.ps` の図は 2026-11-24 に Windows 11 の VM (TeX Live 2026, 同梱の Ghostscript) で確認した. SSI 配布元の見本を dvipdfmx 指定に直し latexmk で build すると, `fig1.ps` が PDF に入り, A4 1 ページ, フォントは全部埋め込み. Mac の出力と同じ紙面. 本文は `.ps` を扱わないので直さない |
 
 ## 関連ファイル
 
@@ -156,3 +156,4 @@ latex.md の執筆が本体 (1 session). 図の撮影に本人の Chrome の許�
 - 2026-10-09: Collaborator の画面の図 2 枚を git.md に入れた. 手順 5 のボタン名 `Add <アカウント名> to <リポジトリ名>` が HTML のタグと解釈されて消えていたので, コードの表記に直した
 - 2026-10-09: 本人指示で, 教員が編集したテンプレート (bib + sice-ssi.bst, figure/, dvipdfmx 指定済み) をテンプレートリポジトリで配る方式に変更. latex.md の「原稿のリポジトリを作る」「テンプレートの中身」「参考文献」と演習を書き換えた. bst は codex が junsrt.bst から作り, 10 通りの文献の出力を Claude が確認
 - 2026-11-24: Windows VM での `.ps` の確認を始めた. 材料は SSI 配布元の見本 (`fig1.ps` を含む) を `graphicx` の dvipdfmx 指定に直し, template の `.latexmkrc` を足したもの (`_scratch/vm-verify-20261124/pstest/`, Mac では latexmk が通る). computer use にアクセシビリティの許可が要り, 本人が Ghostty, claude, herdr を許可した. 許可は起動時に読み込まれるので, Claude Code を起動し直してから skill vm-doc-verify で再開する (VM「Windows 11」を起動 → TeX Live の有無を確かめる → 共有フォルダの pstest で latexmk)
+- 2026-11-24: Windows VM で `.ps` の図が dvipdfmx (同梱の Ghostscript) で PDF に入ることを確かめ, landed へ移した. PowerShell 5.1 で latexmk の出力を redirect すると `NativeCommandError` が出るが, stderr への出力に付く表示で build は成功している
