@@ -2,10 +2,10 @@
 plan_id: lecture-block-restructure
 status: in-progress
 created: 2026-11-20
-updated: 2026-11-23
+updated: 2026-11-24
 priority: high
 next_actor: user
-next_action: "本人が回帰の 14 ブロックを通読し, publish と未送信の commit の push を承認する (依頼 8, 9 の直しは A, B, C, D1, D2, E を land 済み. 通読の指摘はブロックごとに直す)"
+next_action: "本人が回帰の 14 ブロックを通読する (依頼 8, 9 の直しは A, B, C, D1, D2, E を land し, 2026-11-24 に本人の指示で publish した (01aa9011). 通読の指摘はブロックごとに直して publish する)"
 ---
 
 # 講義資料を分野とブロックに分け, 講義はブロックの並びかブロックへのリンクで組む
