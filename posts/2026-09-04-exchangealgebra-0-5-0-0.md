@@ -214,3 +214,5 @@ GHC 9.10 (Stackage `lts-24.4` で検証) が対象で, 0.4 系と同じです. �
 # 今後
 
 非推奨にした API (`projNorm` 系の旧名, `Journal.insert`, `Number.NonNegative.Double` の `HatVal` インスタンス, `rounding`) は 0.6 で削除します. 値型・保持方針・並列度を振ったときの計算時間とメモリの scaling は, 本記事では概要にとどめました. 計測条件を揃えた結果は別記事にまとめます. Exchange Algebra の代数構造の解説記事は, 関連論文の正式公表後に改めて書く予定です.
+
+利用者向けの manual を公開しました (追記). 紹介は [exchangealgebra の manual を公開しました](2026-11-24-exchangealgebra-manual.html) にあります.
