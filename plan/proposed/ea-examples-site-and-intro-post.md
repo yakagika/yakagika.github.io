@@ -2,10 +2,10 @@
 plan_id: ea-examples-site-and-intro-post
 status: proposed
 created: 2026-09-13
-updated: 2026-09-13
+updated: 2026-11-24
 priority: medium
 next_actor: user
-next_action: "EA 側 Phase 0 の 4 点 (静的サイト生成器 / 公開元 branch / 図の扱い / Haddock 同居) を裁定する. 裁定は EA repo で handoff `blog-2026-09-13-ea-examples-site` を import した plan 上で行う. ブログ側 (本 plan の Phase 4) はサイト公開まで待機 (外部待ち b)"
+next_action: "本人が Phase 4 の記事の骨子 (節「Phase 4 の記事の骨子 (2026-11-24)」) を承認し, code の例の扱いと公開日を決める. 承認後に agent が本文を書く"
 ---
 
 # ExchangeAlgebra examples 解説サイト (英語) とブログの紹介記事
@@ -84,6 +84,22 @@ EA の `plans/in-progress/example-ownership.md` §2 の所有区分に合わせ�
 
 Phase 4 はサイト公開 (Phase 2 完了) 以降に着手する. 記事は公開済みの範囲だけを書く.
 
+## Phase 4 の記事の骨子 (2026-11-24)
+
+EA は 2026-11-23 に manual を公開した (handoff `haskell-exchange-algebra-2026-11-23T12-46-03-402719`). 当初の設計 (examples の解説サイト) とは範囲が違う. 公開されたのは Simulation を除く 4 層 (Algebra, Journal, Accounting, IO) の manual で, examples の解説はまだ無い. 記事は公開済みの範囲だけを書く (Phase 4 の既存の取り決め).
+
+- file: `posts/<公開日>-exchangealgebra-manual.md`, `category: research`, 日本語, 既存の EA 記事に揃えて敬体.
+- 題: 「exchangealgebra の manual を公開しました」
+- 節:
+  1. はじめに: URL (https://yakagika.github.io/ExchangeAlgebra/, 英語 en/ と和訳 ja/), 説明する版 0.6.1.1, 範囲 (Simulation を除く 4 層).
+  2. 章立て: 概観 (仕訳から交換代数へ), 定義と公理, 導入 (インストールとモジュール, 引き出しを記録する), 部品の差し替え (要素, 基底, 冗長代数と交換代数), 振替と仕訳帳 (複数の会計主体を含む), 勘定科目, 簿記の手続き (検査, 試算表, 決算整理, 決算振替, 財務諸表, 連結), 入出力 (CSV).
+  3. 読む順番: 3 章の「引き出しを記録する」が 1 つの program で構成要素を順に説明し, 4-6 章はその部品を変える方法だけを説明する. Not と Hat の意味, 金額は非負, 借方と貸方は向きと勘定科目の区分の組で決まることを短く書く.
+  4. 小さな例: manual の 3 章の program を抜粋するか, link だけにする (本人判断).
+  5. まだ無いもの: Simulation の章と examples の解説.
+  6. 作り方 (短く): mdBook と mdbook-i18n-helpers (gettext の和訳), master への push で GitHub Actions が build と deploy. 例の program は 0.6.1.1 で compile し, 出力を頁と照合している.
+- 既存の 2 記事 (2026-05-26, 2026-09-04) の末尾に manual への link を足す.
+- 公開 (publish.sh) は本人の go を取る.
+
 ## コスト見積もり
 
 - Phase 0-1: 1 セッション.
@@ -115,3 +131,4 @@ Phase 4 はサイト公開 (Phase 2 完了) 以降に着手する. 記事は公�
 ## 変更履歴
 
 - 2026-09-13: 作成 (EA repo から公開 + 紹介記事方式をユーザが決定)
+- 2026-11-24: EA の manual の公開を受け, Phase 4 の記事の骨子を書いた (本人の承認待ち)
