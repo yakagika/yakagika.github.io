@@ -1,18 +1,18 @@
 ---
 plan_id: ea-examples-site-and-intro-post
-status: proposed
+status: landed
 created: 2026-09-13
 updated: 2026-11-24
 priority: medium
-next_actor: user
-next_action: "本人が記事の下書き posts/2026-11-24-exchangealgebra-manual.md を読み, 公開の go を出す. go の日に agent が file 名と date をその日に合わせて publish.sh で公開し, plan を landed へ移す"
+next_actor: none
+next_action: "なし. 紹介記事は 2026-11-24 に公開した. examples の解説は EA 側の計画で扱う"
 ---
 
 # ExchangeAlgebra examples 解説サイト (英語) とブログの紹介記事
 
 ## メタ情報
 
-- **状態**: proposed
+- **状態**: landed
 - **作成日**: 2026-09-13
 - **最終更新**: 2026-09-13
 - **関係 repo**: 本体の作業は `haskell-exchange-algebra` (`~/Developer/Haskell/ExchangeAlgebra`) で行う.
@@ -133,3 +133,4 @@ EA は 2026-11-23 に manual を公開した (handoff `haskell-exchange-algebra-
 - 2026-09-13: 作成 (EA repo から公開 + 紹介記事方式をユーザが決定)
 - 2026-11-24: EA の manual の公開を受け, Phase 4 の記事の骨子を書いた (本人の承認待ち)
 - 2026-11-24: 本人の指示で骨子を短い概要に縮め (code の例は link だけ, 作り方は書かない), 下書きと既存 2 記事からの link を commit した (f7082add). 公開は本人の go 待ち
+- 2026-11-24: 本人の go を受けて紹介記事を公開し, landed へ移した. examples の解説サイトは EA 側の計画に残る (本 repo の担当は記事と link だけ).
