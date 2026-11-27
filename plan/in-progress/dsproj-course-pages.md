@@ -5,7 +5,7 @@ created: 2026-11-27
 updated: 2026-11-27
 priority: high
 next_actor: claude
-next_action: "codex の独立レビュー (scratchpad の consult-dsproj-r2.out) を裁定して worktree に反映し, 本人に報告する. 風水の引用の頁は本人が Kindle で調べて伝える (papers へ全文取り込みも依頼済み). 公開は頁が分かり本人の go が出てから"
+next_action: "本人へ codex レビューの裁定 (worktree の c64331da) を報告する. その後は風水の引用の頁 (本人が Kindle で調べる. papers へ全文取り込みも依頼済み) を待ち, 頁を入れて本人の go で公開する"
 ---
 
 # データサイエンスプロジェクト (旧 特別講義データサイエンス) の講義のページを作る
@@ -209,6 +209,14 @@ next_action: "codex の独立レビュー (scratchpad の consult-dsproj-r2.out)
 - 風水の引用の頁: 本人が Kindle で調べる. 加えて「全文取り込みも依頼しておいて下さい」. papers へ handoff 済み (chain_id `haskell-blog-2026-11-27T12-25-38-121789-mullaney2023research-...`: Kindle 全文の md 化, 3 箇所の頁の確認, verification の更新, 結果を blog へ返す).
 - 囲みの検査: 足す. worktree の commit 3aed99a9 (`scripts/check_callouts.py` と test, publish.sh と ci_local.sh に組み込み. 警告だけで止めない). この branch では courses/dsp/scope.md, courses/dsproj/writing.md, fields/deep-learning/nlp-embedding-more.md の 3 件が警告に出る (前の 2 件はリンクの付け替えなど小さな変更, writing.md は骨子だけで囲みの候補を採らなかった).
 - 独立レビュー: codex に出す. 対象は 8a0bfa7b, 13e792a9, 4b6aa6c2 で新しく書いた文 (抜粋 dir `~/.isolated-checkouts/consult-excerpt-7MyD`, 出力は session の scratchpad `consult-dsproj-r2.out`).
+
+### codex の 2 回目の独立レビューの裁定 (2026-11-27, worktree の commit c64331da)
+
+- 指摘 14 件をすべて採った (14 の引用の縮小は一部). 全文は session の scratchpad `consult-dsproj-r2.out`. 委譲台帳に記録済み.
+- 主な直し: 講義の 1 回目は聞いた人が共有ファイルに記録し, 1 人の回は説明を省き, 毎回直前の回の問いから次の課題を立てる. 文献で調べた問いにすべて答えが出たら地図の別の問いを調べる. 「答えが出なかった」を「文献だけでは答えきれなかった」にそろえた. 本科目の論文は文献とデータの分析の両方を根拠にする. 人文系の留保を先行研究の文へ付け替え. warn を定義の例の後へ移した. 教員の総評と共通の関心を「教員が感じた, 考えた」形にし, 図のラベルを「教員が考えた共通点」に.
+- 風水: 近代化と知識の生産を同格にしない. 「問われ続けた」を「しばらく間があってから」に. 2 つ目の引用の問いの列挙 (瞑想, ヨガなど) を中略で縮めた (codex は段落ごと削る案. 本人の指示が事例の引用なので, 問いが次々に出る所は原文で残した). 引用の後の再話は, 学生の言葉が次の問いの出発点になったという読み取りに替えた.
+- **question.md の note「手順の時間と問いの数, … は本科目での設定です.」を削った.** 2 分と 4 分, 15 個以上はグレガーセン自身の手順にもあり (codex は MIT のインタビューを根拠に挙げた), 本科目の設定とは言えないうえ, 本文と重なるため. これは 8a0bfa7b で「移した文」(裁定 18 件の文言) だったので報告で明示する. question.md の囲みは 3 回の例の note 1 件になった.
+- 採らなかった: 図の前の教員の総評を削る案 (スライド 24 の教員自身のまとめなので残した).
 
 ## 変更履歴
 
