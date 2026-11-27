@@ -210,7 +210,7 @@ def repeated_intervals():
     for value in (28, 29, 30, 31, 32):
         label = "μ = 30" if value == SIMULATION_MEAN else str(value)
         x_tick(diagram, plot.x(value), plot.bottom, label)
-    diagram.label(plot.right + 18, 674, "収穫量 (個)", anchor="end")
+    diagram.label(plot.right + 18, 674, "長さ (mm)", anchor="end")
     diagram.write("repeated-confidence-intervals", 692, "反復抽出で求めた母平均の信頼区間")
 
 
@@ -231,10 +231,10 @@ def sampling_densities():
         y_tick(diagram, plot.left, plot.y(value), f"{value:g}")
     for scale, label in ((-1, "μ − σ"), (0, "μ"), (1, "μ + σ")):
         x_tick(diagram, plot.x(scale * POPULATION_SD), plot.bottom, label)
-    diagram.label(plot.right + 15, 340, "収穫量 (個)", anchor="end")
+    diagram.label(plot.right + 15, 340, "長さ (mm)", anchor="end")
     diagram.line(152, 158, 202, 158, stroke=BLUE)
     diagram.label(215, 166, "個々の観測値", anchor="start")
-    diagram.label(215, 199, "σ = 4", math=True, anchor="start")
+    diagram.label(215, 199, "σ = 4 mm", math=True, anchor="start")
     diagram.line(545, 118, 595, 118, stroke=RED, dash="9 5")
     diagram.label(608, 126, "標本平均", anchor="start")
     diagram.label(608, 161, "σ/√n = 0.5", math=True, anchor="start")
