@@ -5,7 +5,7 @@ created: 2026-11-27
 updated: 2026-11-27
 priority: medium
 next_actor: agent
-next_action: "確率の基礎の図 7 枚を SVG で作り, 確率変数と離散型確率分布 (第7回) の変換を codex に委譲する (prob-basics は 978913a4 で land, open: false)"
+next_action: "codex に出した 2 件 (第7回の prob-variable と prob-discrete, 確率の基礎の図 7 枚) を受け入れて land する (2026-11-27 dispatch)"
 ---
 
 # 参考資料に確率と確率分布, 推測統計の 2 分野を加える
