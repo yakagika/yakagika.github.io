@@ -231,7 +231,14 @@ def check_reference_material_names(site: Path) -> None:
     check("教科書" not in lectures, "Lecture index still says 教科書")
     check(f">{description}</p>" in lectures, "Lecture index lacks the specified description")
     check('id="参考資料-分野別">参考資料 (分野別)</h2>' in lectures, "Wrong field heading")
-    check(lectures.count('class="series-cta">参考資料を見る →</span>') == 8, "Wrong field card labels")
+    # 分野のカードは講義一覧に手で書くので, 枚数は固定せず, 分野へのリンクを持つカードと
+    # 「参考資料を見る」の表示が 1 対 1 に対応するかを見る.
+    label = 'class="series-cta">参考資料を見る →</span>'
+    cards = re.findall(r'<a class="series-card" href="([^"]+)">(.*?)</a>', lectures, re.S)
+    field_cards = [body for href, body in cards if href.startswith("fields/")]
+    check(bool(field_cards), "Lecture index has no field cards")
+    check(all(label in body for body in field_cards), "A field card lacks the 参考資料を見る label")
+    check(lectures.count(label) == len(field_cards), "Wrong field card labels")
     for path in (site / "fields").glob("*/index.html"):
         check("教科書" not in path.read_text(encoding="utf-8"), f"{path}: still says 教科書")
 
