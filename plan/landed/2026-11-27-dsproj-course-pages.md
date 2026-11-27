@@ -1,18 +1,18 @@
 ---
 plan_id: dsproj-course-pages
-status: in-progress
+status: landed
 created: 2026-11-27
 updated: 2026-11-27
 priority: high
-next_actor: claude
-next_action: "本人の go を待って公開する (worktree の 967b94d9 まで. rebase, docs の作り直し, main へ ff, recovery tag, publish, branch と worktree の削除, plan を landed へ). papers の全文取り込みの結果が届いたら p. 35 と pp. 98-99 の頁を照合する"
+next_actor: none
+next_action: "なし (2026-11-27 に公開して landed. papers の全文取り込みの結果で p. 35 と pp. 98-99 を照合する作業は, papers への handoff の返信が blog の queue に届いたときに行う. 論文と発表のページの中身は別に計画する)"
 ---
 
 # データサイエンスプロジェクト (旧 特別講義データサイエンス) の講義のページを作る
 
 ## メタ情報
 
-- **状態**: in-progress (2026-11-27 起票. 同日に本人が計画を承認し, grill-me で未決定を詰めた)
+- **状態**: landed (2026-11-27 起票. 同日に本人が計画を承認し, grill-me で未決定を詰めた. 同日に本人の通読の後に公開した)
 - **作成日**: 2026-11-27
 - **最終更新**: 2026-11-27
 - **関連計画**: [lecture-block-restructure.md](lecture-block-restructure.md) (Phase 4: データサイエンスプロジェクトとゼミの講義のページ, データの取得の分野), [lecture-literature-grounding.md](lecture-literature-grounding.md) (文献の登録と引用), `plan/proposed/slds-b1-x-api-limit-refresh.md` (X の API の料金と制限の更新. 直す先を新しいブロックに変える)
@@ -224,8 +224,18 @@ next_action: "本人の go を待って公開する (worktree の 967b94d9 ま�
 - question.md の 2 か所 (経緯の要約の頭と, 引用の出典の文) を `[@mullaney2023research, 第 1 章第 1 節]` にした. 表示は「(トーマス・S・マラニー & クリストファー・レア, 2023, 第 1 章第 1 節)」. build, リンク, 引用, 囲み, 文体の検査は通った.
 - papers への handoff (全文の md 化, 頁の確認, verification の更新) はそのまま待つ. 風水の位置は決まったので, 結果で照合するのは既存の p. 35 と pp. 98-99 になる. 公開はこの結果を待たない (書誌の実在は確かめ済みで, 本文の照合前の公開は 2026-11-20 の本人の裁定で認められている).
 
+### 公開 (2026-11-27)
+
+- 本人「OKです. publishして下さい.」(通読の後).
+- main へ ff-merge した (land の直前の main に recovery tag `recovery/dsproj-course-pre-land-20261127` を打った). publish.sh で公開した (Publish の commit 898814cc. 中身は docs だけ).
+- main にあった確率と推測統計の分野の未 push の commit も一緒に push した. 全ブロックが `open: false` で, 本文は出ずに「準備中」と noindex になることを `src/BlockSite.hs` と `src/BlockViews.hs` で確かめ, その session (blog-24) に予告した.
+- 手元の CI の受け入れの test (`scripts/test_block_site.py`) が, 講義一覧の分野のカードを 8 枚と固定していて, データの取得のカードを足した 9 枚で失敗した. 枚数を固定せず, 分野へのリンクを持つカードと「参考資料を見る」の表示が 1 対 1 に対応するかを見る形に直した (原因の直し). worktree で stack の build をしていないと, この test は `~/.local/bin/main` (無関係の実行ファイル) を拾うので, main の実行ファイルを PATH の先頭に置いて走らせた.
+- branch `feat/dsproj-course` と `codex/data-acquisition-field` (内容は cherry-pick で main に入っている) と worktree を削除した.
+- 残り: papers への handoff (Kindle の全文の md 化, 頁の確認, verification の更新) の返信を待つ. 返信が届いたら, 既存の引用 p. 35 と pp. 98-99 を照合する. 論文と発表のページ (`writing.md`) は骨子だけで, 中身は別に計画する.
+
 ## 変更履歴
 
 - 2026-11-27: 作成 (計画の承認と grill-me の結果を記録)
 - 2026-11-27: 通読の後の指示 4 件を記録した (囲みは commit 8a0bfa7b で反映)
 - 2026-11-27: 風水の引用の位置を本人の指示で章と節にした (worktree の 967b94d9)
+- 2026-11-27: 公開して landed へ移した

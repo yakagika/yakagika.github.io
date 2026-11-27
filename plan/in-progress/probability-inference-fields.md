@@ -16,7 +16,7 @@ next_action: "公開の判断を本人に求める (点検の 1-7 は回答済�
 - **作成日**: 2026-11-27
 - **最終更新**: 2026-11-27
 - **親計画**: [lecture-block-restructure.md](lecture-block-restructure.md) の Phase 3 (統計学の残りを Obsidian から移す) のうち, 確率と推測統計の部分. 記述統計は親計画の側で扱う.
-- **関連計画**: [dsproj-course-pages.md](dsproj-course-pages.md) (検定を推測統計の分野へ統合する前提)
+- **関連計画**: [dsproj-course-pages.md](../landed/2026-11-27-dsproj-course-pages.md) (検定を推測統計の分野へ統合する前提)
 - **出所**: 本人 (2026-11-27) 「参考資料に推測統計学を加える計画を確認して下さい.」の後の質疑.
 
 ## 概要
