@@ -5,7 +5,7 @@ created: 2026-11-27
 updated: 2026-11-27
 priority: medium
 next_actor: agent
-next_action: "検定の図 8 件 (codex に依頼中) を受け入れる. その後, 公開前の点検の一覧 (著作権, 誤り, 歴史の候補) を全ブロック分まとめて本人に承認を求める. 歴史の節は偉人たちのスキャン (2026-11-30) と papers の handoff の受領後"
+next_action: "検定の図 8 件 (codex に依頼中) を受け入れる. 公開前の点検の一覧 (probability-inference-review.md) の「本人に決めてもらうこと」8 件を本人に聞き (2026-11-27 に提示), 回答を本文に反映する. 歴史の節は偉人たちのスキャン (2026-11-30) と papers の handoff の受領後"
 ---
 
 # 参考資料に確率と確率分布, 推測統計の 2 分野を加える
