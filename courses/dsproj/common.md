@@ -24,4 +24,4 @@ title: 共通資料による準備
 
 - [プログラミング基礎](/lectures/python1.html) (全 5 章): データサイエンスのためのプログラミングを履修していない学生は, 最初の準備と並行して読みます. LLM に書かせたコードも, 研究に使うには自分で読んで説明できる必要があるからです ([LLM を研究に使う条件](material:llm#conditions)).
 - [LaTeX による原稿作成](/lectures/latex.html): 論文を書く段階 ([論文と発表](material:writing)) で, 学会のテンプレートを使って原稿を書くときに読みます.
-- [Google Colaboratory による GPU 計算](/lectures/colab.html): 手元の PC では分析の計算に時間がかかりすぎるときに読みます.
+- [Google Colaboratory による GPU 計算](/lectures/colab.html): 手元の PC では分析の計算に時間がかかりすぎるときに読みます. Colaboratory は Google のサーバで計算するので, 個人に関わるデータを扱う分析には使いません ([セキュリティとデータの扱い](material:llm#security)).
