@@ -105,7 +105,7 @@ dir は `fields/probability/` と `fields/inference/`. ブロック名は変換�
 | 久保川『現代数理統計学の基礎』 | papers (`kubokawa2017gendai`, identity) | そのまま使える. `blog-lectures` を付ける |
 | Stigler『The History of Statistics』(1986) | papers (`stigler1986history`, 全文あり, verification partial) | 1900 年以前の歴史 (ベルヌーイ, ド・モアブル, ラプラス, 中心極限定理, 最小二乗) に使える. 使うときに `blog-lectures` を付ける |
 | 『データ視覚化の人類学』, 『嘘を見破る統計学』 | Kindle (本人) | papers へ取り込みを依頼した (2026-11-27, handoff `haskell-blog-2026-11-27T11-28-46...`). 返ったら bibkey を使う |
-| 種村『統計学演習』 | 本人は papers に PDF があると考えていたが, DB の note, bib, `Statistics/Book` に無い. `study/種村10-3.pptx` だけがある | 本人に PDF の所在を聞く (理由 a) |
+| 種村ほか『統計学演習』(培風館, ISBN 978-4-563-00870-3) | 千葉大学の安田氏のページに章ごとの PDF がある (本人が 2026-11-27 に示した. https://www.math.s.chiba-u.ac.jp/~yasuda/statEN2/statENSYU.html). PDF は画像だけで文字の層が無い. 第7回の「p55」は第3章 確率分布 (pp.37-56) に入る | papers へ書誌の確認と OCR での取り込みを依頼した (2026-11-27, handoff `haskell-blog-2026-11-27T11-38-04...`). 演習は写さず, 自作の問題に替える (書籍を出典とする演習の方針) |
 | 『統計学を拓いた偉人たち』 (Salsburg の和訳) | 紙の本. papers にも手元の file にもスキャンが無い | 本人がスキャンする (理由 a. Todoist 6j5J8wMv3pmQxJ6H, 期日 2026-11-30) |
 | Fisher『実験計画法』, Casella & Berger | papers に無い. 本人の回答では所在が挙がらなかった | 使うかを, 該当のブロック (推測統計 4, 確率 7) の変換のときに決める |
 
