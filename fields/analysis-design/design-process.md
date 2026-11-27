@@ -136,9 +136,9 @@ Web ページ閲覧時の視線移動を実験により計測して, Web ペー�
     - グループの間に違いがあるか → 検定
     - ある変数 (目的変数) を, 他の変数で説明したい, 予測したい
         - [目的変数が量的]{.ct-type} → [線形回帰](block:reg-intro#regression-equation)
-        - [目的変数が 2 値で, 説明変数による確率の変化を知りたい]{.ct-type} → [ロジスティック回帰](block:reg-glm#binary-response)
+        - [目的変数が 2 値で, 説明変数による確率の変化を知りたい]{.ct-type} → [ロジスティック回帰](block:reg-glm#logistic-regression)
         - [目的変数がカテゴリー]{.ct-type} → [決定木などの分類](block:ml-classification#決定木分析)
-        - [目的変数が個数や割合で, 個体ごとのばらつきが大きい]{.ct-type} → [一般化線形モデル](block:bayes-modeling#一般化線形モデル-glm)
+        - [目的変数が個数や正の連続値などで, 正規分布を当てはめにくい]{.ct-type} → [一般化線形モデル](block:reg-glm#glm-family)
     - データをいくつかのグループに分けたい → [クラスタリング](block:ml-clustering#クラスタリング)
     - 多数の変数を, 少数の変数にまとめたい → [次元削減](block:survey-analysis#次元削減)
     - 一緒に起きる組み合わせを見つけたい → [アソシエーション分析](block:ml-association#パターン発見-アソシエーション分析)
