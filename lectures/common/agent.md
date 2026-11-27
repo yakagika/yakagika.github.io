@@ -789,8 +789,9 @@ herdr では `herdr worktree create --branch <名前>` で worktree を作れま
 
 # この資料を使う講義
 
-この資料は, 次の講義から参照されます. 講義ごとの扱いは, それぞれの資料の最初の章で案内します.
+この資料は, 次の講義から参照されます. 講義ごとの扱いは, それぞれの講義の資料で案内します.
 
+- [データサイエンスプロジェクト](/courses/dsproj/index.html)
 - [特別講義DS](slds1.html)
-- [データサイエンス実践](dsp1.html)
+- [データサイエンス実践](/courses/dsp/index.html)
 - [関数型プログラミング](fp1.html)

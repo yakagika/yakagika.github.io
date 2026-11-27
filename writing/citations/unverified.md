@@ -5,6 +5,8 @@
 
 | 章 | キー | verification |
 |---|---|---|
+| courses/dsproj/question.md | mullaney2023research | identity |
+| courses/dsproj/question.md | gregersen2020questions | identity |
 | fields/regression/reg-causal.md | westreich2013table | identity |
 | fields/regression/reg-glm.md | kubo2012mcmc | identity |
 | fields/regression/reg-selection-lab.md | freedman1983note | identity |

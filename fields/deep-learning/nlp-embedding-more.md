@@ -28,7 +28,7 @@ LDA では, 各文書のトピック分布と各トピックの単語分布に�
 ## X (Twitter) API を用いたデータの取得 {#x-twitter-api-を用いたデータの取得}
 自然言語解析では, [ワードクラウド](block:nlp-processing#ワードクラウド)の事例のように, まとまった文章を分析する場合もありますが, X (旧:Twitter) のつぶやきのように, 短い文章の集合を扱う場合もあります. ここでは, Twitter の API を利用して取得したつぶやきを分析してみましょう.
 
-API という仕組みの説明と, X API による取得手順 (認証トークンの発行, 環境変数での受け渡し, 取得コード) は, [X API でデータを取得する手順](/lectures/slds_b1.html)にまとめてあります (API 一般の説明は[API とは](/lectures/slds_a1.html#apiとは)). X API は 2026 年 2 月の改定で無料の取得枠が廃止され, 投稿 1 件 0.005 ドルの従量課金だけになりました. 研究で利用する人以外は, [取得済みの 50 件の投稿をまとめたデータ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch15/tweets.csv)をダウンロードして利用しましょう. このデータはX API で取得する `posts.csv` と同じ列構造 (`query` = 検索ワード, `text` = 投稿本文) なので, 以下のコードは自分で取得した `posts.csv` でもファイル名の変更だけで動きます.
+API という仕組みの説明と, X API による取得手順 (認証トークンの発行, 環境変数での受け渡し, 取得コード) は, [X API による投稿の取得](block:api-x)にまとめてあります (API 一般の説明は[API とは](block:api-intro#api-basics)). X API は 2026 年 2 月の改定で無料の取得枠が廃止され, 投稿 1 件 0.005 ドルの従量課金だけになりました. 研究で利用する人以外は, [取得済みの 50 件の投稿をまとめたデータ](https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch15/tweets.csv)をダウンロードして利用しましょう. このデータはX API で取得する `posts.csv` と同じ列構造 (`query` = 検索ワード, `text` = 投稿本文) なので, 以下のコードは自分で取得した `posts.csv` でもファイル名の変更だけで動きます.
 
 
 ## トピックモデル実践 {#トピックモデル実践}

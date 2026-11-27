@@ -8,10 +8,16 @@ title: Lectures
 
 ```{=html}
 <div class="lecture-series-grid">
+  <a class="series-card" href="courses/dsproj/index.html">
+    <span class="series-badge">Data Science</span>
+    <span class="series-title">データサイエンスプロジェクト (旧 特別講義データサイエンス)</span>
+    <span class="series-desc">学生が自分の問いを立て, LLM を使ってデータサイエンスの研究を行い, 論文にまとめて学会で発表する通年の講義. 問いの立て方, LLM の使い方, 研究計画を扱い, 分析の技術は参考資料で学ぶ. (作成中)</span>
+    <span class="series-cta">資料を見る →</span>
+  </a>
   <a class="series-card" href="lectures/slds1.html">
     <span class="series-badge">Data Science</span>
     <span class="series-title">特別講義 (データサイエンス)</span>
-    <span class="series-desc">文系学部生がデータサイエンスの一連の流れを, 自分の選んだテーマで実践する講義. 前期はプログラミングと Python ライブラリの基本, 後期は研究テーマに応じた分析手法を学び, 年度末の学会口頭発表を最終目標とする.</span>
+    <span class="series-desc">2026 年度の受講生向けの資料 (2027 年度からはデータサイエンスプロジェクト). 文系学部生がデータサイエンスの一連の流れを, 自分の選んだテーマで実践する講義. 前期はプログラミングと Python ライブラリの基本, 後期は研究テーマに応じた分析手法を学び, 年度末の学会口頭発表を最終目標とする.</span>
     <span class="series-cta">資料を見る →</span>
   </a>
   <a class="series-card" href="courses/dsp/index.html">
