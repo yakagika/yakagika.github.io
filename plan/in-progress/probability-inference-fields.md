@@ -5,7 +5,7 @@ created: 2026-11-27
 updated: 2026-11-27
 priority: medium
 next_actor: agent
-next_action: "第8回の図 (FIGURE 18 件, prob-continuous/normal/clt) を codex で SVG にし, 並行してブロック 7 (χ², t, F と導出. 関係図と第9回, 第10回の発展のスライド) を変換する"
+next_action: "codex 3 本を受け入れて land する: 第8回の図 (prob-ch8-figs), ブロック 7 (prob-ch9, prob-sampling), 推測統計 1-2 (inf-ch9a, inf-population と inf-point). log は _scratch/prob-inf/out-<slug>.log"
 ---
 
 # 参考資料に確率と確率分布, 推測統計の 2 分野を加える
