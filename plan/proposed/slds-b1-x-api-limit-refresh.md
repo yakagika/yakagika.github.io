@@ -2,10 +2,10 @@
 plan_id: slds-b1-x-api-limit-refresh
 status: proposed
 created: 2026-08-19
-updated: 2026-08-19
+updated: 2026-11-27
 priority: medium
 next_actor: agent
-next_action: "「設計」の 3 点の修正可否をユーザに確認 (AUQ) → 承認された分を lectures/slds/slds_b1.md に反映し, 数値は volatility を織り込んだ書き方に変える"
+next_action: "「設計」の 3 点の修正可否をユーザに確認 (AUQ) → 承認された分をブロック fields/data-acquisition/api-x.md に反映し (旧 slds_b1.md へ写すかも問う), 数値は volatility を織り込んだ書き方に変える"
 ---
 
 # 補足B (X API) の取得数制限まわりの記述を最新化する
@@ -68,6 +68,10 @@ next_action: "「設計」の 3 点の修正可否をユーザに確認 (AUQ) �
   当たらないなら反映先は dsp 側の補足B になる. 着手前にどちらへ当てるかを決める.
 - **2026-09-26 追記**: 補足 A/B/C は dsp から外し, slds にだけ残すことになった (ユーザ決定). 反映先は slds_b1 だけで,
   来年度の切り替えで特別講義側をデータの取得から始める構成にするときに合わせて直すのが自然.
+- **2026-11-27 追記**: 補足 A〜C を分野「データの取得」へ複製した (計画 dsproj-course-pages). 反映先は
+  ブロック `fields/data-acquisition/api-x.md` (料金と制限の節 `#x-cost-and-limits`, 取得のプログラムの節 `#fetch-posts`,
+  YouTube との比較の節 `#compare-youtube`) に変わる. 旧ページ `slds_b1.md` は 2026 年度の受講生のために残すので,
+  旧ページにも写すかは着手時に本人に問う. 行番号は旧ページのもので, ブロックでは変わっている.
 
 ## 関連ファイル
 
