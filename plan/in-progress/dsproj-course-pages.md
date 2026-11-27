@@ -114,6 +114,17 @@ next_action: "本人が共通理解を確認したら, 講義の並び courses/d
 - `fields/data-acquisition/`
 - `lectures/slds/slds2.md` (研究計画の土台), `lectures/slds/slds_a1.md`, `slds_b1.md`, `slds_c1.md`
 
+## 進捗と再開の手順 (2026-11-27)
+
+- 講義のページは隔離 worktree `.claude/worktrees/dsproj` (branch `feat/dsproj-course`) で書いている. 並行 session が `publish.sh` (`git add --all`) を走らせても書きかけが公開されないようにするため. WIP commit eb729066: `courses/dsproj/{guide,common,llm,question}.md` と `images/courses/dsproj/question-{center,chain}.{svg,png}` (rsvg-convert -w 1920).
+- 残り: `courses/dsproj/plan.md` (旧 slds2 を土台. 図 `/images/slds/ch2/{data-science-flow,info-to-model,purpose-method-data}.png` を再利用. 「妥協」の段を逆の方針に. 過去の研究事例のリスト. 演習 DSPJ5-1 事例を読む, DSPJ5-2 目的・データ・手法), `courses/dsproj/writing.md` (骨子, 作成中. 年間の締切, 論文の構成, LLM の出力を制御して使う, LaTeX 資料へのリンク), `courses/dsproj.yaml` (6 回の materials と supplements `id: reference` (出力は `/courses/dsproj/reference.html`). intro で時系列 `/lectures/slds17.html` と検定 `/lectures/slds10.html` へ旧資料としてリンク. blocks は全分野 + data-acquisition).
+- 書いたページのリンク: `material:<名前>#id` 形式, `/lectures/agent.html#sandbox-と承認` `#分からないまま承認しない` `#文献の本文確認` `#差分の説明`, `/fields/data-acquisition/index.html` (codex の land 後に存在). 引用キー `mullaney2023research` (p. 35, pp. 98-99), `gregersen2020questions`.
+- 文献: papers へ handoff 済み (chain `haskell-blog-2026-11-27T11-03-32-909643-…`, mechanical). papers の待ち受け session は不在で未処理. 公開前に `scripts/make_lecture_bib.sh` で 2 件が出ることを確かめる.
+- データの取得の分野: codex (Sol) が完了, STOP なし. clone `~/.isolated-checkouts/ea-codex-blog-data-acquisition` (branch `codex/data-acquisition-field`), 報告は session の task 出力 (bo9239jga). 未受領: 差分の確認 (Sonnet subagent に変更範囲と規約適合を pass/fail で), clone で commit, worktree へ取り込み, build.
+- 執筆規約の lock は並行 session の bump を df9f75fc で commit した.
+- 合わせて直すもの (未着手): 講義一覧のカード, `courses/dsp/guide.md` と `scope.md` の履修順, `lectures/common/agent.md` の「この資料を使う講義」, CLAUDE.md の slds の節, 再編計画への記録 (時系列の分野, 共通資料と参考資料の統合 (本人 2026-11-27 「計画としてあとで, 共通資料と参考資料を統合して, 整理します.」), 旧 slds 削除前に参考資料の旧章リンクを付け替える条件, X の API の計画の直す先).
+- 検証: worktree で main の実行ファイル (`/Users/akagi/Developer/Haskell/blog/.stack-work/install/aarch64-osx/6f1c476cb9aa0d5e2541d62478eb9f2493ff879d0abdf66b4aa56174cdbe416d/9.6.6/bin/main rebuild`) を走らせ, `check_local_refs.py docs`, `check_citations.py`, `prose_lint.py`. 文章は codex に独立に読ませる.
+
 ## 変更履歴
 
 - 2026-11-27: 作成 (計画の承認と grill-me の結果を記録)
