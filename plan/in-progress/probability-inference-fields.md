@@ -5,7 +5,7 @@ created: 2026-11-27
 updated: 2026-11-27
 priority: medium
 next_actor: agent
-next_action: "codex に出した 2 件 (第7回の prob-variable と prob-discrete, 確率の基礎の図 7 枚) を受け入れて land する (2026-11-27 dispatch)"
+next_action: "codex の第7回の変換 (prob-variable, prob-discrete. slug prob-ch7, log は _scratch/prob-inf/out-prob-ch7.log) を受け入れて land する. 次に第7回の図と第8回の変換"
 ---
 
 # 参考資料に確率と確率分布, 推測統計の 2 分野を加える
@@ -153,6 +153,8 @@ dir は `fields/probability/` と `fields/inference/`. ブロック名は変換�
 - Obsidian vault の `Knowledge/統計学/` (repo 外)
 
 ## 変更履歴
+
+- 2026-11-27: 確率の基礎の図 7 枚を land (f35bcd06. `scripts/make_prob_basics_svgs.py` が生成). 差し戻し 1 回 (上付きの c の書体, 白玉と赤玉を文字でも区別)
 
 - 2026-11-27: 確率の基礎 (prob-basics) を land (978913a4, open: false). 第6回の 60 枚の対応表は codex の報告にある. 図は 7 か所に位置の注釈だけを置いた (スライド 19, 20, 23, 26, 27, 36, 58). 歴史の候補: コルモゴロフの公理化 (1933), ラプラスの古典的定義
 
