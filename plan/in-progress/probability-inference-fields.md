@@ -5,7 +5,7 @@ created: 2026-11-27
 updated: 2026-11-27
 priority: medium
 next_actor: agent
-next_action: "確率の分野のブロック 1〜3 で使う文献を papers で確かめ, 変換を codex に委譲する (2026-11-27 本人が共通理解を確認)"
+next_action: "確率の基礎の図 7 枚を SVG で作り, 確率変数と離散型確率分布 (第7回) の変換を codex に委譲する (prob-basics は 978913a4 で land, open: false)"
 ---
 
 # 参考資料に確率と確率分布, 推測統計の 2 分野を加える
@@ -153,5 +153,7 @@ dir は `fields/probability/` と `fields/inference/`. ブロック名は変換�
 - Obsidian vault の `Knowledge/統計学/` (repo 外)
 
 ## 変更履歴
+
+- 2026-11-27: 確率の基礎 (prob-basics) を land (978913a4, open: false). 第6回の 60 枚の対応表は codex の報告にある. 図は 7 か所に位置の注釈だけを置いた (スライド 19, 20, 23, 26, 27, 36, 58). 歴史の候補: コルモゴロフの公理化 (1933), ラプラスの古典的定義
 
 - 2026-11-27: 作成 (grill-me の結果)
