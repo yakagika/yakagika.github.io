@@ -5,7 +5,7 @@ created: 2026-11-27
 updated: 2026-11-27
 priority: medium
 next_actor: agent
-next_action: "codex 2 本を受け入れて land する: ブロック 7 (prob-ch9, prob-sampling) と推測統計 1-2 (inf-ch9a). 次に prob-sampling と推測統計の図 (本文の言及を範囲に入れる), 推測統計 3 (区間推定)"
+next_action: "図の委譲 (prob-sampling の 5 件と inf-population, inf-point の 11 件. 本文の言及を範囲に入れる) と, 推測統計 3 区間推定 (第9回 48-90) の変換を codex に出す"
 ---
 
 # 参考資料に確率と確率分布, 推測統計の 2 分野を加える
@@ -120,6 +120,7 @@ dir は `fields/probability/` と `fields/inference/`. ブロック名は変換�
 3. 公開: 著作権と誤りの一覧を本人が承認したら `open: true` にする.
 4. 公開の後の付け替え:
    - データサイエンスプロジェクトの講義の並びで, 検定の参照先を推測統計のブロックにする (旧第10章は本文が無いので, それまでは参照を置かない).
+   - 講義一覧のページ (`pages/lectures.markdown`) に 2 分野のカード (`series-card`) を足す (分野の一覧は手で並べている).
    - `courses/dsproj.yaml` の supplements の blocks と intro の分野の一覧に 2 分野を足す (CLAUDE.md の dsproj の規則. 検定は推測統計の公開後に intro に足す).
    - 回帰分析の分野で, 検定の一般論の説明を推測統計へのリンクに整理する.
    - 第6回のベイズの部分をベイズ統計学の分野と照合し, 足りない内容を `bayes-intro` に足す (ベイズ統計学の分野の作業として行う).
@@ -153,6 +154,10 @@ dir は `fields/probability/` と `fields/inference/`. ブロック名は変換�
 - Obsidian vault の `Knowledge/統計学/` (repo 外)
 
 ## 変更履歴
+
+- 2026-11-27: 推測統計の分野を作り, 母集団と標本 (inf-population), 点推定 (inf-point) を land (ab8c9c1d, open: false). 第9回 16-47 を照合. スライド 38, 42, 43, 46, 47 は見出しだけ (数式も画像も無いことを XML で確かめた) なので, 標本比率とモーメント法は本文を補った. 外部サイト参考の最尤法の問題 (44, 45) は自作に替えた. coordinator が 2 か所直した (カイ二乗分布へのリンクを prob-sampling へ, 「経験的確率」を prob-basics の「頻度による解釈」へ). 図は 11 か所に注釈. 歴史の候補: ベルヌーイの大数の法則
+
+- 2026-11-27: カイ二乗分布, t 分布, F 分布 (prob-sampling) を land (6113dc4f, open: false). 確率の分野の 7 ブロックが揃った. t 分布表は計算で作り直し, 授業資料の表の 7 か所の誤りを直した (自由度 31-35). 図は 5 か所に注釈. 区間推定と検定の手順, 母分散の比の導出は推測統計へ回した. 歴史の候補: ヘルメルトとピアソン, ゴセット, フィッシャーとスネデカー
 
 - 2026-11-27: 第8回の図 18 枚を land (d577da08. `scripts/make_prob_ch8_svgs.py`). codex が STOP で, 図の依頼が注釈の行だけを置き換える範囲で, 規約 (図に本文で言及し要点を述べる) を守れないと指摘. 第6回と第7回の図 20 枚にも言及の文を足した. 今後の図の依頼は図の前後の段落を範囲に入れる
 
