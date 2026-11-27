@@ -5,7 +5,7 @@ created: 2026-11-27
 updated: 2026-11-27
 priority: high
 next_actor: agent
-next_action: "本人が共通理解を確認したら, 講義の並び courses/dsproj.yaml と講義専用ページ 6 つ, データの取得の分野 (補足 A〜C の移行, codex) に着手する"
+next_action: "codex の独立レビューの裁定 (節「進捗と再開の手順」の表) を worktree のページに反映し, build と検査をやり直して本人に通読を依頼する"
 ---
 
 # データサイエンスプロジェクト (旧 特別講義データサイエンス) の講義のページを作る
@@ -114,16 +114,42 @@ next_action: "本人が共通理解を確認したら, 講義の並び courses/d
 - `fields/data-acquisition/`
 - `lectures/slds/slds2.md` (研究計画の土台), `lectures/slds/slds_a1.md`, `slds_b1.md`, `slds_c1.md`
 
-## 進捗と再開の手順 (2026-11-27)
+## 進捗と再開の手順 (2026-11-27, 2 回目の圧縮の前)
 
-- 講義のページは隔離 worktree `.claude/worktrees/dsproj` (branch `feat/dsproj-course`) で書いている. 並行 session が `publish.sh` (`git add --all`) を走らせても書きかけが公開されないようにするため. WIP commit eb729066: `courses/dsproj/{guide,common,llm,question}.md` と `images/courses/dsproj/question-{center,chain}.{svg,png}` (rsvg-convert -w 1920).
-- 残り: `courses/dsproj/plan.md` (旧 slds2 を土台. 図 `/images/slds/ch2/{data-science-flow,info-to-model,purpose-method-data}.png` を再利用. 「妥協」の段を逆の方針に. 過去の研究事例のリスト. 演習 DSPJ5-1 事例を読む, DSPJ5-2 目的・データ・手法), `courses/dsproj/writing.md` (骨子, 作成中. 年間の締切, 論文の構成, LLM の出力を制御して使う, LaTeX 資料へのリンク), `courses/dsproj.yaml` (6 回の materials と supplements `id: reference` (出力は `/courses/dsproj/reference.html`). intro で時系列 `/lectures/slds17.html` へ旧資料としてリンク (検定の旧第10章は本文が無いのでリンクしない. 推測統計の分野を公開したらそのブロックへリンクする). blocks は全分野 + data-acquisition).
-- 書いたページのリンク: `material:<名前>#id` 形式, `/lectures/agent.html#sandbox-と承認` `#分からないまま承認しない` `#文献の本文確認` `#差分の説明`, `/fields/data-acquisition/index.html` (codex の land 後に存在). 引用キー `mullaney2023research` (p. 35, pp. 98-99), `gregersen2020questions`.
-- 文献: papers へ handoff 済み (chain `haskell-blog-2026-11-27T11-03-32-909643-…`, mechanical). papers の待ち受け session は不在で未処理. 公開前に `scripts/make_lecture_bib.sh` で 2 件が出ることを確かめる.
-- データの取得の分野: codex (Sol) が完了, STOP なし. clone `~/.isolated-checkouts/ea-codex-blog-data-acquisition` (branch `codex/data-acquisition-field`), 報告は session の task 出力 (bo9239jga). 未受領: 差分の確認 (Sonnet subagent に変更範囲と規約適合を pass/fail で), clone で commit, worktree へ取り込み, build.
-- 執筆規約の lock は並行 session の bump を df9f75fc で commit した.
-- 合わせて直すもの (未着手): 講義一覧のカード, `courses/dsp/guide.md` と `scope.md` の履修順, `lectures/common/agent.md` の「この資料を使う講義」, CLAUDE.md の slds の節, 再編計画への記録 (時系列の分野, 共通資料と参考資料の統合 (本人 2026-11-27 「計画としてあとで, 共通資料と参考資料を統合して, 整理します.」), 旧 slds 削除前に参考資料の旧章リンクを付け替える条件, X の API の計画の直す先).
-- 検証: worktree で main の実行ファイル (`/Users/akagi/Developer/Haskell/blog/.stack-work/install/aarch64-osx/6f1c476cb9aa0d5e2541d62478eb9f2493ff879d0abdf66b4aa56174cdbe416d/9.6.6/bin/main rebuild`) を走らせ, `check_local_refs.py docs`, `check_citations.py`, `prose_lint.py`. 文章は codex に独立に読ませる.
+- worktree `.claude/worktrees/dsproj` (branch `feat/dsproj-course`, main 90bbc507 以降に rebase 済み) の commit: 8e306564 (ページ 4 つと概念図), da8ddbe9 (データの取得の分野. codex の成果を cherry-pick), 57b4218a (plan.md, writing.md, dsproj.yaml), 5ab360af (講義一覧, 共通資料, dsp の案内, 旧補足へのリンクの付け替え, bib の再生成). 未 commit: `courses/dsproj.yaml` (検定のリンクを外した), `fields/data-acquisition/api-edinet.md` (検定のリンクを `block:reg-selection#select-then-test` へ). docs/ は build の生成物で, land の前に作り直す.
+- codex の clone は cleanup 済み (fixups 1, review sonnet). main の branch `codex/data-acquisition-field` (ad76f806) は land 後に消す.
+- 研究計画のページは, 旧第2章の一般的な内容が分析設計の分野 (design-process) に既にあったので, 図と過去の事例を複製せずリンクした (設計からの変更. 本人への報告に書く).
+- 検定: 旧第10章は本文が無く `open: false` なので参照しない (計画 probability-inference-fields の決定に合わせた). 推測統計の分野ができたら参考資料の intro に足す.
+- 検査: build, `check_local_refs.py docs` (0 件), `check_citations.py` (失敗 0. 2 冊は identity で未照合の一覧に載る), prose_lint (0 件) を通した. papers の receipt は done.
+- main で commit 済み: cd5e59c7 (再編計画の Phase 4 の進捗, X の API の計画の反映先). CLAUDE.md (git 管理外) に dsproj の節と補足の移行を書いた. 再編計画と CLAUDE.md の「時系列は旧第17章へリンク」は下の裁定 2 に合わせて直す.
+
+### codex の独立レビューの裁定 (2026-11-27. 全文は session の scratchpad `consult-dsproj.out`)
+
+圧縮の後に, 次をすべて反映してから build と検査をやり直す.
+
+| # | 指摘 | 裁定 | 直し方 |
+|---|---|---|---|
+| 1 | 演習の見出しの段 (計画は `###`, 実物は `##`) | 採る (文書の直し) | 計画の「確定した要件」の表記を `## Exercise DSPJn-k` (`# 演習` の下) に直す. 本人が決めたのはラベルで, 段ではない |
+| 2 | 旧第17章 (時系列) は `open: false` で「準備中」とだけ表示される (実物で確認) | 採る | yaml の intro から旧第17章へのリンクを外し, 「時系列解析は分野の資料を準備しています. 必要な場合は教員に相談してください」とする. 本人の決定「移すまで旧章へリンク」は本文がある前提だったので, 報告で伝える. 再編計画と CLAUDE.md の記述も直す |
+| 3 | 書籍の 2 か所に頁が無い. クエスチョンバーストの数値がどこまで出典か | 一部採る | 頁は pptx の画像にも写っておらず補えない (identity のまま. 未照合の一覧に載る). クエスチョンバーストの節に「手順の時間, 問いの数, 繰り返しの回数は本科目での設定です」と足す |
+| 4 | 個人に関わるデータ: エージェントに実行させると出力が LLM に渡る. Colab は Google のサーバ | 採る | llm.md の security に「生成されたコードは学生自身が手元で実行し, 生の行や回答を含む出力をエージェントに渡さない (集計した結果だけを渡す)」. common.md の Colab の項に「個人に関わるデータを扱う分析には使わない」とリンク |
+| 5 | plan.md の冒頭「地図を作りました」が第 4 回の演習と合わない | 採る | 「第 4 回では問いの候補を 3 つ挙げました (Exercise DSPJ4-2). 研究計画では候補から 1 つを選び, 地図を作って小さな問いを選ぶ」の形に |
+| 6 | question.md の SNS の例で, 若者という対象が抜ける | 採る | 例の問いを「若者向けの商品のうち SNS で話題になったもの」に直し, 8 行目と 17 行目をそろえる |
+| 7 | plan.md 冒頭の予習リンクが「モデルとデータ」を開く | 採る | 「分析設計の『モデルとデータ』から『目的・データ・手法から分析を組み立てる』まで」と範囲を書く |
+| 8 | 「関係が見られなければ外れ」は精度不足と区別しない | 採る | 予想に沿う結果, 予想と逆向きか関係がほとんど無いと言える結果, 回答が少ないなどで判断を保留する結果の 3 つを書く. 研究計画の表の「予想」の欄も同じ |
+| 9 | 対象・結果・要因の候補はクラスタリングの問いに合わない | 採る | 「グループを見つける問いでは, 何を, どの特徴で比べてグループに分けるかを書く」を足す. 表の「目的」の欄と Exercise DSPJ5-1 にも |
+| 10 | 学会発表が目標か必須か. 双方の教員の許可の範囲 | 採る | guide の 1 年間の流れを「論文を書き, 年度末までに学会で発表します」に. 倫理の節の許可は「本科目の学会発表と奨学論文コンテスト以外で使う場合」と明記 |
+| 11 | 因果推論の分野は作成中 | 採る | yaml の intro の因果推論の項に「(作成中. 基本は回帰分析の分野の因果推論のブロック `reg-causal` で扱います)」 |
+| 12 | 「問いを替えず」と表の「選び直す」が食い違う | 採る | 「中心の問いを替えず」とし, 表は「中心の問いに近い別の小さな問いを選び直す」 |
+| 13 | クエスチョンバーストの繰り返しが曖昧 | 採る | 手順 4 は「複数選んで記録する」, 手順 6 は「記録した問いから 1 つを選んで新しい課題にし, 初回を含めて 3 回行う」. 実演の後の一般化は「この例では」に |
+| 14 | Exercise DSPJ3-1 で LLM に主張を出させていない | 採る | 「書誌と, 自分のテーマに関係すると LLM が述べる主張を 1 文ずつ挙げさせる」. 結果の欄で「実在を確かめられない」「実在するが本文を読めない」「本文と主張が一致しない」を区別 |
+| 15 | dsp の案内の科目の分離の一覧に統計の 2 科目が無い | 採る | dsp guide の一覧を, プログラミング, 統計 (データ活用の統計学, データ活用の統計学実践), 技法 (データサイエンス実践), 研究 (データサイエンスプロジェクト) の 4 行に |
+| 16 | LLM の初出の説明が遅い. 囲みの色の凡例が実物 (注意は薄い赤 `--warn-rule: #c4756f`) と合わない. 演習は囲みでない | 採る | guide の 9 行目で「大規模言語モデル (LLM)」と説明し, 32 行目の説明は削る. 凡例は「薄い赤が注意, 青が補足」, 演習は見出しで示すと書く. dsp guide の同じ凡例 (35 行目) も直す |
+| 削る 1 | 外部リンクの右クリックの推奨 | 採る | サイトは外部リンクを自動で新しいタブで開く (templates/default.html で確認). dsproj と dsp の guide から右クリックの文を削る |
+| 削る 2 | question.md 末尾の「研究も深まっていきます」 | 採る | 「問いを出し, 膨らませ, 文献を調べ, また問いを出す過程は, 研究計画を立てた後も続きます. 文献を読んで新しい問いが出たら, この過程に戻ります.」 |
+| 削る 3 | writing.md の「発表の方法」の見出し | 採らない | 骨子として, 本人が挙げた発表の方法の置き場を示すため残す |
+
+- 反映の後: build, 参照, 引用, prose_lint をやり直し, 委譲台帳に cross-verify の 1 行 (findings 19, adopted 18) を残す. WIP を 1 つの commit にまとめ直すかは land のときに決める. 次に本人へ報告 (通読の依頼). 公開は本人の go を待つ. land は main への ff と recovery tag.
 
 ## 変更履歴
 
