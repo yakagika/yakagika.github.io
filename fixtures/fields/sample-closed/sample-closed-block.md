@@ -5,3 +5,7 @@ open: false
 ---
 
 FIXTURE_CLOSED_BLOCK_BODY
+
+# 演習 {#exercises}
+
+FIXTURE_CLOSED_BLOCK_EXERCISES

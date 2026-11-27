@@ -34,15 +34,21 @@ DRAFT_LESSON = f"{DRAFT}/1/sample-overview.html"
 OVERVIEW = f"{REGRESSION}/sample-overview/index.html"
 VARIABLES = f"{REGRESSION}/sample-overview/variables.html"
 FITTING = f"{REGRESSION}/sample-fitting/index.html"
-FIT = f"{REGRESSION}/sample-fitting/fit.html"
 RESIDUALS = f"{REGRESSION}/sample-fitting/residuals.html"
 EXERCISES = f"{REGRESSION}/sample-fitting/exercises.html"
 PREDICTION = f"{REGRESSION}/sample-prediction/index.html"
 EXTENSION = f"{REGRESSION}/sample-extension/index.html"
 CHECK_SAMPLE = f"{REGRESSION}/sample-extension/check-sample.html"
 SAMPLING = f"{INFERENCE}/sample-sampling/index.html"
-SAMPLE = f"{INFERENCE}/sample-sampling/sample.html"
 UNCERTAINTY = f"{INFERENCE}/sample-uncertainty/index.html"
+CLOSED_BLOCK = f"{CLOSED_FIELD}/sample-closed-block/index.html"
+CLOSED_EXERCISES = f"{CLOSED_FIELD}/sample-closed-block/exercises.html"
+REDIRECTS = {
+    f"{REGRESSION}/sample-fitting/fit.html": (FITTING, "fit", "単回帰の当てはめ"),
+    f"{REGRESSION}/sample-prediction/forecast.html": (PREDICTION, "forecast", "回帰による予測"),
+    f"{INFERENCE}/sample-sampling/sample.html": (SAMPLING, "sample", "標本の取り方 <A> & <B>"),
+    f"{INFERENCE}/sample-uncertainty/variation.html": (UNCERTAINTY, "variation", "推定値のばらつき"),
+}
 FOLLOW_UP = f"{PRACTICE}/follow-up.html"
 GUIDE = f"{PRACTICE}/guide.html"
 CHECKLIST = f"{PRACTICE}/checklist.html"
@@ -80,17 +86,15 @@ OPEN_ROUTES = {
     f"{REGRESSION}/index.html",
     f"{INFERENCE}/index.html",
     f"{CLOSED_FIELD}/index.html",
-    OVERVIEW, VARIABLES, FITTING, FIT, RESIDUALS, EXERCISES, EXTENSION, CHECK_SAMPLE,
-    SAMPLING, SAMPLE, UNCERTAINTY, f"{INFERENCE}/sample-uncertainty/variation.html",
+    OVERVIEW, VARIABLES, FITTING, RESIDUALS, EXERCISES, EXTENSION, CHECK_SAMPLE,
+    SAMPLING, UNCERTAINTY,
     PRACTICE_INDEX, FOLLOW_UP, GUIDE, CHECKLIST, REVIEW, HANDOUT, FOLLOW_UP_GUIDE,
     PRACTICE_SAMPLING, PRACTICE_FITTING, PRACTICE_OVERVIEW_2, PRACTICE_UNCERTAINTY,
     f"{STATISTICS}/index.html", STATISTICS_OVERVIEW,
     STATISTICS_SAMPLING, STATISTICS_UNCERTAINTY,
 }
 CLOSED_ROUTES = {
-    f"{CLOSED_FIELD}/sample-closed-block/index.html",
-    PREDICTION,
-    f"{REGRESSION}/sample-prediction/forecast.html",
+    CLOSED_BLOCK, CLOSED_EXERCISES, PREDICTION,
     f"{REGRESSION}/sample-prediction/exercises.html",
     DRAFT_LESSON, PRACTICE_PREDICTION,
 } | DRAFT_ROUTES
@@ -246,11 +250,27 @@ def check_reference_navigation(site: Path) -> None:
                 blocks[name].append(route)
         block_indexes = [routes[0] for routes in blocks.values()]
         block_pages = {route: Page(site, route) for routes in blocks.values() for route in routes}
-        check(set(block_pages) == {path.relative_to(site).as_posix() for path in index.parent.glob("*/*.html")},
-              f"{field}: field listing does not cover all block pages")
+        all_routes = {path.relative_to(site).as_posix() for path in index.parent.glob("*/*.html")}
+        check(set(block_pages) <= all_routes, f"{field}: field listing links outside the field")
+        redirects = [Page(site, route) for route in sorted(all_routes - block_pages.keys())]
+        check(all('<meta http-equiv="refresh"' in page.source for page in redirects),
+              f"{field}: field listing omits a block page")
+        check(all('<meta http-equiv="refresh"' not in page.source for page in block_pages.values()),
+              f"{field}: field listing includes a redirect")
         public = [route for route, page in block_pages.items() if "noindex" not in page.robots]
         titles = {route: re.search(r"<title>yakagika - (.*?)</title>", page.source)[1]
                   for route, page in {field: field_index, **block_pages}.items()}
+        navigation_titles = titles.copy()
+        listed_titles = {
+            route: label
+            for href, label in re.findall(r'<li><a href="([^"]+)">([^<]+)</a></li>', listing[1])
+            for route in local_targets(field, f' href="{href}"')
+        }
+        for redirect in redirects:
+            target_with_fragment, = redirect.links
+            target = target_with_fragment.split("#", 1)[0]
+            check(target in listed_titles, f"{field}: missing navigation title for {target}")
+            navigation_titles[target] = listed_titles[target]
         previous: dict[str, str] = {}
         following: dict[str, str] = {}
         index_cards = list(re.finditer(r'<nav class="chapter-nav-card">.*?</nav>', field_index.source, re.S))
@@ -269,7 +289,7 @@ def check_reference_navigation(site: Path) -> None:
             check(link is not None, f"{field}: expected a right-aligned Next link only")
             target, = local_targets(field, link[0])
             check(target == public[0], f"{field}: expected the first public page, reached {target}")
-            expected_title = titles[target]
+            expected_title = navigation_titles[target]
             block_title = titles[target.rsplit("/", 1)[0] + "/index.html"]
             if expected_title != block_title:
                 expected_title += f" ({block_title})"
@@ -311,7 +331,7 @@ def check_reference_navigation(site: Path) -> None:
                 check(link is not None, f"{route}: missing {label} on navigation card")
                 target, = local_targets(route, link[0])
                 edges[route] = target
-                expected_title = titles[target]
+                expected_title = navigation_titles[target]
                 if target == field:
                     expected_title += "の目次"
                 elif target.rsplit("/", 1)[0] != route.rsplit("/", 1)[0]:
@@ -338,7 +358,9 @@ def check_html(site: Path) -> None:
         for group in (REGRESSION, INFERENCE, CLOSED_FIELD, PRACTICE, STATISTICS, DRAFT)
         for path in (site / group).rglob("*.html")
     }
-    check(actual == expected, f"Missing routes: {sorted(expected - actual)}. Extra routes: {sorted(actual - expected)}.")
+    expected_routes = expected | REDIRECTS.keys()
+    check(actual == expected_routes,
+          f"Missing routes: {sorted(expected_routes - actual)}. Extra routes: {sorted(actual - expected_routes)}.")
     pages = {path: Page(site, path) for path in sorted(expected)}
 
     for path, page in pages.items():
@@ -388,14 +410,43 @@ def check_html(site: Path) -> None:
           "Page navigation lacks the page title")
     check('class="article-title">予測の復習用ブロック</h1>' in pages[EXTENSION].source,
           "The index heading changed the block title")
-    check(">導入</a>" in field and ">回帰分析の補足</a>" not in field,
-          "A heading inside a note changed the index label")
+    check(re.search(r'<li><a href="[^"]*/sample-overview/index.html">回帰の見取り図</a></li>', field)
+          and ">回帰分析の補足</a>" not in field and pages[OVERVIEW].ids["variables"] == 0,
+          "A heading inside a note must keep a separate index and use the block title")
+    check(re.search(r'<li><a href="[^"]*/sample-fitting/index.html">当てはめ</a></li>', field),
+          "The field index must label the merged page with the first heading")
 
-    pages[OVERVIEW].has_links(f"{VARIABLES}#variables", f"{VARIABLES}#observation", f"{FIT}#数式")
+    fitting = pages[FITTING].source
+    check("<title>yakagika - 単回帰の当てはめ</title>" in fitting
+          and '<h1 class="article-title">単回帰の当てはめ</h1>' in fitting,
+          "The merged page must keep the block title")
+    check(fitting.index("FIXTURE_FITTING_INTRO") < fitting.index('<h1 id="fit">当てはめ</h1>'),
+          "The foreword must precede the first heading on the merged page")
+    check('class="nav-title">当てはめ</span>' in pages[RESIDUALS].source,
+          "The previous-page card must label the merged page with the first heading")
+    check(all(re.search(r'>\s*導入\s*<', page.source) is None
+              for path, page in pages.items() if path.startswith("fields/")),
+          "The fixture field navigation contains 導入")
+    check("exercises" not in pages[CLOSED_BLOCK].ids and "exercises" in pages[CLOSED_EXERCISES].ids,
+          "An exercises-first block must keep exercises on a separate page")
+    for path, (target, anchor, title) in REDIRECTS.items():
+        redirect = Page(site, path)
+        destination = f"/{target}#{anchor}"
+        check(redirect.source.startswith("<!DOCTYPE html>")
+              and '<meta charset="utf-8">' in redirect.source
+              and redirect.robots == {"noindex"}
+              and f'<link rel="canonical" href="{destination}">' in redirect.source
+              and f'<meta http-equiv="refresh" content="0; url={destination}">' in redirect.source
+              and f'<p>このページは <a href="{destination}">{escape(title)}</a> に移りました.</p>' in redirect.source
+              and redirect.links == {destination[1:]} and anchor in pages[target].ids,
+              f"{path}: invalid redirect to {destination}")
+
+    pages[OVERVIEW].has_links(f"{VARIABLES}#variables", f"{VARIABLES}#observation", f"{FITTING}#数式")
     pages[VARIABLES].has_links(FITTING)
-    pages[FITTING].has_links(f"{FIT}#数式", f"{EXERCISES}#exercise-sample-fitting-1")
-    pages[UNCERTAINTY].has_links(f"{VARIABLES}#variables", f"{SAMPLE}#sample")
-    pages[EXERCISES].has_links(f"{FIT}#fit")
+    pages[FITTING].has_links(f"{FITTING}#fit", f"{FITTING}#数式", f"{EXERCISES}#exercise-sample-fitting-1")
+    check('href="#fit">当てはめ</a>' in fitting, "A local link to the merged section must use a fragment alone")
+    pages[UNCERTAINTY].has_links(f"{VARIABLES}#variables", f"{SAMPLING}#sample")
+    pages[EXERCISES].has_links(f"{FITTING}#fit")
     pages[PRACTICE_SAMPLING].has_links(f"{PRACTICE_FITTING}#sample-fitting-数式",
                                       CHECKLIST, f"{PRACTICE_SAMPLING}#session-intro",
                                       f"{PRACTICE_SAMPLING}#sample", PRACTICE_UNCERTAINTY,
@@ -425,7 +476,7 @@ def check_html(site: Path) -> None:
     supplements_materials = pages[FOLLOW_UP].source.split('class="course-materials"', 1)[1].split("</ul>", 1)[0]
     check(escaped_guide_link in supplements_materials, f"{FOLLOW_UP}: material title was not escaped")
     pages[FOLLOW_UP].has_links(f"{GUIDE}#予測", CHECKLIST, GUIDE, EXTENSION)
-    pages[GUIDE].has_links(PRACTICE_INDEX, f"{GUIDE}#予測", f"{CHECKLIST}#submission", f"{FIT}#fit")
+    pages[GUIDE].has_links(PRACTICE_INDEX, f"{GUIDE}#予測", f"{CHECKLIST}#submission", f"{FITTING}#fit")
     pages[CHECKLIST].has_links(f"{GUIDE}#予測")
     for text in ('class="math inline"', 'class="sourceCode python"', 'class="protected"', 'id="lecture-toc" data-mode="series"'):
         check(text in pages[GUIDE].source, f"{GUIDE}: missing {text}")
@@ -445,8 +496,8 @@ def check_html(site: Path) -> None:
     check("コードフェンス内" in pages[VARIABLES].source, f"{VARIABLES}: missing fenced code")
     check("fenced-heading" not in pages[VARIABLES].ids, f"{VARIABLES}: fenced text became a heading")
     for path, page in pages.items():
-        check(("refs" in page.ids) == (path in {FIT, GUIDE, PRACTICE_FITTING}), f"{path}: wrong bibliography placement")
-    for path in (FIT, GUIDE, PRACTICE_FITTING):
+        check(("refs" in page.ids) == (path in {FITTING, GUIDE, PRACTICE_FITTING}), f"{path}: wrong bibliography placement")
+    for path in (FITTING, GUIDE, PRACTICE_FITTING):
         check("ref-james2021introduction" in pages[path].ids, f"{path}: cited entry is missing")
 
     overview = pages[OVERVIEW]
@@ -620,6 +671,8 @@ def check_feeds(site: Path) -> None:
         check(locations.count(path) == 1, f"sitemap must list {path} once")
     for path in sorted(CLOSED_ROUTES):
         check(path not in locations, f"sitemap includes closed page {path}")
+    for path in REDIRECTS:
+        check(path not in locations, f"sitemap includes redirect {path}")
     for path in sorted(REMOVED_ROUTES):
         check(path not in locations, f"sitemap includes standalone numbered session {path}")
 
@@ -628,7 +681,7 @@ def check_feeds(site: Path) -> None:
     check(bool(tags and tag_feeds), "Existing tag pages or feeds are missing")
     check(not any(path.stem == "fixture-block-regression" for path in tags + tag_feeds),
           "Block tag generated a tag page or feed")
-    route_pattern = re.compile("|".join(map(re.escape, sorted(OPEN_ROUTES | CLOSED_ROUTES))))
+    route_pattern = re.compile("|".join(map(re.escape, sorted(OPEN_ROUTES | CLOSED_ROUTES | REDIRECTS.keys()))))
     for path in [site / "rss.xml", *tags, *tag_feeds]:
         content = path.read_text(encoding="utf-8")
         check(route_pattern.search(content) is None, f"{path.name}: includes fixture URL")
@@ -740,6 +793,10 @@ def check_invalid_inputs(executable: Path) -> None:
     check_invalid(
         executable, overview, variables, f"# 索引 {{#index}}\n\n{variables}",
         f"duplicate output path {OVERVIEW}",
+    )
+    check_invalid(
+        executable, f"{CLOSED_FIELD}/sample-closed-block.md",
+        "# 演習 {#exercises}", "# 索引 {#index}", f"duplicate output path {CLOSED_BLOCK}",
     )
     check_invalid(
         executable, practice, "id: exercise-sample-fitting-1", "id: fit",

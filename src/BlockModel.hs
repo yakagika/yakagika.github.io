@@ -30,6 +30,7 @@ data Field = Field { fieldName, fieldTitle, fieldDescription :: String, fieldSou
 data Block = Block { blockName, blockTitle, blockField, blockKind :: String, blockSource :: FilePath,
                      blockOpen :: Bool, blockRequires :: [String], blockBibliography :: Maybe String,
                      blockDocument :: P.Pandoc, blockPages :: [Page],
+                     blockMergedSection :: Maybe String,
                      blockAnchors, blockExercises :: M.Map String String }
 data Page = Page { pageKey, pageTitle :: String, pageDoc :: P.Pandoc }
 data Course = Course { courseName, courseTitle, courseDescription :: String, courseSource :: FilePath,
@@ -167,7 +168,7 @@ readBlock opts path = do
     unless (n == 2 && "Exercise " `isPrefixOf` t && "exercise-" `isPrefixOf` i) $
       failAt path ("expected ## Exercise heading with explicit exercise- ID: " ++ t)
   P.Pandoc meta blocks <- readWith opts
-  let pages = splitPages meta title blocks
+  let (pages, mergedSection) = splitPages meta title blocks
       ids = [(i, pageKey p) | p <- pages, i <- documentIds (pageDoc p)]
   checkBibliographyId path (P.Pandoc meta blocks)
   unique path "ID" ids
@@ -177,7 +178,8 @@ readBlock opts path = do
         failAt path ("exercise heading must be on exercises page: " ++ t)
       pure (i,t)
   pure $ Block (takeBaseName path) title (takeFileName $ takeDirectory path) kind path
-               open requires bibliography (P.Pandoc meta blocks) pages (M.fromList ids) (M.fromList exercises)
+               open requires bibliography (P.Pandoc meta blocks) pages mergedSection
+               (M.fromList ids) (M.fromList exercises)
 
 checkBibliographyId :: FilePath -> P.Pandoc -> IO ()
 checkBibliographyId path doc =
@@ -186,7 +188,7 @@ checkBibliographyId path doc =
     refsDiv (P.Div (i,_,_) _) = [i == "refs"]
     refsDiv _ = []
 
-splitPages :: P.Meta -> String -> [P.Block] -> [Page]
+splitPages :: P.Meta -> String -> [P.Block] -> ([Page], Maybe String)
 splitPages meta title blocks =
   let (here,rest) = break isBoundary blocks
       isBoundary (P.Header 1 _ _) = True
@@ -196,7 +198,14 @@ splitPages meta title blocks =
         let (section,remaining) = break isBoundary bs
         in Page (T.unpack i) (T.unpack $ stringify t) (P.Pandoc meta (h:section)) : next remaining
       next _ = []
-  in Page "index" title (P.Pandoc meta here) : next rest
+      index body = Page "index" title (P.Pandoc meta body)
+      hasHeading (P.Header _ _ _) = [True]
+      hasHeading _ = []
+  in case next rest of
+      Page key _ (P.Pandoc _ section) : remaining
+        | key /= "exercises", not (or (query hasHeading here)) ->
+            (index (here ++ section) : remaining, Just key)
+      pages -> (index here : pages, Nothing)
 
 documentIds :: P.Pandoc -> [String]
 documentIds (P.Pandoc _ blocks) =

@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module BlockViews
     ( courseNavigation, renderField, renderCourse, renderSupplement, renderClosedCourse
-    , renderMaterial, renderLesson, renderPage
+    , renderMaterial, renderLesson, renderPage, renderBlockRedirect
     ) where
 
 import BlockModel
@@ -247,6 +247,13 @@ renderPage siteCtx site coursePlans block page body = do
         >>= insertAfterTitle afterTitle
         >>= layoutContent ctx (flags <> siteCtx)
 
+renderBlockRedirect :: Block -> String -> Compiler (Item String)
+renderBlockRedirect block section =
+    makeItem "" >>= loadAndApplyTemplate "templates/block-redirect.html" ctx
+  where
+    ctx = constField "target" (escapeHtml (toUrl (blockPath block) ++ anchorSuffix section))
+        <> constField "title" (escapeHtml (blockTitle block))
+
 fieldPageNavigation :: Field -> [Block] -> Block -> Page -> Context a
 fieldPageNavigation fieldData blocks block page =
     boolField "hasPrevious" (const True)
@@ -264,9 +271,12 @@ publicFieldPages blocks = [(block, page) | block <- blocks, blockOpen block, pag
 fieldPageDestination :: Maybe Block -> (Block, Page) -> (String, FilePath)
 fieldPageDestination currentBlock (block, page) = (label, pagePath block page)
   where
+    title
+        | pageKey page == "index", Just _ <- blockMergedSection block = navigationPageTitle page
+        | otherwise = pageTitle page
     label
-        | fmap blockName currentBlock == Just (blockName block) || pageTitle page == blockTitle block = pageTitle page
-        | otherwise = pageTitle page ++ " (" ++ blockTitle block ++ ")"
+        | fmap blockName currentBlock == Just (blockName block) || title == blockTitle block = title
+        | otherwise = title ++ " (" ++ blockTitle block ++ ")"
 
 -- | Insert navigation after the first h1 without re-rendering its inline HTML
 -- or the rest of the page. The title comes from the template or Pandoc.
@@ -349,7 +359,7 @@ navigationPageTitle page
         let P.Pandoc _ blocks = pageDoc page
         in case [T.unpack (stringify title) | P.Header _ _ title <- blocks] of
             first : _ -> first
-            [] -> "導入"
+            [] -> pageTitle page
     | otherwise = pageTitle page
 
 levelLabel :: String -> String

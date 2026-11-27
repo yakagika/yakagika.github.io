@@ -77,8 +77,11 @@ blockRules fixtures root reader writer ctx cite = do
   ms <- paths materials
   site <- preprocess $ readSite reader fs bs cs ms
   coursePlans <- preprocess $ forM (siteCourses site) $ \c -> (,) c <$> planCourseSections site c
-  let outputs = [(fieldPath f,fieldSource f,True) | f <- siteFields site] ++
+  let redirects = [(blockDir b </> section <.> "html", b, section)
+                  | b <- M.elems (siteBlocks site), Just section <- [blockMergedSection b]]
+      outputs = [(fieldPath f,fieldSource f,True) | f <- siteFields site] ++
                 [(pagePath b p,blockSource b,blockOpen b) | b <- M.elems (siteBlocks site), p <- blockPages b] ++
+                [(path,blockSource b,False) | (path,b,_) <- redirects] ++
                 [(path,courseSource c,courseOpen c) | (c, sections) <- coursePlans,
                    path <- coursePath c : [sectionDestination section | section <- sections,
                                           Supplement _ <- [sectionId section]]] ++
@@ -97,6 +100,7 @@ blockRules fixtures root reader writer ctx cite = do
         route idRoute
         compile $ dependOnSources >> compiler
   forM_ (siteFields site) $ \f -> register (fieldPath f) (renderField ctx site f)
+  forM_ redirects $ \(path,b,section) -> register path (renderBlockRedirect b section)
   forM_ (M.elems $ siteBlocks site) $ \b -> forM_ (blockPages b) $ \p ->
     register (pagePath b p) $ do
       body <- if blockOpen b

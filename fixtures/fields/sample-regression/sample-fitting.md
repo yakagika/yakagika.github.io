@@ -10,7 +10,7 @@ bibliography: lectures
 
 FIXTURE_FITTING_INTRO
 
-[数式](#数式)と[当てはめの演習](#exercise-sample-fitting-1)を参照できます.
+[当てはめ](block:sample-fitting#fit), [数式](#数式), [当てはめの演習](#exercise-sample-fitting-1)を参照できます.
 
 # 当てはめ {#fit}
 
