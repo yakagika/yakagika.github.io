@@ -6,6 +6,7 @@
 | 章 | キー | verification |
 |---|---|---|
 | fields/regression/reg-causal.md | westreich2013table | identity |
+| fields/regression/reg-glm.md | kubo2012mcmc | identity |
 | fields/regression/reg-selection-lab.md | freedman1983note | identity |
 | fields/regression/reg-selection-more.md | freedman1983note | identity |
 | fields/regression/reg-selection-more.md | leeb2005model | identity |
