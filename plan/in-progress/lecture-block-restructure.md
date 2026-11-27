@@ -4,8 +4,8 @@ status: in-progress
 created: 2026-11-20
 updated: 2026-11-27
 priority: high
-next_actor: agent
-next_action: "通読の指摘 1 (2026-11-27) を実装する: 導入の統合の仕組み (全分野), 概念図 16 枚, GLM の書き直しと久保の本の引用 (papers の受領待ち). 詳細は _scratch/reg-review-1127/plan.md. Todoist 6j4fJmxFm8w8jCWH"
+next_actor: user
+next_action: "本人が回帰分析の資料の通読を続け, 次の指摘を出す (指摘 1 は実装して 2026-11-27 に公開済み, a00bce84). 指摘が来たら agent が通読の指摘 1 と同じ手順 (_scratch/reg-review-1127/plan.md) で直して公開する. Todoist 6j4fJmxFm8w8jCWH (11/30)"
 ---
 
 # 講義資料を分野とブロックに分け, 講義はブロックの並びかブロックへのリンクで組む
