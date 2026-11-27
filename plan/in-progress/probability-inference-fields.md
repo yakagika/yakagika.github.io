@@ -97,6 +97,16 @@ dir は `fields/probability/` と `fields/inference/`. ブロック名は変換�
 - 文献の引用は講義資料の規則に従う: ブロックの front matter に `bibliography: lectures`, 本文で `[@key, p. N]`. 文献は papers に取り込み, note の `projects:` に `blog-lectures` を付けて `scripts/make_lecture_bib.sh` で bib を作る. 書誌の実在は公開前に確かめる (`scripts/check_citations.py`).
 - 文献の調達: 各ブロックの変換の前に, 使う文献 (授業資料の `source_refs`, Casella & Berger, 久保川, 『統計学を拓いた偉人たち』など) が papers にあるかを調べる. 無いものは Kindle の蔵書にあれば取り込み, どちらにも無ければ本人に取り込みを依頼する. 依頼が返るまで, そのブロックの歴史の節は書かずに待つ (本文の他の部分は進める).
 
+### 文献の所在 (2026-11-27 調べた結果)
+
+| 文献 | 所在 | 扱い |
+|---|---|---|
+| 久保川『現代数理統計学の基礎』 | papers (`kubokawa2017gendai`, identity) | そのまま使える. `blog-lectures` を付ける |
+| 『データ視覚化の人類学』, 『嘘を見破る統計学』 | Kindle (本人) | papers へ取り込みを依頼した (2026-11-27, handoff `haskell-blog-2026-11-27T11-28-46...`). 返ったら bibkey を使う |
+| 種村『統計学演習』 | 本人は papers に PDF があると考えていたが, DB の note, bib, `Statistics/Book` に無い. `study/種村10-3.pptx` だけがある | 本人に PDF の所在を聞く (理由 a) |
+| 『統計学を拓いた偉人たち』 (Salsburg の和訳) | 紙の本. papers にも手元の file にもスキャンが無い | 本人にスキャンを依頼する (理由 a. 本人が「スキャンしていなければスキャンします」と回答) |
+| Fisher『実験計画法』, Casella & Berger | papers に無い. 本人の回答では所在が挙がらなかった | 使うかを, 該当のブロック (推測統計 4, 確率 7) の変換のときに決める |
+
 ### 作業の分担
 
 変換は codex に 1 ブロックずつ委譲する (同時 3 本まで). Claude は brief, 受入 (原文との突き合わせ, 点検の一覧の確認), commit を行う. 各ブロックの受入では, 本文が pptx の該当スライドを漏れなく含むかをスライド番号で照合する.
@@ -108,6 +118,7 @@ dir は `fields/probability/` と `fields/inference/`. ブロック名は変換�
 3. 公開: 著作権と誤りの一覧を本人が承認したら `open: true` にする.
 4. 公開の後の付け替え:
    - データサイエンスプロジェクトの講義の並びで, 検定の参照先を推測統計のブロックにする (旧第10章は本文が無いので, それまでは参照を置かない).
+   - `courses/dsproj.yaml` の supplements の blocks と intro の分野の一覧に 2 分野を足す (CLAUDE.md の dsproj の規則. 検定は推測統計の公開後に intro に足す).
    - 回帰分析の分野で, 検定の一般論の説明を推測統計へのリンクに整理する.
    - 第6回のベイズの部分をベイズ統計学の分野と照合し, 足りない内容を `bayes-intro` に足す (ベイズ統計学の分野の作業として行う).
    - 移した Obsidian の note ごとに, 削除かサイトへのリンクへの置き換えかを本人に示してから行う (親計画の方針).
