@@ -56,7 +56,7 @@
     <title>yakagika - 重回帰分析</title>
 
     <!-- Stylesheets. -->
-    <link rel="stylesheet" type="text/css" href="../../../style.css?v=1795493883">
+    <link rel="stylesheet" type="text/css" href="../../../style.css?v=1795746252">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
@@ -173,17 +173,9 @@
         <li class="toc-item toc-series-item current">
           <div class="toc-row">
             <span class="toc-toggle">▾</span>
-            <a href="../../../fields/regression/reg-gpa/index.html" aria-current="page">導入</a>
+            <a href="../../../fields/regression/reg-gpa/index.html" aria-current="page">合成 GPA の学習用データ</a>
           </div>
           <ul class="toc-sublist"></ul>
-        </li>
-        
-        <li class="toc-item toc-series-item no-children">
-          <div class="toc-row">
-            <span class="toc-toggle">▾</span>
-            <a href="../../../fields/regression/reg-gpa/gpa-data.html">合成 GPA の学習用データ</a>
-          </div>
-          
         </li>
         
         <li class="toc-item toc-series-item no-children">
@@ -296,7 +288,7 @@
     <li class="toc-item toc-series-item no-children">
       <div class="toc-row">
         <span class="toc-toggle">▾</span>
-        <a href="../../../fields/regression/reg-glm/index.html">一般化線形モデルと二値の応答</a>
+        <a href="../../../fields/regression/reg-glm/index.html">一般化線形モデル</a>
         
       </div>
       
@@ -434,7 +426,7 @@
     
     <li>
       
-      <a href="../../../fields/regression/reg-glm/index.html">一般化線形モデルと二値の応答</a>
+      <a href="../../../fields/regression/reg-glm/index.html">一般化線形モデル</a>
       
       
     </li>
@@ -455,9 +447,9 @@
         <span class="nav-label">← Previous</span>
         <span class="nav-title">演習 (重回帰分析と偏回帰係数)</span>
     </a>
-    <a class="next" href="../../../fields/regression/reg-gpa/gpa-data.html" rel="next">
+    <a class="next" href="../../../fields/regression/reg-gpa/gpa-exploration.html" rel="next">
         <span class="nav-label">Next →</span>
-        <span class="nav-title">合成 GPA の学習用データ</span>
+        <span class="nav-title">学習用データの散布図と相関</span>
     </a>
 </nav>
 
@@ -475,14 +467,76 @@
   <p><a href="../../../fields/regression/reg-multiple/index.html">重回帰分析と偏回帰係数</a>では, 架空の学生の母集団で, 式に入れる変数によって勉強時間の係数が表す比較が変わることを見ました.
 ここでは同じ仕組みで作った架空の学生 100 人のデータで, 実際に重回帰式を求めます.</p>
 <p>奨学生かどうかと週あたりのアルバイト時間が同じ学生どうしで, 週あたりの勉強時間が 1 時間違うと, 平均 GPA はどれだけ違うでしょうか.</p>
+<h1 id="gpa-data">合成 GPA の学習用データ</h1>
+<p>回帰式を当てはめた学生と, 新しい学生への予測を評価する学生を, データを読む段階で分けます.
+学習用の学生について GPA と時間の関係を図で確かめ, 奨学生区分を 0 と 1 で式に入れます.
+勉強時間が週 1 時間違う場合の平均 GPA の差を係数から求め, 式が学習用の GPA をどの範囲でよく表すかを図で確かめます.</p>
+<p>この <a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch11/multiple_regression.csv">CSV</a> には, <a href="../../../fields/regression/reg-multiple/index.html#partial-coefficients">偏回帰係数とそろえる条件</a>で述べた仕組みで作った架空の学生 100 人分のデータが入っています.
+奨学生区分は質的変数で, GPA と 3 種類の時間は量的変数です.</p>
+<table>
+<thead>
+<tr class="header">
+<th>列</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>GPA</code></td>
+<td>GPA (0〜4 点)</td>
+</tr>
+<tr class="even">
+<td><code>Scholarship</code></td>
+<td>奨学生かどうか (<code>True</code> または <code>False</code>)</td>
+</tr>
+<tr class="odd">
+<td><code>Study_Hours</code></td>
+<td>週あたりの勉強時間 (時間)</td>
+</tr>
+<tr class="even">
+<td><code>Part_time_Work</code></td>
+<td>週あたりのアルバイト時間 (時間)</td>
+</tr>
+<tr class="odd">
+<td><code>Sports_hours</code></td>
+<td>週あたりの運動時間 (時間)</td>
+</tr>
+</tbody>
+</table>
+<p>CSV をダウンロードしてコードと同じフォルダに置き, そのフォルダからコードを実行してください.
+先頭列は CSV の保存時に書き出された行番号です.
+<code>index_col=0</code> で行のインデックスとして読み込みます.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> statsmodels.formula.api <span class="im">as</span> smf</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> train_test_split</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.preprocessing <span class="im">import</span> MinMaxScaler, StandardScaler</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> statsmodels.graphics.regressionplots <span class="im">import</span> plot_partregress_grid</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> statsmodels.stats.outliers_influence <span class="im">import</span> variance_inflation_factor</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">&quot;multiple_regression.csv&quot;</span>, index_col<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>train, test <span class="op">=</span> train_test_split(df, test_size<span class="op">=</span><span class="fl">0.3</span>, random_state<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Training: </span><span class="sc">{</span><span class="bu">len</span>(train)<span class="sc">}</span><span class="ss">, held out: </span><span class="sc">{</span><span class="bu">len</span>(test)<span class="sc">}</span><span class="ss">&quot;</span>)</span></code></pre></div>
+<pre class="text"><code>Training: 70, held out: 30</code></pre>
+<p>読み込んだ直後に最終評価用の 30 人を取り分けます.
+<code>random_state=0</code> は分割を再現するための指定です.
+残った 70 人 (<code>train</code>) で図と表を作り, 回帰式を求めます.</p>
+<p>学習用データの先頭 4 行を表示します. 1 行が学生 1 人に対応し, 左端の数字は元の行番号です.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(train.head(<span class="dv">4</span>).to_string(float_format<span class="op">=</span><span class="kw">lambda</span> value: <span class="ss">f&quot;</span><span class="sc">{</span>value<span class="sc">:.2f}</span><span class="ss">&quot;</span>))</span></code></pre></div>
+<pre class="text"><code>    GPA  Scholarship  Study_Hours  Sports_hours  Part_time_Work
+60 0.45         True         4.34          5.72           15.74
+80 3.37         True        13.16          9.63           12.30
+90 0.00        False         3.80          3.54           17.70
+68 1.82        False        11.03          6.03           14.48</code></pre>
   <nav class="chapter-nav-card">
     <a class="prev" href="../../../fields/regression/reg-multiple/exercises.html" rel="prev">
         <span class="nav-label">← Previous</span>
         <span class="nav-title">演習 (重回帰分析と偏回帰係数)</span>
     </a>
-    <a class="next" href="../../../fields/regression/reg-gpa/gpa-data.html" rel="next">
+    <a class="next" href="../../../fields/regression/reg-gpa/gpa-exploration.html" rel="next">
         <span class="nav-label">Next →</span>
-        <span class="nav-title">合成 GPA の学習用データ</span>
+        <span class="nav-title">学習用データの散布図と相関</span>
     </a>
 </nav>
 

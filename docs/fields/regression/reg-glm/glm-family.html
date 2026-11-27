@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+    <script>
+      (function () {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+        function stored() {
+          var t = null;
+          try { t = localStorage.getItem('theme'); } catch (e) {}
+          return (t === 'dark' || t === 'light') ? t : null;
+        }
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
+        if (mq) {
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
+        }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
+      })();
+    </script>
+    <title>yakagika - 一般化線形モデルの全体像</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../../../style.css?v=1795746252">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../../../" class="site-brand" aria-label="Home">
+          <span class="site-mark" aria-hidden="true">▮</span>
+          <span class="site-word">yakagika</span>
+        </a>
+      </div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../../../">Home</a>
+      <a href="../../../posts.html">Blog</a>
+      <a href="../../../lectures.html">Lecture</a>
+      <a href="../../../research.html">Research</a>
+      <a href="../../../lectures/seminar.html">Seminar</a>
+      <a href="../../../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      
+      <div id="lecture-toc" data-mode="series">
+  <h2>Index</h2>
+  <a href="../../../fields/regression/index.html">回帰分析</a>
+  <ul class="toc-root">
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/regression/reg-intro/index.html">回帰分析とは何か</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/regression/reg-ols/index.html">回帰分析は何を行っているのか</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/regression/reg-simple/index.html">単回帰分析</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/regression/reg-multiple/index.html">重回帰分析と偏回帰係数</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/regression/reg-gpa/index.html">重回帰分析</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/regression/reg-prediction/index.html">予測とは何か</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/regression/reg-evaluate/index.html">未使用のデータで予測の誤差を測る</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/regression/reg-causal/index.html">因果推論とは何か</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/regression/reg-selection/index.html">モデル選択</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/regression/reg-selection-gpa/index.html">目的ごとに変数を選ぶ</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/regression/reg-selection-more/index.html">その他のモデル選択の手法と選んだ後の推論</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/regression/reg-selection-lab/index.html">変数選択の結果を実験で確かめる</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item current-block">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/regression/reg-glm/index.html">一般化線形モデル</a>
+        
+      </div>
+      
+      <ul class="toc-sublist">
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/regression/reg-glm/index.html">二値の応答の平均と確率</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/regression/reg-glm/glm-components.html">一般化線形モデルの 3 つの要素</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item current">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/regression/reg-glm/glm-family.html" aria-current="page">一般化線形モデルの全体像</a>
+          </div>
+          <ul class="toc-sublist"></ul>
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/regression/reg-glm/logistic-regression.html">ロジスティック回帰</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/regression/reg-glm/odds-ratio.html">ロジスティック回帰の係数とオッズ比</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/regression/reg-glm/exercises.html">演習</a>
+          </div>
+          
+        </li>
+        
+      </ul>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/regression/reg-logit/index.html">ロジスティック回帰分析</a>
+        
+      </div>
+      
+    </li>
+    
+  </ul>
+</div>
+
+    </nav>
+
+    <div id="content">
+    
+<nav class="block-course-nav" aria-label="講義の並び">
+  <p>講義の並び</p>
+  <ul>
+    
+    <li class="course-occurrence">
+      <a href="../../../courses/dsp/index.html">データサイエンス実践</a>
+      <a href="../../../courses/dsp/5/reg-intro.html">第 5 回</a> (発展)
+      
+      <a href="../../../fields/regression/reg-selection-lab/index.html" rel="prev">← 変数選択の結果を実験で確かめる</a>
+      
+      
+      
+      <a href="../../../fields/regression/reg-logit/index.html" rel="next">ロジスティック回帰分析 →</a>
+      
+      
+    </li>
+    
+  </ul>
+</nav>
+
+
+
+<article>
+  
+  <h1 id="glm-family">一般化線形モデルの全体像</h1>
+<nav class="block-field-nav block-field-nav-narrow" aria-label="分野の目次">
+  <a href="../../../fields/regression/index.html">回帰分析</a>
+  <ol>
+    
+    <li>
+      
+      <a href="../../../fields/regression/reg-intro/index.html">回帰分析とは何か</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/regression/reg-ols/index.html">回帰分析は何を行っているのか</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/regression/reg-simple/index.html">単回帰分析</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/regression/reg-multiple/index.html">重回帰分析と偏回帰係数</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/regression/reg-gpa/index.html">重回帰分析</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/regression/reg-prediction/index.html">予測とは何か</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/regression/reg-evaluate/index.html">未使用のデータで予測の誤差を測る</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/regression/reg-causal/index.html">因果推論とは何か</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/regression/reg-selection/index.html">モデル選択</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/regression/reg-selection-gpa/index.html">目的ごとに変数を選ぶ</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/regression/reg-selection-more/index.html">その他のモデル選択の手法と選んだ後の推論</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/regression/reg-selection-lab/index.html">変数選択の結果を実験で確かめる</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <strong><a href="../../../fields/regression/reg-glm/index.html" aria-current="true">一般化線形モデル</a></strong>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/regression/reg-logit/index.html">ロジスティック回帰分析</a>
+      
+      
+    </li>
+    
+  </ol>
+</nav>
+<nav class="chapter-nav-card">
+    <a class="prev" href="../../../fields/regression/reg-glm/glm-components.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">一般化線形モデルの 3 つの要素</span>
+    </a>
+    <a class="next" href="../../../fields/regression/reg-glm/logistic-regression.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">ロジスティック回帰</span>
+    </a>
+</nav>
+
+<p><a href="../../../fields/regression/reg-glm/glm-components.html#glm-components">一般化線形モデルの 3 つの要素</a>のうち, 線形予測子は目的変数の種類によらず同じ形です.
+目的変数に合わせて選ぶのは, 応答の分布とリンク関数の組です.
+<span class="citation" data-cites="kubo2012mcmc">久保 (<a href="#ref-kubo2012mcmc" role="doc-biblioref">2012, p. 34</a>)</span> は, 分布を選ぶときにデータで確かめる点として, 説明したい量が離散か連続か, 値の範囲, 標本分散と標本平均の関係の 3 つを挙げています.
+例えば, 欠席回数は離散 (0 以上の整数) で上限が決まっておらず, 通学時間は連続で 0 より大きい値だけをとります.</p>
+<p>次の図は, 3 つの要素の関係と, 目的変数の種類ごとに選ぶ分布とリンク関数を並べた模式図です.
+下段の 4 つの小さな図は, 説明変数と平均の関係の形 (赤の線) と観測値の散らばり方 (灰色の点) を描いたもので, 実データではありません.</p>
+<figure>
+<img src="../../../images/fields/regression/reg-glm/glm-overview.png" class="wide" alt="一般化線形モデルの 3 つの要素と, 目的変数の種類ごとの応答の分布とリンク関数を示す模式図" />
+<figcaption aria-hidden="true">一般化線形モデルの 3 つの要素と, 目的変数の種類ごとの応答の分布とリンク関数を示す模式図</figcaption>
+</figure>
+<p>図に挙げた組と, 個数のばらつきが大きいときに使う負の二項分布をまとめると, 次の表になります.
+表は, <span class="citation" data-cites="kubo2012mcmc">久保 (<a href="#ref-kubo2012mcmc" role="doc-biblioref">2012</a>)</span> の分布の一覧 [p. 34] と, 分布ごとによく使うリンク関数の表 [表 6.1, p. 114] をもとに, 目的変数の例と呼び名を本稿で加えたものです.</p>
+<table style="width:100%;">
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+<col style="width: 16%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>目的変数の例</th>
+<th>値の種類と範囲</th>
+<th>応答の分布</th>
+<th>分散と平均の関係</th>
+<th>よく使うリンク関数</th>
+<th>呼び名</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>テストの点数の前回との差</td>
+<td>連続値. 負の値もとる</td>
+<td>正規分布</td>
+<td>分散は平均と関係なく決まる</td>
+<td>恒等 <span class="math inline">g(\mu)=\mu</span></td>
+<td>線形回帰</td>
+</tr>
+<tr class="even">
+<td>単位を取得したか (n 回のうちの成功回数)</td>
+<td>0 か 1 (0 から n の整数)</td>
+<td>二項分布 (n=1 のときはベルヌーイ分布)</td>
+<td>分散は平均で決まる</td>
+<td>ロジット <span class="math inline">g(p)=\log\{p/(1-p)\}</span> (<span class="math inline">p</span> は成功の確率)</td>
+<td>ロジスティック回帰</td>
+</tr>
+<tr class="odd">
+<td>1 学期の欠席回数</td>
+<td>0 以上の整数. 上限は決まっていない</td>
+<td>ポアソン分布</td>
+<td>分散は平均に等しい</td>
+<td>対数 <span class="math inline">g(\mu)=\log\mu</span></td>
+<td>ポアソン回帰</td>
+</tr>
+<tr class="even">
+<td>欠席回数で, ばらつきがポアソン分布より大きいとき</td>
+<td>0 以上の整数</td>
+<td>負の二項分布</td>
+<td>分散は平均より大きい</td>
+<td>対数</td>
+<td>負の二項回帰</td>
+</tr>
+<tr class="odd">
+<td>通学時間</td>
+<td>正の連続値</td>
+<td>ガンマ分布</td>
+<td>平均が大きいほど分散も大きい</td>
+<td>対数</td>
+<td>ガンマ回帰</td>
+</tr>
+</tbody>
+</table>
+<p>表のどの行でも線形予測子は同じ形で, 応答の分布とリンク関数が異なります.
+例えば, 勉強時間 <span class="math inline">x_{i1}</span> とアルバイト時間 <span class="math inline">x_{i2}</span> を説明変数にすると, ロジスティック回帰と線形回帰はどちらも線形予測子 <span class="math inline">\beta_0+\beta_1x_{i1}+\beta_2x_{i2}</span> を使います.
+前者はベルヌーイ分布とロジット, 後者は正規分布と恒等リンクを使います.</p>
+<div class="note">
+<p><strong>正準リンク関数</strong></p>
+<p>分布ごとに, 推定の計算で扱いやすいリンク関数が 1 つ決まっていて, <strong>正準リンク関数</strong>と呼ばれます.
+<span class="citation" data-cites="kubo2012mcmc">久保 (<a href="#ref-kubo2012mcmc" role="doc-biblioref">2012, pp. 48, 114</a>)</span> によると, 二項分布ではロジット, ポアソン分布では対数, 正規分布では恒等が正準リンク関数で, 表のリンク関数もこれに一致します.
+ガンマ分布の正準リンク関数は逆数 <span class="math inline">g(\mu)=1/\mu</span> ですが, 同書は対数リンクほど使いやすくないとして, よく使うリンク関数に対数を挙げています.</p>
+</div>
+<h2 id="log-link-effects">対数リンクと掛け算で表れる効果</h2>
+<p>ポアソン回帰, 負の二項回帰, ガンマ回帰で使う対数リンクでは, 平均は線形予測子を指数関数に通した値です.</p>
+<p><span class="math display">
+\mu_i=\exp(\beta_0+\beta_1x_{i1}+\beta_2x_{i2})
+=\exp(\beta_0)\times\exp(\beta_1x_{i1})\times\exp(\beta_2x_{i2}).
+</span></p>
+<p>指数関数の値は正なので, 係数がどんな値でも平均は 0 より大きくなります.
+<span class="math inline">x_{i2}</span> が同じで <span class="math inline">x_{i1}</span> だけが 1 大きい観測を比べると, 平均は <span class="math inline">\exp(\beta_1)</span> 倍になります.
+線形回帰の係数が平均の差を表すのに対し, 対数リンクの係数は平均の比を表します.
+<span class="citation" data-cites="kubo2012mcmc">久保 (<a href="#ref-kubo2012mcmc" role="doc-biblioref">2012, pp. 48, 58–60</a>)</span> は, 植物の体の大きさが 1 増えると種子数の平均が約 1.08 倍になる例で, 対数リンクでは要因の効果が掛け算で平均に及ぶことを示しています.
+同じデータに恒等リンクを使うと, 効果は足し算になり, 平均が負になりうる別のモデルになることも示しています.
+ロジスティック回帰では, 同じ読み方がオッズについて成り立ちます. 読み方は<a href="../../../fields/regression/reg-glm/odds-ratio.html#odds-ratio">ロジスティック回帰の係数とオッズ比</a>で扱います.</p>
+<div class="warn">
+<p>目的変数を対数変換してから線形回帰を当てはめることは, 対数リンクの一般化線形モデルとは別のモデルです <span class="citation" data-cites="kubo2012mcmc">(<a href="#ref-kubo2012mcmc" role="doc-biblioref">久保, 2012, pp. 63, 114–115</a>)</span>.
+対数変換した線形回帰は <span class="math inline">\log Y</span> の平均を一次式で表し, 対数リンクは <span class="math inline">Y</span> の平均の対数を一次式で表します.
+個数のように 0 をとる目的変数は, 対数変換そのものができません.</p>
+</div>
+<div class="note">
+<p><strong>割合を目的変数にしないためのオフセット項</strong></p>
+<p>調べた面積や時間の長さ <span class="math inline">A_i</span> が観測ごとに違うとき, 個数 <span class="math inline">y_i</span> を <span class="math inline">A_i</span> で割った密度を目的変数にしたくなります.
+<span class="citation" data-cites="kubo2012mcmc">久保 (<a href="#ref-kubo2012mcmc" role="doc-biblioref">2012, pp. 130–131</a>)</span> は, このような割り算の値を使うと, 1000 打数 300 安打と 10 打数 3 安打を同じ 3 割として扱うように情報が失われ, 割り算の値がどの分布に従うかも分からなくなると述べています.
+代わりに, 平均の個数を面積と単位面積あたりの平均の積で表します <span class="citation" data-cites="kubo2012mcmc">(<a href="#ref-kubo2012mcmc" role="doc-biblioref">久保, 2012, pp. 132–133</a>)</span>.</p>
+<p><span class="math display">
+\mu_i=A_i\exp(\beta_0+\beta_1x_i)=\exp(\beta_0+\beta_1x_i+\log A_i).
+</span></p>
+<p>この式は対数リンクのポアソン回帰で, 線形予測子に係数の付かない項 <span class="math inline">\log A_i</span> が加わります.
+この項を<strong>オフセット項</strong>と呼びます.</p>
+</div>
+<h2 id="一般化線形モデルで表せないばらつき">一般化線形モデルで表せないばらつき</h2>
+<p>一般化線形モデルでは, 説明変数の値が同じ観測は同じ分布に従うと考えます.
+<span class="citation" data-cites="kubo2012mcmc">久保 (<a href="#ref-kubo2012mcmc" role="doc-biblioref">2012, pp. 148–151</a>)</span> は, 二項分布で期待されるより大きなばらつきを<strong>過分散</strong>と呼び, その原因を, データとして測っていない個体差に求めています.
+同書は, 個体ごとの差 <span class="math inline">r_i</span> を線形予測子に加え, <span class="math inline">r_i</span> が平均 0 の正規分布に従うとしたモデルを<strong>一般化線形混合モデル</strong> (GLMM) として説明しています <span class="citation" data-cites="kubo2012mcmc">(<a href="#ref-kubo2012mcmc" role="doc-biblioref">久保, 2012, pp. 151–152</a>)</span>.
+また, 線形モデルから一般化線形モデル, 一般化線形混合モデル, 階層ベイズモデルへと順に拡張する道筋を示しています <span class="citation" data-cites="kubo2012mcmc">(<a href="#ref-kubo2012mcmc" role="doc-biblioref">久保, 2012, p. 6</a>)</span>.
+学生ごとの差を加えたモデルの例は, <a href="../../../fields/bayes/bayes-modeling/overdispersion.html#overdispersion">過分散と個体差</a>と<a href="../../../fields/bayes/bayes-modeling/modeling-individual-variation.html#modeling-individual-variation">個体差のモデリング</a>にあります.</p>
+<p>全体像の表のうち, 次の節では 0 か 1 の目的変数に使うロジスティック回帰を詳しく扱います.
+架空の学生 200 人のデータで係数を推定する手順は<a href="../../../fields/regression/reg-logit/index.html">ロジスティック回帰分析</a>にあります.</p>
+<h2 id="bibliography">参考文献</h2>
+<div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" data-line-spacing="2" role="list">
+<div id="ref-kubo2012mcmc" class="csl-entry" role="listitem">
+久保拓弥. (2012). <span class="ja-title">『データ解析のための統計モデリング入門: 一般化線形モデル・階層ベイズモデル・MCMC』</span>. 岩波書店.
+</div>
+</div>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../fields/regression/reg-glm/glm-components.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">一般化線形モデルの 3 つの要素</span>
+    </a>
+    <a class="next" href="../../../fields/regression/reg-glm/logistic-regression.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">ロジスティック回帰</span>
+    </a>
+</nav>
+
+</article>
+
+
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        <nav class="footer-nav" aria-label="フッターナビゲーション">
+            <a href="../../../">Home</a>
+            <a href="../../../posts.html">Blog</a>
+            <a href="../../../lectures.html">Lecture</a>
+            <a href="../../../research.html">Research</a>
+            <a href="../../../rss.xml">RSS</a>
+            <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+        </nav>
+        <p class="footer-copy">&copy; yakagika &middot; Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>.</p>
+    </div>
+</div>
+
+
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="ページ先頭へ戻る" title="先頭へ戻る">↑</button>
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+            link.classList.add('external-link');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level;
+          switch (heading.tagName.toLowerCase()) {
+            case 'h2': level = 0; break;
+            case 'h3': level = 1; break;
+            case 'h4': level = 2; break;
+            default: return;
+          }
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          // Pandoc は `::: note` + 見出し の組み合わせを <section id="..." class="note">
+          // 内の <hN> として出力するため, 見出し自身に id が無い場合は
+          // 親 section の id を辿る.
+          var anchorId = heading.id;
+          if (!anchorId) {
+            var parentSection = heading.closest('section[id]');
+            if (parentSection) anchorId = parentSection.id;
+          }
+          anchor.href = '#' + anchorId;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi && !li.contains(currentLi)) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+
+      // ----------------------------------------
+      // スクロールスパイ: 表示中の見出しを TOC でハイライト
+      // ----------------------------------------
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0 || typeof IntersectionObserver === 'undefined') return;
+
+      var idToTocItem = new Map();
+      headings.forEach(function(h) {
+        if (!h.id) return;
+        var link = tocContainer.querySelector('a[href="#' + CSS.escape(h.id) + '"]');
+        if (link) {
+          var li = link.closest('.toc-item') || link.closest('li');
+          if (li) idToTocItem.set(h.id, li);
+        }
+      });
+
+      var visible = new Set();
+      var lastActive = null;
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+
+        // ドキュメント順で最初に可視な見出しをアクティブに
+        var firstVisible = null;
+        for (var i = 0; i < headings.length; i++) {
+          if (visible.has(headings[i].id)) {
+            firstVisible = headings[i].id;
+            break;
+          }
+        }
+        if (!firstVisible) return;
+
+        var tocItem = idToTocItem.get(firstVisible);
+        if (!tocItem || tocItem === lastActive) return;
+
+        if (lastActive) lastActive.classList.remove('toc-active');
+        tocItem.classList.add('toc-active');
+        lastActive = tocItem;
+
+        // TOC を必要なときだけスクロール
+        tocItem.scrollIntoView({
+          block: 'nearest',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
+      }, {
+        // ヘッダー (60px) を除いた上部 〜 画面下から60% を判定領域とする
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0
+      });
+
+      headings.forEach(function(h) { if (h.id) observer.observe(h); });
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
+      const pre = codeBlock.parentNode;
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
+      copyButton.textContent = 'Copy';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    // パスワード保護付き details (回答例用)
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll('details.protected').forEach(function (det) {
+        var pass = det.getAttribute('data-pass') || '';
+        var summary = det.querySelector('summary');
+        if (!summary) return;
+
+        var gate = document.createElement('div');
+        gate.className = 'pass-gate';
+        gate.innerHTML =
+          '<label>合言葉: <input type="password" autocomplete="off" spellcheck="false"></label>' +
+          '<button type="button">解除</button>' +
+          '<span class="pass-error" hidden>合言葉が違います</span>';
+        summary.insertAdjacentElement('afterend', gate);
+
+        var input = gate.querySelector('input');
+        var button = gate.querySelector('button');
+        var errorMsg = gate.querySelector('.pass-error');
+
+        function tryUnlock() {
+          if (input.value === pass) {
+            det.classList.add('unlocked');
+            errorMsg.hidden = true;
+          } else {
+            errorMsg.hidden = false;
+            input.select();
+          }
+        }
+
+        button.addEventListener('click', tryUnlock);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
+        });
+
+        det.addEventListener('toggle', function () {
+          if (det.open && !det.classList.contains('unlocked')) {
+            input.focus();
+          }
+        });
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            try {
+              katex.render( texText.data
+                          , mathElements[i]
+                          , { displayMode: mathElements[i].classList.contains("display")
+                            , throwOnError: true
+                           }
+                          );
+            } catch (e) {
+              // 1 つの数式のエラーで残り全ての数式が生 TeX のまま残らないようにする
+              console.error('KaTeX render error:', e.message, texText.data);
+            }
+          }
+      }
+    });
+  </script>
+
+  <!-- 見出しアンカーリンク + Back to top -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 記事見出しに hover で現れる # パーマリンクを付与
+      document.querySelectorAll('article h2[id], article h3[id]').forEach(function (h) {
+        var a = document.createElement('a');
+        a.className = 'heading-anchor';
+        a.href = '#' + h.id;
+        a.setAttribute('aria-label', 'このセクションへのリンク');
+        a.textContent = '#';
+        h.appendChild(a);
+      });
+
+      // Back to top: スクロール量に応じて表示
+      var btt = document.getElementById('back-to-top');
+      if (btt) {
+        var onScroll = function () {
+          if (window.pageYOffset > 600) btt.classList.add('visible');
+          else btt.classList.remove('visible');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        btt.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
+    });
+  </script>
+
+  </body>
+</html>

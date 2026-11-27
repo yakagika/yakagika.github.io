@@ -56,7 +56,7 @@
     <title>yakagika - 未使用のデータで予測の誤差を測る</title>
 
     <!-- Stylesheets. -->
-    <link rel="stylesheet" type="text/css" href="../../../style.css?v=1795493883">
+    <link rel="stylesheet" type="text/css" href="../../../style.css?v=1795746252">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
@@ -191,17 +191,9 @@
         <li class="toc-item toc-series-item current">
           <div class="toc-row">
             <span class="toc-toggle">▾</span>
-            <a href="../../../fields/regression/reg-evaluate/index.html" aria-current="page">導入</a>
+            <a href="../../../fields/regression/reg-evaluate/index.html" aria-current="page">合成 GPA の読み込みと分割</a>
           </div>
           <ul class="toc-sublist"></ul>
-        </li>
-        
-        <li class="toc-item toc-series-item no-children">
-          <div class="toc-row">
-            <span class="toc-toggle">▾</span>
-            <a href="../../../fields/regression/reg-evaluate/regression-train-test.html">合成 GPA の読み込みと分割</a>
-          </div>
-          
         </li>
         
         <li class="toc-item toc-series-item no-children">
@@ -280,7 +272,7 @@
     <li class="toc-item toc-series-item no-children">
       <div class="toc-row">
         <span class="toc-toggle">▾</span>
-        <a href="../../../fields/regression/reg-glm/index.html">一般化線形モデルと二値の応答</a>
+        <a href="../../../fields/regression/reg-glm/index.html">一般化線形モデル</a>
         
       </div>
       
@@ -418,7 +410,7 @@
     
     <li>
       
-      <a href="../../../fields/regression/reg-glm/index.html">一般化線形モデルと二値の応答</a>
+      <a href="../../../fields/regression/reg-glm/index.html">一般化線形モデル</a>
       
       
     </li>
@@ -439,9 +431,9 @@
         <span class="nav-label">← Previous</span>
         <span class="nav-title">演習 (予測とは何か)</span>
     </a>
-    <a class="next" href="../../../fields/regression/reg-evaluate/regression-train-test.html" rel="next">
+    <a class="next" href="../../../fields/regression/reg-evaluate/mse-sklearn.html" rel="next">
         <span class="nav-label">Next →</span>
-        <span class="nav-title">合成 GPA の読み込みと分割</span>
+        <span class="nav-title">scikit-learn による MSE と RMSE の計算</span>
     </a>
 </nav>
 
@@ -462,14 +454,64 @@
 残りの 70 人で回帰式を当てはめ, 取り分けた学生について予測の誤差と区間を調べます.</p>
 <p>式に入れる変数はデータを見る前に問いから決めたので, ここで測るのは, 決めた式の予測の誤差です.
 変数の選び方まで含めて評価するときは, 変数を選ぶ前にテストデータを取り分けます. その手順は<a href="../../../fields/regression/reg-selection-gpa/selection-prediction.html#selection-prediction">予測: 交差検証で選び, テストデータで 1 回だけ評価する</a>で扱います.</p>
+<h1 id="regression-train-test">合成 GPA の読み込みと分割</h1>
+<p><a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/ch11/multiple_regression.csv"><code>multiple_regression.csv</code></a> には, 合成した 100 人分のデータが入っています.
+CSV をダウンロードしてコードと同じフォルダに置き, そのフォルダからコードを実行してください.
+先頭列は CSV の保存時に書き出された行番号です.
+<code>index_col=0</code> で行のインデックスとして読み込みます.
+読み込みから作図まで, 各節のコードを同じ Python セッションで順に実行します.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> matplotlib.pyplot <span class="im">as</span> plt</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> statsmodels.formula.api <span class="im">as</span> smf</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.metrics <span class="im">import</span> mean_squared_error</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sklearn.model_selection <span class="im">import</span> train_test_split</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> pd.read_csv(<span class="st">&quot;multiple_regression.csv&quot;</span>, index_col<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>train, test <span class="op">=</span> train_test_split(df, test_size<span class="op">=</span><span class="fl">0.3</span>, random_state<span class="op">=</span><span class="dv">0</span>)</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="ss">f&quot;Training: </span><span class="sc">{</span><span class="bu">len</span>(train)<span class="sc">}</span><span class="ss">, held out: </span><span class="sc">{</span><span class="bu">len</span>(test)<span class="sc">}</span><span class="ss">&quot;</span>)</span></code></pre></div>
+<pre class="text"><code>Training: 70, held out: 30</code></pre>
+<p><code>test_size=0.3</code> は 3 割をテストデータに取る指定で, <code>random_state=0</code> は分割を再現するための指定です.
+この例では説明変数を先に定め, 係数を求めるのに訓練データの 70 人を使います.
+テストデータは, その式の評価に使います.</p>
+<table>
+<thead>
+<tr class="header">
+<th>列</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>GPA</code></td>
+<td>GPA (0〜4 点)</td>
+</tr>
+<tr class="even">
+<td><code>Scholarship</code></td>
+<td>奨学生かどうか (<code>True</code> または <code>False</code>)</td>
+</tr>
+<tr class="odd">
+<td><code>Study_Hours</code></td>
+<td>週あたりの勉強時間 (時間)</td>
+</tr>
+<tr class="even">
+<td><code>Part_time_Work</code></td>
+<td>週あたりのアルバイト時間 (時間)</td>
+</tr>
+<tr class="odd">
+<td><code>Sports_hours</code></td>
+<td>週あたりの運動時間 (時間, 演習で使用)</td>
+</tr>
+</tbody>
+</table>
   <nav class="chapter-nav-card">
     <a class="prev" href="../../../fields/regression/reg-prediction/exercises.html" rel="prev">
         <span class="nav-label">← Previous</span>
         <span class="nav-title">演習 (予測とは何か)</span>
     </a>
-    <a class="next" href="../../../fields/regression/reg-evaluate/regression-train-test.html" rel="next">
+    <a class="next" href="../../../fields/regression/reg-evaluate/mse-sklearn.html" rel="next">
         <span class="nav-label">Next →</span>
-        <span class="nav-title">合成 GPA の読み込みと分割</span>
+        <span class="nav-title">scikit-learn による MSE と RMSE の計算</span>
     </a>
 </nav>
 
