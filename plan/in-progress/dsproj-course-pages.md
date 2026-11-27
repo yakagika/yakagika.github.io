@@ -49,7 +49,7 @@ next_action: "本人が共通理解を確認したら, 講義の並び courses/d
 | データの取得 | 補足 A〜C を分野「データの取得」へ移す (今回の作業に含める) |
 | カテゴリーデータ | 調査データの分野へ統合する. 事実の確認で, 旧第16章の内容は調査データの分野の 3 ブロック (survey-design, survey-analysis, survey-sem) に移行済みと分かった. 今回はリンクするだけ |
 | 時系列解析 | 新しい分野として足す. 今回の作業に含めない. 2027 年 4 月 (開講) までの作業として再編計画に記録する. それまでは旧第17章へリンクする |
-| 検定 | 推測統計学の分野 (未執筆. データ活用の統計学の資料から移す. 再編計画の Phase 3) に統合する. それまでは旧第10章へリンクする |
+| 検定 | 推測統計学の分野 (未執筆. データ活用の統計学の資料から移す. 計画 probability-inference-fields) に統合する. 旧第10章は見出しだけで本文が無い (2026-11-27 確認) ので, 分野を公開するまで検定の参照は置かない |
 | 共通資料と参考資料 | 後で統合して整理する (本人. 再編計画に記録する) |
 
 ## 設計
@@ -117,7 +117,7 @@ next_action: "本人が共通理解を確認したら, 講義の並び courses/d
 ## 進捗と再開の手順 (2026-11-27)
 
 - 講義のページは隔離 worktree `.claude/worktrees/dsproj` (branch `feat/dsproj-course`) で書いている. 並行 session が `publish.sh` (`git add --all`) を走らせても書きかけが公開されないようにするため. WIP commit eb729066: `courses/dsproj/{guide,common,llm,question}.md` と `images/courses/dsproj/question-{center,chain}.{svg,png}` (rsvg-convert -w 1920).
-- 残り: `courses/dsproj/plan.md` (旧 slds2 を土台. 図 `/images/slds/ch2/{data-science-flow,info-to-model,purpose-method-data}.png` を再利用. 「妥協」の段を逆の方針に. 過去の研究事例のリスト. 演習 DSPJ5-1 事例を読む, DSPJ5-2 目的・データ・手法), `courses/dsproj/writing.md` (骨子, 作成中. 年間の締切, 論文の構成, LLM の出力を制御して使う, LaTeX 資料へのリンク), `courses/dsproj.yaml` (6 回の materials と supplements `id: reference` (出力は `/courses/dsproj/reference.html`). intro で時系列 `/lectures/slds17.html` と検定 `/lectures/slds10.html` へ旧資料としてリンク. blocks は全分野 + data-acquisition).
+- 残り: `courses/dsproj/plan.md` (旧 slds2 を土台. 図 `/images/slds/ch2/{data-science-flow,info-to-model,purpose-method-data}.png` を再利用. 「妥協」の段を逆の方針に. 過去の研究事例のリスト. 演習 DSPJ5-1 事例を読む, DSPJ5-2 目的・データ・手法), `courses/dsproj/writing.md` (骨子, 作成中. 年間の締切, 論文の構成, LLM の出力を制御して使う, LaTeX 資料へのリンク), `courses/dsproj.yaml` (6 回の materials と supplements `id: reference` (出力は `/courses/dsproj/reference.html`). intro で時系列 `/lectures/slds17.html` へ旧資料としてリンク (検定の旧第10章は本文が無いのでリンクしない. 推測統計の分野を公開したらそのブロックへリンクする). blocks は全分野 + data-acquisition).
 - 書いたページのリンク: `material:<名前>#id` 形式, `/lectures/agent.html#sandbox-と承認` `#分からないまま承認しない` `#文献の本文確認` `#差分の説明`, `/fields/data-acquisition/index.html` (codex の land 後に存在). 引用キー `mullaney2023research` (p. 35, pp. 98-99), `gregersen2020questions`.
 - 文献: papers へ handoff 済み (chain `haskell-blog-2026-11-27T11-03-32-909643-…`, mechanical). papers の待ち受け session は不在で未処理. 公開前に `scripts/make_lecture_bib.sh` で 2 件が出ることを確かめる.
 - データの取得の分野: codex (Sol) が完了, STOP なし. clone `~/.isolated-checkouts/ea-codex-blog-data-acquisition` (branch `codex/data-acquisition-field`), 報告は session の task 出力 (bo9239jga). 未受領: 差分の確認 (Sonnet subagent に変更範囲と規約適合を pass/fail で), clone で commit, worktree へ取り込み, build.
