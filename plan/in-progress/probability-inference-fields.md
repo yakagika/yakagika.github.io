@@ -5,7 +5,7 @@ created: 2026-11-27
 updated: 2026-11-27
 priority: medium
 next_actor: agent
-next_action: "codex の第7回の変換 (prob-variable, prob-discrete. slug prob-ch7, log は _scratch/prob-inf/out-prob-ch7.log) を受け入れて land する. 次に第7回の図と第8回の変換"
+next_action: "codex の第7回の変換 (slug prob-ch7, log _scratch/prob-inf/out-prob-ch7.log) と第8回の変換 (slug prob-ch8, ブロック 4-6, log _scratch/prob-inf/out-prob-ch8.log) を受け入れて land する. 次に第7回と第8回の図"
 ---
 
 # 参考資料に確率と確率分布, 推測統計の 2 分野を加える
