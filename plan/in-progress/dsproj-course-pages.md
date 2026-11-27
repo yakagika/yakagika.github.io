@@ -4,8 +4,8 @@ status: in-progress
 created: 2026-11-27
 updated: 2026-11-27
 priority: high
-next_actor: user
-next_action: "本人が判断する: (a) 風水の引用の頁 (Kindle で調べるか, 頁なしか, 旧機で探すか), (b) 囲みが 1 つも無いページを警告する検査を足すか, (c) 公開の go. 実装は worktree の commit 13e792a9 と 4b6aa6c2 で済み (節「通読の後の指示」の小節「実装の結果」)"
+next_actor: claude
+next_action: "codex の独立レビュー (scratchpad の consult-dsproj-r2.out) を裁定して worktree に反映し, 本人に報告する. 風水の引用の頁は本人が Kindle で調べて伝える (papers へ全文取り込みも依頼済み). 公開は頁が分かり本人の go が出てから"
 ---
 
 # データサイエンスプロジェクト (旧 特別講義データサイエンス) の講義のページを作る
@@ -203,6 +203,12 @@ next_action: "本人が判断する: (a) 風水の引用の頁 (Kindle で調べ
 - plan.md の新しい節の ID は `#search-literature`. 囲みは warn (解説のページは出典が少なく, 出典をたどる) と note (有料の論文は教員か図書館に相談) を新しく書いた. question.md の 3 回の例にも note (言葉を元のまま載せた理由) を新しく書いた. 3 件とも独立レビューを通っていない.
 - question.md の note「手順の時間, 問いの数, 繰り返しの回数は, 本科目での設定です.」は, 回数を外したので「手順の時間と問いの数, 1 回目を講義で行い 2 回目から自分で繰り返す進め方は, 本科目での設定です.」に書き換えた.
 - 4b6aa6c2: 教員の例の次の課題は一覧の問いそのものでなく, 問いをもとに立て直したもの (スライド 19, 21, 23). 手順 6 を「記録した問いをもとに新しい課題を 1 つ立てる (そのまま使っても, 言い直しても構わない)」に直し, 進め方の段落, DSPJ4-1, 例の文を合わせた. 図 `question-chain` の見出しを「n 回目の問いから立てた課題」に直して PNG を作り直し, 図の説明に「課題と問いは短く言い換えている」と足した (図の中の課題の文言は言い換えのまま). 地の文の短い引用を原文の「重要」だとか「意味がある」に合わせた. plan の #data-question の「一連の作業として」を一覧の言葉に合わせた.
+
+### 報告の後の本人の判断 (2026-11-27)
+
+- 風水の引用の頁: 本人が Kindle で調べる. 加えて「全文取り込みも依頼しておいて下さい」. papers へ handoff 済み (chain_id `haskell-blog-2026-11-27T12-25-38-121789-mullaney2023research-...`: Kindle 全文の md 化, 3 箇所の頁の確認, verification の更新, 結果を blog へ返す).
+- 囲みの検査: 足す. worktree の commit 3aed99a9 (`scripts/check_callouts.py` と test, publish.sh と ci_local.sh に組み込み. 警告だけで止めない). この branch では courses/dsp/scope.md, courses/dsproj/writing.md, fields/deep-learning/nlp-embedding-more.md の 3 件が警告に出る (前の 2 件はリンクの付け替えなど小さな変更, writing.md は骨子だけで囲みの候補を採らなかった).
+- 独立レビュー: codex に出す. 対象は 8a0bfa7b, 13e792a9, 4b6aa6c2 で新しく書いた文 (抜粋 dir `~/.isolated-checkouts/consult-excerpt-7MyD`, 出力は session の scratchpad `consult-dsproj-r2.out`).
 
 ## 変更履歴
 
