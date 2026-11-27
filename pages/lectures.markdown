@@ -85,6 +85,12 @@ title: Lectures
     <span class="series-desc">質問紙調査, 共分散構造分析, 欠損値補定.</span>
     <span class="series-cta">参考資料を見る →</span>
   </a>
+  <a class="series-card" href="fields/data-acquisition/index.html">
+    <span class="series-badge">Data Collection</span>
+    <span class="series-title">データの取得</span>
+    <span class="series-desc">API の基礎と, EDINET, X, YouTube からのデータの取得.</span>
+    <span class="series-cta">参考資料を見る →</span>
+  </a>
 </div>
 ```
 
