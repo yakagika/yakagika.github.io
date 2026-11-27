@@ -5,7 +5,7 @@ created: 2026-11-27
 updated: 2026-11-27
 priority: medium
 next_actor: agent
-next_action: "codex の第8回の変換 (slug prob-ch8, ブロック 4-6, log _scratch/prob-inf/out-prob-ch8.log) を受け入れて land する. 並行して第7回の図 (FIGURE 13 件) を SVG にする"
+next_action: "第8回の図 (FIGURE 18 件, prob-continuous/normal/clt) を codex で SVG にし, 並行してブロック 7 (χ², t, F と導出. 関係図と第9回, 第10回の発展のスライド) を変換する"
 ---
 
 # 参考資料に確率と確率分布, 推測統計の 2 分野を加える
@@ -153,6 +153,12 @@ dir は `fields/probability/` と `fields/inference/`. ブロック名は変換�
 - Obsidian vault の `Knowledge/統計学/` (repo 外)
 
 ## 変更履歴
+
+- 2026-11-27: 連続型確率分布, 正規分布, 中心極限定理 (prob-continuous, prob-normal, prob-clt) を land (6f52732f, open: false). 第8回の 101 枚と第9回の 6, 9-15 を照合. 数値表は計算で作り直し (z は 0 から 4.09), うさぎとドラゴンの例え話 (スライド 66 が翻訳元の動画を明示) は窓口の待ち時間の例に替えた. 第8回のスライド 35 (t 分布の予告) はブロック 7 へ. 図は 18 か所に位置の注釈. 歴史の候補: ガウス分布の名前の経緯, ド・モアブルとラプラスの二項分布の正規近似
+
+- 2026-11-27: 確率変数と離散型確率分布の図 13 枚を land (f71812e1. `scripts/make_prob_ch7_svgs.py`). 差し戻し 1 回 (ウサギの母集団分布が山 2 つで標本と合わない, 目盛りと矢印の重なり)
+
+- 2026-11-27: 確率変数, 離散型確率分布 (prob-variable, prob-discrete) を land (60b2e0cf, open: false). 第7回の 64 枚を照合. 書籍の問題 (スライド 48, 49) は自作に替えた. 歴史の候補: ポアソン分布の軍馬の例 (スライド 52, 53)
 
 - 2026-11-27: 確率の基礎の図 7 枚を land (f35bcd06. `scripts/make_prob_basics_svgs.py` が生成). 差し戻し 1 回 (上付きの c の書体, 白玉と赤玉を文字でも区別)
 
