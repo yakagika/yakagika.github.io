@@ -5,7 +5,7 @@ created: 2026-11-27
 updated: 2026-11-27
 priority: medium
 next_actor: agent
-next_action: "codex 3 本を受け入れて land する: 第8回の図 (prob-ch8-figs), ブロック 7 (prob-ch9, prob-sampling), 推測統計 1-2 (inf-ch9a, inf-population と inf-point). log は _scratch/prob-inf/out-<slug>.log"
+next_action: "codex 2 本を受け入れて land する: ブロック 7 (prob-ch9, prob-sampling) と推測統計 1-2 (inf-ch9a). 次に prob-sampling と推測統計の図 (本文の言及を範囲に入れる), 推測統計 3 (区間推定)"
 ---
 
 # 参考資料に確率と確率分布, 推測統計の 2 分野を加える
@@ -153,6 +153,8 @@ dir は `fields/probability/` と `fields/inference/`. ブロック名は変換�
 - Obsidian vault の `Knowledge/統計学/` (repo 外)
 
 ## 変更履歴
+
+- 2026-11-27: 第8回の図 18 枚を land (d577da08. `scripts/make_prob_ch8_svgs.py`). codex が STOP で, 図の依頼が注釈の行だけを置き換える範囲で, 規約 (図に本文で言及し要点を述べる) を守れないと指摘. 第6回と第7回の図 20 枚にも言及の文を足した. 今後の図の依頼は図の前後の段落を範囲に入れる
 
 - 2026-11-27: 連続型確率分布, 正規分布, 中心極限定理 (prob-continuous, prob-normal, prob-clt) を land (6f52732f, open: false). 第8回の 101 枚と第9回の 6, 9-15 を照合. 数値表は計算で作り直し (z は 0 から 4.09), うさぎとドラゴンの例え話 (スライド 66 が翻訳元の動画を明示) は窓口の待ち時間の例に替えた. 第8回のスライド 35 (t 分布の予告) はブロック 7 へ. 図は 18 か所に位置の注釈. 歴史の候補: ガウス分布の名前の経緯, ド・モアブルとラプラスの二項分布の正規近似
 
