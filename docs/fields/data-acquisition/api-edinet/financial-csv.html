@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+    <script>
+      (function () {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+        function stored() {
+          var t = null;
+          try { t = localStorage.getItem('theme'); } catch (e) {}
+          return (t === 'dark' || t === 'light') ? t : null;
+        }
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
+        if (mq) {
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
+        }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
+      })();
+    </script>
+    <title>yakagika - CSV の構造と整形</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../../../style.css?v=1795753939">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../../../" class="site-brand" aria-label="Home">
+          <span class="site-mark" aria-hidden="true">▮</span>
+          <span class="site-word">yakagika</span>
+        </a>
+      </div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../../../">Home</a>
+      <a href="../../../posts.html">Blog</a>
+      <a href="../../../lectures.html">Lecture</a>
+      <a href="../../../research.html">Research</a>
+      <a href="../../../lectures/seminar.html">Seminar</a>
+      <a href="../../../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      
+      <div id="lecture-toc" data-mode="series">
+  <h2>Index</h2>
+  <a href="../../../fields/data-acquisition/index.html">データの取得</a>
+  <ul class="toc-root">
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/data-acquisition/api-intro/index.html">API によるデータの取得</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item current-block">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/data-acquisition/api-edinet/index.html">EDINET API による財務データの取得と回帰分析</a>
+        
+      </div>
+      
+      <ul class="toc-sublist">
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/data-acquisition/api-edinet/index.html">EDINET とは</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/data-acquisition/api-edinet/edinet-api-key.html">EDINET API キーの取得</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/data-acquisition/api-edinet/edinet-workflow.html">財務データの処理手順</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item current">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/data-acquisition/api-edinet/financial-csv.html" aria-current="page">CSV の構造と整形</a>
+          </div>
+          <ul class="toc-sublist"></ul>
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/data-acquisition/api-edinet/esg-regression.html">回帰分析</a>
+          </div>
+          
+        </li>
+        
+        <li class="toc-item toc-series-item no-children">
+          <div class="toc-row">
+            <span class="toc-toggle">▾</span>
+            <a href="../../../fields/data-acquisition/api-edinet/research-code-pitfalls.html">研究コードでよくある落とし穴</a>
+          </div>
+          
+        </li>
+        
+      </ul>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/data-acquisition/api-x/index.html">X API による投稿の取得</a>
+        
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../../fields/data-acquisition/api-youtube/index.html">YouTube Data API による動画・チャンネルデータの取得</a>
+        
+      </div>
+      
+    </li>
+    
+  </ul>
+</div>
+
+    </nav>
+
+    <div id="content">
+    
+<nav class="block-course-nav" aria-label="講義の並び">
+  <p>講義の並び</p>
+  <ul>
+    
+    <li class="course-occurrence">
+      <a href="../../../courses/dsproj/index.html">データサイエンスプロジェクト (旧 特別講義データサイエンス)</a>
+      <a href="../../../courses/dsproj/reference.html">参考資料</a> (発展)
+      
+      <a href="../../../fields/data-acquisition/api-intro/index.html" rel="prev">← API によるデータの取得</a>
+      
+      
+      
+      <a href="../../../fields/data-acquisition/api-x/index.html" rel="next">X API による投稿の取得 →</a>
+      
+      
+    </li>
+    
+  </ul>
+</nav>
+
+
+
+<article>
+  
+  <h1 id="financial-csv">CSV の構造と整形</h1>
+<nav class="block-field-nav block-field-nav-narrow" aria-label="分野の目次">
+  <a href="../../../fields/data-acquisition/index.html">データの取得</a>
+  <ol>
+    
+    <li>
+      
+      <a href="../../../fields/data-acquisition/api-intro/index.html">API によるデータの取得</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <strong><a href="../../../fields/data-acquisition/api-edinet/index.html" aria-current="true">EDINET API による財務データの取得と回帰分析</a></strong>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/data-acquisition/api-x/index.html">X API による投稿の取得</a>
+      
+      
+    </li>
+    
+    <li>
+      
+      <a href="../../../fields/data-acquisition/api-youtube/index.html">YouTube Data API による動画・チャンネルデータの取得</a>
+      
+      
+    </li>
+    
+  </ol>
+</nav>
+<nav class="chapter-nav-card">
+    <a class="prev" href="../../../fields/data-acquisition/api-edinet/edinet-workflow.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">財務データの処理手順</span>
+    </a>
+    <a class="next" href="../../../fields/data-acquisition/api-edinet/esg-regression.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">回帰分析</span>
+    </a>
+</nav>
+
+<h2 id="edinetのcsvを読む">EDINETのCSVを読む</h2>
+<p>取得した zip には複数の CSV が入っています. 報告書本体はファイル名に <code>jpcrp030000-asr</code> を含む CSV です. この CSV は<strong>カンマ区切りではなく, UTF-16 エンコーディングのタブ区切り</strong>という珍しい形式なので, 読み込み時に明示的に指定します.</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> read_edinet_csv(raw: <span class="bu">bytes</span>) <span class="op">-&gt;</span> pd.DataFrame:</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;EDINET の CSV (UTF-16LE, タブ区切り) を読み込む.&quot;&quot;&quot;</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> pd.read_csv(io.BytesIO(raw), encoding<span class="op">=</span><span class="st">&quot;utf-16&quot;</span>, sep<span class="op">=</span><span class="st">&quot;</span><span class="ch">\t</span><span class="st">&quot;</span>, quotechar<span class="op">=</span><span class="st">'&quot;'</span>)</span></code></pre></div>
+<p>中身は「1 行 = 1 つの値」の縦持ちデータで, 主な列は次の通りです.</p>
+<table>
+<colgroup>
+<col style="width: 33%" />
+<col style="width: 33%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>列</th>
+<th>意味</th>
+<th>例</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>要素ID</td>
+<td>XBRL タクソノミ上の項目 ID</td>
+<td><code>jpcrp_cor:NetSalesSummaryOfBusinessResults</code></td>
+</tr>
+<tr class="even">
+<td>項目名</td>
+<td>項目の日本語名</td>
+<td><code>売上高、経営指標等</code></td>
+</tr>
+<tr class="odd">
+<td>相対年度</td>
+<td>この値がどの期のものか</td>
+<td>当期, 前期, 前々期 …</td>
+</tr>
+<tr class="even">
+<td>連結・個別</td>
+<td>連結財務諸表か個別か</td>
+<td>連結 / 個別</td>
+</tr>
+<tr class="odd">
+<td>値</td>
+<td>値そのもの (文字列)</td>
+<td><code>1234567</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="つの落とし穴と対処">3つの落とし穴と対処</h2>
+<p>この構造には, 分析表を作るときに必ず対処が必要な性質が 3 つあります.</p>
+<p><strong>(1) 1 つの報告書に複数年度の値が入っている.</strong> 有価証券報告書には当期だけでなく過年度 (最大 5 期分) の値が併記されています. 「相対年度」を決算期末の年と組み合わせて<strong>絶対年度</strong>に変換します.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>RELATIVE_MAP <span class="op">=</span> {<span class="st">&quot;当期&quot;</span>: <span class="dv">0</span>, <span class="st">&quot;前期&quot;</span>: <span class="op">-</span><span class="dv">1</span>, <span class="st">&quot;前々期&quot;</span>: <span class="op">-</span><span class="dv">2</span>, ...}</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>base_year <span class="op">=</span> pd.Timestamp(meta[<span class="st">&quot;periodEnd&quot;</span>]).year</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>offset <span class="op">=</span> df[<span class="st">&quot;相対年度&quot;</span>].<span class="bu">map</span>(RELATIVE_MAP)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>df[<span class="st">&quot;年度&quot;</span>] <span class="op">=</span> base_year <span class="op">+</span> offset.astype(<span class="bu">int</span>)</span></code></pre></div>
+<p><strong>(2) 同じ項目 × 年度に複数の行がある.</strong> 連結と個別, 複数のコンテキスト (報告枠) で同じ項目が重複します. 「連結を優先し, 同じならより新しい報告のコンテキストを優先する」というルールで 1 行に絞ります.</p>
+<p><strong>(3) 欠損は欠損のまま残す.</strong> 元のコードには欠損や <code>-</code> を 0 に置き換える処理がありましたが, これは危険です. 「売上が報告されていない」と「売上が 0 円」は全く違う状態であり, 0 に置換すると平均や回帰係数が静かに歪みます. <strong>欠損は NaN のまま運び, 落とすかどうかは分析の直前に変数単位で判断する</strong>のが原則です.</p>
+<p>整形の全体は <a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_code/edinet/build_financial_table.py"><code>build_financial_table.py</code></a> を参照してください. 最終的に <code>pivot_table</code> で「1 行 = 1 企業 1 年度, 列 = 項目」の wide 形式にします.</p>
+<h2 id="financial-indicators">財務指標の計算</h2>
+<h3 id="項目名の揺れと-coalesce">項目名の揺れと coalesce</h3>
+<p>wide 化した表の列名 (EDINET の項目名) は, 企業の会計基準 (日本基準 / IFRS) や年度によって揺れます. 例えば「当期純利益」は <code>当期純利益又は当期純損失（△）（平成26年3月28日財規等改正後）</code> と <code>当期純利益又は当期純損失（△）、経営指標等</code> の少なくとも 2 通りの列に現れます. これに対しては, <strong>候補列を優先順に並べて最初の非欠損値を採用する</strong> (SQL でいう coalesce) のが見通しの良い書き方です.</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>COALESCE <span class="op">=</span> {</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;当期純利益&quot;</span>: [</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;当期純利益又は当期純損失（△）（平成26年3月28日財規等改正後）&quot;</span>,</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>        <span class="st">&quot;当期純利益又は当期純損失（△）、経営指標等&quot;</span>,</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    ],</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;総資産&quot;</span>: [<span class="st">&quot;総資産額、経営指標等&quot;</span>],</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;純資産&quot;</span>: [<span class="st">&quot;純資産額、経営指標等&quot;</span>],</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;売上高&quot;</span>: [<span class="st">&quot;売上高、経営指標等&quot;</span>],</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    ...</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> coalesce(df: pd.DataFrame, candidates: <span class="bu">list</span>[<span class="bu">str</span>]) <span class="op">-&gt;</span> pd.Series:</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;候補列を先頭から順に見て, 最初の非欠損値を採用した Series を返す.&quot;&quot;&quot;</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    result <span class="op">=</span> pd.Series(np.nan, index<span class="op">=</span>df.index, dtype<span class="op">=</span><span class="bu">float</span>)</span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> col <span class="kw">in</span> candidates:</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> col <span class="kw">in</span> df.columns:</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>            result <span class="op">=</span> result.fillna(pd.to_numeric(df[col], errors<span class="op">=</span><span class="st">&quot;coerce&quot;</span>))</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> result</span></code></pre></div>
+<h3 id="指標の定義">指標の定義</h3>
+<p>分析に使う指標は, 会計学の標準的な定義どおりに計算します.</p>
+<p><span class="math display">
+\begin{align*}
+\text{ROA} &amp;= \frac{\text{当期純利益}}{\text{総資産}} \times 100 \\
+\text{売上高総利益率} &amp;= \frac{\text{売上総利益}}{\text{売上高}} \times 100 \\
+\text{営業利益率} &amp;= \frac{\text{営業利益}}{\text{売上高}} \times 100 \\
+\text{売上高経常利益率} &amp;= \frac{\text{経常利益}}{\text{売上高}} \times 100 \\
+\text{総資産回転率} &amp;= \frac{\text{売上高}}{\text{総資産}} \\
+\text{自己資本比率} &amp;= \frac{\text{純資産}}{\text{総資産}} \times 100 \\
+\text{PBR} &amp;= \frac{\text{株価}}{\text{BPS (1株当たり純資産)}}
+\end{align*}
+</span></p>
+<p>経常利益が直接報告されていない場合は, 定義に従って補完します.</p>
+<p><span class="math display">
+\text{経常利益} = \text{営業利益} + \text{営業外収益} - \text{営業外費用}
+</span></p>
+<p>ここで 1 つ教訓があります. 元のコードではこの補完式が <code>営業外収益 - 営業外費用</code> となっており, <strong>営業利益が抜け落ちていました</strong>. また純資産の補完で <code>利益剰余金</code> と <code>繰越利益剰余金</code> (前者に含まれる) を<strong>両方足す二重計上</strong>もありました. 財務指標を自分で計算するときは, 式を会計の定義に照らして 1 つずつ確認してください. プログラムは間違った式でも黙って動きます.</p>
+<p>なお, 厳密には自己資本比率の分子は純資産から新株予約権等を除いた「自己資本」ですが, ここでは簡略化して純資産を用いています (論文・レポートでは定義を明記すること).</p>
+<p>実装は <a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_code/edinet/compute_indicators.py"><code>compute_indicators.py</code></a> を参照してください.</p>
+<h2 id="stock-prices">株価の取得</h2>
+<p>株価は <code>yfinance</code> ライブラリ (Yahoo Finance) から取得します. ここでの設計ポイントは 2 つです.</p>
+<p><strong>(1) ティッカーは証券コードから機械的に作る.</strong> 東証上場銘柄の Yahoo Finance でのティッカーは「4 桁の証券コード + <code>.T</code>」(例: トヨタ自動車 7203 → <code>7203.T</code>) です. EDINET のメタデータで保存した <code>secCode</code> (5 桁, 末尾 0) から決定的に変換できます.</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> to_ticker(sec_code: <span class="bu">str</span>) <span class="op">-&gt;</span> <span class="bu">str</span> <span class="op">|</span> <span class="va">None</span>:</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;EDINET の証券コード (5 桁, 末尾 0) を Yahoo Finance のティッカーに変換する.&quot;&quot;&quot;</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    code <span class="op">=</span> <span class="bu">str</span>(sec_code).strip().split(<span class="st">&quot;.&quot;</span>)[<span class="dv">0</span>]</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">len</span>(code) <span class="op">==</span> <span class="dv">5</span> <span class="kw">and</span> code.endswith(<span class="st">&quot;0&quot;</span>):</span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>        code <span class="op">=</span> code[:<span class="dv">4</span>]</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">len</span>(code) <span class="op">!=</span> <span class="dv">4</span>:</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">None</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="ss">f&quot;</span><span class="sc">{</span>code<span class="sc">}</span><span class="ss">.T&quot;</span></span></code></pre></div>
+<p>元のコードは企業名で Yahoo の検索 API を叩いてティッカーを推定していましたが, 検索は<strong>同名・類似名の別会社に誤マッチする</strong>可能性があり, 検証も困難です. コードという一意な識別子があるなら, 名前による検索はそもそも不要です.</p>
+<p><strong>(2) 「期末日以前の直近営業日」の終値を使う.</strong> 元のコードは「3 月 31 日の株価」を固定で取っていましたが, 3 月 31 日は年によって土日 (市場休場日) であり, その年は株価が欠損 → 欠損処理で企業ごと消える, という事故が起きていました. さらに決算期末は企業によって 3 月とは限りません. そこで索引に保存した <code>periodEnd</code> (その企業の実際の決算期末) を使い, それ以前の直近営業日の終値を取ります.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> close_asof(prices: pd.DataFrame, date: pd.Timestamp) <span class="op">-&gt;</span> <span class="bu">float</span> <span class="op">|</span> <span class="va">None</span>:</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;date 以前の直近営業日の終値を返す (期末日が休日でも欠損しない).&quot;&quot;&quot;</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>    upto <span class="op">=</span> prices.loc[prices.index <span class="op">&lt;=</span> date]</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> upto.empty:</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>        <span class="cf">return</span> <span class="va">None</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> <span class="bu">float</span>(upto[<span class="st">&quot;Close&quot;</span>].iloc[<span class="op">-</span><span class="dv">1</span>])</span></code></pre></div>
+<p>実装は <a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_code/edinet/fetch_prices.py"><code>fetch_prices.py</code></a> を参照してください.</p>
+<h2 id="join-external-data">外部データとの結合</h2>
+<h3 id="証券コードを使った結合">証券コードを使った結合</h3>
+<p>ここまでで「財務指標」「株価」が揃いました. 分析にはさらに「業種分類」, 研究によっては「ESG スコア」のような外部データを<strong>結合 (merge)</strong> します. このパイプライン最大の教訓がここにあります.</p>
+<p>元のコードは, すべての結合を<strong>企業名の文字列</strong>で行っていました. 企業名には <code>株式会社</code> の有無, 全角/半角, 中黒の有無など無数の表記ゆれがあり, 元コードには表記ゆれを吸収する正規化関数が <strong>3 つのファイルに 3 種類</strong> 実装されていました. それでも一致しない企業は黙って脱落します. どの企業がなぜ落ちたかは, 後からはほとんど追跡できません.</p>
+<p>対して本稿のパイプラインでは, 取得時に確保した<strong>証券コード</strong>ですべてを結合します.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> normalize_sec_code(s: pd.Series) <span class="op">-&gt;</span> pd.Series:</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;証券コードを 4 桁の文字列に揃える (EDINET は 5 桁, JPX は 4 桁).&quot;&quot;&quot;</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    code <span class="op">=</span> s.astype(<span class="bu">str</span>).<span class="bu">str</span>.strip().<span class="bu">str</span>.split(<span class="st">&quot;.&quot;</span>).<span class="bu">str</span>[<span class="dv">0</span>]</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> code.where(code.<span class="bu">str</span>.<span class="bu">len</span>() <span class="op">!=</span> <span class="dv">5</span>, code.<span class="bu">str</span>[:<span class="dv">4</span>])</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> fin.merge(prices[[<span class="st">&quot;code4&quot;</span>, <span class="st">&quot;年度&quot;</span>, <span class="st">&quot;株価&quot;</span>]], on<span class="op">=</span>[<span class="st">&quot;code4&quot;</span>, <span class="st">&quot;年度&quot;</span>], how<span class="op">=</span><span class="st">&quot;left&quot;</span>)</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>df <span class="op">=</span> df.merge(industry[[<span class="st">&quot;code4&quot;</span>, <span class="st">&quot;33業種区分&quot;</span>, <span class="st">&quot;産業大分類&quot;</span>]], on<span class="op">=</span><span class="st">&quot;code4&quot;</span>, how<span class="op">=</span><span class="st">&quot;left&quot;</span>)</span></code></pre></div>
+<p>一般化すると: <strong>複数のデータソースを突き合わせるときは, 最初の取得段階で共通の識別子 (コード) を確保し, 名前のような表示用文字列をキーにしない.</strong> 識別子が存在しないデータ同士を名前で結合せざるを得ない場合もありますが, その場合も「何件が一致しなかったか」を必ず数えて報告してください.</p>
+<p><strong>業種分類 (JPX)</strong></p>
+<p>業種は東京証券取引所の <strong>33 業種区分</strong>を使います. JPX (日本取引所グループ) が公表する <a href="https://www.jpx.co.jp/markets/statistics-equities/misc/01.html">東証上場銘柄一覧</a> に証券コードと業種区分が含まれているので, ダウンロードして「コード」「33業種区分」の 2 列を <code>data/jpx_industry.csv</code> として保存してください. 33 業種のままでは業種あたりのサンプルが少なすぎるため, スクリプト内で 10 程度の大分類に集約しています (製造業系の 17 業種を「製造業」にまとめる, など).</p>
+<h2 id="esgスコア">ESGスコア</h2>
+<p><a href="../../../fields/data-acquisition/api-edinet/index.html#edinet-overview">EDINET を使った研究事例</a>では FTSE Russell の ESG スコアを用いていますが, これは<strong>商用データであり再配布できません</strong>. そのため本稿で示すコードでは ESG スコアを任意入力としています. <code>data/esg_scores.csv</code> (<code>secCode</code>, <code>年度</code>, <code>ESGスコア</code> の 3 列) を置けば自動で結合され, 無ければ ESG 抜きのデータが作られます.</p>
+<p>パイプラインを最後 (回帰分析) まで動かす練習用に, <strong>乱数で生成した合成 ESG スコア</strong>を配布します: <a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_data/a1/esg_scores_synthetic.csv">esg_scores_synthetic.csv</a> (全上場銘柄 × 2021-2025 年度, 一様乱数 1-5). ダウンロードして <code>data/esg_scores.csv</code> という名前で置いてください.</p>
+<div class="warn">
+<p>配布データが乱数なのは, 実データ (FTSE Russell) が商用で再配布できないためです. <strong>乱数スコアはどの財務指標とも無関係に作られている</strong>ので, これを使った分析結果に実質的な意味はありません (<a href="../../../fields/data-acquisition/api-edinet/esg-regression.html#esg-regression">回帰分析</a>で説明するように, 係数が 0 に近くなるのが正しい結果です). あくまでコードの動作確認用と理解してください. 研究で ESG スコアを使いたい場合は, 利用可能なデータソースと利用条件を必ず確認してください (大学で契約しているデータベースの有無は教員に相談).</p>
+</div>
+<p>実装は <a href="https://github.com/yakagika/yakagika.github.io/blob/main/slds_code/edinet/merge_all.py"><code>merge_all.py</code></a> を参照してください.</p>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../../fields/data-acquisition/api-edinet/edinet-workflow.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">財務データの処理手順</span>
+    </a>
+    <a class="next" href="../../../fields/data-acquisition/api-edinet/esg-regression.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">回帰分析</span>
+    </a>
+</nav>
+
+</article>
+
+
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        <nav class="footer-nav" aria-label="フッターナビゲーション">
+            <a href="../../../">Home</a>
+            <a href="../../../posts.html">Blog</a>
+            <a href="../../../lectures.html">Lecture</a>
+            <a href="../../../research.html">Research</a>
+            <a href="../../../rss.xml">RSS</a>
+            <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+        </nav>
+        <p class="footer-copy">&copy; yakagika &middot; Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>.</p>
+    </div>
+</div>
+
+
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="ページ先頭へ戻る" title="先頭へ戻る">↑</button>
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+            link.classList.add('external-link');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level;
+          switch (heading.tagName.toLowerCase()) {
+            case 'h2': level = 0; break;
+            case 'h3': level = 1; break;
+            case 'h4': level = 2; break;
+            default: return;
+          }
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          // Pandoc は `::: note` + 見出し の組み合わせを <section id="..." class="note">
+          // 内の <hN> として出力するため, 見出し自身に id が無い場合は
+          // 親 section の id を辿る.
+          var anchorId = heading.id;
+          if (!anchorId) {
+            var parentSection = heading.closest('section[id]');
+            if (parentSection) anchorId = parentSection.id;
+          }
+          anchor.href = '#' + anchorId;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi && !li.contains(currentLi)) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+
+      // ----------------------------------------
+      // スクロールスパイ: 表示中の見出しを TOC でハイライト
+      // ----------------------------------------
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0 || typeof IntersectionObserver === 'undefined') return;
+
+      var idToTocItem = new Map();
+      headings.forEach(function(h) {
+        if (!h.id) return;
+        var link = tocContainer.querySelector('a[href="#' + CSS.escape(h.id) + '"]');
+        if (link) {
+          var li = link.closest('.toc-item') || link.closest('li');
+          if (li) idToTocItem.set(h.id, li);
+        }
+      });
+
+      var visible = new Set();
+      var lastActive = null;
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+
+        // ドキュメント順で最初に可視な見出しをアクティブに
+        var firstVisible = null;
+        for (var i = 0; i < headings.length; i++) {
+          if (visible.has(headings[i].id)) {
+            firstVisible = headings[i].id;
+            break;
+          }
+        }
+        if (!firstVisible) return;
+
+        var tocItem = idToTocItem.get(firstVisible);
+        if (!tocItem || tocItem === lastActive) return;
+
+        if (lastActive) lastActive.classList.remove('toc-active');
+        tocItem.classList.add('toc-active');
+        lastActive = tocItem;
+
+        // TOC を必要なときだけスクロール
+        tocItem.scrollIntoView({
+          block: 'nearest',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
+      }, {
+        // ヘッダー (60px) を除いた上部 〜 画面下から60% を判定領域とする
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0
+      });
+
+      headings.forEach(function(h) { if (h.id) observer.observe(h); });
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
+      const pre = codeBlock.parentNode;
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
+      copyButton.textContent = 'Copy';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    // パスワード保護付き details (回答例用)
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll('details.protected').forEach(function (det) {
+        var pass = det.getAttribute('data-pass') || '';
+        var summary = det.querySelector('summary');
+        if (!summary) return;
+
+        var gate = document.createElement('div');
+        gate.className = 'pass-gate';
+        gate.innerHTML =
+          '<label>合言葉: <input type="password" autocomplete="off" spellcheck="false"></label>' +
+          '<button type="button">解除</button>' +
+          '<span class="pass-error" hidden>合言葉が違います</span>';
+        summary.insertAdjacentElement('afterend', gate);
+
+        var input = gate.querySelector('input');
+        var button = gate.querySelector('button');
+        var errorMsg = gate.querySelector('.pass-error');
+
+        function tryUnlock() {
+          if (input.value === pass) {
+            det.classList.add('unlocked');
+            errorMsg.hidden = true;
+          } else {
+            errorMsg.hidden = false;
+            input.select();
+          }
+        }
+
+        button.addEventListener('click', tryUnlock);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
+        });
+
+        det.addEventListener('toggle', function () {
+          if (det.open && !det.classList.contains('unlocked')) {
+            input.focus();
+          }
+        });
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            try {
+              katex.render( texText.data
+                          , mathElements[i]
+                          , { displayMode: mathElements[i].classList.contains("display")
+                            , throwOnError: true
+                           }
+                          );
+            } catch (e) {
+              // 1 つの数式のエラーで残り全ての数式が生 TeX のまま残らないようにする
+              console.error('KaTeX render error:', e.message, texText.data);
+            }
+          }
+      }
+    });
+  </script>
+
+  <!-- 見出しアンカーリンク + Back to top -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 記事見出しに hover で現れる # パーマリンクを付与
+      document.querySelectorAll('article h2[id], article h3[id]').forEach(function (h) {
+        var a = document.createElement('a');
+        a.className = 'heading-anchor';
+        a.href = '#' + h.id;
+        a.setAttribute('aria-label', 'このセクションへのリンク');
+        a.textContent = '#';
+        h.appendChild(a);
+      });
+
+      // Back to top: スクロール量に応じて表示
+      var btt = document.getElementById('back-to-top');
+      if (btt) {
+        var onScroll = function () {
+          if (window.pageYOffset > 600) btt.classList.add('visible');
+          else btt.classList.remove('visible');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        btt.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
+    });
+  </script>
+
+  </body>
+</html>

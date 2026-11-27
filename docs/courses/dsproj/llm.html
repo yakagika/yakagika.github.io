@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+
+    <!-- ダークモード: OS の配色設定 (prefers-color-scheme) に追従する.
+         localStorage['theme'] に手動選択 (ヘッダの Light/Dark トグル) があれば
+         そちらを優先. 描画前に <html> へ .dark を付けるため <head> の早い位置で
+         同期実行する (FOUC 回避). CSS 側は html.dark で暗色トークンを定義している. -->
+    <script>
+      (function () {
+        var mq = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)');
+
+        function stored() {
+          var t = null;
+          try { t = localStorage.getItem('theme'); } catch (e) {}
+          return (t === 'dark' || t === 'light') ? t : null;
+        }
+        function current() { return stored() || ((mq && mq.matches) ? 'dark' : 'light'); }
+
+        function paint(mode) {
+          document.documentElement.classList.toggle('dark', mode === 'dark');
+          var btns = document.querySelectorAll('.theme-toggle button');
+          for (var i = 0; i < btns.length; i++) {
+            btns[i].setAttribute('aria-pressed',
+              btns[i].getAttribute('data-theme') === mode ? 'true' : 'false');
+          }
+        }
+
+        paint(current());
+
+        // 明示選択が無い間だけ OS 設定に追従する
+        if (mq) {
+          var onChange = function () { if (!stored()) paint(current()); };
+          if (mq.addEventListener) mq.addEventListener('change', onChange);
+          else if (mq.addListener) mq.addListener(onChange);
+        }
+
+        window.__setTheme = function (mode) {
+          try { localStorage.setItem('theme', mode); } catch (e) {}
+          paint(mode);
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+          paint(current());  // ボタンの aria-pressed を初期同期
+          document.querySelectorAll('.theme-toggle button').forEach(function (b) {
+            b.addEventListener('click', function () {
+              window.__setTheme(b.getAttribute('data-theme'));
+            });
+          });
+        });
+      })();
+    </script>
+    <title>yakagika - LLM を使った研究の進め方</title>
+
+    <!-- Stylesheets. -->
+    <link rel="stylesheet" type="text/css" href="../../style.css?v=1795753939">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- M PLUS 1 Code: 和文も等幅. 本文もコードも同一書体で組む.
+         未収録の稀な字だけ Noto Sans JP へ落ちる (base.css の --font-mono). -->
+    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+1+Code:wght@400;500;700&family=Noto+Sans+JP:wght@400;700&display=swap" rel="stylesheet">
+    <!-- RSS. -->
+    <link rel="alternate" type="application/rss+xml" title="yakagika" href="https://yakagika.github.io/rss.xml">
+
+    <!-- Metadata. -->
+
+    <meta name="keywords" content="yakagika Haskell ExchangeAlgebra">
+    <meta name="description" content="Personal home page and blog of yakagika.">
+    
+
+    
+      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css" integrity="sha384-Xi8rHCmBmhbuyyhbI88391ZKP2dmfnOl4rT9ZfRI7mLTdk1wblIUnrIq35nqwEvC" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js" integrity="sha384-X/XCfMm41VSsqRNQgDerQczD69XqmjOOOwYQvr/uuC+j4OPoNhVgjdGFwhvN02Ja" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js" integrity="sha384-+XBljXPPiv+OzfbB3cVmLHf4hdUFHlWNZN5spNQ7rmHTXpd7WvJum6fIACpNNfIR" crossorigin="anonymous" onload="renderMathInElement(document.body);"></script>
+    
+
+    
+  </head>
+
+  <body>
+
+    <!-- ハンバーガーメニューのボタン（小画面時に表示） -->
+     <!-- ヘッダーを上部に固定し、その中にハンバーガーを配置 -->
+    <header class="site-header">
+      <div class="site-title">
+        <a href="../../" class="site-brand" aria-label="Home">
+          <span class="site-mark" aria-hidden="true">▮</span>
+          <span class="site-word">yakagika</span>
+        </a>
+      </div>
+      <div class="header-right">
+        <div class="theme-toggle" role="group" aria-label="配色">
+          <button type="button" data-theme="light" aria-pressed="true">Light</button>
+          <button type="button" data-theme="dark" aria-pressed="false">Dark</button>
+        </div>
+        <div class="hamburger" onclick="toggleMenu()" aria-label="メニュー" aria-expanded="false" role="button" tabindex="0">☰</div>
+      </div>
+    </header>
+
+    <!-- メニュー展開時のオーバーレイ -->
+    <div id="menu-overlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- ナビゲーションに drawer-menu クラスを付与 -->
+    <nav id="navigation" class="drawer-menu" aria-label="サイトナビゲーション">
+      <h2>Contents</h2>
+      <a href="../../">Home</a>
+      <a href="../../posts.html">Blog</a>
+      <a href="../../lectures.html">Lecture</a>
+      <a href="../../research.html">Research</a>
+      <a href="../../lectures/seminar.html">Seminar</a>
+      <a href="../../contact.html">Contact</a>
+      <!-- <a href="/cv.html">CV</a> -->
+
+      <h2>Links</h2>
+      <a href="http://github.com/yakagika" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+
+      
+      
+      <div id="lecture-toc" data-mode="series">
+  <h2>Index</h2>
+  <a href="../../courses/dsproj/index.html">データサイエンスプロジェクト (旧 特別講義データサイエンス)</a>
+  <ul class="toc-root">
+    
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../courses/dsproj/guide.html">第 1 回 本資料の読み方と, 特別講義との違い</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../courses/dsproj/common.html">第 2 回 共通資料による準備</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item current-block current">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../courses/dsproj/llm.html" aria-current="page">第 3 回 LLM を使った研究の進め方</a>
+      </div>
+      
+      <ul class="toc-sublist">
+        
+      </ul>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../courses/dsproj/question.html">第 4 回 問いの立て方</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../courses/dsproj/plan.html">第 5 回 研究計画</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../courses/dsproj/writing.html">第 6 回 論文と発表 (作成中)</a>
+      </div>
+      
+    </li>
+    
+    <li class="toc-item toc-series-item no-children">
+      <div class="toc-row">
+        <span class="toc-toggle">▾</span>
+        <a href="../../courses/dsproj/reference.html">参考資料</a>
+      </div>
+      
+    </li>
+    
+  </ul>
+</div>
+
+    </nav>
+
+    <div id="content">
+    
+<article>
+  <header class="article-header">
+    <a href="../../courses/dsproj/index.html">データサイエンスプロジェクト (旧 特別講義データサイエンス)</a>
+    <h1 class="article-title">LLM を使った研究の進め方</h1>
+  </header>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../courses/dsproj/common.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">共通資料による準備</span>
+    </a>
+    <a class="next" href="../../courses/dsproj/question.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">問いの立て方</span>
+    </a>
+</nav>
+
+  <h2 id="conditions">LLM を研究に使う条件</h2>
+<p>本科目では, 研究のすべての段階で LLM を使って構いません. 問いを広げる, 先行研究を探す, 分析のプログラムを書く, 論文の原稿を書く, といった作業です. その代わりに, LLM が出した結果を研究に使うには条件があります.</p>
+<p><strong>LLM が出した結果は, 自分が内容を理解し, 人に説明できる範囲でだけ研究に使います.</strong> 説明できない結果は, 分析の結果が出ていても研究の成果として採用しません. 説明できるとは, 例えば次の問いに自分の言葉で答えられることです.</p>
+<ul>
+<li>分析のコードの各部分は, データに何をしているか.</li>
+<li>使った分析の手法は, データに何を仮定し, 結果から何が言えて何が言えないか.</li>
+<li>引用した文献は実在し, 自分が引いた主張がその本文に書かれているか.</li>
+<li>論文の各段落は, 何を主張し, その根拠はどの分析結果か.</li>
+</ul>
+<p>本科目は対面の少人数で行います. 教員は研究の進み具合を学生と話しながら確かめ, その中で上の問いを尋ねます. 答えられなかった箇所は, 参考資料や文献で調べ直すか, LLM に説明させてから自分で確かめ直します.</p>
+<h3 id="security">セキュリティとデータの扱い</h3>
+<p>コーディングエージェントは, 作業ディレクトリのファイルを読み, コマンドを実行します. 実行してよい範囲の決め方 (sandbox と承認) と, 意味が分からない操作を承認しないことは, 共通資料の<a href="../../lectures/agent.html#sandbox-と承認">sandbox と承認</a>と<a href="../../lectures/agent.html#分からないまま承認しない">分からないまま承認しない</a>で扱います. 研究を始める前に読んでください.</p>
+<p>研究のデータについては, 次の 2 点を守ります.</p>
+<ul>
+<li><strong>個人に関わるデータは LLM に渡しません.</strong> アンケートの回答などの生データは, LLM に読ませません. 列の名前と型 (数値か, 選択肢か, 自由記述か) だけを伝えてコードを書かせ, そのコードは自分で手元で実行します. エージェントに実行させると, 出力に含まれるデータの行や回答も LLM に渡るからです. LLM に渡してよいのは, 件数や平均などの集計した結果だけです. LLM の多くは外部のサービスで動くので, データを渡すと, 倫理審査で申請したデータの扱い (<a href="../../courses/dsproj/guide.html#ethics">研究倫理と成果の利用</a>) の範囲を超えるおそれがあります.</li>
+<li><strong>コーディングエージェントに作業ディレクトリを任せるときは, データをその外に置きます.</strong> エージェントは作業ディレクトリのファイルを読めるので, 中にデータがあると, 指示していなくても読まれることがあります. コードからは, 作業ディレクトリの外のデータの場所を指定して読み込みます.</li>
+</ul>
+<div class="warn">
+<p>自分で表示を指示していなくても, 実行の出力にデータの行が含まれることがあります. LLM が書いたコードには, 読み込みを確かめるためにデータの先頭の数行を表示する処理が入っていることがあります. 値の変換に失敗したときのエラーの表示にも, データの値が含まれることがあります. 手元で実行したときのエラーを LLM に貼って直し方を尋ねる場合は, 貼る前に, 表示にデータの値が含まれていないかを確かめます.</p>
+</div>
+<p>API キーやパスワードも, LLM への指示や, エージェントが読むファイルに書きません. API キーの扱いは, 参考資料の<a href="../../fields/data-acquisition/index.html">データの取得</a>で扱います.</p>
+<h2 id="stages">研究の各段階での使い方</h2>
+<p>LLM の使い方は, 研究の段階ごとに, 何を LLM に任せ, 何を自分で決めて確かめるかで整理できます.</p>
+<h3 id="questions">問いを広げる</h3>
+<p><a href="../../courses/dsproj/question.html">問いの立て方</a>で扱うクエスチョンバーストは, 1 つの課題について答えを出さずに問いだけを大量に出し, その中から面白い問いを選ぶ方法です. LLM は, 問いを出す相手としても使えます. 頼むときは, 答えや解決策を書かず問いだけを出すように, 指示に明記します. LLM は, 指示しないと答えや解決策も書くことが多いからです. LLM が出した問いのうち, どれを面白いと感じるかは, 本人が決めます.</p>
+<div class="warn">
+<p>研究の出発点は本人の関心なので, LLM に「面白い問いを選んで」と頼んでも, その選択は本人の関心を表しません.</p>
+</div>
+<h3 id="literature">先行研究を探し, 本文を確かめる</h3>
+<p>LLM は, 存在しない文献や, 文献に書かれていない主張を, もっともらしく出力することがあります. そのため, LLM が挙げた文献は, 次の 2 段階で確かめてから使います.</p>
+<ol type="1">
+<li>文献が実在することを, 出版社, 学会, CiNii や Google Scholar などのデータベースで確かめる.</li>
+<li>本文を開き, 自分が引く主張が本文に書かれていることを確かめる.</li>
+</ol>
+<div class="warn">
+<p>検索の結果に出る要旨 (論文の冒頭にある短い要約) や, LLM が作った文献の要約を読んだだけでは, 2 段階目の確認になりません. 要旨には論文の主張の一部しか書かれていません. LLM の要約には, 本文に書かれていない内容が含まれることがあります.</p>
+</div>
+<p>本文を読めない文献は引用しません. 本文の確認をエージェントに手伝わせる手順の例は, 共通資料の<a href="../../lectures/agent.html#skill-繰り返す手順を切り出す">skill: 繰り返す手順を切り出す</a>の 2 つ目の例 (文献の本文確認) にあります. 研究に文献が必要な理由と, 小さな問いを文献で調べる進め方は, 研究計画の<a href="../../courses/dsproj/plan.html#search-literature">小さな問いを文献で調べる</a>にあります.</p>
+<h3 id="analysis">分析のコードを書かせて確かめる</h3>
+<p>分析のコードは LLM に書かせて構いません. ただし, 結果を左右する選択は自分で決めます. どの変数を使うか, どの観測を除くか, どの手法で分析するかです. その理由を研究のノートに記録し, 論文の方法の節に書けるようにします.</p>
+<p>書かせたコードは, 読み込んだデータの行数, 欠損の数, 値の範囲など, 途中の出力を見て確かめます.</p>
+<div class="warn">
+<p>エラーを出さずに最後まで動いたコードでも, 意図どおりに分析しているとは限りません. 例えば, 回帰分析の関数には, 欠損のある行を除いてから計算するものがあります. その場合, 分析に使われた行数は, 読み込んだデータの行数より少なくなります. 途中の出力で 2 つの行数を見比べると, 除かれた行があることが分かります.</p>
+</div>
+<p>使った手法が何を仮定しているかは, <a href="../../courses/dsproj/reference.html">参考資料</a>の対応する資料で確かめます. エージェントが加えた変更は, git の差分で読みます. 読んでも意味が分からない変更は, 共通資料の<a href="../../lectures/agent.html#skill-繰り返す手順を切り出す">skill: 繰り返す手順を切り出す</a>の 1 つ目の例 (差分の説明) のように, 変更箇所ごとにエージェントに説明させてから確かめます.</p>
+<h3 id="manuscript">論文と発表の原稿に使う</h3>
+<p>論文と発表資料の原稿に LLM の出力を使って構いません. ただし, 中身を自分で制御できることが前提です. 主張, 根拠, 数値が自分の分析結果と一致していること, 引用した文献を本文で確かめていることを, 自分で確かめます. 投稿先の学会が LLM の利用について定めている場合は, それに従って利用の仕方を論文に書きます. 書き方と発表の方法は<a href="../../courses/dsproj/writing.html">論文と発表</a>で扱います.</p>
+<h2 id="exercises">演習</h2>
+<h3 id="exercise-dspj3-1">Exercise DSPJ3-1</h3>
+<p><strong>LLM が挙げた先行研究を確かめる</strong></p>
+<p>今の自分の関心 (テーマのままで構いません) について, LLM に先行研究を 5 件挙げさせてください. 各文献について, 書誌 (著者, 題名, 発行年, 掲載誌か出版社) と, 自分のテーマに関係すると LLM が述べる主張を 1 文ずつ挙げさせます. 各文献が実在するか, LLM が述べた主張が本文に書かれているかを確かめ, 次の表にまとめてください.</p>
+<table>
+<thead>
+<tr class="header">
+<th>文献</th>
+<th>実在を確かめた方法</th>
+<th>LLM が述べた主張</th>
+<th>本文で確かめた結果</th>
+</tr>
+</thead>
+<tbody>
+</tbody>
+</table>
+<p>本文で確かめた結果の欄には, 「実在を確かめられない」「実在するが本文を読めない」「本文と主張が一致しない」「主張が本文に書かれている」のどれに当たるかを書きます. 本文を読めなかった文献は読めなかった理由を, 本文を確かめた文献は主張に対応する箇所 (頁か節) を添えてください. 表をもとに, LLM の出力のどこを確かめる必要があったかを, 講義で説明できるようにしておきます.</p>
+  <nav class="chapter-nav-card">
+    <a class="prev" href="../../courses/dsproj/common.html" rel="prev">
+        <span class="nav-label">← Previous</span>
+        <span class="nav-title">共通資料による準備</span>
+    </a>
+    <a class="next" href="../../courses/dsproj/question.html" rel="next">
+        <span class="nav-label">Next →</span>
+        <span class="nav-title">問いの立て方</span>
+    </a>
+</nav>
+
+</article>
+
+
+
+    <div style="clear: both"></div>
+
+    <div id="footer">
+        <nav class="footer-nav" aria-label="フッターナビゲーション">
+            <a href="../../">Home</a>
+            <a href="../../posts.html">Blog</a>
+            <a href="../../lectures.html">Lecture</a>
+            <a href="../../research.html">Research</a>
+            <a href="../../rss.xml">RSS</a>
+            <a href="https://researchmap.jp/k-akagi" target="_blank" rel="noopener">researchmap</a>
+        </nav>
+        <p class="footer-copy">&copy; yakagika &middot; Site generated by
+            <a href="http://jaspervdj.be/hakyll">Hakyll</a>.</p>
+    </div>
+</div>
+
+
+    <button id="back-to-top" class="back-to-top" type="button" aria-label="ページ先頭へ戻る" title="先頭へ戻る">↑</button>
+
+    <!-- GUID -->
+    <div style="display: none">ce0f13b2-4a83-4c1c-b2b9-b6d18f4ee6d2</div>
+
+
+
+
+    <!-- JavaScript TOC generator (only runs on lecture pages) -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var path = window.location.pathname;
+      var navLinks = document.querySelectorAll('.drawer-menu > a');
+      navLinks.forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (href === path || (href === '/' && path === '/index.html')) {
+          link.classList.add('active');
+        }
+      });
+    });
+    </script>
+    <!-- 外部リンクを別タブで開く -->
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll('a[href]').forEach(function(link) {
+        var href = link.getAttribute('href');
+        if (!href) return;
+        if (href.charAt(0) === '#') return;
+        if (/^(mailto:|tel:|javascript:)/i.test(href)) return;
+        try {
+          var url = new URL(href, window.location.href);
+          if (url.host && url.host !== window.location.host) {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+            link.classList.add('external-link');
+          }
+        } catch (e) { /* invalid URL — leave as-is */ }
+      });
+    });
+    </script>
+    <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      var tocContainer = document.getElementById('lecture-toc');
+      if (!tocContainer) return;
+
+      var mode = tocContainer.getAttribute('data-mode') || 'single';
+
+      // メインコンテンツから h2, h3, h4 を抽出して階層ULを返す
+      function buildHeadingsList(content) {
+        var headings = content.querySelectorAll('h2, h3, h4');
+        if (headings.length === 0) return null;
+
+        var rootList = document.createElement('ul');
+        rootList.classList.add('toc-root');
+        var currentULs = [rootList, null, null];
+
+        headings.forEach(function(heading) {
+          if (heading.closest('li')) return;
+
+          var level;
+          switch (heading.tagName.toLowerCase()) {
+            case 'h2': level = 0; break;
+            case 'h3': level = 1; break;
+            case 'h4': level = 2; break;
+            default: return;
+          }
+
+          var parentUL = null;
+          for (var i = level; i >= 0; i--) {
+            if (currentULs[i]) { parentUL = currentULs[i]; break; }
+          }
+          if (!parentUL) parentUL = rootList;
+
+          var li = document.createElement('li');
+          li.classList.add('toc-item', 'toc-level-' + (level + 1));
+
+          var row = document.createElement('div');
+          row.classList.add('toc-row');
+
+          var toggle = document.createElement('span');
+          toggle.classList.add('toc-toggle');
+          toggle.textContent = '▾';
+
+          var anchor = document.createElement('a');
+          // Pandoc は `::: note` + 見出し の組み合わせを <section id="..." class="note">
+          // 内の <hN> として出力するため, 見出し自身に id が無い場合は
+          // 親 section の id を辿る.
+          var anchorId = heading.id;
+          if (!anchorId) {
+            var parentSection = heading.closest('section[id]');
+            if (parentSection) anchorId = parentSection.id;
+          }
+          anchor.href = '#' + anchorId;
+          anchor.textContent = heading.textContent;
+
+          row.appendChild(toggle);
+          row.appendChild(anchor);
+          li.appendChild(row);
+          parentUL.appendChild(li);
+
+          var childUL = document.createElement('ul');
+          childUL.classList.add('toc-sublist');
+          li.appendChild(childUL);
+          currentULs[level + 1] = childUL;
+
+          for (var j = level + 2; j < currentULs.length; j++) {
+            currentULs[j] = null;
+          }
+
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            li.classList.toggle('collapsed');
+          });
+        });
+
+        rootList.querySelectorAll('li.toc-item').forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+            if (sub) sub.remove();
+          }
+        });
+
+        return rootList;
+      }
+
+      // シリーズ項目にトグルクリックのイベントを設定
+      function attachSeriesToggleEvents() {
+        tocContainer.querySelectorAll('.toc-series-item > .toc-row > .toc-toggle').forEach(function(toggle) {
+          toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            toggle.closest('.toc-series-item').classList.toggle('collapsed');
+          });
+        });
+      }
+
+      var content = document.querySelector('article') || document.getElementById('content') || document.body;
+
+      if (mode === 'series') {
+        // シリーズモード: 全章リストは既にサーバーで描画済み
+        // 現在の章のみ見出しを展開
+        var currentLi = tocContainer.querySelector('.toc-series-item.current');
+        var allSeriesItems = tocContainer.querySelectorAll('.toc-series-item');
+
+        if (currentLi) {
+          var sublistContainer = currentLi.querySelector(':scope > ul.toc-sublist');
+          var headingsList = buildHeadingsList(content);
+          if (headingsList && sublistContainer) {
+            // buildHeadingsList の中身を sublistContainer に移す
+            while (headingsList.firstChild) {
+              sublistContainer.appendChild(headingsList.firstChild);
+            }
+          }
+        }
+
+        // 現在の章以外は折りたたむ
+        allSeriesItems.forEach(function(li) {
+          if (li !== currentLi && !li.contains(currentLi)) {
+            li.classList.add('collapsed');
+          }
+        });
+
+        // 子要素のない章 (現在の章で見出しがない場合、および他の章) のトグルは非表示
+        allSeriesItems.forEach(function(li) {
+          var sub = li.querySelector(':scope > ul.toc-sublist');
+          if (!sub || sub.children.length === 0) {
+            li.classList.add('no-children');
+          }
+        });
+
+        attachSeriesToggleEvents();
+      } else {
+        // 単一ページモード (post)
+        var headingsList = buildHeadingsList(content);
+        if (headingsList) {
+          tocContainer.appendChild(headingsList);
+        }
+      }
+
+      // ----------------------------------------
+      // スクロールスパイ: 表示中の見出しを TOC でハイライト
+      // ----------------------------------------
+      var headings = content.querySelectorAll('h2, h3, h4');
+      if (headings.length === 0 || typeof IntersectionObserver === 'undefined') return;
+
+      var idToTocItem = new Map();
+      headings.forEach(function(h) {
+        if (!h.id) return;
+        var link = tocContainer.querySelector('a[href="#' + CSS.escape(h.id) + '"]');
+        if (link) {
+          var li = link.closest('.toc-item') || link.closest('li');
+          if (li) idToTocItem.set(h.id, li);
+        }
+      });
+
+      var visible = new Set();
+      var lastActive = null;
+      var prefersReducedMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) visible.add(e.target.id);
+          else visible.delete(e.target.id);
+        });
+
+        // ドキュメント順で最初に可視な見出しをアクティブに
+        var firstVisible = null;
+        for (var i = 0; i < headings.length; i++) {
+          if (visible.has(headings[i].id)) {
+            firstVisible = headings[i].id;
+            break;
+          }
+        }
+        if (!firstVisible) return;
+
+        var tocItem = idToTocItem.get(firstVisible);
+        if (!tocItem || tocItem === lastActive) return;
+
+        if (lastActive) lastActive.classList.remove('toc-active');
+        tocItem.classList.add('toc-active');
+        lastActive = tocItem;
+
+        // TOC を必要なときだけスクロール
+        tocItem.scrollIntoView({
+          block: 'nearest',
+          behavior: prefersReducedMotion ? 'auto' : 'smooth'
+        });
+      }, {
+        // ヘッダー (60px) を除いた上部 〜 画面下から60% を判定領域とする
+        rootMargin: '-80px 0px -60% 0px',
+        threshold: 0
+      });
+
+      headings.forEach(function(h) { if (h.id) observer.observe(h); });
+    });
+    </script>
+     <script>
+  document.addEventListener("DOMContentLoaded", function() {
+    // すべての <pre><code> 要素を走査
+    const codeBlocks = document.querySelectorAll('pre code');
+    codeBlocks.forEach(function(codeBlock) {
+      // 親<pre>要素を取得 (配置は CSS の .copy-btn / pre 側で行う)
+      const pre = codeBlock.parentNode;
+
+      // コピーボタンを作成
+      const copyButton = document.createElement('button');
+      copyButton.type = 'button';
+      copyButton.className = 'copy-btn';
+      copyButton.textContent = 'Copy';
+
+      // クリックされたらクリップボードにコピー
+      copyButton.addEventListener('click', function() {
+        const codeText = codeBlock.innerText;
+        navigator.clipboard.writeText(codeText).then(function() {
+          copyButton.textContent = 'Copied!';
+          setTimeout(function() {
+            copyButton.textContent = 'Copy';
+          }, 2000);
+        }, function(err) {
+          console.error('Failed to copy: ', err);
+        });
+      });
+
+      // ボタンを <pre> の子要素として挿入
+      pre.appendChild(copyButton);
+    });
+  });
+  </script>
+  <script>
+    function toggleMenu() {
+      var nav = document.getElementById('navigation');
+      var overlay = document.getElementById('menu-overlay');
+      var hamburger = document.querySelector('.hamburger');
+      nav.classList.toggle('open');
+      overlay.classList.toggle('open');
+      var isOpen = nav.classList.contains('open');
+      hamburger.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    }
+  </script>
+  <script>
+    // パスワード保護付き details (回答例用)
+    document.addEventListener("DOMContentLoaded", function () {
+      document.querySelectorAll('details.protected').forEach(function (det) {
+        var pass = det.getAttribute('data-pass') || '';
+        var summary = det.querySelector('summary');
+        if (!summary) return;
+
+        var gate = document.createElement('div');
+        gate.className = 'pass-gate';
+        gate.innerHTML =
+          '<label>合言葉: <input type="password" autocomplete="off" spellcheck="false"></label>' +
+          '<button type="button">解除</button>' +
+          '<span class="pass-error" hidden>合言葉が違います</span>';
+        summary.insertAdjacentElement('afterend', gate);
+
+        var input = gate.querySelector('input');
+        var button = gate.querySelector('button');
+        var errorMsg = gate.querySelector('.pass-error');
+
+        function tryUnlock() {
+          if (input.value === pass) {
+            det.classList.add('unlocked');
+            errorMsg.hidden = true;
+          } else {
+            errorMsg.hidden = false;
+            input.select();
+          }
+        }
+
+        button.addEventListener('click', tryUnlock);
+        input.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); tryUnlock(); }
+        });
+
+        det.addEventListener('toggle', function () {
+          if (det.open && !det.classList.contains('unlocked')) {
+            input.focus();
+          }
+        });
+      });
+    });
+  </script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      var mathElements = document.querySelectorAll('.math');
+      for (var i = 0; i < mathElements.length; i++) {
+        var texText = mathElements[i].firstChild
+        if (mathElements[i].tagName == "SPAN") {
+            try {
+              katex.render( texText.data
+                          , mathElements[i]
+                          , { displayMode: mathElements[i].classList.contains("display")
+                            , throwOnError: true
+                           }
+                          );
+            } catch (e) {
+              // 1 つの数式のエラーで残り全ての数式が生 TeX のまま残らないようにする
+              console.error('KaTeX render error:', e.message, texText.data);
+            }
+          }
+      }
+    });
+  </script>
+
+  <!-- 見出しアンカーリンク + Back to top -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      // 記事見出しに hover で現れる # パーマリンクを付与
+      document.querySelectorAll('article h2[id], article h3[id]').forEach(function (h) {
+        var a = document.createElement('a');
+        a.className = 'heading-anchor';
+        a.href = '#' + h.id;
+        a.setAttribute('aria-label', 'このセクションへのリンク');
+        a.textContent = '#';
+        h.appendChild(a);
+      });
+
+      // Back to top: スクロール量に応じて表示
+      var btt = document.getElementById('back-to-top');
+      if (btt) {
+        var onScroll = function () {
+          if (window.pageYOffset > 600) btt.classList.add('visible');
+          else btt.classList.remove('visible');
+        };
+        window.addEventListener('scroll', onScroll, { passive: true });
+        onScroll();
+        btt.addEventListener('click', function () {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      }
+
+      // 透過図の判定: 実際に透明ピクセルが多い図にだけ .figure-alpha を付ける
+      // (ダークモードで CSS が明色カードを敷く。不透明なスクショ等は対象外)
+      var checkAlpha = function (img) {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) return;
+        try {
+          var s = Math.min(1, 100 / Math.max(w, h));
+          var cw = Math.max(1, Math.round(w * s)), ch = Math.max(1, Math.round(h * s));
+          var c = document.createElement('canvas');
+          c.width = cw; c.height = ch;
+          var ctx = c.getContext('2d');
+          ctx.drawImage(img, 0, 0, cw, ch);
+          var d = ctx.getImageData(0, 0, cw, ch).data;
+          var total = cw * ch, trans = 0;
+          for (var i = 3; i < d.length; i += 4) { if (d[i] < 250) trans++; }
+          if (trans / total > 0.10) img.classList.add('figure-alpha');
+        } catch (e) { /* CORS 等: スキップ */ }
+      };
+      document.querySelectorAll('#content img').forEach(function (img) {
+        if (img.complete && img.naturalWidth) checkAlpha(img);
+        else img.addEventListener('load', function () { checkAlpha(img); });
+      });
+    });
+  </script>
+
+  </body>
+</html>
